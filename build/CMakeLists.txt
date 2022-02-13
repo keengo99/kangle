@@ -5,7 +5,25 @@ file(GLOB KANGLE_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/../module/whm/*.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../module/whm/whmdso/core/*.cpp
     )
-
+file(GLOB EXTWORKER_SOURCE_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/../extworker/*.cpp
+    )
+list(APPEND EXTWORKER_SOURCE_FILES 
+    ../src/EdcodeUtils.cpp 
+    ../src/KHttpExt.cpp 
+    ../src/KApiDso.cpp 
+    ../src/KApiEnv.cpp 
+    ../src/KBuffer.cpp 
+    ../src/KEnvInterface.cpp 
+    ../src/KFastcgiUtils.cpp 
+    ../src/KPipeStream.cpp
+    ../src/KProcess.cpp 
+    ../src/KStream.cpp 
+    ../src/KStringBuf.cpp 
+    ../src/KCgiEnv.cpp 
+    ../src/process.cpp 
+    ../src/KAutoBuffer.cpp
+)
 set(KANGLE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../kasync/include)
 set(KASYNC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../kasync/include)
 list(APPEND KANGLE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src)
@@ -21,6 +39,8 @@ if (CMAKE_SYSTEM_NAME MATCHES "Windows")
     list(APPEND KANGLE_LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../win32lib/${CMAKE_VS_PLATFORM_NAME}")
     list(APPEND KANGLE_LIBS zdll pcre)
     list(APPEND KANGLE_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/../win32lib/win_iconv.cpp")
+    list(APPEND EXTWORKER_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/../win32lib/win_iconv.cpp")
+    list(APPEND EXTWORKER_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/../src/KWinCgiEnv.cpp")
 else()
 #not windows
     check_symbol_exists(LINUX_IOURING ${KASYNC_INCLUDE_DIR}/kasync_config.h HAVE_LINUX_IOURING)
@@ -48,6 +68,12 @@ elseif (CMAKE_SYSTEM_NAME MATCHES "Windows")
 endif()
 
 add_executable(kangle ${KANGLE_SOURCE_FILES})
+add_executable(extworker ${EXTWORKER_SOURCE_FILES})
+
 target_include_directories(kangle PUBLIC ${KANGLE_INCLUDE_DIR})
 target_link_directories(kangle PUBLIC ${KANGLE_LIBS_DIR})
 target_link_libraries(kangle ${KANGLE_LIBS} )
+
+target_include_directories(extworker PUBLIC ${KANGLE_INCLUDE_DIR})
+target_link_directories(extworker PUBLIC ${KANGLE_LIBS_DIR})
+target_link_libraries(extworker ${KANGLE_LIBS} )
