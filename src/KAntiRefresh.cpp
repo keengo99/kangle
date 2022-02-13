@@ -32,7 +32,6 @@
 #include "kmd5.h"
 #include "lib.h"
 #include "KSequence.h"
-#include "KLicense.h"
 #include "KVirtualHostManage.h"
 #include "http.h"
 #include "KAnticcSession.h"

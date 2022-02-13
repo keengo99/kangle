@@ -1,0 +1,24 @@
+<lang>
+	<include file="lang_en.xml" />
+	<include file="lang_zh.xml" />
+	<include file="lang_tw.xml" />
+	<css name='en'>
+		<![CDATA[
+BODY {
+	FONT-SIZE: 9pt;
+}
+TABLE {
+ 	FONT-SIZE: 9pt; 
+}
+A:link {
+	COLOR: #0f0cbf; TEXT-DECORATION: none
+}
+A:visited {
+	TEXT-DECORATION: none
+}
+A:hover {
+	COLOR: red; TEXT-DECORATION: underline
+}	
+ 	]]>
+	</css>
+</lang>

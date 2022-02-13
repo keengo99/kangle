@@ -38,10 +38,7 @@
 #include "kaddr.h"
 #include "HttpFiber.h"
 #include "KPreRequest.h"
-//{{ent
 #include "KAntiRefresh.h"
-#include "KLicense.h"
-//}}
 #include "extern.h"
 #include "lang.h"
 #include "kmd5.h"
@@ -1091,22 +1088,6 @@ bool KHttpManage::sendMainFrame() {
 	}
 	s << "</td></tr>";
 	s << "<tr><td>" << klang["path"] << "</td><td>" << conf.path << "</td></tr>";
-//{{ent	
-#ifndef KANGLE_FREE
-	s << "<tr><td>" << klang["license_id"] << "</td><td>" << license.license.id << "</td></tr>";
-	s << "<tr><td>" << klang["license_name"] << "</td><td>" << license.license.name;
-	if (license.license.expireTime>0) {
-		struct tm tm;
-		time_t licenseExpireTime = (time_t)license.license.expireTime;
-		localtime_r(&licenseExpireTime, &tm);
-		char buf[32];
-		memset(buf,0,sizeof(buf));
-		snprintf(buf,sizeof(buf),"%04d-%02d-%02d",tm.tm_year + 1900,tm.tm_mon + 1,tm.tm_mday);
-		s << "<tr><td>" << klang["license_expiretime"] << "</td><td>" << buf << " [<a href='/update_license.km'>" << klang["update_license"] << "</a>]</td></tr>";
-	}
-	//s << "<tr><td>" << klang["license_status"] << "</td><td>" << "<div id='vl_license'></td></tr>";
-#endif
-//}}
 	s << "</table>";
 	s << "<div id='version_note'></div>";
 	s << "<h3>" << LANG_OBJ_CACHE_INFO << "</h3>";
@@ -1212,23 +1193,6 @@ bool KHttpManage::sendMainFrame() {
 	s << "</td></tr></table>";
 	//	s << "<h3>Connection Infomation</h3><table border=1><tr><td>src_ip</td><td>service|port</td><td>dst_ip</td><td>dst_port</td><td>connect time</td><td>title</td></tr>";
 	s << endTag();
-	s
-			<< "<script language='javascript' src='https://";
-#ifdef KANGLE_DOMAIN
-	s << KANGLE_DOMAIN;
-#else
-	s << "www.kangleweb.net";
-#endif
-	s << "/version_note.php?version="
-			<< VERSION;
-	s << "&type=" << getServerType();
-//{{ent
-#ifndef KANGLE_FREE
-	s << "&license_id=" << license.license.id;
-#endif
-//}}
-	s << "&lang=" << conf.lang;
-	s << "'></script>";
 	s << "</body></html>";
 	return sendHttp(s.str().c_str());
 }

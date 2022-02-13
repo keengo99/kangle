@@ -129,10 +129,6 @@ bool KConfigParser::startElement(std::string &context, std::string &qName,
 		if (it!=attribute.end()) {
 			SAFE_STRCPY(cconf->error_url,(*it).second.c_str());
 		}
-		it = attribute.find("uid");
-		if (it != attribute.end()) {
-			cconf->cdnbest_uid = atoi((*it).second.c_str());
-		}
 		return true;
 	}
 //}}

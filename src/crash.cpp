@@ -7,12 +7,9 @@
 #include "zlib.h"
 #include "KSimulateRequest.h"
 
-//{{ent
 #ifdef _WIN32
 #pragma comment(lib,"netapi32.lib")
 #endif
-#include "KLicense.h"
-//}}
 using namespace std;
 struct kgl_upload_context
 {

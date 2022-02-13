@@ -37,13 +37,10 @@
 #include "KHttpBasicAuth.h"
 #include "KHttpDigestAuth.h"
 #include "HttpFiber.h"
-//{{ent
-#include "KLicense.h"
 #include "KAntiRefresh.h"
 #include "KBigObjectContext.h"
 #include "KHttp2.h"
 #include "KSimulateRequest.h"
-//}}
 #include "time_utils.h"
 #include "kselector_manager.h"
 #include "KFilterContext.h"

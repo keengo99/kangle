@@ -170,7 +170,6 @@ public:
 	int auth_type;
 	int auth_delay;
 	int passwd_crypt;
-	int cdnbest_uid;
 	//白名单时间
 	int wl_time;
 #ifdef ENABLE_ADPP

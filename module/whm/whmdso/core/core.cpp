@@ -26,10 +26,7 @@
 
 #include "whm.h"
 #include "global.h"
-//{{ent
-#include "KLicense.h"
 #include "KReportIp.h"
-//}}
 #include "KVirtualHostManage.h"
 #include "KVirtualHostDatabase.h"
 #include "KHttpManage.h"
@@ -501,12 +498,6 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 			ctx->add("version", VERSION);
 			ctx->add("type",getServerType());
 			ctx->add("os",getOsType());
-//{{ent
-#ifndef KANGLE_FREE
-			ctx->add("license_id",license.license.id);
-			ctx->add("license_name",license.license.name);
-#endif
-//}}
 			int total_run_time = (int)(kgl_current_sec - kgl_program_start_sec);
 			ctx->add("total_run",total_run_time);
 			ctx->add("connect",total_connect);

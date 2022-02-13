@@ -1,0 +1,18 @@
+BODY {
+	FONT-SIZE: 11pt;
+}
+TABLE {
+	FONT-SIZE: 11pt;
+}
+A:link {
+	TEXT-DECORATION: none
+}
+A:visited {
+	TEXT-DECORATION: none
+}
+A:hover {
+	COLOR: red; TEXT-DECORATION: underline
+} 
+.ssl_enabled {
+    COLOR: green
+}

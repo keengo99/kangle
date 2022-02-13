@@ -3,9 +3,6 @@
 #include "utils.h"
 #include "KDynamicString.h"
 #include "kmalloc.h"
-//{{ent
-#include "KLicense.h"
-//}}
 const char *getSystemEnv(const char *name) {
 	if (strncasecmp(name,"env:",4)==0) {
 		const char *value = getenv(name+4);
@@ -44,13 +41,6 @@ const char *getSystemEnv(const char *name) {
 		return "so";
 #endif
 	}
-	//{{ent
-#ifdef KANGLE_ENT
-	if (strcasecmp(name,"license_id") == 0) {
-		return license.license.id.c_str();
-	}
-#endif
-	//}}
 	return NULL;
 }
 KDynamicString::KDynamicString() {

@@ -86,13 +86,11 @@
 #include "KSSLSniContext.h"
 #include "WhmPackageManage.h"
 #include "kfiber.h"
-//{{ent
-#include "KLicense.h"
 #include "KAntiRefresh.h"
 #include "KAttackRequestManager.h"
 #include "KAnticcSession.h"
 void flush_net_request(time_t now_time);
-//}}
+
 
 #ifndef HAVE_DAEMON
 int daemon(int nochdir, int noclose);

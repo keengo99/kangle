@@ -145,6 +145,8 @@
 //{{ent
 #ifndef HTTP_PROXY
 #define ENABLE_CDN_REWRITE         1
+#define KANGLE_ULT                 1
+#define KANGLE_ENT                 1
 #endif
 #ifdef  KANGLE_ENT
 //ent version
@@ -173,7 +175,7 @@
 #endif
 #else
 //windows
-#define KANGLE_FREE                1
+//#define KANGLE_FREE                1
 #define ENABLE_DISK_CACHE          1
 #endif//}}
 

@@ -39,11 +39,8 @@
 #include "kselector_manager.h"
 #include "kmalloc.h"
 #include "KHttpObjectHash.h"
-//{{ent
 #include "KAttackRequestManager.h"
-#include "KLicense.h"
 #include "KAntiRefresh.h"
-//}}
 #include "KSimulateRequest.h"
 #include "KVirtualHostManage.h"
 #include "KProcessManage.h"
@@ -175,14 +172,6 @@ KTHREAD_FUNCTION time_thread(void* arg) {
 #ifdef ENABLE_SIMULATE_HTTP
 	kassert(test_simulate_request());
 #endif
-	//{{ent
-#ifndef KANGLE_FREE
-	if (!license.LoadOrDownload()) {
-		klog(KLOG_ERR, "cann't load license\n");
-		my_exit(0);
-	}
-	register_gc_service(kgl_check_license, NULL);
-#endif//}}
 	//assert(test_timer());
 	unsigned i = rand();
 #ifdef MALLOCDEBUG
@@ -193,10 +182,6 @@ KTHREAD_FUNCTION time_thread(void* arg) {
 	}
 	assert(test());
 #endif
-//{{ent
-#ifdef _WIN32
-	kthread_pool_start(crash_report_thread, NULL);
-#endif//}}
 	time_t nowTime;
 	INT64 now_msec;
 	INT64 last_msec = katom_get64((void *)&kgl_current_msec);

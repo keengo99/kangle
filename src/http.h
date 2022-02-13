@@ -44,10 +44,6 @@
 #include "kselector.h"
 #include "KPathRedirect.h"
 #include "KPushGate.h"
-//{{ent
-#include "KLicense.h"
-//}}
-
 
 enum {
 	LOAD_HEAD_SUCCESS, LOAD_HEAD_FAILED, LOAD_HEAD_RETRY
