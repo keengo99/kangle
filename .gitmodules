@@ -1,0 +1,3 @@
+[submodule "kasync"]
+	path = kasync
+	url = https://github.com/keengo99/kasync
