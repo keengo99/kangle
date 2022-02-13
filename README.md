@@ -1,10 +1,6 @@
 # kangle
 
-
-kangle is a light, high-performance web server/reverse proxy.include a http manage console. Full support access control. memory/disk cache. virtual host can run in seperate process and user. and more kangle web server features
-
-kangle Web Server can improve performance, security and reliability of your server, by a great margin
-
+kangle is a light, high-performance web server/reverse proxy.include a http manage console. Full support access control. memory/disk cache. and more kangle web server features
 * fastcgi/http/http2 protocol upstream
 * upstream keep alive
 * memory and disk cache.
@@ -15,3 +11,17 @@ kangle Web Server can improve performance, security and reliability of your serv
 * on the fly gzip/br2
 * dso extend.
 
+## build from source code
+kangle use cmake to build.
+```git clone https://github.com/keengo99/kangle
+cd kangle
+git submodule init
+git submodule update
+cd kasync/build
+cmake . -DUSE_CXX=ON
+make
+cd ../../build
+cmake .
+make
+```
+## build for windows.
