@@ -1,6 +1,0 @@
-LIBRARY	"anticc"
-
-EXPORTS
-	kgl_filter_init
-	kgl_filter_process
-	kgl_filter_finit
