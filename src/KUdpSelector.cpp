@@ -1,5 +1,6 @@
 #include "KUdpSelector.h"
-#include "KList.h"
+#include "klist.h"
+#if 0
 #include "KMutex.h"
 #ifndef _WIN32
 #include <sys/epoll.h>
@@ -92,3 +93,4 @@ namespace kangle {
 		return false;
 	}
 }
+#endif

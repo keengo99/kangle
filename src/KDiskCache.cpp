@@ -642,7 +642,7 @@ void rescan_disk_cache()
 bool get_disk_size(INT64 &total_size,INT64 &free_size) {
 	KStringBuf path;
 	get_disk_base_dir(path);
-#ifdef _WIN32
+#if defined(_WIN32)
 	ULARGE_INTEGER FreeBytesAvailable, TotalNumberOfBytes, TotalNumberOfFreeBytes;
 	if (!GetDiskFreeSpaceEx(path.getString(), &FreeBytesAvailable, &TotalNumberOfBytes, &TotalNumberOfFreeBytes)) {
 		return false;
@@ -650,7 +650,7 @@ bool get_disk_size(INT64 &total_size,INT64 &free_size) {
 	total_size = TotalNumberOfBytes.QuadPart;
 	free_size = FreeBytesAvailable.QuadPart;
 	return true;
-#elif LINUX
+#elif defined(LINUX)
 	struct statfs buf;
 	if (statfs(path.getString(), &buf) != 0) {
 		return false;
