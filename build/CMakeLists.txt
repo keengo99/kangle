@@ -38,8 +38,6 @@ if (CMAKE_SYSTEM_NAME MATCHES "Windows")
 #windows
     list(APPEND KANGLE_LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../win32lib/${CMAKE_VS_PLATFORM_NAME}")
     list(APPEND KANGLE_LIBS zdll pcre)
-    list(APPEND KANGLE_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/../win32lib/win_iconv.cpp")
-    list(APPEND EXTWORKER_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/../win32lib/win_iconv.cpp")
     list(APPEND EXTWORKER_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/../src/KWinCgiEnv.cpp")
 else()
 #not windows
