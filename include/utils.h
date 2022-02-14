@@ -294,14 +294,11 @@ inline void pathEnd(std::string &path) {
 	}
 }
 inline const char *getServerType() {
-	//{{ent
-#ifdef KANGLE_ENT
-	return  "enterprise";
-#elif  HTTP_PROXY
+#ifdef HTTP_PROXY
 	return "proxy";
+#else
+	return "web";
 #endif
-	//}}
-	return "free";
 }
 inline const char *getOsType()
 {
