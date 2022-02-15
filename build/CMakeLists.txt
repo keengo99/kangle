@@ -30,6 +30,7 @@ list(APPEND EXTWORKER_SOURCE_FILES
     ../src/KCgiEnv.cpp 
     ../src/process.cpp 
     ../src/KAutoBuffer.cpp
+    ../src/win_iconv.cpp
 )
 set(KANGLE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../kasync/include)
 set(KASYNC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../kasync/include)

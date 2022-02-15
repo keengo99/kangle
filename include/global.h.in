@@ -42,7 +42,8 @@
 #define PROGRAM_NAME     "kangle"
 #endif
 #endif
-#cmakedefine VERSION 	"@KANGLE_VERSION@"
+#cmakedefine KANGLE_VERSION 	"@KANGLE_VERSION@"
+#define VERSION KANGLE_VERSION
 /*
 #ifndef VERSION
 #define VERSION         "3.5.22"

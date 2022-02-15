@@ -674,11 +674,11 @@ void load_config(KConfig *cconf,bool firstTime)
 #endif
 	std::string configFile = configFileDir + CONFIG_FILE;
 	bool parse_result = worker_config_parser.parse(configFile);
+	if (!parse_result && kfile_last_modified(configFile.c_str())==0) {
+		configFile = configFileDir + CONFIG_DEFAULT_FILE;
+		worker_config_parser.parse(configFile);
+	}
 	if (firstTime) {
-		if (!parse_result){
-			configFile = configFileDir + CONFIG_DEFAULT_FILE;
-			worker_config_parser.parse(configFile);
-		}
 		init_program();
 	}
 	loadExtConfigFile();
