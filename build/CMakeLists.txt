@@ -1,5 +1,9 @@
-cmake_minimum_required(VERSION 3.10) 
+cmake_minimum_required(VERSION 2.8) 
 project(kangle)
+set(KANGLE_VERSION "3.6")
+
+set(CPACK_PACKAGE_VERSION ${KANGLE_VERSION})
+set(KANGLE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../)
 file(GLOB KANGLE_SOURCE_FILES 
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/*.cpp 
     ${CMAKE_CURRENT_SOURCE_DIR}/../module/whm/*.cpp
@@ -55,12 +59,10 @@ if (CMAKE_SYSTEM_NAME MATCHES "Windows")
     list(APPEND KANGLE_LIBS zdll pcre)
     list(APPEND EXTWORKER_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/../src/KWinCgiEnv.cpp")
     list(APPEND VHS_SQLITE_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/../module/vhs_sqlite/vhs_sqlite.def")
-else()
-#not windows
-
 endif()
 if (CMAKE_SYSTEM_NAME MATCHES "Linux") 
     #linux
+	add_compile_options(-Wno-invalid-offsetof)
     check_symbol_exists(LINUX_IOURING ${KASYNC_INCLUDE_DIR}/kasync_config.h HAVE_LINUX_IOURING)
     if (HAVE_LINUX_IOURING)
         message(STATUS "found io_uring")
@@ -69,9 +71,12 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     list(APPEND KANGLE_LIBS pthread dl sqlite3 pcre z)
 endif()
 
+message(STATUS "kangle version ${KANGLE_VERSION}")
+configure_file(${KANGLE_DIR}/include/global.h.in ${KANGLE_DIR}/include/global.h @ONLY)
+
 add_executable(kangle ${KANGLE_SOURCE_FILES})
 add_executable(extworker ${EXTWORKER_SOURCE_FILES})
-add_library(vhs_sqlite SHARED ${VHS_SQLITE_SOURCE_FILES})
+add_library(vhs_sqlite MODULE  ${VHS_SQLITE_SOURCE_FILES})
 
 target_include_directories(kangle PUBLIC ${KANGLE_INCLUDE_DIR})
 target_link_directories(kangle PUBLIC ${KANGLE_LIBS_DIR})
@@ -81,7 +86,27 @@ target_include_directories(extworker PUBLIC ${KANGLE_INCLUDE_DIR})
 target_link_directories(extworker PUBLIC ${KANGLE_LIBS_DIR})
 target_link_libraries(extworker ${KANGLE_LIBS} )
 
+set_property(TARGET vhs_sqlite PROPERTY  PREFIX "")
 target_include_directories(vhs_sqlite PUBLIC ${KANGLE_INCLUDE_DIR})
 target_link_directories(vhs_sqlite PUBLIC ${KANGLE_LIBS_DIR})
 
-install(TARGETS kangle RUNTIME DESTINATION bin )
+install(TARGETS kangle extworker vhs_sqlite
+     RUNTIME DESTINATION bin 
+     LIBRARY DESTINATION bin
+     )
+install(FILES 
+     ${KANGLE_DIR}/include/ksapi.h 
+     ${KANGLE_DIR}/kasync/include/kfeature.h    
+     ${KANGLE_DIR}/kasync/include/kforwin32.h     
+     ${KANGLE_DIR}/kasync/include/kasync_config.h
+     TYPE INCLUDE)
+install(DIRECTORY
+    ${KANGLE_DIR}/webadmin/
+    DESTINATION "webadmin"
+    )
+install(FILES
+    ${KANGLE_DIR}/etc/config-default.xml
+    DESTINATION etc)
+
+include(CPack)
+set(CPACK_PACKAGE_NAME "kangle")

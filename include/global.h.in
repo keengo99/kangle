@@ -42,9 +42,12 @@
 #define PROGRAM_NAME     "kangle"
 #endif
 #endif
+#cmakedefine VERSION 	"@KANGLE_VERSION@"
+/*
 #ifndef VERSION
 #define VERSION         "3.5.22"
 #endif
+*/
 #define VER_ID   VERSION
 #ifndef MAX
 #define MAX(a,b)  ((a)>(b)?(a):(b))

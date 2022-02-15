@@ -1,7 +1,4 @@
 #include <string.h>
-//{{ent
-#include "KLicense.h"
-//}}
 #include "KLogManage.h"
 
 KLogManage logManage;

@@ -320,6 +320,7 @@ char *get_human_size(double size, char *buf,size_t buf_size);
 INT64 get_radio_size(const char *size,bool &is_radio);
 #define CONFIG_FILE_SIGN  "<!--configfileisok-->"
 #ifndef CONFIG_FILE
-#define CONFIG_FILE "/config.xml"
+#define CONFIG_FILE 		"/config.xml"
+#define CONFIG_DEFAULT_FILE "/config-default.xml"
 #endif
 #endif

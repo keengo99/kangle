@@ -41,7 +41,11 @@ bool KWorkerConfigParser::parse(std::string file) {
 	KXml xmlParser;
 	xmlParser.setEvent(this);
 	bool result = false;
-	result = xmlParser.parseFile(file);
+	try {
+		result = xmlParser.parseFile(file);
+	}catch(KXmlException e) {
+		return false;
+	}
 	return result;
 }
 bool KListenConfigParser::startElement(std::string &context, std::string &qName,

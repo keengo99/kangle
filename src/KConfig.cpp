@@ -1,26 +1,3 @@
-/*
- * Copyright (c) 2010, NanChang BangTeng Inc
- *
- * kangle web server              http://www.kangleweb.net/
- * ---------------------------------------------------------------------
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111, USA.
- *  See COPYING file for detail.
- *
- *  Author: KangHongjiu <keengo99@gmail.com>
- */
 #include <map>
 #include <assert.h>
 #include <string>
@@ -574,17 +551,6 @@ void load_main_config(KConfig *cconf,std::string & configFile,KXml &xmlParser,bo
 			}
 		}
 	}
-#if 0
-	configFile = conf.path;
-	configFile = configFile + "/etc/mime.types.xml";
-
-	try {
-		klog(KLOG_NOTICE, "load config file [%s]\n", configFile.c_str());
-		contentType.load(configFile);
-	} catch (KXmlException &e) {
-		fprintf(stderr, "%s\n", e.what());
-	}
-#endif
 	try {
 #ifdef KANGLE_WEBADMIN_DIR
 		configFile = KANGLE_WEBADMIN_DIR;
@@ -702,13 +668,17 @@ void load_config(KConfig *cconf,bool firstTime)
 	std::map<int,KExtConfig *>::iterator it;
 	bool main_config_loaded = false;
 #ifdef KANGLE_ETC_DIR
-	string configFile = KANGLE_ETC_DIR;
+	std::string configFileDir = KANGLE_ETC_DIR;
 #else
-	string configFile = conf.path + "/etc";
+	std::string configFileDir = conf.path + "/etc";
 #endif
-	configFile += CONFIG_FILE;
-	worker_config_parser.parse(configFile);
+	std::string configFile = configFileDir + CONFIG_FILE;
+	bool parse_result = worker_config_parser.parse(configFile);
 	if (firstTime) {
+		if (!parse_result){
+			configFile = configFileDir + CONFIG_DEFAULT_FILE;
+			worker_config_parser.parse(configFile);
+		}
 		init_program();
 	}
 	loadExtConfigFile();
