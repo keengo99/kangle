@@ -5,7 +5,8 @@ set(KANGLE_VERSION "3.6")
 set(CPACK_PACKAGE_VERSION ${KANGLE_VERSION})
 set(KANGLE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../)
 file(GLOB KANGLE_SOURCE_FILES 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/*.cpp 
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../include/*.h  
     ${CMAKE_CURRENT_SOURCE_DIR}/../module/whm/*.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../module/whm/whmdso/core/*.cpp
     )
@@ -38,10 +39,20 @@ list(APPEND KANGLE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 list(APPEND KANGLE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../module/whm)
 list(APPEND KANGLE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../module/access)
 include(CheckSymbolExists)
+include(CheckIncludeFile)
 
 check_symbol_exists(KSOCKET_SSL ${KASYNC_INCLUDE_DIR}/kasync_config.h HAVE_KSOCKET_SSL)
 set(KANGLE_LIBS kasync)
 set(KANGLE_LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../kasync/build")
+option(ENABLE_BROTLI "enable brotli compress support" OFF)
+if (ENABLE_BROTLI)
+    check_include_file("brotli/encode.h" ENABLE_BROTLI)
+    if (NOT ENABLE_BROTLI)
+        message(FATAL_ERROR "cann't found brotli libary")
+    else()
+        list(APPEND KANGLE_LIBS "brotlicommon-static" "brotlienc-static")
+    endif()
+endif()
 #openssl
 if (HAVE_KSOCKET_SSL)
     include(FindOpenSSL)

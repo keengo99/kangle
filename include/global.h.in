@@ -25,37 +25,36 @@
 #define GLOBAL_H_asdfkjl23kj4234
 #include "kfeature.h"
 
- //{{ent
-#ifdef KANGLE_ENT
+#define KANGLE_ENT                 1
 #define KANGLE_ULT                 1
-#endif
-#ifdef  KANGLE_ULT
+
+
 #define ENABLE_BIG_OBJECT_206      1
 #define ENABLE_BIG_OBJECT          1
-#define KANGLE_ENT                 1
-#endif//}}
+
 
 #ifndef PROGRAM_NAME
-#ifdef HTTP_PROXY
-#define PROGRAM_NAME    "kangle-proxy"
-#else
-#define PROGRAM_NAME     "kangle"
+	#ifdef HTTP_PROXY
+		#define PROGRAM_NAME    "kangle-proxy"
+	#else
+		#define PROGRAM_NAME     "kangle"
+	#endif
 #endif
-#endif
+
+#cmakedefine ENABLE_BROTLI
 #cmakedefine KANGLE_VERSION 	"@KANGLE_VERSION@"
+
 #define VERSION KANGLE_VERSION
-/*
-#ifndef VERSION
-#define VERSION         "3.5.22"
-#endif
-*/
 #define VER_ID   VERSION
+
 #ifndef MAX
-#define MAX(a,b)  ((a)>(b)?(a):(b))
+	#define MAX(a,b)  ((a)>(b)?(a):(b))
 #endif
+
 #ifndef MIN
-#define MIN(a,b)  ((a)>(b)?(b):(a))
+	#define MIN(a,b)  ((a)>(b)?(b):(a))
 #endif
+
 #define	 GC_SLEEP_MSEC	5000
 
 #define  NBUFF_SIZE     8192
@@ -88,16 +87,15 @@
 #define WORK_MODEL_SSL       (1<<2)
 #define WORK_MODEL_TCP       (1<<3)
 #ifdef  ENABLE_PROXY_PROTOCOL
-#define WORK_MODEL_PROXY     (1<<5)
-//proxy in ssl
-#define WORK_MODEL_SSL_PROXY (1<<6)
+	#define WORK_MODEL_PROXY     (1<<5)
+	//proxy in ssl
+	#define WORK_MODEL_SSL_PROXY (1<<6)
 #endif
 #define WORK_MODEL_TPROXY    (1<<7)
 
 /************************************/
 
 #ifdef _WIN32
-//#define ENABLE_BROTLI 1
 #define HAVE_SSTREAM 1
 #define _LARGE_FILE  1
 #endif
@@ -137,51 +135,41 @@
 #define ENABLE_ATOM                1
 
 
-#ifdef _WIN32
-//windows
-#define ENABLE_HTTP2               1
-#endif
 #ifdef KSOCKET_SSL
-#define ENABLE_SVH_SSL             1
-#define ENABLE_UPSTREAM_SSL        1
+	#define ENABLE_HTTP2               1
+	#define ENABLE_SVH_SSL             1
+	#define ENABLE_UPSTREAM_SSL        1
+	#ifdef ENABLE_HTTP2
+		#define ENABLE_UPSTREAM_HTTP2       1
+	#endif
 #endif
 
-//{{ent
+
 #ifndef HTTP_PROXY
-#define ENABLE_CDN_REWRITE         1
-#define KANGLE_ULT                 1
-#define KANGLE_ENT                 1
+	#define ENABLE_CDN_REWRITE         1
 #endif
-#ifdef  KANGLE_ENT
-//ent version
+
 #define ENABLE_MSERVER_ICP         1
-//#define ENABLE_DELTA_ENCODE        1
 #define ENABLE_BLACK_LIST          1
 #define ENABLE_DISK_CACHE          1
 #define KSOCKET_IPV6	           1
 #define ENABLE_FATBOY              1
 #define ENABLE_UPSTREAM_PARAM      1
 #define ENABLE_FORCE_CACHE         1
+
 #ifndef HTTP_PROXY
 //virtualhost
-#define ENABLE_CMD_DPORT           1
-#define ENABLE_STATIC_URL          1
-#define ENABLE_VH_QUEUE            1
-#define ENABLE_ADPP                1
-#define ENABLE_VH_FLOW             1
+	#define ENABLE_CMD_DPORT           1
+	#define ENABLE_STATIC_URL          1
+	#define ENABLE_VH_QUEUE            1
+	#define ENABLE_ADPP                1
+	#define ENABLE_VH_FLOW             1
 #endif //HTTP_PROXY
-//#define ENABLE_HTPASSWD_CRYPT      1
+
 #define ENABLE_REQUEST_QUEUE       1
-#ifdef  KSOCKET_SSL
-#ifdef ENABLE_HTTP2
-#define ENABLE_UPSTREAM_HTTP2       1
-#endif
-#endif
-#else
-//windows
-//#define KANGLE_FREE                1
-#define ENABLE_DISK_CACHE          1
-#endif//}}
+
+
+
 
 ///////////////////////////////////////////////////////////////////
 /**
@@ -397,8 +385,7 @@ enum Proto_t {
 	//enable ksapi filter
 	#define ENABLE_KSAPI_FILTER 1
 #endif //DISABLE_KSAPI_FILTER
-//for test
-//#define ENABLE_KSSL_BIO            1
+
 
 #define MAX_HTTP_HEAD_SIZE	4194304
 
