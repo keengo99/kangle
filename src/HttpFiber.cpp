@@ -549,7 +549,9 @@ KGL_RESULT send_memory_object(KHttpRequest *rq)
 		//return rq->bo_ctx->send(rq);
 	}
 #endif//}}
-	rq->CloseFetchObject();
+
+	//rq->CloseFetchObject();
+
 	//{{ent
 #ifdef ENABLE_BIG_OBJECT
 	if (rq->ctx->obj->data->type == BIG_OBJECT) {
