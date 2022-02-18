@@ -17,6 +17,8 @@ file(GLOB EXTWORKER_SOURCE_FILES
 file(GLOB VHS_SQLITE_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/../module/vhs_sqlite/*.cpp
 )
+file(GLOB TESTDSO_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/../module/testdso/*.cpp)
+
 list(APPEND EXTWORKER_SOURCE_FILES 
     ../src/EdcodeUtils.cpp 
     ../src/KHttpExt.cpp 
@@ -92,6 +94,7 @@ configure_file(${KANGLE_DIR}/include/global.h.in ${KANGLE_DIR}/include/global.h 
 add_executable(kangle ${KANGLE_SOURCE_FILES})
 add_executable(extworker ${EXTWORKER_SOURCE_FILES})
 add_library(vhs_sqlite MODULE  ${VHS_SQLITE_SOURCE_FILES})
+add_library(testdso MODULE ${TESTDSO_SOURCE_FILES})
 
 target_include_directories(kangle PUBLIC ${KANGLE_INCLUDE_DIR})
 target_link_directories(kangle PUBLIC ${KANGLE_LIBS_DIR})
@@ -104,6 +107,11 @@ target_link_libraries(extworker ${KANGLE_LIBS} )
 set_property(TARGET vhs_sqlite PROPERTY  PREFIX "")
 target_include_directories(vhs_sqlite PUBLIC ${KANGLE_INCLUDE_DIR})
 target_link_directories(vhs_sqlite PUBLIC ${KANGLE_LIBS_DIR})
+
+set_property(TARGET testdso PROPERTY  PREFIX "")
+target_include_directories(testdso PUBLIC ${KANGLE_INCLUDE_DIR})
+target_link_directories(testdso PUBLIC ${KANGLE_LIBS_DIR})
+
 
 install(TARGETS kangle extworker vhs_sqlite
      RUNTIME DESTINATION bin 

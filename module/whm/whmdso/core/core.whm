@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<whm version="1.0">
-<extend name='test' cmd='/home/keengo/workspace/kangle/test/test'/>
-<extend name='test.html' url='/whm/test.html'/>
-<call name="test" scope='public' extend='test'>
-</call>
-<call name='test.html' scope='public' extend='test.html'/>
-</whm>
