@@ -39,8 +39,6 @@
 #include "kselector_manager.h"
 #include "kmalloc.h"
 #include "KHttpObjectHash.h"
-#include "KAttackRequestManager.h"
-#include "KAntiRefresh.h"
 #include "KSimulateRequest.h"
 #include "KVirtualHostManage.h"
 #include "KProcessManage.h"
@@ -248,10 +246,6 @@ KTHREAD_FUNCTION time_thread(void* arg) {
 #endif		
 			kgl_flush_addr_cache(nowTime);
 		}
-//{{ent
-#ifdef ENABLE_FATBOY
-		flush_net_request(nowTime);
-#endif//}}
 		server_container->flush(kgl_current_sec);
 		if(vhd.isLoad() && !vhd.isSuccss()){
 			klog(KLOG_ERR,"vh database last status is failed.try again.\n");

@@ -62,11 +62,8 @@
 #include "ssl_utils.h"
 #include "kfiber.h"
 #include "HttpFiber.h"
-//{{ent
 #include "KFetchBigObject.h"
 #include "KBigObjectContext.h"
-#include "KAntiRefresh.h"
-//}}
 kgl_str_t kgl_header_type_string[] = {
 	{ kgl_expand_string("Unknow") },
 	{ kgl_expand_string("Internal") },

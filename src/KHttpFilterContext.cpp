@@ -5,9 +5,6 @@
 #include "KSubVirtualHost.h"
 #include "kselector_manager.h"
 #include "ssl_utils.h"
-//{{ent
-#include "KAttackRequestManager.h"
-//}}
 #include "http.h"
 #ifdef ENABLE_KSAPI_FILTER
 #if 0

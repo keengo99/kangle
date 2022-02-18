@@ -37,7 +37,6 @@
 #include "KHttpBasicAuth.h"
 #include "KHttpDigestAuth.h"
 #include "HttpFiber.h"
-#include "KAntiRefresh.h"
 #include "KBigObjectContext.h"
 #include "KHttp2.h"
 #include "KSimulateRequest.h"

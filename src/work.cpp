@@ -58,17 +58,12 @@
 #include "KHttpDigestAuth.h"
 #include "KHttpBasicAuth.h"
 #include "KSSLSniContext.h"
-//{{ent
-#include "KAttackRequestManager.h"
-#include "KAntiRefresh.h"
 #include "KBigObjectContext.h"
-#include "KAnticcSession.h"
 #include "KAcserverManager.h"
 #ifndef KANGLE_FREE
 #include "KWhiteList.h"
 #endif
 #include "KHttp2.h"
-//}}
 #include "HttpFiber.h"
 #include "KHttpFilterManage.h"
 #include "ksapi.h"

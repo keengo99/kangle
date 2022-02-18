@@ -7,9 +7,6 @@
 #include "KConfig.h"
 #include "http.h"
 #include "KVirtualHostManage.h"
-//{{ent
-#include "KAttackRequestManager.h"
-//}}
 #ifdef ENABLE_KSAPI_FILTER
 #if 0
 KHttpFilterManage::~KHttpFilterManage()

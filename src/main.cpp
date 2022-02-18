@@ -86,9 +86,6 @@
 #include "KSSLSniContext.h"
 #include "WhmPackageManage.h"
 #include "kfiber.h"
-#include "KAntiRefresh.h"
-#include "KAttackRequestManager.h"
-#include "KAnticcSession.h"
 void flush_net_request(time_t now_time);
 
 
@@ -1154,10 +1151,6 @@ void init_program()
 			select_count = 1;
 		}
 	}
-	//{{ent
-#ifdef ENABLE_FATBOY
-	init_anticc_session();
-#endif//}}
 	kgl_addr_init();
 	selector_manager_init(select_count,false);
 }

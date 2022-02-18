@@ -38,7 +38,6 @@
 #include "kaddr.h"
 #include "HttpFiber.h"
 #include "KPreRequest.h"
-#include "KAntiRefresh.h"
 #include "extern.h"
 #include "lang.h"
 #include "kmd5.h"

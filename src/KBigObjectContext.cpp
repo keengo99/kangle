@@ -5,7 +5,6 @@
 #include "KHttpObject.h"
 #include "kselectable.h"
 #include "cache.h"
-#include "KAntiRefresh.h"
 #include "KHttpFilterManage.h"
 #include "KFilterContext.h"
 #include "KContentTransfer.h"

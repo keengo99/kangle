@@ -97,10 +97,7 @@
 #include "KUrlRewriteMark.h"
 #include "KUrlRangeMark.h"
 #include "KVaryMark.h"
-//{{ent
 #ifdef ENABLE_FATBOY
-#include "KAnticcImgRewriteMark.h"
-#include "KAntiRefreshMark.h"
 #include "KWhiteListModel.h"
 #endif
 #include "KBlackListMark.h"
@@ -112,14 +109,13 @@
 #include "KIpUrlRateAcl.h"
 #include "KUrlRateAcl.h"
 #include "KWorkModelAcl.h"
-#include "KAttackRequestManager.h"
 #include "KFixHeaderMark.h"
 #include "KObjAlwaysOnAcl.h"
 #include "KGeoMark.h"
 #ifdef WORK_MODEL_TCP
 #include "KPortMapMark.h"
 #endif
-//}}
+
 #include "KTcpFetchObject.h"
 #include "KQueueMark.h"
 #include "KPathSignMark.h"
