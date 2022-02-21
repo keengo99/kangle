@@ -180,11 +180,6 @@ inline const char *getWorkModelName(int model) {
 	if (model == 0) {
 		return "http";
 	}
-#ifdef WORK_MODEL_RTMP
-	if (model == WORK_MODEL_RTMP) {
-		return "rtmp";
-	}
-#endif
 	if (model == (WORK_MODEL_SSL | WORK_MODEL_MANAGE)) {
 		return "manages";
 	}
@@ -205,12 +200,6 @@ inline const char *getWorkModelName(int model) {
 }
 inline bool parseWorkModel(const char *type, int &model) {
 	model = 0;
-#ifdef WORK_MODEL_RTMP
-	if (strcasecmp(type, "rtmp") == 0) {
-		model = WORK_MODEL_RTMP;
-		return true;
-	}
-#endif
 	if (strcasecmp(type, "https") == 0) {
 		SET(model,WORK_MODEL_SSL);
 	} else if (strcasecmp(type, "manage") == 0) {

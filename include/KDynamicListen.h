@@ -22,16 +22,12 @@ public:
 		proxy = 0;
 		ssl_proxy = 0;
 #endif
-#ifdef WORK_MODEL_RTMP
-		rtmp = 0;
-#endif
-		//{{ent
 #ifdef ENABLE_TPROXY
 		tproxy = 0;
 #endif
 #ifdef WORK_MODEL_TCP
 		tcp = 0;
-#endif//}}
+#endif
 		global = 0;
 		dynamic = 0;
 		manage = 0;
@@ -44,9 +40,6 @@ public:
 		this->global += a->global;
 		this->dynamic += a->dynamic;
 		this->ssl += a->ssl;
-#ifdef WORK_MODEL_RTMP
-		this->rtmp += a->rtmp;
-#endif
 #ifdef ENABLE_PROXY_PROTOCOL
 		this->proxy += a->proxy;
 		this->ssl_proxy += a->ssl_proxy;
@@ -68,9 +61,6 @@ public:
 		this->dynamic -= a->dynamic;
 		kassert(this->dynamic >= 0);
 		this->ssl -= a->ssl;
-#ifdef WORK_MODEL_RTMP
-		this->rtmp -= a->rtmp;
-#endif
 		kassert(this->ssl >= 0);
 #ifdef ENABLE_PROXY_PROTOCOL
 		this->proxy -= a->proxy;
@@ -118,14 +108,6 @@ public:
 			CLR(server->flags, WORK_MODEL_SSL_PROXY);
 		}
 #endif
-#ifdef WORK_MODEL_RTMP
-		if (rtmp) {
-			SET(server->flags, WORK_MODEL_RTMP);
-		} else {
-			CLR(server->flags, WORK_MODEL_RTMP);
-		}
-#endif
-		//{{ent
 #ifdef WORK_MODEL_TCP
 		if (tcp) {
 			SET(server->flags, WORK_MODEL_TCP);
@@ -139,7 +121,7 @@ public:
 		} else {
 			CLR(server->flags, WORK_MODEL_TPROXY);
 		}
-#endif//}}
+#endif
 		server->global = global > 0;
 		server->dynamic = dynamic > 0;
 	}
@@ -150,9 +132,6 @@ public:
 	int32_t dynamic;
 	int32_t global;
 	int32_t ssl;
-#ifdef WORK_MODEL_RTMP
-	int32_t rtmp;
-#endif
 #ifdef ENABLE_PROXY_PROTOCOL
 	int32_t proxy;
 	int32_t ssl_proxy;

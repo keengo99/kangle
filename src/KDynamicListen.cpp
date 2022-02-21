@@ -343,9 +343,6 @@ void KDynamicListen::getListenKey(KListenHost *lh,const char *port,bool ipv4,std
 	key->global = 1;
 	key->ssl = TEST(lh->model,WORK_MODEL_SSL) > 0;
 	key->manage = TEST(lh->model, WORK_MODEL_MANAGE) > 0;
-#ifdef WORK_MODEL_RTMP
-	key->rtmp = TEST(lh->model, WORK_MODEL_RTMP) > 0;
-#endif
 #ifdef WORK_MODEL_TCP
 	key->tcp = TEST(lh->model, WORK_MODEL_TCP) > 0;
 #endif
@@ -398,7 +395,6 @@ void KDynamicListen::parse_port(const char *p, KListenKey *lk)
 	if (strchr(p, 's')) {
 		lk->ssl = 1;
 	}
-	//{{ent
 #ifdef ENABLE_TPROXY
 	if (strchr(p, 'x')) {
 		lk->tproxy = 1;
@@ -407,11 +403,6 @@ void KDynamicListen::parse_port(const char *p, KListenKey *lk)
 #ifdef WORK_MODEL_TCP
 	if (strchr(p, 't')) {
 		lk->tcp = 1;
-	}
-#endif//}}
-#ifdef WORK_MODEL_RTMP
-	if (strchr(p, 'r')) {
-		lk->rtmp = 1;
 	}
 #endif
 #ifdef WORK_MODEL_PROXY

@@ -334,6 +334,7 @@ bool KHttpManage::extends(unsigned item) {
 #else
 			,NULL
 #endif
+
 #ifndef HTTP_PROXY
 			,klang["api"],
 #ifdef ENABLE_CGI
@@ -342,6 +343,8 @@ bool KHttpManage::extends(unsigned item) {
 		NULL,
 #endif
 		klang["cmd"]
+#else
+		,NULL,NULL,NULL
 #endif
 #ifdef ENABLE_KSAPI_FILTER
 			,"dso"
@@ -1522,9 +1525,8 @@ bool KHttpManage::start_listen(bool &hit) {
 #ifdef HTTP_PROXY
 				,"tcps"
 #endif
-#endif
-			,"rtmp"
-				};
+#endif		
+		};
 		s << "<select name='type'  onChange='changeModel()'>";
 		for (size_t i = 0; i < sizeof(model) / sizeof(char *); i++) {
 			s << "<option value='" << model[i] << "' ";

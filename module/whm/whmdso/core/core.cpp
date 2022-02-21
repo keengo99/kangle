@@ -385,7 +385,6 @@ static int getVhDomain(WhmContext *ctx)
 	vh->destroy();
 	return WHM_OK;
 }
-//{{ent
 #ifdef ENABLE_BLACK_LIST
 static int getVhStat(WhmContext *ctx)
 {
@@ -399,10 +398,12 @@ static int getVhStat(WhmContext *ctx)
 #ifdef ENABLE_VH_RS_LIMIT
 	ctx->add("connect",vh->GetConnectionCount());
 	ctx->add("speed",vh->get_speed(uv->get("reset")=="1"));
+#ifdef ENABLE_VH_QUEUE
 	if (vh->queue) {
 		ctx->add("queue",vh->queue->getQueueSize());
 		ctx->add("worker",vh->queue->getWorkerCount());
 	}
+#endif
 	if (vh->blackList) {
 		INT64 total_error_upstream, total_request, total_upstream;
 		vh->blackList->getStat(total_request, total_error_upstream,total_upstream, uv->get("reset")=="1");
@@ -414,7 +415,6 @@ static int getVhStat(WhmContext *ctx)
 	return WHM_OK;
 }
 #endif
-//}}
 static int getVhDetail(WhmContext *ctx)
 {
 	KUrlValue *uv = ctx->getUrlValue();
@@ -705,8 +705,7 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 			return WHM_OK;
 		}
 #endif
-		//{{ent
-#ifdef ENABLE_BLACK_LIST
+#ifdef ENABLE_VH_RUN_AS
 	case CALL_PORT_MAP:
 		{
 			KVirtualHost *vh = ctx->getVh();
@@ -718,7 +717,8 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 			ctx->add("port",port);
 			return WHM_OK;
 		}
-
+#endif
+#ifdef ENABLE_BLACK_LIST
 	case CALL_BLACK_LIST:
 		{
 			KIpList *iplist = conf.gvm->globalVh.blackList;

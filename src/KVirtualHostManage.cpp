@@ -1260,12 +1260,13 @@ void KVirtualHostManage::dumpFlow(KVirtualHostEvent *ctx,bool revers,const char 
 			s2 << vh->name.c_str() << "\t";
 			s2 << vh->GetConnectionCount() << "\t";
 			s2 << vh->get_speed(extend==2) << "\t";
+#ifdef ENABLE_VH_QUEUE
 			if (vh->queue) {
 				s2 << vh->queue->getQueueSize() << "\t";
 				s2 << vh->queue->getWorkerCount() << "\t";
-			} else {
+			} else
+#endif
 				s2 << "0\t0\t";
-			}
 			if (vh->blackList) {
 				INT64  total_error_upstream,total_request,total_upstream;
 				vh->blackList->getStat(total_request, total_error_upstream,total_upstream, extend==2);

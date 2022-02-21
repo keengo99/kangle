@@ -48,6 +48,8 @@ check_symbol_exists(KSOCKET_SSL ${KASYNC_INCLUDE_DIR}/kasync_config.h HAVE_KSOCK
 set(KANGLE_LIBS kasync)
 set(KANGLE_LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../kasync/build")
 option(ENABLE_BROTLI "enable brotli compress support" OFF)
+option(HTTP_PROXY "build kangle as proxy server" OFF)
+
 if (ENABLE_BROTLI)
     check_include_file("brotli/encode.h" ENABLE_BROTLI)
     if (NOT ENABLE_BROTLI)
@@ -92,31 +94,36 @@ message(STATUS "kangle version ${KANGLE_VERSION}")
 configure_file(${KANGLE_DIR}/include/global.h.in ${KANGLE_DIR}/include/global.h @ONLY)
 
 add_executable(kangle ${KANGLE_SOURCE_FILES})
-add_executable(extworker ${EXTWORKER_SOURCE_FILES})
-add_library(vhs_sqlite MODULE  ${VHS_SQLITE_SOURCE_FILES})
-add_library(testdso MODULE ${TESTDSO_SOURCE_FILES})
-
 target_include_directories(kangle PUBLIC ${KANGLE_INCLUDE_DIR})
 target_link_directories(kangle PUBLIC ${KANGLE_LIBS_DIR})
 target_link_libraries(kangle ${KANGLE_LIBS} )
-
-target_include_directories(extworker PUBLIC ${KANGLE_INCLUDE_DIR})
-target_link_directories(extworker PUBLIC ${KANGLE_LIBS_DIR})
-target_link_libraries(extworker ${KANGLE_LIBS} )
-
-set_property(TARGET vhs_sqlite PROPERTY  PREFIX "")
-target_include_directories(vhs_sqlite PUBLIC ${KANGLE_INCLUDE_DIR})
-target_link_directories(vhs_sqlite PUBLIC ${KANGLE_LIBS_DIR})
-
-set_property(TARGET testdso PROPERTY  PREFIX "")
-target_include_directories(testdso PUBLIC ${KANGLE_INCLUDE_DIR})
-target_link_directories(testdso PUBLIC ${KANGLE_LIBS_DIR})
-
-
-install(TARGETS kangle extworker vhs_sqlite
+install(TARGETS kangle
      RUNTIME DESTINATION bin 
      LIBRARY DESTINATION bin
      )
+
+if (NOT HTTP_PROXY) 
+    add_executable(extworker ${EXTWORKER_SOURCE_FILES})
+    add_library(vhs_sqlite MODULE  ${VHS_SQLITE_SOURCE_FILES})
+    add_library(testdso MODULE ${TESTDSO_SOURCE_FILES})
+
+    target_include_directories(extworker PUBLIC ${KANGLE_INCLUDE_DIR})
+    target_link_directories(extworker PUBLIC ${KANGLE_LIBS_DIR})
+    target_link_libraries(extworker ${KANGLE_LIBS} )
+
+    set_property(TARGET vhs_sqlite PROPERTY  PREFIX "")
+    target_include_directories(vhs_sqlite PUBLIC ${KANGLE_INCLUDE_DIR})
+    target_link_directories(vhs_sqlite PUBLIC ${KANGLE_LIBS_DIR})
+
+    set_property(TARGET testdso PROPERTY  PREFIX "")
+    target_include_directories(testdso PUBLIC ${KANGLE_INCLUDE_DIR})
+    target_link_directories(testdso PUBLIC ${KANGLE_LIBS_DIR})
+    install(TARGETS extworker vhs_sqlite
+     RUNTIME DESTINATION bin 
+     LIBRARY DESTINATION bin
+     )
+endif()
+
 install(FILES 
      ${KANGLE_DIR}/include/ksapi.h 
      ${KANGLE_DIR}/kasync/include/kfeature.h    
