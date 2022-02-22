@@ -55,7 +55,8 @@ if (ENABLE_BROTLI)
     if (NOT ENABLE_BROTLI)
         message(FATAL_ERROR "cann't found brotli libary")
     else()
-        list(APPEND KANGLE_LIBS "brotlicommon-static" "brotlienc-static")
+	    list(APPEND KANGLE_LIBS "brotlienc-static" "brotlicommon-static")
+	    #      list(APPEND KANGLE_LIBS "brotlicommon" "brotlienc")
     endif()
 endif()
 #openssl
@@ -96,6 +97,7 @@ configure_file(${KANGLE_DIR}/include/global.h.in ${KANGLE_DIR}/include/global.h 
 add_executable(kangle ${KANGLE_SOURCE_FILES})
 target_include_directories(kangle PUBLIC ${KANGLE_INCLUDE_DIR})
 target_link_directories(kangle PUBLIC ${KANGLE_LIBS_DIR})
+message(STATUS "kangle link libs ${KANGLE_LIBS}")
 target_link_libraries(kangle ${KANGLE_LIBS} )
 install(TARGETS kangle
      RUNTIME DESTINATION bin 

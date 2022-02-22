@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"runtime"
 	"test_server/common"
 	"test_server/config"
 	"time"
@@ -62,7 +63,6 @@ func CreateMainConfig(malloc_debug int) (err error) {
 	return
 }
 func Prepare(kangle string, kangle_bin string) {
-	create_license()
 	os.Mkdir(config.Cfg.BasePath+"/etc", 0755)
 	os.Mkdir(config.Cfg.BasePath+"/var", 0755)
 	os.Mkdir(config.Cfg.BasePath+"/ext", 0755)
@@ -70,6 +70,19 @@ func Prepare(kangle string, kangle_bin string) {
 	KangleCommand = config.Cfg.BasePath + "/" + kangle_bin + "/kangle.exe"
 
 	err := common.CopyFile(kangle, KangleCommand)
+	if err != nil {
+		panic(err)
+	}
+	test_src_dso := config.Cfg.BasePath + "/../build/testdso."
+	test_dst_dso := config.Cfg.BasePath + "/" + kangle_bin + "/testdso."
+	if runtime.GOOS == "windows" {
+		test_src_dso += "dll"
+		test_dst_dso += "dll"
+	} else {
+		test_src_dso += "so"
+		test_dst_dso += "dll"
+	}
+	err = common.CopyFile(test_src_dso, test_dst_dso)
 	if err != nil {
 		panic(err)
 	}

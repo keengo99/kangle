@@ -729,24 +729,14 @@ static int Usage(bool only_version = false) {
 #endif
 			"] "
 #endif
-#ifdef _LARGE_FILE
-			" large-file"
-#endif
 #ifdef ENABLE_HTTP2
-			" http2"
+			" h2"
 #endif
 #ifdef ENABLE_PROXY_PROTOCOL
 		   " proxy"
 #endif
 #ifdef ENABLE_UPSTREAM_SSL
-		" upstream-ssl"
-#endif
-		//{{ent
-#ifdef ENABLE_FLUX_RECORD
-			" flux-record"
-#endif
-#ifdef ENABLE_FATBOY
-			" anti-cc"
+		" u-ssl"
 #endif
 #ifdef ENABLE_BIG_OBJECT
 #ifdef ENABLE_BIG_OBJECT_206
@@ -756,7 +746,7 @@ static int Usage(bool only_version = false) {
 #endif
 #endif
 #ifdef ENABLE_UPSTREAM_HTTP2
-			" upstream-http2"
+			" u-h2"
 #endif
 #ifdef IP_TRANSPARENT
 #ifdef ENABLE_TPROXY
@@ -766,7 +756,7 @@ static int Usage(bool only_version = false) {
 #ifdef ENABLE_MSERVER_ICP
 			" mserver-icp"
 #endif
-//}}
+
 #ifdef ENABLE_DISK_CACHE
 			" disk-cache"
 #endif
