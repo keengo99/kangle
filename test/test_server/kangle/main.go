@@ -74,13 +74,13 @@ func Prepare(kangle string, kangle_bin string) {
 		panic(err)
 	}
 	test_src_dso := config.Cfg.BasePath + "/../build/testdso."
-	test_dst_dso := config.Cfg.BasePath + "/" + kangle_bin + "/testdso."
+	test_dst_dso := config.Cfg.BasePath + "/bin/testdso."
 	if runtime.GOOS == "windows" {
 		test_src_dso += "dll"
 		test_dst_dso += "dll"
 	} else {
 		test_src_dso += "so"
-		test_dst_dso += "dll"
+		test_dst_dso += "so"
 	}
 	err = common.CopyFile(test_src_dso, test_dst_dso)
 	if err != nil {

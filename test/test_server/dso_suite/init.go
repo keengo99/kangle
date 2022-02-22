@@ -2,7 +2,6 @@ package dso_suite
 
 import (
 	"fmt"
-	"runtime"
 	"test_server/kangle"
 	"test_server/suite"
 )
@@ -14,12 +13,7 @@ type dso struct {
 func (this *dso) Init() error {
 	fmt.Printf("dso init\n")
 	content := "<!--#start 300-->\r\n<config>\r\n"
-
-	if runtime.GOOS == "windows" {
-		content += "<dso_extend name='testdso' filename='bin/testdso.dll'/>"
-	} else {
-		content += "<dso_extend name='testdso' filename='bin/testdso.so'/>"
-	}
+	content += "<dso_extend name='testdso' filename='bin/testdso.${dso}'/>"
 	content += `
 	<request >
 		<table name='BEGIN'>
