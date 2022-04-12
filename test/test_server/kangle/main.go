@@ -73,12 +73,14 @@ func Prepare(kangle string, kangle_bin string) {
 	if err != nil {
 		panic(err)
 	}
-	test_src_dso := config.Cfg.BasePath + "/../build/testdso."
+	test_src_dso := ""
 	test_dst_dso := config.Cfg.BasePath + "/bin/testdso."
 	if runtime.GOOS == "windows" {
+		test_src_dso = config.Cfg.BasePath + "/../Debug/testdso."
 		test_src_dso += "dll"
 		test_dst_dso += "dll"
 	} else {
+		test_src_dso = config.Cfg.BasePath + "/../build/testdso."
 		test_src_dso += "so"
 		test_dst_dso += "so"
 	}
