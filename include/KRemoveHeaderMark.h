@@ -51,7 +51,7 @@ public:
 					}
 					if (!obj) {
 						if (strcasecmp(attr,"Range")==0) {
-							CLR(rq->flags,RQ_HAVE_RANGE);
+							KBIT_CLR(rq->flags,RQ_HAVE_RANGE);
 						} else if (strcasecmp(attr, "Accept-Encoding") == 0) {
 							rq->raw_url.encoding = 0;
 							rq->url->encoding = 0;

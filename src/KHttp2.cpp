@@ -276,7 +276,7 @@ u_char *KHttp2::close(bool read,int status)
 	}
 	//read_processing/write_processing  要最后置0。
 	closed = 1;
-	SET(c->st.st_flags, STF_ERR);
+	KBIT_SET(c->st.st_flags, STF_ERR);
 	if (read) {
 		assert(read_processing == 1);
 		read_processing = 0;
@@ -600,7 +600,7 @@ bool KHttp2::ReadHeaderSuccess(KHttp2Context *stream)
 	if (!construct_cookie_header(stream, rq)) {
 		return false;
 	}
-	if (!TEST(rq->flags, RQ_HAS_CONTENT_LEN) && !stream->in_closed) {
+	if (!KBIT_TEST(rq->flags, RQ_HAS_CONTENT_LEN) && !stream->in_closed) {
 		rq->content_length = -1;
 	}
 	//server模式，调用了parsed_header，就要调用handleStartRequest
@@ -708,7 +708,7 @@ KHttp2Context *KHttp2::create_stream()
 	KHttp2Sink *sink = new KHttp2Sink(this,stream);
 	stream->request = new KHttpRequest(sink, state.pool);
 	stream->request->http_major = 2;
-	SET(stream->request->raw_url.flags, KGL_URL_SSL);
+	KBIT_SET(stream->request->raw_url.flags, KGL_URL_SSL);
 	return stream;
 }
 void KHttp2::setDependency(KHttp2Node *node, uint32_t depend, bool exclusive)
@@ -1201,7 +1201,7 @@ void KHttp2::init(kconnection *c)
 {
 	//printf("Http2 init [%p]\n", this);
 	this->c = c;
-	SET(c->st.st_flags,STF_RTIME_OUT);
+	KBIT_SET(c->st.st_flags,STF_RTIME_OUT);
 	read_processing = 1;
 	send_window = KGL_HTTP_V2_DEFAULT_WINDOW;
 	recv_window = KGL_HTTP_V2_CONNECTION_RECV_WINDOW;

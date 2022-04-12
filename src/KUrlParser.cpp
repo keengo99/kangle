@@ -27,7 +27,7 @@ int url_decode(char *str, int len, KUrl *url,bool space2plus) {
 		if (space2plus && *data == '+') {
 			*dest = ' ';
 			if (url) {
-				SET(url->flags,KGL_URL_ENCODE);
+				KBIT_SET(url->flags,KGL_URL_ENCODE);
 			}
 		} else if (
 			*data == '%' &&
@@ -39,7 +39,7 @@ int url_decode(char *str, int len, KUrl *url,bool space2plus) {
 			data += 2;
 			len -= 2;
 			if (url) {
-				SET(url->flags,KGL_URL_ENCODE);
+				KBIT_SET(url->flags,KGL_URL_ENCODE);
 			}
 		} else {
 			*dest = *data;

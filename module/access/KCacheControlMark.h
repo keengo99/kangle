@@ -40,14 +40,14 @@ public:
 			}
 		}
 #endif
-		if (!TEST(obj->index.flags,ANSW_NO_CACHE)) {			
+		if (!KBIT_TEST(obj->index.flags,ANSW_NO_CACHE)) {			
 			if (max_age>0) {
 				obj->index.max_age = max_age;
 				//soft指标是否发送max-age头给客户
-				SET(obj->index.flags,(soft?ANSW_HAS_EXPIRES:ANSW_HAS_MAX_AGE));
+				KBIT_SET(obj->index.flags,(soft?ANSW_HAS_EXPIRES:ANSW_HAS_MAX_AGE));
 			}
 			if (must_revalidate) {
-				SET(obj->index.flags,OBJ_MUST_REVALIDATE);
+				KBIT_SET(obj->index.flags,OBJ_MUST_REVALIDATE);
 			}
 		}
 		return true;
@@ -151,10 +151,10 @@ public:
 	virtual ~KGuestCacheMark() {
 	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType, int &jumpType) {
-		if (!TEST(rq->filter_flags, RF_GUEST)) {
+		if (!KBIT_TEST(rq->filter_flags, RF_GUEST)) {
 			return false;
 		}
-		if (!TEST(obj->index.flags, ANSW_NO_CACHE)) {
+		if (!KBIT_TEST(obj->index.flags, ANSW_NO_CACHE)) {
 			//可以正常缓存
 			return false;
 		}
@@ -175,12 +175,12 @@ public:
 		if (max_age>0) {
 			obj->index.max_age = max_age;
 			//soft指标是否发送max-age头给客户
-			SET(obj->index.flags, (soft ? ANSW_HAS_EXPIRES : ANSW_HAS_MAX_AGE));
+			KBIT_SET(obj->index.flags, (soft ? ANSW_HAS_EXPIRES : ANSW_HAS_MAX_AGE));
 		}
 		if (must_revalidate) {
-			SET(obj->index.flags, OBJ_MUST_REVALIDATE);
+			KBIT_SET(obj->index.flags, OBJ_MUST_REVALIDATE);
 		}
-		SET(obj->index.flags, OBJ_IS_GUEST);
+		KBIT_SET(obj->index.flags, OBJ_IS_GUEST);
 		return true;
 	}
 	std::string getDisplay() {

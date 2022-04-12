@@ -42,9 +42,9 @@ public:
 	}
 	bool match_accept_encoding(u_char accept_encoding) {
 		if (encoding > 0) {
-			return TEST(accept_encoding,encoding) > 0  && TEST(this->accept_encoding,accept_encoding) == accept_encoding;
+			return KBIT_TEST(accept_encoding,encoding) > 0  && KBIT_TEST(this->accept_encoding,accept_encoding) == accept_encoding;
 		}
-		return TEST(this->accept_encoding, accept_encoding) == accept_encoding;
+		return KBIT_TEST(this->accept_encoding, accept_encoding) == accept_encoding;
 	}
 	void set_content_encoding(u_char content_encoding) {
 		this->encoding = content_encoding;
@@ -53,7 +53,7 @@ public:
 		if (encoding>0) {
 			return;
 		}
-		SET(this->accept_encoding, accept_encoding);
+		KBIT_SET(this->accept_encoding, accept_encoding);
 	}
 	int cmpn(const KUrl *a,int n) const {
 		int ret = strcasecmp(host,a->host);
@@ -156,7 +156,7 @@ public:
 	}
 	void GetHost(KStringBuf &s, uint16_t default_port)
 	{
-		if (unlikely(TEST(flags, KGL_URL_IPV6))) {
+		if (unlikely(KBIT_TEST(flags, KGL_URL_IPV6))) {
 			s << "[" << host << "]";
 		} else {
 			s << host;
@@ -168,7 +168,7 @@ public:
 	void GetHost(KStringBuf &s)
 	{
 		int default_port = 80;
-		if (TEST(flags, KGL_URL_SSL)) {
+		if (KBIT_TEST(flags, KGL_URL_SSL)) {
 			default_port = 443;
 		}
 		GetHost(s, default_port);
@@ -177,7 +177,7 @@ public:
 		if (unlikely(host == NULL || path == NULL)) {
 			return false;
 		}
-		if(TEST(flags,KGL_URL_SSL)){
+		if(KBIT_TEST(flags,KGL_URL_SSL)){
 			s << "https://";
 		} else {
 			s << "http://";

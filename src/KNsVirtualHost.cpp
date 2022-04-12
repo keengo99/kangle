@@ -70,7 +70,7 @@ bool KNsVirtualHost::parseVirtualHost(KHttpRequest *rq) {
 		if (!rq->svh->vh->addConnection()) {
 			rq->svh->vh->destroy();
 			rq->svh = NULL;
-			SET(rq->filter_flags,RQ_CONNECT_LIMIT);
+			KBIT_SET(rq->filter_flags,RQ_CONNECT_LIMIT);
 			return false;
 		}
 #endif

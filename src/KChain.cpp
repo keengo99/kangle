@@ -553,7 +553,7 @@ void KChain::buildXML(std::stringstream &s,int flag) {
 		s << " name='" << name << "'";
 	}
 	s << ">\n";
-	if (TEST(flag,CHAIN_XML_SHORT)) {
+	if (KBIT_TEST(flag,CHAIN_XML_SHORT)) {
 		return;
 	}	
 	for (std::list<KAcl *>::iterator it = acls.begin(); it != acls.end(); it++) {

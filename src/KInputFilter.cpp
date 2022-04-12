@@ -131,7 +131,7 @@ KInputFilter *KInputFilterContext::getFilter()
 	if (filter) {
 		return filter;
 	}
-	if(TEST(rq->flags,RQ_POST_UPLOAD)){
+	if(KBIT_TEST(rq->flags,RQ_POST_UPLOAD)){
 		filter = new KMultiPartInputFilter;
 	} else if (rq->content_length!=0) {
 		filter = new KInputFilter;

@@ -383,7 +383,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 			tport = rq->url->port;
 			//{{ent
 #ifdef ENABLE_UPSTREAM_SSL
-			if (TEST(rq->url->flags, KGL_URL_SSL) && tssl == NULL) {
+			if (KBIT_TEST(rq->url->flags, KGL_URL_SSL) && tssl == NULL) {
 				tssl = "s";
 			}
 #endif//}}
@@ -396,7 +396,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 	const char *proxy = NULL;
 	if (type == subdir_server) {
 		proxy = server->http_proxy;
-		if (TEST(rq->raw_url.flags, KGL_URL_SSL) && server->https_proxy) {
+		if (KBIT_TEST(rq->raw_url.flags, KGL_URL_SSL) && server->https_proxy) {
 			proxy = server->https_proxy;
 		}
 	} else if (type == subdir_portmap) {

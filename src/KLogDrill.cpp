@@ -133,7 +133,7 @@ void add_log_drill(KHttpRequest *rq,KStringBuf &s)
 	internal_check_log_drill();
 #endif
 	drill_stat.total_count++;
-	if (!TEST(rq->filter_flags, RF_LOG_DRILL)) {
+	if (!KBIT_TEST(rq->filter_flags, RF_LOG_DRILL)) {
 		drill_lock.Unlock();
 		return;
 	}
@@ -141,10 +141,10 @@ void add_log_drill(KHttpRequest *rq,KStringBuf &s)
 	if (rq->ctx->cache_hit) {
 		drill_stat.cache_hit++;
 	}
-	if (TEST(rq->flags, RQ_OBJ_STORED)) {
+	if (KBIT_TEST(rq->flags, RQ_OBJ_STORED)) {
 		drill_stat.cache_saved++;
 	}
-	if (TEST(rq->flags, RQ_OBJ_VERIFIED)) {
+	if (KBIT_TEST(rq->flags, RQ_OBJ_VERIFIED)) {
 		drill_stat.cache_verified++;
 	}
 	if (drill_count >= conf.log_drill) {

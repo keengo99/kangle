@@ -64,7 +64,7 @@ public:
 		if (fi) {
 			s << "flow='" << fi->flow << "' ";
 			s << "cache='" << fi->cache << "' ";
-			if (TEST(flag,CHAIN_RESET_FLOW)) {
+			if (KBIT_TEST(flag,CHAIN_RESET_FLOW)) {
 				fi->reset();
 			}
 		}

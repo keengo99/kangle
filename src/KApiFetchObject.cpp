@@ -81,7 +81,7 @@ KGL_RESULT KApiFetchObject::Open(KHttpRequest *rq, kgl_input_stream* in, kgl_out
 		if (!brd->rd->enable) {
 			return out->f->write_message(out, rq, KGL_MSG_ERROR, "extend is disable", STATUS_SERVER_ERROR);
 		}
-		SET(obj->index.flags,ANSW_LOCAL_SERVER);
+		KBIT_SET(obj->index.flags,ANSW_LOCAL_SERVER);
 		if (rq->auth) {
 			const char *auth_type = KHttpAuth::buildType(
 					rq->auth->getType());

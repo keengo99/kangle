@@ -155,7 +155,7 @@ KGL_RESULT st_write_header(kgl_output_stream*st, KREQUEST r, kgl_header_type att
 			INT64 *content_length = (INT64*)val;
 			kassert(*content_length >= 0);
 			obj->index.content_length = *content_length;
-			SET(obj->index.flags, ANSW_HAS_CONTENT_LENGTH);
+			KBIT_SET(obj->index.flags, ANSW_HAS_CONTENT_LENGTH);
 			return KGL_OK;
 		}
 		case kgl_header_last_modified:
@@ -163,7 +163,7 @@ KGL_RESULT st_write_header(kgl_output_stream*st, KREQUEST r, kgl_header_type att
 			obj->index.last_modified = *(time_t *)val;
 			char tmp_buf[42];
 			mk1123time(obj->index.last_modified, tmp_buf, 41);
-			SET(obj->index.flags, ANSW_LAST_MODIFIED);
+			KBIT_SET(obj->index.flags, ANSW_LAST_MODIFIED);
 			g->parser_ctx.AddHeader(kgl_header_type_string[attr].data, (hlen_t)kgl_header_type_string[attr].len, tmp_buf, 29);
 			return KGL_OK;
 		}
@@ -203,7 +203,7 @@ KGL_RESULT st_write_message(kgl_output_stream*st, KREQUEST r, KGL_MSG_TYPE msg_t
 	if (msg_type == KGL_MSG_ERROR) {
 		return handle_error(rq, msg_flag, (const char*)msg);
 	}
-	if (TEST(rq->flags, RQ_HAS_SEND_HEADER)) {
+	if (KBIT_TEST(rq->flags, RQ_HAS_SEND_HEADER)) {
 		return KGL_EHAS_SEND_HEADER;
 	}
 	WSABUF* buf = (WSABUF*)msg;

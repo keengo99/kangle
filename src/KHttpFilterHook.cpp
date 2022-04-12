@@ -36,7 +36,7 @@ DWORD KHttpFilterHookCollect::process(KHttpRequest *rq,DWORD notificationType, L
 	while (hook) {
 		rq->init_http_filter();
 		DWORD disabled_flags = rq->http_filter_ctx->restore(hook->dso->index);
-		if (TEST(disabled_flags,notificationType)) {
+		if (KBIT_TEST(disabled_flags,notificationType)) {
 			//disabled
 			hook = hook->next;
 			continue;
@@ -51,7 +51,7 @@ DWORD KHttpFilterHookCollect::process(KHttpRequest *rq,DWORD notificationType, L
 			continue;
 		}
 		if (ret==KF_STATUS_REQ_FINISHED) {
-			SET(rq->flags,RQ_CONNECTION_CLOSE);
+			KBIT_SET(rq->flags,RQ_CONNECTION_CLOSE);
 		}
 		return ret;
 	}
@@ -63,7 +63,7 @@ void KHttpFilterHookCollect::buildRawStream(DWORD type,KHttpRequest *rq,KHttpStr
 	while (hook) {
 		rq->init_http_filter();
 		DWORD disabled_flags = rq->http_filter_ctx->restore(hook->dso->index);
-		if (TEST(disabled_flags,type)) {
+		if (KBIT_TEST(disabled_flags,type)) {
 			//disabled
 			hook = hook->next;
 			continue;

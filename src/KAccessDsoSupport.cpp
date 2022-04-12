@@ -84,7 +84,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 	case KGL_VAR_HTTPS:
 	{
 		int *v = (int *)buffer;
-		if (TEST(rq->url->flags, KGL_URL_SSL)) {
+		if (KBIT_TEST(rq->url->flags, KGL_URL_SSL)) {
 			*v = 1;
 		} else {
 			*v = 0;
@@ -108,7 +108,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 		return KGL_OK;
 	}
 	case KGL_VAR_SERVER_PROTOCOL:
-		if (TEST(rq->GetWorkModel(), WORK_MODEL_TCP)) {
+		if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_TCP)) {
 			return ADD_VAR(buffer, size, "TCP");
 		}
 		if (rq->http_major > 1) {
@@ -186,7 +186,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 	case KGL_VAR_HAS_CONTENT_LENGTH:
 	{
 		bool *v = (bool *)buffer;
-		*v = TEST(rq->flags, RQ_HAS_CONTENT_LEN) > 0;
+		*v = KBIT_TEST(rq->flags, RQ_HAS_CONTENT_LEN) > 0;
 		return KGL_OK;
 	}
 	case KGL_VAR_CONTENT_TYPE:
@@ -278,7 +278,7 @@ static KGL_RESULT  response_unknow_header(
 	hlen_t val_len)
 {
 	KHttpRequest *rq = (KHttpRequest *)r;
-	if (TEST(rq->flags, RQ_HAS_SEND_HEADER)) {
+	if (KBIT_TEST(rq->flags, RQ_HAS_SEND_HEADER)) {
 		return KGL_EHAS_SEND_HEADER;
 	}
 	if (strcasecmp(attr, "Status") == 0) {
@@ -326,7 +326,7 @@ KGL_RESULT base_support_function(KHttpRequest *rq, KF_REQ_TYPE req, PVOID data, 
 		if (param && *param) {
 			rq->url->param = strdup(param);
 		}
-		SET(rq->raw_url.flags, KGL_URL_REWRITED);
+		KBIT_SET(rq->raw_url.flags, KGL_URL_REWRITED);
 		return KGL_OK;
 	}
 	case KD_REQ_REWRITE_URL:
@@ -383,7 +383,7 @@ static KGL_RESULT support_function(
 		}
 		kgl_upstream *us = (kgl_upstream *)data;
 		//目前还不支持同步模式
-		CLR(us->flags, KF_UPSTREAM_SYNC);
+		KBIT_CLR(us->flags, KF_UPSTREAM_SYNC);
 		KDsoRedirect *rd = new KDsoRedirect("", us);
 		KFetchObject *fo = rd->makeFetchObject(rq, *ret);
 		fo->bindRedirect(rd,KGL_CONFIRM_FILE_NEVER);
@@ -418,7 +418,7 @@ static kgl_access_function response_access_function = {
 void init_access_dso_support(kgl_access_context *ctx, int notify)
 {
 	memset(ctx, 0, sizeof(kgl_access_context));
-	if (TEST(notify, KF_NOTIFY_REQUEST_ACL | KF_NOTIFY_REQUEST_MARK)) {
+	if (KBIT_TEST(notify, KF_NOTIFY_REQUEST_ACL | KF_NOTIFY_REQUEST_MARK)) {
 		//request
 		ctx->f = &request_access_function;
 		return;

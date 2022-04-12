@@ -16,9 +16,9 @@ public:
 	{
 		rq->min_obj_verified = v;
 		if (hard) {
-			SET(rq->min_obj_verified, 1);
+			KBIT_SET(rq->min_obj_verified, 1);
 		} else {
-			CLR(rq->min_obj_verified, 1);
+			KBIT_CLR(rq->min_obj_verified, 1);
 		}
 		return true;
 	}

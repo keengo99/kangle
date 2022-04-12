@@ -92,34 +92,34 @@ public:
 	void set_work_model(kserver *server)
 	{
 		if (manage > 0) {
-			SET(server->flags, WORK_MODEL_MANAGE);
+			KBIT_SET(server->flags, WORK_MODEL_MANAGE);
 		} else {
-			CLR(server->flags, WORK_MODEL_MANAGE);
+			KBIT_CLR(server->flags, WORK_MODEL_MANAGE);
 		}
 #ifdef ENABLE_PROXY_PROTOCOL
 		if (proxy) {
-			SET(server->flags, WORK_MODEL_PROXY);
-			CLR(server->flags, WORK_MODEL_SSL_PROXY);
+			KBIT_SET(server->flags, WORK_MODEL_PROXY);
+			KBIT_CLR(server->flags, WORK_MODEL_SSL_PROXY);
 		} else if (ssl_proxy) {
-			SET(server->flags, WORK_MODEL_SSL_PROXY);
-			CLR(server->flags, WORK_MODEL_PROXY);
+			KBIT_SET(server->flags, WORK_MODEL_SSL_PROXY);
+			KBIT_CLR(server->flags, WORK_MODEL_PROXY);
 		} else {
-			CLR(server->flags, WORK_MODEL_PROXY);
-			CLR(server->flags, WORK_MODEL_SSL_PROXY);
+			KBIT_CLR(server->flags, WORK_MODEL_PROXY);
+			KBIT_CLR(server->flags, WORK_MODEL_SSL_PROXY);
 		}
 #endif
 #ifdef WORK_MODEL_TCP
 		if (tcp) {
-			SET(server->flags, WORK_MODEL_TCP);
+			KBIT_SET(server->flags, WORK_MODEL_TCP);
 		} else {
-			CLR(server->flags, WORK_MODEL_TCP);
+			KBIT_CLR(server->flags, WORK_MODEL_TCP);
 		}
 #endif
 #ifdef ENABLE_TPROXY
 		if (tproxy) {
-			SET(server->flags, WORK_MODEL_TPROXY);
+			KBIT_SET(server->flags, WORK_MODEL_TPROXY);
 		} else {
-			CLR(server->flags, WORK_MODEL_TPROXY);
+			KBIT_CLR(server->flags, WORK_MODEL_TPROXY);
 		}
 #endif
 		server->global = global > 0;

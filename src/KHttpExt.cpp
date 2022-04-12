@@ -283,10 +283,10 @@ BOOL WINAPI ServerSupportFunction(HCONN hConn, DWORD dwHSERequest,
 	if(dwHSERequest == HSE_REQ_VECTOR_SEND) {
 		HSE_RESPONSE_VECTOR *info = (HSE_RESPONSE_VECTOR *)lpvBuffer;
 		bool asyn = false;
-		if(TEST(info->dwFlags,HSE_IO_ASYNC)) {
+		if(KBIT_TEST(info->dwFlags,HSE_IO_ASYNC)) {
 			asyn = true;
 		}
-		if(TEST(info->dwFlags,HSE_IO_SEND_HEADERS)) {
+		if(KBIT_TEST(info->dwFlags,HSE_IO_SEND_HEADERS)) {
 			fo->setStatusCode(info->pszStatus);
 			fo->addHeader(info->pszHeaders);
 		}

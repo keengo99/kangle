@@ -175,14 +175,14 @@ void KSharedBigObject::Close(KHttpObject* obj)
 	if (read_refs == 0 && write_refs == 0 && fp) {
 		kfiber_file_close(fp);
 		fp = NULL;
-		if (TEST(obj->index.flags, FLAG_IN_DISK)) {
+		if (KBIT_TEST(obj->index.flags, FLAG_IN_DISK)) {
 			SaveProgress(obj);
 		}
 	}
 }
 void KSharedBigObject::CloseRead(KHttpObject* obj)
 {
-	assert(TEST(obj->index.flags, FLAG_BIG_OBJECT_PROGRESS));
+	assert(KBIT_TEST(obj->index.flags, FLAG_BIG_OBJECT_PROGRESS));
 	kfiber_mutex_lock(lock);
 	read_refs--;
 	assert(read_refs >= 0);
@@ -295,13 +295,13 @@ void KSharedBigObject::CloseWrite(KHttpObject* obj, INT64 range_from)
 	write_refs--;
 	if (change_to_big_object && obj->in_cache) {
 		//printf("变身完成物件\n");
-		//assert(TEST(obj->index.flags,FLAG_IN_MEM|FLAG_IN_DISK)==FLAG_IN_DISK);
+		//assert(KBIT_TEST(obj->index.flags,FLAG_IN_MEM|FLAG_IN_DISK)==FLAG_IN_DISK);
 		//变身完成物件
-		CLR(obj->index.flags, FLAG_IN_DISK);
+		KBIT_CLR(obj->index.flags, FLAG_IN_DISK);
 		KHttpObject* nobj = new KHttpObject();
 		kgl_memcpy(&nobj->dk, &obj->dk, sizeof(nobj->dk));
 		kgl_memcpy(&nobj->index, &obj->index, sizeof(nobj->index));
-		//assert(TEST(nobj->index.flags, FLAG_BIG_OBJECT));
+		//assert(KBIT_TEST(nobj->index.flags, FLAG_BIG_OBJECT));
 		nobj->uk.url = obj->uk.url->clone();
 		if (obj->uk.vary != NULL) {
 			KMutex* lock = obj->getLock();
@@ -310,8 +310,8 @@ void KSharedBigObject::CloseWrite(KHttpObject* obj, INT64 range_from)
 			lock->Unlock();
 		}
 		nobj->h = obj->h;
-		SET(nobj->index.flags, FLAG_URL_FREE);
-		CLR(nobj->index.flags, FLAG_BIG_OBJECT_PROGRESS);
+		KBIT_SET(nobj->index.flags, FLAG_URL_FREE);
+		KBIT_CLR(nobj->index.flags, FLAG_BIG_OBJECT_PROGRESS);
 		assert(nobj->data == NULL);
 		nobj->data = new KHttpObjectBody(obj->data);
 		nobj->data->type = BIG_OBJECT;
@@ -321,14 +321,14 @@ void KSharedBigObject::CloseWrite(KHttpObject* obj, INT64 range_from)
 		int aio_buffer_size = 0;
 		if (cache_result) {
 			//把文件传给新物件
-			SET(nobj->index.flags, FLAG_IN_DISK);
+			KBIT_SET(nobj->index.flags, FLAG_IN_DISK);
 			dci->start(ci_update, nobj);
 			aio_buffer = nobj->build_aio_header(aio_buffer_size);
 		} else {
-			SET(obj->index.flags, FLAG_IN_DISK);
+			KBIT_SET(obj->index.flags, FLAG_IN_DISK);
 		}
 		nobj->release();
-		SET(obj->index.flags, FLAG_DEAD);
+		KBIT_SET(obj->index.flags, FLAG_DEAD);
 		//写文件头代码
 		if (cache_result && fp) {
 			kfiber_file_seek(fp, seekBegin, 0);
@@ -366,13 +366,13 @@ bool KSharedBigObject::Open(KHttpRequest* rq, KHttpObject* obj, bool create_flag
 		return false;
 	}
 	if (create_flag) {
-		if (TEST(obj->index.flags, ANSW_HAS_CONTENT_RANGE)) {
+		if (KBIT_TEST(obj->index.flags, ANSW_HAS_CONTENT_RANGE)) {
 			obj->removeHttpHeader("Content-Range");
 			obj->index.content_length = rq->ctx->content_range_length;
 		}
 		obj->data->status_code = STATUS_OK;
-		CLR(obj->index.flags, OBJ_NOT_OK);
-		SET(obj->index.flags, OBJ_IS_READY | FLAG_IN_DISK | FLAG_BIG_OBJECT_PROGRESS);
+		KBIT_CLR(obj->index.flags, OBJ_NOT_OK);
+		KBIT_SET(obj->index.flags, OBJ_IS_READY | FLAG_IN_DISK | FLAG_BIG_OBJECT_PROGRESS);
 		int size;
 		char* buf = obj->build_aio_header(size);
 		if (buf) {
@@ -486,7 +486,7 @@ bool KSharedBigObject::CanSatisfy(KHttpRequest *rq,KHttpObject *obj)
 	if (body_complete) {
 		return true;
 	}
-	if (!TEST(rq->flags,RQ_HAVE_RANGE)) {
+	if (!KBIT_TEST(rq->flags,RQ_HAVE_RANGE)) {
 		//如果没有range，则返回是否完成
 		rq->range_from = 0;
 		rq->range_to = -1;

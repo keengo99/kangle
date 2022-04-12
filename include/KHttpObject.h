@@ -127,7 +127,7 @@ public:
 	KHttpObject(KHttpRequest *rq) {		
 		init(rq->url);
 		data = new KHttpObjectBody();	
-		SET(index.flags,FLAG_IN_MEM);
+		KBIT_SET(index.flags,FLAG_IN_MEM);
 	}
 	KHttpObject(KHttpRequest *rq,KHttpObject *obj);
 	void init(KUrl *url) {
@@ -154,7 +154,7 @@ public:
 	}
 	bool IsContentRangeComplete(KHttpRequest *rq)
 	{
-		if (!TEST(index.flags, ANSW_HAS_CONTENT_RANGE)) {
+		if (!KBIT_TEST(index.flags, ANSW_HAS_CONTENT_RANGE)) {
 			return false;
 		}
 		return rq->ctx->content_range_length==index.content_length;
@@ -211,7 +211,7 @@ public:
 		return NULL;
 	}
 	bool matchEtag(const char *if_none_match,int len) {
-		if (!TEST(index.flags,OBJ_HAS_ETAG)) {
+		if (!KBIT_TEST(index.flags,OBJ_HAS_ETAG)) {
 			return false;
 		}
 		if (data==NULL) {
@@ -252,8 +252,8 @@ public:
 		if (!status_code_can_cache(data->status_code)) {
 			return false;
 		}
-		CLR(index.flags,ANSW_NO_CACHE|OBJ_MUST_REVALIDATE);
-		if (!TEST(index.flags,ANSW_LAST_MODIFIED|OBJ_HAS_ETAG)) {
+		KBIT_CLR(index.flags,ANSW_NO_CACHE|OBJ_MUST_REVALIDATE);
+		if (!KBIT_TEST(index.flags,ANSW_LAST_MODIFIED|OBJ_HAS_ETAG)) {
 			index.last_modified = kgl_current_sec;
 			if (insertLastModified) {
 				char *tmp_buf = (char *)malloc(41);
@@ -261,9 +261,9 @@ public:
 				mk1123time(index.last_modified, tmp_buf, 41);
 				insertHttpHeader2(strdup("Last-Modified"),sizeof("Last-Modified")-1,tmp_buf,29);
 			}
-			SET(index.flags,ANSW_LAST_MODIFIED);
+			KBIT_SET(index.flags,ANSW_LAST_MODIFIED);
 		}
-		SET(index.flags,OBJ_IS_STATIC2);
+		KBIT_SET(index.flags,OBJ_IS_STATIC2);
 		return true;
 	}
 #endif
@@ -275,22 +275,22 @@ public:
 	}
 	bool checkNobody() {
 		if (is_status_code_no_body(data->status_code)) {
-			SET(index.flags,FLAG_NO_BODY);
+			KBIT_SET(index.flags,FLAG_NO_BODY);
 			return true;
 		}
-		if (TEST(index.flags,ANSW_XSENDFILE)) {
-			SET(index.flags,FLAG_NO_BODY);
+		if (KBIT_TEST(index.flags,ANSW_XSENDFILE)) {
+			KBIT_SET(index.flags,FLAG_NO_BODY);
 			return true;
 		}
 		return false;
 	}
 	void CountSize(INT64 &mem_size,INT64 &disk_size,int &mem_count,int &disk_count)
 	{
-		if (TEST(index.flags,FLAG_IN_MEM)) {
+		if (KBIT_TEST(index.flags,FLAG_IN_MEM)) {
 			mem_count++;
 			mem_size += GetMemorySize();
 		}
-		if (TEST(index.flags,FLAG_IN_DISK)) {
+		if (KBIT_TEST(index.flags,FLAG_IN_DISK)) {
 			disk_count++;
 			disk_size += GetDiskSize();			
 		}
@@ -361,7 +361,7 @@ public:
 	bool AddVary(KHttpRequest *rq,const char *val,int val_len);
 	INT64 getTotalContentSize(KHttpRequest *rq)
 	{
-		if (TEST(index.flags,ANSW_HAS_CONTENT_RANGE)) {
+		if (KBIT_TEST(index.flags,ANSW_HAS_CONTENT_RANGE)) {
 			return rq->ctx->content_range_length;
 		}
 		return index.content_length;

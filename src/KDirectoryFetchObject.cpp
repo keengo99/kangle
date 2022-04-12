@@ -44,7 +44,7 @@ KGL_RESULT KDirectoryFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, k
 		return out->f->write_message(out, rq, KGL_MSG_ERROR, "cann't open dir", STATUS_NOT_FOUND);
 	}
 #else
-	SET(rq->ctx->obj->index.flags, ANSW_LOCAL_SERVER);
+	KBIT_SET(rq->ctx->obj->index.flags, ANSW_LOCAL_SERVER);
 	assert(dp == INVALID_HANDLE_VALUE);
 	stringstream dir;
 	dir << rq->file->getName() << "\\*";

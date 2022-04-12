@@ -107,10 +107,10 @@ bool getConnectionTr(KHttpRequest *rq, KConnectionInfoContext *ctx)
 bool kconnection_info_iterator(void *ctx, kselector *selector, kselectable *st)
 {
 	KConnectionInfoContext *cn_ctx = (KConnectionInfoContext *)ctx;
-	if (st->data == NULL || !TEST(st->st_flags,STF_OPAQUE_SERVER)) {
+	if (st->data == NULL || !KBIT_TEST(st->st_flags,STF_OPAQUE_SERVER)) {
 		return true;
 	}
-	if (!TEST(st->st_flags, STF_OPAQUE_HTTP2)) {
+	if (!KBIT_TEST(st->st_flags, STF_OPAQUE_HTTP2)) {
 		return getConnectionTr((KHttpRequest *)st->data,cn_ctx);
 	}
 #ifdef ENABLE_HTTP2
@@ -973,13 +973,13 @@ bool KHttpManage::sendHttp(const char *msg, INT64 content_length,const char *con
 	}
 	kbuf *gzipOut = NULL;
 	rq->responseConnection();
-	if (content_length > conf.min_compress_length && msg && TEST(rq->raw_url.encoding, KGL_ENCODING_GZIP)) {
+	if (content_length > conf.min_compress_length && msg && KBIT_TEST(rq->raw_url.encoding, KGL_ENCODING_GZIP)) {
 		kbuf in;
 		memset(&in, 0, sizeof(in));
 		in.data = (char *)msg;
 		in.used = (int)content_length;
 		gzipOut = deflate_buff(&in, conf.gzip_level, content_length, true);
-		SET(rq->flags, RQ_TE_COMPRESS);
+		KBIT_SET(rq->flags, RQ_TE_COMPRESS);
 		rq->responseHeader(kgl_expand_string("Content-Encoding"), kgl_expand_string("gzip"));
 	}
 	if (content_length>=0) {
@@ -1345,7 +1345,7 @@ void KHttpManage::parsePostData() {
 		length = rq->Read(str, (int)rq->left_read);
 		if (length <= 0) {
 			free(buffer);
-			SET(rq->flags,RQ_CONNECTION_CLOSE);
+			KBIT_SET(rq->flags,RQ_CONNECTION_CLOSE);
 			return;
 		}		
 		str += length;
@@ -1436,7 +1436,7 @@ bool KHttpManage::start_listen(bool &hit) {
 		*/
 		//need_reboot_flag = true;
 #ifdef KSOCKET_SSL
-		if (TEST(model,WORK_MODEL_SSL)) {
+		if (KBIT_TEST(model,WORK_MODEL_SSL)) {
 			host->cert_file = getUrlValue("certificate");
 			host->key_file = getUrlValue("certificate_key");
 			host->cipher = getUrlValue("cipher");
@@ -1541,7 +1541,7 @@ bool KHttpManage::start_listen(bool &hit) {
 #ifdef KSOCKET_SSL
         s << "<tr><td colspan=2>";
         s << "<div id='ssl' style=\"display:";
-        if(host==NULL || !TEST(host->model,WORK_MODEL_SSL)){
+        if(host==NULL || !KBIT_TEST(host->model,WORK_MODEL_SSL)){
                 s << "none";
         }
         s << "\">";
@@ -1869,7 +1869,7 @@ KGL_RESULT KHttpManage::Open(KHttpRequest *rq, kgl_input_stream* in, kgl_output_
 	this->rq = rq;
 	bool hit = true;
 	if (!start(hit)) {
-		SET(rq->flags,RQ_CONNECTION_CLOSE);
+		KBIT_SET(rq->flags,RQ_CONNECTION_CLOSE);
 	}
 	if (!hit) {
 		return send_error2(rq, STATUS_NOT_FOUND, "no such file");
@@ -2284,7 +2284,7 @@ function sortrq(index)\
 		return reboot();
 	}
 	if (strcmp(rq->url->path, "/reboot_submit")==0) {
-		SET(rq->flags,RQ_CONNECTION_CLOSE);
+		KBIT_SET(rq->flags,RQ_CONNECTION_CLOSE);
 		console_call_reboot();
 		return sendHttp("");
 	}

@@ -33,7 +33,7 @@ public:
 				return 0;
 			}
 		} else if (mark_acl < 0) {
-			if (!TEST(rq->mark, -mark_acl)) {
+			if (!KBIT_TEST(rq->mark, -mark_acl)) {
 				return 0;
 			}
 		}
@@ -42,7 +42,7 @@ public:
 			if (mark_mark > 0) {
 				rq->mark = mark_mark;
 			} else if (mark_mark < 0) {
-				SET(rq->mark, -mark_mark);
+				KBIT_SET(rq->mark, -mark_mark);
 			}
 		}
 		return ret;

@@ -74,7 +74,7 @@ void KHttpObject::ResponseVaryHeader(KHttpRequest *rq)
 }
 bool KHttpObject::AddVary(KHttpRequest *rq,const char *val,int val_len)
 {
-	SET(index.flags, OBJ_HAS_VARY);
+	KBIT_SET(index.flags, OBJ_HAS_VARY);
 	if (uk.vary == NULL) {
 		char *vary_val = rq->BuildVary(val);
 		if (vary_val != NULL) {
@@ -106,8 +106,8 @@ KHttpObject::KHttpObject(KHttpRequest *rq,KHttpObject *obj)
 	init(rq->url);
 	uk.url->encoding = rq->raw_url.encoding;
 	index.flags = obj->index.flags;
-	CLR(index.flags,FLAG_IN_DISK|FLAG_URL_FREE|OBJ_IS_READY|OBJ_IS_STATIC2|FLAG_NO_BODY|ANSW_HAS_CONTENT_LENGTH|ANSW_HAS_CONTENT_RANGE);
-	SET(index.flags,FLAG_IN_MEM);
+	KBIT_CLR(index.flags,FLAG_IN_DISK|FLAG_URL_FREE|OBJ_IS_READY|OBJ_IS_STATIC2|FLAG_NO_BODY|ANSW_HAS_CONTENT_LENGTH|ANSW_HAS_CONTENT_RANGE);
+	KBIT_SET(index.flags,FLAG_IN_MEM);
 	index.last_verified = obj->index.last_verified;
 	index.last_modified = obj->index.last_modified;
 	index.max_age = obj->index.max_age;
@@ -120,7 +120,7 @@ KHttpObject::~KHttpObject() {
 	if (data) {
 		delete data;
 	}
-	if (uk.url && TEST(index.flags,FLAG_URL_FREE)) {
+	if (uk.url && KBIT_TEST(index.flags,FLAG_URL_FREE)) {
 		//url由obj负责，则清理
 		uk.url->destroy();
 		delete uk.url;
@@ -131,7 +131,7 @@ KHttpObject::~KHttpObject() {
 }
 void KHttpObject::Dead()
 {
-	SET(index.flags, FLAG_DEAD);
+	KBIT_SET(index.flags, FLAG_DEAD);
 	dc_index_update = 1;
 }
 void KHttpObject::UpdateCache(KHttpObject *obj)
@@ -172,7 +172,7 @@ void KHttpObjectBody::create_type(HttpObjectIndex *index)
 {
 	//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
-	if (TEST(index->flags, FLAG_BIG_OBJECT_PROGRESS)) {
+	if (KBIT_TEST(index->flags, FLAG_BIG_OBJECT_PROGRESS)) {
 		this->type = BIG_OBJECT_PROGRESS;
 		this->sbo = new KSharedBigObject;
 		//this->sbo->setBodyStart(index->head_size);
@@ -207,7 +207,7 @@ bool KHttpObjectBody::restore_header(KHttpObject *obj, char *buffer, int len)
 }
 void KHttpObject::unlinkDiskFile()
 {
-	if (TEST(index.flags,FLAG_IN_DISK)) {
+	if (KBIT_TEST(index.flags,FLAG_IN_DISK)) {
 #ifdef ENABLE_DB_DISK_INDEX
 		if (dci) {
 			dci->start(ci_del,this);
@@ -230,7 +230,7 @@ void KHttpObject::unlinkDiskFile()
 		}
 		//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
-		if (TEST(index.flags,FLAG_BIG_OBJECT_PROGRESS)) {
+		if (KBIT_TEST(index.flags,FLAG_BIG_OBJECT_PROGRESS)) {
 			KStringBuf partfile;
 			partfile << name << ".part";
 			if (0!=unlink(partfile.getString())) {
@@ -296,7 +296,7 @@ bool KHttpObject::swapinBody(KFile *fp, KHttpObjectBody *data)
 bool KHttpObject::swapin(KHttpObjectBody *data)
 {
 	bool result = false;
-	assert(0 == TEST(index.flags, FLAG_IN_MEM));
+	assert(0 == KBIT_TEST(index.flags, FLAG_IN_MEM));
 	assert(data->bodys == NULL);
 	if (!is_valide_dc_head_size(index.head_size)) {
 		return false;
@@ -364,7 +364,7 @@ void KHttpObject::write_file_header(KHttpObjectFileHeader *fileHeader)
 	fileHeader->body_complete = 1;
 	//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
-	if (TEST(index.flags, FLAG_BIG_OBJECT_PROGRESS)) {
+	if (KBIT_TEST(index.flags, FLAG_BIG_OBJECT_PROGRESS)) {
 		fileHeader->body_complete = 0;
 	}
 #endif//}}
@@ -420,13 +420,13 @@ bool KHttpObject::save_header(KBufferFile *fp,const char *url,int url_len)
 
 bool KHttpObject::swapout(KBufferFile *file,bool fast_model)
 {
-	if (fast_model && !TEST(index.flags, FLAG_IN_DISK)) {
+	if (fast_model && !KBIT_TEST(index.flags, FLAG_IN_DISK)) {
 		return false;
 	}
 	kbuf *tmp;
 	char *filename = NULL;
 	assert(data);
-	if (TEST(index.flags,FLAG_IN_DISK)) {
+	if (KBIT_TEST(index.flags,FLAG_IN_DISK)) {
 		if (dc_index_update == 0) {
 			return true;
 		}
@@ -479,7 +479,7 @@ bool KHttpObject::swapout(KBufferFile *file,bool fast_model)
 		*/
 	}
 #endif//}}
-	if (TEST(index.flags, FLAG_IN_DISK)) {
+	if (KBIT_TEST(index.flags, FLAG_IN_DISK)) {
 		//内容已经有，无需
 		goto swap_out_success;
 	}

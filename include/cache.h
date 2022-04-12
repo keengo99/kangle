@@ -57,11 +57,11 @@ inline bool objCanCache(KHttpRequest *rq,KHttpObject *obj)
 		//默认不缓存并且也没有说明要缓存的
 		return false;
 	}
-	if (TEST(rq->flags,RQ_HAS_AUTHORIZATION)) {
+	if (KBIT_TEST(rq->flags,RQ_HAS_AUTHORIZATION)) {
 		//如果是有认证用户的必须要回源验证。
-		SET(obj->index.flags,OBJ_MUST_REVALIDATE);
+		KBIT_SET(obj->index.flags,OBJ_MUST_REVALIDATE);
 	}
-	if (TEST(obj->index.flags,FLAG_DEAD|ANSW_NO_CACHE)) {
+	if (KBIT_TEST(obj->index.flags,FLAG_DEAD|ANSW_NO_CACHE)) {
 		//死物件和标记为不缓存的
 		return false;
 	}

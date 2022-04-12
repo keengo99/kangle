@@ -48,12 +48,12 @@ bool KHttp2Upstream::BuildHttpHeader(KHttpRequest *rq, KAsyncFetchObject *fo, KW
 	int ips_len = strlen(ips);
 	char tmpbuff[50];
 	KUrl *url = rq->url;
-	if (TEST(rq->filter_flags, RF_PROXY_RAW_URL) || !TEST(rq->raw_url.flags, KGL_URL_REWRITED)) {
+	if (KBIT_TEST(rq->filter_flags, RF_PROXY_RAW_URL) || !KBIT_TEST(rq->raw_url.flags, KGL_URL_REWRITED)) {
 		url = &rq->raw_url;
 	}
 	char *path = url->path;
 	size_t path_len = 0;
-	if (url == rq->url && TEST(url->flags, KGL_URL_ENCODE)) {
+	if (url == rq->url && KBIT_TEST(url->flags, KGL_URL_ENCODE)) {
 		path = url_encode(url->path, strlen(url->path), &path_len);
 	}
 	KStringBuf s;
@@ -67,7 +67,7 @@ bool KHttp2Upstream::BuildHttpHeader(KHttpRequest *rq, KAsyncFetchObject *fo, KW
 		xfree(path);
 	}
 	http2->add_header(ctx, kgl_expand_string(":authority"), url->host, (hlen_t)strlen(url->host));
-	if (TEST(rq->raw_url.flags, KGL_URL_SSL)) {
+	if (KBIT_TEST(rq->raw_url.flags, KGL_URL_SSL)) {
 		http2->add_header(ctx, kgl_expand_string(":scheme"), kgl_expand_string("https"));
 	} else {
 		http2->add_header(ctx, kgl_expand_string(":scheme"), kgl_expand_string("http"));
@@ -83,17 +83,17 @@ bool KHttp2Upstream::BuildHttpHeader(KHttpRequest *rq, KAsyncFetchObject *fo, KW
 			goto do_not_insert;
 		}
 #ifdef ENABLE_DELTA_DECODE
-		if (TEST(rq->filter_flags, RF_DELTA) && attr_casecmp(av->attr, "Accept-Encoding") == 0) {
+		if (KBIT_TEST(rq->filter_flags, RF_DELTA) && attr_casecmp(av->attr, "Accept-Encoding") == 0) {
 			goto do_not_insert;
 		}
 #endif
 		if (strcasecmp(av->attr, X_REAL_IP_SIGN) == 0) {
 			goto do_not_insert;
 		}
-		if (TEST(rq->filter_flags, RF_X_REAL_IP) && (is_attr(av, "X-Real-IP") || is_attr(av, "X-Forwarded-Proto"))) {
+		if (KBIT_TEST(rq->filter_flags, RF_X_REAL_IP) && (is_attr(av, "X-Real-IP") || is_attr(av, "X-Forwarded-Proto"))) {
 			goto do_not_insert;
 		}
-		if (!TEST(rq->filter_flags, RF_NO_X_FORWARDED_FOR) && is_attr(av, "X-Forwarded-For")) {
+		if (!KBIT_TEST(rq->filter_flags, RF_NO_X_FORWARDED_FOR) && is_attr(av, "X-Forwarded-For")) {
 			if (x_forwarded_for_inserted) {
 				goto do_not_insert;
 			}
@@ -103,7 +103,7 @@ bool KHttp2Upstream::BuildHttpHeader(KHttpRequest *rq, KAsyncFetchObject *fo, KW
 			http2->add_header(ctx, av->attr, av->attr_len, s.getBuf(), s.getSize());
 			goto do_not_insert;
 		}
-		if (TEST(rq->flags, RQ_HAVE_EXPECT) && is_attr(av, "Expect")) {
+		if (KBIT_TEST(rq->flags, RQ_HAVE_EXPECT) && is_attr(av, "Expect")) {
 			goto do_not_insert;
 		}
 #ifdef ENABLE_BIG_OBJECT_206
@@ -158,12 +158,12 @@ bool KHttp2Upstream::BuildHttpHeader(KHttpRequest *rq, KAsyncFetchObject *fo, KW
 #ifdef ENABLE_SIMULATE_HTTP
 	if (!rq->ctx->simulate) {
 #endif
-		if (!TEST(rq->filter_flags, RF_NO_X_FORWARDED_FOR) && !x_forwarded_for_inserted) {
+		if (!KBIT_TEST(rq->filter_flags, RF_NO_X_FORWARDED_FOR) && !x_forwarded_for_inserted) {
 			http2->add_header(ctx, kgl_expand_string("X-Forwarded-For"), ips, ips_len);
 		}
-		if (TEST(rq->filter_flags, RF_X_REAL_IP)) {
+		if (KBIT_TEST(rq->filter_flags, RF_X_REAL_IP)) {
 			http2->add_header(ctx, kgl_expand_string("X-Real-IP"), ips, ips_len);
-			if (TEST(rq->raw_url.flags, KGL_URL_SSL)) {
+			if (KBIT_TEST(rq->raw_url.flags, KGL_URL_SSL)) {
 				http2->add_header(ctx, kgl_expand_string("X-Forwarded-Proto"), kgl_expand_string("https"));
 			} else {
 				http2->add_header(ctx, kgl_expand_string("X-Forwarded-Proto"), kgl_expand_string("http"));

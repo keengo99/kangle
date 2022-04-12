@@ -27,12 +27,12 @@ void http2_header_callback(KOPAQUE data, void *arg, const char *attr, int attr_l
 void upstream_sign_request(KHttpRequest *rq, KHttpEnv *s)
 {
 	KStringBuf v;
-	if (TEST(rq->raw_url.flags, KGL_URL_SSL)) {
+	if (KBIT_TEST(rq->raw_url.flags, KGL_URL_SSL)) {
 		v.WSTR("p=https,");
 	}
 	v.WSTR("sp=");
 	v << rq->GetSelfPort();
-	if (TEST(rq->raw_url.flags, KGL_URL_SSL)) {
+	if (KBIT_TEST(rq->raw_url.flags, KGL_URL_SSL)) {
 		v.WSTR("s");
 	}
 	v.WSTR(",ip=");

@@ -60,12 +60,12 @@ void KAjpFetchObject::buildHead(KHttpRequest *rq)
 	buffer = new KSocketBuffer(AJP_BUFF_SIZE);
 	char tmpbuff[50];
 	KHttpObject *obj = rq->ctx->obj;
-	SET(obj->index.flags, ANSW_LOCAL_SERVER);
+	KBIT_SET(obj->index.flags, ANSW_LOCAL_SERVER);
 	KAjpMessage b(buffer);
 	b.putByte(JK_AJP13_FORWARD_REQUEST);
 	b.putByte(rq->meth);
 	b.putString("HTTP/1.1");
-	if (TEST(rq->url->flags, KGL_URL_ENCODE)) {
+	if (KBIT_TEST(rq->url->flags, KGL_URL_ENCODE)) {
 		size_t path_len = 0;
 		char *path = url_encode(rq->url->path, strlen(rq->url->path), &path_len);
 		b.putString(path);
@@ -81,7 +81,7 @@ void KAjpFetchObject::buildHead(KHttpRequest *rq)
 	b.putString(rq->url->host);
 	b.putShort(rq->sink->GetSelfPort());
 	//is secure
-	b.putByte(TEST(rq->url->flags, KGL_URL_SSL) ? 1 : 0);
+	b.putByte(KBIT_TEST(rq->url->flags, KGL_URL_SSL) ? 1 : 0);
 	KHttpHeader *header = rq->GetHeader();
 	int count = 0;
 	while (header) {

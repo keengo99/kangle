@@ -8,6 +8,7 @@ set(KANGLE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../)
 file(GLOB KANGLE_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/*.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../include/*.h  
+    ${CMAKE_CURRENT_SOURCE_DIR}/../module/access/*.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../module/whm/*.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../module/whm/whmdso/core/*.cpp
     )

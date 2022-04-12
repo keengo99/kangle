@@ -49,7 +49,7 @@ void KFastcgiFetchObject::buildHead(KHttpRequest *rq)
 	pop_header.proto = Proto_fcgi;
 	buffer = new KSocketBuffer(NBUFF_SIZE);
 	KHttpObject *obj = rq->ctx->obj;
-	SET(obj->index.flags,ANSW_LOCAL_SERVER);
+	KBIT_SET(obj->index.flags,ANSW_LOCAL_SERVER);
 	KFastcgiStream<KSocketBuffer> fbuf;
 	fbuf.setStream(buffer);
 	fbuf.extend = isExtend();

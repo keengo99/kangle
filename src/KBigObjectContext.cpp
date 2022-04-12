@@ -96,7 +96,7 @@ KBigObjectContext::~KBigObjectContext()
 }
 KGL_RESULT KBigObjectContext::Open(KHttpRequest* rq, bool create_flag)
 {
-	if (!TEST(rq->flags, RQ_HAVE_RANGE)) {
+	if (!KBIT_TEST(rq->flags, RQ_HAVE_RANGE)) {
 		rq->range_from = 0;
 		rq->range_to = -1;
 	}
@@ -179,7 +179,7 @@ void KBigObjectContext::build_if_range(KHttpRequest* rq)
 	context->mt = modified_if_range_date;
 	if (gobj->index.last_modified) {
 		context->lastModified = gobj->index.last_modified;
-	} else if (TEST(gobj->index.flags, OBJ_HAS_ETAG)) {
+	} else if (KBIT_TEST(gobj->index.flags, OBJ_HAS_ETAG)) {
 		context->mt = modified_if_range_etag;
 		KHttpHeader* h = gobj->findHeader("Etag", sizeof("Etag") - 1);
 		if (h) {
@@ -212,7 +212,7 @@ KGL_RESULT KBigObjectContext::upstream_recv_headed(KHttpRequest* rq, KHttpObject
 		//status_code not 206
 		bigobj_dead = true;
 		klog(KLOG_INFO, "bigobj_dead status_code=%d not expect 206\n", obj->data->status_code);
-	} else if (!TEST(obj->index.flags, ANSW_HAS_CONTENT_RANGE)) {
+	} else if (!KBIT_TEST(obj->index.flags, ANSW_HAS_CONTENT_RANGE)) {
 		//没有Content-Range
 		klog(KLOG_INFO, "bigobj_dead have no content_range\n");
 		bigobj_dead = true;
@@ -252,7 +252,7 @@ KGL_RESULT KBigObjectContext::upstream_recv_headed(KHttpRequest* rq, KHttpObject
 	}
 	//大物件If-Range的请求回应,如果回应码不是206，则把大物件die掉。
 	//或者是无if-range的请求，但回应不是304
-	CLR(rq->flags, RQ_HAVE_RANGE);
+	KBIT_CLR(rq->flags, RQ_HAVE_RANGE);
 	kassert(rq->tr == NULL);
 	if (rq->ctx->st) {
 		delete rq->ctx->st;
@@ -260,8 +260,8 @@ KGL_RESULT KBigObjectContext::upstream_recv_headed(KHttpRequest* rq, KHttpObject
 	}
 	delete rq->bo_ctx;
 	rq->bo_ctx = NULL;
-	if (TEST(rq->flags, RQ_HAS_SEND_HEADER)) {
-		SET(rq->flags, RQ_CONNECTION_CLOSE);
+	if (KBIT_TEST(rq->flags, RQ_HAS_SEND_HEADER)) {
+		KBIT_SET(rq->flags, RQ_CONNECTION_CLOSE);
 	}
 	return KGL_OK ;
 }

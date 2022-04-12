@@ -283,7 +283,7 @@ bool KVirtualHostDatabase::loadVirtualHost(KVirtualHostManage *vm,std::string &e
 				const char *ip = attribute["ip"].c_str();
 				if (*ip) {
 					int flags = atoi(attribute["flags"].c_str());
-					conf.gvm->globalVh.blackList->AddStatic(ip, TEST(flags,1));
+					conf.gvm->globalVh.blackList->AddStatic(ip, KBIT_TEST(flags,1));
 				}
 			}
 			vhm.freeStmt(rs);

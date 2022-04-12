@@ -75,9 +75,9 @@ public:
 	{
 		KAccessContext cn;
 		uint32_t result = ad->process(rq, &cn, obj ? KF_NOTIFY_RESPONSE_MARK : KF_NOTIFY_REQUEST_MARK);
-		if (TEST(result, KF_STATUS_REQ_FINISHED)) {
+		if (KBIT_TEST(result, KF_STATUS_REQ_FINISHED)) {
 			if (cn.buffer) {
-				kassert(TEST(ad->notify_type, KF_NOTIFY_RESPONSE_MARK | KF_NOTIFY_RESPONSE_ACL) == 0);
+				kassert(KBIT_TEST(ad->notify_type, KF_NOTIFY_RESPONSE_MARK | KF_NOTIFY_RESPONSE_ACL) == 0);
 				rq->CloseFetchObject();
 				rq->responseConnection();
 				rq->responseHeader(kgl_expand_string("Content-Length"), cn.buffer->getLen());
@@ -89,7 +89,7 @@ public:
 			jumpType = JUMP_FINISHED;
 			return true;
 		}
-		return TEST(result, KF_STATUS_REQ_TRUE);
+		return KBIT_TEST(result, KF_STATUS_REQ_TRUE);
 	}
 	KMark *newInstance()
 	{
@@ -138,7 +138,7 @@ public:
 	{
 		KAccessContext cn;
 		uint32_t ret = ad->process(rq, &cn, obj ? KF_NOTIFY_RESPONSE_ACL : KF_NOTIFY_REQUEST_ACL);
-		return TEST(ret, KF_STATUS_REQ_TRUE);
+		return KBIT_TEST(ret, KF_STATUS_REQ_TRUE);
 	}
 	KAcl *newInstance()
 	{

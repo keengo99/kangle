@@ -178,9 +178,9 @@ void KHttpObjectSwaping::Notice(KHttpObject *obj, KHttpObjectBody *data, swap_in
 	lock->Lock();
 	obj->data = data;
 	if (result == swap_in_success) {
-		SET(obj->index.flags, FLAG_IN_MEM);
+		KBIT_SET(obj->index.flags, FLAG_IN_MEM);
 	} else if (result != swap_in_busy) {
-		SET(obj->index.flags, FLAG_DEAD);
+		KBIT_SET(obj->index.flags, FLAG_DEAD);
 	}
 	lock->Unlock();
 	if (result == swap_in_success) {

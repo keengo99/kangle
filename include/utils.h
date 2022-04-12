@@ -172,10 +172,10 @@ inline void string2lower2(char *str) {
 }
 inline const char *getWorkModelName(int model) {
 #ifdef WORK_MODEL_PROXY
-	CLR(model, WORK_MODEL_PROXY|WORK_MODEL_SSL_PROXY);
+	KBIT_CLR(model, WORK_MODEL_PROXY|WORK_MODEL_SSL_PROXY);
 #endif
 #ifdef WORK_MODEL_TPROXY
-	CLR(model, WORK_MODEL_TPROXY);
+	KBIT_CLR(model, WORK_MODEL_TPROXY);
 #endif
 	if (model == 0) {
 		return "http";
@@ -187,9 +187,9 @@ inline const char *getWorkModelName(int model) {
 		return "https";
 	}
 #ifdef WORK_MODEL_TCP
-	if (TEST(model,WORK_MODEL_TCP)) {
+	if (KBIT_TEST(model,WORK_MODEL_TCP)) {
 #ifdef HTTP_PROXY
-		if (TEST(model,WORK_MODEL_SSL)) {
+		if (KBIT_TEST(model,WORK_MODEL_SSL)) {
 			return "tcps";
 		}
 #endif
@@ -201,17 +201,17 @@ inline const char *getWorkModelName(int model) {
 inline bool parseWorkModel(const char *type, int &model) {
 	model = 0;
 	if (strcasecmp(type, "https") == 0) {
-		SET(model,WORK_MODEL_SSL);
+		KBIT_SET(model,WORK_MODEL_SSL);
 	} else if (strcasecmp(type, "manage") == 0) {
-		SET(model,WORK_MODEL_MANAGE);
+		KBIT_SET(model,WORK_MODEL_MANAGE);
 	} else if (strcasecmp(type, "manages") == 0) {
-		SET(model,WORK_MODEL_SSL|WORK_MODEL_MANAGE);
+		KBIT_SET(model,WORK_MODEL_SSL|WORK_MODEL_MANAGE);
 #ifdef WORK_MODEL_TCP
 	} else if (strcasecmp(type, "portmap") == 0 || strcasecmp(type, "tcp") == 0) {
-		SET(model, WORK_MODEL_TCP);
+		KBIT_SET(model, WORK_MODEL_TCP);
 #ifdef HTTP_PROXY
 	} else if (strcasecmp(type,"tcps")==0) {
-		SET(model, WORK_MODEL_TCP | WORK_MODEL_SSL);
+		KBIT_SET(model, WORK_MODEL_TCP | WORK_MODEL_SSL);
 #endif
 #endif
 	} else if (strcasecmp(type, "http") != 0) {

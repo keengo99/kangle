@@ -34,7 +34,7 @@ void kserver_remove_vh(kserver *server, KVirtualHost *vh)
 bool kserver_start(kserver *server,const KListenKey *lk, kgl_ssl_ctx *ssl_ctx)
 {
 	int flag = (lk->ipv4 ? KSOCKET_ONLY_IPV4 : KSOCKET_ONLY_IPV6);
-	SET(flag, KSOCKET_FASTOPEN);
+	KBIT_SET(flag, KSOCKET_FASTOPEN);
 	if (!kserver_open(server, lk->ip.c_str(), lk->port, flag, ssl_ctx)) {
 		return false;
 	}
@@ -70,7 +70,7 @@ kgl_ssl_ctx *kserver_load_ssl(kserver *server, KSslConfig *ssl_config)
 	server->ssl = 1;
 	kgl_ssl_ctx *ssl_ctx = ssl_config->GetSSLCtx(&server->http2);
 	if (ssl_ctx) {
-		SET(server->flags, WORK_MODEL_SSL);
+		KBIT_SET(server->flags, WORK_MODEL_SSL);
 	}
 	return ssl_ctx;
 }
@@ -119,7 +119,7 @@ void KDynamicListen::Delete(KListenKey *key,KVirtualHost *vh)
 		if (listen->key->ssl == 0 && listen->server->ssl) {
 			//remove ssl
 			listen->server->ssl = 0;
-			CLR(listen->server->flags, WORK_MODEL_SSL);
+			KBIT_CLR(listen->server->flags, WORK_MODEL_SSL);
 			kserver_set_ssl_ctx(listen->server,NULL);
 		}
 #endif
@@ -149,7 +149,7 @@ kserver *KDynamicListen::Add(KListenKey *key, KSslConfig *ssl_config)
 		}
 		listen->key->SetFlag(key);
 		if (key->ssl > 0) {
-			if (!TEST(listen->server->flags, WORK_MODEL_SSL) || key->global>0) {
+			if (!KBIT_TEST(listen->server->flags, WORK_MODEL_SSL) || key->global>0) {
 				//无ssl或者是全局侦听，要更新ssl
 				need_load_ssl = true;
 			}
@@ -341,10 +341,10 @@ void KDynamicListen::getListenKey(KListenHost *lh,const char *port,bool ipv4,std
 {
 	KListenKey *key = new KListenKey;
 	key->global = 1;
-	key->ssl = TEST(lh->model,WORK_MODEL_SSL) > 0;
-	key->manage = TEST(lh->model, WORK_MODEL_MANAGE) > 0;
+	key->ssl = KBIT_TEST(lh->model,WORK_MODEL_SSL) > 0;
+	key->manage = KBIT_TEST(lh->model, WORK_MODEL_MANAGE) > 0;
 #ifdef WORK_MODEL_TCP
-	key->tcp = TEST(lh->model, WORK_MODEL_TCP) > 0;
+	key->tcp = KBIT_TEST(lh->model, WORK_MODEL_TCP) > 0;
 #endif
 	key->ipv4 = ipv4;
 	parse_port(port, key);
@@ -444,14 +444,14 @@ static iterator_ret listen_whm_iterator(void *data, void *argv)
 		}
 #endif
 #ifdef WORK_MODEL_PROXY
-		if (TEST(server->flags, WORK_MODEL_PROXY)) {
+		if (KBIT_TEST(server->flags, WORK_MODEL_PROXY)) {
 			s << "<proxy>1</proxy>";
-		} else if (TEST(server->flags, WORK_MODEL_SSL_PROXY)) {
+		} else if (KBIT_TEST(server->flags, WORK_MODEL_SSL_PROXY)) {
 			s << "<ssl_proxy>1</ssl_proxy>";
 		}
 #endif
 #ifdef WORK_MODEL_TPROXY
-		if (TEST(server->flags, WORK_MODEL_TPROXY)) {
+		if (KBIT_TEST(server->flags, WORK_MODEL_TPROXY)) {
 			s << "<tproxy>1</tproxy>";
 		}
 #endif
@@ -498,14 +498,14 @@ static iterator_ret listen_html_iterator(void *data, void *argv)
 		}
 #endif
 #ifdef WORK_MODEL_PROXY
-		if (TEST(server->flags, WORK_MODEL_PROXY)) {
+		if (KBIT_TEST(server->flags, WORK_MODEL_PROXY)) {
 			*s << "P";
-		} else 	if (TEST(server->flags, WORK_MODEL_SSL_PROXY)) {
+		} else 	if (KBIT_TEST(server->flags, WORK_MODEL_SSL_PROXY)) {
 			*s << "p";
 		}
 #endif
 #ifdef WORK_MODEL_TPROXY
-		if (TEST(server->flags, WORK_MODEL_TPROXY)) {
+		if (KBIT_TEST(server->flags, WORK_MODEL_TPROXY)) {
 			*s << "x";
 		}
 #endif
@@ -545,7 +545,7 @@ static iterator_ret query_domain_iterator(void *data, void *argv)
 	KListen *listen = (KListen *)data;
 	kserver *server = listen->server;
 	if (server->closed || !server->started ||
-		TEST(server->flags, WORK_MODEL_MANAGE) ||
+		KBIT_TEST(server->flags, WORK_MODEL_MANAGE) ||
 		(param->port>0 && listen->key->port!=param->port)) {
 		return iterator_continue;
 	}
@@ -561,7 +561,7 @@ static iterator_ret query_domain_iterator(void *data, void *argv)
 			s << "]";
 		}
 		s << ":" << listen->key->port;
-		if (TEST(server->flags,WORK_MODEL_SSL)) {
+		if (KBIT_TEST(server->flags,WORK_MODEL_SSL)) {
 			s << "s";
 		}
 		s << "\t";

@@ -156,11 +156,11 @@ public:
 		if (conf.path_info) {
 			follow_link|=FOLLOW_PATH_INFO;
 		}
-		if (TEST(filter_flags,RF_FOLLOWLINK_OWN)) {
+		if (KBIT_TEST(filter_flags,RF_FOLLOWLINK_OWN)) {
 			follow_link|=FOLLOW_LINK_OWN;
 			return follow_link;
 		}
-		if (TEST(filter_flags,RF_FOLLOWLINK_ALL)) {
+		if (KBIT_TEST(filter_flags,RF_FOLLOWLINK_ALL)) {
 			follow_link|=FOLLOW_LINK_ALL;
 		}
 		return follow_link;
@@ -288,7 +288,7 @@ public:
 #endif
 		if (ctx->connection_upgrade) {
 			return sink->ResponseConnection(kgl_expand_string("upgrade"));
-		} else if (TEST(flags, RQ_CONNECTION_CLOSE) || !TEST(flags, RQ_HAS_KEEP_CONNECTION)) {
+		} else if (KBIT_TEST(flags, RQ_CONNECTION_CLOSE) || !KBIT_TEST(flags, RQ_HAS_KEEP_CONNECTION)) {
 			return sink->ResponseConnection(kgl_expand_string("close"));
 		}
 		if (http_major == 1 && http_minor >= 1) {
@@ -440,17 +440,17 @@ public:
 	}
 	bool IsSync()
 	{
-		return TEST(flags, RQ_SYNC);
+		return KBIT_TEST(flags, RQ_SYNC);
 	}
 	void AddSync()
 	{
 		sink->AddSync();
-		SET(flags, RQ_SYNC);
+		KBIT_SET(flags, RQ_SYNC);
 	}
 	void RemoveSync()
 	{
 		sink->RemoveSync();
-		CLR(flags, RQ_SYNC);
+		KBIT_CLR(flags, RQ_SYNC);
 	}
 	int Read(char *buf, int len);
 #ifdef ENABLE_REQUEST_QUEUE

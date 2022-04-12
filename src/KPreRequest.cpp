@@ -89,7 +89,7 @@ kgl_connection_result add_request(kconnection *c) {
 	unsigned max = (unsigned)conf.max;
 	unsigned max_per_ip = conf.max_per_ip;
 	kassert(c->server);
-	if (TEST(c->server->flags, WORK_MODEL_MANAGE)) {
+	if (KBIT_TEST(c->server->flags, WORK_MODEL_MANAGE)) {
 		if (max > 0) {
 			max += 100;
 		}
@@ -107,7 +107,7 @@ kgl_connection_result add_request(kconnection *c) {
 		return kgl_connection_too_many;
 	}
 	if (conf.keep_alive_count > 0 && total_connect >= conf.keep_alive_count) {
-		//SET(c->st_flags, STF_NO_KA);
+		//KBIT_SET(c->st_flags, STF_NO_KA);
 	}
 	if (max_per_ip == 0) {
 		total_connect++;
@@ -155,7 +155,7 @@ static kev_result handle_http_request(kconnection *cn)
 {
 	//{{ent
 #ifdef WORK_MODEL_TCP
-	if (TEST(cn->server->flags, WORK_MODEL_TCP)) {
+	if (KBIT_TEST(cn->server->flags, WORK_MODEL_TCP)) {
 		KTcpSink *sink = new KTcpSink(cn);
 		KHttpRequest *rq = new KHttpRequest(sink, NULL);
 		selectable_bind_opaque(&cn->st, rq, kgl_opaque_server);
@@ -240,7 +240,7 @@ kev_result handle_ssl_accept(KOPAQUE data, void *arg,int got)
 	}
 #endif
 #ifdef HTTP_PROXY
-	if (TEST(cn->server->flags, WORK_MODEL_SSL_PROXY)) {
+	if (KBIT_TEST(cn->server->flags, WORK_MODEL_SSL_PROXY)) {
 		return handl_proxy_request(cn, handle_ssl_proxy_callback);
 	}
 #endif
@@ -285,12 +285,12 @@ void handle_connection(kconnection *c, void *ctx)
 		return;
 	}
 #ifdef ENABLE_PROXY_PROTOCOL
-	if (TEST(c->server->flags, WORK_MODEL_PROXY)) {
+	if (KBIT_TEST(c->server->flags, WORK_MODEL_PROXY)) {
 		handl_proxy_request(c, result_proxy_request);
 		return;
 	}
 #ifdef HTTP_PROXY
-	if (kconnection_is_ssl(c) && TEST(c->server->flags, WORK_MODEL_SSL_PROXY)) {
+	if (kconnection_is_ssl(c) && KBIT_TEST(c->server->flags, WORK_MODEL_SSL_PROXY)) {
 		handle_request(c);
 		return;
 	}

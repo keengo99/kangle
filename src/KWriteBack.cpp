@@ -59,7 +59,7 @@ void KWriteBack::buildRequest(KHttpRequest *rq)
 	}
 	rq->responseHeader(kgl_expand_string("Content-Length"),body.getSize());
 	if (!keep_alive) {
-		SET(rq->flags,RQ_CONNECTION_CLOSE);
+		KBIT_SET(rq->flags,RQ_CONNECTION_CLOSE);
 	}
 	rq->responseConnection();
 	if (rq->meth!=METH_HEAD) {

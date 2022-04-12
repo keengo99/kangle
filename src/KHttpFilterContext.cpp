@@ -115,7 +115,7 @@ void KHttpFilterContext::init(KHttpRequest *rq)
 	ctx.get_variable = GetServerVariable;
 	ctx.support_function = ServerSupportFunction;
 	ctx.write_client = WriteClient;
-	//if (TEST(rq->workModel,WORK_MODEL_SSL)) {
+	//if (KBIT_TEST(rq->workModel,WORK_MODEL_SSL)) {
 	//	ctx.fIsSecurePort = TRUE;
 	//}
 	assert(filterContext==NULL);

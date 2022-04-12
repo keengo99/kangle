@@ -365,8 +365,8 @@ private:
 		if (!client->read_all((char *)len, 1)) {
 			return 0;
 		}
-		if (TEST(len[0],0x80)) {
-			CLR(len[0],0x80);
+		if (KBIT_TEST(len[0],0x80)) {
+			KBIT_CLR(len[0],0x80);
 			content_len -= 4;
 			if (!client->read_all((char *)len + 1, 3)) {
 				return 0;

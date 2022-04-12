@@ -19,7 +19,7 @@ public:
 		return "keep_connection";
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) {
-		return TEST(rq->workModel,WORK_MODEL_KA)>0;
+		return KBIT_TEST(rq->workModel,WORK_MODEL_KA)>0;
 	}
 	std::string getDisplay() {
 		std::stringstream s;

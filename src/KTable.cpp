@@ -303,7 +303,7 @@ void KTable::buildXML(std::stringstream &s,int flag) {
 	std::stringstream c;
 	KChain *chain = head;
 	while (chain) {
-		if (TEST(flag,CHAIN_SKIP_EXT) && chain->ext) {
+		if (KBIT_TEST(flag,CHAIN_SKIP_EXT) && chain->ext) {
 			chain = chain->next;
 			continue;
 		}
@@ -312,7 +312,7 @@ void KTable::buildXML(std::stringstream &s,int flag) {
 		c << "\t\t\t</chain>\n";
 		chain = chain->next;
 	}
-	if (TEST(flag,CHAIN_SKIP_EXT) && ext && c.str().size()==0) {
+	if (KBIT_TEST(flag,CHAIN_SKIP_EXT) && ext && c.str().size()==0) {
 		return;
 	}
 	s << "\t\t<table name='" << this->name << "'>\n";

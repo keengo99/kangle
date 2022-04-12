@@ -192,7 +192,7 @@ void KSockPoolHelper::checkActive()
 KUpstream *KSockPoolHelper::GetConnection(KHttpRequest *rq, bool &half, bool &need_name_resolved)
 {
 	KUpstream *socket = NULL;
-	if (!TEST(rq->flags, RQ_UPSTREAM_ERROR|RQ_HAS_CONNECTION_UPGRADE)) {
+	if (!KBIT_TEST(rq->flags, RQ_UPSTREAM_ERROR|RQ_HAS_CONNECTION_UPGRADE)) {
 		//如果是发生错误重连或upgrade的连接，则排除连接池
 		socket = GetPoolSocket(rq);
 		if (socket) {
@@ -232,7 +232,7 @@ KUpstream* KSockPoolHelper::GetUpstream(KHttpRequest* rq)
 {
 	rq->ctx->upstream_sign = this->sign;
 	KUpstream* socket = NULL;
-	if (!TEST(rq->flags, RQ_UPSTREAM_ERROR | RQ_HAS_CONNECTION_UPGRADE)) {
+	if (!KBIT_TEST(rq->flags, RQ_UPSTREAM_ERROR | RQ_HAS_CONNECTION_UPGRADE)) {
 		//如果是发生错误重连或upgrade的连接，则排除连接池
 		socket = GetPoolSocket(rq);
 		if (socket) {
@@ -259,7 +259,7 @@ KUpstream* KSockPoolHelper::GetUpstream(KHttpRequest* rq)
 	}
 	int tproxy_mask = 0;
 #ifdef ENABLE_TPROXY
-	if (rq && TEST(rq->filter_flags, RF_TPROXY_UPSTREAM)) {
+	if (rq && KBIT_TEST(rq->filter_flags, RF_TPROXY_UPSTREAM)) {
 		tproxy_mask = 9;
 	}
 #endif
@@ -273,7 +273,7 @@ KUpstream* KSockPoolHelper::GetUpstream(KHttpRequest* rq)
 	if (this->ssl_ctx) {
 		const char* sni_host = NULL;
 		if (!this->no_sni) {
-			if (rq && !TEST(rq->filter_flags, RF_UPSTREAM_NOSNI)) {
+			if (rq && !KBIT_TEST(rq->filter_flags, RF_UPSTREAM_NOSNI)) {
 				sni_host = rq->url->host;
 			}
 		}
@@ -285,7 +285,7 @@ KUpstream* KSockPoolHelper::GetUpstream(KHttpRequest* rq)
 		//{{ent
 #ifdef ENABLE_UPSTREAM_HTTP2
 #ifdef TLSEXT_TYPE_application_layer_protocol_negotiation
-		if (http2 && cn->st.ssl && TEST(rq->flags, RQ_HAS_CONNECTION_UPGRADE)) {
+		if (http2 && cn->st.ssl && KBIT_TEST(rq->flags, RQ_HAS_CONNECTION_UPGRADE)) {
 			//websocket will turn off http2
 			SSL_set_alpn_protos(cn->st.ssl->ssl, (unsigned char*)KGL_HTTP_NPN_ADVERTISE, sizeof(KGL_HTTP_NPN_ADVERTISE) - 1);
 		}
@@ -335,7 +335,7 @@ bool KSockPoolHelper::connect_addr(KHttpRequest *rq, KTcpUpstream *socket, socka
 	kgl_memcpy(&cn->addr, &addr, sizeof(cn->addr));
 	int tproxy_mask = 0;
 #ifdef ENABLE_TPROXY
-	if (rq && TEST(rq->filter_flags, RF_TPROXY_UPSTREAM)) {
+	if (rq && KBIT_TEST(rq->filter_flags, RF_TPROXY_UPSTREAM)) {
 		tproxy_mask = 9;
 	}
 #endif
@@ -347,7 +347,7 @@ bool KSockPoolHelper::connect_addr(KHttpRequest *rq, KTcpUpstream *socket, socka
 	if (result && this->ssl_ctx) {
 		const char *sni_host = NULL;
 		if (!this->no_sni) {
-			if (rq && !TEST(rq->filter_flags, RF_UPSTREAM_NOSNI)) {
+			if (rq && !KBIT_TEST(rq->filter_flags, RF_UPSTREAM_NOSNI)) {
 				sni_host = rq->url->host;
 			}
 		}
@@ -357,7 +357,7 @@ bool KSockPoolHelper::connect_addr(KHttpRequest *rq, KTcpUpstream *socket, socka
 		//{{ent
 #ifdef ENABLE_UPSTREAM_HTTP2
 #ifdef TLSEXT_TYPE_application_layer_protocol_negotiation
-		if (http2 && cn->st.ssl && TEST(rq->flags, RQ_HAS_CONNECTION_UPGRADE)) {
+		if (http2 && cn->st.ssl && KBIT_TEST(rq->flags, RQ_HAS_CONNECTION_UPGRADE)) {
 			//websocket will turn off http2
 			SSL_set_alpn_protos(cn->st.ssl->ssl, (unsigned char *)KGL_HTTP_NPN_ADVERTISE, sizeof(KGL_HTTP_NPN_ADVERTISE)-1);
 		}

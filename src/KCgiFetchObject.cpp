@@ -40,7 +40,7 @@ static int loadStreamHead(KStream *stream, KHttpRequest *rq, KHttpObject *obj,KH
 		if (result == 1) {
 			if (obj->data->status_code == STATUS_NOT_MODIFIED) {
 				//				head_status = HEAD_NOT_MODIFIED;
-				SET(obj->index.flags,FLAG_DEAD|OBJ_INDEX_UPDATE);
+				KBIT_SET(obj->index.flags,FLAG_DEAD|OBJ_INDEX_UPDATE);
 				break;
 			}
 			break;
@@ -67,7 +67,7 @@ static int loadStreamHead(KStream *stream, KHttpRequest *rq, KHttpObject *obj,KH
 	obj->data->headers = parser.stealHeaders(obj->data->headers);	
 	if (obj->index.content_length > (INT64) conf.max_cache_size) {
 		//obj is too big
-		SET(obj->index.flags, FLAG_DEAD|OBJ_INDEX_UPDATE);
+		KBIT_SET(obj->index.flags, FLAG_DEAD|OBJ_INDEX_UPDATE);
 	}
 	if (parser.bodyLen > 0) {
 		rq->buffer.write_all(parser.body, parser.bodyLen);
@@ -117,7 +117,7 @@ void KCgiFetchObject::process(KHttpRequest *rq)
 	int ret = LOAD_HEAD_SUCCESS;
 	KHttpObjectParserHook hook(obj, rq);
 	if (obj) {
-		SET(obj->index.flags,ANSW_LOCAL_SERVER);
+		KBIT_SET(obj->index.flags,ANSW_LOCAL_SERVER);
 	}
 	if (!stream.create()) {
 		goto error;

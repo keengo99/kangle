@@ -15,14 +15,14 @@ struct kgl_delay_io
 void delay_read(void *arg,int got)
 {
 	kgl_delay_io *io = (kgl_delay_io *)arg;
-	CLR(io->rq->flags, RQ_RTIMER);
+	KBIT_CLR(io->rq->flags, RQ_RTIMER);
 	io->c->read(io->rq,io->result,io->buffer);
 	delete io;
 }
 void delay_write(void *arg,int got)
 {
 	kgl_delay_io *io = (kgl_delay_io *)arg;
-	CLR(io->rq->flags, RQ_WTIMER);
+	KBIT_CLR(io->rq->flags, RQ_WTIMER);
 	io->c->write(io->rq,io->result,io->buffer);
 	delete io;
 }
@@ -112,7 +112,7 @@ void kconnection::Connect(result_callback result,void *arg)
 }
 bool kconnection::is_locked(KHttpRequest *rq)
 {
-	if (TEST(rq->flags, RQ_RTIMER | RQ_WTIMER)) {
+	if (KBIT_TEST(rq->flags, RQ_RTIMER | RQ_WTIMER)) {
 		return true;
 	}
 #ifdef ENABLE_HTTP2
@@ -126,7 +126,7 @@ bool kconnection::is_locked(KHttpRequest *rq)
 		return false;
 	}
 #endif
-	return TEST(st_flags, STF_LOCK) > 0;
+	return KBIT_TEST(st_flags, STF_LOCK) > 0;
 }
 kconnection::~kconnection()
 {
@@ -226,7 +226,7 @@ void kconnection::read_hup(KHttpRequest *rq,result_callback result)
 	}
 #endif
 #ifdef WORK_MODEL_SIMULATE
-	if (TEST(rq->workModel, WORK_MODEL_SIMULATE)) {
+	if (KBIT_TEST(rq->workModel, WORK_MODEL_SIMULATE)) {
 		return;
 	}
 #endif
@@ -283,8 +283,8 @@ void kconnection::delayRead(KHttpRequest *rq,result_callback result,buffer_callb
 	* 以便在双通道中，检测selectable是否lock时，要同时检测此timer标识。
 	* 否则会导致检测了selectable没有lock，并清除相应的selectable，但timer锁定了，结果就出错。
 	*/
-	kassert(!TEST(rq->flags, RQ_RTIMER));
-	SET(rq->flags, RQ_RTIMER);
+	kassert(!KBIT_TEST(rq->flags, RQ_RTIMER));
+	KBIT_SET(rq->flags, RQ_RTIMER);
 	assert(selector->is_same_thread());
 	kgl_delay_io *io = new kgl_delay_io;
 	io->c = this;
@@ -295,8 +295,8 @@ void kconnection::delayRead(KHttpRequest *rq,result_callback result,buffer_callb
 }
 void kconnection::delayWrite(KHttpRequest *rq,result_callback result,buffer_callback buffer,int msec)
 {
-	kassert(!TEST(rq->flags, RQ_WTIMER));
-	SET(rq->flags, RQ_WTIMER);
+	kassert(!KBIT_TEST(rq->flags, RQ_WTIMER));
+	KBIT_SET(rq->flags, RQ_WTIMER);
 	assert(selector->is_same_thread());
 	kgl_delay_io *io = new kgl_delay_io;
 	io->c = this;
@@ -310,7 +310,7 @@ int kconnection::start_response(KHttpRequest *rq,INT64 body_len)
 #ifdef ENABLE_HTTP2
 	if (http2) {
 		assert(rq->http2_ctx);
-		if (TEST(rq->flags, RQ_SYNC)) {
+		if (KBIT_TEST(rq->flags, RQ_SYNC)) {
 			return http2->sync_send_header(rq->http2_ctx, body_len);
 		}
 		return http2->send_header(rq->http2_ctx, body_len);
@@ -323,7 +323,7 @@ void kconnection::end_response(KHttpRequest *rq,bool keep_alive)
 {
 #ifdef ENABLE_HTTP2
 	if (http2) {
-		SET(rq->flags,RQ_CONNECTION_CLOSE);
+		KBIT_SET(rq->flags,RQ_CONNECTION_CLOSE);
 #ifndef NDEBUG
 	/*
 		unsigned char md5[16];
@@ -339,7 +339,7 @@ void kconnection::end_response(KHttpRequest *rq,bool keep_alive)
 #endif
 	if (keep_alive) {
 		set_nodelay();
-		SET(rq->workModel,WORK_MODEL_KA);
+		KBIT_SET(rq->workModel,WORK_MODEL_KA);
 	}
 }
 #ifdef KSOCKET_SSL

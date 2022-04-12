@@ -118,7 +118,7 @@ public:
 			//report
 			return reportProgress(rq,jumpType);
 		}
-		if (TEST(rq->flags,RQ_POST_UPLOAD)) {
+		if (KBIT_TEST(rq->flags,RQ_POST_UPLOAD)) {
 			return trackProgress(rq);
 		}
 		return true;
@@ -152,7 +152,7 @@ public:
 		if (buf) {
 			KBuffer s;
 			int body_length = strlen(buf);
-			SET(rq->flags,RQ_HAS_SEND_HEADER);
+			KBIT_SET(rq->flags,RQ_HAS_SEND_HEADER);
 			s << getRequestLine(200);
 			//{{ent
 #ifdef KANGLE_ENT
@@ -174,7 +174,7 @@ public:
 				s << "Content-Type: " << contentType.c_str() << "\r\n";
 			}
 			s << "Connection: ";
-			if (TEST(rq->flags,RQ_CONNECTION_CLOSE) || !TEST(rq->flags,RQ_HAS_KEEP_CONNECTION)) {
+			if (KBIT_TEST(rq->flags,RQ_CONNECTION_CLOSE) || !KBIT_TEST(rq->flags,RQ_HAS_KEEP_CONNECTION)) {
 				s << "close\r\n";
 			} else {
 				s << "keep-alive\r\n";

@@ -14,7 +14,7 @@ public:
 	{
 	};
 	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType) {
-		if (TEST(rq->flags,RQ_HAVE_RANGE)) {
+		if (KBIT_TEST(rq->flags,RQ_HAVE_RANGE)) {
 			return false;
 		}
 		KStringBuf u;
@@ -45,8 +45,8 @@ public:
 				if (rq->range_to>=0) {
 					v << rq->range_to;
 				}
-				SET(rq->flags,RQ_HAVE_RANGE);
-				SET(rq->raw_url.flags,KGL_URL_RANGED);
+				KBIT_SET(rq->flags,RQ_HAVE_RANGE);
+				KBIT_SET(rq->raw_url.flags,KGL_URL_RANGED);
 				rq->AddHeader(kgl_expand_string("Range"),v.getString(),v.getSize());
 				result = true;
 			}

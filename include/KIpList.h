@@ -215,9 +215,9 @@ public:
 	{
 		statLock.Lock();
 		total_request++;
-		if (TEST(flags, RQ_UPSTREAM)) {
+		if (KBIT_TEST(flags, RQ_UPSTREAM)) {
 			total_upstream++;
-			if (TEST(flags, RQ_UPSTREAM_ERROR)) {
+			if (KBIT_TEST(flags, RQ_UPSTREAM_ERROR)) {
 				total_error_upstream++;
 			}
 		}

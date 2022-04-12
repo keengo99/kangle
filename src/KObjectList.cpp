@@ -46,7 +46,7 @@ int KObjectList::save_disk_index(KFile *fp)
 	int save_count = 0;
 	KHttpObject *obj = l_end;
 	while(obj){
-		if(TEST(obj->index.flags,FLAG_IN_DISK)){
+		if(KBIT_TEST(obj->index.flags,FLAG_IN_DISK)){
 			if(!obj->saveIndex(fp)){
 				return -1;
 			}
@@ -63,7 +63,7 @@ void KObjectList::swap_all_obj()
 	cache.lock();
 	KHttpObject *obj = l_head;
 	while (obj) {
-		if (!TEST(obj->index.flags, FLAG_DEAD)) {
+		if (!KBIT_TEST(obj->index.flags, FLAG_DEAD)) {
 			obj->swapout(&bf,true);
 		}
 		obj = obj->lnext;
@@ -140,7 +140,7 @@ void KObjectList::free_all_cache()
 	while (obj) {
 		assert(obj->refs==1);
 		KHttpObject *next = obj->lnext;
-		CLR(obj->index.flags,FLAG_IN_DISK);
+		KBIT_CLR(obj->index.flags,FLAG_IN_DISK);
 		cache.objHash[obj->h].remove(obj);
 		obj->release();
 		obj = next;
@@ -182,7 +182,7 @@ int KObjectList::move(KBufferFile *bf, int64_t begin_msec,INT64 m_size,bool swap
 			obj = obj->lnext;
 			continue;
 		}
-		is_dead = (TEST(obj->index.flags,FLAG_DEAD)>0);
+		is_dead = (KBIT_TEST(obj->index.flags,FLAG_DEAD)>0);
 		if (m_size <= 0 && is_dead) {
 			if (dead_obj_count++ > MAX_CLEAN_DEAD_COUNT) {
 				//一次性最大清理死亡物件，防止点清理所有缓存时，而卡住非常长的时间
@@ -199,7 +199,7 @@ int KObjectList::move(KBufferFile *bf, int64_t begin_msec,INT64 m_size,bool swap
 			//磁盘缓存清理或者是内存交换大物件
 			to->decSize += obj->index.content_length;
 		}
-		if (swapout_flag && TEST(obj->index.flags, FLAG_NO_DISK_CACHE)) {
+		if (swapout_flag && KBIT_TEST(obj->index.flags, FLAG_NO_DISK_CACHE)) {
 			//标记为不使用磁盘缓存的，直接dead
 			is_dead = true;
 		}
@@ -250,10 +250,10 @@ void KObjectList::swapout_result(KTempHttpObject *thead,int gc_used_msec,bool re
 	if (result) {
 		lock = obj->getLock();
 		lock->Lock();
-		SET(obj->index.flags, FLAG_IN_DISK);
+		KBIT_SET(obj->index.flags, FLAG_IN_DISK);
 		if (obj->list_state == this->list_state && obj->refs <= 1) {
 			remove(obj);
-			CLR(obj->index.flags, FLAG_IN_MEM);
+			KBIT_CLR(obj->index.flags, FLAG_IN_MEM);
 			cache.objHash[obj->h].DecMemObjectSize(obj);
 			cache.objList[LIST_IN_DISK].add(obj);
 			delete obj->data;
@@ -288,7 +288,7 @@ int KObjectList::clean_cache(KReg *reg,int flag)
 	KHttpObject *obj = l_head;
 	int result = 0;
 	while (obj) {
-		if (!TEST(obj->index.flags,FLAG_DEAD)) {
+		if (!KBIT_TEST(obj->index.flags,FLAG_DEAD)) {
 			KStringBuf url;
 			if (obj->uk.url->GetUrl(url) && reg->match(url.getString(),url.getSize(),flag)>0) {
 				result++;
@@ -303,10 +303,10 @@ void KObjectList::getSize(INT64 &csize,INT64 &cdsiz)
 {
 	KHttpObject *obj = l_head;
 	while (obj) {
-		if (TEST(obj->index.flags,FLAG_IN_MEM)) {
+		if (KBIT_TEST(obj->index.flags,FLAG_IN_MEM)) {
 			csize += obj->index.content_length + obj->index.head_size;			
 		}
-		if (TEST(obj->index.flags,FLAG_IN_DISK)) {
+		if (KBIT_TEST(obj->index.flags,FLAG_IN_DISK)) {
 			cdsiz += obj->index.content_length + obj->index.head_size;
 		}		
 		obj = obj->lnext;

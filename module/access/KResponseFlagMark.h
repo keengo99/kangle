@@ -33,7 +33,7 @@ public:
 	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType) {
 		bool result = false;
 		if (flag > 0) {
-			SET(obj->index.flags, flag);
+			KBIT_SET(obj->index.flags, flag);
 			result = true;
 		}
 		 if (compress) {
@@ -51,13 +51,13 @@ public:
 		if (compress) {
 			s << "compress,";
 		}
-		if (TEST(flag,FLAG_NO_NEED_CACHE)) {
+		if (KBIT_TEST(flag,FLAG_NO_NEED_CACHE)) {
 			s << "nocache,";
 		}
-		if (TEST(flag,FLAG_NO_DISK_CACHE)) {
+		if (KBIT_TEST(flag,FLAG_NO_DISK_CACHE)) {
 			s << "nodiskcache,";
 		}
-		if (TEST(flag, OBJ_CACHE_RESPONSE)) {
+		if (KBIT_TEST(flag, OBJ_CACHE_RESPONSE)) {
 			s << "cache_response,";
 		}
 		if (identity_encoding) {
@@ -86,13 +86,13 @@ public:
 				identity_encoding = true;
 			}
 			if (strcasecmp(hot,"nocache")==0) {
-				SET(flag,FLAG_NO_NEED_CACHE);
+				KBIT_SET(flag,FLAG_NO_NEED_CACHE);
 			}
 			if (strcasecmp(hot,"nodiskcache")==0) {
-				SET(flag,FLAG_NO_DISK_CACHE);
+				KBIT_SET(flag,FLAG_NO_DISK_CACHE);
 			}
 			if (strcasecmp(hot, "cache_response") == 0) {
-				SET(flag, OBJ_CACHE_RESPONSE);
+				KBIT_SET(flag, OBJ_CACHE_RESPONSE);
 			}
 			if (p==NULL) {
 				break;
@@ -137,9 +137,9 @@ public:
 
 	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType) {
 		if (no_extend) {
-			SET(rq->filter_flags,RQ_NO_EXTEND);
+			KBIT_SET(rq->filter_flags,RQ_NO_EXTEND);
 		} else {
-			CLR(rq->filter_flags,RQ_NO_EXTEND);
+			KBIT_CLR(rq->filter_flags,RQ_NO_EXTEND);
 		}
 		return true;
 	}

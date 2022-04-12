@@ -62,13 +62,13 @@ KUpstream * proxy_tcp_connect(KHttpRequest *rq)
 KUpstream * proxy_connect(KHttpRequest *rq)
 {
 #ifdef ENABLE_PROXY_PROTOCOL
-	if (TEST(rq->GetWorkModel(), WORK_MODEL_PROXY|WORK_MODEL_SSL_PROXY)) {
+	if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_PROXY|WORK_MODEL_SSL_PROXY)) {
 		return proxy_tcp_connect(rq);
 	}
 #endif
 	//KAsyncFetchObject *fo = static_cast<KAsyncFetchObject *>(rq->fetchObj);
 	const char *ip = rq->bind_ip;
-	KUrl *url = (TEST(rq->filter_flags,RF_PROXY_RAW_URL)?&rq->raw_url:rq->url);
+	KUrl *url = (KBIT_TEST(rq->filter_flags,RF_PROXY_RAW_URL)?&rq->raw_url:rq->url);
 	const char *host = url->host;
 	u_short port = url->port;
 	const char *ssl = NULL;
@@ -76,8 +76,8 @@ KUpstream * proxy_connect(KHttpRequest *rq)
 #ifdef IP_TRANSPARENT
 #ifdef ENABLE_TPROXY
 	char mip[MAXIPLEN];
-	if (TEST(rq->GetWorkModel(),WORK_MODEL_TPROXY) && TEST(rq->filter_flags,RF_TPROXY_TRUST_DNS)) {
-		if (TEST(rq->filter_flags,RF_TPROXY_UPSTREAM)) {
+	if (KBIT_TEST(rq->GetWorkModel(),WORK_MODEL_TPROXY) && KBIT_TEST(rq->filter_flags,RF_TPROXY_TRUST_DNS)) {
+		if (KBIT_TEST(rq->filter_flags,RF_TPROXY_UPSTREAM)) {
 			if (ip==NULL) {
 				ip = rq->getClientIp();
 			}
@@ -96,7 +96,7 @@ KUpstream * proxy_connect(KHttpRequest *rq)
 	}
 #endif
 #endif
-	if (TEST(url->flags, KGL_URL_ORIG_SSL)) {
+	if (KBIT_TEST(url->flags, KGL_URL_ORIG_SSL)) {
 		ssl = "s";
 	}
 #ifdef ENABLE_SIMULATE_HTTP
@@ -155,7 +155,7 @@ KGL_RESULT KAsyncFetchObject::InternalProcess(KHttpRequest *rq, kfiber** post_fi
 	}
 	if (client == NULL) {
 		if (!rq->ctx->read_huped) {
-			SET(rq->flags, RQ_UPSTREAM_ERROR);
+			KBIT_SET(rq->flags, RQ_UPSTREAM_ERROR);
 		}
 		return out->f->write_message(out, rq, KGL_MSG_ERROR, "Cann't connect to remote host", STATUS_GATEWAY_TIMEOUT);
 	}
@@ -493,7 +493,7 @@ KGL_RESULT KAsyncFetchObject::PushHeader(KHttpRequest *rq, const char *attr, int
 				rq->ctx->upstream_connection_keep_alive = true;
 			} else if (field.is2("close", 5)) {
 				rq->ctx->upstream_connection_keep_alive = false;
-			} else if (TEST(rq->flags, RQ_HAS_CONNECTION_UPGRADE) && field.is2("upgrade", 7)) {
+			} else if (KBIT_TEST(rq->flags, RQ_HAS_CONNECTION_UPGRADE) && field.is2("upgrade", 7)) {
 				rq->ctx->connection_upgrade = true;
 				rq->ctx->upstream_connection_keep_alive = false;
 			}
@@ -571,7 +571,7 @@ KGL_RESULT KAsyncFetchObject::handleUpstreamError(KHttpRequest *rq,int error,con
 			//newµÄ²Å¼ÆËã´íÎó.
 			client->IsBad(badStage);
 		}
-		SET(rq->flags, RQ_UPSTREAM_ERROR);
+		KBIT_SET(rq->flags, RQ_UPSTREAM_ERROR);
 	}
 	if (rq->ctx->connection_upgrade) {
 		return shutdown(rq);

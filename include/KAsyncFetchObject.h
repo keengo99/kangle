@@ -39,7 +39,7 @@ public:
 	void Close(KHttpRequest *rq)
 	{
 		if (client) {
-			if (TEST(rq->filter_flags,RF_UPSTREAM_NOKA) 
+			if (KBIT_TEST(rq->filter_flags,RF_UPSTREAM_NOKA) 
 				|| !rq->ctx->upstream_connection_keep_alive
 				|| !rq->ctx->upstream_expected_done) {
 				pop_header.keep_alive_time_out = -1;

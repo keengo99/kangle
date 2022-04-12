@@ -223,7 +223,7 @@ bool KApiRedirect::load()
 }
 KFetchObject *KApiRedirect::makeFetchObject(KHttpRequest *rq, KFileName *file) {
 	//设置api访问时使用full path_info
-	SET(rq->filter_flags,RQ_FULL_PATH_INFO);
+	KBIT_SET(rq->filter_flags,RQ_FULL_PATH_INFO);
 	if (type == WORK_TYPE_MP || type == WORK_TYPE_SP) {
 		return new KApiFastcgiFetchObject();
 	}

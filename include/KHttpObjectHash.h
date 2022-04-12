@@ -118,7 +118,7 @@ public:
 		KHttpObject *obj = (KHttpObject *)node->data;
 		bool result = false;
 		while (obj) {
-			if (TEST(obj->index.flags,FLAG_IN_DISK)) {
+			if (KBIT_TEST(obj->index.flags,FLAG_IN_DISK)) {
 				char *file = obj->getFileName();
 				if (file) {
 					result = (strcmp(file,filename)==0);
@@ -175,13 +175,13 @@ public:
 		}
 		obj = (KHttpObject *)node->data;
 		while (obj) {
-			if (TEST(obj->index.flags,FLAG_DEAD)) {
+			if (KBIT_TEST(obj->index.flags,FLAG_DEAD)) {
 				obj = obj->next;
 				continue;
 			}
 			if (rq->min_obj_verified > 0 && obj->index.last_verified < rq->min_obj_verified) {
 				//设置了最小验证时间
-				if (TEST(rq->min_obj_verified, 1)>0) {
+				if (KBIT_TEST(rq->min_obj_verified, 1)>0) {
 					//hard
 					obj->Dead();
 					obj = obj->next;
@@ -190,9 +190,9 @@ public:
 				//soft
 				obj->index.last_verified = 0;
 			}
-			if ((rq->ctx->internal == (TEST(obj->index.flags, FLAG_RQ_INTERNAL)>0)) &&
+			if ((rq->ctx->internal == (KBIT_TEST(obj->index.flags, FLAG_RQ_INTERNAL)>0)) &&
 				obj->uk.url->match_accept_encoding(rq->raw_url.accept_encoding)) {
-				if (!TEST(rq->filter_flags, RF_NO_DISK_CACHE) || (obj->data != NULL && obj->data->type == MEMORY_OBJECT)) {
+				if (!KBIT_TEST(rq->filter_flags, RF_NO_DISK_CACHE) || (obj->data != NULL && obj->data->type == MEMORY_OBJECT)) {
 					//hit cache
 					if (hit_obj == NULL || obj->uk.url->accept_encoding > hit_obj->uk.url->accept_encoding) {
 						hit_obj = obj;
@@ -210,7 +210,7 @@ public:
 	void MemObjectSizeChange(KHttpObject *obj,INT64 new_size)
 	{
 		size_lock.Lock();
-		kassert(TEST(obj->index.flags, FLAG_IN_MEM));
+		kassert(KBIT_TEST(obj->index.flags, FLAG_IN_MEM));
 		//加上新的长度
 		mem_size += new_size;
 		//减掉旧的长度
@@ -277,10 +277,10 @@ public:
 		assert(obj->refs==1);
 		//此处可确保obj，不会被其它引用，所以不用加锁
 		obj->refs++;
-		if (!TEST(obj->index.flags,FLAG_URL_FREE)) {
+		if (!KBIT_TEST(obj->index.flags,FLAG_URL_FREE)) {
 			KUrl *url = obj->uk.url->clone();
 			obj->uk.url = url;
-			SET(obj->index.flags,FLAG_URL_FREE);
+			KBIT_SET(obj->index.flags,FLAG_URL_FREE);
 		}
 		//kassert(obj->h == id);
 		kassert(obj->uk.url->host && obj->uk.url->path);
@@ -365,10 +365,10 @@ private:
 			delete node;
 		}
 		if (result) {
-			if (TEST(obj->index.flags, FLAG_IN_MEM)) {
+			if (KBIT_TEST(obj->index.flags, FLAG_IN_MEM)) {
 				DecMemObjectSize(obj);
 			}
-			if (TEST(obj->index.flags, FLAG_IN_DISK)) {
+			if (KBIT_TEST(obj->index.flags, FLAG_IN_DISK)) {
 				DecDiskObjectSize(obj);
 			}
 		}
@@ -381,7 +381,7 @@ private:
 	{
 		int count = 0;
 		while (objnode) {
-			if (!TEST(objnode->index.flags,FLAG_DEAD)) {
+			if (!KBIT_TEST(objnode->index.flags,FLAG_DEAD)) {
 				handle(objnode,param);
 				count++;
 			}

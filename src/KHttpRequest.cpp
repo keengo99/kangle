@@ -66,7 +66,7 @@ void KHttpRequest::LeaveRequestQueue()
 }
 void KHttpRequest::EnterRequestQueue()
 {
-	SET(flags, RQ_QUEUED);
+	KBIT_SET(flags, RQ_QUEUED);
 	setState(STATE_QUEUE);
 	sink->AddSync();
 }
@@ -110,12 +110,12 @@ void KHttpRequest::SetSelfPort(uint16_t port, bool ssl)
 		self_port = port;
 	}
 	if (ssl) {
-		SET(raw_url.flags, KGL_URL_SSL);
+		KBIT_SET(raw_url.flags, KGL_URL_SSL);
 		if (raw_url.port == 80) {
 			raw_url.port = 443;
 		}
 	} else {
-		CLR(raw_url.flags, KGL_URL_SSL);
+		KBIT_CLR(raw_url.flags, KGL_URL_SSL);
 		if (raw_url.port == 443) {
 			raw_url.port = 80;
 		}
@@ -205,7 +205,7 @@ void KHttpRequest::beginRequest() {
 			auth = NULL;
 		}
 	}
-	if (TEST(flags,RQ_INPUT_CHUNKED)) {
+	if (KBIT_TEST(flags,RQ_INPUT_CHUNKED)) {
 		left_read = -1;
 	} else {
 		left_read = content_length;
@@ -213,7 +213,7 @@ void KHttpRequest::beginRequest() {
 	begin_time_msec = kgl_current_msec;
 #ifdef MALLOCDEBUG
 	if (quit_program_flag!=PROGRAM_NO_QUIT) {
-		SET(flags,RQ_CONNECTION_CLOSE);
+		KBIT_SET(flags,RQ_CONNECTION_CLOSE);
 	}
 #endif
 }
@@ -233,7 +233,7 @@ KGL_RESULT KHttpRequest::HandleResult(KGL_RESULT result)
 		if (obj && obj->data->type == MEMORY_OBJECT) {
 			obj->Dead();
 		}
-		SET(flags, RQ_CONNECTION_CLOSE);
+		KBIT_SET(flags, RQ_CONNECTION_CLOSE);
 		//如果是http2的情况下，此处要向下游传递错误，调用terminal stream
 		//避免下游会误缓存
 		ctx->body_not_complete = 1;
@@ -284,13 +284,13 @@ bool KHttpRequest::rewriteUrl(const char *newUrl, int errorCode, const char *pre
 		url2.destroy();
 		return false;
 	}
-	if (TEST(url2.flags, KGL_URL_ORIG_SSL)) {
-		SET(url2.flags, KGL_URL_SSL);
+	if (KBIT_TEST(url2.flags, KGL_URL_ORIG_SSL)) {
+		KBIT_SET(url2.flags, KGL_URL_SSL);
 	}
 	KStringBuf s;
 	if (errorCode > 0) {
 		s << errorCode << ";";
-		if (TEST(url->flags, KGL_URL_SSL)) {
+		if (KBIT_TEST(url->flags, KGL_URL_SSL)) {
 			s << "https";
 		} else {
 			s << "http";
@@ -304,8 +304,8 @@ bool KHttpRequest::rewriteUrl(const char *newUrl, int errorCode, const char *pre
 		url2.host = strdup(url->host);
 	}
 	url_decode(url2.path, 0, &url2);
-	if (ctx->obj && ctx->obj->uk.url==url && !TEST(ctx->obj->index.flags,FLAG_URL_FREE)) {
-		SET(ctx->obj->index.flags,FLAG_URL_FREE);
+	if (ctx->obj && ctx->obj->uk.url==url && !KBIT_TEST(ctx->obj->index.flags,FLAG_URL_FREE)) {
+		KBIT_SET(ctx->obj->index.flags,FLAG_URL_FREE);
 		ctx->obj->uk.url = url->clone();
 	}
 	url->destroy();
@@ -326,7 +326,7 @@ bool KHttpRequest::rewriteUrl(const char *newUrl, int errorCode, const char *pre
 	if (url2.flags > 0) {
 		url->flags = url2.flags;
 	}
-	SET(raw_url.flags,KGL_URL_REWRITED);
+	KBIT_SET(raw_url.flags,KGL_URL_REWRITED);
 	return true;
 }
 char *KHttpRequest::getUrl() {
@@ -447,7 +447,7 @@ bool KHttpRequest::parseConnectUrl(char *src) {
 	if (!ss) {
 		return false;
 	}
-	CLR(raw_url.flags, KGL_URL_ORIG_SSL);
+	KBIT_CLR(raw_url.flags, KGL_URL_ORIG_SSL);
 	*ss = 0;
 	raw_url.host = strdup(src);
 	raw_url.port = atoi(ss + 1);
@@ -458,7 +458,7 @@ kgl_header_result KHttpRequest::parseHost(char *val)
 	if (raw_url.host == NULL) {
 		char *p = NULL ;
 		if(*val == '['){
-			SET(raw_url.flags,KGL_URL_IPV6);
+			KBIT_SET(raw_url.flags,KGL_URL_IPV6);
 			val++;
 			raw_url.host = strdup(val);
 			p = strchr(raw_url.host,']');
@@ -476,7 +476,7 @@ kgl_header_result KHttpRequest::parseHost(char *val)
 		if (p) {
 			raw_url.port = atoi(p+1);
 		} else {
-			if (TEST(raw_url.flags,KGL_URL_SSL)) {
+			if (KBIT_TEST(raw_url.flags,KGL_URL_SSL)) {
 				raw_url.port = 443;
 			} else {
 				raw_url.port = 80;
@@ -532,8 +532,8 @@ bool KHttpRequest::WriteAll(const char *buf, int len)
 }
 void KHttpRequest::startParse() {
 	FreeLazyMemory();
-	if (TEST(sink->GetBindServer()->flags, WORK_MODEL_SSL)) {
-		SET(raw_url.flags, KGL_URL_SSL | KGL_URL_ORIG_SSL);
+	if (KBIT_TEST(sink->GetBindServer()->flags, WORK_MODEL_SSL)) {
+		KBIT_SET(raw_url.flags, KGL_URL_SSL | KGL_URL_ORIG_SSL);
 	}
 	meth = METH_UNSET;
 }
@@ -598,7 +598,7 @@ kgl_header_result KHttpRequest::InternalParseHeader(const char *attr, int attr_l
 			return kgl_header_failed;
 		}
 		if (http_major > 1 || (http_major == 1 && http_minor == 1)) {
-			SET(flags, RQ_HAS_KEEP_CONNECTION);
+			KBIT_SET(flags, RQ_HAS_KEEP_CONNECTION);
 		}
 		return kgl_header_no_insert;
 	}
@@ -618,7 +618,7 @@ kgl_header_result KHttpRequest::InternalParseHeader(const char *attr, int attr_l
 			} else if (field.is2("upgrade", 7)) {
 				flags |= RQ_HAS_CONNECTION_UPGRADE;
 			} else if (field.is2(kgl_expand_string("close"))) {
-				CLR(flags, RQ_HAS_KEEP_CONNECTION);
+				KBIT_CLR(flags, RQ_HAS_KEEP_CONNECTION);
 			}
 		} while (field.next());
 		return kgl_header_success;
@@ -630,15 +630,15 @@ kgl_header_result KHttpRequest::InternalParseHeader(const char *attr, int attr_l
 		KHttpFieldValue field(val);
 		do {
 			if (field.is2(kgl_expand_string("gzip"))) {
-				SET(raw_url.accept_encoding, KGL_ENCODING_GZIP);
+				KBIT_SET(raw_url.accept_encoding, KGL_ENCODING_GZIP);
 			} else if (field.is2(kgl_expand_string("deflate"))) {
-				SET(raw_url.accept_encoding, KGL_ENCODING_DEFLATE);
+				KBIT_SET(raw_url.accept_encoding, KGL_ENCODING_DEFLATE);
 			} else if (field.is2(kgl_expand_string("compress"))) {
-				SET(raw_url.accept_encoding, KGL_ENCODING_COMPRESS);
+				KBIT_SET(raw_url.accept_encoding, KGL_ENCODING_COMPRESS);
 			} else if (field.is2(kgl_expand_string("br"))) {
-				SET(raw_url.accept_encoding, KGL_ENCODING_BR);
+				KBIT_SET(raw_url.accept_encoding, KGL_ENCODING_BR);
 			} else if (!field.is2(kgl_expand_string("identity"))) {
-				SET(raw_url.accept_encoding, KGL_ENCODING_UNKNOW);
+				KBIT_SET(raw_url.accept_encoding, KGL_ENCODING_UNKNOW);
 			}
 		} while (field.next());
 		return kgl_header_success;
@@ -677,7 +677,7 @@ kgl_header_result KHttpRequest::InternalParseHeader(const char *attr, int attr_l
 	}
 	if (strcasecmp(attr, "Transfer-Encoding") == 0) {
 		if (strcasecmp(val, "chunked") == 0) {
-			SET(flags, RQ_INPUT_CHUNKED);
+			KBIT_SET(flags, RQ_INPUT_CHUNKED);
 			content_length = -1;
 		}
 		return kgl_header_no_insert;
@@ -690,9 +690,9 @@ kgl_header_result KHttpRequest::InternalParseHeader(const char *attr, int attr_l
 	}
 	if (!strcasecmp(attr, "X-Forwarded-Proto")) {
 		if (strcasecmp(val, "https") == 0) {
-			SET(raw_url.flags, KGL_URL_ORIG_SSL);
+			KBIT_SET(raw_url.flags, KGL_URL_ORIG_SSL);
 		} else {
-			CLR(raw_url.flags, KGL_URL_ORIG_SSL);
+			KBIT_CLR(raw_url.flags, KGL_URL_ORIG_SSL);
 		}
 		return kgl_header_no_insert;
 	}
@@ -704,7 +704,7 @@ kgl_header_result KHttpRequest::InternalParseHeader(const char *attr, int attr_l
 	if (
 		//{{ent
 #ifdef HTTP_PROXY
-		(TEST(GetWorkModel(),WORK_MODEL_MANAGE) && !strcasecmp(attr, "Authorization")) ||
+		(KBIT_TEST(GetWorkModel(),WORK_MODEL_MANAGE) && !strcasecmp(attr, "Authorization")) ||
 #endif//}}
 		!strcasecmp(attr, AUTH_REQUEST_HEADER)) {
 		//{{ent
@@ -715,7 +715,7 @@ kgl_header_result KHttpRequest::InternalParseHeader(const char *attr, int attr_l
 		//{{ent
 #endif//}}
 #ifdef ENABLE_TPROXY
-		if (!TEST(GetWorkModel(),WORK_MODEL_TPROXY)) {
+		if (!KBIT_TEST(GetWorkModel(),WORK_MODEL_TPROXY)) {
 #endif
 			char *p = val;
 			while (*p && !IS_SPACE(*p)) {
@@ -779,7 +779,7 @@ kgl_header_result KHttpRequest::InternalParseHeader(const char *attr, int attr_l
 			if (next_range) {
 				//we do not support multi range
 				klog(KLOG_INFO, "cut multi_range %s\n", val);
-				//SET(filter_flags,RF_NO_CACHE);
+				//KBIT_SET(filter_flags,RF_NO_CACHE);
 				*next_range = '\0';
 			}
 		}
@@ -793,7 +793,7 @@ kgl_header_result KHttpRequest::InternalParseHeader(const char *attr, int attr_l
 		}
 #endif
 		if (strncasecmp(val, "multipart/form-data", 19) == 0) {
-			SET(flags, RQ_POST_UPLOAD);
+			KBIT_SET(flags, RQ_POST_UPLOAD);
 #ifdef ENABLE_INPUT_FILTER
 			if_ctx->parseBoundary(val + 19);
 #endif
@@ -805,8 +805,8 @@ kgl_header_result KHttpRequest::InternalParseHeader(const char *attr, int attr_l
 int KHttpRequest::Read(char *buf, int len)
 {
 	kassert(!kfiber_is_main());
-	if (TEST(flags, RQ_HAVE_EXPECT)) {
-		CLR(flags, RQ_HAVE_EXPECT);
+	if (KBIT_TEST(flags, RQ_HAVE_EXPECT)) {
+		KBIT_CLR(flags, RQ_HAVE_EXPECT);
 		sink->ResponseStatus(this, 100);
 		sink->StartResponseBody(this, 0);
 		sink->Flush();
@@ -863,7 +863,7 @@ bool KHttpRequest::parseHttpVersion(char *ver) {
 
 int KHttpRequest::checkFilter(KHttpObject *obj) {
 	int action = JUMP_ALLOW;
-	if (TEST(obj->index.flags,FLAG_NO_BODY)) {
+	if (KBIT_TEST(obj->index.flags,FLAG_NO_BODY)) {
 		return action;
 	}
 	if (of_ctx) {
@@ -939,7 +939,7 @@ char *KHttpRequest::BuildVary(const char *vary)
 				}
 				if (!build_vary_extend(this, &s, name, value)) {
 					//如果存在不能识别的扩展vary，则不缓存
-					SET(this->filter_flags, RF_NO_CACHE);
+					KBIT_SET(this->filter_flags, RF_NO_CACHE);
 					return NULL;
 				}
 			} else {
@@ -974,19 +974,19 @@ bool KHttpRequest::responseContentLength(int64_t content_len)
 	if (http_minor == 0) {
 		//A HTTP/1.0 client no support TE head.
 		//The connection MUST close
-		SET(flags, RQ_CONNECTION_CLOSE);
+		KBIT_SET(flags, RQ_CONNECTION_CLOSE);
 	} else if (!ctx->connection_upgrade	&& sink->SetTransferChunked()) {
-		SET(flags, RQ_TE_CHUNKED);
+		KBIT_SET(flags, RQ_TE_CHUNKED);
 	}
 	return true;	
 }
 bool KHttpRequest::startResponseBody(INT64 body_len)
 {
-	assert(!TEST(flags,RQ_HAS_SEND_HEADER));
-	if (TEST(flags,RQ_HAS_SEND_HEADER)) {
+	assert(!KBIT_TEST(flags,RQ_HAS_SEND_HEADER));
+	if (KBIT_TEST(flags,RQ_HAS_SEND_HEADER)) {
 		return true;
 	}
-	SET(flags,RQ_HAS_SEND_HEADER);
+	KBIT_SET(flags,RQ_HAS_SEND_HEADER);
 	if (meth == METH_HEAD) {
 		body_len = 0;
 	}
@@ -1004,7 +1004,7 @@ void KHttpRequest::InsertFetchObject(KFetchObject *fo)
 }
 void KHttpRequest::AppendFetchObject(KFetchObject *fo)
 {
-	if (fo->filter==0 && TEST(filter_flags, RQ_NO_EXTEND) && !TEST(flags, RQ_IS_ERROR_PAGE)) {
+	if (fo->filter==0 && KBIT_TEST(filter_flags, RQ_NO_EXTEND) && !KBIT_TEST(flags, RQ_IS_ERROR_PAGE)) {
 		//无扩展处理
 		if (fo->needQueue(this)) {
 			delete fo;

@@ -46,8 +46,8 @@ public:
 		int count = 0;
 		KHttpObject *obj=head;
 		while (obj) {
-			if (!TEST(obj->index.flags,FLAG_DEAD)) {
-				SET(obj->index.flags,FLAG_DEAD);
+			if (!KBIT_TEST(obj->index.flags,FLAG_DEAD)) {
+				KBIT_SET(obj->index.flags,FLAG_DEAD);
 				count++;
 				klog(KLOG_NOTICE,"%s%s purged\n",url.host,url.path);
 			}
@@ -59,10 +59,10 @@ public:
 	{
 		KHttpObject *obj=head;
 		while (obj) {
-			if (!TEST(obj->index.flags,FLAG_DEAD)) {
-				if (TEST(obj->index.flags,FLAG_BIG_OBJECT) 
-					|| (gzip == (bool)(TEST(obj->index.flags,FLAG_RQ_GZIP)>0)
-						&& internal == TEST(obj->index.flags,FLAG_RQ_INTERNAL)>0)
+			if (!KBIT_TEST(obj->index.flags,FLAG_DEAD)) {
+				if (KBIT_TEST(obj->index.flags,FLAG_BIG_OBJECT) 
+					|| (gzip == (bool)(KBIT_TEST(obj->index.flags,FLAG_RQ_GZIP)>0)
+						&& internal == KBIT_TEST(obj->index.flags,FLAG_RQ_INTERNAL)>0)
 					){
 					//大物件，或者是普通物件(但要对到gzip和internal)
 					return obj;
@@ -95,7 +95,7 @@ public:
 	void put(KHttpObject *obj)
 	{
 		obj->next = head;
-		if (!TEST(obj->index.flags,FLAG_URL_FREE)) {
+		if (!KBIT_TEST(obj->index.flags,FLAG_URL_FREE)) {
 			obj->url = &url;
 		}
 		head = obj;
@@ -107,7 +107,7 @@ public:
 			put(obj);
 			return;
 		}
-		if (!TEST(obj->index.flags,FLAG_URL_FREE)) {
+		if (!KBIT_TEST(obj->index.flags,FLAG_URL_FREE)) {
 			obj->url = &url;
 		}
 		KHttpObject *prev;

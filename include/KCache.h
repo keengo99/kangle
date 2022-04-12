@@ -33,7 +33,7 @@ public:
 		lock();
 		assert(obj->list_state != LIST_IN_NONE);
 		objList[obj->list_state].remove(obj);
-		if (TEST(obj->index.flags, FLAG_IN_MEM)) {
+		if (KBIT_TEST(obj->index.flags, FLAG_IN_MEM)) {
 			objList[LIST_IN_MEM].add(obj);
 		}
 		else {
@@ -42,7 +42,7 @@ public:
 		unlock();
 #ifdef ENABLE_DB_DISK_INDEX
 		/*
-		if (TEST(obj->index.flags, FLAG_IN_DISK) &&
+		if (KBIT_TEST(obj->index.flags, FLAG_IN_DISK) &&
 			dci &&
 			dci->getWorker()->getQueue()<1024) {
 			dci->start(ci_updateLast, obj);
@@ -232,7 +232,7 @@ public:
 		for (int i=0;i<2;i++) {
 			KHttpObject *obj = objList[i].getHead();
 			while (obj) {
-				if (TEST(obj->index.flags,FLAG_IN_DISK) && obj->dc_index_update) {
+				if (KBIT_TEST(obj->index.flags,FLAG_IN_DISK) && obj->dc_index_update) {
 					obj->dc_index_update = 0;
 					if (dci) {
 						dci->start(ci_update,obj);

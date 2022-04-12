@@ -486,7 +486,7 @@ int KAccess::check(KHttpRequest *rq, KHttpObject *obj) {
 		}
 #endif
 #ifdef ENABLE_PROXY_PROTOCOL
-		if (TEST(rq->GetWorkModel(), WORK_MODEL_PROXY|WORK_MODEL_SSL_PROXY)) {
+		if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_PROXY|WORK_MODEL_SSL_PROXY)) {
 			rq->AppendFetchObject(new KTcpFetchObject(false));
 			break;
 		}

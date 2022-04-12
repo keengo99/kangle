@@ -10,7 +10,7 @@ public:
 	~KTcpSink();
 	bool IsLocked()
 	{
-		return TEST(cn->st.st_flags, STF_LOCK);
+		return KBIT_TEST(cn->st.st_flags, STF_LOCK);
 	}
 	void SetTimeOut(int tmo)
 	{

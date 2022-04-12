@@ -130,8 +130,8 @@ public:
 				return FILTER_PARTIALMATCH;
 			}
 			if (ret == PCRE_ERROR_BADPARTIAL) {
-				assert(TEST(regFlag,PCRE_PARTIAL));
-				CLR(regFlag, PCRE_PARTIAL);
+				assert(KBIT_TEST(regFlag,PCRE_PARTIAL));
+				KBIT_CLR(regFlag, PCRE_PARTIAL);
 				partial = false;
 				continue;
 			}

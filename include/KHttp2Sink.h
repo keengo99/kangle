@@ -101,7 +101,7 @@ public:
 
 	int EndRequest(KHttpRequest *rq)
 	{
-		SET(rq->flags, RQ_CONNECTION_CLOSE);
+		KBIT_SET(rq->flags, RQ_CONNECTION_CLOSE);
 		if (unlikely(rq->ctx->body_not_complete)) {
 			http2->shutdown(ctx);
 		} else {

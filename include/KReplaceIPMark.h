@@ -63,13 +63,13 @@ public:
 					}
 					free(h->attr);
 					free(h);
-					if (TEST(rq->raw_url.flags,KGL_URL_ORIG_SSL)) {
-						SET(rq->raw_url.flags,KGL_URL_SSL);
+					if (KBIT_TEST(rq->raw_url.flags,KGL_URL_ORIG_SSL)) {
+						KBIT_SET(rq->raw_url.flags,KGL_URL_SSL);
 						if (rq->raw_url.port == 80) {
 							rq->raw_url.port = 443;
 						}
 					} else {
-						CLR(rq->raw_url.flags,KGL_URL_SSL);
+						KBIT_CLR(rq->raw_url.flags,KGL_URL_SSL);
 						if (rq->raw_url.port == 443) {
 							rq->raw_url.port = 80;
 						}

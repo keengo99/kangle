@@ -71,7 +71,7 @@ StreamState KHttpTransfer::write_all(KHttpRequest *rq, const char *str, int len)
 	}
 	if (st==NULL) {
 		if (sendHead(rq, false) != STREAM_WRITE_SUCCESS) {
-			SET(rq->flags,RQ_CONNECTION_CLOSE);
+			KBIT_SET(rq->flags,RQ_CONNECTION_CLOSE);
 			return STREAM_WRITE_FAILED;
 		}
 	}
@@ -83,7 +83,7 @@ StreamState KHttpTransfer::write_all(KHttpRequest *rq, const char *str, int len)
 StreamState KHttpTransfer::write_end(KHttpRequest *rq, KGL_RESULT result) {
 	if (st == NULL) {
 		if (sendHead(rq, true) != STREAM_WRITE_SUCCESS) {
-			SET(rq->flags,RQ_CONNECTION_CLOSE);
+			KBIT_SET(rq->flags,RQ_CONNECTION_CLOSE);
 			return KHttpStream::write_end(rq, STREAM_WRITE_FAILED);
 		}
 	}
@@ -99,8 +99,8 @@ StreamState KHttpTransfer::sendHead(KHttpRequest *rq, bool isEnd) {
 	StreamState result = STREAM_WRITE_SUCCESS;
 	INT64 content_len = (isEnd?0:-1);
 	cache_model cache_layer = cache_memory;
-	kassert(!TEST(rq->flags, RQ_HAVE_RANGE) || rq->ctx->obj->data->status_code==STATUS_CONTENT_PARTIAL);
-	if (TEST(obj->index.flags,ANSW_HAS_CONTENT_LENGTH)) {
+	kassert(!KBIT_TEST(rq->flags, RQ_HAVE_RANGE) || rq->ctx->obj->data->status_code==STATUS_CONTENT_PARTIAL);
+	if (KBIT_TEST(obj->index.flags,ANSW_HAS_CONTENT_LENGTH)) {
 		content_len = obj->index.content_length;
 #ifdef ENABLE_DISK_CACHE
 		if (content_len > conf.max_cache_size) {
@@ -130,7 +130,7 @@ StreamState KHttpTransfer::sendHead(KHttpRequest *rq, bool isEnd) {
 	} else {
 		compress_st = create_compress_stream(rq, obj, content_len);
 		if (compress_st) {
-			SET(rq->flags, RQ_TE_COMPRESS);
+			KBIT_SET(rq->flags, RQ_TE_COMPRESS);
 			content_len = -1;
 			cache_layer = cache_memory;
 			//obj->insertHttpHeader(kgl_expand_string("Content-Encoding"), kgl_expand_string("gzip"));
@@ -138,11 +138,11 @@ StreamState KHttpTransfer::sendHead(KHttpRequest *rq, bool isEnd) {
 		}
 #ifdef WORK_MODEL_TCP
 		//端口映射不发送http头
-		if (!TEST(rq->GetWorkModel(), WORK_MODEL_TCP))
+		if (!KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_TCP))
 #endif
 		build_obj_header(rq, obj, content_len, start, send_len);
 #ifndef NDEBUG
-		if (TEST(rq->flags, RQ_TE_COMPRESS)) {
+		if (KBIT_TEST(rq->flags, RQ_TE_COMPRESS)) {
 			assert(compress_st);
 		} else {
 			assert(compress_st == NULL);
@@ -153,17 +153,17 @@ StreamState KHttpTransfer::sendHead(KHttpRequest *rq, bool isEnd) {
 		cache_layer = cache_none;
 	}
 #if 0
-	else if (TEST(rq->filter_flags,RF_ALWAYS_ONLINE) && status_code_can_cache(obj->data->status_code)) {
+	else if (KBIT_TEST(rq->filter_flags,RF_ALWAYS_ONLINE) && status_code_can_cache(obj->data->status_code)) {
 		//永久在线模式
 #if 0
-		if (TEST(obj->index.flags, ANSW_NO_CACHE)) {
+		if (KBIT_TEST(obj->index.flags, ANSW_NO_CACHE)) {
 			//如果是动态网页，并且无Cookie(游客模式)
 			if (rq->parser.findHttpHeader(kgl_expand_string("Cookie")) == NULL
 				&& rq->parser.findHttpHeader(kgl_expand_string("Cookie2")) == NULL
 				&& obj->findHeader(kgl_expand_string("Set-Cookie")) == NULL
 				&& obj->findHeader(kgl_expand_string("Set-Cookie2")) == NULL) {
-				SET(obj->index.flags, OBJ_MUST_REVALIDATE);
-				CLR(obj->index.flags, ANSW_NO_CACHE | FLAG_DEAD);
+				KBIT_SET(obj->index.flags, OBJ_MUST_REVALIDATE);
+				KBIT_CLR(obj->index.flags, ANSW_NO_CACHE | FLAG_DEAD);
 			}
 		}
 #endif
@@ -196,8 +196,8 @@ bool KHttpTransfer::loadStream(KHttpRequest *rq, KCompressStream *compress_st, c
 	/*
 	 检查是否有chunk层
 	 */
-	if ((!rq->ctx->internal || rq->ctx->replace) && TEST(rq->flags, RQ_TE_CHUNKED)) {
-	//if (!(TEST(workModel,WORK_MODEL_INTERNAL|WORK_MODEL_REPLACE)==WORK_MODEL_INTERNAL) && TEST(rq->flags,RQ_TE_CHUNKED)) {
+	if ((!rq->ctx->internal || rq->ctx->replace) && KBIT_TEST(rq->flags, RQ_TE_CHUNKED)) {
+	//if (!(KBIT_TEST(workModel,WORK_MODEL_INTERNAL|WORK_MODEL_REPLACE)==WORK_MODEL_INTERNAL) && KBIT_TEST(rq->flags,RQ_TE_CHUNKED)) {
 		KWriteStream *st2 = new KChunked(st, autoDelete);
 		if (st2) {
 			st = st2;
@@ -208,7 +208,7 @@ bool KHttpTransfer::loadStream(KHttpRequest *rq, KCompressStream *compress_st, c
 	}
 	//检测是否加载cache层
 	
-	if (TEST(obj->index.flags,ANSW_NO_CACHE)==0) {
+	if (KBIT_TEST(obj->index.flags,ANSW_NO_CACHE)==0) {
 		if (cache_layer != cache_none) {
 			KCacheStream *st_cache = new KCacheStream(st, autoDelete);
 			if (st_cache) {
@@ -232,7 +232,7 @@ bool KHttpTransfer::loadStream(KHttpRequest *rq, KCompressStream *compress_st, c
 	}
 	//内容变换层
 	if ((!rq->ctx->internal || rq->ctx->replace) && rq->needFilter()) {
-	//if (!(TEST(workModel,WORK_MODEL_INTERNAL|WORK_MODEL_REPLACE)==WORK_MODEL_INTERNAL) && rq->needFilter()) {
+	//if (!(KBIT_TEST(workModel,WORK_MODEL_INTERNAL|WORK_MODEL_REPLACE)==WORK_MODEL_INTERNAL) && rq->needFilter()) {
 		//debug("加载内容变换层\n");
 		if (rq->of_ctx->head) {
 			KContentTransfer *st_content = new KContentTransfer(st, autoDelete);

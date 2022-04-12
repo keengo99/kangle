@@ -41,7 +41,7 @@ StreamState KCacheStream::write_end(KHttpRequest *rq, KGL_RESULT result)
 		kassert(obj->IsContentRangeComplete(rq));
 		obj->data->status_code = STATUS_OK;
 		obj->removeHttpHeader("Content-Range");
-		CLR(obj->index.flags, ANSW_HAS_CONTENT_RANGE);
+		KBIT_CLR(obj->index.flags, ANSW_HAS_CONTENT_RANGE);
 	}
 	if (buffer) {
 		set_buffer_obj(buffer,obj);
@@ -52,7 +52,7 @@ StreamState KCacheStream::write_end(KHttpRequest *rq, KGL_RESULT result)
 		kassert(buffer == NULL);		
 		if (disk_cache->Close(obj)) {
 			kassert(obj->data->bodys == NULL);
-			SET(obj->index.flags, OBJ_IS_READY | FLAG_IN_DISK);
+			KBIT_SET(obj->index.flags, OBJ_IS_READY | FLAG_IN_DISK);
 			obj->data->type = BIG_OBJECT;
 		}
 	}

@@ -10,7 +10,7 @@ void KTcpUpstream::OnPushContainer()
 		selectable_remove(&cn->st);
 		cn->st.selector = NULL;
 	}
-	kassert(TEST(cn->st.st_flags, STF_READ | STF_WRITE | STF_REV | STF_WEV) == 0);
+	kassert(KBIT_TEST(cn->st.st_flags, STF_READ | STF_WRITE | STF_REV | STF_WEV) == 0);
 #endif
 }
 void KTcpUpstream::Gc(int life_time,time_t base_time)
@@ -53,22 +53,22 @@ bool KTcpUpstream::BuildHttpHeader(KHttpRequest *rq, KAsyncFetchObject * fo, KWr
 	int via_inserted = FALSE;
 	bool x_forwarded_for_inserted = false;
 	int defaultPort = 80;
-	if (TEST(rq->raw_url.flags, KGL_URL_SSL)) {
+	if (KBIT_TEST(rq->raw_url.flags, KGL_URL_SSL)) {
 		defaultPort = 443;
 	}
 	KUrl *url = rq->url;
-	if (TEST(rq->filter_flags, RF_PROXY_RAW_URL) || !TEST(rq->raw_url.flags, KGL_URL_REWRITED)) {
+	if (KBIT_TEST(rq->filter_flags, RF_PROXY_RAW_URL) || !KBIT_TEST(rq->raw_url.flags, KGL_URL_REWRITED)) {
 		url = &rq->raw_url;
 	}
 	char *path = url->path;
-	if (url == rq->url && TEST(url->flags, KGL_URL_ENCODE)) {
+	if (url == rq->url && KBIT_TEST(url->flags, KGL_URL_ENCODE)) {
 		size_t path_len;
 		path = url_encode(url->path, strlen(url->path), &path_len);
 	}
 	*s << meth;
 	s->WSTRING(" ");
-	if (TEST(rq->filter_flags, RF_PROXY_FULL_URL)) {
-		if (TEST(rq->raw_url.flags, KGL_URL_SSL)) {
+	if (KBIT_TEST(rq->filter_flags, RF_PROXY_FULL_URL)) {
+		if (KBIT_TEST(rq->raw_url.flags, KGL_URL_SSL)) {
 			s->WSTRING("https");
 		} else {
 			s->WSTRING("http");
@@ -104,12 +104,12 @@ bool KTcpUpstream::BuildHttpHeader(KHttpRequest *rq, KAsyncFetchObject * fo, KWr
 		if (strcasecmp(av->attr, X_REAL_IP_SIGN) == 0) {
 			goto do_not_insert;
 		}
-		if (TEST(rq->filter_flags, RF_X_REAL_IP)) {
+		if (KBIT_TEST(rq->filter_flags, RF_X_REAL_IP)) {
 			if (is_attr(av, "X-Real-IP") || is_attr(av, "X-Forwarded-Proto")) {
 				goto do_not_insert;
 			}
 		}
-		if (!TEST(rq->filter_flags, RF_NO_X_FORWARDED_FOR) && is_attr(av, "X-Forwarded-For")) {
+		if (!KBIT_TEST(rq->filter_flags, RF_NO_X_FORWARDED_FOR) && is_attr(av, "X-Forwarded-For")) {
 			if (x_forwarded_for_inserted) {
 				goto do_not_insert;
 			}
@@ -121,7 +121,7 @@ bool KTcpUpstream::BuildHttpHeader(KHttpRequest *rq, KAsyncFetchObject * fo, KWr
 			s->WSTRING("\r\n");
 			goto do_not_insert;
 		}
-		if (is_attr(av, "Via") && TEST(rq->filter_flags, RF_VIA)) {
+		if (is_attr(av, "Via") && KBIT_TEST(rq->filter_flags, RF_VIA)) {
 			if (via_inserted) {
 				goto do_not_insert;
 			}
@@ -132,7 +132,7 @@ bool KTcpUpstream::BuildHttpHeader(KHttpRequest *rq, KAsyncFetchObject * fo, KWr
 		if (is_attr(av, kgl_expand_string("Connection"))) {
 			goto do_not_insert;
 		}
-		if (TEST(rq->flags, RQ_HAVE_EXPECT) && is_attr(av, "Expect")) {
+		if (KBIT_TEST(rq->flags, RQ_HAVE_EXPECT) && is_attr(av, "Expect")) {
 			goto do_not_insert;
 		}
 		//{{ent
@@ -156,7 +156,7 @@ bool KTcpUpstream::BuildHttpHeader(KHttpRequest *rq, KAsyncFetchObject * fo, KWr
 		int2string(rq->content_length, tmpbuff);
 		*s << tmpbuff;
 		s->WSTRING("\r\n");
-	} else if (fo->IsChunkPost() || TEST(rq->flags, RQ_INPUT_CHUNKED)) {
+	} else if (fo->IsChunkPost() || KBIT_TEST(rq->flags, RQ_INPUT_CHUNKED)) {
 		s->WSTRING("Transfer-Encoding: chunked\r\n");
 	}
 	if (rq->ctx->lastModified != 0) {
@@ -200,24 +200,24 @@ bool KTcpUpstream::BuildHttpHeader(KHttpRequest *rq, KAsyncFetchObject * fo, KWr
 	if (rq->ctx->internal) {
 		s->WSTRING("User-Agent: " PROGRAM_NAME "/" VERSION "\r\n");
 	}
-	if (TEST(rq->flags, RQ_HAS_CONNECTION_UPGRADE)) {
+	if (KBIT_TEST(rq->flags, RQ_HAS_CONNECTION_UPGRADE)) {
 		s->WSTRING("Connection: upgrade\r\n");
-	} else if (TEST(rq->filter_flags, RF_UPSTREAM_NOKA) || GetLifeTime() <= 0) {
+	} else if (KBIT_TEST(rq->filter_flags, RF_UPSTREAM_NOKA) || GetLifeTime() <= 0) {
 		s->WSTRING("Connection: close\r\n");
 	}
-	if (!TEST(rq->filter_flags, RF_NO_X_FORWARDED_FOR) && !x_forwarded_for_inserted) {
+	if (!KBIT_TEST(rq->filter_flags, RF_NO_X_FORWARDED_FOR) && !x_forwarded_for_inserted) {
 		*s << "X-Forwarded-For: " << rq->getClientIp();
 		s->WSTRING("\r\n");
 	}
-	if (TEST(rq->filter_flags, RF_VIA) && !via_inserted) {
+	if (KBIT_TEST(rq->filter_flags, RF_VIA) && !via_inserted) {
 		insert_via(rq, s2, NULL);
 	}
-	if (TEST(rq->filter_flags, RF_X_REAL_IP)) {
+	if (KBIT_TEST(rq->filter_flags, RF_X_REAL_IP)) {
 		s->WSTRING(X_REAL_IP_HEADER);
 		s->WSTRING(": ");
 		*s << rq->getClientIp();
 		s->WSTRING("\r\n");
-		if (TEST(rq->raw_url.flags, KGL_URL_SSL)) {
+		if (KBIT_TEST(rq->raw_url.flags, KGL_URL_SSL)) {
 			s->WSTRING("X-Forwarded-Proto: https\r\n");
 		} else {
 			s->WSTRING("X-Forwarded-Proto: http\r\n");

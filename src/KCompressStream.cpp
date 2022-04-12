@@ -27,20 +27,20 @@ KCompressStream *create_compress_stream(KHttpRequest *rq, KHttpObject *obj, int6
 	//status_code是206，表示是部分内容时也不压缩,或者是200回应，但用了url ranged技术
 	//注：这种情况没有经过详细考证
 	if (obj->data->status_code == STATUS_CONTENT_PARTIAL
-		|| TEST(rq->raw_url.flags, KGL_URL_RANGED)) {
+		|| KBIT_TEST(rq->raw_url.flags, KGL_URL_RANGED)) {
 		return NULL;
 	}
-	if (TEST(obj->index.flags, FLAG_DEAD) && conf.only_compress_cache == 1) {
+	if (KBIT_TEST(obj->index.flags, FLAG_DEAD) && conf.only_compress_cache == 1) {
 		return NULL;
 	}
 #ifdef ENABLE_BROTLI
-	if (obj->need_compress && conf.br_level>0 && TEST(rq->raw_url.accept_encoding, KGL_ENCODING_BR)) {
+	if (obj->need_compress && conf.br_level>0 && KBIT_TEST(rq->raw_url.accept_encoding, KGL_ENCODING_BR)) {
 		obj->AddContentEncoding(KGL_ENCODING_BR, kgl_expand_string("br"));
 		return new KBrotliCompress();
 	}
 #endif
 	//客户端支持gzip压缩格式
-	if (obj->need_compress && conf.gzip_level>0 && TEST(rq->raw_url.accept_encoding, KGL_ENCODING_GZIP)) {
+	if (obj->need_compress && conf.gzip_level>0 && KBIT_TEST(rq->raw_url.accept_encoding, KGL_ENCODING_GZIP)) {
 		obj->AddContentEncoding(KGL_ENCODING_GZIP, kgl_expand_string("gzip"));
 		return new KGzipCompress(conf.gzip_level);
 	}

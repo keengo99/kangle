@@ -82,24 +82,24 @@ bool stored_obj(KHttpRequest *rq, KHttpObject *obj,KHttpObject *old_obj) {
 	if (obj == NULL){
 		return false;
 	}
-	if (!TEST(obj->index.flags,OBJ_IS_READY)) {
+	if (!KBIT_TEST(obj->index.flags,OBJ_IS_READY)) {
 		return false;
 	}
 	if (!objCanCache(rq,obj)) {
 		return false;
 	}
 	/*
-	if (TEST(rq->flags,RQ_HAS_GZIP)) {
-		SET(obj->index.flags,FLAG_RQ_GZIP);
+	if (KBIT_TEST(rq->flags,RQ_HAS_GZIP)) {
+		KBIT_SET(obj->index.flags,FLAG_RQ_GZIP);
 	}
 	*/
-	if (TEST(rq->filter_flags, RF_NO_DISK_CACHE)) {
-		SET(obj->index.flags, FLAG_NO_DISK_CACHE);
+	if (KBIT_TEST(rq->filter_flags, RF_NO_DISK_CACHE)) {
+		KBIT_SET(obj->index.flags, FLAG_NO_DISK_CACHE);
 	}
 	if (rq->ctx->internal) {
-		SET(obj->index.flags,FLAG_RQ_INTERNAL);
+		KBIT_SET(obj->index.flags,FLAG_RQ_INTERNAL);
 	}
-	if (TEST(obj->index.flags,OBJ_IS_STATIC2)) {
+	if (KBIT_TEST(obj->index.flags,OBJ_IS_STATIC2)) {
 		clean_static_obj_header(obj);
 	}
 #if 0
@@ -117,10 +117,10 @@ bool stored_obj(KHttpRequest *rq, KHttpObject *obj,KHttpObject *old_obj) {
 	if (old_obj) {
 		old_obj->Dead();
 	}
-	if (stored_obj(obj,(TEST(obj->index.flags,FLAG_IN_MEM)?LIST_IN_MEM:LIST_IN_DISK))) {
-		SET(rq->flags,RQ_OBJ_STORED);
+	if (stored_obj(obj,(KBIT_TEST(obj->index.flags,FLAG_IN_MEM)?LIST_IN_MEM:LIST_IN_DISK))) {
+		KBIT_SET(rq->flags,RQ_OBJ_STORED);
 #ifdef ENABLE_DB_DISK_INDEX
-		if (TEST(obj->index.flags, FLAG_IN_DISK)) {
+		if (KBIT_TEST(obj->index.flags, FLAG_IN_DISK)) {
 			dci->start(ci_add, obj);
 		}
 #endif

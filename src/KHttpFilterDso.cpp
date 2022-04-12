@@ -50,36 +50,36 @@ KGL_RESULT global_support_function(
 	switch (req) {
 	case KGL_REQ_REGISTER_ACCESS: {
 			kgl_access *access = (kgl_access *)data;
-			if (TEST(access->flags, KF_NOTIFY_REQUEST_ACL)) {
+			if (KBIT_TEST(access->flags, KF_NOTIFY_REQUEST_ACL)) {
 				KAccessDso *model = new KAccessDso(access,
 					(KDsoExtend *)ctx,
 					KF_NOTIFY_REQUEST_ACL);
-				KAccess::addAclModel(REQUEST, new KAccessDsoAcl(model), TEST(access->flags, KF_NOTIFY_REPLACE) > 0);
+				KAccess::addAclModel(REQUEST, new KAccessDsoAcl(model), KBIT_TEST(access->flags, KF_NOTIFY_REPLACE) > 0);
 			}
-			if (TEST(access->flags, KF_NOTIFY_RESPONSE_ACL)) {
+			if (KBIT_TEST(access->flags, KF_NOTIFY_RESPONSE_ACL)) {
 				KAccessDso *model = new KAccessDso(access,
 					(KDsoExtend *)ctx,
 					KF_NOTIFY_RESPONSE_ACL);
-				KAccess::addAclModel(RESPONSE, new KAccessDsoAcl(model), TEST(access->flags, KF_NOTIFY_REPLACE) > 0);
+				KAccess::addAclModel(RESPONSE, new KAccessDsoAcl(model), KBIT_TEST(access->flags, KF_NOTIFY_REPLACE) > 0);
 			}
-			if (TEST(access->flags, KF_NOTIFY_REQUEST_MARK)) {
+			if (KBIT_TEST(access->flags, KF_NOTIFY_REQUEST_MARK)) {
 				KAccessDso *model = new KAccessDso(access,
 					(KDsoExtend *)ctx,
 					KF_NOTIFY_REQUEST_MARK);
-				KAccess::addMarkModel(REQUEST, new KAccessDsoMark(model), TEST(access->flags,KF_NOTIFY_REPLACE) > 0);
+				KAccess::addMarkModel(REQUEST, new KAccessDsoMark(model), KBIT_TEST(access->flags,KF_NOTIFY_REPLACE) > 0);
 			}
-			if (TEST(access->flags, KF_NOTIFY_RESPONSE_MARK)) {
+			if (KBIT_TEST(access->flags, KF_NOTIFY_RESPONSE_MARK)) {
 				KAccessDso *model = new KAccessDso(access,
 					(KDsoExtend *)ctx,
 					KF_NOTIFY_RESPONSE_MARK);
-				KAccess::addMarkModel(RESPONSE, new KAccessDsoMark(model), TEST(access->flags, KF_NOTIFY_REPLACE) > 0);
+				KAccess::addMarkModel(RESPONSE, new KAccessDsoMark(model), KBIT_TEST(access->flags, KF_NOTIFY_REPLACE) > 0);
 			}
 			return KGL_OK;
 	}
 	case KGL_REQ_REGISTER_ASYNC_UPSTREAM:
 	{
 		kgl_upstream *us = (kgl_upstream *)data;
-		CLR(us->flags, KF_UPSTREAM_SYNC);
+		KBIT_CLR(us->flags, KF_UPSTREAM_SYNC);
 		KDsoExtend *de = (KDsoExtend *)ctx;
 		if (de->RegisterUpstream(us)) {
 			return KGL_OK;
@@ -117,7 +117,7 @@ KGL_RESULT global_support_function(
 			return KGL_EINVALID_PARAMETER;
 		}
 		//目前还不支持同步模式
-		CLR(ctx->us->flags, KF_UPSTREAM_SYNC);
+		KBIT_CLR(ctx->us->flags, KF_UPSTREAM_SYNC);
 		KDsoRedirect *rd = new KDsoRedirect("", (kgl_upstream *)ctx->us);
 		KFetchObject *fo = rd->makeFetchObject(rq, ctx->us_ctx);
 		fo->bindRedirect(rd, KGL_CONFIRM_FILE_NEVER);

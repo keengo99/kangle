@@ -46,10 +46,10 @@ uint32_t KFetchObject::Check(KHttpRequest* rq)
 uint32_t KFetchObject::CheckResult(KHttpRequest* rq, uint32_t result)
 {
 	KFetchObject* next = NULL;
-	if (TEST(result, KF_STATUS_REQ_TRUE|KF_STATUS_REQ_FINISHED) == KF_STATUS_REQ_TRUE) {
+	if (KBIT_TEST(result, KF_STATUS_REQ_TRUE|KF_STATUS_REQ_FINISHED) == KF_STATUS_REQ_TRUE) {
 		next = rq->GetNextFetchObject(this);
 	}
-	if (TEST(result, KF_STATUS_REQ_SKIP_OPEN)) {
+	if (KBIT_TEST(result, KF_STATUS_REQ_SKIP_OPEN)) {
 		klist_remove(&this->queue);
 		delete this;
 	}

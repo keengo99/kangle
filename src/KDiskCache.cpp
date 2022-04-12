@@ -34,10 +34,10 @@ static INT64 recreate_start_time = 0;
 using namespace std;
 bool obj_can_disk_cache(KHttpRequest *rq, KHttpObject *obj)
 {
-	if (TEST(rq->filter_flags, RF_NO_DISK_CACHE)) {
+	if (KBIT_TEST(rq->filter_flags, RF_NO_DISK_CACHE)) {
 		return false;
 	}
-	if (TEST(obj->index.flags, ANSW_LOCAL_SERVER | FLAG_NO_DISK_CACHE)) {
+	if (KBIT_TEST(obj->index.flags, ANSW_LOCAL_SERVER | FLAG_NO_DISK_CACHE)) {
 		return false;
 	}
 	return cache.IsDiskCacheReady();
@@ -310,8 +310,8 @@ cor_result create_http_object2(KHttpObject *obj, char *url, uint32_t flag_encodi
 		m_url.destroy();
 		return cor_failed;
 	}
-	CLR(obj->index.flags, FLAG_IN_MEM);
-	SET(obj->index.flags, FLAG_IN_DISK | FLAG_URL_FREE);
+	KBIT_CLR(obj->index.flags, FLAG_IN_MEM);
+	KBIT_SET(obj->index.flags, FLAG_IN_DISK | FLAG_URL_FREE);
 	obj->uk.url = new KUrl;
 	obj->uk.url->host = m_url.host;
 	obj->uk.url->path = m_url.path;
@@ -331,35 +331,35 @@ cor_result create_http_object2(KHttpObject *obj, char *url, uint32_t flag_encodi
 	if (verified_filename) {
 		obj->h = cache.hash_url(obj->uk.url);
 		if (cache.getHash(obj->h)->FindByFilename(&obj->uk, verified_filename)) {
-			CLR(obj->index.flags, FLAG_IN_DISK);
+			KBIT_CLR(obj->index.flags, FLAG_IN_DISK);
 			klog(KLOG_NOTICE, "filename [%s] already in cache\n", verified_filename);
 			return cor_incache;
 		}
 	}
-	if (TEST(obj->index.flags, FLAG_IN_DISK)) {
+	if (KBIT_TEST(obj->index.flags, FLAG_IN_DISK)) {
 		if (obj->index.head_size != kgl_align(obj->index.head_size, kgl_aio_align_size)) {
 			char *url = obj->uk.url->getUrl();
 			char *filename = obj->getFileName();
 			klog(KLOG_ERR, "disk cache file head_size=[%d] is not align by size=[%d], url=[%s] file=[%s] now dead it.\n", obj->index.head_size, kgl_aio_align_size, url, filename);
 			free(filename);
 			free(url);
-			SET(obj->index.flags, FLAG_DEAD);
+			KBIT_SET(obj->index.flags, FLAG_DEAD);
 		}
 #ifndef ENABLE_BIG_OBJECT_206
-		if (TEST(obj->index.flags, FLAG_BIG_OBJECT_PROGRESS)) {
+		if (KBIT_TEST(obj->index.flags, FLAG_BIG_OBJECT_PROGRESS)) {
 			char *url = obj->uk.url->getUrl();
 			char *filename = obj->getFileName();
 			klog(KLOG_ERR, "disk cache file head_size=[%d] is part file that is not support by now size=[%d], url=[%s] file=[%s]. now dead it.\n", obj->index.head_size, kgl_aio_align_size, url, filename);
 			free(filename);
 			free(url);
-			SET(obj->index.flags, FLAG_DEAD);
+			KBIT_SET(obj->index.flags, FLAG_DEAD);
 		}
 #endif
 	}
 	if (stored_obj(obj, LIST_IN_DISK)) {
 		return cor_success;
 	}
-	CLR(obj->index.flags, FLAG_IN_DISK);
+	KBIT_CLR(obj->index.flags, FLAG_IN_DISK);
 	return cor_failed;
 }
 cor_result create_http_object(KHttpObject *obj,const char *url, uint32_t flag_encoding,const char *verified_filename)
@@ -440,7 +440,7 @@ int create_file_index(const char *file,void *param)
 	obj->dk.filename2 = f2;
 	//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
-	if (TEST(obj->index.flags, FLAG_BIG_OBJECT_PROGRESS)) {
+	if (KBIT_TEST(obj->index.flags, FLAG_BIG_OBJECT_PROGRESS)) {
 		partobjs[file] = true;
 	}
 #endif//}}

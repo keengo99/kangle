@@ -27,51 +27,51 @@ bool KHttpFilterManage::add(const char *name)
 		return false;
 	}
 	kgl_filter_version *version = filter_dso->get_version();
-	if (TEST(version->flags,KF_NOTIFY_REQUEST)) {
+	if (KBIT_TEST(version->flags,KF_NOTIFY_REQUEST)) {
 		if (hook.request==NULL) {
 			hook.request = new KHttpFilterHookCollectRequest;
 		}
 		hook.request->add_hook(filter_dso);
 	}
-	if (TEST(version->flags,KF_NOTIFY_URL_MAP)) {
+	if (KBIT_TEST(version->flags,KF_NOTIFY_URL_MAP)) {
 		if (hook.url_map==NULL) {
 			hook.url_map = new KHttpFilterHookCollectUrlMap;
 		}
 		hook.url_map->add_hook(filter_dso);
 	}
-	if (TEST(version->flags,KF_NOTIFY_RESPONSE)) {
+	if (KBIT_TEST(version->flags,KF_NOTIFY_RESPONSE)) {
 		if (hook.response==NULL) {
 			hook.response = new KHttpFilterHookCollectResponse;
 		}
 		hook.response->add_hook(filter_dso);
 	}
-	if (TEST(version->flags,KF_NOTIFY_END_REQUEST)) {
+	if (KBIT_TEST(version->flags,KF_NOTIFY_END_REQUEST)) {
 		if (hook.end_request==NULL) {
 			hook.end_request = new KHttpFilterHookCollect;
 		}
 		hook.end_request->add_hook(filter_dso);
 	}
 #if 0
-	if (TEST(version->flags,KF_NOTIFY_LOG)) {
+	if (KBIT_TEST(version->flags,KF_NOTIFY_LOG)) {
 		if (hook.log==NULL) {
 			hook.log = new KHttpFilterHookCollectLog;
 		}
 		hook.log->add_hook(filter_dso);
 	}
 #endif
-	if (TEST(version->flags,KF_NOTIFY_END_CONNECT)) {
+	if (KBIT_TEST(version->flags,KF_NOTIFY_END_CONNECT)) {
 		if (hook.end_connection==NULL) {
 			hook.end_connection = new KHttpFilterHookCollect;
 		}
 		hook.end_connection->add_hook(filter_dso);
 	}
-	if (TEST(version->flags,KF_NOTIFY_READ_DATA)) {
+	if (KBIT_TEST(version->flags,KF_NOTIFY_READ_DATA)) {
 		if (hook.read_raw==NULL) {
 			hook.read_raw = new KHttpFilterHookCollect;
 		}
 		hook.read_raw->add_hook(filter_dso);
 	}
-	if (TEST(version->flags,KF_NOTIFY_SEND_DATA)) {
+	if (KBIT_TEST(version->flags,KF_NOTIFY_SEND_DATA)) {
 		if (hook.send_raw==NULL) {
 			hook.send_raw = new KHttpFilterHookCollect;
 		}

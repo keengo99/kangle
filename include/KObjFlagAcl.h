@@ -11,11 +11,11 @@ public:
 
 	bool match(KHttpRequest *rq,KHttpObject *obj)
 	{
-		return TEST(obj->index.flags,flag)>0;
+		return KBIT_TEST(obj->index.flags,flag)>0;
 	}
 	std::string getDisplay() {
 		std::stringstream s;
-		if (TEST(flag,ANSW_NO_CACHE)) {
+		if (KBIT_TEST(flag,ANSW_NO_CACHE)) {
 			s << "nocache,";
 		}
 		return s.str();
@@ -31,7 +31,7 @@ public:
 				*p = '\0';
 			}
 			if (strcasecmp(hot,"nocache")==0) {
-				SET(flag,ANSW_NO_CACHE);
+				KBIT_SET(flag,ANSW_NO_CACHE);
 			}
 			if (p==NULL) {
 				break;

@@ -177,7 +177,7 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 		if (proxy && *proxy=='-') {
 			rq->rewriteUrl(url->getString(),0,(rewriteBase?rewriteBase:prefix.c_str()));
 			const char *ssl = NULL;
-			if (TEST(rq->url->flags, KGL_URL_SSL)) {
+			if (KBIT_TEST(rq->url->flags, KGL_URL_SSL)) {
 				ssl = "s";
 			}
 			rq->AppendFetchObject(server_container->get(NULL, rq->url->host, rq->url->port, ssl, 0));
@@ -248,7 +248,7 @@ bool KFileAttributeTestor::test(const char *str, KRegSubString **lastSubString) 
 	case 'l':
 		return S_ISLNK(buf.st_mode) > 0;
 	case 'x':
-		return TEST(buf.st_mode,S_IXOTH);
+		return KBIT_TEST(buf.st_mode,S_IXOTH);
 #endif
 	}
 	return false;
@@ -403,7 +403,7 @@ void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KStringBuf &s) {
 		return;
 	}
 	if (strcasecmp(env, "SCHEMA") == 0) {
-		if (TEST(rq->raw_url.flags,KGL_URL_SSL)) {
+		if (KBIT_TEST(rq->raw_url.flags,KGL_URL_SSL)) {
 			s << "https";
 		} else {
 			s << "http";
@@ -455,7 +455,7 @@ void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KStringBuf &s) {
 		return;
 	}
 	if (strcasecmp(env, "HTTPS") == 0) {
-		if (TEST(rq->url->flags,KGL_URL_SSL)) {
+		if (KBIT_TEST(rq->url->flags,KGL_URL_SSL)) {
 			s << "on";
 		} else {
 			s << "off";

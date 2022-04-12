@@ -152,7 +152,7 @@ void KPoolableRedirect::build_proto_html(KPoolableRedirect *mserver, std::string
 
 }
 KFetchObject *KPoolableRedirect::makeFetchObject(KHttpRequest *rq, KFileName *file) {
-	CLR(rq->filter_flags,RQ_FULL_PATH_INFO);
+	KBIT_CLR(rq->filter_flags,RQ_FULL_PATH_INFO);
 	switch (proto) {
 	case Proto_fcgi:
 		return new KFastcgiFetchObject();

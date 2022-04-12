@@ -190,7 +190,7 @@ int create_select_pipe(KHttpRequest *rq, KClientSocket *client, int tmo,
 			break;
 		max_recv_len = PACKAGE_SIZE;
 #ifdef HAVE_POLL
-		if (TEST(poll_list[0].revents,POLLIN | POLLPRI)) {
+		if (KBIT_TEST(poll_list[0].revents,POLLIN | POLLPRI)) {
 #else
 			if (FD_ISSET(s1,&readfds)) {
 #endif
@@ -215,7 +215,7 @@ int create_select_pipe(KHttpRequest *rq, KClientSocket *client, int tmo,
 				break;
 			}
 #ifdef HAVE_POLL
-		} else if (TEST(poll_list[1].revents,POLLIN | POLLPRI)) {
+		} else if (KBIT_TEST(poll_list[1].revents,POLLIN | POLLPRI)) {
 #else
 		} else if (FD_ISSET(s2,&readfds)) {
 #endif

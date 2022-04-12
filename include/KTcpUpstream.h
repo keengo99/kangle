@@ -55,7 +55,7 @@ public:
 	}
 	bool IsLocked()
 	{
-		return TEST(cn->st.st_flags, STF_LOCK)>0;
+		return KBIT_TEST(cn->st.st_flags, STF_LOCK)>0;
 	}
 	int Read(char* buf, int len);
 	int Write(WSABUF* buf, int bc);

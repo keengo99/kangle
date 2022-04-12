@@ -31,7 +31,7 @@ static void result_write_http_header(KOPAQUE data, void *arg, int got)
 	KHttpSink *sink = static_cast<KHttpSink *>(rq->sink);
 	kassert(sink->rc==NULL);
 	if (got < 0) {
-		SET(rq->flags, RQ_CONNECTION_CLOSE);
+		KBIT_SET(rq->flags, RQ_CONNECTION_CLOSE);
 	}
 	sink->EndRequest(rq);
 }
@@ -102,7 +102,7 @@ int buffer_read_http_sink(KOPAQUE data, void *arg, LPWSABUF buf, int bufCount)
 int handle_http2https_error(void *arg, int got)
 {
 	KHttpRequest* rq = (KHttpRequest*)arg;
-	SET(rq->flags, RQ_CONNECTION_CLOSE);
+	KBIT_SET(rq->flags, RQ_CONNECTION_CLOSE);
 	if (conf.http2https_code == 0 || rq->raw_url.IsBad()) {
 		send_error2(rq, STATUS_HTTP_TO_HTTPS, "send http to https port");
 		goto clean;
@@ -204,7 +204,7 @@ kev_result KHttpSink::Parse(KHttpRequest *rq)
 			kassert(rc == NULL);
 			ksocket_delay(cn->st.fd);
 			ks_save_point(&buffer, hot, len);
-			if (TEST(rq->flags, RQ_INPUT_CHUNKED)) {
+			if (KBIT_TEST(rq->flags, RQ_INPUT_CHUNKED)) {
 				kassert(dechunk == NULL);
 				dechunk = new KDechunkContext;
 			}
@@ -294,7 +294,7 @@ int KHttpSink::StartResponseBody(KHttpRequest *rq,int64_t body_size)
 }
 bool KHttpSink::IsLocked()
 {
-	return TEST(cn->st.st_flags,STF_LOCK);
+	return KBIT_TEST(cn->st.st_flags,STF_LOCK);
 }
 int KHttpSink::Read(char *buf, int len)
 {	
@@ -353,14 +353,14 @@ int KHttpSink::EndRequest(KHttpRequest *rq)
 	if (rc) {
 		delete rc;
 		rc = NULL;
-		SET(rq->flags, RQ_CONNECTION_CLOSE);
+		KBIT_SET(rq->flags, RQ_CONNECTION_CLOSE);
 	}
-	if (TEST(rq->flags, RQ_CONNECTION_CLOSE) || !TEST(rq->flags, RQ_HAS_KEEP_CONNECTION)) {
+	if (KBIT_TEST(rq->flags, RQ_CONNECTION_CLOSE) || !KBIT_TEST(rq->flags, RQ_HAS_KEEP_CONNECTION)) {
 		return kfiber_exit_callback(NULL, delete_request_fiber, rq);
 	}
 	ksocket_no_delay(cn->st.fd,false);
 	kassert(buffer.buf_size > 0);
-	if (rq->left_read != 0 && !TEST(rq->flags, RQ_HAVE_EXPECT)) {
+	if (rq->left_read != 0 && !KBIT_TEST(rq->flags, RQ_HAVE_EXPECT)) {
 		//still have data to read
 		SkipPost(rq);
 		//delete rq;
@@ -418,7 +418,7 @@ void KHttpSink::EndFiber(KHttpRequest* rq)
 }
 int KHttpSink::StartPipeLine(KHttpRequest *rq)
 {
-	kassert(rq->left_read == 0 || TEST(rq->flags, RQ_HAVE_EXPECT));	
+	kassert(rq->left_read == 0 || KBIT_TEST(rq->flags, RQ_HAVE_EXPECT));	
 	rq->clean();
 	rq->init(NULL);
 

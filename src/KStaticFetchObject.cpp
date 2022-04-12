@@ -18,14 +18,14 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 {
 	kassert(!rq->file->isDirectory());
 	KHttpObject *obj = rq->ctx->obj;
-	SET(obj->index.flags, ANSW_LOCAL_SERVER);
+	KBIT_SET(obj->index.flags, ANSW_LOCAL_SERVER);
 	if (rq->ctx->lastModified > 0 && rq->ctx->lastModified == rq->file->getLastModified()) {
 		if (rq->ctx->mt == modified_if_modified) {
 			out->f->write_status(out, rq, STATUS_NOT_MODIFIED);
 			return out->f->write_header_finish(out, rq);
 		}
 	} else if (rq->ctx->mt == modified_if_range_date || rq->ctx->mt == modified_if_range_etag) {
-		CLR(rq->flags, RQ_HAVE_RANGE);
+		KBIT_CLR(rq->flags, RQ_HAVE_RANGE);
 	}
 	assert(fp == NULL);
 	assert(rq->file);
@@ -40,21 +40,21 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 	}
 	bool may_compress = false;
 	if (obj->need_compress) {
-		if (TEST(rq->raw_url.accept_encoding, KGL_ENCODING_GZIP)) {
+		if (KBIT_TEST(rq->raw_url.accept_encoding, KGL_ENCODING_GZIP)) {
 			may_compress = true;
 #ifdef ENABLE_BROTLI
-		} else if (TEST(rq->raw_url.accept_encoding, KGL_ENCODING_BR)) {
+		} else if (KBIT_TEST(rq->raw_url.accept_encoding, KGL_ENCODING_BR)) {
 			may_compress = true;
 #endif
 		}
 	}
 	if (may_compress && rq->file->fileSize >= conf.min_compress_length) {
 		//如果可能压缩，则不回应206
-		CLR(rq->flags, RQ_HAVE_RANGE);
+		KBIT_CLR(rq->flags, RQ_HAVE_RANGE);
 	}
 	int status_code = STATUS_OK;
 	INT64 left_send = rq->file->fileSize;
-	if (TEST(rq->flags, RQ_HAVE_RANGE)) {
+	if (KBIT_TEST(rq->flags, RQ_HAVE_RANGE)) {
 		//处理部分数据请求
 		rq->ctx->content_range_length = rq->file->fileSize;
 		if (!adjust_range(rq, left_send)) {
@@ -65,7 +65,7 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 			xfree(content_type);
 			return out->f->write_message(out, rq, KGL_MSG_ERROR, "cann't seek to right position",500);
 		}
-		if (!TEST(rq->raw_url.flags, KGL_URL_RANGED)) {
+		if (!KBIT_TEST(rq->raw_url.flags, KGL_URL_RANGED)) {
 			KStringBuf b;
 			char buf[INT2STRING_LEN];
 			b.WSTR("bytes ");
@@ -76,9 +76,9 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 			status_code = STATUS_CONTENT_PARTIAL;
 		} else {
 			//url range的本地不缓存
-			SET(obj->index.flags, ANSW_NO_CACHE);
+			KBIT_SET(obj->index.flags, ANSW_NO_CACHE);
 		}
-		if (!TEST(rq->raw_url.flags, KGL_URL_RANGED)) {
+		if (!KBIT_TEST(rq->raw_url.flags, KGL_URL_RANGED)) {
 			KStringBuf b;
 			char buf[INT2STRING_LEN];
 			b.WSTR("bytes ");
@@ -89,7 +89,7 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 			status_code = STATUS_CONTENT_PARTIAL;
 		} else {
 			//url range的本地不缓存
-			SET(obj->index.flags, ANSW_NO_CACHE);
+			KBIT_SET(obj->index.flags, ANSW_NO_CACHE);
 		}
 	}
 	out->f->write_status(out, rq, status_code);

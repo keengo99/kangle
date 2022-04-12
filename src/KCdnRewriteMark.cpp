@@ -30,11 +30,11 @@ bool KHostRewriteMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJ
 		if (port>0) {
 			rq->url->port = port;
 		}
-		SET(rq->raw_url.flags,KGL_URL_REWRITED);
+		KBIT_SET(rq->raw_url.flags,KGL_URL_REWRITED);
 	}
 	if (proxy) {	
 		const char *ssl = NULL;
-		if (TEST(rq->url->flags, KGL_URL_SSL)) {
+		if (KBIT_TEST(rq->url->flags, KGL_URL_SSL)) {
 			ssl = "s";
 		}
 		KFetchObject *fo = server_container->get(NULL,(rewrite?rq->url->host:cdn_host->getString()),(port>0?port:rq->url->port),ssl,life_time);
@@ -138,7 +138,7 @@ bool KHostMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType
 		if (port>0) {
 			rq->url->port = port;
 		}
-		SET(rq->raw_url.flags,KGL_URL_REWRITED);
+		KBIT_SET(rq->raw_url.flags,KGL_URL_REWRITED);
 	}
 	if (proxy) {		
 		KFetchObject * fo = server_container->get(NULL,(rewrite?rq->url->host:host.c_str()),(port>0?port:rq->url->port),(ssl?"s":NULL),life_time);

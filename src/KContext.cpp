@@ -32,7 +32,7 @@ void KContext::store_obj(KHttpRequest *rq)
 	if (old_obj) {
 		//send from cache
 		assert(obj);
-		CLR(rq->filter_flags,RQ_SWAP_OLD_OBJ);
+		KBIT_CLR(rq->filter_flags,RQ_SWAP_OLD_OBJ);
 		if (obj->data->status_code == STATUS_NOT_MODIFIED) {
 			//更新obj
 			//删除新obj
@@ -46,8 +46,8 @@ void KContext::store_obj(KHttpRequest *rq)
 				return;
 			}
 		}
-		if (TEST(rq->filter_flags, RF_ALWAYS_ONLINE) ||
-			(TEST(old_obj->index.flags, OBJ_IS_GUEST) && !TEST(rq->filter_flags, RF_GUEST))
+		if (KBIT_TEST(rq->filter_flags, RF_ALWAYS_ONLINE) ||
+			(KBIT_TEST(old_obj->index.flags, OBJ_IS_GUEST) && !KBIT_TEST(rq->filter_flags, RF_GUEST))
 			) {
 			//永久在线，并且新网页没有存储
 			//或者是会员访问了游客缓存
@@ -107,13 +107,13 @@ void KContext::popObj()
 #ifdef ENABLE_DELTA_DECODE
 void KContext::getDeltaHeader(KHttpRequest *rq,KStringBuf &sd)
 {
-	if (TEST(rq->flags, RQ_HAS_GZIP)) {
+	if (KBIT_TEST(rq->flags, RQ_HAS_GZIP)) {
 		sd.write_all(kgl_expand_string("gzip, "));
 	}
-	if (rq->bo_ctx==NULL && !TEST(rq->flags,RQ_HAVE_RANGE)) {
+	if (rq->bo_ctx==NULL && !KBIT_TEST(rq->flags,RQ_HAVE_RANGE)) {
 		//big object skip sd encode
 		sd.write_all(kgl_expand_string("sd="));
-		if (old_obj && TEST(old_obj->index.flags,OBJ_IS_DELTA)) {
+		if (old_obj && KBIT_TEST(old_obj->index.flags,OBJ_IS_DELTA)) {
 			sd.addHex(old_obj->index.filename1);
 			sd.write_all("_",1);
 			sd.addHex(old_obj->index.filename2);

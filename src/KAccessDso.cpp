@@ -42,7 +42,7 @@ static bool access_simulate(KCONN cn, kgl_async_upstream *us, void *context, con
 		return false;
 	}
 	//目前还不支持同步模式
-	CLR(us->flags, KF_UPSTREAM_SYNC);
+	KBIT_CLR(us->flags, KF_UPSTREAM_SYNC);
 	KDsoRedirect *rd = new KDsoRedirect("", (kgl_upstream *)us);
 	KFetchObject *fo = rd->makeFetchObject(rq, context);
 	fo->bindRedirect(rd, KGL_CONFIRM_FILE_NEVER);
@@ -65,7 +65,7 @@ kev_result next_dso_init(KOPAQUE data, void *arg, int got)
 static int write_string(void *serverCtx,const char *str,int len,int build_flags)
 {
 	std::stringstream *s = (std::stringstream *)serverCtx;
-	if (TEST(build_flags, KGL_BUILD_HTML_ENCODE)) {
+	if (KBIT_TEST(build_flags, KGL_BUILD_HTML_ENCODE)) {
 		char *buf = KXml::htmlEncode(str, len, NULL);
 		s->write(buf, len);
 		free(buf);

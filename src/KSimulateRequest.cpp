@@ -51,8 +51,8 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 		delete rq;
 		return NULL;
 	}
-	if (TEST(rq->raw_url.flags, KGL_URL_ORIG_SSL)) {
-		SET(rq->raw_url.flags, KGL_URL_SSL);
+	if (KBIT_TEST(rq->raw_url.flags, KGL_URL_ORIG_SSL)) {
+		KBIT_SET(rq->raw_url.flags, KGL_URL_SSL);
 	}
 
 	if (ctx->host) {
@@ -83,22 +83,22 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 	}
 	rq->sink = ss;
 	rq->ctx->simulate = 1;
-	if (TEST(ctx->flags, KF_SIMULATE_GZIP)) {
+	if (KBIT_TEST(ctx->flags, KF_SIMULATE_GZIP)) {
 		rq->ParseHeader(kgl_expand_string("Accept-Encoding"), kgl_expand_string("gzip"), false);
 	}
 	rq->meth = KHttpKeyValue::getMethod(ctx->meth);
 	rq->content_length = ctx->post_len;
 	rq->http_major = 1;
 	rq->http_minor = 1;
-	SET(rq->flags, RQ_CONNECTION_CLOSE);
-	if (!TEST(ctx->flags, KF_SIMULATE_CACHE)) {
-		SET(rq->flags, RQ_HAS_NO_CACHE);
-		SET(rq->filter_flags, RF_NO_CACHE);
+	KBIT_SET(rq->flags, RQ_CONNECTION_CLOSE);
+	if (!KBIT_TEST(ctx->flags, KF_SIMULATE_CACHE)) {
+		KBIT_SET(rq->flags, RQ_HAS_NO_CACHE);
+		KBIT_SET(rq->filter_flags, RF_NO_CACHE);
 	}
 	if (rq->content_length > 0) {
-		SET(rq->flags, RQ_HAS_CONTENT_LEN);
+		KBIT_SET(rq->flags, RQ_HAS_CONTENT_LEN);
 	}
-	if (TEST(ctx->flags, KF_SIMULATE_LOCAL)) {
+	if (KBIT_TEST(ctx->flags, KF_SIMULATE_LOCAL)) {
 		ss->c->server = conf.gvm->RefsServer(rq->raw_url.port);
 		if (ss->c->server == NULL) {
 			ss->body = NULL;

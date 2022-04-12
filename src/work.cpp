@@ -119,7 +119,7 @@ void log_access(KHttpRequest *rq) {
 	const char *user_agent = NULL;
 	char tmp[64];
 	int default_port = 80;
-	if (TEST(rq->raw_url.flags,KGL_URL_SSL)) {
+	if (KBIT_TEST(rq->raw_url.flags,KGL_URL_SSL)) {
 		default_port = 443;
 	}
 	l << rq->getClientIp();	
@@ -146,7 +146,7 @@ void log_access(KHttpRequest *rq) {
 #ifdef HTTP_PROXY
 	if (rq->meth!=METH_CONNECT)
 #endif
-	l << (TEST(rq->raw_url.flags,KGL_URL_SSL) ? "https://" : "http://");
+	l << (KBIT_TEST(rq->raw_url.flags,KGL_URL_SSL) ? "https://" : "http://");
 	KUrl *url = &rq->raw_url;
 	referer = (char *)rq->GetHttpValue("Referer");
 	user_agent = rq->GetHttpValue("User-Agent");
@@ -217,41 +217,41 @@ void log_access(KHttpRequest *rq) {
 	if(rq->ctx->cache_hit){
 		l.WSTR("C");
 	}
-	if(TEST(rq->flags,RQ_OBJ_STORED)){
+	if(KBIT_TEST(rq->flags,RQ_OBJ_STORED)){
 		l.WSTR("S");
 	}
-	if (TEST(rq->flags, RQ_UPSTREAM)) {
+	if (KBIT_TEST(rq->flags, RQ_UPSTREAM)) {
 		l.WSTR("U");
-		if (TEST(rq->flags, RQ_UPSTREAM_ERROR)) {
+		if (KBIT_TEST(rq->flags, RQ_UPSTREAM_ERROR)) {
 			l.WSTR("E");
 		}
 	}
 	if (rq->ctx->parent_signed) {
 		l.WSTR("P");
 	}
-	if(TEST(rq->flags,RQ_OBJ_VERIFIED)){
+	if(KBIT_TEST(rq->flags,RQ_OBJ_VERIFIED)){
 		l.WSTR("V");
 	}
-	if(TEST(rq->flags, RQ_TE_COMPRESS)){
+	if(KBIT_TEST(rq->flags, RQ_TE_COMPRESS)){
 		l.WSTR("Z");
 	}
-	if(TEST(rq->flags,RQ_TE_CHUNKED)){
+	if(KBIT_TEST(rq->flags,RQ_TE_CHUNKED)){
 		l.WSTR("K");
 	}
-	if (TEST(rq->flags,RQ_HAS_KEEP_CONNECTION|RQ_CONNECTION_CLOSE) == RQ_HAS_KEEP_CONNECTION) {
+	if (KBIT_TEST(rq->flags,RQ_HAS_KEEP_CONNECTION|RQ_CONNECTION_CLOSE) == RQ_HAS_KEEP_CONNECTION) {
 		l.WSTR("L");
 	}
 	if (rq->ctx->upstream_connection_keep_alive) {
 		l.WSTR("l");
 	}
-	if (TEST(rq->flags,RQ_INPUT_CHUNKED)) {
+	if (KBIT_TEST(rq->flags,RQ_INPUT_CHUNKED)) {
 		l.WSTR("I");
 	}
 	//{{ent
-	if (TEST(rq->filter_flags,RQF_CC_PASS)) {
+	if (KBIT_TEST(rq->filter_flags,RQF_CC_PASS)) {
 		l.WSTR("p");
 	}
-	if (TEST(rq->filter_flags,RQF_CC_HIT)) {
+	if (KBIT_TEST(rq->filter_flags,RQF_CC_HIT)) {
 		l.WSTR("c");
 	}
 	//}}
@@ -279,7 +279,7 @@ void log_access(KHttpRequest *rq) {
 	l.WSTR(" ");
 	l.addHex(rq->ctx->lastModified);
 	l.WSTR(" ");
-	if (TEST(rq->flags, RQ_HAS_IF_NONE_MATCH)) {
+	if (KBIT_TEST(rq->flags, RQ_HAS_IF_NONE_MATCH)) {
 		l.WSTR("inm");
 	}
 	if (rq->ctx->if_none_match) {
@@ -346,7 +346,7 @@ KGL_RESULT stageHttpManage(KHttpRequest *rq)
 	if(strstr(rq->url->path,".whm") 
 		|| strcmp(rq->url->path,"/logo.gif")==0
 		|| strcmp(rq->url->path,"/main.css")==0){
-		CLR(rq->flags,RQ_HAS_AUTHORIZATION);
+		KBIT_CLR(rq->flags,RQ_HAS_AUTHORIZATION);
 		assert(rq->IsFetchObjectEmpty() && rq->svh==NULL);
 		rq->svh = conf.sysHost->getFirstSubVirtualHost();
 		if(rq->svh){

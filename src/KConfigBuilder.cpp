@@ -106,7 +106,7 @@ void KConfigBuilder::build(std::stringstream &s) {
 		s << "port='" << conf.service[i]->port << "' type='"
 				<< getWorkModelName(conf.service[i]->model) << "' ";		
 #ifdef KSOCKET_SSL
-		if(TEST(conf.service[i]->model,WORK_MODEL_SSL)){
+		if(KBIT_TEST(conf.service[i]->model,WORK_MODEL_SSL)){
 			if (!conf.service[i]->cert_file.empty()) {
 				s << "certificate='" << conf.service[i]->cert_file << "' ";
 			}

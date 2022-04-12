@@ -28,7 +28,7 @@ KGL_RESULT turn_on_bigobject(KHttpRequest *rq,KHttpObject *obj)
 	obj->data->type = BIG_OBJECT_PROGRESS;
 	obj->data->sbo = new KSharedBigObject;
 	if (obj->data->status_code == STATUS_OK) {
-		CLR(rq->flags,RQ_HAVE_RANGE);
+		KBIT_CLR(rq->flags,RQ_HAVE_RANGE);
 		rq->range_from = 0;
 		rq->range_to = -1;
 	}

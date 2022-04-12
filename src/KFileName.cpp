@@ -298,7 +298,7 @@ bool KFileName::isDirectory() {
 }
 bool KFileName::canExecute() {
 #ifndef _WIN32
-	return TEST(buf.st_mode,S_IXOTH);
+	return KBIT_TEST(buf.st_mode,S_IXOTH);
 #else
 	return true;
 #endif
@@ -399,10 +399,10 @@ CheckLinkState KFileName::checkLink(const char *path, int follow_link) {
 #ifndef _WIN32
 	if (S_ISLNK(buf.st_mode)) {
 		//link file
-		if (TEST(follow_link,FOLLOW_LINK_ALL)) {
+		if (KBIT_TEST(follow_link,FOLLOW_LINK_ALL)) {
 			return CheckLinkContinue;
 		}
-		if (!TEST(follow_link,FOLLOW_LINK_OWN)) {
+		if (!KBIT_TEST(follow_link,FOLLOW_LINK_OWN)) {
 			return CheckLinkFailed;
 		}
 		struct stat buf2;
@@ -417,7 +417,7 @@ CheckLinkState KFileName::checkLink(const char *path, int follow_link) {
 	}
 #endif
 #endif
-	if(TEST(follow_link,FOLLOW_PATH_INFO) && S_ISREG(buf.st_mode)){
+	if(KBIT_TEST(follow_link,FOLLOW_PATH_INFO) && S_ISREG(buf.st_mode)){
 		return CheckLinkIsFile;
 	}
 	return CheckLinkContinue;
@@ -441,7 +441,7 @@ bool KFileName::setName(const char *docRoot, const char *triped_path,
 	if (doclen <= 0) {
 		return false;
 	}	
-	if (TEST(follow_link,FOLLOW_LINK_ALL)) {
+	if (KBIT_TEST(follow_link,FOLLOW_LINK_ALL)) {
 		assert(triped_path);
 		if (triped_path == NULL) {
 			return false;

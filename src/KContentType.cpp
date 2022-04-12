@@ -43,11 +43,11 @@ const char *KContentType::get(KHttpObject *obj,const char *ext) {
 		mime_type *m_type = (*it).second;
 		result = true;
 		if(m_type->gzip){
-			SET(obj->index.flags,FLAG_NEED_GZIP);
+			KBIT_SET(obj->index.flags,FLAG_NEED_GZIP);
 		}
 		if (m_type->max_age>0) {
 			obj->index.max_age = m_type->max_age;
-			SET(obj->index.flags,ANSW_HAS_MAX_AGE);
+			KBIT_SET(obj->index.flags,ANSW_HAS_MAX_AGE);
 		}
 		return m_type->type;
 	}

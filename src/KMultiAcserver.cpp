@@ -168,7 +168,7 @@ uint16_t KMultiAcserver::getNodeIndex(KHttpRequest *rq, int *set_cookie_stick)
 }
 static KUpstream *connect_result(KHttpRequest *rq, KSockPoolHelper *sa, int cookie_stick)
 {
-	if (cookie_stick > 0 && !TEST(rq->flags,RQ_UPSTREAM_ERROR)) {
+	if (cookie_stick > 0 && !KBIT_TEST(rq->flags,RQ_UPSTREAM_ERROR)) {
 		KStringBuf b;
 		if (*conf.cookie_stick_name) {
 			b << conf.cookie_stick_name;

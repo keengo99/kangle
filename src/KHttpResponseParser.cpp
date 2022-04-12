@@ -9,21 +9,21 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 {
 
 	if (!strcasecmp(attr, "Etag")) {
-		SET(obj->index.flags, OBJ_HAS_ETAG);
+		KBIT_SET(obj->index.flags, OBJ_HAS_ETAG);
 		return kgl_header_insert_begin;
 	}
 	if (!strcasecmp(attr, "Content-Range")) {
 		const char *p = strchr(val, '/');
 		if (p) {
 			rq->ctx->content_range_length = string2int(p + 1);
-			SET(obj->index.flags, ANSW_HAS_CONTENT_RANGE);
+			KBIT_SET(obj->index.flags, ANSW_HAS_CONTENT_RANGE);
 		}
 		return kgl_header_success;
 	}
 	if (!strcasecmp(attr, "Content-length")) {
 		obj->index.content_length = string2int(val);
-		SET(obj->index.flags, ANSW_HAS_CONTENT_LENGTH);
-		//CLR(obj->index.flags, ANSW_CHUNKED);
+		KBIT_SET(obj->index.flags, ANSW_HAS_CONTENT_LENGTH);
+		//KBIT_CLR(obj->index.flags, ANSW_CHUNKED);
 		return kgl_header_no_insert;
 	}
 	if (!strcasecmp(attr, "Content-Type")) {
@@ -31,7 +31,7 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 	}
 	if (!strcasecmp(attr, "Date")) {
 		serverDate = parse1123time(val);
-		//SET(obj->index.flags,OBJ_HAS_DATE);
+		//KBIT_SET(obj->index.flags,OBJ_HAS_DATE);
 		return kgl_header_success;
 	}
 	if (!strcasecmp(attr, "Last-Modified")) {
@@ -42,7 +42,7 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 		return kgl_header_success;
 	}
 	if (strncasecmp(attr, "Set-Cookie", sizeof("Set-Cookie") - 1) == 0) {
-		if (!TEST(obj->index.flags, OBJ_IS_STATIC2)) {
+		if (!KBIT_TEST(obj->index.flags, OBJ_IS_STATIC2)) {
 			obj->index.flags |= ANSW_NO_CACHE;
 		}
 		return kgl_header_success;
@@ -61,7 +61,7 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 		KHttpFieldValue field(val);
 		do {
 #ifdef ENABLE_STATIC_ENGINE
-			if (!TEST(obj->index.flags, OBJ_IS_STATIC2)) {
+			if (!KBIT_TEST(obj->index.flags, OBJ_IS_STATIC2)) {
 #endif
 				if (field.is("no-store")) {
 					obj->index.flags |= ANSW_NO_CACHE;
@@ -80,7 +80,7 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 			} else
 #endif
 				if (field.is("public")) {
-					CLR(obj->index.flags, ANSW_NO_CACHE);
+					KBIT_CLR(obj->index.flags, ANSW_NO_CACHE);
 				} else if (field.is("max-age=", (int *)&obj->index.max_age)) {
 					obj->index.flags |= ANSW_HAS_MAX_AGE;
 				} else if (field.is("s-maxage=", (int *)&obj->index.max_age)) {
@@ -90,7 +90,7 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 				}
 		} while (field.next());
 #ifdef ENABLE_FORCE_CACHE
-		if (TEST(obj->index.flags, OBJ_IS_STATIC2)) {
+		if (KBIT_TEST(obj->index.flags, OBJ_IS_STATIC2)) {
 			return kgl_header_no_insert;
 		}
 #endif
@@ -107,13 +107,13 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 		return kgl_header_no_insert;
 	}
 	if (*attr == 'x' || *attr == 'X') {
-		if (!TEST(rq->filter_flags, RF_NO_X_SENDFILE) &&
+		if (!KBIT_TEST(rq->filter_flags, RF_NO_X_SENDFILE) &&
 			(strcasecmp(attr, "X-Accel-Redirect") == 0 || strcasecmp(attr, "X-Proxy-Redirect") == 0)) {
-			SET(obj->index.flags, ANSW_XSENDFILE);
+			KBIT_SET(obj->index.flags, ANSW_XSENDFILE);
 			return kgl_header_insert_begin;
 		}
 		if (strcasecmp(attr, "X-No-Buffer") == 0) {
-			SET(rq->filter_flags, RF_NO_BUFFER);
+			KBIT_SET(rq->filter_flags, RF_NO_BUFFER);
 			return kgl_header_no_insert;
 		}
 		if (strcasecmp(attr, "X-Gzip") == 0) {
@@ -124,7 +124,7 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 	if (strcasecmp(attr, "Transfer-Encoding") == 0) {
 		/*
 		if (strcasecmp(val, "chunked") == 0) {
-			if (!TEST(obj->index.flags, ANSW_HAS_CONTENT_LENGTH)) {
+			if (!KBIT_TEST(obj->index.flags, ANSW_HAS_CONTENT_LENGTH)) {
 				obj->index.flags |= ANSW_CHUNKED;
 			}
 			return kgl_header_no_insert;
@@ -149,14 +149,14 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 			obj->uk.url->accept_encoding = (u_char)~0;
 		} else if (*val) {
 			//不明content-encoding不能缓存
-			SET(obj->index.flags, FLAG_DEAD);
+			KBIT_SET(obj->index.flags, FLAG_DEAD);
 			obj->uk.url->set_content_encoding(KGL_ENCODING_UNKNOW);
 		}
 		return kgl_header_success;
 	}
-	if (!TEST(obj->index.flags, ANSW_HAS_EXPIRES) &&
+	if (!KBIT_TEST(obj->index.flags, ANSW_HAS_EXPIRES) &&
 		!strcasecmp(attr, "Expires")) {
-		SET(obj->index.flags, ANSW_HAS_EXPIRES);
+		KBIT_SET(obj->index.flags, ANSW_HAS_EXPIRES);
 		expireDate = parse1123time(val);
 		return kgl_header_success;
 	}
@@ -190,12 +190,12 @@ void KHttpResponseParser::EndParse(KHttpRequest *rq)
  * 没有 Last-Modified 我们不缓存.
  * 但如果有 expires or max-age  除外
  */
-	if (!TEST(rq->ctx->obj->index.flags, ANSW_LAST_MODIFIED | OBJ_HAS_ETAG)) {
-		if (!TEST(rq->ctx->obj->index.flags, ANSW_HAS_MAX_AGE | ANSW_HAS_EXPIRES)) {
-			SET(rq->ctx->obj->index.flags, ANSW_NO_CACHE);
+	if (!KBIT_TEST(rq->ctx->obj->index.flags, ANSW_LAST_MODIFIED | OBJ_HAS_ETAG)) {
+		if (!KBIT_TEST(rq->ctx->obj->index.flags, ANSW_HAS_MAX_AGE | ANSW_HAS_EXPIRES)) {
+			KBIT_SET(rq->ctx->obj->index.flags, ANSW_NO_CACHE);
 		}
 	}
-	if (!TEST(rq->ctx->obj->index.flags, ANSW_NO_CACHE)) {
+	if (!KBIT_TEST(rq->ctx->obj->index.flags, ANSW_NO_CACHE)) {
 		if (serverDate == 0) {
 			serverDate = kgl_current_sec;
 		}
@@ -213,8 +213,8 @@ void KHttpResponseParser::EndParse(KHttpRequest *rq)
 		unsigned corrected_initial_age = corrected_received_age	+ response_delay;
 		unsigned resident_time = (unsigned)(kgl_current_sec - responseTime);
 		age = corrected_initial_age + resident_time;
-		if (!TEST(rq->ctx->obj->index.flags, ANSW_HAS_MAX_AGE)
-			&& TEST(rq->ctx->obj->index.flags, ANSW_HAS_EXPIRES)) {
+		if (!KBIT_TEST(rq->ctx->obj->index.flags, ANSW_HAS_MAX_AGE)
+			&& KBIT_TEST(rq->ctx->obj->index.flags, ANSW_HAS_EXPIRES)) {
 			rq->ctx->obj->index.max_age = (unsigned)(expireDate - serverDate) - age;
 		}
 	}

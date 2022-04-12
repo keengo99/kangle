@@ -86,7 +86,7 @@ inline bool rq_has_content_length(KHttpRequest *rq, int64_t content_length) {
 	if (content_length > 0) {
 		return true;
 	}
-	if (content_length == 0 && TEST(rq->flags, RQ_HAS_CONTENT_LEN)) {
+	if (content_length == 0 && KBIT_TEST(rq->flags, RQ_HAS_CONTENT_LEN)) {
 		return true;
 	}
 	return false;
@@ -94,11 +94,11 @@ inline bool rq_has_content_length(KHttpRequest *rq, int64_t content_length) {
 //检查obj是否过期1
 inline bool check_object_expiration(KHttpRequest *rq,KHttpObject *obj) {
 	assert(obj);
-	if (TEST(obj->index.flags, OBJ_IS_GUEST) && !TEST(rq->filter_flags, RF_GUEST)) {
+	if (KBIT_TEST(obj->index.flags, OBJ_IS_GUEST) && !KBIT_TEST(rq->filter_flags, RF_GUEST)) {
 		//是游客缓存，但该用户不是游客
 		return true;
 	}
-	if (TEST(obj->index.flags,OBJ_MUST_REVALIDATE)) {
+	if (KBIT_TEST(obj->index.flags,OBJ_MUST_REVALIDATE)) {
 		//有must-revalidate,则每次都要从源上验证
 		return true;
 	}
@@ -106,15 +106,15 @@ inline bool check_object_expiration(KHttpRequest *rq,KHttpObject *obj) {
 		return true;
 	}
 	unsigned freshness_lifetime;
-	if (TEST(obj->index.flags ,ANSW_HAS_MAX_AGE|ANSW_HAS_EXPIRES)){
+	if (KBIT_TEST(obj->index.flags ,ANSW_HAS_MAX_AGE|ANSW_HAS_EXPIRES)){
 		freshness_lifetime = obj->index.max_age;
 	} else {
 		freshness_lifetime = conf.refresh_time;
 	}
-	if (TEST(rq->filter_flags,RF_DOUBLE_CACHE_EXPIRE)) {
+	if (KBIT_TEST(rq->filter_flags,RF_DOUBLE_CACHE_EXPIRE)) {
 		//双倍过期时间，并清除强制刷新
 		freshness_lifetime = freshness_lifetime<<1;
-		CLR(rq->flags,RQ_HAS_NO_CACHE);
+		KBIT_CLR(rq->flags,RQ_HAS_NO_CACHE);
 	}
 	//debug("current_age=%d,refreshness_lifetime=%d\n",current_age,freshness_lifetime);
 	unsigned current_age = obj->getCurrentAge(kgl_current_sec);
@@ -127,7 +127,7 @@ inline bool is_cache_object_expired(KHttpRequest *rq, KHttpObject *obj)
 {
 	//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
-	if (TEST(obj->index.flags, FLAG_BIG_OBJECT_PROGRESS)) {
+	if (KBIT_TEST(obj->index.flags, FLAG_BIG_OBJECT_PROGRESS)) {
 		/**
 		* 未完物件，特殊处理。或产生if-range请求头会验证是否修改。
 		*
@@ -138,17 +138,17 @@ inline bool is_cache_object_expired(KHttpRequest *rq, KHttpObject *obj)
 	if (check_object_expiration(rq, obj)) {
 #ifdef ENABLE_STATIC_ENGINE
 		//如果是静态化的页面,则要重新生成过
-		CLR(obj->index.flags, OBJ_IS_STATIC2);
+		KBIT_CLR(obj->index.flags, OBJ_IS_STATIC2);
 #endif
 		goto revalidate;
 	}
-	if (TEST(rq->flags, RQ_HAS_NO_CACHE)) {
+	if (KBIT_TEST(rq->flags, RQ_HAS_NO_CACHE)) {
 		goto revalidate;
 	}
 	return false;
 revalidate:
 #ifdef ENABLE_FORCE_CACHE
-	if (TEST(obj->index.flags, OBJ_IS_STATIC2)) {
+	if (KBIT_TEST(obj->index.flags, OBJ_IS_STATIC2)) {
 		return false;
 	}
 #endif
@@ -166,7 +166,7 @@ inline KGL_RESULT process_check_cache_expire(KHttpRequest* rq, KHttpObject* obj)
 	return send_cache_object(rq, obj);
 }
 inline bool in_stop_cache(KHttpRequest *rq) {
-	if (TEST(rq->filter_flags, RF_NO_CACHE)) {
+	if (KBIT_TEST(rq->filter_flags, RF_NO_CACHE)) {
 		return true;
 	}
 	if (rq->meth == METH_GET || rq->meth == METH_HEAD) {

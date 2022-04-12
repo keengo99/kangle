@@ -16,7 +16,7 @@ inline void set_buffer_obj(KAutoBuffer *buffer,KHttpObject *obj)
 	assert(obj->data->bodys==NULL);
 	obj->index.content_length = buffer->getLen();
 	obj->data->bodys = buffer->stealBuff();
-	SET(obj->index.flags,OBJ_IS_READY);
+	KBIT_SET(obj->index.flags,OBJ_IS_READY);
 }
 class KCacheStream : public KHttpStream
 {

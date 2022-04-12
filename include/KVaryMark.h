@@ -18,7 +18,7 @@ public:
 			return false;
 		}
 		kassert(obj);
-		if (TEST(obj->index.flags, OBJ_HAS_VARY)) {
+		if (KBIT_TEST(obj->index.flags, OBJ_HAS_VARY)) {
 			return false;
 		}
 		if (!obj->AddVary(rq, header, header_len)) {

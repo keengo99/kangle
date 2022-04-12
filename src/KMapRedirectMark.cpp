@@ -33,7 +33,7 @@ bool KMapRedirectMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJ
 	KStringBuf s;
 	int defaultPort = 80;
 	if (strstr(item->rewrite, "://") == NULL) {
-		if (TEST(rq->url->flags, KGL_URL_SSL)) {
+		if (KBIT_TEST(rq->url->flags, KGL_URL_SSL)) {
 			s << "https://";
 			defaultPort = 443;
 		} else {

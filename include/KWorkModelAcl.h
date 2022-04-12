@@ -18,7 +18,7 @@ public:
 		return "work_model";
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) {
-		return TEST(rq->sink->GetBindServer()->flags,flag)>0;
+		return KBIT_TEST(rq->sink->GetBindServer()->flags,flag)>0;
 	}
 	std::string getDisplay() {
 		std::stringstream s;
@@ -48,14 +48,14 @@ public:
 		//{{ent
 #ifdef WORK_MODEL_TCP
 		s << "<input type=checkbox name='tcp' value='1' ";
-		if (m_chain && TEST(m_chain->flag,WORK_MODEL_TCP)) {
+		if (m_chain && KBIT_TEST(m_chain->flag,WORK_MODEL_TCP)) {
 			s << "checked";
 		}
 		s << ">tcp";
 #endif
 		//}}
 		s << "<input type=checkbox name='ssl' value='1' ";
-		if (m_chain && TEST(m_chain->flag, WORK_MODEL_SSL)) {
+		if (m_chain && KBIT_TEST(m_chain->flag, WORK_MODEL_SSL)) {
 			s << "checked";
 		}
 		s << ">ssl";
@@ -67,12 +67,12 @@ private:
 	{
 		//{{ent
 #ifdef WORK_MODEL_TCP
-		if (TEST(flag, WORK_MODEL_TCP)) {
+		if (KBIT_TEST(flag, WORK_MODEL_TCP)) {
 			s << "tcp='1' ";
 		}
 #endif
 		//}}
-		if (TEST(flag, WORK_MODEL_SSL)) {
+		if (KBIT_TEST(flag, WORK_MODEL_SSL)) {
 			s << "ssl='1' ";
 		}
 

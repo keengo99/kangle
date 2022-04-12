@@ -40,41 +40,41 @@ void parseRewriteFlag(char *flag, rewrite_flag_t &rf) {
 			p++;
 		}
 		if (strcasecmp(flag, "C") == 0 || strcasecmp(flag, "chain") == 0) {
-			SET(rf.flag,REWRITE_CHAIN_AND);
+			KBIT_SET(rf.flag,REWRITE_CHAIN_AND);
 		} else if (strcasecmp(flag, "F") == 0 || strcasecmp(flag, "forbidden")
 				== 0) {
-			SET(rf.flag,REWRITE_FOBIDDEN);
+			KBIT_SET(rf.flag,REWRITE_FOBIDDEN);
 		} else if (strcasecmp(flag, "G") == 0 || strcasecmp(flag, "gone") == 0) {
-			SET(rf.flag,REWRITE_GONE);
+			KBIT_SET(rf.flag,REWRITE_GONE);
 		} else if (strcasecmp(flag, "L") == 0 || strcasecmp(flag, "last") == 0) {
-			SET(rf.flag,REWRITE_LAST);
+			KBIT_SET(rf.flag,REWRITE_LAST);
 		} else if (strcasecmp(flag, "N") == 0 || strcasecmp(flag, "next") == 0) {
-			SET(rf.flag,REWRITE_NEXT);
+			KBIT_SET(rf.flag,REWRITE_NEXT);
 		} else if (strcasecmp(flag, "NC") == 0 || strcasecmp(flag, "nocase")
 				== 0) {
-			SET(rf.flag,REWRITE_NOCASE);
+			KBIT_SET(rf.flag,REWRITE_NOCASE);
 		} else if (strcasecmp(flag,"redirect")==0 || strcasecmp(flag,"R")==0){
-			SET(rf.flag,REWRITE_REDIRECT);
+			KBIT_SET(rf.flag,REWRITE_REDIRECT);
 			rf.code = 0;
 		} else if (strncasecmp(flag, "redirect=", 9) == 0) {
-			SET(rf.flag,REWRITE_REDIRECT);
+			KBIT_SET(rf.flag,REWRITE_REDIRECT);
 			rf.code = atoi(flag + 9);
 		} else if (strncasecmp(flag, "R=", 2) == 0) {
-			SET(rf.flag,REWRITE_REDIRECT);
+			KBIT_SET(rf.flag,REWRITE_REDIRECT);
 			rf.code = atoi(flag + 2);
 		} else if (strncasecmp(flag, "skip=", 5) == 0) {
-			SET(rf.flag,REWRITE_SKIP);
+			KBIT_SET(rf.flag,REWRITE_SKIP);
 			rf.skip = atoi(flag + 5);
 		} else if (strncasecmp(flag, "S=", 2) == 0) {
-			SET(rf.flag,REWRITE_SKIP);
+			KBIT_SET(rf.flag,REWRITE_SKIP);
 			rf.skip = atoi(flag + 2);
 		} else if (strcasecmp(flag, "OR") == 0 || strcasecmp(flag, "ornext")
 				== 0) {
-			SET(rf.flag,REWRITE_OR);
+			KBIT_SET(rf.flag,REWRITE_OR);
 		} else if (strcasecmp(flag,"QSA")==0 || strcasecmp(flag,"qsappend")==0) {
-			SET(rf.flag,REWRITE_QSA);
+			KBIT_SET(rf.flag,REWRITE_QSA);
 		} else if (strcasecmp(flag,"P")==0 || strcasecmp(flag,"proxy")==0) {
-			SET(rf.flag,REWRITE_PROXY);
+			KBIT_SET(rf.flag,REWRITE_PROXY);
 		}
 		if (hot == NULL) {
 			break;
@@ -130,20 +130,20 @@ bool KHtRewriteModule::process(KApacheConfig *htaccess, const char *cmd,
 		if(lastCondOr){
 			rule << " or='1'";
 		}
-		if (TEST(rf.flag,REWRITE_OR)) {
+		if (KBIT_TEST(rf.flag,REWRITE_OR)) {
 			lastCondOr = true;
 		}else{
 			lastCondOr = false;
 		}
 
 		rule << " nc='";
-		if (TEST(rf.flag,REWRITE_NOCASE)) {
+		if (KBIT_TEST(rf.flag,REWRITE_NOCASE)) {
 			rule << "1";
 		} else {
 			rule << "0";
 		}
 		rule << "'";
-		//if (TEST(rf.flag,REWRITE_QSA)) {
+		//if (KBIT_TEST(rf.flag,REWRITE_QSA)) {
 		//	rule << " qsa='1'";
 		//}
 		rule << ">" << CDATA_START << item[1] << CDATA_END << "</cond>\n";
@@ -160,15 +160,15 @@ bool KHtRewriteModule::process(KApacheConfig *htaccess, const char *cmd,
 		}
 		if (action.str().size() == 0) {
 			//chain << "<chain action='";
-			if (TEST(rf.flag,REWRITE_LAST)) {
+			if (KBIT_TEST(rf.flag,REWRITE_LAST)) {
 				action << "default";
-			} else if (TEST(rf.flag,REWRITE_NEXT)) {
+			} else if (KBIT_TEST(rf.flag,REWRITE_NEXT)) {
 				action << "table:BEGIN";
-			} else if (TEST(rf.flag,REWRITE_SKIP)) {
+			} else if (KBIT_TEST(rf.flag,REWRITE_SKIP)) {
 				action << "tablechain:BEGIN:" << cur_chainid + rf.skip;
-			} else if (TEST(rf.flag,REWRITE_FOBIDDEN|REWRITE_GONE)) {
+			} else if (KBIT_TEST(rf.flag,REWRITE_FOBIDDEN|REWRITE_GONE)) {
 				action << "deny";
-			} else if (TEST(rf.flag,REWRITE_REDIRECT)) {
+			} else if (KBIT_TEST(rf.flag,REWRITE_REDIRECT)) {
 				action << "default";
 			}
 		}
@@ -177,7 +177,7 @@ bool KHtRewriteModule::process(KApacheConfig *htaccess, const char *cmd,
 		rule << "<rule path='" << item[0] << "' dst='" << item[1]
 				<< "' internal='";///>\n";
 		//internal='";
-		if (TEST(rf.flag,REWRITE_REDIRECT)) {
+		if (KBIT_TEST(rf.flag,REWRITE_REDIRECT)) {
 			rule << "0";
 			if (rf.code>0) {
 				rule << "' code='" << rf.code;
@@ -186,20 +186,20 @@ bool KHtRewriteModule::process(KApacheConfig *htaccess, const char *cmd,
 			rule << "1";
 		}
 		rule << "' nc='";
-		if (TEST(rf.flag,REWRITE_NOCASE)) {
+		if (KBIT_TEST(rf.flag,REWRITE_NOCASE)) {
 			rule << "1";
 		} else {
 			rule << "0";
 		}
 		rule << "'";
-		if (TEST(rf.flag,REWRITE_PROXY)) {
+		if (KBIT_TEST(rf.flag,REWRITE_PROXY)) {
 			rule << " proxy='-'";
 		}
-		if (TEST(rf.flag,REWRITE_QSA)) {
+		if (KBIT_TEST(rf.flag,REWRITE_QSA)) {
 			rule << " qsa='1'";
 		}
 		rule << "/>\n";
-		if (!TEST(rf.flag,REWRITE_CHAIN_AND)) {
+		if (!KBIT_TEST(rf.flag,REWRITE_CHAIN_AND)) {
 			//last_chainand = true;
 			chainEnd();
 			//last_chainand = false;
