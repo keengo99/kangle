@@ -277,24 +277,25 @@ void handle_connection_failed(kconnection *c, kgl_connection_result result)
 	kconnection_destroy(c);
 }
 
-void handle_connection(kconnection *c, void *ctx)
-{
+KACCEPT_CALLBACK (handle_connection){
+	kconnection* c = (kconnection*)arg;
 	kgl_connection_result result = add_request(c);
 	if (unlikely(result != kgl_connection_success)) {
 		handle_connection_failed(c, result);
-		return;
+		return kev_ok;
 	}
 #ifdef ENABLE_PROXY_PROTOCOL
 	if (KBIT_TEST(c->server->flags, WORK_MODEL_PROXY)) {
 		handl_proxy_request(c, result_proxy_request);
-		return;
+		return kev_ok;
 	}
 #ifdef HTTP_PROXY
 	if (kconnection_is_ssl(c) && KBIT_TEST(c->server->flags, WORK_MODEL_SSL_PROXY)) {
 		handle_request(c);
-		return;
+		return kev_ok;
 	}
 #endif
 #endif
 	handle_http_https_request(c);
+	return kev_ok;
 }

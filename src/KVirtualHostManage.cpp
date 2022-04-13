@@ -758,11 +758,12 @@ query_vh_result KVirtualHostManage::queryVirtualHost(kserver *ls,KSubVirtualHost
 	if (!revert_hostname(site,site_len,bind_site,sizeof(bind_site))) {
 		return result;
 	}
-	if (ls->ctx == NULL) {
+	KVirtualHostContainer* vhc = (KVirtualHostContainer*)kserver_get_opaque(ls);
+	if (vhc == NULL) {
 		return result;
 	}
 	lock.Lock();
-	KSubVirtualHost *svh = (KSubVirtualHost *)((KVirtualHostContainer *)ls->ctx)->find(bind_site);
+	KSubVirtualHost *svh = (KSubVirtualHost *)vhc->find(bind_site);
 	if (svh) {
 		result = query_vh_success;
 		if ((*rq_svh) != svh) {

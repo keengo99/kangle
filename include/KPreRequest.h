@@ -2,6 +2,8 @@
 #define KPREREQUEST_H_99
 #include <string>
 #include "kconnection.h"
-void handle_connection(kconnection *cn,void *ctx);
+#include "kserver.h"
+
+KACCEPT_CALLBACK_DECLEAR(handle_connection);
 std::string get_connect_per_ip();
 #endif

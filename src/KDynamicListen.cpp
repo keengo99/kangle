@@ -23,7 +23,7 @@ static void kserver_clean_ctx(void *ctx)
 }
 void kserver_remove_vh(kserver *server, KVirtualHost *vh)
 {
-	KVirtualHostContainer *vhc = (KVirtualHostContainer *)server->ctx;
+	KVirtualHostContainer* vhc = (KVirtualHostContainer*)kserver_get_opaque(server);
 #ifndef HTTP_PROXY
 	std::list<KSubVirtualHost *>::iterator it2;
 	for (it2 = vh->hosts.begin(); it2 != vh->hosts.end(); it2++) {
@@ -31,18 +31,19 @@ void kserver_remove_vh(kserver *server, KVirtualHost *vh)
 	}
 #endif
 }
-bool kserver_start(kserver *server,const KListenKey *lk, kgl_ssl_ctx *ssl_ctx)
+static bool kserver_start(kserver *server,const KListenKey *lk, kgl_ssl_ctx *ssl_ctx)
 {
 	int flag = (lk->ipv4 ? KSOCKET_ONLY_IPV4 : KSOCKET_ONLY_IPV6);
 	KBIT_SET(flag, KSOCKET_FASTOPEN);
-	if (!kserver_open(server, lk->ip.c_str(), lk->port, flag, ssl_ctx)) {
+	if (!kserver_bind(server, lk->ip.c_str(), lk->port, ssl_ctx)) {
 		return false;
 	}
-	return kserver_accept(server);
+	return kserver_open(server, flag, handle_connection);
+	//return kserver_accept(server);
 }
 void kserver_bind_vh(kserver *server, KVirtualHost *vh,bool high)
 {
-	KVirtualHostContainer *vhc = (KVirtualHostContainer *)server->ctx;
+	KVirtualHostContainer *vhc = (KVirtualHostContainer *)kserver_get_opaque(server);
 	std::list<KSubVirtualHost *>::iterator it2;
 	for (it2 = vh->hosts.begin(); it2 != vh->hosts.end(); it2++) {
 		vhc->add((*it2)->bind_host, (*it2)->wide, high ? kgl_bind_high : kgl_bind_low,(*it2));
@@ -77,14 +78,15 @@ kgl_ssl_ctx *kserver_load_ssl(kserver *server, KSslConfig *ssl_config)
 #endif
 static bool kserver_is_empty(kserver *server)
 {
-	KVirtualHostContainer *vhc = (KVirtualHostContainer *)server->ctx;
+	KVirtualHostContainer *vhc = (KVirtualHostContainer *)kserver_get_opaque(server);
 	return vhc->isEmpty();
 }
 static kserver *kserver_new()
 {
 	KVirtualHostContainer *vhc = new KVirtualHostContainer();
 	kserver *server = kserver_init();
-	kserver_bind(server, handle_connection, kserver_clean_ctx, vhc);
+	kserver_set_opaque(server, kserver_clean_ctx, vhc);
+	//kserver_bind(server, handle_connection, kserver_clean_ctx, vhc);
 	return server;
 }
 void KListen::SyncFlag()
@@ -459,7 +461,7 @@ static iterator_ret listen_whm_iterator(void *data, void *argv)
 		s << "<tcp_ip>";
 		if (unix_socket) {
 			s << "unix";
-		} else if (server->ss) {
+		} else if (!klist_empty(&server->ss)) {
 			s << (server->addr.v4.sin_family == PF_INET ? "4" : "6");
 		}
 		s << "</tcp_ip>";
@@ -514,7 +516,7 @@ static iterator_ret listen_html_iterator(void *data, void *argv)
 		*s << "<td>";
 		if (unix_socket) {
 			*s << "unix";
-		} else if (server->ss) {
+		} else if (!klist_empty(&server->ss)) {
 			*s << "tcp/ipv" << (server->addr.v4.sin_family == PF_INET ? "4" : "6");
 		}
 		*s << "</td>";
@@ -549,8 +551,9 @@ static iterator_ret query_domain_iterator(void *data, void *argv)
 		(param->port>0 && listen->key->port!=param->port)) {
 		return iterator_continue;
 	}
-	kassert(server->ctx != NULL);
-	KSubVirtualHost *svh = (KSubVirtualHost *)((KVirtualHostContainer *)server->ctx)->find(param->host);
+	KVirtualHostContainer* vhc = (KVirtualHostContainer*)kserver_get_opaque(server);
+	assert(vhc != NULL);
+	KSubVirtualHost *svh = (KSubVirtualHost *)vhc->find(param->host);
 	if (svh) {
 		KStringBuf s;
 		if (!listen->key->ipv4) {

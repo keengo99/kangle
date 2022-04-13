@@ -14,7 +14,6 @@
 
 int stage_end_request(KHttpRequest* rq, KGL_RESULT result)
 {	
-	assert(!kfiber_has_next());
 	//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
 	if (rq->bo_ctx) {
