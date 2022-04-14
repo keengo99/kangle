@@ -14,7 +14,9 @@
 using namespace std;
 std::string path;
 std::string dbname;
+#ifdef _WIN32
 #pragma comment(lib,"sqlite3.lib")
+#endif
 static const char *load_sql = "SELECT uid AS user,gid AS `group`,* FROM vhost";
 static const char *load_black_list_sql = "SELECT ip,flags FROM black_list";
 static std::string flush_sql;

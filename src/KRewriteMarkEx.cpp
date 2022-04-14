@@ -499,7 +499,7 @@ void KRewriteMarkEx::getString(const char *prefix, const char *str,KHttpRequest 
 	}
 	bool slash = false;
 	for (;;) {
-		register const char c = *hot;
+		const char c = *hot;
 		hot++;
 		if (c == '\0') {
 			break;

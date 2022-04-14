@@ -33,10 +33,6 @@ static KGL_RESULT register_clean_callback(KREQUEST r, kgl_cleanup_f cb, void *ar
 	}
 	return KGL_OK;
 }
-static KGL_RESULT replace_final_source(KREQUEST rq, const char *target)
-{
-	KRedirect *rd = server_container->refsRedirect(target);
-}
 static int get_selector_index()
 {
 	kselector *selector = kgl_get_tls_selector();
@@ -47,7 +43,7 @@ static int get_selector_index()
 }
 KDsoExtend::KDsoExtend(const char *name)
 {
-	this->cur_config_ext = cur_config_ext;
+	this->cur_config_ext = ::cur_config_ext;
 	this->name = xstrdup(name);
 	filename = NULL;
 	orign_filename = NULL;

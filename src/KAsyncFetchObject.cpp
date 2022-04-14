@@ -18,7 +18,7 @@
 void debug_print_wsa_buf(WSABUF* buf, int bc)
 {
 	for (int i = 0; i < bc; i++) {
-		printf("\n*****chunk len=[%d]\n", buf[i].iov_len);
+		printf("\n*****chunk len=[%d]\n", (int)buf[i].iov_len);
 		fwrite("[", 1, 1, stdout);
 		fwrite(buf[i].iov_base, 1, buf[i].iov_len, stdout);
 		fwrite("]\n", 1, 2, stdout);

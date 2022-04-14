@@ -280,29 +280,6 @@ void my_msleep(int msec) {
 }
 #define	BU_FREE	1
 #define	BU_BUSY	2
-#if 0
-#if defined(HAVE_GMTOFF)
-struct tm * get_gmtoff(int *tz, struct tm *t) {
-	time_t tt = time(NULL);
-	localtime_r(&tt, t);
-	*tz = (int) (t->tm_gmtoff / 60);
-	return t;
-}
-#else
-struct tm * get_gmtoff(time_t tt,int *tz, struct tm *t) {
-	//time_t tt = time(NULL);
-	struct tm gmt;
-	int days, hours, minutes;
-	gmtime_r(&tt, &gmt);
-	localtime_r(&tt, t);
-	days = t->tm_yday - gmt.tm_yday;
-	hours = ((days < -1 ? 24 : 1 < days ? -24 : days * 24) + t->tm_hour	- gmt.tm_hour);
-	minutes = hours * 60 + t->tm_min - gmt.tm_min;
-	*tz = minutes;
-	return t;
-}
-#endif
-#endif
 const char *log_request_time(time_t time,char *buf, size_t buf_size) {
 	int timz = timz_minutes;
 	struct tm t;
@@ -319,7 +296,7 @@ const char *log_request_time(time_t time,char *buf, size_t buf_size) {
 
 static unsigned char hexchars[] = "0123456789ABCDEF";
 char *url_value_encode(const char *s, size_t len, size_t *new_length) {
-	register unsigned char c;
+	unsigned char c;
 	unsigned char *to, *start;
 	unsigned char const *from, *end;
 	if (len == 0) {
@@ -351,7 +328,7 @@ char *url_value_encode(const char *s, size_t len, size_t *new_length) {
 }
 
 char *url_encode(const char *s, size_t len, size_t *new_length) {
-	register unsigned char c;
+	unsigned char c;
 	unsigned char *to, *start;
 	unsigned char const *from, *end;
 	if (len == 0) {

@@ -417,7 +417,7 @@ int KAccess::checkPostMap(KHttpRequest *rq,KHttpObject *obj)
 	if (postMap==NULL) {
 		return JUMP_ALLOW;
 	}
-	register int jumpType = default_jump_type;
+	int jumpType = default_jump_type;
 	unsigned checked_table = 0;
 	KJump *jump = default_jump;
 	const char *hitTable = NULL;
@@ -437,7 +437,7 @@ int KAccess::checkPostMap(KHttpRequest *rq,KHttpObject *obj)
 	return JUMP_DENY;
 }
 int KAccess::check(KHttpRequest *rq, KHttpObject *obj) {
-	register int jumpType = default_jump_type;
+	int jumpType = default_jump_type;
 	unsigned checked_table = 0;
 	KJump *jump = default_jump;
 	KPoolableRedirect *as;
