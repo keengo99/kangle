@@ -10,8 +10,8 @@
 #include "kfeature.h"
 #include "kforwin32.h"
 
-#define KSAPI_MAIN_VERSION 0
-#define KSAPI_MIN_VERSION  1
+#define KSAPI_MAIN_VERSION 1
+#define KSAPI_MIN_VERSION  0
 #define KSAPI_VERSION    MAKELONG(KSAPI_MIN_VERSION, KSAPI_MAIN_VERSION)
 #ifdef __cplusplus
 extern "C" {
@@ -279,7 +279,10 @@ typedef enum _KGL_GVAR {
 
 
 typedef LPVOID KCONN;
-typedef LPVOID KTCP_SOCKET;
+typedef LPVOID KSOCKET_CLIENT;
+typedef LPVOID KSOCKET_SERVER;
+typedef LPVOID KSOCKET_SERVER_THREAD;
+typedef LPVOID KSSL_CTX;
 typedef LPVOID KREQUEST;
 typedef LPVOID KASYNC_FILE;
 typedef LPVOID KSELECTOR;
@@ -540,35 +543,33 @@ typedef struct _kgl_vary
 	bool (*build)(kgl_vary_context *ctx,const char *value);
 	bool (*response)(kgl_vary_context *ctx, const char *value);
 } kgl_vary;
-
-typedef struct _kgl_tcp_socket_function
+typedef struct _kgl_socket_client_function
 {
-	KTCP_SOCKET(*create)(KOPAQUE data);
-	kev_result (*resolv)(void *arg, const char *host, kgl_addr_call_back result);
-	kev_result (*connect_address)(KTCP_SOCKET s, struct addrinfo *addr, uint16_t port);
-	kev_result (*connect)(KTCP_SOCKET s, const char *host, uint16_t port, result_callback result, void *arg);
-	kev_result (*write)(KTCP_SOCKET s, result_callback result, buffer_callback buffer, void *arg);
-	kev_result (*read)(KTCP_SOCKET s, result_callback result, buffer_callback buffer, void *arg);
-	bool (*is_locked)(KTCP_SOCKET s);
-	KSELECTOR(*get_selector)(KTCP_SOCKET s);
-	void(*set_opaque)(KTCP_SOCKET s, KOPAQUE data);
-	void(*close)(KTCP_SOCKET s);
-	void(*shutdown)(KTCP_SOCKET s);
-	KGL_RESULT (*get_remote_address)(KTCP_SOCKET s, char *buf, int32_t *buf_size, uint16_t *port);
-	KGL_RESULT (*get_locale_address)(KTCP_SOCKET s, char *buf, int32_t *buf_size, uint16_t *port);
-} kgl_tcp_socket_function;
+	int (*resolv)(const char *host, kgl_addr **addr);
+	void (*free_addr)(kgl_addr* addr);
+	SOCKET (*get_system_socket)(KSOCKET_CLIENT s);
+	KSOCKET_CLIENT(*connect)(const struct sockaddr* addr, socklen_t addr_len);
+	int (*writev)(KSOCKET_CLIENT s, WSABUF* buf, int bc);
+	int (*readv)(KSOCKET_CLIENT s, WSABUF* buf, int bc);
+	KSELECTOR(*get_selector)(KSOCKET_CLIENT s);
+	void(*set_opaque)(KSOCKET_CLIENT s, KOPAQUE data);
+	void(*close_client)(KSOCKET_CLIENT s);
+	void(*shutdown)(KSOCKET_CLIENT s);	
+} kgl_socket_client_function;
 
-typedef struct _kgl_async_file_function
+typedef struct _kgl_file_function
 {
 	KASYNC_FILE(*open)(const char *filename, fileModel model,int kf_flags);
-	void(*set_opaque)(KASYNC_FILE s, KOPAQUE data);
-	void(*close)(KASYNC_FILE fp);
-	bool(*seek)(KASYNC_FILE fp,seekPosion pos, int64_t offset);
-	int64_t(*get_position)(KASYNC_FILE fp);
 	KSELECTOR(*get_selector)(KASYNC_FILE fp);
-	kev_result(*write)(KASYNC_FILE fp, result_callback result, buffer_callback buffer, void *arg);
-	kev_result(*read)(KASYNC_FILE fp,  result_callback result, buffer_callback buffer, void *arg);
-} kgl_async_file_function;
+	void(*close)(KASYNC_FILE fp);
+	int (*seek)(KASYNC_FILE fp,seekPosion pos, int64_t offset);
+	int64_t (*tell)(KASYNC_FILE fp);
+	int64_t (*get_size)(KASYNC_FILE fp);	
+	int (*read)(KASYNC_FILE fp, char* buf, int length);
+	int (*write)(KASYNC_FILE fp, const char* buf, int length);
+	const char* (*adjust_read_buffer)(KASYNC_FILE fp, char* buf);
+} kgl_file_function;
+
 
 typedef int(*kgl_fiber_start_func)(void* arg, int len);
 
@@ -637,8 +638,8 @@ typedef struct _kgl_dso_version
 	int32_t  flags;
 	KCONN    cn;
 	kgl_dso_function *f;
-	kgl_tcp_socket_function *tcp;
-	kgl_async_file_function *aio;
+	kgl_socket_client_function *socket_client;
+	kgl_file_function *file;
 	kgl_http_object_function *obj;
 	kgl_kfiber_function* fiber;
 } kgl_dso_version;

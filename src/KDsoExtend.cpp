@@ -145,8 +145,8 @@ bool KDsoExtend::load(const char *filename, std::map<std::string, std::string> &
 	memset(&version, 0, sizeof(version));
 	version.api_version = KSAPI_VERSION;
 	version.f = &dso_function;
-	version.aio = &async_file_provider;
-	version.tcp = &tcp_socket_provider;
+	version.file = &async_file_provider;
+	version.socket_client = &tcp_socket_provider;
 	version.obj = &http_object_provider;
 	version.fiber = &fiber_function;
 	version.cn = this;

@@ -76,7 +76,7 @@ bool KHttpPost::init(int totalLen)
 }
 bool KHttpPost::addData(const char *data,int len)
 {
-	int used = hot - buffer;
+	int used = (int)(hot - buffer);
 	if(totalLen-used < len){
 		return false;
 	}

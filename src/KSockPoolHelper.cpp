@@ -239,13 +239,7 @@ KUpstream* KSockPoolHelper::GetUpstream(KHttpRequest* rq)
 			return socket;
 		}
 	}
-	//connect new
-	sockaddr_i addr;
-	if (kfiber_net_getaddr(host.c_str(), port, &addr) != 0) {
-		return NULL;
-	}
-	
-	sockaddr_i* bind_addr = NULL;
+	sockaddr_i *bind_addr = NULL;
 	sockaddr_i bind_tmp_addr;
 	const char* bind_ip = ip;
 	if (bind_ip == NULL && rq) {
@@ -257,6 +251,12 @@ KUpstream* KSockPoolHelper::GetUpstream(KHttpRequest* rq)
 			return NULL;
 		}
 	}
+
+	kgl_addr* addr = NULL;
+	if (kfiber_net_getaddr(host.c_str(), &addr) != 0) {
+		assert(addr == NULL);
+		return NULL;
+	}
 	int tproxy_mask = 0;
 #ifdef ENABLE_TPROXY
 	if (rq && KBIT_TEST(rq->filter_flags, RF_TPROXY_UPSTREAM)) {
@@ -264,7 +264,8 @@ KUpstream* KSockPoolHelper::GetUpstream(KHttpRequest* rq)
 	}
 #endif
 	katom_inc64((void*)&total_connect);
-	kconnection* cn = kfiber_net_open(&addr);
+	kconnection* cn = kfiber_net_open2(addr->addr,port);
+	kgl_addr_release(addr);
 	if (kfiber_net_connect(cn, bind_addr, tproxy_mask) != 0) {
 		kfiber_net_close(cn);
 		return NULL;
