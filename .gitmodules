@@ -1,3 +1,6 @@
 [submodule "kasync"]
 	path = kasync
-	url = https://github.com/keengo99/kasync
+	url = https://gitee.com/keengo/kasync
+[submodule "khttpd"]
+	path = khttpd
+	url = https://gitee.com/keengo/khttpd
