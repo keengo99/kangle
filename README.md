@@ -18,10 +18,7 @@ git clone https://github.com/keengo99/kangle
 cd kangle
 git submodule init
 git submodule update
-cd kasync/build
-cmake . -DUSE_CXX=ON
-make
-cd ../../build
+cd build
 cmake .
 make
 ```
