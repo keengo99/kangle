@@ -14,7 +14,7 @@ kangle is a light, high-performance web server/reverse proxy.include a http mana
 ## build from source code
 kangle use cmake to build.
 ```
-git clone https://github.com/keengo99/kangle
+git clone https://gitee.com/keengo/kangle
 cd kangle
 git submodule init
 git submodule update
