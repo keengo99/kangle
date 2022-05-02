@@ -985,7 +985,7 @@ bool KHttpManage::sendHttp(const char *msg, INT64 content_length,const char *con
 	}
 	kbuf *gzipOut = NULL;
 	rq->responseConnection();
-	if (content_length > conf.min_compress_length && msg && KBIT_TEST(rq->sink->data.raw_url.encoding, KGL_ENCODING_GZIP)) {
+	if (content_length > conf.min_compress_length && msg && KBIT_TEST(rq->sink->data.raw_url.accept_encoding, KGL_ENCODING_GZIP)) {
 		kbuf in;
 		memset(&in, 0, sizeof(in));
 		in.data = (char *)msg;
