@@ -12,7 +12,7 @@ public:
 	KFastcgiFetchObject();
 	virtual ~KFastcgiFetchObject();
 protected:
-	void buildHead(KHttpRequest *rq);
+	KGL_RESULT buildHead(KHttpRequest *rq);
 	void buildPost(KHttpRequest *rq);
 	virtual bool isExtend()
 	{

@@ -11,7 +11,13 @@
 #include "KFetchBigObject.h"
 #include "KBufferFetchObject.h"
 #include "KBigObjectContext.h"
+#include "KHttpServer.h"
 
+unsigned total_connect = 0;
+kgl_connection_result kgl_on_new_connection(kconnection* cn)
+{
+	return kgl_connection_success;
+}
 int stage_end_request(KHttpRequest* rq, KGL_RESULT result)
 {	
 	//{{ent
@@ -44,7 +50,7 @@ KGL_RESULT process_upstream_no_body(KHttpRequest *rq)
 		//TODO: handleXSendfile
 		//return handleXSendfile(rq);
 	}
-	kassert(!KBIT_TEST(rq->flags, RQ_SYNC));
+	kassert(!KBIT_TEST(rq->sink->data.flags, RQ_SYNC));
 	if (KBIT_TEST(rq->filter_flags, RQ_SWAP_OLD_OBJ)) {
 		rq->ctx->popObj();
 		KBIT_CLR(rq->filter_flags, RQ_SWAP_OLD_OBJ);
@@ -79,8 +85,9 @@ KGL_RESULT process_request(KHttpRequest* rq, KFetchObject* fo)
 	if (queue == NULL) {
 		queue = &globalRequestQueue;
 #ifdef ENABLE_VH_QUEUE
-		if (rq->svh && rq->svh->vh->queue) {
-			queue = rq->svh->vh->queue;
+		auto svh = rq->get_virtual_host();
+		if (svh && svh->vh->queue) {
+			queue = svh->vh->queue;
 		}
 #endif
 	}
@@ -119,16 +126,18 @@ KGL_RESULT open_queued_fetchobj(KHttpRequest* rq, KFetchObject* fo, kgl_input_st
 }
 query_vh_result query_virtual(KHttpRequest *rq, const char *hostname, int len, int header_length) {
 	query_vh_result vh_result;
+	KSubVirtualHost* svh = NULL;
 #ifdef KSOCKET_SSL
 	kconnection *c = rq->sink->GetConnection();
 	if (c && c->sni) {
-		vh_result = kgl_use_ssl_sni(c, rq);
+		vh_result = kgl_use_ssl_sni(c, &svh);
 	} else
 #endif
-		vh_result = conf.gvm->queryVirtualHost(rq->sink->GetBindServer(), &rq->svh, hostname, len);
+		vh_result = conf.gvm->queryVirtualHost(rq->sink->GetBindServer(), &svh, hostname, len);
+	rq->sink->data.bind_opaque(svh);
 #ifdef ENABLE_VH_RS_LIMIT
-	if (query_vh_success == vh_result && rq->svh) {
-		if (!rq->svh->vh->addConnection(rq)) {
+	if (query_vh_success == vh_result && svh) {
+		if (!svh->vh->addConnection(rq)) {
 			vh_result = query_vh_connect_limit;
 		}
 	}
@@ -139,7 +148,7 @@ KGL_RESULT handle_denied_request(KHttpRequest *rq)
 {
 	if (rq->HasFinalFetchObject()) {
 		/*
-		if (rq->status_code == 0) {
+		if (rq->sink->data.status_code == 0) {
 			rq->responseConnection();
 			rq->responseStatus(STATUS_OK);
 		}
@@ -148,42 +157,43 @@ KGL_RESULT handle_denied_request(KHttpRequest *rq)
 		return process_request(rq, rq->GetFetchObject());
 		//return rq->GetFetchObject()->Open(rq, new_default_push_gate());
 	}
-	if (rq->status_code > 0) {
+	if (rq->sink->data.status_code > 0) {
 		rq->startResponseBody(0);
 		return KGL_OK;
 	}
 	if (KBIT_TEST(rq->filter_flags, RQ_SEND_AUTH)) {
 		return send_auth2(rq);
 	}
-	if (!KBIT_TEST(rq->flags, RQ_HAS_SEND_HEADER)) {
+	if (!KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER)) {
 		return send_error2(rq, STATUS_FORBIDEN, "denied by request access control");
 	}
 	return KGL_OK;
 }
 bool check_virtual_host_access_request(KHttpRequest *rq, int header_length) {
-	assert(rq->svh);
+	auto svh = rq->get_virtual_host();
+	assert(svh);
 #ifdef ENABLE_VH_RS_LIMIT
-	KSpeedLimit *sl = rq->svh->vh->refsSpeedLimit();
+	KSpeedLimit *sl = svh->vh->refsSpeedLimit();
 	if (sl) {
 		rq->pushSpeedLimit(sl);
 	}
 #endif
 #ifdef ENABLE_VH_FLOW
-	KFlowInfo *flow = rq->svh->vh->refsFlowInfo();
+	KFlowInfo *flow = svh->vh->refsFlowInfo();
 	if (flow) {
 		rq->pushFlowInfo(flow);
 	}
 #endif
-	rq->AddUpFlow(header_length);
-	if (rq->svh->vh->closed) {
+	rq->sink->add_up_flow(header_length);
+	if (svh->vh->closed) {
 		handle_error(rq, STATUS_SERVICE_UNAVAILABLE, "virtual host is closed");
 		return true;
 	}
 #ifndef HTTP_PROXY
 #ifdef ENABLE_USER_ACCESS
-	switch (rq->svh->vh->checkRequest(rq)) {
+	switch (svh->vh->checkRequest(rq)) {
 	case JUMP_DROP:
-		KBIT_SET(rq->flags, RQ_CONNECTION_CLOSE);
+		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 		//return stageEndRequest(rq);
 	case JUMP_DENY:
 		handle_denied_request(rq);
@@ -200,18 +210,18 @@ KGL_RESULT handle_connect_method(KHttpRequest* rq)
 {
 	//{{ent
 #ifdef HTTP_PROXY	
-	if (rq->url->host == NULL) {
+	if (rq->sink->data.url->host == NULL) {
 		return KGL_EDATA_FORMAT;
 	}
-	if (rq->raw_url.path == NULL) {
-		rq->raw_url.path = strdup("/");
+	if (rq->sink->data.raw_url.path == NULL) {
+		rq->sink->data.raw_url.path = strdup("/");
 	}
-	if (rq->url->path == NULL) {
-		rq->url->path = strdup("/");
+	if (rq->sink->data.url->path == NULL) {
+		rq->sink->data.url->path = strdup("/");
 	}
 	switch (kaccess[REQUEST].check(rq, NULL)) {
 	case JUMP_DROP:
-		KBIT_SET(rq->flags, RQ_CONNECTION_CLOSE);
+		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 		return KGL_EDENIED;
 	case JUMP_DENY:
 		return handle_denied_request(rq);
@@ -221,30 +231,30 @@ KGL_RESULT handle_connect_method(KHttpRequest* rq)
 	if (!rq->HasFinalFetchObject()) {
 		return send_error2(rq, STATUS_METH_NOT_ALLOWED, "CONNECT Not allowed.");
 	}
-	rq->http_minor = 0;
+	rq->sink->data.http_minor = 0;
 	rq->ctx->obj = new KHttpObject(rq);
 	rq->ctx->new_object = 1;
 	return load_object(rq);
 #endif//}}
 	return send_error2(rq, STATUS_METH_NOT_ALLOWED, "The requested method CONNECT is not allowed");
 }
-int start_request_fiber(void *arg, int header_length)
+void start_request_fiber(KSink *sink, int header_length)
 {
-	KHttpRequest *rq = (KHttpRequest *)arg;
+	KHttpRequest *rq = new KHttpRequest(sink);
 	rq->beginRequest();
 #ifdef HTTP_PROXY
-	if (rq->meth == METH_CONNECT) {
+	if (rq->sink->data.meth == METH_CONNECT) {
 		handle_connect_method(rq);
 		goto clean;
 	}
 #endif
 	if (unlikely(rq->ctx->read_huped)) {
-		KBIT_SET(rq->flags, RQ_CONNECTION_CLOSE);
+		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 		send_error2(rq, STATUS_BAD_REQUEST, "Client close connection");
 		goto clean;
 	}
 	if (unlikely(rq->isBad())) {
-		KBIT_SET(rq->flags, RQ_CONNECTION_CLOSE);
+		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 		send_error2(rq, STATUS_BAD_REQUEST, "Bad request format.");
 		goto clean;
 	}
@@ -253,9 +263,9 @@ int start_request_fiber(void *arg, int header_length)
 		goto clean;
 	}
 #ifdef ENABLE_STAT_STUB
-	if (strcmp(rq->url->path, "/kangle.status") == 0) {
-		KAutoBuffer s(rq->pool);
-		if (rq->meth != METH_HEAD) {
+	if (strcmp(rq->sink->data.url->path, "/kangle.status") == 0) {
+		KAutoBuffer s(rq->sink->pool);
+		if (rq->sink->data.meth != METH_HEAD) {
 			s << "OK\n";
 		}
 		send_http2(rq, NULL, STATUS_OK, &s);
@@ -272,7 +282,7 @@ int start_request_fiber(void *arg, int header_length)
 			handle_denied_request(rq);
 			goto clean;
 		case JUMP_VHS: {
-			query_vh_result vh_result = query_virtual(rq, rq->url->host, 0, header_length);
+			query_vh_result vh_result = query_virtual(rq, rq->sink->data.url->host, 0, header_length);
 			switch (vh_result) {
 				case query_vh_connect_limit:
 					send_error2(rq, STATUS_SERVER_ERROR, "max connect limit.");
@@ -281,26 +291,27 @@ int start_request_fiber(void *arg, int header_length)
 					send_error2(rq, STATUS_BAD_REQUEST, "host not found.");
 					goto clean;
 				case query_vh_success: {
-					u_short flags = rq->raw_url.flags;
-					rq->raw_url.flags = 0;
+					u_short flags = rq->sink->data.raw_url.flags;
+					rq->sink->data.raw_url.flags = 0;
 					if (check_virtual_host_access_request(rq, header_length)) {
-						KBIT_SET(rq->raw_url.flags, flags);
+						KBIT_SET(rq->sink->data.raw_url.flags, flags);
 						goto clean;
 					}
-					if (KBIT_TEST(rq->raw_url.flags, KGL_URL_REWRITED)) {
+					if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_REWRITED)) {
 						//rewrite host
 						KSubVirtualHost *new_svh = NULL;
-						conf.gvm->queryVirtualHost(rq->sink->GetBindServer(), &new_svh, rq->url->host, 0);
+						conf.gvm->queryVirtualHost(rq->sink->GetBindServer(), &new_svh, rq->sink->data.url->host, 0);
 						if (new_svh) {
-							if (new_svh->vh == rq->svh->vh) {
-								rq->svh->release();
-								rq->svh = new_svh;
+							auto svh = rq->get_virtual_host();
+							if (new_svh->vh == svh->vh) {
+								//只有虚拟主机相同，才允许重写host
+								rq->sink->data.bind_opaque(new_svh);
 							} else {
 								new_svh->release();
 							}
 						}
 					}
-					KBIT_SET(rq->raw_url.flags, flags);
+					KBIT_SET(rq->sink->data.raw_url.flags, flags);
 					break;
 				}
 			}
@@ -318,16 +329,17 @@ skip_access:
 	fiber_http_start(rq);
 clean:
 	if (kfiber_has_next()) {
-		return 0;
+		return;
 	}
-	return stage_end_request(rq, KGL_OK);
+	stage_end_request(rq, KGL_OK);
+	return;
 }
 
 KGL_RESULT handle_error(KHttpRequest *rq, int code, const char *msg) {
 
 	if (code == 0) {
 		rq->sink->Shutdown();
-		KBIT_SET(rq->flags, RQ_CONNECTION_CLOSE);
+		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 		return KGL_OK;
 	}
 	//{{ent
@@ -355,35 +367,36 @@ KGL_RESULT handle_error(KHttpRequest *rq, int code, const char *msg) {
 				return send_error2(rq, STATUS_FORBIDEN, "denied by response access");
 			}
 			return async_send_valide_object(rq, rq->ctx->obj);
-		} else if (KBIT_TEST(rq->flags, RQ_HAS_IF_MOD_SINCE | RQ_HAS_IF_NONE_MATCH)) {
+		} else if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_IF_MOD_SINCE | RQ_HAS_IF_NONE_MATCH)) {
 			//treat as not-modified
 			return send_not_modify_from_mem(rq, rq->ctx->obj);
 		}
 	}
 #endif
-	if (rq->svh == NULL || code < 403 || code>499) {
+	KSubVirtualHost* svh = rq->get_virtual_host();
+	if (svh == NULL || code < 403 || code>499) {
 		return send_error2(rq, code, msg);
 	}
 	KHttpObject *obj = rq->ctx->obj;
 	obj->data->status_code = code;
-	if (KBIT_TEST(rq->flags, RQ_IS_ERROR_PAGE)) {
+	if (KBIT_TEST(rq->sink->data.flags, RQ_IS_ERROR_PAGE)) {
 		//如果本身是错误页面，又产生错误
 		return send_error2(rq, code, msg);
 	}
 	//设置为错误页面
-	KBIT_SET(rq->flags, RQ_IS_ERROR_PAGE);
+	KBIT_SET(rq->sink->data.flags, RQ_IS_ERROR_PAGE);
 	//清除range请求
-	KBIT_CLR(rq->flags, RQ_HAVE_RANGE);
-	assert(rq->svh);
+	KBIT_CLR(rq->sink->data.flags, RQ_HAVE_RANGE);
+	assert(svh);
 	std::string errorPage2;
-	if (!rq->svh->vh->getErrorPage(code, errorPage2)) {
+	if (!svh->vh->getErrorPage(code, errorPage2)) {
 		return send_error2(rq, code, msg);
 	}
 	const char *errorPage = errorPage2.c_str();
 	if (strncasecmp(errorPage, "http://", 7) == 0 || strncasecmp(errorPage, "https://", 8) == 0) {
 		std::stringstream s;
 		s << errorPage << "?" << obj->data->status_code << "," << rq->getInfo();
-		push_redirect_header(rq, s.str().c_str(), s.str().size(), STATUS_FOUND);
+		push_redirect_header(rq, s.str().c_str(), (int)s.str().size(), STATUS_FOUND);
 		rq->startResponseBody(0);
 		return KGL_OK;
 		//return stageWriteRequest(rq, NULL);
@@ -410,7 +423,7 @@ KGL_RESULT handle_error(KHttpRequest *rq, int code, const char *msg) {
 	//	path = rq->svh->doc_root;
 		KStringBuf errorUrl;
 		if (errorPage[0] != '/') {
-			char *url = (char *)xstrdup(rq->url->path);
+			char *url = (char *)xstrdup(rq->sink->data.url->path);
 			char *p = strrchr(url, '/');
 			if (p) {
 				*(p + 1) = '\0';
@@ -420,14 +433,14 @@ KGL_RESULT handle_error(KHttpRequest *rq, int code, const char *msg) {
 		} else {
 			errorUrl << errorPage;
 		}
-		result = rq->file->setName(rq->svh->doc_root, errorPage, rq->getFollowLink());
+		result = rq->file->setName(svh->doc_root, errorPage, rq->getFollowLink());
 		if (result) {
 			result = rq->rewriteUrl(errorUrl.getString(), code);
 		}
 	}
 	if (result && !rq->file->isDirectory()) {
 		bool redirect_result;
-		KFetchObject *fo = rq->svh->vh->findFileExtRedirect(rq, rq->file, true, redirect_result);
+		KFetchObject *fo = svh->vh->findFileExtRedirect(rq, rq->file, true, redirect_result);
 		if (fo == NULL) {
 			fo = new KStaticFetchObject;
 		}
@@ -447,11 +460,11 @@ KGL_RESULT prepare_request_fetchobj(KHttpRequest *rq)
 	error.code = STATUS_SERVER_ERROR;
 	error.msg = "internal error";
 	if (!rq->HasFinalFetchObject()) {
-		if (rq->svh == NULL) {
+		if (rq->sink->data.opaque == NULL) {
 #ifdef ENABLE_VH_RS_LIMIT
 			return send_error2(rq, STATUS_SERVER_ERROR, "access action error");
 #else
-			if (query_vh_success != conf.gvm->queryVirtualHost(rq->c->ls, &rq->svh, rq->url->host)) {
+			if (query_vh_success != conf.gvm->queryVirtualHost(rq->c->ls, &rq->svh, rq->sink->data.url->host)) {
 				return send_error2(rq, NULL, STATUS_BAD_REQUEST, "host not found.");
 			}
 #endif
@@ -480,8 +493,9 @@ KGL_RESULT prepare_request_fetchobj(KHttpRequest *rq)
 		}
 	}
 	if (!rq->ctx->internal && !rq->ctx->replace && !rq->ctx->skip_access) {
-		if (rq->svh) {
-			if (rq->svh->vh->checkPostMap(rq) == JUMP_DENY) {
+		KSubVirtualHost* svh = rq->get_virtual_host();
+		if (svh) {
+			if (svh->vh->checkPostMap(rq) == JUMP_DENY) {
 				if (KBIT_TEST(rq->filter_flags, RQ_SEND_AUTH)) {
 					return send_auth2(rq);
 				}
@@ -503,29 +517,27 @@ KGL_RESULT prepare_request_fetchobj(KHttpRequest *rq)
 KGL_RESULT load_object(KHttpRequest *rq)
 {
 	KContext *context = rq->ctx;
-	context->lastModified = 0;
 	context->mt = modified_if_modified;
-	if (rq->if_modified_since > 0) {
-		context->lastModified = rq->if_modified_since;
-		if (KBIT_TEST(rq->flags, RQ_IF_RANGE_DATE)) {
+	if (rq->sink->data.if_modified_since > 0) {
+		if (KBIT_TEST(rq->sink->data.flags, RQ_IF_RANGE_DATE)) {
 			context->mt = modified_if_range_date;
 		}
-	} else if (context->if_none_match) {
+	} else if (rq->sink->data.if_none_match) {
 		context->mt = modified_if_none_match;
-		if (KBIT_TEST(rq->flags, RQ_IF_RANGE_ETAG)) {
+		if (KBIT_TEST(rq->sink->data.flags, RQ_IF_RANGE_ETAG)) {
 			context->mt = modified_if_range_etag;
 		}
 	} else if (context->old_obj && !KBIT_TEST(context->old_obj->index.flags, OBJ_NOT_OK)) {
 		if (context->old_obj->index.last_modified > 0) {
-			context->lastModified = context->old_obj->index.last_modified;
+			rq->sink->data.if_modified_since = context->old_obj->index.last_modified;
 		} else if (KBIT_TEST(context->old_obj->index.flags, OBJ_HAS_ETAG)) {
 			KHttpHeader *h = context->old_obj->findHeader("Etag", sizeof("Etag") - 1);
 			if (h) {
 				context->mt = modified_if_none_match;
-				context->set_if_none_match(h->val, h->val_len);
+				rq->sink->set_if_none_match(h->val, h->val_len);
 			}
 		} else {
-			context->lastModified = context->obj->index.last_verified;
+			rq->sink->data.if_modified_since = context->obj->index.last_verified;
 		}
 	}
 	return prepare_request_fetchobj(rq);
@@ -565,7 +577,7 @@ KGL_RESULT send_memory_object(KHttpRequest *rq)
 	if (send_buffer) {
 		kr_buffer buffer;
 		memset(&buffer, 0, sizeof(buffer));
-		kr_init(&buffer, send_buffer, (int)start, (int)send_len, rq->pool);
+		kr_init(&buffer, send_buffer, (int)start, (int)send_len, rq->sink->pool);
 		WSABUF buf[16];
 		for (;;) {
 			int bc = kr_get_read_buffers(&buffer, buf, sizeof(buf) / sizeof(WSABUF));
@@ -585,39 +597,39 @@ obj is not expire
 */
 KGL_RESULT send_cache_object(KHttpRequest *rq, KHttpObject *obj)
 {
-	//rq->status_code = STATUS_OK;
+	//rq->sink->data.status_code = STATUS_OK;
 	bool not_modifed = false;
-	if (KBIT_TEST(rq->flags, RQ_HAS_IF_MOD_SINCE | RQ_IF_RANGE_DATE)) {
+	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_IF_MOD_SINCE | RQ_IF_RANGE_DATE)) {
 		time_t useTime = obj->index.last_modified;
 		if (useTime <= 0) {
 			useTime = obj->index.last_verified;
 		}
-		if (rq->if_modified_since >= useTime) {
+		if (rq->sink->data.if_modified_since >= useTime) {
 			//not change
-			if (KBIT_TEST(rq->flags, RQ_HAS_IF_MOD_SINCE)) {
+			if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_IF_MOD_SINCE)) {
 				not_modifed = true;
-				//rq->status_code = STATUS_NOT_MODIFIED;
+				//rq->sink->data.status_code = STATUS_NOT_MODIFIED;
 			}
-		} else if (KBIT_TEST(rq->flags, RQ_IF_RANGE_DATE)) {
-			KBIT_CLR(rq->flags, RQ_HAVE_RANGE);
-			rq->range_from = 0;
-			rq->range_to = -1;
+		} else if (KBIT_TEST(rq->sink->data.flags, RQ_IF_RANGE_DATE)) {
+			KBIT_CLR(rq->sink->data.flags, RQ_HAVE_RANGE);
+			rq->sink->data.range_from = 0;
+			rq->sink->data.range_to = -1;
 		}
-	} else if (KBIT_TEST(rq->flags, RQ_HAS_IF_NONE_MATCH)) {
-		kgl_str_t *if_none_match = rq->ctx->if_none_match;
+	} else if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_IF_NONE_MATCH)) {
+		kgl_str_t *if_none_match = rq->sink->data.if_none_match;
 		if (if_none_match && obj->matchEtag(if_none_match->data, (int)if_none_match->len)) {
 			not_modifed = true;
-			//rq->status_code = STATUS_NOT_MODIFIED;
+			//rq->sink->data.status_code = STATUS_NOT_MODIFIED;
 		}
-		rq->ctx->clean_if_none_match();
-	} else if (KBIT_TEST(rq->flags, RQ_IF_RANGE_ETAG)) {
-		kgl_str_t *if_none_match = rq->ctx->if_none_match;
+		rq->sink->clean_if_none_match();
+	} else if (KBIT_TEST(rq->sink->data.flags, RQ_IF_RANGE_ETAG)) {
+		kgl_str_t *if_none_match = rq->sink->data.if_none_match;
 		if (if_none_match == NULL || !obj->matchEtag(if_none_match->data, (int)if_none_match->len)) {
-			KBIT_CLR(rq->flags, RQ_HAVE_RANGE);
-			rq->range_from = 0;
-			rq->range_to = -1;
+			KBIT_CLR(rq->sink->data.flags, RQ_HAVE_RANGE);
+			rq->sink->data.range_from = 0;
+			rq->sink->data.range_to = -1;
 		}
-		rq->ctx->clean_if_none_match();
+		rq->sink->clean_if_none_match();
 	}
 	if (not_modifed) {
 		return send_http2(rq, obj, STATUS_NOT_MODIFIED);
@@ -673,7 +685,7 @@ KGL_RESULT process_cache_request(KHttpRequest *rq) {
 		klog(KLOG_ERR, "obj swap in busy drop request.\n");
 		return send_error2(rq, STATUS_SERVER_ERROR, "swap in busy");
 	case swap_in_success:
-		rq->ctx->cache_hit = true;
+		KBIT_SET(rq->sink->data.flags, RQ_CACHE_HIT);
 		return process_check_cache_expire(rq, obj);
 	default: 
 		{
@@ -686,7 +698,7 @@ KGL_RESULT process_cache_request(KHttpRequest *rq) {
 	#endif
 			rq->ctx->clean_obj(rq);
 			rq->ctx->new_object = true;
-			rq->ctx->lastModified = 0;
+			rq->sink->data.if_modified_since = 0;
 			rq->ctx->obj = new KHttpObject(rq);
 			if (swap_in_failed_clean_blocked == result) {
 				KBIT_SET(rq->ctx->obj->index.flags, FLAG_DEAD);
@@ -695,7 +707,7 @@ KGL_RESULT process_cache_request(KHttpRequest *rq) {
 				delete rq->file;
 				rq->file = NULL;
 			}
-			assert(!rq->IsFetchObjectEmpty() || KBIT_TEST(rq->sink->GetBindServer()->flags, WORK_MODEL_MANAGE) || rq->svh);
+			assert(!rq->IsFetchObjectEmpty() || KBIT_TEST(rq->sink->GetBindServer()->flags, WORK_MODEL_MANAGE) || rq->sink->data.opaque);
 			return load_object(rq);
 		}
 	}
@@ -720,7 +732,7 @@ KGL_RESULT fiber_http_start(KHttpRequest *rq)
 	}
 #endif
 	//only if cached
-	if (KBIT_TEST(rq->flags, RQ_HAS_ONLY_IF_CACHED)) {
+	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_ONLY_IF_CACHED)) {
 		context->obj = findHttpObject(rq, false, context);
 		if (!context->obj) {
 			return send_error2(rq, 404, "Not in cache");
@@ -732,19 +744,19 @@ KGL_RESULT fiber_http_start(KHttpRequest *rq)
 		context->obj = new KHttpObject(rq);
 		context->new_object = 1;
 		if (!context->obj) {
-			KBIT_SET(rq->flags, RQ_CONNECTION_CLOSE);
+			KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 			return send_error2(rq, STATUS_SERVER_ERROR, "cann't malloc memory.");
 		}
 		KBIT_SET(context->obj->index.flags, FLAG_DEAD);
 	} else {
 		context->obj = findHttpObject(rq, true, context);
 		if (!context->obj) {
-			KBIT_SET(rq->flags, RQ_CONNECTION_CLOSE);
+			KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 			return send_error2(rq, STATUS_SERVER_ERROR, "cann't malloc memory.");
 		}
 	}
 	if (context->new_object) { //It is a new object
-		if (rq->meth != METH_GET) {
+		if (rq->sink->data.meth != METH_GET) {
 			KBIT_SET(context->obj->index.flags, FLAG_DEAD);
 		}
 		return load_object(rq);
@@ -757,7 +769,7 @@ KGL_RESULT fiber_http_start(KHttpRequest *rq)
 KGL_RESULT prepare_write_body(KHttpRequest *rq)
 {
 	prepare_write_stream(rq);
-	if (rq->ctx->connection_upgrade
+	if (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)
 #ifdef WORK_MODEL_TCP		
 		&& !KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_TCP)
 #endif
@@ -788,7 +800,7 @@ KGL_RESULT on_upstream_finished_header(KHttpRequest *rq)
 			//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
 			if (rq->bo_ctx) {
-				return rq->bo_ctx->handleError(rq, rq->status_code, "");
+				return rq->bo_ctx->handleError(rq, rq->sink->data.status_code, "");
 			}
 #endif//}}
 			rq->closeFetchObject();
@@ -804,11 +816,11 @@ KGL_RESULT on_upstream_finished_header(KHttpRequest *rq)
 	case STATUS_NOT_MODIFIED:		
 		KBIT_SET(obj->index.flags, FLAG_DEAD);
 		if (context->old_obj) {
-			if (!KBIT_TEST(rq->flags, RQ_HAS_IF_MOD_SINCE | RQ_HAS_IF_NONE_MATCH)) {
+			if (!KBIT_TEST(rq->sink->data.flags, RQ_HAS_IF_MOD_SINCE | RQ_HAS_IF_NONE_MATCH)) {
 				//直接发送old_obj给客户
 				KBIT_SET(rq->filter_flags, RQ_SWAP_OLD_OBJ);
 			}
-			KBIT_SET(rq->flags, RQ_OBJ_VERIFIED);
+			KBIT_SET(rq->sink->data.flags, RQ_OBJ_VERIFIED);
 			context->old_obj->index.last_verified = kgl_current_sec;
 			context->old_obj->UpdateCache(obj);
 		} else {
@@ -818,8 +830,8 @@ KGL_RESULT on_upstream_finished_header(KHttpRequest *rq)
 		return KGL_NO_BODY;
 		//return return KGL_NO_BODY;(rq);
 	default:
-		rq->ctx->cache_hit = false;
-		if (rq->meth == METH_HEAD || KBIT_TEST(context->obj->index.flags, FLAG_NO_BODY)) {
+		KBIT_CLR(rq->sink->data.flags, RQ_CACHE_HIT);
+		if (rq->sink->data.meth == METH_HEAD || KBIT_TEST(context->obj->index.flags, FLAG_NO_BODY)) {
 			//没有http body的情况
 			KBIT_SET(obj->index.flags, FLAG_DEAD);
 			rq->ctx->no_body = true;
@@ -836,7 +848,7 @@ KGL_RESULT on_upstream_finished_header(KHttpRequest *rq)
 		}
 		assert(obj->data->type == MEMORY_OBJECT);
 		//普通请求
-		if (rq->meth == METH_GET
+		if (rq->sink->data.meth == METH_GET
 			&& conf.cache_part
 			&& obj_can_disk_cache(rq, obj)
 			&& obj->getTotalContentSize(rq) < conf.max_bigobj_size
@@ -853,7 +865,7 @@ KGL_RESULT on_upstream_finished_header(KHttpRequest *rq)
 			//强行设置206不缓存
 			KBIT_SET(obj->index.flags, ANSW_NO_CACHE | OBJ_NOT_OK);
 		} else {
-			KBIT_CLR(rq->flags, RQ_HAVE_RANGE);
+			KBIT_CLR(rq->sink->data.flags, RQ_HAVE_RANGE);
 		}
 		kassert(!kfiber_is_main());
 		return prepare_write_body(rq);

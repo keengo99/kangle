@@ -57,7 +57,7 @@ restart:
 		memcpy(hot, file_ctx->bounder.c_str(), file_ctx->bounder.size());
 		hot += file_ctx->bounder.size();
 		memcpy(hot, kgl_expand_string("--\r\n"));
-		file_ctx->data_left = file_ctx->bounder.size() + 8;
+		file_ctx->data_left = (int)file_ctx->bounder.size() + 8;
 		goto restart;
 	}
 	return result(data, arg, -1);

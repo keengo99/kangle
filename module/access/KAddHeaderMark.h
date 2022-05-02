@@ -32,8 +32,8 @@ public:
 				if (!obj->in_cache && (this->force || obj->findHeader(attr,attr_len)==NULL)) {
 					obj->insertHttpHeader((const char *)attr,attr_len,s->getString(),s->getSize());
 				}
-			} else if (this->force || rq->FindHeader(attr, attr_len) ==NULL) {
-				rq->AddHeader((const char *)attr,attr_len,s->getString(),s->getSize());
+			} else if (this->force || rq->sink->data.FindHeader(attr, attr_len) ==NULL) {
+				rq->sink->data.AddHeader((const char *)attr,attr_len,s->getString(),s->getSize());
 			}
 			delete s;
 		}

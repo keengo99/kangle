@@ -47,7 +47,7 @@ public:
 			return false;
 		}
 		while (lable) {
-			rq->AddHeader(kgl_header_internal,this->name.c_str(), this->name.size(), lable->data, lable->len);
+			rq->sink->data.AddHeader(kgl_header_internal,this->name.c_str(), (int)this->name.size(), lable->data, lable->len);
 			lable = lable->next;
 		}
 		kfiber_rwlock_runlock(lock);
@@ -117,7 +117,7 @@ public:
 		s << " file='" << this->file << "'";
 		s << " name='" << this->name << "'";
 		if (url) {
-			int url_len = strlen(url);
+			int url_len = (int)strlen(url);
 			char *encode_url = KXml::htmlEncode(url, url_len, NULL);
 			s << " url='" << encode_url << "'";
 			xfree(encode_url);
@@ -141,7 +141,7 @@ private:
 			while (*end && *end != '*') {
 				end++;
 			}
-			int len = end - str;
+			int len = (int)(end - str);
 			if (*end) {
 				*end++ = '\0';
 			}			

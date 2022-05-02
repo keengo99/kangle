@@ -9,7 +9,7 @@ static KGL_RESULT WINAPI  GetHeader (
     LPDWORD                       lpdwSize)
 {
 	KHttpRequest *rq = (KHttpRequest *)pfc->ServerContext;
-	KHttpHeader *header = rq->GetHeader();
+	KHttpHeader *header = rq->sink->data.GetHeader();
 	while (header) {
 		if (is_attr(header,lpszName)) {
 			DWORD len = strlen(header->val) + 1;
@@ -27,7 +27,7 @@ static KGL_RESULT WINAPI  SetHeader (
     LPSTR                         lpszValue)
 {
 	KHttpRequest *rq = (KHttpRequest *)pfc->ServerContext;
-	KHttpHeader *header = rq->GetHeader();
+	KHttpHeader *header = rq->sink->data.GetHeader();
 	while (header) {
 		if (is_attr(header,lpszName)) {
 			xfree(header->val);
@@ -44,7 +44,7 @@ static KGL_RESULT WINAPI  AddHeader (
     LPSTR                         lpszValue)
 {
 	KHttpRequest *rq = (KHttpRequest *)pfc->ServerContext;
-	rq->AddHeader(lpszName,strlen(lpszName),lpszValue,strlen(lpszValue));
+	rq->sink->data.AddHeader(lpszName,strlen(lpszName),lpszValue,strlen(lpszValue));
 	return KGL_OK;
 }
 int KHttpFilterHookCollectRequest::check_request(KHttpRequest *rq)

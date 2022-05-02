@@ -60,8 +60,8 @@ func ProcessSuites(suites []string) {
 		kangle.ReloadConfig()
 	}
 
-	url_prefixs := []string{"https://127.0.0.1:9943", "http://127.0.0.1:9999"}
-	//url_prefixs := []string{"http://127.0.0.1:9999", "https://127.0.0.1:9943"}
+	//url_prefixs := []string{"https://127.0.0.1:9943", "http://127.0.0.1:9999"}
+	url_prefixs := []string{"http://127.0.0.1:9999", "https://127.0.0.1:9943"}
 	//url_prefixs := []string{"http://127.0.0.1:9999"}
 	//url_prefixs := []string{"https://127.0.0.1:9943"}
 	for _, url_prefix := range url_prefixs {
@@ -110,6 +110,7 @@ func main() {
 		config.Cfg.UpstreamHttp2)
 	kangle.CheckExtDir()
 	server.Start()
+	server.StartFcgiServer()
 	var suites []string
 	if len(*test_case) == 0 {
 		suites = suite.GetSuies()

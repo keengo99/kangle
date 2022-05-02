@@ -56,7 +56,7 @@ bool KMultiHostAcl::match(KHttpRequest *rq, KHttpObject *obj) {
 	map<char *, bool,lessp_icase >::iterator it;
 	bool result = false;
 	lock.Lock();
-	it = m.find(rq->url->host);
+	it = m.find(rq->sink->data.url->host);
 	if (it != m.end()) {
 		result = true;
 	}
@@ -76,8 +76,9 @@ bool KMultiHostAcl::loadFile(KHttpRequest *rq) {
 		if (isGlobal) {
 			path = conf.path;
 		} else {
-			assert(rq->svh);
-			path = rq->svh->vh->doc_root;
+			auto svh = rq->get_virtual_host();
+			assert(svh);
+			path = svh->vh->doc_root;
 		}
 #else
 		path = conf.path;

@@ -87,8 +87,8 @@ public:
 		addLen(name_len);
 		addLen(value_len);
 		//printf("add env name=[%s:%d] value=[%s:%d]\n",name,name_len,value,value_len);
-		buff.write_all(NULL, name, name_len);
-		buff.write_all(NULL, value, value_len);
+		buff.write_all(name, name_len);
+		buff.write_all(value, value_len);
 		return true;
 	}
 	bool write_data(const char *buf, int len)
@@ -291,8 +291,16 @@ public:
 			if (!sendRecordHeader(FCGI_PARAMS, buff.getLen())) {
 				return false;
 			}
-			if (!buff.send(NULL, client)) {
-				return false;
+			StreamState result = STREAM_WRITE_SUCCESS;
+			kbuf* buf = buff.head;
+			while (buf) {
+				if (buf->used > 0) {
+					result = client->write_all(NULL, buf->data, buf->used);
+					if (result == STREAM_WRITE_FAILED) {
+						return false;
+					}
+				}
+				buf = buf->next;
 			}
 			buff.clean();
 		}
@@ -334,7 +342,7 @@ public:
 		if (!extend) {
 			return KEnvInterface::addHttpHeader(attr, val);
 		}
-		int len = strlen(attr);
+		int len = (int)strlen(attr);
 		char *dst = (char *) xmalloc(len + 6);
 		char *hot = dst;
 		strncpy(hot, "HTTP_", 5);
@@ -353,10 +361,10 @@ private:
 		if (len > 127) {
 			len = htonl(len | 0x80000000);
 			//printf(">127 %x\n",len);
-			buff.write_all(NULL, (char *) &len, 4);
+			buff.write_all((char *) &len, 4);
 		} else {
 			unsigned char char_len = len;
-			buff.write_all(NULL, (char *) &char_len, 1);
+			buff.write_all((char *) &char_len, 1);
 		}
 	}
 	unsigned readLen(int &content_len)
@@ -377,10 +385,10 @@ private:
 		content_len--;
 		return len[0];
 	}
-	KBuffer buff;
-	T *client;
+	int readLeft;
 	char *readBuf;
 	char *readHot;
-	int readLeft;
+	KBuffer buff;
+	T* client;
 };
 #endif /* KFASTCGIUTILS_H_ */

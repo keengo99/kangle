@@ -82,14 +82,14 @@ int KInputFilter::check(KInputFilterContext *rq,const char *str,int len,bool isL
 }
 bool KInputFilterContext::checkGetParam(KParamFilterHook *hook)
 {
-	if (rq->url->param==NULL) {
+	if (rq->sink->data.url->param==NULL) {
 		return false;
 	}
 	KParamPair *last;
 	if (gBuffer==NULL) {
 		last = NULL;
 		assert(gParamHeader==NULL);
-		gBuffer = strdup(rq->url->param);
+		gBuffer = strdup(rq->sink->data.url->param);
 		char *hot = gBuffer;
 		for (;;) {
 			char *p = strchr(hot,'&');
@@ -131,9 +131,9 @@ KInputFilter *KInputFilterContext::getFilter()
 	if (filter) {
 		return filter;
 	}
-	if(KBIT_TEST(rq->flags,RQ_POST_UPLOAD)){
+	if(KBIT_TEST(rq->sink->data.flags,RQ_POST_UPLOAD)){
 		filter = new KMultiPartInputFilter;
-	} else if (rq->content_length!=0) {
+	} else if (rq->sink->data.content_length!=0) {
 		filter = new KInputFilter;
 	}
 	return filter;

@@ -114,11 +114,11 @@ public:
 	bool mark(KHttpRequest *rq, KHttpObject *obj,
 			const int chainJumpType, int &jumpType)
 	{
-		if (rq->meth == METH_GET && strcmp(rq->url->path,reportPath.c_str())==0) {
+		if (rq->sink->data.meth == METH_GET && strcmp(rq->sink->data.url->path,reportPath.c_str())==0) {
 			//report
 			return reportProgress(rq,jumpType);
 		}
-		if (KBIT_TEST(rq->flags,RQ_POST_UPLOAD)) {
+		if (KBIT_TEST(rq->sink->data.flags,RQ_POST_UPLOAD)) {
 			return trackProgress(rq);
 		}
 		return true;
@@ -131,7 +131,7 @@ public:
 		}
 		KUploadProgressItem *item = new KUploadProgressItem;
 		item->ugid = u->id;
-		item->total = rq->content_length;
+		item->total = rq->sink->data.content_length;
 		item->complete = 0;
 		lock.Lock();
 		bool result = add(item);
@@ -152,7 +152,7 @@ public:
 		if (buf) {
 			KBuffer s;
 			int body_length = strlen(buf);
-			KBIT_SET(rq->flags,RQ_HAS_SEND_HEADER);
+			KBIT_SET(rq->sink->data.flags,RQ_HAS_SEND_HEADER);
 			s << getRequestLine(200);
 			//{{ent
 #ifdef KANGLE_ENT
@@ -174,7 +174,7 @@ public:
 				s << "Content-Type: " << contentType.c_str() << "\r\n";
 			}
 			s << "Connection: ";
-			if (KBIT_TEST(rq->flags,RQ_CONNECTION_CLOSE) || !KBIT_TEST(rq->flags,RQ_HAS_KEEP_CONNECTION)) {
+			if (KBIT_TEST(rq->sink->data.flags,RQ_CONNECTION_CLOSE) || !KBIT_TEST(rq->sink->data.flags,RQ_HAS_KEEP_CONNECTION)) {
 				s << "close\r\n";
 			} else {
 				s << "keep-alive\r\n";

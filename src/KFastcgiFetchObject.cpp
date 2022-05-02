@@ -43,7 +43,7 @@ KFastcgiFetchObject::~KFastcgiFetchObject() {
 		xfree(pad_buf);
 	}
 }
-void KFastcgiFetchObject::buildHead(KHttpRequest *rq)
+KGL_RESULT KFastcgiFetchObject::buildHead(KHttpRequest *rq)
 {
 	parser.first_same = 1;
 	pop_header.proto = Proto_fcgi;
@@ -83,15 +83,15 @@ void KFastcgiFetchObject::buildHead(KHttpRequest *rq)
 #ifndef _WIN32
 	chrooted = rq->svh->vh->chroot;
 #endif
-	bool sendResult = make_http_env(rq, in, brd, rq->ctx->lastModified, rq->file, &fbuf, chrooted);
+	bool sendResult = make_http_env(rq, in, brd, rq->sink->data.if_modified_since, rq->file, &fbuf, chrooted);
 	if (!sendResult) {//send error
 		buffer->destroy();
-		return;
+		return KGL_EUNKNOW;
 	}
 	if (!rq->has_post_data()) {
 		appendPostEnd();
 	}
-
+	return KGL_OK;
 }
 kgl_parse_result KFastcgiFetchObject::ParseHeader(KHttpRequest *rq, char **data, int *len)
 {

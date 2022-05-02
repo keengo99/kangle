@@ -17,7 +17,7 @@ public:
 };
 void *kgl_create_ssl_sni(SSL *ssl, kconnection *c, const char *hostname);
 void kgl_free_ssl_sni(void *sni);
-query_vh_result kgl_use_ssl_sni(kconnection *c, KHttpRequest *rq);
+query_vh_result kgl_use_ssl_sni(kconnection *c, KSubVirtualHost **svh);
 #endif
 #endif
 

@@ -151,7 +151,7 @@ public:
 		KHttpObject *hit_obj = NULL;
 		KHttpObject *obj = NULL;
 		KUrlKey uk;
-		uk.url = rq->url;
+		uk.url = rq->sink->data.url;
 		uk.vary = NULL;
 		KVary vary;
 		lock.Lock();
@@ -179,9 +179,9 @@ public:
 				obj = obj->next;
 				continue;
 			}
-			if (rq->min_obj_verified > 0 && obj->index.last_verified < rq->min_obj_verified) {
+			if (rq->sink->data.min_obj_verified > 0 && obj->index.last_verified < rq->sink->data.min_obj_verified) {
 				//设置了最小验证时间
-				if (KBIT_TEST(rq->min_obj_verified, 1)>0) {
+				if (KBIT_TEST(rq->sink->data.min_obj_verified, 1)>0) {
 					//hard
 					obj->Dead();
 					obj = obj->next;
@@ -191,7 +191,7 @@ public:
 				obj->index.last_verified = 0;
 			}
 			if ((rq->ctx->internal == (KBIT_TEST(obj->index.flags, FLAG_RQ_INTERNAL)>0)) &&
-				obj->uk.url->match_accept_encoding(rq->raw_url.accept_encoding)) {
+				obj->uk.url->match_accept_encoding(rq->sink->data.raw_url.accept_encoding)) {
 				if (!KBIT_TEST(rq->filter_flags, RF_NO_DISK_CACHE) || (obj->data != NULL && obj->data->type == MEMORY_OBJECT)) {
 					//hit cache
 					if (hit_obj == NULL || obj->uk.url->accept_encoding > hit_obj->uk.url->accept_encoding) {
@@ -272,8 +272,8 @@ public:
 		size_lock.Unlock();
 	}
 	bool put(KHttpObject *obj) {
-		//	assert(rq->url->host && rq->url->path);
-		//	assert(obj && obj->url == &rq->url);
+		//	assert(rq->sink->data.url->host && rq->sink->data.url->path);
+		//	assert(obj && obj->url == &rq->sink->data.url);
 		assert(obj->refs==1);
 		//此处可确保obj，不会被其它引用，所以不用加锁
 		obj->refs++;

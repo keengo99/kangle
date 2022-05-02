@@ -71,7 +71,7 @@ StreamState KHttpTransfer::write_all(KHttpRequest *rq, const char *str, int len)
 	}
 	if (st==NULL) {
 		if (sendHead(rq, false) != STREAM_WRITE_SUCCESS) {
-			KBIT_SET(rq->flags,RQ_CONNECTION_CLOSE);
+			KBIT_SET(rq->sink->data.flags,RQ_CONNECTION_CLOSE);
 			return STREAM_WRITE_FAILED;
 		}
 	}
@@ -83,7 +83,7 @@ StreamState KHttpTransfer::write_all(KHttpRequest *rq, const char *str, int len)
 StreamState KHttpTransfer::write_end(KHttpRequest *rq, KGL_RESULT result) {
 	if (st == NULL) {
 		if (sendHead(rq, true) != STREAM_WRITE_SUCCESS) {
-			KBIT_SET(rq->flags,RQ_CONNECTION_CLOSE);
+			KBIT_SET(rq->sink->data.flags,RQ_CONNECTION_CLOSE);
 			return KHttpStream::write_end(rq, STREAM_WRITE_FAILED);
 		}
 	}
@@ -99,7 +99,7 @@ StreamState KHttpTransfer::sendHead(KHttpRequest *rq, bool isEnd) {
 	StreamState result = STREAM_WRITE_SUCCESS;
 	INT64 content_len = (isEnd?0:-1);
 	cache_model cache_layer = cache_memory;
-	kassert(!KBIT_TEST(rq->flags, RQ_HAVE_RANGE) || rq->ctx->obj->data->status_code==STATUS_CONTENT_PARTIAL);
+	kassert(!KBIT_TEST(rq->sink->data.flags, RQ_HAVE_RANGE) || rq->ctx->obj->data->status_code==STATUS_CONTENT_PARTIAL);
 	if (KBIT_TEST(obj->index.flags,ANSW_HAS_CONTENT_LENGTH)) {
 		content_len = obj->index.content_length;
 #ifdef ENABLE_DISK_CACHE
@@ -130,7 +130,7 @@ StreamState KHttpTransfer::sendHead(KHttpRequest *rq, bool isEnd) {
 	} else {
 		compress_st = create_compress_stream(rq, obj, content_len);
 		if (compress_st) {
-			KBIT_SET(rq->flags, RQ_TE_COMPRESS);
+			KBIT_SET(rq->sink->data.flags, RQ_TE_COMPRESS);
 			content_len = -1;
 			cache_layer = cache_memory;
 			//obj->insertHttpHeader(kgl_expand_string("Content-Encoding"), kgl_expand_string("gzip"));
@@ -142,7 +142,7 @@ StreamState KHttpTransfer::sendHead(KHttpRequest *rq, bool isEnd) {
 #endif
 		build_obj_header(rq, obj, content_len, start, send_len);
 #ifndef NDEBUG
-		if (KBIT_TEST(rq->flags, RQ_TE_COMPRESS)) {
+		if (KBIT_TEST(rq->sink->data.flags, RQ_TE_COMPRESS)) {
 			assert(compress_st);
 		} else {
 			assert(compress_st == NULL);
@@ -196,8 +196,8 @@ bool KHttpTransfer::loadStream(KHttpRequest *rq, KCompressStream *compress_st, c
 	/*
 	 ¼ì²éÊÇ·ñÓÐchunk²ã
 	 */
-	if ((!rq->ctx->internal || rq->ctx->replace) && KBIT_TEST(rq->flags, RQ_TE_CHUNKED)) {
-	//if (!(KBIT_TEST(workModel,WORK_MODEL_INTERNAL|WORK_MODEL_REPLACE)==WORK_MODEL_INTERNAL) && KBIT_TEST(rq->flags,RQ_TE_CHUNKED)) {
+	if ((!rq->ctx->internal || rq->ctx->replace) && KBIT_TEST(rq->sink->data.flags, RQ_TE_CHUNKED)) {
+	//if (!(KBIT_TEST(workModel,WORK_MODEL_INTERNAL|WORK_MODEL_REPLACE)==WORK_MODEL_INTERNAL) && KBIT_TEST(rq->sink->data.flags,RQ_TE_CHUNKED)) {
 		KWriteStream *st2 = new KChunked(st, autoDelete);
 		if (st2) {
 			st = st2;

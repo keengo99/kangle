@@ -7,10 +7,10 @@
 #include <string.h>
 #include "KISAPIServiceProvider.h"
 #include "KWhmService.h"
+#include "global.h"
 #include "whm.h"
 #include "WhmPackageManage.h"
 #include "WhmShellSession.h"
-
 
 DLL_PUBLIC BOOL WINAPI Whm_GetExtensionVersion(HSE_VERSION_INFO *pVer) {
 	strcpy(pVer->lpszExtensionDesc, "whm");

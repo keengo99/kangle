@@ -149,10 +149,10 @@ public:
 			assert(keys->key);
 			klog(KLOG_WARNING,
 					"http://%s%s%s%s filter matched,charset=[%s] key [%s]\n",
-					rq->url->host, 
-					rq->url->path,
-					(rq->url->param?"?":""), 
-					(rq->url->param?rq->url->param:""),
+					rq->sink->data.url->host, 
+					rq->sink->data.url->path,
+					(rq->sink->data.url->param?"?":""), 
+					(rq->sink->data.url->param?rq->sink->data.url->param:""),
 					(charset ? charset : ""),
 					keys->key);
 			KFilterKey *next = keys->next;

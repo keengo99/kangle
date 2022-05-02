@@ -54,7 +54,7 @@ KPipeStream* KVirtualHostProcess::Power(KHttpRequest* rq, KExtendProgram* rd)
 {
 	VProcessPowerParam param;
 	memset(&param, 0, sizeof(param));
-	param.vh = rq->svh->vh;
+	param.vh = rq->get_virtual_host()->vh;
 	param.process = this;
 	param.rd = rd;
 	param.fiber = kfiber_self();

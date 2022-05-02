@@ -151,12 +151,12 @@ KVirtualHost::~KVirtualHost() {
 bool KVirtualHost::isPathRedirect(KHttpRequest *rq, KFileName *file,
 		bool fileExsit, KRedirect *rd) {
 	bool result = false;
-	int path_len = strlen(rq->url->path);
+	int path_len = (int)strlen(rq->sink->data.url->path);
 	lock.Lock();
 	list<KPathRedirect *>::iterator it2;
 	for (it2 = pathRedirects.begin(); it2 != pathRedirects.end(); it2++) {
-		if ((*it2)->match(rq->url->path,path_len) 
-			&& (*it2)->allowMethod.matchMethod(rq->meth)) {
+		if ((*it2)->match(rq->sink->data.url->path,path_len) 
+			&& (*it2)->allowMethod.matchMethod(rq->sink->data.meth)) {
 			if (rd == (*it2)->rd) {
 				result = true;
 			}
@@ -172,7 +172,7 @@ KFetchObject *KVirtualHost::findDefaultRedirect(KHttpRequest *rq,
 	lock.Lock();
 	if (defaultRedirect 
 		&& defaultRedirect->rd
-		&& defaultRedirect->allowMethod.matchMethod(rq->meth)) {
+		&& defaultRedirect->allowMethod.matchMethod(rq->sink->data.meth)) {
 		switch (defaultRedirect->confirmFile) {
 		case 0:
 			//不确认文件是否存在
@@ -201,11 +201,11 @@ KFetchObject *KVirtualHost::findDefaultRedirect(KHttpRequest *rq,
 KFetchObject *KVirtualHost::findPathRedirect(KHttpRequest *rq, KFileName *file,const char *path,
 		bool fileExsit, bool &result) {
 	KFetchObject *fo = NULL;
-	int path_len = strlen(path);
+	int path_len = (int)strlen(path);
 	lock.Lock();
 	list<KPathRedirect *>::iterator it2;
 	for (it2 = pathRedirects.begin(); it2 != pathRedirects.end(); it2++) {
-		if ((*it2)->match(path,path_len) && (*it2)->allowMethod.matchMethod(rq->meth)) {
+		if ((*it2)->match(path,path_len) && (*it2)->allowMethod.matchMethod(rq->sink->data.meth)) {
 			if ((*it2)->MatchConfirmFile(fileExsit)) {
 				result = true;
 				if ((*it2)->rd) {
@@ -226,7 +226,7 @@ KFetchObject *KVirtualHost::findFileExtRedirect(KHttpRequest *rq,
 	lock.Lock();
 	if (file_ext) {
 		std::map<char *, KBaseRedirect *, lessf>::iterator it = redirects.find((char *) file->getExt());
-		if (it != redirects.end() && (*it).second->allowMethod.matchMethod(rq->meth)) {
+		if (it != redirects.end() && (*it).second->allowMethod.matchMethod(rq->sink->data.meth)) {
 			if ((*it).second->MatchConfirmFile(fileExsit)) {
 				result = true;
 				if ((*it).second->rd) {
@@ -503,7 +503,7 @@ bool KVirtualHost::saveAccess()
 		klog(KLOG_ERR,"Cann't save to access file [%s]\n",accessFile.c_str());
 		return false;
 	}
-	fp.write(s.str().c_str(),s.str().size());
+	fp.write(s.str().c_str(),(int)s.str().size());
 	fp.close();
 	return true;
 }
@@ -863,7 +863,7 @@ std::string KVirtualHost::getApp(KHttpRequest *rq)
 	}
 	kassert((int)apps.size() == (int)app);
 	//todo:以后根据ip做hash
-	int index = (ip_hash? ksocket_addr_hash(rq->sink->GetAddr()):rand()) % app;
+	int index = (ip_hash? ksocket_addr_hash(rq->sink->get_peer_addr()):rand()) % app;
 	//printf("get vh=[%p] app=[%s]\n",this,apps[index].c_str());
 	return apps[index];
 }

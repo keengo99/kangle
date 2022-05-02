@@ -31,11 +31,10 @@ void kgl_free_ssl_sni(void *sni)
 	KSSLSniContext *s = (KSSLSniContext *)sni;
 	delete s;
 }
-query_vh_result kgl_use_ssl_sni(kconnection *c, KHttpRequest *rq)
+query_vh_result kgl_use_ssl_sni(kconnection *c, KSubVirtualHost **svh)
 {
 	KSSLSniContext *sni = (KSSLSniContext *)c->sni;
-	kassert(rq->svh == NULL);
-	rq->svh = sni->svh;
+	*svh = sni->svh;
 	sni->svh = NULL;
 	query_vh_result ret = sni->result;
 	delete sni;

@@ -57,19 +57,19 @@ StreamState KHttpFilterStream::write_all(const char *buf, int len)
 		KAutoMemory memory;
 		data.length = len;
 		data.stack_ctx = (void *)&memory;
-		DWORD disabled_flags = rq->http_filter_ctx->restore(hook->dso->index);
+		DWORD disabled_flags = rq->sink->data.http_filter_ctx->restore(hook->dso->index);
 		if (KBIT_TEST(disabled_flags,notificationType)) {
 			//disabled
 			return st->write_all(buf,len);
 		}
 		DWORD ret = hook->dso->kgl_filter_process(
-					&rq->http_filter_ctx->ctx,
+					&rq->sink->data.http_filter_ctx->ctx,
 					notificationType,
 					&data);
-		rq->http_filter_ctx->save(hook->dso->index);
+		rq->sink->data.http_filter_ctx->save(hook->dso->index);
 		switch (ret) {
 		case KF_STATUS_REQ_FINISHED:
-			KBIT_SET(rq->flags,RQ_CONNECTION_CLOSE);
+			KBIT_SET(rq->sink->data.flags,RQ_CONNECTION_CLOSE);
 		case KF_STATUS_REQ_FINISHED_KEEP_CONN:
 			return STREAM_WRITE_FAILED;
 		case KF_STATUS_REQ_HANDLED_NOTIFICATION:

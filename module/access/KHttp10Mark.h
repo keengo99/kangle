@@ -14,8 +14,8 @@ public:
 	bool mark(KHttpRequest *rq, KHttpObject *obj,
 				const int chainJumpType, int &jumpType)
 	{
-		rq->http_minor = 0;
-		rq->http_major = 1;
+		rq->sink->data.http_minor = 0;
+		rq->sink->data.http_major = 1;
 		return true;
 	}
 	KMark *newInstance()

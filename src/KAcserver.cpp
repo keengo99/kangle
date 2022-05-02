@@ -183,3 +183,10 @@ KFetchObject *KPoolableRedirect::makeFetchObject(KHttpRequest *rq, KFileName *fi
 	return NULL;
 }
 
+void KPoolableRedirect::build_xml(std::map<std::string, std::string>& param, std::stringstream& s)
+{
+	std::map<std::string, std::string>::iterator it;
+	for (it = param.begin(); it != param.end(); it++) {
+		s << " " << (*it).first << "='" << KXml::encode((*it).second) << "'";
+	}
+}

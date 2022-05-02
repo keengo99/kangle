@@ -19,7 +19,7 @@ KGL_RESULT KBrotliCompress::Compress(KHttpRequest *rq, const uint8_t **str, size
 		if (!BrotliEncoderCompressStream(state, op, &len, str, &available_out, &next_out, NULL)) {
 			return KGL_EDATA_FORMAT;
 		}
-		int out_len = sizeof(out) - available_out;
+		int out_len = (int)(sizeof(out) - available_out);
 		if (out_len > 0) {
 			KGL_RESULT ret = st->write_all(rq, out, out_len);
 			if (ret != KGL_OK) {

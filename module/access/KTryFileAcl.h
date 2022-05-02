@@ -32,14 +32,15 @@ public:
 		return "try_file";
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) {
-		if (rq->svh==NULL) {
+		auto svh = rq->get_virtual_host();
+		if (svh==NULL) {
 			return false;
 		}
 		KFileName file;
 		bool exsit = false;
-		KVirtualHost *vh = rq->svh->vh;
-		if (!vh->alias(rq->ctx->internal,rq->url->path,&file,exsit,rq->getFollowLink())) {
-			exsit = file.setName(rq->svh->doc_root, rq->url->path, rq->getFollowLink());
+		KVirtualHost *vh = svh->vh;
+		if (!vh->alias(rq->ctx->internal,rq->sink->data.url->path,&file,exsit,rq->getFollowLink())) {
+			exsit = file.setName(svh->doc_root, rq->sink->data.url->path, rq->getFollowLink());
 		}
 		if (file.isDirectory()) {			
 			KFileName *defaultFile = NULL;

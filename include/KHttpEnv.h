@@ -1,6 +1,8 @@
 #ifndef KANGLE_KHTTPENV_H
 #define KANGLE_KHTTPENV_H
 #include "KHttpHeader.h"
+#include "KUpstream.h"
+
 class KHttpEnv {
 public:
 	virtual bool add(const char *name, hlen_t name_len, const char *val, hlen_t val_len) = 0;
@@ -43,6 +45,20 @@ public:
 	}
 private:
 	KWStream *s;
+};
+class KUpstreamStreamHttpEnv : public KHttpEnv
+{
+public:
+	KUpstreamStreamHttpEnv(KUpstream* s)
+	{
+		this->s = s;
+	}
+	bool add(const char* name, hlen_t name_len, const char* val, hlen_t val_len)
+	{
+		return s->send_header(name, name_len, val, val_len);
+	}
+private:
+	KUpstream* s;
 };
 #endif
 

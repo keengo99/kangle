@@ -32,9 +32,9 @@
 #define ENABLE_BIG_OBJECT_206      1
 #define ENABLE_BIG_OBJECT          1
 
-#cmakedefine HTTP_PROXY
-#cmakedefine ENABLE_BROTLI
-#cmakedefine KANGLE_VERSION 	"@KANGLE_VERSION@"
+/* #undef HTTP_PROXY */
+#define ENABLE_BROTLI
+#define KANGLE_VERSION 	"3.6.0"
 
 #ifndef PROGRAM_NAME
 #define PROGRAM_NAME     "kangle"

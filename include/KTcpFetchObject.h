@@ -10,7 +10,7 @@ public:
 		this->proxy_protocol = proxy_protocol;
 #endif
 	}
-	void buildHead(KHttpRequest *rq)
+	KGL_RESULT buildHead(KHttpRequest *rq)
 	{
 		buffer = new KSocketBuffer();
 		KStringBuf s;
@@ -27,14 +27,19 @@ public:
 			s << "]";
 		}
 		s << ":" << ksocket_addr_port(addr);
-		rq->AddHeader(kgl_expand_string("Referer"), s.getString(),s.getSize());
-		rq->ctx->connection_upgrade = true;
+		rq->sink->data.AddHeader(kgl_expand_string("Referer"), s.getString(),s.getSize());
+		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_UPGRADE);
 #ifdef ENABLE_PROXY_PROTOCOL
-		if (proxy_protocol && !build_proxy_header(buffer, rq)) {
-			rq->sink->Shutdown();
-			return;
+		if (proxy_protocol) {
+			kbuf* buf = build_proxy_header(rq->getClientIp());
+			if (buf == NULL) {
+				rq->sink->Shutdown();
+				return KGL_EUNKNOW;
+			}
+			buffer->Append(buf);
 		}
 #endif
+		return KGL_OK;
 	}
 	Parse_Result parseHead(KHttpRequest *rq, char *buf, int len)
 	{
@@ -52,11 +57,12 @@ public:
 class KConnectProxyFetchObject : public KAsyncFetchObject
 {
 public:
-	void buildHead(KHttpRequest *rq)
+	KGL_RESULT buildHead(KHttpRequest *rq)
 	{
 		rq->ctx->connection_connect_proxy = true;
-		rq->ctx->connection_upgrade = true;
+		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_UPGRADE);
 		buffer = new KSocketBuffer();
+		return KGL_OK;
 	}
 	Parse_Result parseHead(KHttpRequest *rq, char *buf, int len)
 	{

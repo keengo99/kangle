@@ -42,7 +42,7 @@ public:
 		if (rq->file) {
 			return KMultiAcl::match(rq->file->getExt());
 		}
-		return checkPath(rq->url->path);
+		return checkPath(rq->sink->data.url->path);
 	}
 private:
 	bool checkPath(const char *path) {

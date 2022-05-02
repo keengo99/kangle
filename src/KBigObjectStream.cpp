@@ -4,8 +4,8 @@
 StreamState KBigObjectStream::write_all(KHttpRequest *rq, const char *buf, int len)
 {
 	assert(rq->bo_ctx);
-	KGL_RESULT result = rq->bo_ctx->StreamWrite(rq->range_from, buf, len);
-	rq->range_from += len;
+	KGL_RESULT result = rq->bo_ctx->StreamWrite(rq->sink->data.range_from, buf, len);
+	rq->sink->data.range_from += len;
 	return result;
 #if 0
 	const char *hot = buf;

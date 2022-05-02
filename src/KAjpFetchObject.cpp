@@ -54,7 +54,7 @@ KAjpFetchObject::KAjpFetchObject() {
 KAjpFetchObject::~KAjpFetchObject() {
 }
 //创建发送头到buffer中。
-void KAjpFetchObject::buildHead(KHttpRequest *rq)
+KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest *rq)
 {
 	assert(buffer == NULL);
 	buffer = new KSocketBuffer(AJP_BUFF_SIZE);
@@ -63,26 +63,26 @@ void KAjpFetchObject::buildHead(KHttpRequest *rq)
 	KBIT_SET(obj->index.flags, ANSW_LOCAL_SERVER);
 	KAjpMessage b(buffer);
 	b.putByte(JK_AJP13_FORWARD_REQUEST);
-	b.putByte(rq->meth);
+	b.putByte(rq->sink->data.meth);
 	b.putString("HTTP/1.1");
-	if (KBIT_TEST(rq->url->flags, KGL_URL_ENCODE)) {
+	if (KBIT_TEST(rq->sink->data.url->flags, KGL_URL_ENCODE)) {
 		size_t path_len = 0;
-		char *path = url_encode(rq->url->path, strlen(rq->url->path), &path_len);
+		char *path = url_encode(rq->sink->data.url->path, strlen(rq->sink->data.url->path), &path_len);
 		b.putString(path);
 		free(path);
 	} else {
-		b.putString(rq->url->path);
+		b.putString(rq->sink->data.url->path);
 	}
 	b.putString(rq->getClientIp());
 	b.putString("");
 	//remote host
 	//b.putShort(0xffff);
 	//b.putString(rq->sink->get_remote_ip());
-	b.putString(rq->url->host);
-	b.putShort(rq->sink->GetSelfPort());
+	b.putString(rq->sink->data.url->host);
+	b.putShort(rq->sink->get_self_port());
 	//is secure
-	b.putByte(KBIT_TEST(rq->url->flags, KGL_URL_SSL) ? 1 : 0);
-	KHttpHeader *header = rq->GetHeader();
+	b.putByte(KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL) ? 1 : 0);
+	KHttpHeader *header = rq->sink->data.GetHeader();
 	int count = 0;
 	while (header) {
 		if (!is_internal_header(header)) {
@@ -90,15 +90,15 @@ void KAjpFetchObject::buildHead(KHttpRequest *rq)
 		}
 		header = header->next;
 	}
-	if (rq->ctx->lastModified != 0 || rq->ctx->if_none_match != NULL) {
+	if (rq->sink->data.if_modified_since != 0 || rq->sink->data.if_none_match != NULL) {
 		count++;
 	}
-	if (rq->content_length > 0) {
+	if (rq->sink->data.content_length > 0) {
 		count++;
 	}
 	b.putShort(count);
 	//printf("head count=%d\n",count);
-	header = rq->GetHeader();
+	header = rq->sink->data.GetHeader();
 	bool founded;
 	while (header) {
 		if (is_internal_header(header)) {
@@ -122,40 +122,41 @@ void KAjpFetchObject::buildHead(KHttpRequest *rq)
 		b.putString(header->val);
 	do_not_insert:header = header->next;
 	}
-	if (rq->content_length > 0) {
+	if (rq->sink->data.content_length > 0) {
 		b.putShort(0xA008);
-		b.putString((char *)int2string(rq->content_length, tmpbuff));
+		b.putString((char *)int2string(rq->sink->data.content_length, tmpbuff));
 	}
-	if (rq->ctx->lastModified != 0) {
+	if (rq->sink->data.if_modified_since != 0) {
 		char tmpbuff[50];
-		mk1123time(rq->ctx->lastModified, tmpbuff, sizeof(tmpbuff));
+		mk1123time(rq->sink->data.if_modified_since, tmpbuff, sizeof(tmpbuff));
 		if (rq->ctx->mt == modified_if_range_date) {
 			b.putString("If-Range");
 		} else {
 			b.putString("If-Modified-Since");
 		}
 		b.putString(tmpbuff);
-	} else if (rq->ctx->if_none_match != NULL) {
+	} else if (rq->sink->data.if_none_match != NULL) {
 		if (rq->ctx->mt == modified_if_range_etag) {
 			b.putString("If-Range");
 		} else {
 			b.putString("If-None-Match");
 		}
-		b.putString(rq->ctx->if_none_match->data, (int)rq->ctx->if_none_match->len);
+		b.putString(rq->sink->data.if_none_match->data, (int)rq->sink->data.if_none_match->len);
 	}
-	if (rq->url->param) {
+	if (rq->sink->data.url->param) {
 		//printf("send query_string\n");
 		b.putByte(0x05);
-		b.putString(rq->url->param);
+		b.putString(rq->sink->data.url->param);
 	}
-	kgl_refs_string *param = client->GetParam();
+	kgl_refs_string *param = client->get_param();
 	if (param) {
 		b.putByte(0x0C);
-		b.putString(param->str.data,param->str.len);
+		b.putString(param->str.data, (int)param->str.len);
 		release_string(param);
 	}
 	b.putByte(0xFF);
 	b.end();
+	return KGL_OK;
 }
 void KAjpFetchObject::BuildPostEnd()
 {	
@@ -270,7 +271,7 @@ unsigned char KAjpFetchObject::parseMessage(KHttpRequest *rq, KHttpObject *obj, 
 				if (head_attr > 0 && head_attr < MAX_AJP_RESPONSE_HEADERS) {
 					kgl_str_t attr_s = ajp_response_headers[head_attr];
 					attr = attr_s.data;
-					attr_len = attr_s.len;
+					attr_len = (int)attr_s.len;
 				}
 
 			} else {
@@ -316,7 +317,7 @@ void KAjpFetchObject::buildPost(KHttpRequest *rq)
 	h[5] = (len & 0xFF);
 	buffer->insertBuffer(nbuf);
 	/*
-	if (rq->left_read == 0) {
+	if (rq->sink->data.left_read == 0) {
 		appendPostEnd();
 	}
 	//*/

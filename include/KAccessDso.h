@@ -82,7 +82,7 @@ public:
 				rq->responseConnection();
 				rq->responseHeader(kgl_expand_string("Content-Length"), cn.buffer->getLen());
 				rq->AppendFetchObject(new KBufferFetchObject(cn.buffer));
-				if (rq->status_code == 0) {
+				if (rq->sink->data.status_code == 0) {
 					rq->responseStatus(STATUS_OK);
 				}
 			}

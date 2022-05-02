@@ -40,31 +40,31 @@ KRedirectMark::~KRedirectMark() {
 		xfree(dst);
 	}
 }
-KMark *KRedirectMark::newInstance() {
+KMark* KRedirectMark::newInstance() {
 	return new KRedirectMark;
 }
-bool KRedirectMark::mark(KHttpRequest *rq, KHttpObject *obj,
-		const int chainJumpType, int &jumpType) {
+bool KRedirectMark::mark(KHttpRequest* rq, KHttpObject* obj,
+	const int chainJumpType, int& jumpType) {
 	if (dst == NULL) {
 		return true;
 	}
-	assert(rq->url->path);
+	assert(rq->sink->data.url->path);
 	//std::stringstream ss;
 	if (internalRedirect) {
 		rq->rewriteUrl(dst);
 	} else {
 		int status_code = code;
-		push_redirect_header(rq, dst,strlen(dst),status_code);
+		push_redirect_header(rq, dst, (int)strlen(dst), status_code);
 		jumpType = JUMP_DENY;
 	}
 	return true;
 }
-const char *KRedirectMark::getName() {
+const char* KRedirectMark::getName() {
 	return "redirect";
 }
 
-std::string KRedirectMark::getHtml(KModel *model) {
-	KRedirectMark *mark = (KRedirectMark *) model;
+std::string KRedirectMark::getHtml(KModel* model) {
+	KRedirectMark* mark = (KRedirectMark*)model;
 	stringstream s;
 	s << "redirect url:<input name='dst' value='";
 	if (mark && mark->dst) {
@@ -91,13 +91,12 @@ std::string KRedirectMark::getDisplay() {
 	if (internalRedirect) {
 		s << " P";
 	}
-	if (code>0) {
+	if (code > 0) {
 		s << "R=" << code;
 	}
 	return s.str();
 }
-void KRedirectMark::editHtml(std::map<std::string, std::string> &attribute,bool html)
-		 {
+void KRedirectMark::editHtml(std::map<std::string, std::string>& attribute, bool html) {
 	if (dst) {
 		xfree(dst);
 	}
@@ -109,16 +108,15 @@ void KRedirectMark::editHtml(std::map<std::string, std::string> &attribute,bool 
 	}
 	code = atoi(attribute["code"].c_str());
 }
-bool KRedirectMark::startCharacter(KXmlContext *context, char *character,
-		int len) {
+bool KRedirectMark::startCharacter(KXmlContext* context, char* character, int len) {
 	return true;
 }
-void KRedirectMark::buildXML(std::stringstream &s) {
+void KRedirectMark::buildXML(std::stringstream& s) {
 	s << " dst='" << (dst ? dst : "") << "'";
 	if (internalRedirect) {
 		s << " internal='1'";
 	}
-	if (code>0) {
+	if (code > 0) {
 		s << " code='" << code << "'";
 	}
 	s << ">";

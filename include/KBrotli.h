@@ -1,6 +1,7 @@
 #ifndef KBROTLI_H_99
 #define KBROTLI_H_99
 #include "KCompressStream.h"
+#include "global.h"
 #ifdef ENABLE_BROTLI
 #include "brotli/encode.h"
 

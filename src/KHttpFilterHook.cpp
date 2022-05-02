@@ -35,23 +35,23 @@ DWORD KHttpFilterHookCollect::process(KHttpRequest *rq,DWORD notificationType, L
 	KHttpFilterHook *hook = head;
 	while (hook) {
 		rq->init_http_filter();
-		DWORD disabled_flags = rq->http_filter_ctx->restore(hook->dso->index);
+		DWORD disabled_flags = rq->sink->data.http_filter_ctx->restore(hook->dso->index);
 		if (KBIT_TEST(disabled_flags,notificationType)) {
 			//disabled
 			hook = hook->next;
 			continue;
 		}
 		DWORD ret = hook->dso->kgl_filter_process(
-				&rq->http_filter_ctx->ctx,
+				&rq->sink->data.http_filter_ctx->ctx,
 				notificationType,
 				pvNotification);
-		rq->http_filter_ctx->save(hook->dso->index);
+		rq->sink->data.http_filter_ctx->save(hook->dso->index);
 		if (ret==KF_STATUS_REQ_NEXT_NOTIFICATION) {
 			hook = hook->next;
 			continue;
 		}
 		if (ret==KF_STATUS_REQ_FINISHED) {
-			KBIT_SET(rq->flags,RQ_CONNECTION_CLOSE);
+			KBIT_SET(rq->sink->data.flags,RQ_CONNECTION_CLOSE);
 		}
 		return ret;
 	}
@@ -62,7 +62,7 @@ void KHttpFilterHookCollect::buildRawStream(DWORD type,KHttpRequest *rq,KHttpStr
 	KHttpFilterHook *hook = head;
 	while (hook) {
 		rq->init_http_filter();
-		DWORD disabled_flags = rq->http_filter_ctx->restore(hook->dso->index);
+		DWORD disabled_flags = rq->sink->data.http_filter_ctx->restore(hook->dso->index);
 		if (KBIT_TEST(disabled_flags,type)) {
 			//disabled
 			hook = hook->next;
@@ -84,7 +84,7 @@ int KHttpFilterHookCollectUrlMap::check_urlmap(KHttpRequest *rq)
 		return JUMP_ALLOW;
 	}
 	kgl_filter_url_map notification;
-	notification.pszURL = rq->url->getUrl();
+	notification.pszURL = rq->sink->data.url->getUrl();
 	notification.pszPhysicalPath = (char *)rq->file->getName();
 	notification.cbPathBuff = rq->file->getNameLen();
 	DWORD ret = process(rq,KF_NOTIFY_URL_MAP,&notification);

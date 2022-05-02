@@ -16,8 +16,9 @@ public:
 		if (isGlobal) {
 			bls = conf.gvm->globalVh.blackList;
 		} else {
-			if (rq->svh) {
-				bls = rq->svh->vh->blackList;
+			auto svh = rq->get_virtual_host();
+			if (svh) {
+				bls = svh->vh->blackList;
 			}
 		}
 		if (bls) {
@@ -79,8 +80,9 @@ public:
 		if (isGlobal) {
 			bls = conf.gvm->globalVh.blackList;
 		} else {
-			if (rq->svh) {
-				bls = rq->svh->vh->blackList;
+			auto svh = rq->get_virtual_host();
+			if (svh) {
+				bls = svh->vh->blackList;
 			}
 		}
 		if (bls) {

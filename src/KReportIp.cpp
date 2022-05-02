@@ -27,7 +27,7 @@ public:
 			free(post);
 		}
 		if (header) {
-			free_header(header);
+			free_header_list(header);
 		}
 	}
 	void set_post(char *post,int post_len)

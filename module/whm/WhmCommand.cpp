@@ -52,7 +52,7 @@ int WhmCommand::call(const char *callName, const char *eventType,
 			return WHM_CALL_FAILED;
 		}
 	}
-	int len = this->args.size();
+	int len = (int)this->args.size();
 	char **arg = new char *[len+1];
 	arg[0] = (char *)file.c_str();
 	for(int i=1;i<len;i++){		

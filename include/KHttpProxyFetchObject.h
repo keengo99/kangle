@@ -42,7 +42,8 @@ public:
 		return false;
 	}
 protected:
-	void buildHead(KHttpRequest *rq);
+	bool build_http_header(KHttpRequest* rq);
+	KGL_RESULT buildHead(KHttpRequest *rq);
 	bool checkContinueReadBody(KHttpRequest *rq)
 	{
 		if (rq->ctx->know_length && rq->ctx->left_read<=0) {

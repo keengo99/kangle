@@ -112,7 +112,7 @@ bool KBaseVirtualHost::getIndexFile(KHttpRequest *rq,KFileName *file,KFileName *
 			(*newFile)->setIndex((*it).index.s.c_str());
 			if (newPath) {
 				assert(*newPath==NULL);
-				*newPath = KFileName::concatDir(rq->url->path,(*it).index.s.c_str());
+				*newPath = KFileName::concatDir(rq->sink->data.url->path,(*it).index.s.c_str());
 			}
 			lock.Unlock();
 			return true;

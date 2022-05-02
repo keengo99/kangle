@@ -7,6 +7,7 @@
 #include "KPreRequest.h"
 #include "lib.h"
 #include "WhmContext.h"
+#include "KHttpServer.h"
 #define DEFAULT_IPV4_IP  "0.0.0.0"
 #define DEFAULT_IPV6_IP  "::"
 
@@ -38,8 +39,7 @@ static bool kserver_start(kserver *server,const KListenKey *lk, kgl_ssl_ctx *ssl
 	if (!kserver_bind(server, lk->ip.c_str(), lk->port, ssl_ctx)) {
 		return false;
 	}
-	return kserver_open(server, flag, handle_connection);
-	//return kserver_accept(server);
+	return start_http_server(server, flag);
 }
 void kserver_bind_vh(kserver *server, KVirtualHost *vh,bool high)
 {

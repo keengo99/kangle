@@ -117,7 +117,7 @@ public:
 		lastActive = kgl_current_sec;
 		KTcpUpstream *st = socket;
 		if(st == NULL) {
-			st = static_cast<KTcpUpstream *>(KPoolableSocketContainer::GetPoolSocket(rq));
+			st = static_cast<KTcpUpstream *>(KPoolableSocketContainer::get_pool_socket());
 			if (st) {
 				return st;
 			}

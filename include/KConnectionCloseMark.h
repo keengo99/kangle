@@ -18,7 +18,7 @@ public:
 	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType)
 	{
-		KBIT_SET(rq->flags,RQ_CONNECTION_CLOSE);
+		KBIT_SET(rq->sink->data.flags,RQ_CONNECTION_CLOSE);
 		return true;
 	}
 	std::string getDisplay() {

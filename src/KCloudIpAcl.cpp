@@ -53,7 +53,7 @@ bool KCloudIpAcl::parse_data()
 		free(buf);
 		return true;
 	}
-	int buf_len = strlen(buf);
+	int buf_len = (int)strlen(buf);
 	if (buf_len < 6) {
 		klog(KLOG_ERR,"cloud_ip buf=[%s] len=[%d] is too short min len [6]\n",buf,buf_len);
 		free(buf);

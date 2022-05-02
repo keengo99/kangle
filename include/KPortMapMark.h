@@ -27,23 +27,23 @@ public:
 			return false;
 		}
 		rq->AppendFetchObject(new KTcpFetchObject(false));
-		free(rq->url->host);
-		free(rq->raw_url.host);
-		if (rq->url->param) {
-			free(rq->url->param);
-			rq->url->param = NULL;
+		free(rq->sink->data.url->host);
+		free(rq->sink->data.raw_url.host);
+		if (rq->sink->data.url->param) {
+			free(rq->sink->data.url->param);
+			rq->sink->data.url->param = NULL;
 		}
 		if (!param.empty()) {
-			rq->url->param = strdup(param.c_str());
+			rq->sink->data.url->param = strdup(param.c_str());
 		}
-		rq->url->host = strdup(host.c_str());
+		rq->sink->data.url->host = strdup(host.c_str());
 		if (port==0) {
-			rq->url->port = rq->sink->GetSelfPort();
+			rq->sink->data.url->port = rq->sink->get_self_port();
 		} else {
-			rq->url->port = port;
+			rq->sink->data.url->port = port;
 		}
-		rq->raw_url.host = strdup(rq->url->host);
-		rq->raw_url.port = rq->url->port;
+		rq->sink->data.raw_url.host = strdup(rq->sink->data.url->host);
+		rq->sink->data.raw_url.port = rq->sink->data.url->port;
 		jumpType = JUMP_ALLOW;
 		return true;
 	}

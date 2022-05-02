@@ -111,12 +111,12 @@ bool KRewriteRule::parse(std::map<std::string,std::string> &attribute)
 }
 bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 						std::list<KRewriteCond *> *conds,const std::string &prefix,const char *rewriteBase, int &jumpType) {
-	size_t len = strlen(rq->url->path);
+	size_t len = strlen(rq->sink->data.url->path);
 	if (len < prefix.size()) {
 		return false;
 	}
 	//²âÊÔpath
-	KRegSubString *subString = reg.matchSubString(rq->url->path + prefix.size(), (int)(len - prefix.size()), 0);
+	KRegSubString *subString = reg.matchSubString(rq->sink->data.url->path + prefix.size(), (int)(len - prefix.size()), 0);
 	bool match_result = (subString!=NULL);
 	if (revert==match_result) {
 		if (subString) {
@@ -161,7 +161,7 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 		subString
 		);
 	if (url) {
-		const char *param = rq->url->param;
+		const char *param = rq->sink->data.url->param;
 		if (param) {
 			if (qsa) {
 				//append the query string
@@ -177,10 +177,10 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 		if (proxy && *proxy=='-') {
 			rq->rewriteUrl(url->getString(),0,(rewriteBase?rewriteBase:prefix.c_str()));
 			const char *ssl = NULL;
-			if (KBIT_TEST(rq->url->flags, KGL_URL_SSL)) {
+			if (KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL)) {
 				ssl = "s";
 			}
-			rq->AppendFetchObject(server_container->get(NULL, rq->url->host, rq->url->port, ssl, 0));
+			rq->AppendFetchObject(server_container->get(NULL, rq->sink->data.url->host, rq->sink->data.url->port, ssl, 0));
 			jumpType = JUMP_ALLOW;
 		} else {
 			bool internal_flag = internal;
@@ -383,9 +383,9 @@ void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KStringBuf &s) {
 	}
 	if (strcasecmp(env, "REQUEST_FILENAME") == 0 || strcasecmp(env,
 			"SCRIPT_FILENAME") == 0) {
-		if (rq->file==NULL && rq->svh) {
+		if (rq->file==NULL && rq->sink->data.opaque) {
 			bool exsit;
-			rq->svh->bindFile(rq,exsit,true,true);
+			rq->get_virtual_host()->bindFile(rq,exsit,true,true);
 		}
 		if (rq->file) {
 			s << rq->file->getName();
@@ -393,17 +393,18 @@ void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KStringBuf &s) {
 		return;
 	}
 	if (strcasecmp(env, "DOCUMENT_ROOT") == 0) {
-		if (rq->svh) {
-			s << rq->svh->doc_root;
+		auto svh = rq->get_virtual_host();
+		if (svh) {
+			s << svh->doc_root;
 		}
 		return;
 	}
 	if (strcasecmp(env, "SERVER_PORT") == 0) {
-		s << rq->sink->GetSelfPort();
+		s << rq->sink->get_self_port();
 		return;
 	}
 	if (strcasecmp(env, "SCHEMA") == 0) {
-		if (KBIT_TEST(rq->raw_url.flags,KGL_URL_SSL)) {
+		if (KBIT_TEST(rq->sink->data.raw_url.flags,KGL_URL_SSL)) {
 			s << "https";
 		} else {
 			s << "http";
@@ -419,7 +420,7 @@ void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KStringBuf &s) {
 		return;
 	}
 	if (strcasecmp(env,"SERVER_NAME") == 0) {
-		s << rq->url->host;
+		s << rq->sink->data.url->host;
 		return;
 	}
 	if (strcasecmp(env, "REMOTE_ADDR") == 0 || strcasecmp(env, "REMOTE_HOST") == 0) {
@@ -427,7 +428,7 @@ void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KStringBuf &s) {
 		return;
 	}
 	if (strcasecmp(env, "REMOTE_PORT") == 0) {
-		s << ksocket_addr_port(rq->sink->GetAddr());
+		s << ksocket_addr_port(rq->sink->get_peer_addr());
 		return;
 	}
 	if (strcasecmp(env, "REQUEST_METHOD") == 0) {
@@ -436,26 +437,26 @@ void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KStringBuf &s) {
 	}
 	if (strcasecmp(env, "PATH_INFO") == 0 || strcasecmp(env, "REQUEST_URI")
 			== 0) {
-		s << rq->url->path;
+		s << rq->sink->data.url->path;
 		return;
 	}
 	if (strcasecmp(env, "QUERY_STRING") == 0) {
-		const char *param = rq->url->param;
+		const char *param = rq->sink->data.url->param;
 		if (param) {
 			s << param;
 		}
 		return;
 	}
 	if (strcasecmp(env, "THE_REQUEST") == 0) {
-		s << rq->getMethod() << " " << rq->url->path;
-		if (rq->url->param) {
-			s << "?" << rq->url->param;
+		s << rq->getMethod() << " " << rq->sink->data.url->path;
+		if (rq->sink->data.url->param) {
+			s << "?" << rq->sink->data.url->param;
 		}
 		s << " HTTP/1.1";
 		return;
 	}
 	if (strcasecmp(env, "HTTPS") == 0) {
-		if (KBIT_TEST(rq->url->flags,KGL_URL_SSL)) {
+		if (KBIT_TEST(rq->sink->data.url->flags,KGL_URL_SSL)) {
 			s << "on";
 		} else {
 			s << "off";
@@ -463,7 +464,7 @@ void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KStringBuf &s) {
 		return;
 	}
 	if (strcasecmp(env, "HTTP_HOST") == 0) {
-		rq->url->GetHost(s);
+		rq->sink->data.url->GetHost(s);
 		return;
 	}
 	if (strncasecmp(env, "HTTP_", 5) == 0 || strncasecmp(env, "HTTP:", 5) == 0) {
@@ -479,7 +480,7 @@ void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KStringBuf &s) {
 		} else {
 			env += 5;
 		}
-		KHttpHeader *av = rq->GetHeader();
+		KHttpHeader *av = rq->sink->data.GetHeader();
 		while (av) {
 			if (av->attr && strcasecmp(av->attr, env) == 0) {
 				s << av->val;
@@ -491,7 +492,7 @@ void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KStringBuf &s) {
 }
 void KRewriteMarkEx::getString(const char *prefix, const char *str,KHttpRequest *rq, KRegSubString *s1, KRegSubString *s2,KStringBuf *s)
 {
-	KExtendProgramString ds(NULL,(rq && rq->svh?rq->svh->vh:NULL));	
+	KExtendProgramString ds(NULL,(rq && rq->sink->data.opaque?rq->get_virtual_host()->vh : NULL));	
 	char *buf = xstrdup(str);
 	char *hot = buf;
 	if (prefix) {

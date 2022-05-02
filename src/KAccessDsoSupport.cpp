@@ -15,7 +15,7 @@ static std::map<char *, KRequestQueue *, lessp> queues;
 KGL_RESULT add_api_var(LPVOID buffer, LPDWORD size, const char *val, int len)
 {
 	if (len == 0) {
-		len = strlen(val);
+		len = (int)strlen(val);
 	}
 	if ((int)*size <= len) {
 		*size = len + 1;
@@ -65,7 +65,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 {
 	switch (type) {
 	case KGL_VAR_HEADER:
-		return add_header_var(buffer, size, rq->GetHeader(), name);
+		return add_header_var(buffer, size, rq->sink->data.GetHeader(), name);
 #ifdef KSOCKET_SSL
 	case KGL_VAR_SSL_VAR:
 	{
@@ -84,7 +84,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 	case KGL_VAR_HTTPS:
 	{
 		int *v = (int *)buffer;
-		if (KBIT_TEST(rq->url->flags, KGL_URL_SSL)) {
+		if (KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL)) {
 			*v = 1;
 		} else {
 			*v = 0;
@@ -111,32 +111,32 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 		if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_TCP)) {
 			return ADD_VAR(buffer, size, "TCP");
 		}
-		if (rq->http_major > 1) {
+		if (rq->sink->data.http_major > 1) {
 			return ADD_VAR(buffer, size, "HTTP/2");
 		}
 		return ADD_VAR(buffer, size, "HTTP/1.1");
 	case KGL_VAR_SERVER_NAME:
-		return add_api_var(buffer, size, rq->url->host);
+		return add_api_var(buffer, size, rq->sink->data.url->host);
 	case KGL_VAR_REQUEST_METHOD:
 		return add_api_var(buffer, size, rq->getMethod());
 	case KGL_VAR_PATH_INFO:
-		return add_api_var(buffer, size, rq->url->path);
+		return add_api_var(buffer, size, rq->sink->data.url->path);
 	case KGL_VAR_URL:
 	{
 		KStringBuf s;
-		rq->url->GetUrl(s);
+		rq->sink->data.url->GetUrl(s);
 		return add_api_var(buffer, size, s.getString(), s.getSize());
 	}
 	case KGL_VAR_REQUEST_URI:
-		if (rq->raw_url.param == NULL) {
-			return add_api_var(buffer, size, rq->raw_url.path);
+		if (rq->sink->data.raw_url.param == NULL) {
+			return add_api_var(buffer, size, rq->sink->data.raw_url.path);
 		}
-		return var_printf(buffer, size, "%s?%s", rq->raw_url.path, rq->raw_url.param);
+		return var_printf(buffer, size, "%s?%s", rq->sink->data.raw_url.path, rq->sink->data.raw_url.param);
 	case KGL_VAR_SCRIPT_NAME:
-		return add_api_var(buffer, size, rq->url->path);
+		return add_api_var(buffer, size, rq->sink->data.url->path);
 	case KGL_VAR_QUERY_STRING:
 	{
-		const char *param = rq->url->param;
+		const char *param = rq->sink->data.url->param;
 		KGL_RESULT ret = KGL_ENO_DATA;
 		if (param) {
 			ret = add_api_var(buffer, size, param);
@@ -146,7 +146,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 	case KGL_VAR_SERVER_ADDR:
 	{
 		sockaddr_i self_addr;
-		rq->sink->GetSelfAddr(&self_addr);
+		rq->sink->get_self_addr(&self_addr);
 		if (!ksocket_sockaddr_ip(&self_addr, (char *)buffer, *size - 1)) {
 			*size = MAXIPLEN;
 			return KGL_EINSUFFICIENT_BUFFER;
@@ -156,7 +156,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 	case KGL_VAR_SERVER_PORT:
 	{
 		uint16_t *v = (uint16_t *)buffer;
-		*v = rq->raw_url.port;
+		*v = rq->sink->data.raw_url.port;
 		return KGL_OK;
 	}
 	case KGL_VAR_REMOTE_ADDR:
@@ -166,62 +166,65 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 	case KGL_VAR_REMOTE_PORT:
 	{
 		uint16_t *v = (uint16_t *)buffer;
-		*v = ksocket_addr_port(rq->sink->GetAddr());
+		*v = ksocket_addr_port(rq->sink->get_peer_addr());
 		return KGL_OK;
 	}
 	case KGL_VAR_PEER_ADDR:
 	{
-		if (rq->sink->GetRemoteIp((char *)buffer, *size-1)) {
-			*size = strlen((char *)buffer);
+		if (rq->sink->get_peer_ip((char *)buffer, *size-1)) {
+			*size = (int)strlen((char*)buffer);
 			return KGL_OK;
 		}
 		*size = MAXIPLEN;
 		return KGL_EINSUFFICIENT_BUFFER;
 	}
 	case KGL_VAR_DOCUMENT_ROOT:
-		if (!rq->svh) {
+	{
+		auto svh = rq->get_virtual_host();
+		if (svh==NULL) {
 			return KGL_ENO_DATA;
 		}
-		return add_api_var(buffer, size, rq->svh->doc_root);
+		return add_api_var(buffer, size, svh->doc_root);
+	}
 	case KGL_VAR_HAS_CONTENT_LENGTH:
 	{
 		bool *v = (bool *)buffer;
-		*v = KBIT_TEST(rq->flags, RQ_HAS_CONTENT_LEN) > 0;
+		*v = KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONTENT_LEN) > 0;
 		return KGL_OK;
 	}
 	case KGL_VAR_CONTENT_TYPE:
-		return add_header_var(buffer, size, rq->GetHeader(), "Content-Type");
+		return add_header_var(buffer, size, rq->sink->data.GetHeader(), "Content-Type");
 	case KGL_VAR_IF_MODIFIED_SINCE:
 	{
-		if (rq->ctx->mt == modified_if_range_date || rq->ctx->lastModified <= 0) {
+		if (rq->ctx->mt == modified_if_range_date || rq->sink->data.if_modified_since <= 0) {
 			return KGL_ENO_DATA;
 		}
 		time_t *v = (time_t *)buffer;
-		*v = rq->ctx->lastModified;
+		*v = rq->sink->data.if_modified_since;
 		return KGL_OK;
 	}
 	case KGL_VAR_IF_RANGE_TIME:
 	{
-		if (rq->ctx->mt != modified_if_range_date || rq->ctx->lastModified <= 0) {
+		if (rq->ctx->mt != modified_if_range_date || rq->sink->data.if_modified_since <= 0) {
 			return KGL_ENO_DATA;
 		}
 		time_t *v = (time_t *)buffer;
-		*v = rq->ctx->lastModified;
+		*v = rq->sink->data.if_modified_since;
 		return KGL_OK;
 	}
 	case KGL_VAR_IF_NONE_MATCH:
 	{
-		if (rq->ctx->mt == modified_if_range_etag || rq->ctx->if_none_match == NULL) {
+		if (rq->ctx->mt == modified_if_range_etag || rq->sink->data.if_none_match == NULL) {
 			return KGL_ENO_DATA;
 		}
-		return add_api_var(buffer, size, rq->ctx->if_none_match->data, rq->ctx->if_none_match->len);
+		return add_api_var(buffer, size, rq->sink->data.if_none_match->data, (int)rq->sink->data.if_none_match->len);
 	}
 	case KGL_VAR_IF_RANGE_STRING:
 	{
-		if (rq->ctx->mt != modified_if_range_etag || rq->ctx->if_none_match == NULL) {
+		if (rq->ctx->mt != modified_if_range_etag || rq->sink->data.if_none_match == NULL) {
 			return KGL_ENO_DATA;
 		}
-		return add_api_var(buffer, size, rq->ctx->if_none_match->data, rq->ctx->if_none_match->len);		
+		return add_api_var(buffer, size, rq->sink->data.if_none_match->data, (int)rq->sink->data.if_none_match->len);
 	}
 	default:
 		return KGL_ENOT_SUPPORT;
@@ -245,7 +248,7 @@ static KGL_RESULT  set_request_header(
 {
 	KHttpRequest *rq = (KHttpRequest *)r;
 	char *v = strlendup(val, val_len);
-	bool result = rq->ParseHeader(attr, attr_len, v, val_len, false);
+	bool result = rq->sink->parse_header(attr, attr_len, v, val_len, false);
 	xfree(v);
 	if (!result) {
 		return KGL_EINVALID_PARAMETER;
@@ -278,7 +281,7 @@ static KGL_RESULT  response_unknow_header(
 	hlen_t val_len)
 {
 	KHttpRequest *rq = (KHttpRequest *)r;
-	if (KBIT_TEST(rq->flags, RQ_HAS_SEND_HEADER)) {
+	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER)) {
 		return KGL_EHAS_SEND_HEADER;
 	}
 	if (strcasecmp(attr, "Status") == 0) {
@@ -319,14 +322,14 @@ KGL_RESULT base_support_function(KHttpRequest *rq, KF_REQ_TYPE req, PVOID data, 
 	case KD_REQ_REWRITE_PARAM:
 	{
 		const char *param = (const char *)data;
-		if (rq->url->param) {
-			xfree(rq->url->param);
-			rq->url->param = NULL;
+		if (rq->sink->data.url->param) {
+			xfree(rq->sink->data.url->param);
+			rq->sink->data.url->param = NULL;
 		}
 		if (param && *param) {
-			rq->url->param = strdup(param);
+			rq->sink->data.url->param = strdup(param);
 		}
-		KBIT_SET(rq->raw_url.flags, KGL_URL_REWRITED);
+		KBIT_SET(rq->sink->data.raw_url.flags, KGL_URL_REWRITED);
 		return KGL_OK;
 	}
 	case KD_REQ_REWRITE_URL:
@@ -340,14 +343,14 @@ KGL_RESULT base_support_function(KHttpRequest *rq, KF_REQ_TYPE req, PVOID data, 
 	case KD_REQ_CHECK_WHITE_LIST:
 	{
 		bool *flush = (bool *)ret;
-		if (wlm.find(rq->url->host, (char *)data, flush ? *flush : false)) {
+		if (wlm.find(rq->sink->data.url->host, (char *)data, flush ? *flush : false)) {
 			return KGL_OK;
 		}
 		return KGL_ENO_DATA;
 	}
 	case KD_REQ_ADD_WHITE_LIST:
 	{
-		wlm.add(rq->url->host, NULL, (char *)data);
+		wlm.add(rq->sink->data.url->host, NULL, (char *)data);
 		return KGL_OK;
 	}
 #endif

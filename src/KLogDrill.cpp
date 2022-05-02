@@ -138,21 +138,22 @@ void add_log_drill(KHttpRequest *rq,KStringBuf &s)
 		return;
 	}
 	drill_stat.drill_hit++;
-	if (rq->ctx->cache_hit) {
+	if (KBIT_TEST(rq->sink->data.flags,RQ_CACHE_HIT)) {
 		drill_stat.cache_hit++;
 	}
-	if (KBIT_TEST(rq->flags, RQ_OBJ_STORED)) {
+	if (KBIT_TEST(rq->sink->data.flags, RQ_OBJ_STORED)) {
 		drill_stat.cache_saved++;
 	}
-	if (KBIT_TEST(rq->flags, RQ_OBJ_VERIFIED)) {
+	if (KBIT_TEST(rq->sink->data.flags, RQ_OBJ_VERIFIED)) {
 		drill_stat.cache_verified++;
 	}
 	if (drill_count >= conf.log_drill) {
 		remove_log_drill();
 	}
 	s.WSTR("#[");
-	if (rq->svh && rq->svh->vh) {
-		s.write_all(rq->svh->vh->name.c_str(), rq->svh->vh->name.size());
+	auto svh = rq->get_virtual_host();
+	if (svh && svh->vh) {
+		s.write_all(svh->vh->name.c_str(), svh->vh->name.size());
 	}
 	s.WSTR("]\n");
 	drill_count++;

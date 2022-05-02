@@ -26,27 +26,27 @@ KMapRedirectMark::~KMapRedirectMark()
 }
 bool KMapRedirectMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType, int &jumpType)
 {
-	KMapRedirectItem *item = (KMapRedirectItem *)vhc.find(rq->url->host);
+	KMapRedirectItem *item = (KMapRedirectItem *)vhc.find(rq->sink->data.url->host);
 	if (item == NULL) {
 		return false;
 	}
 	KStringBuf s;
 	int defaultPort = 80;
 	if (strstr(item->rewrite, "://") == NULL) {
-		if (KBIT_TEST(rq->url->flags, KGL_URL_SSL)) {
+		if (KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL)) {
 			s << "https://";
 			defaultPort = 443;
 		} else {
 			s << "http://";
 		}
 		s << item->rewrite;
-		if (rq->url->port != defaultPort) {
-			s << ":" << rq->url->port;
+		if (rq->sink->data.url->port != defaultPort) {
+			s << ":" << rq->sink->data.url->port;
 		}
 	} else {
 		s << item->rewrite;
 	}
-	rq->url->GetPath(s);
+	rq->sink->data.url->GetPath(s);
 	push_redirect_header(rq, s.getBuf(), s.getSize(), item->code);	
 	jumpType = JUMP_DENY;
 	return true;

@@ -14,11 +14,11 @@ public:
 	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType)
 	{
-		rq->min_obj_verified = v;
+		rq->sink->data.min_obj_verified = v;
 		if (hard) {
-			KBIT_SET(rq->min_obj_verified, 1);
+			KBIT_SET(rq->sink->data.min_obj_verified, 1);
 		} else {
-			KBIT_CLR(rq->min_obj_verified, 1);
+			KBIT_CLR(rq->sink->data.min_obj_verified, 1);
 		}
 		return true;
 	}

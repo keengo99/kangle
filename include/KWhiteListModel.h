@@ -22,7 +22,7 @@ public:
 	bool match(KHttpRequest *rq, KHttpObject *obj) {
 		const char *host = this->host;
 		if (host == NULL) {
-			host = rq->url->host;
+			host = rq->sink->data.url->host;
 		}
 		return wlm.find(host, rq->getClientIp(),this->flush);
 	}
@@ -96,9 +96,10 @@ public:
 	{
 		const char *host = this->host;
 		if (host == NULL) {
-			host = rq->url->host;
+			host = rq->sink->data.url->host;
 		}
-		wlm.add(host, (rq->svh ? rq->svh->vh->name.c_str() : NULL), rq->getClientIp(), false);
+		auto svh = rq->get_virtual_host();
+		wlm.add(host, (svh ? svh->vh->name.c_str() : NULL), rq->getClientIp(), false);
 		return true;
 	}
 	const char *getName() {

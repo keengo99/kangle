@@ -28,7 +28,7 @@ public:
 			}
 			header = obj->data->headers;
 		} else {
-			header = rq->GetHeader();
+			header = rq->sink->data.GetHeader();
 		}
 		int ovector[MAX_OVECTOR];
 		while (header) {

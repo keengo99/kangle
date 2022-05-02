@@ -18,7 +18,7 @@ public:
 	~KHttpBufferParser()
 	{
 		if (header) {
-			free_header(header);
+			free_header_list(header);
 		}
 	}
 	void Parse(char **str, int *len)

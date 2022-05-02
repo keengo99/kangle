@@ -35,15 +35,16 @@
 #include "KSimulateRequest.h"
 #include "KTimer.h"
 #define   MAX_CRON_THREAD   5
-#ifdef WHM_MODULE
-#include "whm.h"
-DLL_PUBLIC  BOOL   WINAPI Whm_GetExtensionVersion(HSE_VERSION_INFO *pVer);
-DLL_PUBLIC  DWORD WINAPI Whm_HttpExtensionProc(EXTENSION_CONTROL_BLOCK *pECB);
-DLL_PUBLIC  BOOL   WINAPI Whm_TerminateExtension( DWORD dwFlags);
-#endif
 #include "extern.h"
 #include "ksapi.h"
 #include "kmalloc.h"
+
+#ifdef WHM_MODULE
+#include "whm.h"
+DLL_PUBLIC  BOOL   WINAPI Whm_GetExtensionVersion(HSE_VERSION_INFO* pVer);
+DLL_PUBLIC  DWORD WINAPI Whm_HttpExtensionProc(EXTENSION_CONTROL_BLOCK* pECB);
+DLL_PUBLIC  BOOL   WINAPI Whm_TerminateExtension(DWORD dwFlags);
+#endif
 
 using namespace std;
 static void WINAPI apiServerFree(HCONN hConn,void *ptr) {

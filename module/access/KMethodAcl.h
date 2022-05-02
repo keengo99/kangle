@@ -46,7 +46,7 @@ public:
 		return "meth";
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) {
-		return meth.matchMethod(rq->meth);
+		return meth.matchMethod(rq->sink->data.meth);
 	}
 	std::string getDisplay() {
 		std::stringstream s;

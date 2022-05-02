@@ -86,6 +86,9 @@
 #include "KSSLSniContext.h"
 #include "WhmPackageManage.h"
 #include "kfiber.h"
+#include "KHttpServer.h"
+#include "HttpFiber.h"
+
 void flush_net_request(time_t now_time);
 
 
@@ -1241,8 +1244,10 @@ int main_fiber(void* arg, int argc)
 	kselector_update_time();
 	kgl_update_http_time();
 #ifdef KSOCKET_SSL
-	kssl_init(kgl_ssl_npn, kgl_create_ssl_sni, kgl_free_ssl_sni);
+	kssl_init2();
+	kssl_set_sni_callback(kgl_create_ssl_sni, kgl_free_ssl_sni);
 #endif
+	init_http_server_callback(kgl_on_new_connection, start_request_fiber);
 	do_config(true);
 	m_pid = getpid();
 	init_core_limit();

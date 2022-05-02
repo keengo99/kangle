@@ -51,7 +51,7 @@ bool KConfigBuilder::saveConfig() {
 	builder.build(s);
 	s << "\r\n" << CONFIG_FILE_SIGN;
 	bool result = false;
-	if ((int)s.str().size() == fp.write(s.str().c_str(), s.str().size())) {
+	if ((int)s.str().size() == fp.write(s.str().c_str(), (int)s.str().size())) {
 		result = true;
 	}
 	fp.close();

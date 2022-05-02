@@ -31,7 +31,7 @@ public:
 	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
 			int &jumpType) {
 		std::map<KUrl *,std::string,less_host_port>::iterator it;
-		KUrl *u = rq->url;
+		KUrl *u = rq->sink->data.url;
 		it = m.find(u);
 		if (it!=m.end()) {
 			free(u->host);

@@ -13,8 +13,8 @@
 #ifdef _WIN32
 extern HANDLE api_child_token;
 #endif
-KApiFetchObject::KApiFetchObject(KApiRedirect *rd) :
-KApiService(&rd->dso) {
+KApiFetchObject::KApiFetchObject(KApiRedirect* rd) :
+	KApiService(&rd->dso) {
 	rq = NULL;
 	token = NULL;
 	responseDenied = false;
@@ -26,15 +26,15 @@ KApiFetchObject::~KApiFetchObject() {
 		KVirtualHost::closeToken(token);
 	}
 }
-Token_t KApiFetchObject::getVhToken(const char *vh_name)
+Token_t KApiFetchObject::getVhToken(const char* vh_name)
 {
 #ifndef HTTP_PROXY
-	if(rq && rq->svh){
-		if(rq->svh->vh->user.size()==0){
+	if (rq && rq->sink->data.opaque) {
+		if (static_cast<KSubVirtualHost*>(rq->sink->data.opaque)->vh->user.empty()) {
 			//只有超级账号运行的虚拟主机才有权限。
-			KVirtualHost *vh = conf.gvm->refsVirtualHostByName(vh_name);
-			if(vh){
-				if(token){
+			KVirtualHost* vh = conf.gvm->refsVirtualHostByName(vh_name);
+			if (vh) {
+				if (token) {
 					KVirtualHost::closeToken(token);
 				}
 				bool result;
@@ -50,7 +50,7 @@ Token_t KApiFetchObject::getToken() {
 #if 0
 #ifdef ENABLE_VH_RUN_AS
 #ifdef _WIN32
-	if(api_child_token){
+	if (api_child_token) {
 		return api_child_token;
 	}
 #endif
@@ -61,7 +61,7 @@ Token_t KApiFetchObject::getToken() {
 			token = rq->svh->vh->createToken(result);
 		} else {
 #ifndef _WIN32
-			token = (Token_t) &id;
+			token = (Token_t)&id;
 #endif
 			//KVirtualHost::createToken(token);
 		}
@@ -71,9 +71,9 @@ Token_t KApiFetchObject::getToken() {
 #endif
 	return NULL;
 }
-KGL_RESULT KApiFetchObject::Open(KHttpRequest *rq, kgl_input_stream* in, kgl_output_stream* out)
+KGL_RESULT KApiFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out)
 {
-	KHttpObject *obj = rq->ctx->obj;
+	KHttpObject* obj = rq->ctx->obj;
 	assert(dso);
 	this->rq = rq;
 	if (dso->HttpExtensionProc) {
@@ -81,18 +81,18 @@ KGL_RESULT KApiFetchObject::Open(KHttpRequest *rq, kgl_input_stream* in, kgl_out
 		if (!brd->rd->enable) {
 			return out->f->write_message(out, rq, KGL_MSG_ERROR, "extend is disable", STATUS_SERVER_ERROR);
 		}
-		KBIT_SET(obj->index.flags,ANSW_LOCAL_SERVER);
+		KBIT_SET(obj->index.flags, ANSW_LOCAL_SERVER);
 		if (rq->auth) {
-			const char *auth_type = KHttpAuth::buildType(
-					rq->auth->getType());
-			const char *user = rq->auth->getUser();
+			const char* auth_type = KHttpAuth::buildType(
+				rq->auth->getType());
+			const char* user = rq->auth->getUser();
 			if (user) {
 				env.addEnv("AUTH_USER", user);
 			}
 			env.addEnv("AUTH_TYPE", auth_type);
 			if (rq->auth->getType() == AUTH_BASIC) {
-				KHttpBasicAuth *auth = (KHttpBasicAuth *) rq->auth;
-				const char *password = auth->getPassword();
+				KHttpBasicAuth* auth = (KHttpBasicAuth*)rq->auth;
+				const char* password = auth->getPassword();
 				if (password) {
 					env.addEnv("AUTH_PASSWORD", password);
 				}
@@ -102,28 +102,28 @@ KGL_RESULT KApiFetchObject::Open(KHttpRequest *rq, kgl_input_stream* in, kgl_out
 #ifndef _WIN32
 		chrooted = rq->svh->vh->chroot;
 #endif
-		make_http_env(rq, in, brd,rq->ctx->lastModified, rq->file, &env,chrooted);
+		make_http_env(rq, in, brd, rq->sink->data.if_modified_since, rq->file, &env, chrooted);
 		start();
 	}
 	return out->f->write_end(out, rq, KGL_OK);
 }
-bool KApiFetchObject::initECB(EXTENSION_CONTROL_BLOCK *ecb) {
+bool KApiFetchObject::initECB(EXTENSION_CONTROL_BLOCK* ecb) {
 	memset(ecb, 0, sizeof(EXTENSION_CONTROL_BLOCK));
 	ecb->cbSize = sizeof(EXTENSION_CONTROL_BLOCK);
-	ecb->ConnID = (HCONN) static_cast<KApiService *>(this);
-	ecb->dwVersion = MAKELONG( 0, 6);
-	ecb->lpszMethod = (LPSTR) (rq->getMethod());
+	ecb->ConnID = (HCONN) static_cast<KApiService*>(this);
+	ecb->dwVersion = MAKELONG(0, 6);
+	ecb->lpszMethod = (LPSTR)(rq->getMethod());
 	ecb->lpszLogData[0] = '\0';
-	ecb->lpszPathInfo = (char *) env.getEnv("PATH_INFO");
-	ecb->lpszPathTranslated = (char *) env.getEnv("PATH_TRANSLATED");
-	int64_t content_length = rq->content_length;//gate->f->get_post_left(gate, rq);
+	ecb->lpszPathInfo = (char*)env.getEnv("PATH_INFO");
+	ecb->lpszPathTranslated = (char*)env.getEnv("PATH_TRANSLATED");
+	int64_t content_length = rq->sink->data.content_length;//gate->f->get_post_left(gate, rq);
 	ecb->cbTotalBytes = content_length;
 	ecb->cbLeft = content_length;
-	ecb->lpszContentType = (env.contentType ? env.contentType : (char *) "");
+	ecb->lpszContentType = (env.contentType ? env.contentType : (char*)"");
 	ecb->dwHttpStatusCode = STATUS_OK;
-	ecb->lpszQueryString = (char *) env.getEnv("QUERY_STRING");
+	ecb->lpszQueryString = (char*)env.getEnv("QUERY_STRING");
 	if (ecb->lpszQueryString == NULL) {
-		ecb->lpszQueryString = (char *) "";
+		ecb->lpszQueryString = (char*)"";
 	}
 	ecb->ServerSupportFunction = ServerSupportFunction;
 	ecb->GetServerVariable = GetServerVariable;
@@ -131,17 +131,17 @@ bool KApiFetchObject::initECB(EXTENSION_CONTROL_BLOCK *ecb) {
 	ecb->ReadClient = ReadClient;
 	return true;
 }
-bool KApiFetchObject::setStatusCode(const char *status, int len) {
+bool KApiFetchObject::setStatusCode(const char* status, int len) {
 	//printf("status: %s\n",status);
 	rq->ctx->obj->data->status_code = atoi(status);
 	return true;
 }
-bool KApiFetchObject::addHeader(const char *attr, int len) {
+bool KApiFetchObject::addHeader(const char* attr, int len) {
 
 	if (len == 0) {
 		len = (int)strlen(attr);
 	}
-	switch (push_parser.Parse(rq,attr,len)) {
+	switch (push_parser.Parse(rq, attr, len)) {
 	case kgl_parse_error:
 		return false;
 	case kgl_parse_continue:
@@ -152,9 +152,9 @@ bool KApiFetchObject::addHeader(const char *attr, int len) {
 		return false;
 	}
 }
-int KApiFetchObject::writeClient(const char *str, int len) {
+int KApiFetchObject::writeClient(const char* str, int len) {
 	if (!headSended) {
-		if (checkResponse(rq,rq->ctx->obj) == JUMP_DENY) {
+		if (checkResponse(rq, rq->ctx->obj) == JUMP_DENY) {
 			responseDenied = true;
 		}
 	}
@@ -176,6 +176,6 @@ int KApiFetchObject::writeClient(const char *str, int len) {
 	}
 	return -1;
 }
-int KApiFetchObject::readClient(char *buf, int len) {
+int KApiFetchObject::readClient(char* buf, int len) {
 	return rq->Read(buf, len);
 }

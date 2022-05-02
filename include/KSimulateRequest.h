@@ -23,12 +23,12 @@ public:
 	{
 		return false;
 	}
-	bool ResponseStatus(KHttpRequest *rq, uint16_t status_code)
+	bool internal_response_status(uint16_t status_code)
 	{
 		this->status_code = status_code;
 		return true;
 	}
-	bool ResponseHeader(const char *name, int name_len, const char *val, int val_len)
+	bool response_header(const char *name, int name_len, const char *val, int val_len)
 	{
 		KHttpHeader *header = new_pool_http_header(c->pool, name, name_len, val, val_len);
 		if (header) {
@@ -41,7 +41,7 @@ public:
 		return false;
 	}
 	//返回头长度,-1表示出错
-	int StartResponseBody(KHttpRequest *rq, int64_t body_size)
+	int StartResponseBody(int64_t body_size)
 	{
 		if (header) {
 			header(arg, status_code, header_manager.header);
@@ -60,7 +60,7 @@ public:
 	{
 
 	}
-	int Read(char *buf, int len)
+	int internal_read(char *buf,int len)
 	{
 		if (post) { 
 			return post(arg, buf, len);
@@ -71,7 +71,7 @@ public:
 	{
 		return false;
 	}
-	int Write(LPWSABUF buf, int bc)
+	int internal_write(WSABUF *buf, int bc)
 	{
 		if (body) {
 			if (body(arg, (char*)buf[0].iov_base, buf[0].iov_len) == 0) {
@@ -80,16 +80,12 @@ public:
 		}
 		return -1;
 	}
-	sockaddr_i *GetAddr()
-	{
-		return &c->addr;
-	}
-	bool GetSelfAddr(sockaddr_i *addr)
+	bool get_self_addr(sockaddr_i *addr)
 	{
 		kgl_memcpy(addr, &c->addr, sizeof(sockaddr_i));
 		return true;
 	}
-	int EndRequest(KHttpRequest *rq);
+	int end_request();
 	void AddSync()
 	{
 
@@ -127,7 +123,6 @@ public:
 	uint16_t port;
 	uint16_t status_code;
 	int life_time;
-	int exptected_done;
 	void *arg;
 	kconnection *c;	
 protected:

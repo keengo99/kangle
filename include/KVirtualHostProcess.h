@@ -77,7 +77,7 @@ public:
 	KUpstream* Connect(KHttpRequest* rq)
 	{
 		lastActive = kgl_current_sec;
-		KUpstream* ps = GetPoolSocket(rq);
+		KUpstream* ps = get_pool_socket();
 		if (ps) {
 			return ps;
 		}

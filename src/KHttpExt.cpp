@@ -52,7 +52,7 @@ BOOL setVariable(LPVOID lpvBuffe, LPDWORD lpdwSize, const char *val,
 		return FALSE;
 	}
 
-	unsigned len = strlen(val);
+	unsigned len = (unsigned)strlen(val);
 //{{ent
 #ifdef _WIN32
 	if(unicode) {
@@ -208,7 +208,7 @@ BOOL WINAPI ServerSupportFunction(HCONN hConn, DWORD dwHSERequest,
 				memset(info, 0, sizeof(HSE_URL_MAPEX_INFO));
 				info->dwFlags = HSE_URL_FLAGS_READ | HSE_URL_FLAGS_EXECUTE;
 				*lpdwSize = MAX_PATH;
-				info->cchMatchingURL = strlen(buffer) + 1;
+				info->cchMatchingURL = (DWORD)strlen(buffer) + 1;
 				result = setVariable(info->lpszPath, lpdwSize, fo->env.getEnv("SCRIPT_FILENAME"), false);
 				info->cchMatchingPath = *lpdwSize;
 			} else {
@@ -230,7 +230,7 @@ BOOL WINAPI ServerSupportFunction(HCONN hConn, DWORD dwHSERequest,
 			s << buffer;
 		}
 		char *val = s.getString();
-		int len = strlen(val);
+		int len = (int)strlen(val);
 		if(dwHSERequest == HSE_REQ_MAP_URL_TO_PATH){
 			if((int)*lpdwSize < len + 1){
 				*lpdwSize = len + 1;
@@ -248,7 +248,7 @@ BOOL WINAPI ServerSupportFunction(HCONN hConn, DWORD dwHSERequest,
 			strncpy(info->lpszPath, val, len);
 			info->dwFlags = HSE_URL_FLAGS_READ | HSE_URL_FLAGS_EXECUTE;
 			info->cchMatchingPath = len + 1;
-			info->cchMatchingURL = strlen(buffer) + 1;
+			info->cchMatchingURL = (DWORD)strlen(buffer) + 1;
 		}
 		*lpdwSize = len + 1;		
 		//		debug("success map[%s] to [%s] len=%d\n", buffer, val, len);
@@ -271,10 +271,10 @@ BOOL WINAPI ServerSupportFunction(HCONN hConn, DWORD dwHSERequest,
 		char * status = (char *) lpvBuffer;
 		char * header = (char *) lpdwDataType;
 		if (status) {
-			fo->setStatusCode(status, strlen(status));
+			fo->setStatusCode(status, (int)strlen(status));
 		}
 		if (header) {
-			fo->addHeader(header, strlen(header));
+			fo->addHeader(header, (int)strlen(header));
 		}
 		return true;
 	}

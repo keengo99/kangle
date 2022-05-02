@@ -7,9 +7,9 @@ KGL_RESULT KPrevDirectoryFetchObject::Open(KHttpRequest* rq, kgl_input_stream* i
 {
 	KHttpObject *obj = rq->ctx->obj;
 	KStringBuf new_path2;
-	new_path2 << rq->raw_url.path << "/";
-	if (rq->raw_url.param && *rq->raw_url.param){
-		new_path2 << "?" << rq->raw_url.param;
+	new_path2 << rq->sink->data.raw_url.path << "/";
+	if (rq->sink->data.raw_url.param && *rq->sink->data.raw_url.param){
+		new_path2 << "?" << rq->sink->data.raw_url.param;
 	}
 	push_redirect_header(rq,new_path2.getString(),new_path2.getSize(),STATUS_FOUND);
 	rq->startResponseBody(0);
@@ -127,12 +127,12 @@ KGL_RESULT KDirectoryFetchObject::Write(KHttpRequest *rq,kgl_output_stream *out,
 	}
 	out->f->write_body(out, rq, kgl_expand_string("<a href='"));
 	std::string encode_path = url_encode(path);
-	out->f->write_body(out, rq, encode_path.c_str(), encode_path.size());
+	out->f->write_body(out, rq, encode_path.c_str(), (int)encode_path.size());
 	if (isdir) {
 		out->f->write_body(out, rq, kgl_expand_string("/"));
 	}
 	out->f->write_body(out, rq, kgl_expand_string("'>"));
-	out->f->write_body(out, rq, path, strlen(path));
+	out->f->write_body(out, rq, path, (int)strlen(path));
 	out->f->write_body(out, rq, kgl_expand_string("</a>"));
 	if (isdir) {
 		out->f->write_body(out, rq, kgl_expand_string("]"));
@@ -145,10 +145,10 @@ KGL_RESULT KDirectoryFetchObject::Write(KHttpRequest *rq,kgl_output_stream *out,
 	} else {
 		f << sbuf.st_size;
 	}
-	out->f->write_body(out, rq, f.str().c_str(), f.str().size());
+	out->f->write_body(out, rq, f.str().c_str(), (int)f.str().size());
 	out->f->write_body(out, rq, kgl_expand_string("</td><td>"));
 	char tmp[27];
 	makeLastModifiedTime(&sbuf.st_mtime, tmp, 27);
-	out->f->write_body(out, rq, tmp, strlen(tmp));
+	out->f->write_body(out, rq, tmp, (int)strlen(tmp));
 	return out->f->write_body(out, rq, kgl_expand_string("</td></tr>\n"));
 }

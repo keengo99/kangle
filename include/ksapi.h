@@ -9,6 +9,7 @@
 #define KSAPI_H_
 #include "kfeature.h"
 #include "kforwin32.h"
+#include "khttp.h"
 
 #define KSAPI_MAIN_VERSION 1
 #define KSAPI_MIN_VERSION  0
@@ -17,37 +18,7 @@
 extern "C" {
 #endif
 #define IS_KSAPI_VERSION_COMPATIBLE(ver) (HIWORD(ver)==KSAPI_MAIN_VERSION && LOWORD(ver)>=KSAPI_MIN_VERSION)
-typedef unsigned short hlen_t;
-typedef enum _kgl_header_type
-{
-	kgl_header_unknow = 0,
-	kgl_header_internal,
-	kgl_header_server,
-	kgl_header_date,
-	kgl_header_content_length,
-	kgl_header_last_modified,
-} kgl_header_type;
 
-#define MAX_HEADER_ATTR_VAL_SIZE 65500
-typedef struct _KHttpHeader KHttpHeader;
-
-struct	_KHttpHeader {
-	char *attr;
-	char *val;
-	hlen_t attr_len;
-	hlen_t val_len;
-	kgl_header_type type;
-	KHttpHeader	*next;
-};
-#if defined _WIN32 || defined __CYGWIN__
-      #define DLL_PUBLIC __declspec(dllexport)
-#else
-  #if __GNUC__ >= 4
-    #define DLL_PUBLIC __attribute__ ((visibility("default")))
-  #else
-    #define DLL_PUBLIC
-  #endif
-#endif
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -217,32 +188,6 @@ typedef enum _KF_REQ_TYPE
 	KF_REQ_FILTER                = 15,
 
 } KF_REQ_TYPE;
-
-
-
-typedef enum _KGL_RESULT
-{
-	KGL_OK                         = 0,
-	KGL_END                        = 1,
-	KGL_NO_BODY                    = 2,
-	KGL_RETRY                      = 3,
-	KGL_DOUBLICATE                 = 4,
-	KGL_NEXT                       = 5,
-	KGL_EINSUFFICIENT_BUFFER       = -1,
-	KGL_ENO_DATA                   = -2,
-	KGL_EINVALID_PARAMETER         = -3,
-	KGL_EINVALID_INDEX             = -4,
-	KGL_ENOT_READY                 = -5,
-	KGL_EDATA_FORMAT               = -6,
-	KGL_ENO_MEMORY                 = -7,
-	KGL_EDENIED                    = -8,
-	KGL_EHAS_SEND_HEADER           = -11,
-	KGL_ESOCKET_BROKEN             = -20,
-	KGL_EIO                        = -21,
-	KGL_ESYSCALL                   = -98,
-	KGL_EUNKNOW                    = -99,
-	KGL_ENOT_SUPPORT               = -100
-} KGL_RESULT;
 
 typedef enum {
 	KGL_VAR_HEADER = 0,

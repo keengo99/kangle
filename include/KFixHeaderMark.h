@@ -58,7 +58,7 @@ public:
 	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
 			int &jumpType) 
 	{
-		if (rq->range_from<=0) {
+		if (rq->sink->data.range_from<=0) {
 			return true;
 		}		
 		KFixHeaderFilter *filter = new KFixHeaderFilter(buf,len);

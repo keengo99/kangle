@@ -64,7 +64,7 @@ bool KHttpDigestSession::verify_rq(KHttpRequest *rq) {
 	}
 	return result;
 	*/
-	if(ksocket_addr_compare(rq->sink->GetAddr(),&addr)==0){
+	if(ksocket_addr_compare(rq->sink->get_peer_addr(),&addr)==0){
 		lastActive = time(NULL);
 		return true;
 	}
@@ -108,16 +108,16 @@ KHttpDigestAuth::~KHttpDigestAuth() {
 }
 bool KHttpDigestAuth::verifySession(KHttpRequest *rq)
 {
-        if(uri==NULL || rq->raw_url.path==NULL || rq->raw_url.host==NULL){
+        if(uri==NULL || rq->sink->data.raw_url.path==NULL || rq->sink->data.raw_url.host==NULL){
                 return false;
         }
         KUrl url2;
         parse_url(uri,&url2);
         if(
-                (url2.host && strcmp(url2.host,rq->raw_url.host)!=0)
+                (url2.host && strcmp(url2.host,rq->sink->data.raw_url.host)!=0)
                 || (url2.path == NULL)
-                || (strcmp(url2.path,rq->raw_url.path)!=0)
-                || (url2.param && (rq->raw_url.param==NULL || strcmp(url2.param,rq->raw_url.param)!=0))
+                || (strcmp(url2.path,rq->sink->data.raw_url.path)!=0)
+                || (url2.param && (rq->sink->data.raw_url.param==NULL || strcmp(url2.param,rq->sink->data.raw_url.param)!=0))
         ){
                 url2.destroy();
                 return false;
@@ -339,7 +339,7 @@ void KHttpDigestAuth::init(KHttpRequest *rq,const char *realm) {
 	s.add(rand(), "%x");
 	this->nonce = s.stealString();
 	KHttpDigestSession *session = new KHttpDigestSession(realm);
-	kgl_memcpy(&session->addr,rq->sink->GetAddr(),sizeof(sockaddr_i));
+	kgl_memcpy(&session->addr,rq->sink->get_peer_addr(),sizeof(sockaddr_i));
 	lock.Lock();
 	//debug("add nonce[%s] to session\n",this->nonce);
 	sessions.insert(pair<char *, KHttpDigestSession *> (

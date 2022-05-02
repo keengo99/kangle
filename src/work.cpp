@@ -88,22 +88,21 @@ void log_access(KHttpRequest *rq) {
 		klog(KLOG_ERR,"BAD REQUEST FROM [%s].\n", rq->getClientIp());
 		return;
 	}
-	INT64 sended_length = rq->send_size;
+	INT64 sended_length = rq->sink->data.send_size;
 	KStringBuf l(512);
 	KLogElement *s = &accessLogger;
+	auto svh = rq->get_virtual_host();
 #ifndef HTTP_PROXY
-	if (rq->svh) {
-//{{ent
+	if (svh) {
 #ifdef ENABLE_BLACK_LIST
-		KIpList *iplist = rq->svh->vh->blackList;
+		KIpList *iplist = svh->vh->blackList;
 		if (iplist) {
-			iplist->addStat(rq->flags,rq->filter_flags);
+			iplist->addStat(rq->sink->data.flags,rq->filter_flags);
 		}
 #endif
-//}}
 #ifdef ENABLE_VH_LOG_FILE
-		if (rq->svh->vh->logger) {
-			s = rq->svh->vh->logger;
+		if (svh->vh->logger) {
+			s = svh->vh->logger;
 		}
 #endif
 	}
@@ -119,7 +118,7 @@ void log_access(KHttpRequest *rq) {
 	const char *user_agent = NULL;
 	char tmp[64];
 	int default_port = 80;
-	if (KBIT_TEST(rq->raw_url.flags,KGL_URL_SSL)) {
+	if (KBIT_TEST(rq->sink->data.raw_url.flags,KGL_URL_SSL)) {
 		default_port = 443;
 	}
 	l << rq->getClientIp();	
@@ -144,10 +143,10 @@ void log_access(KHttpRequest *rq) {
 	l << rq->getMethod();
 	l.WSTR(" ");
 #ifdef HTTP_PROXY
-	if (rq->meth!=METH_CONNECT)
+	if (rq->sink->data.meth!=METH_CONNECT)
 #endif
-	l << (KBIT_TEST(rq->raw_url.flags,KGL_URL_SSL) ? "https://" : "http://");
-	KUrl *url = &rq->raw_url;
+	l << (KBIT_TEST(rq->sink->data.raw_url.flags,KGL_URL_SSL) ? "https://" : "http://");
+	KUrl *url = &rq->sink->data.raw_url;
 	referer = (char *)rq->GetHttpValue("Referer");
 	user_agent = rq->GetHttpValue("User-Agent");
 	l << url->host;
@@ -155,19 +154,19 @@ void log_access(KHttpRequest *rq) {
 		l << ":" << url->port;
 	}
 #ifdef HTTP_PROXY
-	if (rq->meth != METH_CONNECT)
+	if (rq->sink->data.meth != METH_CONNECT)
 #endif
 	l << url->path;
 	if (url->param) {
 		l << "?" << url->param;
 	}
 #ifdef ENABLE_HTTP2
-	if (rq->http_major>1) {
+	if (rq->sink->data.http_major>1) {
 		l.WSTR(" HTTP/2\" ");
 	} else 
 #endif	
 		l.WSTR(" HTTP/1.1\" ");
-	l << rq->status_code << " " ;
+	l << rq->sink->data.status_code << " " ;
 #ifdef _WIN32
     const char *formatString="%I64d";
 #else
@@ -197,7 +196,7 @@ void log_access(KHttpRequest *rq) {
 	//*
 	l.WSTR("\"[");
 #ifndef NDEBUG
-	l << "F" << (unsigned)rq->flags << "f" << (unsigned)rq->filter_flags;
+	l << "F" << (unsigned)rq->sink->data.flags << "f" << (unsigned)rq->filter_flags;
 	//l << "u" << (int)rq->ctx->upstream_socket;
 	if (!rq->ctx->upstream_expected_done) {
 		l.WSTR("d");
@@ -214,37 +213,37 @@ void log_access(KHttpRequest *rq) {
 	if (rq->ctx->read_huped) {
 		l.WSTR("h");
 	}
-	if(rq->ctx->cache_hit){
+	if(KBIT_TEST(rq->sink->data.flags,RQ_CACHE_HIT)){
 		l.WSTR("C");
 	}
-	if(KBIT_TEST(rq->flags,RQ_OBJ_STORED)){
+	if(KBIT_TEST(rq->sink->data.flags,RQ_OBJ_STORED)){
 		l.WSTR("S");
 	}
-	if (KBIT_TEST(rq->flags, RQ_UPSTREAM)) {
+	if (KBIT_TEST(rq->sink->data.flags, RQ_UPSTREAM)) {
 		l.WSTR("U");
-		if (KBIT_TEST(rq->flags, RQ_UPSTREAM_ERROR)) {
+		if (KBIT_TEST(rq->sink->data.flags, RQ_UPSTREAM_ERROR)) {
 			l.WSTR("E");
 		}
 	}
 	if (rq->ctx->parent_signed) {
 		l.WSTR("P");
 	}
-	if(KBIT_TEST(rq->flags,RQ_OBJ_VERIFIED)){
+	if(KBIT_TEST(rq->sink->data.flags,RQ_OBJ_VERIFIED)){
 		l.WSTR("V");
 	}
-	if(KBIT_TEST(rq->flags, RQ_TE_COMPRESS)){
+	if(KBIT_TEST(rq->sink->data.flags, RQ_TE_COMPRESS)){
 		l.WSTR("Z");
 	}
-	if(KBIT_TEST(rq->flags,RQ_TE_CHUNKED)){
+	if(KBIT_TEST(rq->sink->data.flags,RQ_TE_CHUNKED)){
 		l.WSTR("K");
 	}
-	if (KBIT_TEST(rq->flags,RQ_HAS_KEEP_CONNECTION|RQ_CONNECTION_CLOSE) == RQ_HAS_KEEP_CONNECTION) {
+	if (KBIT_TEST(rq->sink->data.flags,RQ_HAS_KEEP_CONNECTION|RQ_CONNECTION_CLOSE) == RQ_HAS_KEEP_CONNECTION) {
 		l.WSTR("L");
 	}
 	if (rq->ctx->upstream_connection_keep_alive) {
 		l.WSTR("l");
 	}
-	if (KBIT_TEST(rq->flags,RQ_INPUT_CHUNKED)) {
+	if (KBIT_TEST(rq->sink->data.flags,RQ_INPUT_CHUNKED)) {
 		l.WSTR("I");
 	}
 	//{{ent
@@ -255,9 +254,9 @@ void log_access(KHttpRequest *rq) {
 		l.WSTR("c");
 	}
 	//}}
-	if (rq->first_response_time_msec > 0) {
+	if (rq->sink->data.first_response_time_msec > 0) {
 		l.WSTR("T");
-		INT64 t2 = rq->first_response_time_msec - rq->begin_time_msec ;
+		INT64 t2 = rq->sink->data.first_response_time_msec - rq->sink->data.begin_time_msec ;
 		l << t2;
 	}
 	if (rq->mark!=0) {
@@ -269,21 +268,21 @@ void log_access(KHttpRequest *rq) {
 	l.WSTR("]");
 	if (conf.log_event_id) {
 		l.WSTR(" ");
-		l.add(rq->begin_time_msec, INT64_FORMAT_HEX);
+		l.add(rq->sink->data.begin_time_msec, INT64_FORMAT_HEX);
 		l.WSTR("-");
 		l.add((INT64)rq, INT64_FORMAT_HEX);
 	}
 #if 0
 	l.WSTR(" ");
-	l.addHex(rq->if_modified_since);
+	l.addHex(rq->sink->data.if_modified_since);
 	l.WSTR(" ");
-	l.addHex(rq->ctx->lastModified);
+	l.addHex(rq->sink->data.if_modified_since);
 	l.WSTR(" ");
-	if (KBIT_TEST(rq->flags, RQ_HAS_IF_NONE_MATCH)) {
+	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_IF_NONE_MATCH)) {
 		l.WSTR("inm");
 	}
-	if (rq->ctx->if_none_match) {
-		l.write_all(rq->ctx->if_none_match->data, rq->ctx->if_none_match->len);
+	if (rq->sink->data.if_none_match) {
+		l.write_all(rq->sink->data.if_none_match->data, rq->sink->data.if_none_match->len);
 	}
 #endif
 	l.WSTR("\n");
@@ -316,7 +315,7 @@ KGL_RESULT stageHttpManageLogin(KHttpRequest *rq)
 		rq->auth = new KHttpBasicAuth(PROGRAM_NAME);
 	rq->auth->set_auth_header(AUTH_HEADER_WEB);
 	const char path_split_str[2]={PATH_SPLIT_CHAR,0};
-	KAutoBuffer buffer(rq->pool);
+	KAutoBuffer buffer(rq->sink->pool);
 	buffer << "<html><body>Please set the admin user and password in the file: <font color='red'>"
 		<< "kangle_installed_path" << path_split_str << "etc" << path_split_str 
 		<< "config.xml</font> like this:"
@@ -328,29 +327,30 @@ KGL_RESULT stageHttpManageLogin(KHttpRequest *rq)
 }
 KGL_RESULT stageHttpManage(KHttpRequest *rq)
 {
-	rq->releaseVirtualHost();
+
 	conf.admin_lock.Lock();
 	if (!checkManageLogin(rq)) {
 		conf.admin_lock.Unlock();
 		char ips[MAXIPLEN];
-		rq->sink->GetRemoteIp(ips,sizeof(ips));
-		klog(KLOG_WARNING, "[ADMIN_FAILED] %s %s\n",	ips, rq->raw_url.path);
+		rq->sink->get_peer_ip(ips,sizeof(ips));
+		klog(KLOG_WARNING, "[ADMIN_FAILED] %s %s\n",	ips, rq->sink->data.raw_url.path);
 		return stageHttpManageLogin(rq);
 	}
 	conf.admin_lock.Unlock();
 	char ips[MAXIPLEN];
-	rq->sink->GetRemoteIp(ips, sizeof(ips));
+	rq->sink->get_peer_ip(ips, sizeof(ips));
 	klog(KLOG_NOTICE, "[ADMIN_SUCCESS]%s %s%s%s\n",
-			ips, rq->raw_url.path,
-			(rq->raw_url.param?"?":""),(rq->raw_url.param?rq->raw_url.param:""));
-	if(strstr(rq->url->path,".whm") 
-		|| strcmp(rq->url->path,"/logo.gif")==0
-		|| strcmp(rq->url->path,"/main.css")==0){
-		KBIT_CLR(rq->flags,RQ_HAS_AUTHORIZATION);
-		assert(rq->IsFetchObjectEmpty() && rq->svh==NULL);
-		rq->svh = conf.sysHost->getFirstSubVirtualHost();
-		if(rq->svh){
-			rq->svh->vh->addRef();
+			ips, rq->sink->data.raw_url.path,
+			(rq->sink->data.raw_url.param?"?":""),(rq->sink->data.raw_url.param?rq->sink->data.raw_url.param:""));
+	if(strstr(rq->sink->data.url->path,".whm") 
+		|| strcmp(rq->sink->data.url->path,"/logo.gif")==0
+		|| strcmp(rq->sink->data.url->path,"/main.css")==0){
+		KBIT_CLR(rq->sink->data.flags,RQ_HAS_AUTHORIZATION);
+		assert(rq->IsFetchObjectEmpty());
+		auto svh = conf.sysHost->getFirstSubVirtualHost();
+		rq->sink->data.bind_opaque(svh);
+		if(svh){
+			svh->vh->addRef();
 			return fiber_http_start(rq);
 		}
 		assert(false);

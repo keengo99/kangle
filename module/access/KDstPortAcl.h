@@ -45,7 +45,7 @@ public:
 		return "dst_port";
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) {
-		if (rq->url->port == port) {
+		if (rq->sink->data.url->port == port) {
 			return true;
 		}
 		return false;

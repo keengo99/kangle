@@ -44,7 +44,7 @@ public:
 		return "host";
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) {
-		return KMultiAcl::match(rq->url->host);
+		return KMultiAcl::match(rq->sink->data.url->host);
 	}
 };
 class KWideHostAcl : public KAcl{
@@ -74,7 +74,7 @@ public:
 		return s.str();
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) {
-		return vhc.find(rq->url->host)!=NULL;		
+		return vhc.find(rq->sink->data.url->host)!=NULL;		
 	}
 	void editHtml(std::map<std::string,std::string> &attribute, bool html) {
 		vhc.clear();

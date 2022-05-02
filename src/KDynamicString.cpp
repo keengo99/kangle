@@ -199,7 +199,7 @@ void KDynamicString::controlCode(char *code) {
 			curBlock->key = key;
 			curBlock->count = getDimSize(dim);
 			char *orig_hot = xstrdup(hot);
-			int orig_len = strlen(orig_hot);
+			int orig_len = (int)strlen(orig_hot);
 			char *saved_hot = hot;
 			for (curBlock->index = 0; curBlock->index < curBlock->count; curBlock->index++) {
 				if (curBlock->index > 0) {
@@ -226,7 +226,7 @@ char *KDynamicString::parseDirect(char *str) {
 	if (dst) {
 		delete dst;
 	}
-	dst = new KStringBuf(2 * strlen(str));
+	dst = new KStringBuf(2 * (int)strlen(str));
 	clean();
 	buf = str;
 	hot = buf;
@@ -245,7 +245,7 @@ char *KDynamicString::parseString(const char *str) {
 	if (dst) {
 		delete dst;
 	}
-	dst = new KStringBuf(2 * strlen(str));
+	dst = new KStringBuf(2 * (int)strlen(str));
 	//dst.clean();
 	//dst.init(2048);
 	clean();

@@ -64,7 +64,7 @@ KSubVirtualHost *KNsVirtualHost::refsVirtualHost(const char *site) {
 }
 bool KNsVirtualHost::parseVirtualHost(KHttpRequest *rq) {
 	assert(rq->svh==NULL);
-	rq->svh = refsVirtualHost(rq->url->host);
+	rq->svh = refsVirtualHost(rq->sink->data.url->host);
 	if (rq->svh) {
 #ifdef ENABLE_VH_RS_LIMIT
 		if (!rq->svh->vh->addConnection()) {

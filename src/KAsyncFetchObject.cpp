@@ -68,7 +68,7 @@ KUpstream * proxy_connect(KHttpRequest *rq)
 #endif
 	//KAsyncFetchObject *fo = static_cast<KAsyncFetchObject *>(rq->fetchObj);
 	const char *ip = rq->bind_ip;
-	KUrl *url = (KBIT_TEST(rq->filter_flags,RF_PROXY_RAW_URL)?&rq->raw_url:rq->url);
+	KUrl *url = (KBIT_TEST(rq->filter_flags,RF_PROXY_RAW_URL)?&rq->sink->data.raw_url:rq->sink->data.url);
 	const char *host = url->host;
 	u_short port = url->port;
 	const char *ssl = NULL;
@@ -155,7 +155,7 @@ KGL_RESULT KAsyncFetchObject::InternalProcess(KHttpRequest *rq, kfiber** post_fi
 	}
 	if (client == NULL) {
 		if (!rq->ctx->read_huped) {
-			KBIT_SET(rq->flags, RQ_UPSTREAM_ERROR);
+			KBIT_SET(rq->sink->data.flags, RQ_UPSTREAM_ERROR);
 		}
 		return out->f->write_message(out, rq, KGL_MSG_ERROR, "Cann't connect to remote host", STATUS_GATEWAY_TIMEOUT);
 	}
@@ -231,11 +231,14 @@ KGL_RESULT KAsyncFetchObject::ReadBody(KHttpRequest* rq)
 				return ret;
 			}
 		}
-		if (!rq->ctx->connection_upgrade && !checkContinueReadBody(rq)) {
+		if (!KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE) && !checkContinueReadBody(rq)) {
 			return KGL_OK;
 		}
 		char *buf = (char*)getUpstreamBuffer(&len);
-		int got = client->Read(buf, len);
+		WSABUF bufs;
+		bufs.iov_base = buf;
+		bufs.iov_len = len;
+		int got = client->read(&bufs, 1);
 		if (got <= 0) {
 			pop_header.keep_alive_time_out = -1;
 			return  got == 0 ? KGL_OK : KGL_ESOCKET_BROKEN;
@@ -247,16 +250,14 @@ KGL_RESULT KAsyncFetchObject::ReadBody(KHttpRequest* rq)
 KGL_RESULT KAsyncFetchObject::ReadHeader(KHttpRequest *rq, kfiber **post_fiber)
 {
 	InitUpstreamBuffer();
-	//{{ent
 #if defined(WORK_MODEL_TCP) || defined(HTTP_PROXY)
 	//tcp pipe line
-	if (rq->ctx->connection_upgrade) {
+	if (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
 		return readHeadSuccess(rq, post_fiber);
 	}
-#endif//}}
-	KGL_RESULT result;
-	if (client->ReadHttpHeader(&result)) {
-		//http2
+#endif
+	KGL_RESULT result = client->read_header();
+	if (result!=KGL_ENOT_SUPPORT) {
 		if (result == KGL_OK) {
 			return readHeadSuccess(rq, post_fiber);
 		}
@@ -266,7 +267,10 @@ KGL_RESULT KAsyncFetchObject::ReadHeader(KHttpRequest *rq, kfiber **post_fiber)
 	int len;
 	for (;;) {		
 		char *buf = (char *)getUpstreamBuffer(&len);
-		int got = client->Read(buf, len);
+		WSABUF bufs;
+		bufs.iov_base = buf;
+		bufs.iov_len = len;
+		int got = client->read(&bufs, 1);		
 		if (got <= 0) {
 			return KGL_ESOCKET_BROKEN;
 		}
@@ -300,7 +304,7 @@ KGL_RESULT KAsyncFetchObject::ReadHeader(KHttpRequest *rq, kfiber **post_fiber)
 }
 KGL_RESULT KAsyncFetchObject::ProcessPost(KHttpRequest* rq)
 {
-	while (rq->ctx->connection_upgrade || in->f->get_read_left(in, rq) != 0) {
+	while (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE) || in->f->get_read_left(in, rq) != 0) {
 		int len;
 		char* buf = GetPostBuffer(&len);
 		int got = in->f->read_body(in, rq, buf, len);
@@ -318,7 +322,10 @@ KGL_RESULT KAsyncFetchObject::ProcessPost(KHttpRequest* rq)
 KGL_RESULT KAsyncFetchObject::SendHeader(KHttpRequest* rq)
 {
 	if (buffer == NULL) {
-		buildHead(rq);
+		KGL_RESULT result = buildHead(rq);
+		if (result!=KGL_OK) {
+			return result;
+		}
 		kassert(buffer);
 	}
 	if (buffer->startRead() == 0) {
@@ -329,7 +336,7 @@ KGL_RESULT KAsyncFetchObject::SendHeader(KHttpRequest* rq)
 	WSABUF buf[16];
 	for (;;) {
 		int bc = buffer->getReadBuffer(buf, kgl_countof(buf));
-		int got = client->Write(buf, bc);
+		int got = client->write(buf, bc);
 		if (got <= 0) {
 			return KGL_ESOCKET_BROKEN;
 		}
@@ -343,15 +350,15 @@ KGL_RESULT KAsyncFetchObject::SendHeader(KHttpRequest* rq)
 KGL_RESULT KAsyncFetchObject::PostResult(KHttpRequest *rq,int got)
 {
 	assert(buffer != NULL);
-	//printf("handleReadPost got=[%d] protocol=[%d]\n",got,(int)rq->http_major);
-	if (got == 0 && !rq->ctx->connection_upgrade) {
+	//printf("handleReadPost got=[%d] protocol=[%d]\n",got,(int)rq->sink->data.http_major);
+	if (got == 0 && !KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
 		if (chunk_post) {
 			BuildChunkHeader();
 			return KGL_OK;
 		}
 		if (in->f->get_read_left(in, rq) == 0) {
 			//如果还有数据要读，而读到0的话，就表示读取失败，而不是读取结束。
-			client->WriteEnd();
+			client->write_end();
 			return KGL_END;
 		}
 	}
@@ -383,14 +390,14 @@ KGL_RESULT KAsyncFetchObject::SendPost(KHttpRequest *rq)
 	buildPost(rq);
 	buffer->startRead();
 	KGL_RESULT result = KGL_OK;
-	if (!rq->ctx->connection_upgrade) {
+	if (!KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
 		//read_hup(rq);
 	}
 	WSABUF buf[16];
 	for (;;) {
 		int bc = buffer->getReadBuffer(buf, kgl_countof(buf));
 		//debug_print_wsa_buf(buf, bc);
-		int got = client->Write(buf, bc);
+		int got = client->write(buf, bc);
 		//printf("write upstream got=[%d]\n", got);
 		if (got <= 0) {
 			result = KGL_ESOCKET_BROKEN;
@@ -416,7 +423,7 @@ KGL_RESULT KAsyncFetchObject::readHeadSuccess(KHttpRequest *rq,kfiber **post_fib
 {
 	pop_header.first_body_time = kgl_current_sec;
 	client->IsGood();
-	if (rq->ctx->connection_upgrade) {
+	if (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
 		rq->sink->SetNoDelay(true);
 		client->SetNoDelay(true);
 		int tmo = rq->sink->GetTimeOut();
@@ -431,11 +438,11 @@ KGL_RESULT KAsyncFetchObject::readHeadSuccess(KHttpRequest *rq,kfiber **post_fib
 }
 KGL_RESULT KAsyncFetchObject::PushHeaderFinished(KHttpRequest *rq)
 {
-	if (rq->meth == METH_HEAD || pop_header.no_body) {
+	if (rq->sink->data.meth == METH_HEAD || pop_header.no_body) {
 		//expected done
 		expectDone(rq);
 	}
-	if (rq->ctx->connection_upgrade) {
+	if (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
 		//如果是websocket，则长度未知
 		rq->ctx->know_length = 0;
 		rq->ctx->left_read = -1;
@@ -493,8 +500,8 @@ KGL_RESULT KAsyncFetchObject::PushHeader(KHttpRequest *rq, const char *attr, int
 				rq->ctx->upstream_connection_keep_alive = true;
 			} else if (field.is2("close", 5)) {
 				rq->ctx->upstream_connection_keep_alive = false;
-			} else if (KBIT_TEST(rq->flags, RQ_HAS_CONNECTION_UPGRADE) && field.is2("upgrade", 7)) {
-				rq->ctx->connection_upgrade = true;
+			} else if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE) && field.is2("upgrade", 7)) {
+				KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_UPGRADE);
 				rq->ctx->upstream_connection_keep_alive = false;
 			}
 		} while (field.next());
@@ -571,7 +578,7 @@ KGL_RESULT KAsyncFetchObject::handleUpstreamError(KHttpRequest *rq,int error,con
 			//new的才计算错误.
 			client->IsBad(badStage);
 		}
-		KBIT_SET(rq->flags, RQ_UPSTREAM_ERROR);
+		KBIT_SET(rq->sink->data.flags, RQ_UPSTREAM_ERROR);
 	}
 	if (rq->ctx->connection_upgrade) {
 		return shutdown(rq);
@@ -580,7 +587,7 @@ KGL_RESULT KAsyncFetchObject::handleUpstreamError(KHttpRequest *rq,int error,con
 		//client broken
 		return gate->f->push_message(gate, rq, KGL_MSG_ERROR, error, msg);
 	}	
-	char *url = rq->url->getUrl();
+	char *url = rq->sink->data.url->getUrl();
 	sockaddr_i *upstream_addr = client->GetAddr();
 	char ips[MAXIPLEN];
 	ksocket_sockaddr_ip(upstream_addr, ips, MAXIPLEN);

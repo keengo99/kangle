@@ -1,12 +1,16 @@
 #ifndef KHTTPFIBER_H
 #define KHTTPFIBER_H
 #include "ksapi.h"
+#include "KHttpServer.h"
+
 class KHttpRequest;
 class KAutoBuffer;
 class KHttpObject;
 class KFetchObject;
 class KRequestQueue;
-int start_request_fiber(void *rq, int header_length);
+class KSink;
+kgl_connection_result kgl_on_new_connection(kconnection* cn);
+void start_request_fiber(KSink* sink, int header_length);
 KGL_RESULT fiber_http_start(KHttpRequest *rq);
 KGL_RESULT send_http2(KHttpRequest *rq, KHttpObject *obj, uint16_t status_code, KAutoBuffer *body=NULL);
 KGL_RESULT send_error2(KHttpRequest *rq, int code, const char* reason);

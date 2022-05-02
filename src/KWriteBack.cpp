@@ -29,7 +29,7 @@ std::string KWriteBack::getMsg()
 void KWriteBack::setMsg(std::string msg)
 {
 	if (header) {
-		free_header(header);
+		free_header_list(header);
 		header = NULL;
 	}
 	body.clean();
@@ -59,12 +59,12 @@ void KWriteBack::buildRequest(KHttpRequest *rq)
 	}
 	rq->responseHeader(kgl_expand_string("Content-Length"),body.getSize());
 	if (!keep_alive) {
-		KBIT_SET(rq->flags,RQ_CONNECTION_CLOSE);
+		KBIT_SET(rq->sink->data.flags,RQ_CONNECTION_CLOSE);
 	}
 	rq->responseConnection();
-	if (rq->meth!=METH_HEAD) {
-		KAutoBuffer buffer(rq->pool);
-		buffer.write_all(NULL, body.getBuf(),body.getSize());		
+	if (rq->sink->data.meth!=METH_HEAD) {
+		KAutoBuffer buffer(rq->sink->pool);
+		buffer.write_all(body.getBuf(),body.getSize());		
 		rq->AppendFetchObject(new KBufferFetchObject(buffer.getHead(), 0, buffer.getLen(), NULL));
 	}
 }

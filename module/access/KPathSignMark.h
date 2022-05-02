@@ -15,15 +15,15 @@ public:
 	}
 	bool ReturnWithRewriteParam(KHttpRequest *rq, KStringBuf &np, bool result)
 	{
-		set_url_param(np, rq->url);
+		set_url_param(np, rq->sink->data.url);
 		return result;
 	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType)
 	{
-		if (rq->url->param==NULL) {
+		if (rq->sink->data.url->param==NULL) {
 			return false;
 		}
-		char *hot = rq->url->param;
+		char *hot = rq->sink->data.url->param;
 		const char *sign_value = NULL;
 		const char *expire_value = NULL;
 		KStringBuf np;
@@ -73,14 +73,14 @@ public:
 		}
 		KStringBuf s;
 		if (file) {
-			s << rq->raw_url.path;		
+			s << rq->sink->data.raw_url.path;		
 		} else {
-			const char *e = strrchr(rq->raw_url.path,'/');
+			const char *e = strrchr(rq->sink->data.raw_url.path,'/');
 			if (e==NULL) {
 				return ReturnWithRewriteParam(rq, np, false);
 			}
-			int len = e - rq->raw_url.path;
-			s.write_all(rq->raw_url.path,len+1);
+			int len = e - rq->sink->data.raw_url.path;
+			s.write_all(rq->sink->data.raw_url.path,len+1);
 		}
 		s << key.c_str() << expire_value;
 		if (strstr(expire_value,"ip")!=NULL) {

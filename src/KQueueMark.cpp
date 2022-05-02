@@ -82,11 +82,11 @@ bool KPerQueueMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJump
 		if (matcher->header == NULL) {
 			if (url == NULL) {
 				url = new KStringBuf;
-				rq->url->GetUrl(*url);
+				rq->sink->data.url->GetUrl(*url);
 			}
 			ss = matcher->reg.matchSubString(url->getString(), url->getSize(), 0);
 		} else {
-			KHttpHeader *av = rq->GetHeader();
+			KHttpHeader *av = rq->sink->data.GetHeader();
 			while (av) {
 				if (attr_casecmp(av->attr, matcher->header) == 0 && av->val) {
 					ss = matcher->reg.matchSubString(av->val, av->val_len, 0);

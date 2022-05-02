@@ -19,7 +19,7 @@ public:
 		rq->responseHeader(kgl_expand_string("Content-Type"), kgl_expand_string("text/plain"));
 		rq->responseHeader(kgl_expand_string("Cache-Control"), kgl_expand_string("no-cache,no-store"));
 		rq->responseHeader(kgl_expand_string("Server"),conf.serverName,conf.serverNameLength);
-		KAutoBuffer s(rq->pool);
+		KAutoBuffer s(rq->sink->pool);
 		s << "Active connections: " << (int)total_connect << " \n";
 		s << "server accepts handled requests\n";
 		s << " " <<(INT64)katom_get64((void *)&kgl_total_servers) << " " << (INT64)katom_get64((void *)&kgl_total_accepts) << " " << (INT64)katom_get64((void *)&kgl_total_requests) << " \n";

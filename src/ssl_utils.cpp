@@ -123,18 +123,5 @@ void ssl_var_free(void *var)
 {
 	OPENSSL_free(var);
 }
-void kgl_ssl_npn(void *ssl_ctx_data, const unsigned char **out, unsigned int *outlen)
-{
-#ifdef ENABLE_HTTP2
-	bool *http2 = (bool *)ssl_ctx_data;
-	if (http2 && *http2) {
-		*out = (unsigned char *)KGL_HTTP_V2_NPN_ADVERTISE KGL_HTTP_NPN_ADVERTISE;
-		*outlen = sizeof(KGL_HTTP_V2_NPN_ADVERTISE KGL_HTTP_NPN_ADVERTISE) - 1;
-		return;
-	}
-#endif
-	*out = (unsigned char *)KGL_HTTP_NPN_ADVERTISE;
-	*outlen = sizeof(KGL_HTTP_NPN_ADVERTISE) - 1;
-}
 #endif
 

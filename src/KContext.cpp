@@ -14,7 +14,6 @@ void KContext::DeadOldObject()
 }
 void KContext::clean()
 {
-	clean_if_none_match();
 	if (st) {
 		delete st;
 	}
@@ -103,21 +102,3 @@ void KContext::popObj()
 		old_obj = NULL;
 	}
 }
-//{{ent
-#ifdef ENABLE_DELTA_DECODE
-void KContext::getDeltaHeader(KHttpRequest *rq,KStringBuf &sd)
-{
-	if (KBIT_TEST(rq->flags, RQ_HAS_GZIP)) {
-		sd.write_all(kgl_expand_string("gzip, "));
-	}
-	if (rq->bo_ctx==NULL && !KBIT_TEST(rq->flags,RQ_HAVE_RANGE)) {
-		//big object skip sd encode
-		sd.write_all(kgl_expand_string("sd="));
-		if (old_obj && KBIT_TEST(old_obj->index.flags,OBJ_IS_DELTA)) {
-			sd.addHex(old_obj->index.filename1);
-			sd.write_all("_",1);
-			sd.addHex(old_obj->index.filename2);
-		}
-	}
-}
-#endif//}}

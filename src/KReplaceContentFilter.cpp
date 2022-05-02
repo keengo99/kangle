@@ -58,7 +58,7 @@ bool KReplaceContentFilter::writeBuffer(KHttpRequest *rq, const char *str,int le
 		}
 		return true;
 	}
-	b.write_all(rq, str,len);
+	b.write_all(str,len);
 	if ((int)b.getLen() > max_buffer) {
 		return dumpBuffer(rq);
 	}

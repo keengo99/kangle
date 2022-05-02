@@ -209,7 +209,7 @@ void KHttpResponseParser::EndParse(KHttpRequest *rq)
 		}
 		unsigned corrected_received_age = MAX(apparent_age, age);
 
-		unsigned response_delay = (unsigned)(responseTime - rq->begin_time_msec / 1000);
+		unsigned response_delay = (unsigned)(responseTime - rq->sink->data.begin_time_msec / 1000);
 		unsigned corrected_initial_age = corrected_received_age	+ response_delay;
 		unsigned resident_time = (unsigned)(kgl_current_sec - responseTime);
 		age = corrected_initial_age + resident_time;

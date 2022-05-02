@@ -203,7 +203,7 @@ KGL_RESULT st_write_message(kgl_output_stream*st, KREQUEST r, KGL_MSG_TYPE msg_t
 	if (msg_type == KGL_MSG_ERROR) {
 		return handle_error(rq, msg_flag, (const char*)msg);
 	}
-	if (KBIT_TEST(rq->flags, RQ_HAS_SEND_HEADER)) {
+	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER)) {
 		return KGL_EHAS_SEND_HEADER;
 	}
 	WSABUF* buf = (WSABUF*)msg;
@@ -228,7 +228,7 @@ KGL_RESULT st_write_message(kgl_output_stream*st, KREQUEST r, KGL_MSG_TYPE msg_t
 	if (len < 0) {
 		return KGL_EINVALID_PARAMETER;
 	}
-	if (rq->status_code == 0) {
+	if (rq->sink->data.status_code == 0) {
 		rq->responseStatus(200);
 	}
 	rq->responseContentLength(len);
@@ -289,7 +289,7 @@ kgl_output_stream *new_default_output_stream()
 static int64_t default_input_get_read_left(kgl_input_stream* st, KREQUEST r)
 {
 	KHttpRequest* rq = (KHttpRequest*)r;
-	return rq->left_read;
+	return rq->sink->data.left_read;
 }
 static int default_input_read(kgl_input_stream* st, KREQUEST r, char* buf, int len)
 {

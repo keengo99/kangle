@@ -78,7 +78,7 @@ bool KCmdPoolableRedirect::Exec(KVirtualHost* vh, KListenPipeStream* st,bool isS
 	}
 	char* cmd_buf = xstrdup(cmd.c_str());
 	explode_cmd(cmd_buf, args);
-	int args_count = args.size() + 1;
+	int args_count = (int)args.size() + 1;
 	if (type == WORK_TYPE_MP && worker > 0) {
 		args_count++;
 		rdst = RDSTD_NAME_PIPE;

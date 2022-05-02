@@ -103,8 +103,8 @@ char *KHttpObject::BuildVary(KHttpRequest *rq)
 }
 KHttpObject::KHttpObject(KHttpRequest *rq,KHttpObject *obj)
 {
-	init(rq->url);
-	uk.url->encoding = rq->raw_url.encoding;
+	init(rq->sink->data.url);
+	uk.url->encoding = rq->sink->data.raw_url.encoding;
 	index.flags = obj->index.flags;
 	KBIT_CLR(index.flags,FLAG_IN_DISK|FLAG_URL_FREE|OBJ_IS_READY|OBJ_IS_STATIC2|FLAG_NO_BODY|ANSW_HAS_CONTENT_LENGTH|ANSW_HAS_CONTENT_RANGE);
 	KBIT_SET(index.flags,FLAG_IN_MEM);

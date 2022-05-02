@@ -260,7 +260,7 @@ bool KExtendProgramConfig::handle(KExtendProgramString *ds) {
 			klog(KLOG_ERR, "cann't parse src file content [%s]\n", file.getName());
 			goto done;
 		}
-		len = strlen(dst_buf);
+		len = (int)strlen(dst_buf);
 		if (len!=dst_fp.write(dst_buf,len)) {
 			klog(KLOG_ERR,"cann't complete write to tmp file .\n");
 			goto done;

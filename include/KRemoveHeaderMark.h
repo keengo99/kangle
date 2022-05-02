@@ -34,7 +34,7 @@ public:
 				data = obj->data;
 				h = data->headers;
 			} else {
-				h = rq->GetHeader();
+				h = rq->sink->data.GetHeader();
 			}
 			KHttpHeader *last = NULL;
 			while (h) {
@@ -46,15 +46,15 @@ public:
 						if (obj) {
 							data->headers = next;
 						} else {
-							rq->header = next;
+							rq->sink->data.header = next;
 						}
 					}
 					if (!obj) {
 						if (strcasecmp(attr,"Range")==0) {
-							KBIT_CLR(rq->flags,RQ_HAVE_RANGE);
+							KBIT_CLR(rq->sink->data.flags,RQ_HAVE_RANGE);
 						} else if (strcasecmp(attr, "Accept-Encoding") == 0) {
-							rq->raw_url.encoding = 0;
-							rq->url->encoding = 0;
+							rq->sink->data.raw_url.encoding = 0;
+							rq->sink->data.url->encoding = 0;
 						}
 					}
 					free(h->attr);

@@ -89,7 +89,7 @@ bool stored_obj(KHttpRequest *rq, KHttpObject *obj,KHttpObject *old_obj) {
 		return false;
 	}
 	/*
-	if (KBIT_TEST(rq->flags,RQ_HAS_GZIP)) {
+	if (KBIT_TEST(rq->sink->data.flags,RQ_HAS_GZIP)) {
 		KBIT_SET(obj->index.flags,FLAG_RQ_GZIP);
 	}
 	*/
@@ -118,7 +118,7 @@ bool stored_obj(KHttpRequest *rq, KHttpObject *obj,KHttpObject *old_obj) {
 		old_obj->Dead();
 	}
 	if (stored_obj(obj,(KBIT_TEST(obj->index.flags,FLAG_IN_MEM)?LIST_IN_MEM:LIST_IN_DISK))) {
-		KBIT_SET(rq->flags,RQ_OBJ_STORED);
+		KBIT_SET(rq->sink->data.flags,RQ_OBJ_STORED);
 #ifdef ENABLE_DB_DISK_INDEX
 		if (KBIT_TEST(obj->index.flags, FLAG_IN_DISK)) {
 			dci->start(ci_add, obj);

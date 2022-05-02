@@ -52,7 +52,7 @@ public:
 		if (it==ips.end()) {
 			sl = new KSpeedLimit;
 			sl->setSpeedLimit(speed_limit);
-			ips.insert(std::pair<char *,KSpeedLimit *>(strdup(rq->client_ip),sl));
+			ips.insert(std::pair<char *,KSpeedLimit *>(strdup(ip),sl));
 		} else {
 			sl = (*it).second;
 		}

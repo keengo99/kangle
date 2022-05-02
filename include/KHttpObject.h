@@ -21,6 +21,7 @@
 #include "time_utils.h"
 #include "KFileName.h"
 #include "KBuffer.h"
+#include "khttp.h"
 
 #define   LIST_IN_MEM   0
 #define   LIST_IN_DISK  1
@@ -48,7 +49,7 @@ public:
 	KHttpObjectBody(KHttpObjectBody *data);
 	~KHttpObjectBody() {
 		if (headers) {
-			free_header(headers);
+			free_header_list(headers);
 		}
 		switch(type){
 		case MEMORY_OBJECT:
@@ -125,7 +126,7 @@ public:
 		init(NULL);
 	}
 	KHttpObject(KHttpRequest *rq) {		
-		init(rq->url);
+		init(rq->sink->data.url);
 		data = new KHttpObjectBody();	
 		KBIT_SET(index.flags,FLAG_IN_MEM);
 	}
@@ -271,7 +272,7 @@ public:
 		if (this->checkNobody()) {
 			return true;
 		}
-		return rq->meth == METH_HEAD;
+		return rq->sink->data.meth == METH_HEAD;
 	}
 	bool checkNobody() {
 		if (is_status_code_no_body(data->status_code)) {

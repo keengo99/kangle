@@ -44,7 +44,7 @@ public:
 				|| !rq->ctx->upstream_expected_done) {
 				pop_header.keep_alive_time_out = -1;
 			}
-			client->Gc(pop_header.keep_alive_time_out, pop_header.first_body_time);
+			client->gc(pop_header.keep_alive_time_out, pop_header.first_body_time);
 			client = NULL;
 		}		
 		ResetBuffer();		
@@ -53,7 +53,7 @@ public:
 	{
 		assert(client==NULL);	
 		if (client) {
-			client->Gc(-1,0);
+			client->gc(-1,0);
 		}
 		if (buffer) {
 			delete buffer;
@@ -122,7 +122,7 @@ protected:
 	void PushStatus(KHttpRequest *rq, int status_code);
 	KGL_RESULT PushHeaderFinished(KHttpRequest *rq);
 	//创建发送头到buffer中。
-	virtual void buildHead(KHttpRequest *rq) = 0;
+	virtual KGL_RESULT buildHead(KHttpRequest *rq) = 0;
 	//解析head
 	virtual kgl_parse_result ParseHeader(KHttpRequest *rq,char **data, int *len);
 	virtual KGL_RESULT ParseBody(KHttpRequest *rq, char **data, int *len);

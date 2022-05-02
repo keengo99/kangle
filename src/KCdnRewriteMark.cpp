@@ -1,6 +1,7 @@
 #include "KCdnRewriteMark.h"
 #include "KCdnContainer.h"
 #include "KRewriteMarkEx.h"
+#include "KHttpRequest.h"
 using namespace std;
 KHostRewriteMark::KHostRewriteMark()
 {
@@ -15,7 +16,7 @@ bool KHostRewriteMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJ
 			int &jumpType)
 {
 
-	KRegSubString *ss = regHost.matchSubString(rq->url->host,strlen(rq->url->host),0);
+	KRegSubString* ss = regHost.matchSubString(rq->sink->data.url->host, (int)strlen(rq->sink->data.url->host), 0);
 	if (ss==NULL) {
 		return false;
 	}
@@ -25,19 +26,19 @@ bool KHostRewriteMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJ
 		return false;
 	}
 	if (rewrite) {
-		free(rq->url->host);
-		rq->url->host = cdn_host->stealString();
+		free(rq->sink->data.url->host);
+		rq->sink->data.url->host = cdn_host->stealString();
 		if (port>0) {
-			rq->url->port = port;
+			rq->sink->data.url->port = port;
 		}
-		KBIT_SET(rq->raw_url.flags,KGL_URL_REWRITED);
+		KBIT_SET(rq->sink->data.raw_url.flags,KGL_URL_REWRITED);
 	}
 	if (proxy) {	
 		const char *ssl = NULL;
-		if (KBIT_TEST(rq->url->flags, KGL_URL_SSL)) {
+		if (KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL)) {
 			ssl = "s";
 		}
-		KFetchObject *fo = server_container->get(NULL,(rewrite?rq->url->host:cdn_host->getString()),(port>0?port:rq->url->port),ssl,life_time);
+		KFetchObject *fo = server_container->get(NULL,(rewrite?rq->sink->data.url->host:cdn_host->getString()),(port>0?port:rq->sink->data.url->port),ssl,life_time);
 		if (fo) {
 			rq->AppendFetchObject(fo);
 		}
@@ -133,15 +134,15 @@ KHostMark::~KHostMark()
 bool KHostMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType, int &jumpType)
 {
 	if (rewrite) {
-		free(rq->url->host);
-		rq->url->host = strdup(host.c_str());
+		free(rq->sink->data.url->host);
+		rq->sink->data.url->host = strdup(host.c_str());
 		if (port>0) {
-			rq->url->port = port;
+			rq->sink->data.url->port = port;
 		}
-		KBIT_SET(rq->raw_url.flags,KGL_URL_REWRITED);
+		KBIT_SET(rq->sink->data.raw_url.flags,KGL_URL_REWRITED);
 	}
 	if (proxy) {		
-		KFetchObject * fo = server_container->get(NULL,(rewrite?rq->url->host:host.c_str()),(port>0?port:rq->url->port),(ssl?"s":NULL),life_time);
+		KFetchObject * fo = server_container->get(NULL,(rewrite?rq->sink->data.url->host:host.c_str()),(port>0?port:rq->sink->data.url->port),(ssl?"s":NULL),life_time);
 		if (fo) {
 			rq->AppendFetchObject(fo);
 		}

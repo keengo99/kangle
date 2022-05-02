@@ -18,7 +18,7 @@ KGL_RESULT global_get_variable(PVOID ctx,KGL_GVAR type,LPSTR  name, LPVOID value
 	KDsoExtend *dso = (KDsoExtend *)ctx;
 	switch (type) {
 	case KGL_GBASE_PATH:
-		return add_api_var(value, size, conf.path.c_str(), conf.path.size());
+		return add_api_var(value, size, conf.path.c_str(), (int)conf.path.size());
 	case KGL_GNAME:
 	{
 		const char *val = getSystemEnv(name);
@@ -33,7 +33,7 @@ KGL_RESULT global_get_variable(PVOID ctx,KGL_GVAR type,LPSTR  name, LPVOID value
 		if (it == dso->attribute.end()) {
 			return KGL_ENO_DATA;
 		}
-		return add_api_var(value, size, (*it).second.c_str(), (*it).second.size());
+		return add_api_var(value, size, (*it).second.c_str(), (int)(*it).second.size());
 	}
 	default:
 		return KGL_ENOT_SUPPORT;

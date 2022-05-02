@@ -1,57 +1,5 @@
 #include "KUrlParser.h"
 
-static int my_htoi(char *s) {
-	int value;
-	int c;
-
-	c = ((unsigned char *) s)[0];
-	if (isupper(c))
-		c = tolower(c);
-	value = (c >= '0' && c <= '9' ? c - '0' : c - 'a' + 10) * 16;
-
-	c = ((unsigned char *) s)[1];
-	if (isupper(c))
-		c = tolower(c);
-	value += c >= '0' && c <= '9' ? c - '0' : c - 'a' + 10;
-
-	return (value);
-}
-int url_decode(char *str, int len, KUrl *url,bool space2plus) {
-	char *dest = str;
-	char *data = str;
-	bool mem_availble = false;
-	if (len == 0) {
-		len = (int)strlen(str);
-	}
-	while (len--) {
-		if (space2plus && *data == '+') {
-			*dest = ' ';
-			if (url) {
-				KBIT_SET(url->flags,KGL_URL_ENCODE);
-			}
-		} else if (
-			*data == '%' &&
-			len >= 2 &&
-			isxdigit((unsigned char) *(data + 1)) &&
-			isxdigit((unsigned char) *(data + 2))) {
-			mem_availble = true;
-			*dest = (char) my_htoi(data + 1);
-			data += 2;
-			len -= 2;
-			if (url) {
-				KBIT_SET(url->flags,KGL_URL_ENCODE);
-			}
-		} else {
-			*dest = *data;
-		}
-		data++;
-		dest++;
-	}
-	if (mem_availble) {
-		*dest = '\0';
-	}
-	return (int)(dest - str);
-}
 bool KUrlParser::parse(const char *param)
 {
 	if (param == NULL || buf) {

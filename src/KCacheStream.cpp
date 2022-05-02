@@ -89,7 +89,7 @@ StreamState KCacheStream::write_direct(KHttpRequest *rq, char *buf,int len)
 {
 	StreamState result = KHttpStream::write_all(rq, buf,len);
 	if (buffer) {
-		buffer->write_direct(rq, buf, len);
+		buffer->write_direct(buf, len);
 		kassert(disk_cache == NULL);
 		CheckMemoryCacheSize(rq);
 		return result;
@@ -108,7 +108,7 @@ StreamState KCacheStream::write_all(KHttpRequest *rq, const char *buf,int len)
 {
 	StreamState result = KHttpStream::write_all(rq, buf,len);
 	if (buffer) {
-		buffer->write_all(rq, buf, len);
+		buffer->write_all(buf, len);
 		kassert(disk_cache == NULL);
 		CheckMemoryCacheSize(rq);
 		return result;

@@ -71,7 +71,7 @@ StreamState KWStream::write_all(const char *buf, int len) {
 	return STREAM_WRITE_SUCCESS;
 }
 StreamState KWStream::write_all(const char *buf) {
-	return write_all(buf, strlen(buf));
+	return write_all(buf, (int)strlen(buf));
 }
 int KConsole::write(const char *buf, int len) {
 	char *str = (char *) xmalloc(len+1);

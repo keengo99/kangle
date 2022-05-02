@@ -3,6 +3,7 @@
 #include "KDiskCacheIndex.h"
 #ifdef ENABLE_SQLITE_DISK_INDEX
 #include "sqlite3.h"
+#include "klog.h"
 class KSqliteDiskCacheIndex : public KDiskCacheIndex
 {
 public:

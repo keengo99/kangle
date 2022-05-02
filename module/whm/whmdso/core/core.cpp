@@ -662,7 +662,7 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 			bool revers = atoi(uv->get("revers").c_str())==1;
 			int prefix_len = 0;
 			if (prefix) {
-				prefix_len = strlen(prefix);
+				prefix_len = (int)strlen(prefix);
 			}
 			conf.gvm->dumpFlow(ctx,revers,prefix,prefix_len,atoi(uv->get("extend").c_str()));
 			return WHM_OK;
@@ -673,7 +673,7 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 			bool revers = atoi(uv->get("revers").c_str())==1;
 			int prefix_len = 0;
 			if (prefix) {
-				prefix_len = strlen(prefix);
+				prefix_len = (int)strlen(prefix);
 			}
 			conf.gvm->dumpLoad(ctx,revers,prefix,prefix_len);
 			return WHM_OK;
@@ -1227,7 +1227,7 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 		}else{
 			file = conf.path + file;
 		}
-		int len = content.size();
+		int len = (int)content.size();
 		char *buf = NULL;
 		if(urlencode.size()>0 && urlencode=="1"){
 			buf = strdup(content.c_str());

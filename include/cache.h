@@ -57,7 +57,7 @@ inline bool objCanCache(KHttpRequest *rq,KHttpObject *obj)
 		//默认不缓存并且也没有说明要缓存的
 		return false;
 	}
-	if (KBIT_TEST(rq->flags,RQ_HAS_AUTHORIZATION)) {
+	if (KBIT_TEST(rq->sink->data.flags,RQ_HAS_AUTHORIZATION)) {
 		//如果是有认证用户的必须要回源验证。
 		KBIT_SET(obj->index.flags,OBJ_MUST_REVALIDATE);
 	}
@@ -69,7 +69,7 @@ inline bool objCanCache(KHttpRequest *rq,KHttpObject *obj)
 }
 inline KHttpObject * findHttpObject(KHttpRequest *rq, bool create_flags, KContext *ctx) {
 	ctx->new_object = 0;
-	u_short url_hash = cache.hash_url(rq->url);
+	u_short url_hash = cache.hash_url(rq->sink->data.url);
 	KHttpObject *obj = cache.find(rq,url_hash);
 	if (obj == NULL && create_flags) {
 		obj = new KHttpObject(rq);

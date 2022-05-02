@@ -53,7 +53,7 @@ KStringBuf::~KStringBuf() {
 
 StreamState KStringBuf::write_all(const char *str, int len) {
 	assert(buf);
-	int used = hot - buf;
+	int used = (int)(hot - buf);
 	assert(used>=0);
 	for (;;) {
 		if (used + len < current_size) {

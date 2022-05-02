@@ -25,17 +25,14 @@ public:
 			if (c && c->proxy && c->proxy->src) {				
 				char ips[MAXIPLEN];
 				if (ksocket_sockaddr_ip(c->proxy->src, ips, MAXIPLEN - 1)) {
-					if (rq->client_ip) {
-						free(rq->client_ip);
-					}
-					rq->client_ip = strdup(ips);
+					rq->sink->set_client_ip(ips);
 					return true;
 				}
 			}
 #endif
 			return false;
 		}
-		KHttpHeader *h = rq->GetHeader();
+		KHttpHeader *h = rq->sink->data.GetHeader();
 		KHttpHeader *prev = NULL;
 		while (h) {
 			if (strcasecmp(h->attr, header.c_str()) == 0) {
@@ -47,31 +44,32 @@ public:
 					if (prev) {
 						prev->next = h->next;
 					} else {
-						rq->header = h->next;
+						rq->sink->data.header = h->next;
 					}
-					if (rq->client_ip) {
-						free(rq->client_ip);
+					if (rq->sink->data.client_ip) {
+						free(rq->sink->data.client_ip);
+						rq->sink->data.client_ip = NULL;
 					}
 					if (val == NULL) {
-						rq->client_ip = h->val;
+						rq->sink->data.client_ip = h->val;
 					} else {
 						free(h->val);
 						char *ip = sub->getString(1);
 						if (ip) {
-							rq->client_ip = strdup(ip);
+							rq->sink->data.client_ip = strdup(ip);
 						}
 					}
 					free(h->attr);
 					free(h);
-					if (KBIT_TEST(rq->raw_url.flags,KGL_URL_ORIG_SSL)) {
-						KBIT_SET(rq->raw_url.flags,KGL_URL_SSL);
-						if (rq->raw_url.port == 80) {
-							rq->raw_url.port = 443;
+					if (KBIT_TEST(rq->sink->data.raw_url.flags,KGL_URL_ORIG_SSL)) {
+						KBIT_SET(rq->sink->data.raw_url.flags,KGL_URL_SSL);
+						if (rq->sink->data.raw_url.port == 80) {
+							rq->sink->data.raw_url.port = 443;
 						}
 					} else {
-						KBIT_CLR(rq->raw_url.flags,KGL_URL_SSL);
-						if (rq->raw_url.port == 443) {
-							rq->raw_url.port = 80;
+						KBIT_CLR(rq->sink->data.raw_url.flags,KGL_URL_SSL);
+						if (rq->sink->data.raw_url.port == 443) {
+							rq->sink->data.raw_url.port = 80;
 						}
 					}
 					return true;
@@ -159,7 +157,7 @@ public:
 	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType)
 	{
-		KHttpHeader *h = rq->RemoveHeader("x-real-ip-sign");
+		KHttpHeader *h = rq->sink->data.RemoveHeader("x-real-ip-sign");
 		if (h == NULL) {
 			return false;
 		}
@@ -203,10 +201,7 @@ public:
 					*val = '\0';
 					val++;
 					if (strcmp(hot, "ip") == 0) {
-						if (rq->client_ip) {
-							free(rq->client_ip);
-						}
-						rq->client_ip = strdup(val);
+						rq->sink->set_client_ip(val);
 					} else if (strcmp(hot, "p") == 0) {
 						rq->SetSelfPort(0, strcmp(val, "https") == 0);
 					} else if (strcmp(hot, "sp") == 0) {
@@ -321,7 +316,7 @@ public:
 		}
 		if (ip.empty()) {
 			char ip[MAXIPLEN];
-			rq->sink->GetSelfIp(ip,sizeof(ip));
+			rq->sink->get_self_ip(ip,sizeof(ip));
 			rq->bind_ip = strdup(ip);
 		} else if (ip[0] == '$') {
 			rq->bind_ip = strdup(rq->getClientIp());

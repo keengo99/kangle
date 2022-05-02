@@ -89,7 +89,7 @@ std::string md5sum(FILE *fp)
         char buf[1024];
         KMD5Init (&context);
         for(;;){
-                int len=fread(buf,1,sizeof(buf),fp);
+                int len=fread(buf,1,(int)sizeof(buf),fp);
                 if(len<=0)
                         break;
                 KMD5Update(&context,(unsigned char *)buf, len);

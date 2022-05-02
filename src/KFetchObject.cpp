@@ -37,7 +37,7 @@ bool KFetchObject::NeedTempFile(bool upload, KHttpRequest *rq)
 	if (!upload) {
 		return true;
 	}
-	return rq->content_length == -1;
+	return rq->sink->data.content_length == -1;
 }
 uint32_t KFetchObject::Check(KHttpRequest* rq)
 {
@@ -60,7 +60,7 @@ uint32_t KFetchObject::CheckResult(KHttpRequest* rq, uint32_t result)
 }
 KGL_RESULT KFetchObject::PushBody(KHttpRequest *rq, kgl_output_stream *out, const char *buf, int len)
 {
-	if (!rq->ctx->connection_upgrade && rq->ctx->know_length) {
+	if (!KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE) && rq->ctx->know_length) {
 		len = (int)MIN(rq->ctx->left_read, (INT64)len);
 		rq->ctx->left_read -= len;
 	}

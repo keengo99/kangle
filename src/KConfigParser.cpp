@@ -307,7 +307,7 @@ bool KConfigParser::startCharacter(std::string &context, std::string &qName,
 #endif
 		if (qName == "upstream_sign") {
 			SAFE_STRCPY(cconf->upstream_sign, character);
-			cconf->upstream_sign_len = strlen(cconf->upstream_sign);
+			cconf->upstream_sign_len = (int)strlen(cconf->upstream_sign);
 			return true;
 		}
 #ifdef ENABLE_BLACK_LIST

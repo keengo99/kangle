@@ -109,9 +109,9 @@ void KSharedBigObject::fix_if_range_to(KHttpRequest *rq,krb_node *next_node)
 {
 	KBigObjectBlock *next_block = (KBigObjectBlock *)next_node->data;
 	//修正range_to
-	if (rq->range_to==-1 || next_block->file_block.from <= rq->range_to) {
+	if (rq->sink->data.range_to==-1 || next_block->file_block.from <= rq->sink->data.range_to) {
 		rq->ctx->cache_hit_part = true;
-		rq->range_to = next_block->file_block.from - 1;
+		rq->sink->data.range_to = next_block->file_block.from - 1;
 	}
 }
 
@@ -120,7 +120,7 @@ void KSharedBigObject::create_if_range(KHttpRequest *rq,krb_node *from_node)
 {
 	if (from_node) {
 		//开始块在node中，修正range_from
-		rq->range_from = ((KBigObjectBlock *)from_node->data)->file_block.to;
+		rq->sink->data.range_from = ((KBigObjectBlock *)from_node->data)->file_block.to;
 		rq->ctx->cache_hit_part = true;
 		//找下一块
 		krb_node *next_node = rb_next(from_node);
@@ -129,7 +129,7 @@ void KSharedBigObject::create_if_range(KHttpRequest *rq,krb_node *from_node)
 		}
 	} else {
 		//没有找到range_from块，找下一块。
-		krb_node *next_node = find_next_block_node(rq->range_from);
+		krb_node *next_node = find_next_block_node(rq->sink->data.range_from);
 		if (next_node) {
 			fix_if_range_to(rq,next_node);
 		}
@@ -229,15 +229,15 @@ retry:
 		if (block->net_fiber == NULL) {
 			//如果没有读的请求，则启动一个读。
 			write_refs++;
-			rq->range_from = from;
+			rq->sink->data.range_from = from;
 			net_fiber = kfiber_new(bigobject_net_request, rq, 0);
 			block->net_fiber = net_fiber;
 			if (nextNode) {
 				KBigObjectBlock* nextBlock = (KBigObjectBlock*)nextNode->data;
-				rq->range_to = nextBlock->file_block.from - 1;
-				assert(rq->range_to >= rq->range_from);
+				rq->sink->data.range_to = nextBlock->file_block.from - 1;
+				assert(rq->sink->data.range_to >= rq->sink->data.range_from);
 			} else {
-				rq->range_to = -1;
+				rq->sink->data.range_to = -1;
 			}
 		} else {
 			BigObjectReadQueue* queue = new BigObjectReadQueue;
@@ -480,19 +480,19 @@ KGL_RESULT KSharedBigObject::Write(KHttpObject *obj, INT64 range_from, const cha
 }
 bool KSharedBigObject::CanSatisfy(KHttpRequest *rq,KHttpObject *obj)
 {
-	if (rq->meth==METH_HEAD) {
+	if (rq->sink->data.meth==METH_HEAD) {
 		return true;
 	}
 	if (body_complete) {
 		return true;
 	}
-	if (!KBIT_TEST(rq->flags,RQ_HAVE_RANGE)) {
+	if (!KBIT_TEST(rq->sink->data.flags,RQ_HAVE_RANGE)) {
 		//如果没有range，则返回是否完成
-		rq->range_from = 0;
-		rq->range_to = -1;
+		rq->sink->data.range_from = 0;
+		rq->sink->data.range_to = -1;
 	}
 	kfiber_mutex_lock(lock);
-	krb_node *node = find_block_node(rq->range_from);
+	krb_node *node = find_block_node(rq->sink->data.range_from);
 	if (node == NULL) {
 		create_if_range(rq, NULL);
 		kfiber_mutex_unlock(lock);
@@ -500,7 +500,7 @@ bool KSharedBigObject::CanSatisfy(KHttpRequest *rq,KHttpObject *obj)
 	}
 	KBigObjectBlock *block = (KBigObjectBlock *)node->data;
 	bool result = false;
-	if (block->file_block.to == rq->range_from) {
+	if (block->file_block.to == rq->sink->data.range_from) {
 		//block->to是没有数据的。
 		create_if_range(rq, node);
 		kfiber_mutex_unlock(lock);
@@ -511,9 +511,9 @@ bool KSharedBigObject::CanSatisfy(KHttpRequest *rq,KHttpObject *obj)
 		kfiber_mutex_unlock(lock);
 		return true;
 	}
-	if (rq->range_to >= 0) {
+	if (rq->sink->data.range_to >= 0) {
 		//块数据结束能满足
-		result = block->file_block.to >= rq->range_to;
+		result = block->file_block.to >= rq->sink->data.range_to;
 	}
 	if (!result) {
 		create_if_range(rq, node);

@@ -54,7 +54,7 @@ public:
 	~KMultiPartInputFilter()
 	{
 		if (hm.header) {
-			free_header(hm.header);
+			free_header_list(hm.header);
 		}
 		if (param) {
 			free(param);

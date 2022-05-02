@@ -142,8 +142,9 @@ bool KAuthMark::mark(KHttpRequest *rq, KHttpObject *obj,
 		const int chainJumpType, int &jumpType) {
 	std::string path;
 #ifndef HTTP_PROXY
-	if (rq->svh && !this->isGlobal)
-		path = rq->svh->vh->doc_root;
+	auto svh = rq->get_virtual_host();
+	if (svh && !this->isGlobal)
+		path = svh->vh->doc_root;
 	else 
 #endif
 		path = conf.path;

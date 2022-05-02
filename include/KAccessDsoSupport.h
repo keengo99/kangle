@@ -26,7 +26,7 @@ public:
 	KAutoBuffer *GetBuffer(KHttpRequest *rq)
 	{
 		if (buffer == NULL) {
-			buffer = new KAutoBuffer(rq->pool);
+			buffer = new KAutoBuffer(rq->sink->pool);
 		}
 		return buffer;
 	}

@@ -24,7 +24,6 @@
 #ifndef KHTTPAUTH_H
 #define KHTTPAUTH_H
 #include <stdlib.h>
-#include "global.h"
 /*
  * 定义认证类型
  */
@@ -41,16 +40,21 @@
 #define AUTH_HEADER_PROXY 2
 #include "KStream.h"
 #include "KHttpHeader.h"
+#include "global.h"
 #include "katom.h"
+
 #ifdef HTTP_PROXY
 #define AUTH_REQUEST_HEADER "Proxy-Authorization"
 #define AUTH_RESPONSE_HEADER "Proxy-Authenticate"
 #define AUTH_STATUS_CODE 407
+#define AUTH_HAS_FLAG      RQ_HAS_PROXY_AUTHORIZATION
 #else
 #define AUTH_REQUEST_HEADER "Authorization"
 #define AUTH_RESPONSE_HEADER "WWW-Authenticate"
 #define AUTH_STATUS_CODE 401
+#define AUTH_HAS_FLAG     RQ_HAS_AUTHORIZATION
 #endif
+
 
 class KHttpRequest;
 /*
@@ -79,8 +83,7 @@ public:
 	virtual void insertHeader(KWStream &s) = 0;
 	virtual void insertHeader(KHttpRequest *rq) = 0;
 	virtual bool parse(KHttpRequest *rq, const char *str) = 0;
-	virtual bool verify(KHttpRequest *rq, const char *password,
-			int passwordType) = 0;
+	virtual bool verify(KHttpRequest *rq, const char *password, int passwordType) = 0;
 	virtual bool verifySession(KHttpRequest *rq)
 	{
 		return true;

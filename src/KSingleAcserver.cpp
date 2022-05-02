@@ -20,7 +20,7 @@ KSingleAcserver::~KSingleAcserver() {
 }
 KUpstream* KSingleAcserver::GetUpstream(KHttpRequest* rq)
 {
-	return sockHelper->GetUpstream(rq);
+	return sockHelper->get_upstream();
 }
 bool KSingleAcserver::setHostPort(std::string host, const char *port) {
 	return sockHelper->setHostPort(host , port);
@@ -29,6 +29,8 @@ void KSingleAcserver::buildXML(std::stringstream &s) {
 	s << "\t<server name='" << name << "' proto='";
 	s << KPoolableRedirect::buildProto(proto);
 	s << "'";
-	sockHelper->buildXML(s);
+	std::map<std::string, std::string> params;
+	sockHelper->build(params);
+	build_xml(params, s);
 	s << "/>\n";
 }

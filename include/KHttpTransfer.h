@@ -24,7 +24,6 @@
 #define KHTTPTRANSFER_H_
 #include "KHttpRequest.h"
 #include "KHttpObject.h"
-#include "KDeChunked.h"
 #include "KCompressStream.h"
 #include "KSendable.h"
 #include "KChunked.h"

@@ -28,14 +28,14 @@ KGL_RESULT turn_on_bigobject(KHttpRequest *rq,KHttpObject *obj)
 	obj->data->type = BIG_OBJECT_PROGRESS;
 	obj->data->sbo = new KSharedBigObject;
 	if (obj->data->status_code == STATUS_OK) {
-		KBIT_CLR(rq->flags,RQ_HAVE_RANGE);
-		rq->range_from = 0;
-		rq->range_to = -1;
+		KBIT_CLR(rq->sink->data.flags,RQ_HAVE_RANGE);
+		rq->sink->data.range_from = 0;
+		rq->sink->data.range_to = -1;
 	}
 	if (!obj->data->sbo->Open(rq, obj, true)) {
 		return KGL_EIO;
 	}
-	INT64 last_net_from = obj->data->sbo->OpenWrite(rq->range_from);
+	INT64 last_net_from = obj->data->sbo->OpenWrite(rq->sink->data.range_from);
 	obj->dc_index_update = 1;
 	rq->ctx->store_obj(rq);
 	assert(obj->list_state != KGL_LIST_NONE);

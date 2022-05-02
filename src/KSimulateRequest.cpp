@@ -35,24 +35,24 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 		return NULL;
 	}
 	KSimulateSink* ss = new KSimulateSink;
-	KHttpRequest* rq = new KHttpRequest(ss, NULL);
+	KHttpRequest* rq = new KHttpRequest(ss);
 	selectable_bind(&ss->c->st, selector);	
 	selectable_bind_opaque(&ss->c->st, rq, kgl_opaque_server);
-	if (!parse_url(ctx->url, &rq->raw_url)) {
-		rq->raw_url.destroy();
+	if (!parse_url(ctx->url, &rq->sink->data.raw_url)) {
+		rq->sink->data.raw_url.destroy();
 		KStringBuf nu;
 		nu << ctx->url << "/";
-		if (!parse_url(nu.getString(), &rq->raw_url)) {
+		if (!parse_url(nu.getString(), &rq->sink->data.raw_url)) {
 			delete rq;
 			return NULL;
 		}
 	}
-	if (rq->raw_url.host == NULL) {
+	if (rq->sink->data.raw_url.host == NULL) {
 		delete rq;
 		return NULL;
 	}
-	if (KBIT_TEST(rq->raw_url.flags, KGL_URL_ORIG_SSL)) {
-		KBIT_SET(rq->raw_url.flags, KGL_URL_SSL);
+	if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_ORIG_SSL)) {
+		KBIT_SET(rq->sink->data.raw_url.flags, KGL_URL_SSL);
 	}
 
 	if (ctx->host) {
@@ -72,34 +72,34 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 		if (strcasecmp(head->attr, "User-Agent") == 0) {
 			user_agent = true;
 		}
-		rq->ParseHeader(head->attr, head->attr_len, head->val, head->val_len, false);
+		rq->sink->parse_header(head->attr, head->attr_len, head->val, head->val_len, false);
 		head = head->next;
 	}
 	if (!user_agent) {
 		//add default user-agent header
 		timeLock.Lock();
-		rq->ParseHeader(kgl_expand_string("User-Agent"), conf.serverName, conf.serverNameLength, false);
+		rq->sink->parse_header(kgl_expand_string("User-Agent"), conf.serverName, conf.serverNameLength, false);
 		timeLock.Unlock();
 	}
 	rq->sink = ss;
 	rq->ctx->simulate = 1;
 	if (KBIT_TEST(ctx->flags, KF_SIMULATE_GZIP)) {
-		rq->ParseHeader(kgl_expand_string("Accept-Encoding"), kgl_expand_string("gzip"), false);
+		rq->sink->parse_header(kgl_expand_string("Accept-Encoding"), kgl_expand_string("gzip"), false);
 	}
-	rq->meth = KHttpKeyValue::getMethod(ctx->meth);
-	rq->content_length = ctx->post_len;
-	rq->http_major = 1;
-	rq->http_minor = 1;
-	KBIT_SET(rq->flags, RQ_CONNECTION_CLOSE);
+	rq->sink->data.meth = KHttpKeyValue::getMethod(ctx->meth);
+	rq->sink->data.content_length = ctx->post_len;
+	rq->sink->data.http_major = 1;
+	rq->sink->data.http_minor = 1;
+	KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 	if (!KBIT_TEST(ctx->flags, KF_SIMULATE_CACHE)) {
-		KBIT_SET(rq->flags, RQ_HAS_NO_CACHE);
+		KBIT_SET(rq->sink->data.flags, RQ_HAS_NO_CACHE);
 		KBIT_SET(rq->filter_flags, RF_NO_CACHE);
 	}
-	if (rq->content_length > 0) {
-		KBIT_SET(rq->flags, RQ_HAS_CONTENT_LEN);
+	if (rq->sink->data.content_length > 0) {
+		KBIT_SET(rq->sink->data.flags, RQ_HAS_CONTENT_LEN);
 	}
 	if (KBIT_TEST(ctx->flags, KF_SIMULATE_LOCAL)) {
-		ss->c->server = conf.gvm->RefsServer(rq->raw_url.port);
+		ss->c->server = conf.gvm->RefsServer(rq->sink->data.raw_url.port);
 		if (ss->c->server == NULL) {
 			ss->body = NULL;
 			delete rq;
@@ -122,7 +122,8 @@ int kgl_start_simulate_request(KHttpRequest *rq,kfiber **fiber)
 		}
 		return kfiber_create(skip_access_request, rq, 0, conf.fiber_stack_size, fiber);
 	}
-	return kfiber_create(start_request_fiber, rq, 0, conf.fiber_stack_size, fiber);
+//return kfiber_create(start_request_fiber, rq, 0, conf.fiber_stack_size, fiber);
+	return 0;
 }
 int kgl_simuate_http_request(kgl_async_http *ctx,kfiber **fiber)
 {
@@ -154,10 +155,9 @@ static void WINAPI timer_simulate(void *arg)
 	test_simulate_request();
 }
 
-KSimulateSink::KSimulateSink()
+KSimulateSink::KSimulateSink() : KSink(NULL)
 {
 	memset(&header_manager, 0, sizeof(KHttpHeaderManager));
-	exptected_done = 0;
 	status_code = 0;
 	host = NULL;
 	body = NULL;
@@ -173,16 +173,14 @@ KSimulateSink::~KSimulateSink()
 		xfree(host);
 	}
 	if (body) {
-		this->body(arg, NULL, exptected_done);
+		this->body(arg, NULL, !KBIT_TEST(data.flags, RQ_BODY_NOT_COMPLETE));
 	}
 	kconnection_destroy(c);
 }
-int KSimulateSink::EndRequest(KHttpRequest *rq)
+int KSimulateSink::end_request()
 {
-	int result = rq->ctx->body_not_complete;
-	exptected_done = !rq->ctx->body_not_complete;
-	delete rq;
-	return result;
+	delete this;
+	return 0;
 }
 typedef struct {
 	char *save_file;

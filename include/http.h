@@ -86,7 +86,7 @@ inline bool rq_has_content_length(KHttpRequest *rq, int64_t content_length) {
 	if (content_length > 0) {
 		return true;
 	}
-	if (content_length == 0 && KBIT_TEST(rq->flags, RQ_HAS_CONTENT_LEN)) {
+	if (content_length == 0 && KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONTENT_LEN)) {
 		return true;
 	}
 	return false;
@@ -114,7 +114,7 @@ inline bool check_object_expiration(KHttpRequest *rq,KHttpObject *obj) {
 	if (KBIT_TEST(rq->filter_flags,RF_DOUBLE_CACHE_EXPIRE)) {
 		//双倍过期时间，并清除强制刷新
 		freshness_lifetime = freshness_lifetime<<1;
-		KBIT_CLR(rq->flags,RQ_HAS_NO_CACHE);
+		KBIT_CLR(rq->sink->data.flags,RQ_HAS_NO_CACHE);
 	}
 	//debug("current_age=%d,refreshness_lifetime=%d\n",current_age,freshness_lifetime);
 	unsigned current_age = obj->getCurrentAge(kgl_current_sec);
@@ -142,7 +142,7 @@ inline bool is_cache_object_expired(KHttpRequest *rq, KHttpObject *obj)
 #endif
 		goto revalidate;
 	}
-	if (KBIT_TEST(rq->flags, RQ_HAS_NO_CACHE)) {
+	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_NO_CACHE)) {
 		goto revalidate;
 	}
 	return false;
@@ -169,7 +169,7 @@ inline bool in_stop_cache(KHttpRequest *rq) {
 	if (KBIT_TEST(rq->filter_flags, RF_NO_CACHE)) {
 		return true;
 	}
-	if (rq->meth == METH_GET || rq->meth == METH_HEAD) {
+	if (rq->sink->data.meth == METH_GET || rq->sink->data.meth == METH_HEAD) {
 		return false;
 	}
 	return true;

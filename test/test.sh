@@ -11,4 +11,4 @@ if [ -f ../Debug/kangle.exe ] ; then
 	./bin/main.exe -e ../Debug/kangle.exe
 	exit 1
 fi
-./bin/main.exe -e ../build/kangle
+./bin/main.exe -e ../build/kangle 

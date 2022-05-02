@@ -17,7 +17,7 @@ public:
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) {
 		sockaddr_i addr;
-		if (!rq->sink->GetSelfAddr(&addr)) {
+		if (!rq->sink->get_self_addr(&addr)) {
 			return false;
 		}
 		return KMultiIntAcl::match(ksocket_addr_port(&addr));

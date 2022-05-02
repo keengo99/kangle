@@ -146,7 +146,7 @@ void KCgiFetchObject::process(KHttpRequest *rq)
 			env.addEnv(rd->envs[i].c_str());
 		}
 		if (!cmdModel) {
-			make_http_env(rq, brd,rq->ctx->lastModified, rq->file, &env);
+			make_http_env(rq, brd,rq->sink->data.if_modified_since, rq->file, &env);
 		}
 		stream.closeAllOtherFile();
 		char **arg = NULL;
@@ -206,7 +206,7 @@ void KCgiFetchObject::process(KHttpRequest *rq)
 		env.addEnv(rd->envs[i].c_str());
 	}
 	if(!cmdModel) {
-		make_http_env(rq,brd, rq->ctx->lastModified, rq->file, &env);
+		make_http_env(rq,brd, rq->sink->data.if_modified_since, rq->file, &env);
 	}
 	if(!StartInteractiveClientProcess (token,rd->cmd,arg.getString(),&stream,RDSTD_ALL,env.dump_env())) {
 #ifdef ENABLE_VH_RUN_AS		
@@ -218,7 +218,7 @@ void KCgiFetchObject::process(KHttpRequest *rq)
 	rq->svh->vh->closeToken(token);
 #endif
 #endif
-	if (!cmdModel && rq->content_length > 0) {
+	if (!cmdModel && rq->sink->data.content_length > 0) {
 		if (!readPostData(rq)) {
 			klog(KLOG_DEBUG, "send post data error!");
 			return ;
@@ -250,7 +250,7 @@ bool KCgiFetchObject::readPostData(KHttpRequest *rq)
 		if (!this->write(rq->parser.body, rq->pre_post_length)){
 			goto error;
 		}
-		rq->left_read -= rq->parser.bodyLen;
+		rq->sink->data.left_read -= rq->parser.bodyLen;
 		rq->parser.body += rq->pre_post_length;
 		rq->parser.bodyLen -= rq->pre_post_length;
 		rq->pre_post_length = 0;

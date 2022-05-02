@@ -117,7 +117,7 @@ public:
 		return "header_map";
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) {
-		KHttpHeader *header = rq->GetHeader();
+		KHttpHeader *header = rq->sink->data.GetHeader();
 		std::map<std::string, bool>::iterator it;
 		while (header) {
 			if (strcasecmp(header->attr, name.c_str()) == 0) {

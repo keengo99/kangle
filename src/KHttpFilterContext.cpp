@@ -23,7 +23,7 @@ static KGL_RESULT WINAPI  ServerSupportFunction (
 	switch (kfReq) {
 	case KF_REQ_DISABLE_NOTIFICATIONS:
 		{
-			rq->http_filter_ctx->filterContext[pfc->ulReserved].disabled_flags |= ul1;
+			rq->sink->data.http_filter_ctx->filterContext[pfc->ulReserved].disabled_flags |= ul1;
 			return KGL_OK;
 		}
 	case KF_REQ_CONNECT_CLEAN:
@@ -52,9 +52,9 @@ static KGL_RESULT WINAPI  ServerSupportFunction (
 			if (ctx == NULL) {
 				return KGL_EINVALID_PARAMETER;
 			}
-			INT64 left_read = rq->left_read - rq->parser.bodyLen;
+			INT64 left_read = rq->sink->data.left_read - rq->parser.bodyLen;
 			if (left_read>0) {
-				if (rq->content_length>conf.max_post_size) {
+				if (rq->sink->data.content_length>conf.max_post_size) {
 					return KGL_EINSUFFICIENT_BUFFER;
 				}
 				if (rq->tf) {

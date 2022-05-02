@@ -137,7 +137,7 @@ uint16_t KMultiAcserver::getNodeIndex(KHttpRequest *rq, int *set_cookie_stick)
 		if (*cookie_stick_name=='\0') {
 			cookie_stick_name = DEFAULT_COOKIE_STICK_NAME;
 		}
-		KHttpHeader *av = rq->GetHeader();
+		KHttpHeader *av = rq->sink->data.GetHeader();
 		while (av) {
 			if (strcasecmp(av->attr,"Cookie")==0) {
 				int cookie_stick_value = getCookieStick(av->val,cookie_stick_name);
@@ -153,8 +153,8 @@ uint16_t KMultiAcserver::getNodeIndex(KHttpRequest *rq, int *set_cookie_stick)
 	}
 	unsigned index;
 	if (url_hash) {
-		index = string_hash(rq->url->host,8,1);
-		index = string_hash(rq->url->path,16,index);
+		index = string_hash(rq->sink->data.url->host,8,1);
+		index = string_hash(rq->sink->data.url->path,16,index);
 	} else if (ip_hash) {
 		index = string_hash(rq->getClientIp(),MAXIPLEN-1,1);
 	} else {
@@ -168,7 +168,7 @@ uint16_t KMultiAcserver::getNodeIndex(KHttpRequest *rq, int *set_cookie_stick)
 }
 static KUpstream *connect_result(KHttpRequest *rq, KSockPoolHelper *sa, int cookie_stick)
 {
-	if (cookie_stick > 0 && !KBIT_TEST(rq->flags,RQ_UPSTREAM_ERROR)) {
+	if (cookie_stick > 0 && !KBIT_TEST(rq->sink->data.flags,RQ_UPSTREAM_ERROR)) {
 		KStringBuf b;
 		if (*conf.cookie_stick_name) {
 			b << conf.cookie_stick_name;
@@ -180,7 +180,7 @@ static KUpstream *connect_result(KHttpRequest *rq, KSockPoolHelper *sa, int cook
 		b.WSTR("; path=/");
 		rq->responseHeader(kgl_expand_string("Set-Cookie"), b.getBuf(), b.getSize());
 	}
-	KUpstream* us = sa->GetUpstream(rq);
+	KUpstream* us = sa->get_upstream();
 	sa->release();
 	return us;
 }
@@ -739,7 +739,9 @@ void KMultiAcserver::buildXML(std::stringstream &s) {
 	while (helper) {
 		KSockPoolHelper *n = helper->next;
 		s << "\t\t<node  weight='" << helper->weight << "'";
-		helper->buildXML(s);
+		std::map<std::string, std::string> params;
+		helper->build(params);
+		build_xml(params, s);
 		s << "/>\n";
 		if (n==nodes) {
 			break;

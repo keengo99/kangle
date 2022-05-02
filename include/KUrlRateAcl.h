@@ -60,7 +60,7 @@ public:
 			lastFlushTime = kgl_current_sec;
 		}
 		KStringBuf target(2048);
-		target << (int)rq->url->flags << "_" << rq->url->host << ":" << rq->url->port << rq->url->path;
+		target << (int)rq->sink->data.url->flags << "_" << rq->sink->data.url->host << ":" << rq->sink->data.url->port << rq->sink->data.url->path;
 		char *ip_url = target.getString();
 		int r = request;
 		int s;

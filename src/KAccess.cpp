@@ -480,7 +480,7 @@ int KAccess::check(KHttpRequest *rq, KHttpObject *obj) {
 	case JUMP_PROXY:
 		assert(!rq->HasFinalFetchObject());
 #ifdef HTTP_PROXY
-		if (rq->meth == METH_CONNECT) {
+		if (rq->sink->data.meth == METH_CONNECT) {
 			rq->AppendFetchObject(new KConnectProxyFetchObject());
 			break;
 		}

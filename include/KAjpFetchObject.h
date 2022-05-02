@@ -19,7 +19,7 @@ public:
 	virtual ~KAjpFetchObject();
 protected:
 	//创建发送头到buffer中。
-	void buildHead(KHttpRequest *rq);
+	KGL_RESULT buildHead(KHttpRequest *rq);
 	//解析head
 	kgl_parse_result ParseHeader(KHttpRequest *rq, char **data, int *len);
 	//创建post数据到buffer中。

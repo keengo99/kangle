@@ -12,6 +12,7 @@
 #include "KHttpRequest.h"
 #include "KVirtualHostContainer.h"
 #include "krbtree.h"
+#include "KHttpOpaque.h"
 
 enum subdir_type
 {
@@ -84,7 +85,7 @@ private:
 class KVirtualHost;
 
 
-class KSubVirtualHost {
+class KSubVirtualHost : public KHttpOpaque {
 public:
 	KSubVirtualHost(KVirtualHost *vh);
 	void setDocRoot(const char *doc_root,const char *dir);

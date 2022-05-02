@@ -294,10 +294,10 @@ void KSubVirtualHost::setDocRoot(const char *doc_root, const char *dir) {
 	KFileName::tripDir3(this->doc_root,PATH_SPLIT_CHAR);
 }
 bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KAccess **htresponse,bool &handled) {
-	//	char *tripedDir = KFileName::tripDir2(rq->url->path, '/');
+	//	char *tripedDir = KFileName::tripDir2(rq->sink->data.url->path, '/');
 #ifdef _WIN32
-	int path_len = (int)strlen(rq->url->path);
-	char *c = rq->url->path + path_len - 1;
+	int path_len = (int)strlen(rq->sink->data.url->path);
+	char *c = rq->sink->data.url->path + path_len - 1;
 	if(*c=='.' || *c==' '){
 		return false;
 	}
@@ -307,7 +307,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 	}
 	if (type == subdir_local) {
 		if (!rq->ctx->internal && !vh->htaccess.empty()) {
-			char *path = xstrdup(rq->url->path);
+			char *path = xstrdup(rq->sink->data.url->path);
 			int prefix_len = 0;
 			for (;;) {
 				char *hot = strrchr(path, '/');
@@ -315,7 +315,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 					break;
 				}
 				if (prefix_len == 0) {
-					prefix_len = hot - path;
+					prefix_len = (int)(hot - path);
 				}
 				*hot = '\0';
 				char *apath = vh->alias(rq->ctx->internal, path);
@@ -350,7 +350,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 					delete htrequest;
 				}
 				//todo:check rebind file
-				//	if(filencmp(,rq->url->path)
+				//	if(filencmp(,rq->sink->data.url->path)
 			}
 			xfree(path);
 		}
@@ -380,10 +380,10 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 		//}}
 		int tport = http->dst.port;
 		if (http->dst.port == 0) {
-			tport = rq->url->port;
+			tport = rq->sink->data.url->port;
 			//{{ent
 #ifdef ENABLE_UPSTREAM_SSL
-			if (KBIT_TEST(rq->url->flags, KGL_URL_SSL) && tssl == NULL) {
+			if (KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL) && tssl == NULL) {
 				tssl = "s";
 			}
 #endif//}}
@@ -396,13 +396,13 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 	const char *proxy = NULL;
 	if (type == subdir_server) {
 		proxy = server->http_proxy;
-		if (KBIT_TEST(rq->raw_url.flags, KGL_URL_SSL) && server->https_proxy) {
+		if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_SSL) && server->https_proxy) {
 			proxy = server->https_proxy;
 		}
 	} else if (type == subdir_portmap) {
 		int port = (int)rq->GetSelfPort();
 		if (port == 0) {
-			port = (int)rq->url->port;
+			port = (int)rq->sink->data.url->port;
 		}
 		proxy = portmap->find(port);
 	}
@@ -410,7 +410,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 		return false;
 	}
 	if (*proxy == '/') {
-		tmp_str << rq->url->host << proxy;
+		tmp_str << rq->sink->data.url->host << proxy;
 		proxy = tmp_str.getString();
 	}
 	KRedirect *rd = server_container->refsRedirect(proxy);
@@ -427,8 +427,8 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 bool KSubVirtualHost::bindFile(KHttpRequest *rq,bool &exsit,bool searchDefaultFile,bool searchAlias)
 {
 	KFileName *file = new KFileName;
-	if (!searchAlias || !vh->alias(rq->ctx->internal,rq->url->path,file,exsit,rq->getFollowLink())) {
-		exsit = file->setName(doc_root, rq->url->path, rq->getFollowLink());
+	if (!searchAlias || !vh->alias(rq->ctx->internal,rq->sink->data.url->path,file,exsit,rq->getFollowLink())) {
+		exsit = file->setName(doc_root, rq->sink->data.url->path, rq->getFollowLink());
 	}
 	kassert(rq->file == NULL);
 	rq->file = file;
