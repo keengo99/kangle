@@ -29,26 +29,26 @@
 #include <assert.h>
 #include "KXml.h"
 #include "log.h"
-//#include "KStringBuf.h"
-//#include "utils.h"
+ //#include "KStringBuf.h"
+ //#include "utils.h"
 #include "kfiber.h"
 #include "KFileName.h"
 #include "kmalloc.h"
 #include "extern.h"
 using namespace std;
 
-std::string replace(const char *str, map<string, string> &replaceMap,
-		const char *start, const char *end) {
+std::string replace(const char* str, map<string, string>& replaceMap,
+	const char* start, const char* end) {
 	stringstream s;
 	if (str == NULL)
 		return "";
 	int startLen = 0;
 	int endLen = 0;
 	if (start) {
-		startLen = strlen(start);
+		startLen = (int)strlen(start);
 	}
 	if (end) {
-		endLen = strlen(end);
+		endLen = (int)strlen(end);
 	}
 	while (*str) {
 		if (start) {
@@ -88,18 +88,18 @@ std::string replace(const char *str, map<string, string> &replaceMap,
  * return the next string
  *
  */
-char *getString(char *str, char **nextstr, const char *ended_chars,
-		bool end_no_quota_value,bool skip_slash) {
-	while (*str && isspace((unsigned char) *str)) {
+char* getString(char* str, char** nextstr, const char* ended_chars,
+	bool end_no_quota_value, bool skip_slash) {
+	while (*str && isspace((unsigned char)*str)) {
 		str++;
 	}
 	bool slash = false;
 	char endChar = *str;
-	char *start;
+	char* start;
 	if (endChar != '\'' && endChar != '"') {
 		//没有引号引起来的字符串
 		start = str;
-		while (*str && !isspace((unsigned char) *str)) {
+		while (*str && !isspace((unsigned char)*str)) {
 			if (ended_chars && strchr(ended_chars, *str) != NULL) {
 				break;
 			}
@@ -116,10 +116,10 @@ char *getString(char *str, char **nextstr, const char *ended_chars,
 	}
 	str++;
 	start = str;
-	char *hot = str;
+	char* hot = str;
 	while (*str) {
 		if (slash) {
-			if (*str == '\\' || *str=='\'' || *str=='"') {
+			if (*str == '\\' || *str == '\'' || *str == '"') {
 				*hot = *str;
 				hot++;
 			} else {
@@ -162,27 +162,27 @@ KXml::~KXml()
 }
 void KXml::clear()
 {
-	std::list<KXmlContext *>::iterator it;
-	for(it=contexts.begin();it!=contexts.end();it++){
+	std::list<KXmlContext*>::iterator it;
+	for (it = contexts.begin(); it != contexts.end(); it++) {
 		delete (*it);
 	}
 	contexts.clear();
 }
-void KXml::setEvent(KXmlEvent *event) {
+void KXml::setEvent(KXmlEvent* event) {
 	//this->event = event;
 	events.clear();
 	events.push_back(event);
 }
-void KXml::addEvent(KXmlEvent *event) {
+void KXml::addEvent(KXmlEvent* event) {
 	events.push_back(event);
 }
-char *KXml::htmlEncode(const char *str,int &len,char *buf)
+char* KXml::htmlEncode(const char* str, int& len, char* buf)
 {
-	if (buf==NULL) {
-		buf = (char *)malloc(5*len+1);
+	if (buf == NULL) {
+		buf = (char*)malloc(5 * len + 1);
 	}
-	char *dst = buf;
-	const char *src = str;
+	char* dst = buf;
+	const char* src = str;
 	while (*src) {
 		switch (*src) {
 		case '\'':
@@ -227,44 +227,44 @@ char *KXml::htmlEncode(const char *str,int &len,char *buf)
 	len = dst - buf;
 	return buf;
 }
-char *KXml::htmlDecode(char *str,int &len)
+char* KXml::htmlDecode(char* str, int& len)
 {
-	char *dst = str;
-	char *src = str;
+	char* dst = str;
+	char* src = str;
 	while (*src) {
-		if ((*src)=='&' && *(src+1)) {
-			if (strncasecmp(src+1,"lt;",3)==0) {
+		if ((*src) == '&' && *(src + 1)) {
+			if (strncasecmp(src + 1, "lt;", 3) == 0) {
 				*dst++ = '<';
-				src+=4;				
+				src += 4;
 				continue;
 			}
-			if (strncasecmp(src+1,"gt;",3)==0) {
+			if (strncasecmp(src + 1, "gt;", 3) == 0) {
 				*dst++ = '>';
-				src+=4;					
+				src += 4;
 				continue;
 			}
-			if (strncasecmp(src+1,"quot;",5)==0) {
-				*dst ++ = '"';
+			if (strncasecmp(src + 1, "quot;", 5) == 0) {
+				*dst++ = '"';
 				src += 6;
 				continue;
 			}
-			if (strncasecmp(src+1,"apos;",5)==0) {
-                                *dst++ = '\'';
-                                src+=6;
-                                continue;
-                        }
-			if (strncasecmp(src+1,"amp;",4)==0) {
-				*dst++ = '&';
-				src+=5;
+			if (strncasecmp(src + 1, "apos;", 5) == 0) {
+				*dst++ = '\'';
+				src += 6;
 				continue;
 			}
-			if (*(src+1)=='#') {
-				char *e = strchr(src+1,';');
+			if (strncasecmp(src + 1, "amp;", 4) == 0) {
+				*dst++ = '&';
+				src += 5;
+				continue;
+			}
+			if (*(src + 1) == '#') {
+				char* e = strchr(src + 1, ';');
 				if (e) {
-					*dst++ = atoi(src+2);
-					src = e+1;
+					*dst++ = atoi(src + 2);
+					src = e + 1;
 					continue;
-				}	
+				}
 			}
 		}
 		*dst++ = *src++;
@@ -273,7 +273,7 @@ char *KXml::htmlDecode(char *str,int &len)
 	len = dst - str;
 	return str;
 }
-std::string KXml::param(const char *str)
+std::string KXml::param(const char* str)
 {
 	return encode(str);
 }
@@ -295,7 +295,7 @@ std::string KXml::decode(std::string str) {
 	transfer["&lt;"] = "<";
 	return replace(str.c_str(), transfer);
 }
-long KXml::getFileSize(FILE *fp) {
+long KXml::getFileSize(FILE* fp) {
 	long begin, end, current;
 	assert(fp);
 	if (fp == NULL)
@@ -309,7 +309,7 @@ long KXml::getFileSize(FILE *fp) {
 	return end - begin;
 }
 int KXml::getLine() {
-	char *buf = origBuf;
+	char* buf = origBuf;
 	//int l = line;
 	int len = hot - buf;
 	//printf("len=%d\n",len);
@@ -323,7 +323,7 @@ int KXml::getLine() {
 	//line = l;
 	return line;
 }
-bool KXml::startParse(char * buf) {
+bool KXml::startParse(char* buf) {
 	origBuf = buf;
 	line = 1;
 	if (events.size() == 0) {
@@ -354,7 +354,7 @@ bool KXml::startParse(char * buf) {
 	try {
 		startXml(encoding);
 		result = internelParseString(buf);
-	} catch (KXmlException &e) {
+	} catch (KXmlException& e) {
 		endXml(result);
 		throw e;
 	}
@@ -362,13 +362,13 @@ bool KXml::startParse(char * buf) {
 	return result;
 
 }
-bool KXml::parseString(const char *buf)  {
+bool KXml::parseString(const char* buf) {
 
-	char *str = strdup(buf);
+	char* str = strdup(buf);
 	bool result = false;
 	try {
 		result = startParse(str);
-	} catch (KXmlException &e) {
+	} catch (KXmlException& e) {
 		free(str);
 		throw e;
 	}
@@ -376,22 +376,22 @@ bool KXml::parseString(const char *buf)  {
 	return result;
 }
 
-bool KXml::internelParseString(char *buf) {
+bool KXml::internelParseString(char* buf) {
 
 	//std::map<std::string, std::string> attibute;
-	std::list<KXmlEvent *>::iterator it;
+	std::list<KXmlEvent*>::iterator it;
 	bool single = false;
-	KXmlContext *curContext = NULL;
+	KXmlContext* curContext = NULL;
 	std::string name;
 	int state = 0;
 	hot = buf;
-	char *p;
+	char* p;
 	KXmlException e;
 	clear();
 	//	hot=buf;
 	while (*hot) {
 		bool cdata = false;
-		while (*hot && isspace((unsigned char) *hot))
+		while (*hot && isspace((unsigned char)*hot))
 			hot++;
 		if (*hot == '<') {
 			//	printf("buf=[%s]",buf);
@@ -406,7 +406,7 @@ bool KXml::internelParseString(char *buf) {
 				continue;
 			} else {
 				hot++;
-				while (*hot && isspace((unsigned char) *hot))
+				while (*hot && isspace((unsigned char)*hot))
 					hot++;
 				if (*hot == '/') {
 					state = END_ELEMENT;
@@ -424,7 +424,7 @@ bool KXml::internelParseString(char *buf) {
 		}
 		if (state == START_ELEMENT) {
 			single = false;
-			while (*hot && isspace((unsigned char) *hot))
+			while (*hot && isspace((unsigned char)*hot))
 				hot++;
 			p = strchr(hot, '>');
 			if (!p) {
@@ -435,10 +435,10 @@ bool KXml::internelParseString(char *buf) {
 				//				return false;
 			}
 			*p = 0;
-			char *end = p + 1;
+			char* end = p + 1;
 			int end_pos = p - hot;
 			for (int i = end_pos - 1; i >= 0; i--) {
-				if (isspace((unsigned char) hot[i]))
+				if (isspace((unsigned char)hot[i]))
 					continue;
 				if (hot[i] == '/') {
 					single = true;
@@ -449,7 +449,7 @@ bool KXml::internelParseString(char *buf) {
 				}
 			}
 			p = hot;
-			while (*p && !isspace((unsigned char) *p))
+			while (*p && !isspace((unsigned char)*p))
 				p++;
 
 			if (*p != 0) {
@@ -466,7 +466,7 @@ bool KXml::internelParseString(char *buf) {
 				for (it = events.begin(); it != events.end(); it++) {
 					(*it)->startElement(curContext, curContext->attribute);
 					(*it)->startElement(curContext->path, curContext->qName,
-							curContext->attribute);
+						curContext->attribute);
 				}
 				hot = end;
 				if (single) {
@@ -483,7 +483,7 @@ bool KXml::internelParseString(char *buf) {
 					continue;
 				}
 				contexts.push_back(curContext);
-			} catch (KXmlException &e2) {
+			} catch (KXmlException& e2) {
 				delete curContext;
 				throw e2;
 			}
@@ -513,22 +513,22 @@ bool KXml::internelParseString(char *buf) {
 			}
 			if (curContext) {
 				//assert(char_len>0);
-				char *charBuf = (char *) malloc(char_len+1);
+				char* charBuf = (char*)malloc(char_len + 1);
 				kgl_memcpy(charBuf, hot, char_len);
 				charBuf[char_len] = '\0';
 				if (!cdata) {
-					htmlDecode(charBuf,char_len);
+					htmlDecode(charBuf, char_len);
 				}
 				for (it = events.begin(); it != events.end(); it++) {
 					(*it)->startCharacter(curContext, charBuf, char_len);
 					(*it)->startCharacter(curContext->path, curContext->qName,
-							charBuf, char_len);
+						charBuf, char_len);
 				}
 				free(charBuf);
 			}
 			hot = p;
 		} else if (state == END_ELEMENT) {
-			while (*hot && isspace((unsigned char) *hot))
+			while (*hot && isspace((unsigned char)*hot))
 				hot++;
 			p = strchr(hot, '>');
 			if (p == NULL) {
@@ -538,9 +538,9 @@ bool KXml::internelParseString(char *buf) {
 				//				return false;
 			}
 			*p = 0;
-			char *end = p + 1;
+			char* end = p + 1;
 			p = hot;
-			while (*p && !isspace((unsigned char) *p))
+			while (*p && !isspace((unsigned char)*p))
 				p++;
 			*p = 0;
 			if (contexts.size() <= 0) {
@@ -550,11 +550,11 @@ bool KXml::internelParseString(char *buf) {
 				//				return false;
 			}
 			name = hot;
-			list<KXmlContext *>::iterator it2 = contexts.end();
+			list<KXmlContext*>::iterator it2 = contexts.end();
 			it2--;
 			if (name != (*it2)->qName) {
 				e << "end tag [" << name << "] is not equal start tag ["
-						<< (*it2)->qName << "]\n";
+					<< (*it2)->qName << "]\n";
 				throw e;
 				//				printf("end Element =[%s] 和 start Element[%s] 不对\n",
 				//						name.c_str(), (*it)->qName.c_str());
@@ -594,8 +594,8 @@ bool KXml::parseFile(std::string file) {
 	stringstream s;
 	bool result;
 	this->file = file.c_str();
-	char *content = getContent(file);
-	if (content == NULL || *content=='\0') {
+	char* content = getContent(file);
+	if (content == NULL || *content == '\0') {
 		s << "cann't read file:[" << file << "]\n";
 		e.setMsg(s.str());
 		if (content) {
@@ -605,7 +605,7 @@ bool KXml::parseFile(std::string file) {
 	}
 	try {
 		result = startParse(content);
-	} catch (KXmlException &e2) {
+	} catch (KXmlException& e2) {
 		fprintf(stderr, "Error happen in %s:%d\n", file.c_str(), getLine());
 		free(content);
 		throw e2;
@@ -613,15 +613,15 @@ bool KXml::parseFile(std::string file) {
 	free(content);
 	return result;
 }
-KXmlContext *KXml::newContext(std::string qName) {
-	KXmlContext *context = new KXmlContext(this);
+KXmlContext* KXml::newContext(std::string qName) {
+	KXmlContext* context = new KXmlContext(this);
 	//context->file = file;
 	//context->line = getLine();
 	context->qName = qName;
 	stringstream s;
 	bool begin = true;
-	for (list<KXmlContext *>::iterator it = contexts.begin(); it
-			!= contexts.end(); it++) {
+	for (list<KXmlContext*>::iterator it = contexts.begin(); it
+		!= contexts.end(); it++) {
 		if (!begin) {
 			s << "/";
 		}
@@ -633,7 +633,7 @@ KXmlContext *KXml::newContext(std::string qName) {
 	s.str().swap(context->path);
 	return context;
 }
-char *KXml::getContent(const std::string &file) {
+char* KXml::getContent(const std::string& file) {
 	kfiber_file* fp = kfiber_file_open(file.c_str(), fileRead, 0);
 	if (fp == NULL) {
 		return NULL;
@@ -643,10 +643,10 @@ char *KXml::getContent(const std::string &file) {
 	if (fileSize > 1048576) {
 		goto clean;
 	}
-	buf = (char *)malloc((int)fileSize + 1);
-	if (buf==NULL) {
+	buf = (char*)malloc((int)fileSize + 1);
+	if (buf == NULL) {
 		goto clean;
-	}	
+	}
 	if (kfiber_file_read(fp, buf, (int)fileSize) != (int)fileSize) {
 		free(buf);
 		buf = NULL;
@@ -658,18 +658,18 @@ clean:
 	return buf;
 
 }
-void buildAttribute(char *buf, std::map<std::string, std::string> &attribute) {
+void buildAttribute(char* buf, std::map<std::string, std::string>& attribute) {
 	attribute.clear();
 	//	printf("buf=[%s]\n",buf);
 	while (*buf) {
-		while (*buf && isspace((unsigned char) *buf))
+		while (*buf && isspace((unsigned char)*buf))
 			buf++;
-		char *p = strchr(buf, '=');
+		char* p = strchr(buf, '=');
 		if (p == NULL)
 			return;
 		int name_len = p - buf;
 		for (int i = name_len - 1; i >= 0; i--) {
-			if (isspace((unsigned char) buf[i]))
+			if (isspace((unsigned char)buf[i]))
 				buf[i] = 0;
 			else
 				break;
@@ -678,27 +678,27 @@ void buildAttribute(char *buf, std::map<std::string, std::string> &attribute) {
 		p++;
 		std::string name = buf;
 		buf = p;
-		buf = getString(buf, &p,NULL,false,true);
+		buf = getString(buf, &p, NULL, false, true);
 		if (buf == NULL) {
 			return;
 		}
 		int len;
-		std::string value = KXml::htmlDecode(buf,len);
+		std::string value = KXml::htmlDecode(buf, len);
 		buf = p;
 		//cout << "name=" << name << ",value=" << value << endl;
-		attribute.insert(pair<std::string, std::string> (name, value));
+		attribute.insert(pair<std::string, std::string>(name, value));
 	}
 }
 
 
 
-void buildAttribute(char *buf, std::map<char *, char *, lessp_icase> &attibute) {
+void buildAttribute(char* buf, std::map<char*, char*, lessp_icase>& attibute) {
 	while (*buf) {
 		while (*buf && isspace((unsigned char)*buf))
 			buf++;
-		char *p = strchr(buf, '=');
+		char* p = strchr(buf, '=');
 		if (p == NULL) {
-			attibute.insert(std::pair<char *, char *>(buf, NULL));
+			attibute.insert(std::pair<char*, char*>(buf, NULL));
 			return;
 		}
 		int name_len = p - buf;
@@ -710,14 +710,14 @@ void buildAttribute(char *buf, std::map<char *, char *, lessp_icase> &attibute) 
 		}
 		*p = 0;
 		p++;
-		char *name = buf;
+		char* name = buf;
 		buf = p;
 		buf = getString(buf, &p, NULL, true, true);
 		if (buf == NULL) {
 			return;
 		}
-		char *value = buf;
+		char* value = buf;
 		buf = p;
-		attibute.insert(std::pair<char *, char *>(name, value));
+		attibute.insert(std::pair<char*, char*>(name, value));
 	}
 }

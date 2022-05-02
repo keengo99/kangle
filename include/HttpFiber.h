@@ -9,7 +9,9 @@ class KHttpObject;
 class KFetchObject;
 class KRequestQueue;
 class KSink;
-kgl_connection_result kgl_on_new_connection(kconnection* cn);
+namespace kangle {
+	kgl_connection_result kgl_on_new_connection(kconnection* cn);
+};
 void start_request_fiber(KSink* sink, int header_length);
 KGL_RESULT fiber_http_start(KHttpRequest *rq);
 KGL_RESULT send_http2(KHttpRequest *rq, KHttpObject *obj, uint16_t status_code, KAutoBuffer *body=NULL);

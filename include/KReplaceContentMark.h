@@ -29,20 +29,20 @@ public:
 	}
 	int match(KHttpRequest *rq,const char *buf, int len, int *ovector, int overctor_size) {
 		if (mark_acl > 0) {
-			if (mark_acl != rq->mark) {
+			if (mark_acl != rq->sink->data.mark) {
 				return 0;
 			}
 		} else if (mark_acl < 0) {
-			if (!KBIT_TEST(rq->mark, -mark_acl)) {
+			if (!KBIT_TEST(rq->sink->data.mark, -mark_acl)) {
 				return 0;
 			}
 		}
 		int ret = charset_content.match(buf, len, PCRE_PARTIAL, ovector, overctor_size);
 		if (ret > 0) {
 			if (mark_mark > 0) {
-				rq->mark = mark_mark;
+				rq->sink->data.mark = mark_mark;
 			} else if (mark_mark < 0) {
-				KBIT_SET(rq->mark, -mark_mark);
+				KBIT_SET(rq->sink->data.mark, -mark_mark);
 			}
 		}
 		return ret;

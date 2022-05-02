@@ -53,11 +53,11 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 		KBIT_CLR(rq->sink->data.flags, RQ_HAVE_RANGE);
 	}
 	int status_code = STATUS_OK;
-	INT64 left_send = rq->file->fileSize;
+	int64_t left_send = (int64_t)rq->file->fileSize;
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAVE_RANGE)) {
 		//处理部分数据请求
 		rq->ctx->content_range_length = rq->file->fileSize;
-		if (!adjust_range(rq, left_send)) {
+		if (!rq->sink->adjust_range(&left_send)) {
 			xfree(content_type);
 			return out->f->write_message(out, rq, KGL_MSG_ERROR, "range error",416);
 		}

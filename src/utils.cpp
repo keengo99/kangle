@@ -58,14 +58,6 @@
 #include "KWinCgiEnv.h"
 #include "KCgiEnv.h"
 using namespace std;
-#ifdef ENABLE_STAT_STUB
-volatile uint64_t kgl_total_requests = 0;
-volatile uint64_t kgl_total_accepts = 0;
-volatile uint64_t kgl_total_servers = 0;
-volatile uint32_t kgl_reading = 0;
-volatile uint32_t kgl_writing = 0;
-volatile uint32_t kgl_waiting = 0;
-#endif
 /*
  const char ap_month_snames[12][4] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
@@ -76,9 +68,9 @@ int split_host_port(char *host, char separator, size_t host_len) {
 	int point;
 	int size;
 	if (host_len == 0) {
-		size = strlen(host);
+		size = (int)strlen(host);
 	} else {
-		size = MIN(strlen(host),host_len);
+		size = MIN((int)strlen(host),host_len);
 	}
 	for (point = size - 1; point > 0; point--) {
 		if (host[point] == separator)

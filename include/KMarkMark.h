@@ -13,7 +13,7 @@ public:
 	bool mark(KHttpRequest *rq, KHttpObject *obj,
 				const int chainJumpType, int &jumpType)
 	{
-		rq->mark = v;
+		rq->sink->data.mark = v;
 		return true;
 	}
 	KMark *newInstance()
@@ -50,6 +50,6 @@ public:
 		s << " v='" << (int)v << "'>";
 	}
 private:
-	unsigned char v;
+	uint32_t v;
 };
 #endif

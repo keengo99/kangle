@@ -1247,7 +1247,7 @@ int main_fiber(void* arg, int argc)
 	kssl_init2();
 	kssl_set_sni_callback(kgl_create_ssl_sni, kgl_free_ssl_sni);
 #endif
-	init_http_server_callback(kgl_on_new_connection, start_request_fiber);
+	init_http_server_callback(kangle::kgl_on_new_connection, start_request_fiber);
 	do_config(true);
 	m_pid = getpid();
 	init_core_limit();

@@ -144,15 +144,10 @@ public:
 	void CloseFetchObject();
 	KGL_RESULT HandleResult(KGL_RESULT result);
 	bool rewriteUrl(const char *newUrl, int errorCode = 0,const char *prefix = NULL);
-	const char *getState();
-	void setState(uint8_t state);
 	void EnterRequestQueue();
 	void LeaveRequestQueue();
 	bool NeedTempFile(bool upload);
 	uint32_t filter_flags;
-	uint8_t state;
-	uint8_t mark;
-	uint16_t self_port;
 	KSink *sink;
 	//สýพÝิด
 	bool IsFetchObjectEmpty()
@@ -211,7 +206,6 @@ public:
 	void addFilter(KFilterHelper *chain);
 	inline bool responseStatus(uint16_t status_code)
 	{
-		setState(STATE_SEND);
 		return sink->response_status(status_code);
 	}
 	inline bool responseHeader(kgl_header_type name,const char *val,hlen_t val_len)
@@ -278,9 +272,6 @@ public:
 	}
 	uint16_t GetSelfPort()
 	{
-		if (self_port > 0) {
-			return self_port;
-		}
 		return sink->get_self_port();
 	}
 	void SetSelfPort(uint16_t port, bool ssl);

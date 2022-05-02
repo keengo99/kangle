@@ -13,11 +13,7 @@
 #include "KBigObjectContext.h"
 #include "KHttpServer.h"
 
-unsigned total_connect = 0;
-kgl_connection_result kgl_on_new_connection(kconnection* cn)
-{
-	return kgl_connection_success;
-}
+
 int stage_end_request(KHttpRequest* rq, KGL_RESULT result)
 {	
 	//{{ent

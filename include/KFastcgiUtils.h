@@ -71,8 +71,8 @@ public:
 	}
 	bool addEnv(const char *name, const char *value)
 	{
-		unsigned name_len = strlen(name);
-		unsigned value_len = strlen(value);
+		unsigned name_len = (unsigned)strlen(name);
+		unsigned value_len = (unsigned)strlen(value);
 		for (int i = 0; i < 2; i++) {
 			if (buff.getLen() + name_len + value_len + 8 >= FCGI_MAX_PACKET_SIZE) {
 				if (i == 1) {

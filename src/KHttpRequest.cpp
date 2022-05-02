@@ -61,83 +61,19 @@ void WINAPI free_auto_memory(void *arg)
 }
 void KHttpRequest::LeaveRequestQueue()
 {
-	setState(STATE_SEND);
+	sink->set_state(STATE_SEND);
 	sink->RemoveSync();
 }
 void KHttpRequest::EnterRequestQueue()
 {
 	KBIT_SET(sink->data.flags, RQ_QUEUED);
-	setState(STATE_QUEUE);
+	sink->set_state(STATE_QUEUE);
 	sink->AddSync();
-}
-void KHttpRequest::setState(uint8_t state) {
-#ifdef ENABLE_STAT_STUB
-	if (this->state == state) {
-		return;
-	}
-	switch (this->state) {
-	case STATE_IDLE:
-	case STATE_QUEUE:
-		katom_dec((void *)&kgl_waiting);
-		break;
-	case STATE_RECV:
-		katom_dec((void *)&kgl_reading);
-		break;
-	case STATE_SEND:
-		katom_dec((void *)&kgl_writing);
-		break;
-	}
-#endif
-	this->state = state;
-#ifdef ENABLE_STAT_STUB
-	switch (state) {
-	case STATE_IDLE:
-	case STATE_QUEUE:
-		katom_inc((void *)&kgl_waiting);
-		break;
-	case STATE_RECV:
-		katom_inc((void *)&kgl_reading);
-		break;
-	case STATE_SEND:
-		katom_inc((void *)&kgl_writing);
-		break;
-	}
-#endif		
 }
 void KHttpRequest::SetSelfPort(uint16_t port, bool ssl)
 {
-	if (port > 0) {
-		self_port = port;
-	}
-	if (ssl) {
-		KBIT_SET(sink->data.raw_url.flags, KGL_URL_SSL);
-		if (sink->data.raw_url.port == 80) {
-			sink->data.raw_url.port = 443;
-		}
-	} else {
-		KBIT_CLR(sink->data.raw_url.flags, KGL_URL_SSL);
-		if (sink->data.raw_url.port == 443) {
-			sink->data.raw_url.port = 80;
-		}
-	}
+	sink->set_self_port(port, ssl);
 }
-const char *KHttpRequest::getState()
-{
-	
-	switch (state) {
-	case STATE_IDLE:
-		return "idle";
-	case STATE_SEND:
-		return "send";
-	case STATE_RECV:
-		return "recv";
-	case STATE_QUEUE:
-		return "queue";
-	}
-	return "unknow";
-	
-}
-
 void KHttpRequest::CloseFetchObject()
 {
 	for(;;) {
@@ -230,11 +166,6 @@ KHttpHeaderIteratorResult handle_http_header(void* arg, KHttpHeader* header)
 }
 void KHttpRequest::beginRequest()
 {
-#ifdef ENABLE_STAT_STUB
-	katom_inc64((void*)&kgl_total_requests);
-#endif
-	setState(STATE_RECV);
-	mark = 0;
 	if (sink->data.url->path) {
 		KFileName::tripDir3(sink->data.url->path, '/');
 	}
@@ -422,7 +353,6 @@ KHttpRequest::~KHttpRequest()
 #ifdef ENABLE_REQUEST_QUEUE
 	assert(queue == NULL);
 #endif
-	setState(STATE_UNKNOW);
 	assert(sink);
 	if (sink) {
 		sink->end_request();

@@ -31,6 +31,7 @@
 #include "katom.h"
 #include "kthread.h"
 #include "kfiber.h"
+#include "KHttpServer.h"
 #ifdef _WIN32
 #include <direct.h>
 #else
@@ -41,28 +42,28 @@ volatile bool cur_config_ext = false;
 static volatile int32_t load_config_progress = 0;
 volatile bool configReload = false;
 using namespace std;
-KConfig *cconf = NULL;
+KConfig* cconf = NULL;
 KGlobalConfig conf;
 //读取配置文件，可重入
-void load_config(KConfig *cconf, bool firstTime);
+void load_config(KConfig* cconf, bool firstTime);
 void post_load_config(bool firstTime);
 #ifdef KSOCKET_SSL
-kgl_ssl_ctx *KSslConfig::GetSSLCtx(const char *certfile, const char *keyfile,bool *http2)
+kgl_ssl_ctx* KSslConfig::GetSSLCtx(const char* certfile, const char* keyfile, bool* http2)
 {
-	void *ssl_ctx_data = NULL;
+	void* ssl_ctx_data = NULL;
 #ifdef ENABLE_HTTP2
 	ssl_ctx_data = http2;
 #endif
-	SSL_CTX *ssl_ctx = kgl_ssl_ctx_new_server(certfile,
+	SSL_CTX* ssl_ctx = kgl_ssl_ctx_new_server(certfile,
 		keyfile,
-		NULL, 
+		NULL,
 		NULL,
 		ssl_ctx_data);
 	if (ssl_ctx == NULL) {
 		klog(KLOG_ERR,
 			"Cann't init ssl context certificate=[%s],certificate_key=[%s]\n",
-			certfile? certfile:"",
-			keyfile? keyfile:"");
+			certfile ? certfile : "",
+			keyfile ? keyfile : "");
 		return NULL;
 	}
 	if (early_data) {
@@ -95,13 +96,13 @@ std::string KSslConfig::GetKeyFile()
 #endif
 KConfigBase::KConfigBase()
 {
-	memset(this,0,sizeof(KConfigBase));
+	memset(this, 0, sizeof(KConfigBase));
 }
-void KConfig::copy(KConfig *c)
+void KConfig::copy(KConfig* c)
 {
 	//把cconf赋值到conf中
-	KConfigBase *bc = static_cast<KConfigBase *>(this);
-	kgl_memcpy(bc,static_cast<KConfigBase *>(c),sizeof(KConfigBase));
+	KConfigBase* bc = static_cast<KConfigBase*>(this);
+	kgl_memcpy(bc, static_cast<KConfigBase*>(c), sizeof(KConfigBase));
 	conf.admin_lock.Lock();
 	this->admin_ips.swap(c->admin_ips);
 	this->admin_user = c->admin_user;
@@ -118,7 +119,7 @@ void KConfig::copy(KConfig *c)
 #if 0
 	ipLock.Lock();
 	//swap per_ip_head
-	KPerIpConnect *tp = per_ip_head;
+	KPerIpConnect* tp = per_ip_head;
 	per_ip_head = c->per_ip_head;
 	c->per_ip_head = tp;
 	//swap per_ip_last
@@ -132,8 +133,8 @@ void KConfig::copy(KConfig *c)
 KConfig::~KConfig()
 {
 	//todo:清除内存
-	std::vector<KListenHost *>::iterator it;
-	for(it=service.begin();it!=service.end();it++){
+	std::vector<KListenHost*>::iterator it;
+	for (it = service.begin(); it != service.end(); it++) {
 		delete (*it);
 	}
 #if 0
@@ -155,67 +156,67 @@ KGlobalConfig::KGlobalConfig()
 class KExtConfigDynamicString : public KDynamicString
 {
 public:
-	KExtConfigDynamicString(const char *file)
+	KExtConfigDynamicString(const char* file)
 	{
 		this->file = file;
 		path = getPath(file);
 	}
 	~KExtConfigDynamicString()
 	{
-		if(path){
+		if (path) {
 			xfree(path);
 		}
 	}
-	const char *getValue(const char *name)
+	const char* getValue(const char* name)
 	{
-		if(strcasecmp(name,"config_dir")==0){
+		if (strcasecmp(name, "config_dir") == 0) {
 			return path;
 		}
-		if(strcasecmp(name,"config_file")==0){
+		if (strcasecmp(name, "config_file") == 0) {
 			return file;
 		}
 		return NULL;
 	}
 private:
-	char *path;
-	const char *file;
+	char* path;
+	const char* file;
 };
 class KExtConfig
 {
 public:
-	KExtConfig(char *content)
+	KExtConfig(char* content)
 	{
 		this->content = content;
 		next = NULL;
 	}
 	~KExtConfig()
 	{
-		if(content){
+		if (content) {
 			xfree(content);
 		}
-		if(next){
+		if (next) {
 			delete next;
 		}
 	}
 	std::string file;
-	char *content;
+	char* content;
 	bool merge;
-	KExtConfig *next;
+	KExtConfig* next;
 };
-static map<int,KExtConfig *> extconfigs;
-bool get_size_radio(INT64 size,int radio,const char radio_char,std::stringstream &s)
+static map<int, KExtConfig*> extconfigs;
+bool get_size_radio(INT64 size, int radio, const char radio_char, std::stringstream& s)
 {
 	INT64 t;
-	t = size>>radio;
-	if (t>0) {
-		if((t<<radio) == size){
+	t = size >> radio;
+	if (t > 0) {
+		if ((t << radio) == size) {
 			s << t << radio_char;
 			return true;
 		}
 	}
 	return false;
 }
-char *get_human_size(double size,char *buf,size_t buf_size)
+char* get_human_size(double size, char* buf, size_t buf_size)
 {
 	memset(buf, 0, buf_size);
 	int i = 0;
@@ -227,31 +228,31 @@ char *get_human_size(double size,char *buf,size_t buf_size)
 		size /= 1024;
 		i++;
 	}
-	snprintf(buf, buf_size-1, "%.*f%s", 2, size, units[i]);
+	snprintf(buf, buf_size - 1, "%.*f%s", 2, size, units[i]);
 	return buf;
 }
 std::string get_size(INT64 size)
 {
 	std::stringstream s;
-	if(get_size_radio(size,40,'T',s)){
+	if (get_size_radio(size, 40, 'T', s)) {
 		return s.str();
 	}
-	if(get_size_radio(size,30,'G',s)){
+	if (get_size_radio(size, 30, 'G', s)) {
 		return s.str();
 	}
-	if(get_size_radio(size,20,'M',s)){
+	if (get_size_radio(size, 20, 'M', s)) {
 		return s.str();
 	}
-	if(get_size_radio(size,10,'K',s)){
+	if (get_size_radio(size, 10, 'K', s)) {
 		return s.str();
 	}
 	s << size;
 	return s.str();
 }
-INT64 get_radio_size(const char *size,bool &is_radio) {
+INT64 get_radio_size(const char* size, bool& is_radio) {
 	is_radio = false;
 	INT64 cache_size = string2int(size);
-	int len = strlen(size);
+	int len = (int)strlen(size);
 	char t = 0;
 	for (int i = 0; i < len; i++) {
 		if (size[i] == '.') {
@@ -277,21 +278,21 @@ INT64 get_radio_size(const char *size,bool &is_radio) {
 		return cache_size << 40;
 	case '%':
 		is_radio = true;
-		if (cache_size<=0) {
+		if (cache_size <= 0) {
 			cache_size = 0;
 		}
-		if (cache_size >=100) {
+		if (cache_size >= 100) {
 			cache_size = 100;
 		}
 		break;
 	}
 	return cache_size;
 }
-INT64 get_size(const char *size) {
+INT64 get_size(const char* size) {
 	bool is_radio = false;
-	return get_radio_size(size,is_radio);
+	return get_radio_size(size, is_radio);
 }
-void init_config(KConfig *conf)
+void init_config(KConfig* conf)
 {
 #ifdef MALLOCDEBUG
 	conf->mallocdebug = true;
@@ -309,10 +310,10 @@ void init_config(KConfig *conf)
 	conf->min_compress_length = 512;
 	conf->auth_delay = 5;
 	conf->fiber_stack_size = 0;
-//{{ent
+	//{{ent
 	conf->wl_time = 1800;
-//}}
-	SAFE_STRCPY(conf->access_log ,"access.log");
+	//}}
+	SAFE_STRCPY(conf->access_log, "access.log");
 	conf->maxLogHandle = 2;
 #ifdef ENABLE_TF_EXCHANGE
 	conf->max_post_size = 8388608;
@@ -338,58 +339,58 @@ void LoadDefaultConfig() {
 	conf.sysHost->doc_root += "webadmin";
 #endif
 	conf.sysHost->browse = false;
-	KSubVirtualHost *svh = new KSubVirtualHost(conf.sysHost);
+	KSubVirtualHost* svh = new KSubVirtualHost(conf.sysHost);
 	svh->setDocRoot(conf.sysHost->doc_root.c_str(), "/");
 	//{{ent
 #ifdef HTTP_PROXY
 	//add mime type
-	conf.sysHost->addMimeType("gif","image/gif",kgl_compress_never,0);
-	conf.sysHost->addMimeType("css","text/css", kgl_compress_on,0);
-	conf.sysHost->addMimeType("html","text/html", kgl_compress_on,0);
-	conf.sysHost->addMimeType("js","text/javascript", kgl_compress_on,0);
-	conf.sysHost->addMimeType("*","text/plain", kgl_compress_unknow,0);
+	conf.sysHost->addMimeType("gif", "image/gif", kgl_compress_never, 0);
+	conf.sysHost->addMimeType("css", "text/css", kgl_compress_on, 0);
+	conf.sysHost->addMimeType("html", "text/html", kgl_compress_on, 0);
+	conf.sysHost->addMimeType("js", "text/javascript", kgl_compress_on, 0);
+	conf.sysHost->addMimeType("*", "text/plain", kgl_compress_unknow, 0);
 #endif
 	//}}
 	conf.sysHost->hosts.push_back(svh);
 	conf.sysHost->addRef();
 }
-void loadExtConfigFile(int index,KExtConfig *config,KXml &xmlParser)
+void loadExtConfigFile(int index, KExtConfig* config, KXml& xmlParser)
 {
-	while(config){
+	while (config) {
 		if (config->merge) {
 			cur_config_ext = false;
 		} else {
 			cur_config_ext = true;
 		}
-		klog(KLOG_NOTICE,"[%d] load config file [%s]\n",index,config->file.c_str());
-		try{
+		klog(KLOG_NOTICE, "[%d] load config file [%s]\n", index, config->file.c_str());
+		try {
 			xmlParser.startParse(config->content);
-		}catch(KXmlException &e){
-			fprintf(stderr, "%s in file[%s]\n", e.what(),config->file.c_str());
+		} catch (KXmlException& e) {
+			fprintf(stderr, "%s in file[%s]\n", e.what(), config->file.c_str());
 		}
 		config = config->next;
 	}
 }
-bool load_config_file(KFileName *file,int inclevel,KStringBuf &s,int &id,bool &merge)
+bool load_config_file(KFileName* file, int inclevel, KStringBuf& s, int& id, bool& merge)
 {
-	if(inclevel > 128){
-		klog(KLOG_ERR,"include level [%d] is limited.\n",inclevel);
+	if (inclevel > 128) {
+		klog(KLOG_ERR, "include level [%d] is limited.\n", inclevel);
 		return false;
 	}
 	int len = (int)file->fileSize;
-	if(len<=0 || len>1048576){
-		klog(KLOG_ERR,"config file [%s] length is wrong\n",file->getName());
+	if (len <= 0 || len > 1048576) {
+		klog(KLOG_ERR, "config file [%s] length is wrong\n", file->getName());
 		return false;
 	}
 	KFile fp;
-	if (!fp.open(file->getName(),fileRead)) {
-		klog(KLOG_ERR,"cann't open file[%s]\n",file->getName());
+	if (!fp.open(file->getName(), fileRead)) {
+		klog(KLOG_ERR, "cann't open file[%s]\n", file->getName());
 		return false;
 	}
-	char *buf = (char *)xmalloc(len+1);
-	int read_len = fp.read(buf,len);
-	if(read_len!=len){
-		klog(KLOG_ERR,"this sure not be happen,read file [%s] size error.\n",file->getName());
+	char* buf = (char*)xmalloc(len + 1);
+	int read_len = fp.read(buf, len);
+	if (read_len != len) {
+		klog(KLOG_ERR, "this sure not be happen,read file [%s] size error.\n", file->getName());
 		xfree(buf);
 		return false;
 	}
@@ -398,120 +399,120 @@ bool load_config_file(KFileName *file,int inclevel,KStringBuf &s,int &id,bool &m
 	ds.dimModel = false;
 	ds.blockModel = false;
 	ds.envChar = '%';
-	char *content = ds.parseDirect(buf);
+	char* content = ds.parseDirect(buf);
 	xfree(buf);
-	char *hot = content;
-	while(*hot && isspace((unsigned char)*hot)){
+	char* hot = content;
+	while (*hot && isspace((unsigned char)*hot)) {
 		hot++;
 	}
-	char *start = hot;
+	char* start = hot;
 	//默认启动顺序为50
 	id = 50;
-	if(strncmp(hot,"<!--#",5)==0){
-		hot+=5;
-		if (strncmp(hot,"stop",4)==0) {
+	if (strncmp(hot, "<!--#", 5) == 0) {
+		hot += 5;
+		if (strncmp(hot, "stop", 4) == 0) {
 			/*
 			 * 扩展没有启动
 			 */
 			xfree(content);
 			return false;
-		} else if (strncmp(hot,"start",5)==0) {
-			char *end = strchr(hot,'>');
+		} else if (strncmp(hot, "start", 5) == 0) {
+			char* end = strchr(hot, '>');
 			if (end) {
-				start = end+1;
+				start = end + 1;
 			}
-			hot+=6;
+			hot += 6;
 			id = atoi(hot);
-			char *p = strchr(hot,' ');
+			char* p = strchr(hot, ' ');
 			if (p) {
-				if (inclevel>0 && strncmp(p+1,"merge",5)==0) {
+				if (inclevel > 0 && strncmp(p + 1, "merge", 5) == 0) {
 					merge = true;
 					conf.mergeFiles.push_back(file->getName());
 				}
 			}
 		}
 	}
-	klog(KLOG_NOTICE,"read config file [%s] success\n",file->getName());
+	klog(KLOG_NOTICE, "read config file [%s] success\n", file->getName());
 	hot = start;
 	for (;;) {
-		char *p = strstr(hot,"<!--#include");
-		if (p==NULL) {
+		char* p = strstr(hot, "<!--#include");
+		if (p == NULL) {
 			s << hot;
 			break;
 		}
-		int pre_hot_len = p - hot;
+		int pre_hot_len = (int)(p - hot);
 		p += 12;
-		s.write_all(hot,pre_hot_len);
-		hot = strstr(p,"-->");
-		if(hot==NULL){
+		s.write_all(hot, pre_hot_len);
+		hot = strstr(p, "-->");
+		if (hot == NULL) {
 			break;
 		}
-		while(p<hot && isspace((unsigned char)*p)){
+		while (p < hot&& isspace((unsigned char)*p)) {
 			p++;
 		}
-		int filelen = hot-p;
-		if(filelen<=0){
+		int filelen = (int)(hot - p);
+		if (filelen <= 0) {
 			break;
 		}
-		char *incfilename = (char *)xmalloc(filelen+1);
-		kgl_memcpy(incfilename,p,filelen);
+		char* incfilename = (char*)xmalloc(filelen + 1);
+		kgl_memcpy(incfilename, p, filelen);
 		incfilename[filelen] = '\0';
-		for(int i=filelen-1;i>0;i--){
-			if(!isspace((unsigned char)incfilename[i])){
+		for (int i = filelen - 1; i > 0; i--) {
+			if (!isspace((unsigned char)incfilename[i])) {
 				break;
 			}
 			incfilename[i] = '\0';
 		}
 		bool incresult = false;
-		char *translate_filename = ds.parseDirect(incfilename);
+		char* translate_filename = ds.parseDirect(incfilename);
 		xfree(incfilename);
 		KFileName incfile;
-		if (translate_filename) {				
+		if (translate_filename) {
 			if (!isAbsolutePath(translate_filename)) {
-				incresult = incfile.setName(conf.path.c_str(),translate_filename,FOLLOW_LINK_ALL);
+				incresult = incfile.setName(conf.path.c_str(), translate_filename, FOLLOW_LINK_ALL);
 			} else {
 				incresult = incfile.setName(translate_filename);
 			}
 			xfree(translate_filename);
-		}		
+		}
 		if (incresult) {
 			int id;
-			bool merge=false;
-			load_config_file(&incfile,inclevel+1,s,id,merge);
+			bool merge = false;
+			load_config_file(&incfile, inclevel + 1, s, id, merge);
 		}
 		hot += 3;
 	}
 	xfree(content);
 	return true;
 }
-void loadExtConfigFile(KFileName *file) {
+void loadExtConfigFile(KFileName* file) {
 	KStringBuf s;
 	int id = 50;
 	bool merge = false;
-	if (!load_config_file(file,0,s,id,merge)) {
+	if (!load_config_file(file, 0, s, id, merge)) {
 		return;
 	}
-	KExtConfig *extconf = new KExtConfig(s.stealString());
+	KExtConfig* extconf = new KExtConfig(s.stealString());
 	extconf->file = file->getName();
 	extconf->merge = merge;
-	map<int,KExtConfig *>::iterator it;
+	map<int, KExtConfig*>::iterator it;
 	it = extconfigs.find(id);
-	if(it!=extconfigs.end()){
+	if (it != extconfigs.end()) {
 		extconf->next = (*it).second->next;
 		(*it).second->next = extconf;
-	}else{
-		extconfigs.insert(pair<int,KExtConfig *>(id,extconf));
+	} else {
+		extconfigs.insert(pair<int, KExtConfig*>(id, extconf));
 	}
 }
-int handleExtConfigFile(const char *file, void *param) {
+int handleExtConfigFile(const char* file, void* param) {
 	KFileName configFile;
-	if (!configFile.setName((char *) param, file,FOLLOW_LINK_ALL)) {
+	if (!configFile.setName((char*)param, file, FOLLOW_LINK_ALL)) {
 		return 0;
 	}
 	if (configFile.isDirectory()) {
 		KFileName dirConfigFile;
 		if (!dirConfigFile.setName(configFile.getName(), "config.xml",
-				FOLLOW_LINK_ALL)) {
+			FOLLOW_LINK_ALL)) {
 			return 0;
 		}
 		loadExtConfigFile(&dirConfigFile);
@@ -527,23 +528,23 @@ void loadExtConfigFile()
 #else
 	std::string ext_path = conf.path + "/ext";
 #endif
-	list_dir(ext_path.c_str(),handleExtConfigFile,(void *)ext_path.c_str());
+	list_dir(ext_path.c_str(), handleExtConfigFile, (void*)ext_path.c_str());
 	string configFile = conf.path + "etc/vh.d/";
-	list_dir(configFile.c_str(),handleExtConfigFile,(void *)configFile.c_str());
+	list_dir(configFile.c_str(), handleExtConfigFile, (void*)configFile.c_str());
 }
 bool saveConfig() {
 	return KConfigBuilder::saveConfig();
 }
-void load_main_config(KConfig *cconf,std::string & configFile,KXml &xmlParser,bool firstload)
+void load_main_config(KConfig* cconf, std::string& configFile, KXml& xmlParser, bool firstload)
 {
 	klog(KLOG_NOTICE, "load config file [%s]\n", configFile.c_str());
-	for (int i=0;i<2;i++) {
+	for (int i = 0; i < 2; i++) {
 		try {
 			xmlParser.parseFile(configFile);
 			break;
-		} catch (KXmlException &e) {
+		} catch (KXmlException& e) {
 			fprintf(stderr, "%s\n", e.what());
-			if (i>0) {
+			if (i > 0) {
 				exit(0);
 			} else {
 				printf("cann't read config.xml try to read config.xml.lst\n");
@@ -560,7 +561,7 @@ void load_main_config(KConfig *cconf,std::string & configFile,KXml &xmlParser,bo
 		configFile += "/lang.xml";
 		klog(KLOG_NOTICE, "load config file [%s]\n", configFile.c_str());
 		klang.load(configFile.c_str());
-	} catch (KXmlException &e) {
+	} catch (KXmlException& e) {
 		fprintf(stderr, "%s\n", e.what());
 	}
 }
@@ -578,15 +579,15 @@ void clean_config() {
 #endif
 	//contentType.destroy();
 }
-int do_config_thread(void * first_time,int argc)
+int do_config_thread(void* first_time, int argc)
 {
 	assert(kfiber_self());
 	cur_config_ext = false;
-	if (first_time!=NULL) {
+	if (first_time != NULL) {
 #ifdef _WIN32
 		_setmaxstdio(2048);
 #endif
-		for (int i = 0; i<2; i++) {
+		for (int i = 0; i < 2; i++) {
 			kaccess[i].setType(i);
 			kaccess[i].setGlobal(true);
 		}
@@ -595,62 +596,62 @@ int do_config_thread(void * first_time,int argc)
 	assert(cconf == NULL);
 	cconf = new KConfig;
 	init_config(cconf);
-	load_config(cconf, first_time!=NULL);
-	post_load_config(first_time != NULL);	
+	load_config(cconf, first_time != NULL);
+	post_load_config(first_time != NULL);
 	delete cconf;
 	cconf = NULL;
-	katom_set((void *)&load_config_progress, 0);
+	katom_set((void*)&load_config_progress, 0);
 	return 0;
 }
 void do_config(bool first_time) {
-	if (!katom_cas((void *)&load_config_progress, 0, 1)) {
+	if (!katom_cas((void*)&load_config_progress, 0, 1)) {
 		assert(!first_time);
 		return;
 	}
 	if (first_time) {
 		//first time load must not use thread
-		do_config_thread((void *)&first_time,0);
+		do_config_thread((void*)&first_time, 0);
 		return;
 	}
 	if (kfiber_create(do_config_thread, NULL, 0, conf.fiber_stack_size, NULL) != 0) {
-		katom_set((void *)&load_config_progress, 0);
-	}	
+		katom_set((void*)&load_config_progress, 0);
+	}
 }
 void wait_load_config_done() {
 	for (;;) {
-		if (0 == katom_get((void *)&load_config_progress)) {
+		if (0 == katom_get((void*)&load_config_progress)) {
 			break;
 		}
 		kfiber_msleep(50);
 	}
 }
-int merge_apache_config(const char *filename)
+int merge_apache_config(const char* filename)
 {
 	KFileName file;
-	if(file.setName(filename)){
+	if (file.setName(filename)) {
 		KApacheConfig apConfig(false);
 		std::stringstream s;
 		s << "<!--#start 1000 merge-->\n";
-		apConfig.load(&file,s);
+		apConfig.load(&file, s);
 		std::stringstream xf;
 		xf << conf.path << PATH_SPLIT_CHAR << "ext";
-		mkdir(xf.str().c_str(),0755);
+		mkdir(xf.str().c_str(), 0755);
 		xf << "/_apache.xml";
-		FILE *fp = fopen(xf.str().c_str(),"wt");
-		if(fp==NULL){
-			fprintf(stderr,"cann't open file [%s] to write\n",xf.str().c_str());
+		FILE* fp = fopen(xf.str().c_str(), "wt");
+		if (fp == NULL) {
+			fprintf(stderr, "cann't open file [%s] to write\n", xf.str().c_str());
 			return 1;
 		}
-		fwrite(s.str().c_str(),1,s.str().size(),fp);
+		fwrite(s.str().c_str(), 1, s.str().size(), fp);
 		fclose(fp);
-		fprintf(stdout,"success convert to file [%s] please reboot kangle\n",xf.str().c_str());
+		fprintf(stdout, "success convert to file [%s] please reboot kangle\n", xf.str().c_str());
 		return 0;
 	} else {
-		fprintf(stderr,"cann't open apache config file [%s]\n",filename);
+		fprintf(stderr, "cann't open apache config file [%s]\n", filename);
 		return 1;
 	}
 }
-void load_db_vhost(KVirtualHostManage *vm)
+void load_db_vhost(KVirtualHostManage* vm)
 {
 #ifndef HTTP_PROXY
 	cur_config_vh_db = false;
@@ -663,9 +664,9 @@ void load_db_vhost(KVirtualHostManage *vm)
 #endif
 }
 //读取配置文件，可重入
-void load_config(KConfig *cconf,bool firstTime)
+void load_config(KConfig* cconf, bool firstTime)
 {
-	std::map<int,KExtConfig *>::iterator it;
+	std::map<int, KExtConfig*>::iterator it;
 	bool main_config_loaded = false;
 #ifdef KANGLE_ETC_DIR
 	std::string configFileDir = KANGLE_ETC_DIR;
@@ -674,7 +675,7 @@ void load_config(KConfig *cconf,bool firstTime)
 #endif
 	std::string configFile = configFileDir + CONFIG_FILE;
 	bool parse_result = worker_config_parser.parse(configFile);
-	if (!parse_result && kfile_last_modified(configFile.c_str())==0) {
+	if (!parse_result && kfile_last_modified(configFile.c_str()) == 0) {
 		configFile = configFileDir + CONFIG_DEFAULT_FILE;
 		worker_config_parser.parse(configFile);
 	}
@@ -713,8 +714,8 @@ void load_config(KConfig *cconf,bool firstTime)
 		cconf->vm = &vm;
 		//dso配置只在启动时加载一次
 		xmlParser.addEvent(&dso_parser);
-	} else {		
-		for (int i=0;i<2;i++) {
+	} else {
+		for (int i = 0; i < 2; i++) {
 			access[i].setType(i);
 			access[i].setGlobal(true);
 		}
@@ -731,35 +732,35 @@ void load_config(KConfig *cconf,bool firstTime)
 		cconf->vm = &vm;
 	}
 
-	for (it=extconfigs.begin();it!=extconfigs.end();it++) {
-		if(!main_config_loaded && (*it).first>=100){
+	for (it = extconfigs.begin(); it != extconfigs.end(); it++) {
+		if (!main_config_loaded && (*it).first >= 100) {
 			main_config_loaded = true;
 			cur_config_ext = false;
-			load_main_config(cconf, configFile,xmlParser,firstTime);
+			load_main_config(cconf, configFile, xmlParser, firstTime);
 			cur_config_ext = true;
 		}
-		loadExtConfigFile((*it).first,(*it).second,xmlParser);
+		loadExtConfigFile((*it).first, (*it).second, xmlParser);
 		delete (*it).second;
 	}
-	extconfigs.clear();	
+	extconfigs.clear();
 	cur_config_ext = false;
-	if(!main_config_loaded){
-		load_main_config(cconf, configFile,xmlParser,firstTime);
+	if (!main_config_loaded) {
+		load_main_config(cconf, configFile, xmlParser, firstTime);
 	}
 	//{{ent
 #ifndef KANGLE_FREE
-	if (conf.apache_config_file.size()>0) {
+	if (conf.apache_config_file.size() > 0) {
 		KFileName file;
-		if(file.setName(conf.apache_config_file.c_str())){
+		if (file.setName(conf.apache_config_file.c_str())) {
 			KApacheConfig apConfig(false);
 			std::stringstream s;
-			apConfig.load(&file,s);
+			apConfig.load(&file, s);
 			cur_config_vh_db = true;
-			char *content = strdup(s.str().c_str());
+			char* content = strdup(s.str().c_str());
 			KExtConfig apextconfig(content);
 			apextconfig.merge = false;
 			apextconfig.file = conf.apache_config_file;
-			loadExtConfigFile(999999,&apextconfig,xmlParser);
+			loadExtConfigFile(999999, &apextconfig, xmlParser);
 		}
 	}
 #endif//}}
@@ -770,8 +771,8 @@ void load_config(KConfig *cconf,bool firstTime)
 	conf.gvm->copy(&vm);
 	if (!firstTime) {
 		conf.gam->copy(am);
-		writeBackManager.copy(wm);		
-		for (int i=0;i<2;i++) {
+		writeBackManager.copy(wm);
+		for (int i = 0; i < 2; i++) {
 			//access[i].setChainAction();
 			kaccess[i].copy(access[i]);
 		}
@@ -780,9 +781,9 @@ void load_config(KConfig *cconf,bool firstTime)
 #if 0
 	string serial_file = conf.path;
 	serial_file += ".autoupdate.conf";
-	FILE *fp = fopen(serial_file.c_str(),"rt");
-	if(fp){
-		fscanf(fp,"%d",&serial);
+	FILE* fp = fopen(serial_file.c_str(), "rt");
+	if (fp) {
+		fscanf(fp, "%d", &serial);
 		fclose(fp);
 	}
 #endif
@@ -800,7 +801,7 @@ void parse_server_software()
 		serverName += VERSION;
 		SAFE_STRCPY(conf.serverName, serverName.c_str());
 	}
-	conf.serverNameLength = strlen(conf.serverName);
+	conf.serverNameLength = (int)strlen(conf.serverName);
 	timeLock.Unlock();
 }
 
@@ -839,6 +840,8 @@ void post_load_config(bool firstTime)
 		}
 	}
 	selector_manager_set_timeout(conf.connect_time_out, conf.time_out);
+	http_config.fiber_stack_size = conf.fiber_stack_size;
+	http_config.time_out = conf.time_out;
 	cache.init(firstTime);
 	//{{ent
 #ifdef ENABLE_BLACK_LIST

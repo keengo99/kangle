@@ -25,11 +25,11 @@ public:
 	bool match(KHttpRequest *rq, KHttpObject *obj) {
 		switch (op) {
 		case MARKACL_OP_EQ:
-			return rq->mark==mark;
+			return rq->sink->data.mark==mark;
 		case MARKACL_OP_LT:
-			return rq->mark<mark;
+			return rq->sink->data.mark<mark;
 		case MARKACL_OP_GT:
-			return rq->mark>mark;
+			return rq->sink->data.mark>mark;
 		}
 		return false;
 	}
@@ -101,6 +101,6 @@ private:
 		return "=";
 	}
 	int op;
-	unsigned char mark;
+	uint32_t mark;
 };
 #endif

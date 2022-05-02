@@ -145,9 +145,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 	}
 	case KGL_VAR_SERVER_ADDR:
 	{
-		sockaddr_i self_addr;
-		rq->sink->get_self_addr(&self_addr);
-		if (!ksocket_sockaddr_ip(&self_addr, (char *)buffer, *size - 1)) {
+		if (rq->sink->get_self_ip((char *)buffer, *size - 1) == 0) {
 			*size = MAXIPLEN;
 			return KGL_EINSUFFICIENT_BUFFER;
 		}

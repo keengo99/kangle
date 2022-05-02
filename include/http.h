@@ -76,7 +76,6 @@ bool make_http_env(KHttpRequest *rq,kgl_input_stream *gate, KBaseRedirect *rd,ti
 kbuf *build_memory_obj_header(KHttpRequest *rq, KHttpObject *obj, INT64 &start, INT64 &send_len);
 bool stored_obj(KHttpObject *obj,int list_state);
 bool stored_obj(KHttpRequest *rq, KHttpObject *obj,KHttpObject *old_obj);
-bool adjust_range(KHttpRequest *rq,INT64 &len);
 void set_obj_size(KHttpObject *obj, INT64 content_length);
 int checkResponse(KHttpRequest *rq,KHttpObject *obj);
 KGL_RESULT send_cache_object(KHttpRequest* rq, KHttpObject* obj);

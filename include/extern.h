@@ -3,11 +3,6 @@
 #include <string.h>
 #include "global.h"
 #include "kforwin32.h"
-#define STATE_UNKNOW   0
-#define STATE_IDLE     1
-#define STATE_SEND     2
-#define STATE_RECV     3
-#define STATE_QUEUE    4
 extern volatile int quit_program_flag;
 extern volatile int32_t mark_module_shutdown;
 extern int my_uid;
