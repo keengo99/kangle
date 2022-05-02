@@ -81,7 +81,7 @@ KGL_RESULT KFastcgiFetchObject::buildHead(KHttpRequest *rq)
 	}
 	bool chrooted = false;
 #ifndef _WIN32
-	chrooted = rq->svh->vh->chroot;
+	chrooted = rq->get_virtual_host()->vh->chroot;
 #endif
 	bool sendResult = make_http_env(rq, in, brd, rq->sink->data.if_modified_since, rq->file, &fbuf, chrooted);
 	if (!sendResult) {//send error
