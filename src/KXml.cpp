@@ -28,14 +28,16 @@
 #include <iostream>
 #include <assert.h>
 #include "KXml.h"
-#include "log.h"
- //#include "KStringBuf.h"
- //#include "utils.h"
-#include "kfiber.h"
-#include "KFileName.h"
+#include "klog.h"
+#include "kforwin32.h"
+//#include "kfiber.h"
+//#include "KFileName.h"
 #include "kmalloc.h"
-#include "extern.h"
 using namespace std;
+kxml_fopen KXml::fopen = NULL;
+kxml_fclose KXml::fclose = NULL;
+kxml_fsize KXml::fsize = NULL;
+kxml_fread KXml::fread = NULL;
 
 std::string replace(const char* str, map<string, string>& replaceMap,
 	const char* start, const char* end) {
@@ -634,12 +636,12 @@ KXmlContext* KXml::newContext(std::string qName) {
 	return context;
 }
 char* KXml::getContent(const std::string& file) {
-	kfiber_file* fp = kfiber_file_open(file.c_str(), fileRead, 0);
+	void *fp = KXml::fopen(file.c_str(), fileRead, 0);
 	if (fp == NULL) {
 		return NULL;
 	}
 	char* buf = NULL;
-	INT64 fileSize = kfiber_file_size(fp);
+	INT64 fileSize = KXml::fsize(fp);
 	if (fileSize > 1048576) {
 		goto clean;
 	}
@@ -647,14 +649,14 @@ char* KXml::getContent(const std::string& file) {
 	if (buf == NULL) {
 		goto clean;
 	}
-	if (kfiber_file_read(fp, buf, (int)fileSize) != (int)fileSize) {
+	if (KXml::fread(fp, buf, (int)fileSize) != (int)fileSize) {
 		free(buf);
 		buf = NULL;
 		goto clean;
 	}
 	buf[fileSize] = '\0';
 clean:
-	kfiber_file_close(fp);
+	KXml::fclose(fp);
 	return buf;
 
 }

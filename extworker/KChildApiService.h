@@ -13,7 +13,7 @@ public:
 	int writeClient(const char *str, int len) ;
 	int readClient(char *buf, int len) ;
 	bool setStatusCode(const char *status, int len = 0);
-	bool addHeader(const char *attr, int len = 0);
+	KGL_RESULT addHeader(const char *attr, int len = 0) override;
 	bool execUrl(HSE_EXEC_URL_INFO *urlInfo);
 	bool initECB(EXTENSION_CONTROL_BLOCK *ecb);
 	KFastcgiStream<KSocketStream> *st;

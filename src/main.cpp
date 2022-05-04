@@ -1230,6 +1230,11 @@ void my_fork() {
 }
 int main_fiber(void* arg, int argc)
 {
+	//init kxml
+	KXml::fopen = (kxml_fopen)kfiber_file_open;
+	KXml::fclose = (kxml_fclose)kfiber_file_close;
+	KXml::fsize = (kxml_fsize)kfiber_file_size;
+	KXml::fread = (kxml_fread)kfiber_file_read;
 #ifdef _WIN32
 	if (worker_index == 0) {
 		create_signal_pipe();

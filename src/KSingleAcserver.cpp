@@ -7,6 +7,7 @@
 #include "do_config.h"
 #include "KSingleAcserver.h"
 #include "KAsyncFetchObject.h"
+#include "HttpFiber.h"
 
 KSingleAcserver::KSingleAcserver(KSockPoolHelper *nodes)
 {
@@ -17,6 +18,11 @@ KSingleAcserver::KSingleAcserver() {
 }
 KSingleAcserver::~KSingleAcserver() {
 	sockHelper->release();
+}
+void KSingleAcserver::set_proto(Proto_t proto)
+{
+	this->proto = proto;
+	sockHelper->tcp = kangle::is_upstream_tcp(proto);
 }
 KUpstream* KSingleAcserver::GetUpstream(KHttpRequest* rq)
 {

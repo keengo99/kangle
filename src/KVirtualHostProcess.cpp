@@ -83,8 +83,7 @@ KUpstream* KVirtualHostProcess::GetUpstream(KHttpRequest* rq, KExtendProgram* rd
 	if (status == VProcess_Poweron) {
 		return Connect(rq);
 	}
-	KCmdPoolableRedirect* cmd = static_cast<KCmdPoolableRedirect*>(rd);
-
+	//KCmdPoolableRedirect* cmd = static_cast<KCmdPoolableRedirect*>(rd);
 	lock.Lock();
 	if (status == VProcess_Poweron) {
 		lock.Unlock();
@@ -93,14 +92,15 @@ KUpstream* KVirtualHostProcess::GetUpstream(KHttpRequest* rq, KExtendProgram* rd
 	if (status != VProcess_Inprogress) {
 		status = VProcess_Inprogress;
 		lock.Unlock();
+		//cmd->LockCommand();
 		KPipeStream* st = Power(rq, rd);
 		if (st == NULL) {
-			cmd->UnlockCommand();
+			//cmd->UnlockCommand();
 			NoticePowerResult(false);
 			return NULL;
 		}
 		KUpstream *us = PowerResult(rq, st);
-		cmd->UnlockCommand();
+		//cmd->UnlockCommand();
 		NoticePowerResult(true);
 		return us;
 	}

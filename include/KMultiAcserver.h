@@ -57,10 +57,13 @@ public:
 	bool delNode(int nodeIndex);
 	bool isChanged(KPoolableRedirect *rd);
 	void buildVNode();
+	void set_proto(Proto_t proto) override;
 	bool ip_hash;
 	bool url_hash;
 	bool cookie_stick;
 	int max_error_count;
+protected:
+
 private:
 	void removeAllNode();
 	void init();

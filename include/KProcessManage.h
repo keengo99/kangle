@@ -38,6 +38,7 @@ public:
 
 	}
 	virtual ~KProcessManage();
+	void set_proto(Proto_t proto);
 	KUpstream* GetUpstream(KHttpRequest* rq, KExtendProgram* rd);
 	void clean();
 	void refresh(time_t nowTime);
@@ -79,6 +80,7 @@ private:
 		if (gc == NULL) {
 			debug("app [%s] gc is NULL\n",app.c_str());
 			gc = newVirtualProcess(param.c_str());
+			gc->set_tcp(kangle::is_upstream_tcp(proto));
 			assert(gc);
 			gc->setLifeTime(rd->lifeTime);
 			//gc->setRefresh(true);
@@ -96,6 +98,7 @@ private:
 	 * 进程管理器名称
 	 */
 	std::string name;
+	Proto_t proto;
 	KMutex lock;
 	std::map<USER_T, KVirtualHostProcess *> pools;
 };
@@ -105,7 +108,7 @@ private:
 class KApiProcessManage: public KProcessManage {
 public:
 	KApiProcessManage() {
-
+		set_proto(Proto_fcgi);
 	}
 	~KApiProcessManage() {
 

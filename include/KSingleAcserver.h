@@ -32,9 +32,9 @@ public:
 	const char *getType() {
 		return "server";
 	}
+	void set_proto(Proto_t proto) override;
 public:
 	void buildXML(std::stringstream &s);
-	friend class KAcserverManager;
 	KSockPoolHelper *sockHelper;
 };
 #endif /* KSingleAcserver_H_ */

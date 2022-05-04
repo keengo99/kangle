@@ -125,7 +125,7 @@ func Post(path string, header map[string]string, body string, cb ClientCheckBack
 	}
 	time.Sleep(20 * time.Millisecond)
 }
-func request(method string, path string, host string, header map[string]string, cb ClientCheckBack) {
+func Request(method string, path string, host string, header map[string]string, cb ClientCheckBack) {
 	url := fmt.Sprintf("%s%s", config.Cfg.UrlPrefix, path)
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
@@ -168,12 +168,12 @@ func request(method string, path string, host string, header map[string]string, 
 }
 
 func Getx(path string, host string, header map[string]string, cb ClientCheckBack) {
-	request("GET", path, host, header, cb)
+	Request("GET", path, host, header, cb)
 }
 
 func Get(path string, header map[string]string, cb ClientCheckBack) {
 	Getx(path, "", header, cb)
 }
 func Head(path string, header map[string]string, cb ClientCheckBack) {
-	request("HEAD", path, "", header, cb)
+	Request("HEAD", path, "", header, cb)
 }

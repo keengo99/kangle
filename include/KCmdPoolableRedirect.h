@@ -35,7 +35,7 @@ public:
 	const char *getName() {
 		return name.c_str();
 	}
-	KUpstream* GetUpstream(KHttpRequest* rq);
+	KUpstream* GetUpstream(KHttpRequest* rq) override;
 	void parseConfig(std::map<std::string, std::string> &attribute);
 
 	KProcessManage *getProcessManage() {
@@ -57,6 +57,7 @@ public:
 		kfiber_mutex_unlock(lock);
 	}
 	bool isChanged(KPoolableRedirect *rd);
+	void set_proto(Proto_t proto) override;
 	bool chuser;
 	int worker;
 	int port;

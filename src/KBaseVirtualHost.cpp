@@ -860,7 +860,7 @@ void KBaseVirtualHost::inheriTo(KVirtualHost *vh, bool clearFlag) {
 	vh->lock.Unlock();
 }
 bool KBaseVirtualHost::alias(bool internal,const char *path,KFileName *file,bool &exsit,int flag) {
-	int len = strlen(path);
+	int len = (int)strlen(path);
 	lock.Lock();
 	std::list<KBaseAlias *>::iterator it;
 	for (it = aliass.begin(); it != aliass.end(); it++) {
@@ -879,7 +879,7 @@ bool KBaseVirtualHost::alias(bool internal,const char *path,KFileName *file,bool
 	return false;
 }
 char *KBaseVirtualHost::alias(bool internal,const char *path) {
-	int len = strlen(path);
+	int len = (int)strlen(path);
 	lock.Lock();
 	std::list<KBaseAlias *>::iterator it;
 	for (it = aliass.begin(); it != aliass.end(); it++) {

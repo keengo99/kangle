@@ -1,0 +1,4 @@
+LIBRARY	"webdav"
+EXPORTS
+	GetExtensionVersion
+    HttpExtensionProc

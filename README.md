@@ -19,7 +19,7 @@ cd kangle
 git submodule init
 git submodule update
 cd build
-cmake .
+cmake ..
 make
 ```
 ## build for windows.

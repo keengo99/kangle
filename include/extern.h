@@ -57,11 +57,6 @@ struct lessp {
 		return strcmp(__x, __y) < 0;
 	}
 };
-struct lessp_icase {
-	bool operator()(const char * __x, const char * __y) const {
-		return strcasecmp(__x, __y) < 0;
-	}
-};
 struct lessf {
 	bool operator()(const char * __x, const char * __y) const {
 		return filecmp(__x, __y) < 0;

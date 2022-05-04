@@ -32,7 +32,7 @@ public:
 	bool load();
 	void setFile(std::string file);
 	bool load(std::string file);
-
+	KUpstream* GetUpstream(KHttpRequest* rq) override;
 	//KClientSocket *createConnection(KHttpRequest *rq);
 	//void freeConnection(KHttpRequest *rq, KClientSocket *st, bool mustClose);
 

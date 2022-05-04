@@ -399,6 +399,7 @@ bool cmd_create_process(KWStream *st,FCGI_Header *header,bool unix_socket)
 		if (!ls.listen()) {
 			goto done;
 		}
+		printf("success listen port=[%d] sockfd=[%x]\n",  ls.getPort(), (int)ls.fd[0]);
 		rh.id = ls.getPort();
 #ifdef KSOCKET_UNIX
 	}

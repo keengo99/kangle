@@ -2,14 +2,17 @@
 #define KHTTPFIBER_H
 #include "ksapi.h"
 #include "KHttpServer.h"
+#include "global.h"
 
 class KHttpRequest;
 class KAutoBuffer;
 class KHttpObject;
 class KFetchObject;
 class KRequestQueue;
+class KUpstream;
 class KSink;
 namespace kangle {
+	bool is_upstream_tcp(Proto_t proto);
 	kgl_connection_result kgl_on_new_connection(kconnection* cn);
 };
 void start_request_fiber(KSink* sink, int header_length);
@@ -27,4 +30,5 @@ KGL_RESULT open_queued_fetchobj(KHttpRequest* rq, KFetchObject* fo, kgl_input_st
 KGL_RESULT send_memory_object(KHttpRequest* rq);
 int stage_end_request(KHttpRequest* rq, KGL_RESULT result);
 KGL_RESULT prepare_request_fetchobj(KHttpRequest* rq);
+
 #endif

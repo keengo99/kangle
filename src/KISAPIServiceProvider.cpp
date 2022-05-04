@@ -48,7 +48,7 @@ void KISAPIServiceProvider::checkHeaderSend() {
 		}
 	}
 }
-StreamState KISAPIServiceProvider::write_end() {
+StreamState KISAPIServiceProvider::write_end(KGL_RESULT result) {
 	checkHeaderSend();
 	return STREAM_WRITE_SUCCESS;
 }

@@ -5,15 +5,15 @@ import (
 	"os"
 )
 
-func CopyFile(src, dst string) (err error) {
+func CopyFile(src, dst string) {
 	in, err := os.Open(src)
 	if err != nil {
-		return
+		panic(err)
 	}
 	defer in.Close()
 	out, err := os.Create(dst)
 	if err != nil {
-		return
+		panic(err)
 	}
 	defer func() {
 		cerr := out.Close()
@@ -23,8 +23,10 @@ func CopyFile(src, dst string) (err error) {
 		err = os.Chmod(dst, 0755)
 	}()
 	if _, err = io.Copy(out, in); err != nil {
-		return
+		panic(err)
 	}
 	err = out.Sync()
-	return
+	if err != nil {
+		panic(err)
+	}
 }

@@ -18,9 +18,8 @@ import (
 )
 
 var (
-	kangle_base  *string = flag.String("b", "", "kangle base path")
-	kangle_exe   *string = flag.String("e", "", "kangle program")
-	kangle_bin   *string = flag.String("bin", "kangle_bin", "kangle_bin dir")
+	kangle_base  *string = flag.String("o", "", "kangle test base path")
+	kangle_exe   *string = flag.String("e", "", "kangle build output path")
 	test_case    *string = flag.String("t", "", "test suite[.case][,suite[.case]])")
 	list_case    *bool   = flag.Bool("l", false, "list all test case")
 	server_model *bool   = flag.Bool("s", false, "only run server")
@@ -55,14 +54,14 @@ func ProcessSuites(suites []string) {
 	}
 	config.Cfg.Force = *force
 	if len(*kangle_exe) > 0 {
-		kangle.Prepare(*kangle_exe, *kangle_bin)
+		kangle.Prepare(*kangle_exe)
 	} else {
 		kangle.ReloadConfig()
 	}
 
 	//url_prefixs := []string{"https://127.0.0.1:9943", "http://127.0.0.1:9999"}
-	url_prefixs := []string{"http://127.0.0.1:9999", "https://127.0.0.1:9943"}
-	//url_prefixs := []string{"http://127.0.0.1:9999"}
+	//url_prefixs := []string{"http://127.0.0.1:9999", "https://127.0.0.1:9943"}
+	url_prefixs := []string{"http://127.0.0.1:9999"}
 	//url_prefixs := []string{"https://127.0.0.1:9943"}
 	for _, url_prefix := range url_prefixs {
 		config.Cfg.UrlPrefix = url_prefix

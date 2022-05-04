@@ -40,7 +40,7 @@ public:
 	void log(const char *str);
 	int read(char *buf, int len);
 	int write(const char *buf, int len);
-	StreamState write_end();
+	StreamState write_end(KGL_RESULT result) override;
 	char getMethod() {
 		if (meth != METH_UNSET) {
 			return meth;

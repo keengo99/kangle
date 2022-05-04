@@ -190,8 +190,7 @@ BOOL WINAPI ReadClient(HCONN hConn, LPVOID lpvBuffer, LPDWORD lpdwSize) {
 	return TRUE;
 }
 
-BOOL WINAPI ServerSupportFunction(HCONN hConn, DWORD dwHSERequest,
-		LPVOID lpvBuffer, LPDWORD lpdwSize, LPDWORD lpdwDataType) {
+BOOL WINAPI ServerSupportFunction(HCONN hConn, DWORD dwHSERequest,LPVOID lpvBuffer, LPDWORD lpdwSize, LPDWORD lpdwDataType) {
 	KApiService *fo = (KApiService *) hConn;
 	assert(fo);
 	if (fo == NULL) {
@@ -239,7 +238,7 @@ BOOL WINAPI ServerSupportFunction(HCONN hConn, DWORD dwHSERequest,
 			}
 			strncpy(buffer,val,len);
 			buffer[len] = '\0';
-		}else{
+		} else {
 			if (len > MAX_PATH) {
 				debug("len is too long\n");
 				return FALSE;
@@ -274,26 +273,28 @@ BOOL WINAPI ServerSupportFunction(HCONN hConn, DWORD dwHSERequest,
 			fo->setStatusCode(status, (int)strlen(status));
 		}
 		if (header) {
-			fo->addHeader(header, (int)strlen(header));
+			KGL_RESULT result = fo->addHeader(header, (int)strlen(header));
+			if (result != KGL_OK) {
+				return FALSE;
+			}
 		}
 		return true;
 	}
 //{{ent
 #ifdef _WIN32
-	if(dwHSERequest == HSE_REQ_VECTOR_SEND) {
+	if (dwHSERequest == HSE_REQ_VECTOR_SEND) {
 		HSE_RESPONSE_VECTOR *info = (HSE_RESPONSE_VECTOR *)lpvBuffer;
-		bool asyn = false;
-		if(KBIT_TEST(info->dwFlags,HSE_IO_ASYNC)) {
-			asyn = true;
-		}
 		if(KBIT_TEST(info->dwFlags,HSE_IO_SEND_HEADERS)) {
 			fo->setStatusCode(info->pszStatus);
-			fo->addHeader(info->pszHeaders);
+			KGL_RESULT result = fo->addHeader(info->pszHeaders);
+			if (result != KGL_OK) {
+				return FALSE;
+			}
 		}
-		for(size_t i=0;i<info->nElementCount;i++) {
+		for (size_t i=0;i<info->nElementCount;i++) {
 			if(info->lpElementArray[i].ElementType==HSE_VECTOR_ELEMENT_TYPE_MEMORY_BUFFER) {
 				char *buffer = (char *)(info->lpElementArray[i].pvContext);
-				fo->writeClient(buffer+info->lpElementArray[i].cbOffset,(int)info->lpElementArray[i].cbSize,asyn);
+				fo->writeClient(buffer+info->lpElementArray[i].cbOffset,(int)info->lpElementArray[i].cbSize);
 			} else {
 				debug("ISAPI: unsupport ElementType=%d\n",info->lpElementArray[i].ElementType);
 			}

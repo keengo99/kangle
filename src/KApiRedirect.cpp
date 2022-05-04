@@ -233,7 +233,6 @@ KFetchObject *KApiRedirect::makeFetchObject(KHttpRequest *rq, KFileName *file) {
 		load();
 	}
 	lock.Unlock();
-	//return NULL;
 	return new KApiFetchObject(this);
 }
 void KApiRedirect::buildXML(std::stringstream &s) {
@@ -268,4 +267,10 @@ bool KApiRedirect::createProcess(KVirtualHost *vh, KPipeStream *st) {
 	}
 	KVirtualHost::closeToken(token);
 	return result;
+}
+KUpstream* KApiRedirect::GetUpstream(KHttpRequest* rq)
+{
+
+	return spProcessManage.GetUpstream(rq, this);
+
 }

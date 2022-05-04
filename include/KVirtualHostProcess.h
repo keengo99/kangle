@@ -16,17 +16,19 @@
 #include "KProcess.h"
 #include "kfiber.h"
 #include "time_utils.h"
+#include "HttpFiber.h"
+
 
 enum VProcess_Status
-{	
-	VProcess_Poweroff,	
+{
+	VProcess_Poweroff,
 	VProcess_Inprogress,
 	VProcess_Poweron,
 	VProcess_Close
 };
 struct KVirtualHostProcessQueue
 {
-	kselector *selector;
+	kselector* selector;
 	kfiber* fiber;
 	KVirtualHostProcessQueue* next;
 };
@@ -34,7 +36,8 @@ class KListenPipeStream;
 /*
  * 一个虚拟主机进程模型
  */
-class KVirtualHostProcess : public KPoolableSocketContainer{
+class KVirtualHostProcess : public KPoolableSocketContainer
+{
 public:
 	KVirtualHostProcess() {
 		//closed = false;
@@ -51,29 +54,29 @@ public:
 		assert(queue == NULL);
 		killProcess(0);
 	}
-	void isBad(KUpstream *st,BadStage stage)
+	void isBad(KUpstream* st, BadStage stage)
 	{
-		if (stage == BadStage_Connect || stage == BadStage_TrySend){
+		if (stage == BadStage_Connect || stage == BadStage_TrySend) {
 			error_count++;
 			if (kgl_current_sec - lastCheckTime > 5) {
 				lastCheckTime = kgl_current_sec;
-				if(!isProcessActive() || (max_error_count>0 && error_count>=max_error_count)) {
+				if (!isProcessActive() || (max_error_count > 0 && error_count >= max_error_count)) {
 					clean();
 					status = VProcess_Close;
 					//reset the error_count
 					error_count = 0;
-					klog(KLOG_ERR,"restart the virtual process error_count=%d\n",error_count);
+					klog(KLOG_ERR, "restart the virtual process error_count=%d\n", error_count);
 				}
 			}
 		}
 	}
-	void isGood(KUpstream *st)
+	void isGood(KUpstream* st)
 	{
 		//reset the error_count
 		error_count = 0;
 	}
-	kconnection * TryConnect(sockaddr_i* addr);
-	virtual KUpstream* GetUpstream(KHttpRequest* rq, KExtendProgram*rd);
+	kconnection* TryConnect(sockaddr_i* addr);
+	virtual KUpstream* GetUpstream(KHttpRequest* rq, KExtendProgram* rd);
 	KUpstream* Connect(KHttpRequest* rq)
 	{
 		lastActive = kgl_current_sec;
@@ -92,40 +95,40 @@ public:
 			}
 			kconnection* cn = kconnection_new(&addr);
 			cn->st.fd = fd;
-			return new KTcpUpstream(cn);
+			return kangle::new_upstream(cn, proto);
 		}
 #endif
 		kconnection* cn = kfiber_net_open(&addr);
 		if (kfiber_net_connect(cn, NULL, 0) == 0) {
-			return new KTcpUpstream(cn);
+			return new_upstream(cn);
 		}
 		kfiber_net_close(cn);
 		return NULL;
 	}
-	virtual KUpstream *PowerResult(KHttpRequest* rq, KPipeStream* st)
+	virtual KUpstream* PowerResult(KHttpRequest* rq, KPipeStream* st)
 	{
 		assert(false);
 		return NULL;
 	}
 	KPipeStream* Power(KHttpRequest* rq, KExtendProgram* rd);
-	virtual KPipeStream*PowerThread(KVirtualHost *vh, KExtendProgram *rd) = 0;
-	virtual void getProcessInfo(const USER_T &user, const std::string &name,
-			std::stringstream &s,int &count) {
+	virtual KPipeStream* PowerThread(KVirtualHost* vh, KExtendProgram* rd) = 0;
+	virtual void getProcessInfo(const USER_T& user, const std::string& name,
+		std::stringstream& s, int& count) {
 	}
 	//{{ent
 #ifdef ENABLE_ADPP
-	virtual void flushCpuUsage(const std::string &user,const std::string &name,ULONG64 cpuTime) {
+	virtual void flushCpuUsage(const std::string& user, const std::string& name, ULONG64 cpuTime) {
 
 	}
 #endif
-	virtual int getPortMap(KVirtualHost *vh,KExtendProgram *rd,std::string name)
+	virtual int getPortMap(KVirtualHost* vh, KExtendProgram* rd, std::string name)
 	{
 		return -1;
 	}
 	//}}
 	virtual bool canDestroy(time_t nowTime)
 	{
-		if (idleTime>0 && nowTime - lastActive > idleTime) {
+		if (idleTime > 0 && nowTime - lastActive > idleTime) {
 			return true;
 		}
 		return false;
@@ -149,13 +152,14 @@ public:
 	int max_error_count;
 	unsigned max_request;
 	//u_short port;
-	union {
+	union
+	{
 		sockaddr_i addr;
 #ifdef KSOCKET_UNIX
 		struct sockaddr_un unix_addr;
 #endif
 	};
-	KVirtualHostProcessQueue *queue;
+	KVirtualHostProcessQueue* queue;
 	time_t lastCheckTime;
 protected:
 	time_t lastActive;
@@ -177,13 +181,13 @@ private:
 };
 struct VProcessPowerParam
 {
-	KVirtualHost *vh;
-	KVirtualHostProcess *process;
-	KExtendProgram *rd;
+	KVirtualHost* vh;
+	KVirtualHostProcess* process;
+	KExtendProgram* rd;
 	KPipeStream* st;
 	kselector* selector;
 	kfiber* fiber;
 };
-void getProcessInfo(const USER_T &user,const std::string &name,KProcess *process,KPoolableSocketContainer *ps,std::stringstream &s);
-KTHREAD_FUNCTION VProcessPowerWorker(void *param);
+void getProcessInfo(const USER_T& user, const std::string& name, KProcess* process, KPoolableSocketContainer* ps, std::stringstream& s);
+KTHREAD_FUNCTION VProcessPowerWorker(void* param);
 #endif /* KVIRTUALPROCESS_H_ */

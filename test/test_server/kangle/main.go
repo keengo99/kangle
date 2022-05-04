@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-var KangleCommand string
+var kangleCommand string
 var kangle_cmd *exec.Cmd
 
 func CleanAllCache() {
@@ -62,32 +62,28 @@ func CreateMainConfig(malloc_debug int) (err error) {
 	_, err = config_file.WriteString(fmt.Sprintf(str, malloc_debug))
 	return
 }
-func Prepare(kangle string, kangle_bin string) {
+func exeExtendFile() string {
+	if runtime.GOOS == "windows" {
+		return ".exe"
+	}
+	return ""
+}
+func dllExtendFile() string {
+	if runtime.GOOS == "windows" {
+		return ".dll"
+	}
+	return ".so"
+}
+func Prepare(kangle_path string) {
 	os.Mkdir(config.Cfg.BasePath+"/etc", 0755)
 	os.Mkdir(config.Cfg.BasePath+"/var", 0755)
 	os.Mkdir(config.Cfg.BasePath+"/ext", 0755)
-	os.Mkdir(config.Cfg.BasePath+"/"+kangle_bin, 0755)
-	KangleCommand = config.Cfg.BasePath + "/" + kangle_bin + "/kangle.exe"
-
-	err := common.CopyFile(kangle, KangleCommand)
-	if err != nil {
-		panic(err)
-	}
-	test_src_dso := ""
-	test_dst_dso := config.Cfg.BasePath + "/bin/testdso."
-	if runtime.GOOS == "windows" {
-		test_src_dso = config.Cfg.BasePath + "/../Debug/testdso."
-		test_src_dso += "dll"
-		test_dst_dso += "dll"
-	} else {
-		test_src_dso = config.Cfg.BasePath + "/../build/testdso."
-		test_src_dso += "so"
-		test_dst_dso += "so"
-	}
-	err = common.CopyFile(test_src_dso, test_dst_dso)
-	if err != nil {
-		panic(err)
-	}
+	os.Mkdir(config.Cfg.BasePath+"/bin", 0755)
+	kangleCommand = config.Cfg.BasePath + "/bin/kangle" + exeExtendFile()
+	common.CopyFile(kangle_path+"/kangle"+exeExtendFile(), kangleCommand)
+	common.CopyFile(kangle_path+"/extworker"+exeExtendFile(), config.Cfg.BasePath+"/bin/extworker"+exeExtendFile())
+	common.CopyFile(kangle_path+"/testdso"+dllExtendFile(), config.Cfg.BasePath+"/bin/testdso"+dllExtendFile())
+	common.CopyFile(kangle_path+"/webdav"+dllExtendFile(), config.Cfg.BasePath+"/bin/webdav"+dllExtendFile())
 	Start()
 	time.Sleep(time.Second)
 }
@@ -96,15 +92,15 @@ func Close() {
 	kangle_cmd.Wait()
 }
 func Stop() {
-	exec.Command(KangleCommand, "-q").Run()
+	exec.Command(kangleCommand, "-q").Run()
 }
 func Start() {
 	_, err := os.Stat(config.Cfg.BasePath + "/cache/f/d")
 	if err != nil {
 		fmt.Printf("create cache dir\n")
-		exec.Command(KangleCommand, "-z", config.Cfg.BasePath+"/cache").Run()
+		exec.Command(kangleCommand, "-z", config.Cfg.BasePath+"/cache").Run()
 	}
-	kangle_cmd = exec.Command(KangleCommand, "-n", "-g")
+	kangle_cmd = exec.Command(kangleCommand, "-n", "-g")
 	kangle_cmd.Stdout = os.Stdout
 	kangle_cmd.Stderr = os.Stderr
 	err = kangle_cmd.Start()

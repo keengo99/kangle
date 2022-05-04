@@ -85,6 +85,7 @@ public:
 	{
 		return true;
 	}
+	void set_tcp(bool tcp) override;
 	//{{ent
 #ifdef ENABLE_ADPP
 	void flushCpuUsage(const std::string &user,const std::string &name,ULONG64 cpuTime);
@@ -115,9 +116,9 @@ public:
 	KUpstream *getConnection(KHttpRequest *rq)
 	{
 		lastActive = kgl_current_sec;
-		KTcpUpstream *st = socket;
+		KUpstream*st = socket;
 		if(st == NULL) {
-			st = static_cast<KTcpUpstream *>(KPoolableSocketContainer::get_pool_socket());
+			st = KPoolableSocketContainer::get_pool_socket();
 			if (st) {
 				return st;
 			}
@@ -126,7 +127,7 @@ public:
 				kfiber_net_close(cn);
 				return NULL;
 			}
-			st = new KTcpUpstream(cn);
+			st = new_upstream(cn);
 		}
 		if (st) {
 			bind(st);
@@ -150,7 +151,7 @@ public:
 	}
 	friend class KMPCmdProcess;
 private:
-	KTcpUpstream *socket;
+	KUpstream *socket;
 	KMPCmdProcess *vprocess;
 #ifdef KSOCKET_UNIX
 	union {

@@ -51,7 +51,7 @@ KUpstream * proxy_tcp_connect(KHttpRequest *rq)
 	}
 	uint16_t port = ntohs(cn->proxy->dst->v4.sin_port);
 	KSingleAcserver *server = new KSingleAcserver;
-	server->proto = Proto_tcp;
+	server->set_proto(Proto_tcp);
 	server->sockHelper->setHostPort(ips, port, NULL);
 	server->sockHelper->setLifeTime(0);
 	KUpstream *us = server->GetUpstream(rq);

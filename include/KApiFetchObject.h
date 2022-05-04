@@ -26,10 +26,10 @@ public:
 	KGL_RESULT Open(KHttpRequest *rq, kgl_input_stream* in, kgl_output_stream* out);
 	friend class KApiRedirect;
 public:
-	int writeClient(const char *str, int len);
-	int readClient(char *buf, int len);
-	bool setStatusCode(const char *status, int len = 0);
-	bool addHeader(const char *attr, int len = 0);
+	int writeClient(const char *str, int len) override;
+	int readClient(char *buf, int len) override;
+	bool setStatusCode(const char *status, int len = 0) override;
+	KGL_RESULT addHeader(const char *attr, int len = 0) override;
 	Token_t getToken();
 	Token_t getVhToken(const char *vh_name);
 	Token_t token;
@@ -39,7 +39,9 @@ public:
 	KHttpRequest *rq;
 	KHttpPushParser push_parser;
 private:
-	bool responseDenied;
-	bool initECB(EXTENSION_CONTROL_BLOCK *ecb);
+	kgl_input_stream* in;
+	kgl_output_stream* out;
+
+	bool initECB(EXTENSION_CONTROL_BLOCK *ecb) override;
 };
 #endif /* KAPIFETCHOBJECT_H_ */

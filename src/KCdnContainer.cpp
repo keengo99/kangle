@@ -50,7 +50,7 @@ KRedirect *KCdnContainer::refsRedirect(const char *ip, const char *host, int por
 		return rd;
 	}
 	KSingleAcserver *server = new KSingleAcserver;
-	server->proto = proto;
+	server->set_proto(proto);
 	server->sockHelper->setHostPort(host,port,ssl);
 	server->sockHelper->setLifeTime(life_time);
 	server->sockHelper->setIp(ip);
@@ -157,14 +157,14 @@ KRedirect *KCdnContainer::refsRedirect(const char *name)
 			}
 #endif//}}
 			server->setErrorTryTime(max_error_count,error_try_time);
-			server->proto = proto;
+			server->set_proto(proto);
 			server->ip_hash = ip_hash;
 			server->url_hash = url_hash;
 			server->cookie_stick = cookie_stick;
 			rd = server;
 		} else {
 			KSingleAcserver *server = new KSingleAcserver(nodes);
-			server->proto = proto;
+			server->set_proto(proto);
 			rd = server;
 		}
 	}

@@ -29,16 +29,11 @@
 class KFetchObject;
 class KSockPoolHelper;
 class KPoolableRedirect: public KRedirect {
-public:
-	Proto_t proto;
+
 public:
 	KPoolableRedirect();
 	virtual ~KPoolableRedirect();
 	KFetchObject *makeFetchObject(KHttpRequest *rq, KFileName *file);
-	virtual KUpstream *getConnection(bool &half)
-	{
-		return NULL;
-	}
 	virtual bool isChanged(KPoolableRedirect *rd)
 	{
 		return this->proto != rd->proto;
@@ -101,5 +96,12 @@ public:
 #endif
 		return Proto_http;
 	}
+	Proto_t get_proto()
+	{
+		return proto;
+	}
+	virtual void set_proto(Proto_t proto) = 0;
+protected:
+	Proto_t proto;
 };
 #endif

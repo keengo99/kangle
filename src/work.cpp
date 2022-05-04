@@ -60,6 +60,7 @@
 #include "KSSLSniContext.h"
 #include "KBigObjectContext.h"
 #include "KAcserverManager.h"
+#include "KHttpUpstream.h"
 #ifndef KANGLE_FREE
 #include "KWhiteList.h"
 #endif
@@ -137,6 +138,15 @@ namespace kangle {
 			m_ip.erase(it2);
 		}
 		ip_lock.Unlock();
+	}
+	bool is_upstream_tcp(Proto_t proto)
+	{
+		switch (proto) {
+		case Proto_http:
+			return false;
+		default:
+			return true;
+		}
 	}
 	kgl_connection_result kgl_on_new_connection(kconnection* c)
 	{

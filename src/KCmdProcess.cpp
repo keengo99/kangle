@@ -33,7 +33,7 @@ KUpstream *KCmdProcess::PowerResult(KHttpRequest *rq, KPipeStream* st2)
 	stLock.Unlock();
 	kconnection* cn = TryConnect(&addr);
 	if (cn != NULL) {
-		return new KTcpUpstream(cn);
+		return new_upstream(cn);
 	}
 	return NULL;
 }
@@ -41,6 +41,9 @@ KPipeStream *KCmdProcess::PowerThread(KVirtualHost *vh,KExtendProgram *erd)
 {
 	KCmdPoolableRedirect *rd = static_cast<KCmdPoolableRedirect *> (erd);
 	KListenPipeStream *st2 = new KListenPipeStream;
+	if (rd->port > 0) {
+		st2->setPort(rd->port);
+	}
 	unix_path.clear();
 	bool result = rd->Exec(vh, st2, false);
 	if (!result) {
@@ -78,12 +81,26 @@ KMPCmdProcess::~KMPCmdProcess()
 	delete freeProcessList;
 	delete busyProcessList;
 }
+void KMPCmdProcess::set_tcp(bool tcp)
+{
+	KPoolableSocketContainer::set_tcp(tcp);
+	stLock.Lock();
+	KSingleListenPipeStream* st;
+	klist_foreach(st, busyProcessList) {
+		st->set_tcp(tcp);
+	}
+	klist_foreach(st, freeProcessList) {
+		st->set_tcp(tcp);
+	}
+	stLock.Unlock();
+}
 KUpstream *KMPCmdProcess::PowerResult(KHttpRequest *rq, KPipeStream* st2)
 {
 	KSingleListenPipeStream* st = static_cast<KSingleListenPipeStream*>(st2);
 	st->vprocess = this;
 	addRef();
 	stLock.Lock();
+	st->set_tcp(tcp);
 	klist_append(busyProcessList, st);
 	stLock.Unlock();
 	//这里把端口号保存，下次连接时就不用对stLock加锁了。
@@ -115,6 +132,7 @@ KUpstream* KMPCmdProcess::GetConnection(KHttpRequest* rq, KSingleListenPipeStrea
 	}
 	return socket;
 }
+
 KUpstream* KMPCmdProcess::GetUpstream(KHttpRequest* rq, KExtendProgram* rd)
 {
 	KSingleListenPipeStream* sp = NULL;

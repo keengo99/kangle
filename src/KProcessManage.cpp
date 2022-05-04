@@ -24,6 +24,16 @@ using namespace std;
 KProcessManage::~KProcessManage() {
 	clean();
 }
+void KProcessManage::set_proto(Proto_t proto)
+{
+	lock.Lock();
+	this->proto = proto;
+	std::map<USER_T, KVirtualHostProcess*>::iterator it;
+	for (it = pools.begin(); it != pools.end(); it++) {
+		(*it).second->set_tcp(kangle::is_upstream_tcp(proto));
+	}
+	lock.Unlock();
+}
 void KProcessManage::clean()
 {
 	lock.Lock();
@@ -44,17 +54,6 @@ KUpstream* KProcessManage::GetUpstream(KHttpRequest* rq, KExtendProgram* rd)
 	gc->release();
 	return us;
 }
-#if 0
-kev_result KProcessManage::connect(KHttpRequest *rq, KExtendProgram *rd, KAsyncFetchObject *fo) {
-	KVirtualHostProcess *gc = refsVirtualHostProcess(rq->svh->vh->getApp(rq),rd);
-	if (gc == NULL) {
-		return fo->connectCallBack(rq,NULL);
-	}
-	kev_result ret = gc->handleRequest(rq,rd,fo);
-	gc->release();
-	return ret;
-}
-#endif
 //{{ent
 #ifdef ENABLE_ADPP
 void KProcessManage::flushCpuUsage(ULONG64 cpuTime) {

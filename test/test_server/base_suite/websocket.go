@@ -62,3 +62,6 @@ func Check() {
 	//check_server_first_websocket()
 	println("check done...")
 }
+func test_upstream_support_h2() {
+	//TODO: 上流支持h2协议下，websocket要工作正常
+}

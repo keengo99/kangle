@@ -48,6 +48,7 @@ public:
 		stLock.Unlock();
 		return true;
 	}
+	KUpstream* GetUpstream(KHttpRequest* rq, KExtendProgram* rd) override;
 	KPipeStream *PowerThread(KVirtualHost *vh, KExtendProgram *rd);
 	//{{ent
 #ifdef ENABLE_ADPP

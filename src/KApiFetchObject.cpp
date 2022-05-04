@@ -76,6 +76,9 @@ KGL_RESULT KApiFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_out
 	KHttpObject* obj = rq->ctx->obj;
 	assert(dso);
 	this->rq = rq;
+	this->in = in;
+	this->out = out;
+	KGL_RESULT result = KGL_OK;
 	if (dso->HttpExtensionProc) {
 		assert(rq);
 		if (!brd->rd->enable) {
@@ -103,9 +106,13 @@ KGL_RESULT KApiFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_out
 		chrooted = rq->get_virtual_host()->vh->chroot;
 #endif
 		make_http_env(rq, in, brd, rq->sink->data.if_modified_since, rq->file, &env, chrooted);
-		start();
+		result = start();
 	}
-	return out->f->write_end(out, rq, KGL_OK);
+	if (!headSended && result == KGL_OK) {
+		headSended = true;
+		result = out->f->write_header_finish(out, rq);
+	}
+	return out->f->write_end(out, rq, result);
 }
 bool KApiFetchObject::initECB(EXTENSION_CONTROL_BLOCK* ecb) {
 	memset(ecb, 0, sizeof(EXTENSION_CONTROL_BLOCK));
@@ -116,7 +123,7 @@ bool KApiFetchObject::initECB(EXTENSION_CONTROL_BLOCK* ecb) {
 	ecb->lpszLogData[0] = '\0';
 	ecb->lpszPathInfo = (char*)env.getEnv("PATH_INFO");
 	ecb->lpszPathTranslated = (char*)env.getEnv("PATH_TRANSLATED");
-	int64_t content_length = rq->sink->data.content_length;//gate->f->get_post_left(gate, rq);
+	int64_t content_length = rq->sink->data.content_length;
 	ecb->cbTotalBytes = content_length;
 	ecb->cbLeft = content_length;
 	ecb->lpszContentType = (env.contentType ? env.contentType : (char*)"");
@@ -136,20 +143,22 @@ bool KApiFetchObject::setStatusCode(const char* status, int len) {
 	rq->ctx->obj->data->status_code = atoi(status);
 	return true;
 }
-bool KApiFetchObject::addHeader(const char* attr, int len) {
+KGL_RESULT KApiFetchObject::addHeader(const char* attr, int len) {
 
 	if (len == 0) {
 		len = (int)strlen(attr);
 	}
-	switch (push_parser.Parse(rq, attr, len)) {
+	switch(push_parser.Parse(rq, attr, len)) {
 	case kgl_parse_error:
-		return false;
+		return KGL_EDATA_FORMAT;
 	case kgl_parse_continue:
+		return KGL_OK;
 	case kgl_parse_finished:
-		return true;
+		headSended = true;
+		return out->f->write_header_finish(out, rq);
 	default:
 		kassert(false);
-		return false;
+		return KGL_EDATA_FORMAT;
 	}
 }
 int KApiFetchObject::writeClient(const char* str, int len) {

@@ -379,7 +379,7 @@ void KCmdPoolableRedirect::parseConfig(std::map<std::string, std::string> &attri
 {
 	KExtendProgram::parseConfig(attribute);
 	bool changed = false;
-	Proto_t proto = KPoolableRedirect::parseProto(attribute["proto"].c_str());
+	set_proto(KPoolableRedirect::parseProto(attribute["proto"].c_str()));
 	if (this->proto!=proto) {
 		this->proto = proto;
 		changed = true;
@@ -415,6 +415,11 @@ void KCmdPoolableRedirect::parseConfig(std::map<std::string, std::string> &attri
 	}
 	pm.param = attribute["param"];
 	setWorkType(attribute["type"].c_str(),changed);
+}
+void KCmdPoolableRedirect::set_proto(Proto_t proto)
+{
+	this->proto = proto;
+	pm.set_proto(proto);
 }
 bool KCmdPoolableRedirect::isChanged(KPoolableRedirect *rd)
 {

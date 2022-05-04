@@ -360,6 +360,7 @@ bool KMultiAcserver::editNode(std::map<std::string,std::string> &attr) {
 }
 void KMultiAcserver::addNode(KSockPoolHelper *sockHelper)
 {
+	sockHelper->tcp = kangle::is_upstream_tcp(proto);
 	if (nodes==NULL) {
 		sockHelper->next = sockHelper;
 		sockHelper->prev = sockHelper;
@@ -643,6 +644,17 @@ void KMultiAcserver::setIcp(const char *icp_name)
 	lock.Unlock();
 }
 #endif//}}
+void KMultiAcserver::set_proto(Proto_t proto)
+{
+	this->proto = proto;
+	lock.Lock();
+	KSockPoolHelper* node = nodes;
+	while (node) {
+		node->tcp = kangle::is_upstream_tcp(proto);
+		node = node->next;
+	}
+	lock.Unlock();
+}
 void KMultiAcserver::parse(std::map<std::string,std::string> &attribute)
 {
 	//{{ent
@@ -659,9 +671,9 @@ void KMultiAcserver::parse(std::map<std::string,std::string> &attribute)
 	} else {
 		ip_hash = false;
 	}
-	cookie_stick = attribute["cookie_stick"]=="1";
-	proto = KPoolableRedirect::parseProto(attribute["proto"].c_str());
+	cookie_stick = attribute["cookie_stick"]=="1";	
 	lock.Unlock();
+	set_proto(KPoolableRedirect::parseProto(attribute["proto"].c_str()));
 	setErrorTryTime(atoi(attribute["max_error_count"].c_str()), atoi(attribute["error_try_time"].c_str()));
 }
 bool KMultiAcserver::delNode(int nodeIndex) {
