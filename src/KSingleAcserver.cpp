@@ -22,7 +22,7 @@ KSingleAcserver::~KSingleAcserver() {
 void KSingleAcserver::set_proto(Proto_t proto)
 {
 	this->proto = proto;
-	sockHelper->tcp = kangle::is_upstream_tcp(proto);
+	sockHelper->set_tcp(kangle::is_upstream_tcp(proto));
 }
 KUpstream* KSingleAcserver::GetUpstream(KHttpRequest* rq)
 {

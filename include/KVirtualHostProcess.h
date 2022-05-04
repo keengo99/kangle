@@ -95,7 +95,7 @@ public:
 			}
 			kconnection* cn = kconnection_new(&addr);
 			cn->st.fd = fd;
-			return kangle::new_upstream(cn, proto);
+			return new_upstream(cn);
 		}
 #endif
 		kconnection* cn = kfiber_net_open(&addr);

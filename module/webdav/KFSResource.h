@@ -5,6 +5,8 @@
 #include "KResource.h"
 #include "KResourceMaker.h"
 #ifndef _WIN32
+#include <sys/stat.h>
+#include <unistd.h>
 #include <dirent.h>
 #endif
 class KFSResource :

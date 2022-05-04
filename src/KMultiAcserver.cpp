@@ -360,7 +360,7 @@ bool KMultiAcserver::editNode(std::map<std::string,std::string> &attr) {
 }
 void KMultiAcserver::addNode(KSockPoolHelper *sockHelper)
 {
-	sockHelper->tcp = kangle::is_upstream_tcp(proto);
+	sockHelper->set_tcp(kangle::is_upstream_tcp(proto));
 	if (nodes==NULL) {
 		sockHelper->next = sockHelper;
 		sockHelper->prev = sockHelper;
@@ -650,7 +650,7 @@ void KMultiAcserver::set_proto(Proto_t proto)
 	lock.Lock();
 	KSockPoolHelper* node = nodes;
 	while (node) {
-		node->tcp = kangle::is_upstream_tcp(proto);
+		node->set_tcp(kangle::is_upstream_tcp(proto));
 		node = node->next;
 	}
 	lock.Unlock();

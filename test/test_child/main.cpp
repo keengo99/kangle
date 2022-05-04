@@ -7,16 +7,18 @@
 #include "kforwin32.h"
 #include "fastcgi.h"
 
-
+#ifdef _WIN32
 HANDLE hEventSource = INVALID_HANDLE_VALUE;
+#endif
 static uint16_t port = 0;
 bool fastcgi = false;
 void LogEvent(int level, const char* pFormat, va_list pArg)
 {
+	vfprintf(stderr, pFormat, pArg);
+#ifdef _WIN32
 	TCHAR chMsg[512];
 	LPTSTR lpszStrings[1];
 	vsnprintf(chMsg, sizeof(chMsg), pFormat, pArg);
-	vfprintf(stderr, pFormat, pArg);
 	lpszStrings[0] = chMsg;
 	if (hEventSource == INVALID_HANDLE_VALUE) {
 		hEventSource = RegisterEventSource(NULL, "test_child");
@@ -24,6 +26,7 @@ void LogEvent(int level, const char* pFormat, va_list pArg)
 	if (hEventSource != INVALID_HANDLE_VALUE) {
 		ReportEvent(hEventSource, EVENTLOG_INFORMATION_TYPE, 0, 0, NULL, 1, 0, (LPCTSTR*)&lpszStrings[0], NULL);
 	}
+#endif
 }
 
 SOCKET get_stdin_socket()
