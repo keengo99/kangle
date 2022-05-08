@@ -358,7 +358,7 @@ void KAccess::loadModel() {
 	addMarkModel(REQUEST,new KHostMark());
 	addMarkModel(REQUEST,new KHostRewriteMark());
 	addMarkModel(REQUEST,new KReplaceIPMark());
-	addMarkModel(REQUEST,new KSelfIPMark());
+	//addMarkModel(REQUEST,new KSelfIPMark());
 	addMarkModel(REQUEST,new KParentMark());
 	addMarkModel(REQUEST, new KAddResponseHeaderMark());
 #ifdef ENABLE_INPUT_FILTER

@@ -282,6 +282,8 @@ public:
 	}
 
 #endif
+	//用于webdav等应用校验
+	KBaseRedirect* refsPathRedirect(const char* path, int path_len);
 	KFetchObject *findPathRedirect(KHttpRequest *rq, KFileName *file,const char *path,
 			bool fileExsit,bool &result);
 	/*

@@ -30,9 +30,11 @@ public:
 		case HSE_STATUS_PENDING:
 			return KGL_ENOT_SUPPORT;
 		default:
+			printf("process result=[%d]\n", result);
 			return KGL_EUNKNOW;
 		}
 	}
+	virtual KGL_RESULT map_url_path(const char* url, LPVOID file, LPDWORD file_len) = 0;
 	virtual int writeClient(const char *str, int len) = 0;
 	virtual int readClient(char *buf, int len) = 0;
 	virtual bool setStatusCode(const char *status, int len = 0) = 0;

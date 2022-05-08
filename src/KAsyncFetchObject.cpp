@@ -67,8 +67,8 @@ KUpstream * proxy_connect(KHttpRequest *rq)
 	}
 #endif
 	//KAsyncFetchObject *fo = static_cast<KAsyncFetchObject *>(rq->fetchObj);
-	const char *ip = rq->bind_ip;
-	KUrl *url = (KBIT_TEST(rq->filter_flags,RF_PROXY_RAW_URL)?&rq->sink->data.raw_url:rq->sink->data.url);
+	const char* ip = NULL;// rq->bind_ip;
+	KUrl *url = (KBIT_TEST(rq->filter_flags,RF_PROXY_RAW_URL)?rq->sink->data.raw_url:rq->sink->data.url);
 	const char *host = url->host;
 	u_short port = url->port;
 	const char *ssl = NULL;
@@ -377,13 +377,13 @@ void KAsyncFetchObject::BuildChunkHeader()
 	int len = buffer->getLen();
 	//printf("~~~~~~~~~~~build chunk header len=[%d]\n", len);
 	if (len == 0) {
-		buffer->WSTRING("0\r\n\r\n");
+		buffer->WSTR("0\r\n\r\n");
 		return;
 	}
 	char buf[32];
 	int buf_len = snprintf(buf, sizeof(buf), "%x\r\n", len);
 	buffer->insert(buf, buf_len);
-	buffer->WSTRING("\r\n");
+	buffer->WSTR("\r\n");
 }
 KGL_RESULT KAsyncFetchObject::SendPost(KHttpRequest *rq)
 {

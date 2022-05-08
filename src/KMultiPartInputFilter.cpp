@@ -21,7 +21,7 @@ void *kgl_memstr(char *haystack, int haystacklen, char *needle, int needlen)
 	while( (ptr = (char *)memchr(ptr, needle[0], len)) ) {
 
 		/* calculate length after match */
-		len = haystacklen - (ptr - (char *)haystack);
+		len = haystacklen - (int)(ptr - (char *)haystack);
 
 		/* done if matches up to capacity of buffer */
 		if (memcmp(needle, ptr, needlen < len ? needlen : len) == 0) {
@@ -62,7 +62,7 @@ static char *next_line(multipart_buffer *self)
 
 		/* bump the pointer */
 		self->buf_begin = ptr + 1;
-		self->bytes_in_buffer -= (self->buf_begin - line);
+		self->bytes_in_buffer -= (int)(self->buf_begin - line);
 
 	} else {	/* no LF found */
 
@@ -144,7 +144,7 @@ look_for_quote:
 			}
 		}
 
-		res = substring_conf(str + 1, strend - str - 1, quote );
+		res = substring_conf(str + 1, (int)(strend - str - 1), quote );
 
 		if (*strend == quote) {
 			++strend;
@@ -156,7 +156,7 @@ look_for_quote:
 		while (*strend && !isspace(*strend)) {
 			++strend;
 		}
-		res = substring_conf(str, strend - str, 0 );
+		res = substring_conf(str, (int)(strend - str), 0 );
 	}
 
 	while (*strend && isspace(*strend)) {
@@ -192,7 +192,7 @@ static char *php_ap_getword(char **line, char stop)
 		return res;
 	}
 
-	res = my_strndup(*line, pos - *line);
+	res = my_strndup(*line, (int)(pos - *line));
 
 	while (*pos == stop) {
 		++pos;
@@ -399,7 +399,7 @@ char *KMultiPartInputFilter::parseBody(KInputFilterContext *fc,int *len,bool &al
 	}
 
 	if ((bound = (char *)kgl_memstr(fc->mb->buf_begin, fc->mb->bytes_in_buffer, fc->mb->boundary_next, fc->mb->boundary_next_len))) {
-		max = bound - fc->mb->buf_begin;
+		max = (int)(bound - fc->mb->buf_begin);
 		all = true;
 	} else {
 		if (all) {

@@ -302,15 +302,14 @@ void KSharedBigObject::CloseWrite(KHttpObject* obj, INT64 range_from)
 		kgl_memcpy(&nobj->dk, &obj->dk, sizeof(nobj->dk));
 		kgl_memcpy(&nobj->index, &obj->index, sizeof(nobj->index));
 		//assert(KBIT_TEST(nobj->index.flags, FLAG_BIG_OBJECT));
-		nobj->uk.url = obj->uk.url->clone();
+		nobj->uk.url = obj->uk.url->refs();
 		if (obj->uk.vary != NULL) {
 			KMutex* lock = obj->getLock();
 			lock->Lock();
 			nobj->uk.vary = obj->uk.vary->Clone();
 			lock->Unlock();
 		}
-		nobj->h = obj->h;
-		KBIT_SET(nobj->index.flags, FLAG_URL_FREE);
+		nobj->h = obj->h;		
 		KBIT_CLR(nobj->index.flags, FLAG_BIG_OBJECT_PROGRESS);
 		assert(nobj->data == NULL);
 		nobj->data = new KHttpObjectBody(obj->data);

@@ -104,9 +104,9 @@ char *KHttpObject::BuildVary(KHttpRequest *rq)
 KHttpObject::KHttpObject(KHttpRequest *rq,KHttpObject *obj)
 {
 	init(rq->sink->data.url);
-	uk.url->encoding = rq->sink->data.raw_url.encoding;
+	uk.url->encoding = rq->sink->data.raw_url->encoding;
 	index.flags = obj->index.flags;
-	KBIT_CLR(index.flags,FLAG_IN_DISK|FLAG_URL_FREE|OBJ_IS_READY|OBJ_IS_STATIC2|FLAG_NO_BODY|ANSW_HAS_CONTENT_LENGTH|ANSW_HAS_CONTENT_RANGE);
+	KBIT_CLR(index.flags,FLAG_IN_DISK|OBJ_IS_READY|OBJ_IS_STATIC2|FLAG_NO_BODY|ANSW_HAS_CONTENT_LENGTH|ANSW_HAS_CONTENT_RANGE);
 	KBIT_SET(index.flags,FLAG_IN_MEM);
 	index.last_verified = obj->index.last_verified;
 	index.last_modified = obj->index.last_modified;
@@ -120,10 +120,8 @@ KHttpObject::~KHttpObject() {
 	if (data) {
 		delete data;
 	}
-	if (uk.url && KBIT_TEST(index.flags,FLAG_URL_FREE)) {
-		//url由obj负责，则清理
-		uk.url->destroy();
-		delete uk.url;
+	if (uk.url) {
+		uk.url->relase();
 	}
 	if (uk.vary) {
 		delete uk.vary;

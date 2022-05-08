@@ -60,8 +60,8 @@ func ProcessSuites(suites []string) {
 	}
 
 	//url_prefixs := []string{"https://127.0.0.1:9943", "http://127.0.0.1:9999"}
-	//url_prefixs := []string{"http://127.0.0.1:9999", "https://127.0.0.1:9943"}
-	url_prefixs := []string{"http://127.0.0.1:9999"}
+	url_prefixs := []string{"http://127.0.0.1:9999", "https://127.0.0.1:9943"}
+	//url_prefixs := []string{"http://127.0.0.1:9999"}
 	//url_prefixs := []string{"https://127.0.0.1:9943"}
 	for _, url_prefix := range url_prefixs {
 		config.Cfg.UrlPrefix = url_prefix

@@ -10,7 +10,12 @@ file(GLOB KANGLE_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h  
     ${CMAKE_CURRENT_SOURCE_DIR}/module/access/*.h
     ${CMAKE_CURRENT_SOURCE_DIR}/module/whm/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/module/whm/whmdso/core/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/module/whm/whmdso/core/*.cpp    
+    )
+list(APPEND KANGLE_SOURCE_FILES 
+    ${CMAKE_CURRENT_SOURCE_DIR}/khttpd/davlib/KXml.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/khttpd/davlib/KXmlContext.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/khttpd/davlib/KXmlException.cpp
     )
 file(GLOB EXTWORKER_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/extworker/*.cpp
@@ -31,18 +36,21 @@ list(APPEND EXTWORKER_SOURCE_FILES
     src/KPipeStream.cpp
     src/KProcess.cpp 
     khttpd/src/KStream.cpp 
-    src/KStringBuf.cpp 
+    khttpd/src/KStringBuf.cpp 
     src/KCgiEnv.cpp 
     src/process.cpp 
+    src/KDynamicString.cpp
     khttpd/src/KAutoBuffer.cpp
     src/win_iconv.cpp
 )
 list(APPEND KANGLE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 list(APPEND KANGLE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/module/whm)
 list(APPEND KANGLE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/module/access)
+list(APPEND KANGLE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/khttpd/davlib)
+
 include(CheckSymbolExists)
 include(CheckIncludeFile)
-include(./build/FindPCRE.cmake)
+include(./cmake/FindPCRE.cmake)
 list(APPEND KANGLE_INCLUDE_DIR ${PCRE_INCLUDE_DIRS}) 
 check_symbol_exists(timegm time.h HAVE_TIMEGM)
 if (HAVE_TIMEGM)
@@ -65,7 +73,7 @@ if (ENABLE_BROTLI)
     endif()
 endif()
 set(KASYNC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/kasync)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/khttpd/build ${CMAKE_CURRENT_SOURCE_DIR}/khttpd)
+add_subdirectory(khttpd)
 
 list(APPEND KANGLE_SOURCE_FILES ${KHTTPD_SOURCE_FILES})
 list(APPEND KANGLE_INCLUDE_DIR ${KHTTPD_INCLUDE_DIR})
@@ -73,8 +81,8 @@ list(APPEND KANGLE_LIBS ${KHTTPD_LIBS})
 
 #windows
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
-	set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG  ${CMAKE_CURRENT_SOURCE_DIR}/Debug)
-	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/Debug)
+	set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/build)
+	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/build)
     list(APPEND KANGLE_LIBS ws2_32)
     list(APPEND KANGLE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdinclude")
     list(APPEND KANGLE_LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/win32lib/${CMAKE_VS_PLATFORM_NAME}")
@@ -82,6 +90,8 @@ if (CMAKE_SYSTEM_NAME MATCHES "Windows")
     list(APPEND EXTWORKER_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/KWinCgiEnv.cpp")
     list(APPEND VHS_SQLITE_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/module/vhs_sqlite/vhs_sqlite.def")
 else()
+	set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/build)
+	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/build)
 	include(FindZLIB)
 	add_compile_options(-Wno-invalid-offsetof)
 	if (NOT ZLIB_FOUND) 

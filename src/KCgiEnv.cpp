@@ -24,7 +24,7 @@ KCgiEnv::~KCgiEnv() {
 	}
 }
 bool KCgiEnv::addEnv(const char *attr, const char *val) {
-	int len = strlen(attr) + strlen(val) + 1;
+	int len = (int)(strlen(attr) + strlen(val) + 1);
 	char *str = (char *) xmalloc(len + 1);
 	if (str == NULL) {
 		return false;

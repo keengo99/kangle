@@ -191,7 +191,7 @@ public:
 				obj->index.last_verified = 0;
 			}
 			if ((rq->ctx->internal == (KBIT_TEST(obj->index.flags, FLAG_RQ_INTERNAL)>0)) &&
-				obj->uk.url->match_accept_encoding(rq->sink->data.raw_url.accept_encoding)) {
+				obj->uk.url->match_accept_encoding(rq->sink->data.raw_url->accept_encoding)) {
 				if (!KBIT_TEST(rq->filter_flags, RF_NO_DISK_CACHE) || (obj->data != NULL && obj->data->type == MEMORY_OBJECT)) {
 					//hit cache
 					if (hit_obj == NULL || obj->uk.url->accept_encoding > hit_obj->uk.url->accept_encoding) {
@@ -277,11 +277,13 @@ public:
 		assert(obj->refs==1);
 		//此处可确保obj，不会被其它引用，所以不用加锁
 		obj->refs++;
+#if 0
 		if (!KBIT_TEST(obj->index.flags,FLAG_URL_FREE)) {
 			KUrl *url = obj->uk.url->clone();
 			obj->uk.url = url;
 			KBIT_SET(obj->index.flags,FLAG_URL_FREE);
 		}
+#endif
 		//kassert(obj->h == id);
 		kassert(obj->uk.url->host && obj->uk.url->path);
 		lock.Lock();

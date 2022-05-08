@@ -26,7 +26,8 @@
 #include "KRWLock.h"
 #include "KExtendProgram.h"
 #include <string>
-class KAcserverManager: public KXmlSupport {
+class KAcserverManager : public KXmlSupport
+{
 public:
 	KAcserverManager();
 	virtual ~KAcserverManager();
@@ -41,119 +42,119 @@ public:
 	 */
 	void flushCpuUsage(ULONG64 cpuTime);
 #endif
-	int getCmdPortMap(KVirtualHost *vh,std::string cmd,std::string name,int app);
+	int getCmdPortMap(KVirtualHost* vh, std::string cmd, std::string name, int app);
 	//}}
 	void refreshCmd(time_t nowTime);
-	void getProcessInfo(std::stringstream &s);
+	void getProcessInfo(std::stringstream& s);
 	void killCmdProcess(USER_T user);
-	void killAllProcess(KVirtualHost *vh=NULL);
+	void killAllProcess(KVirtualHost* vh = NULL);
 	/* 全部准备好了，可以加载所有的api了。*/
 	void loadAllApi();
 #endif
-	void copy(KAcserverManager &a);
+	void copy(KAcserverManager& a);
 	void unloadAllApi();
 #ifdef ENABLE_MULTI_SERVER
-	std::string macserverList(std::string name="");
-	bool delMAcserver(std::string name, std::string &err_msg);	
-	std::string macserver_node_form(std::string name, std::string action,unsigned nodeIndex);
-	bool macserver_node(std::map<std::string, std::string> &attribute,std::string &errMsg);
-	KMultiAcserver * refsMultiAcserver(std::string name)
+	std::string macserverList(std::string name = "");
+	bool delMAcserver(std::string name, std::string& err_msg);
+	std::string macserver_node_form(std::string name, std::string action, unsigned nodeIndex);
+	bool macserver_node(std::map<std::string, std::string>& attribute, std::string& errMsg);
+	KMultiAcserver* refsMultiAcserver(std::string name)
 	{
 		lock.RLock();
-		KMultiAcserver *as = getMultiAcserver(name);
-		if(as){
+		KMultiAcserver* as = getMultiAcserver(name);
+		if (as) {
 			as->addRef();
 		}
 		lock.RUnlock();
 		return as;
 	}
-	bool addMultiAcserver(KMultiAcserver *as)
+	bool addMultiAcserver(KMultiAcserver* as)
 	{
 		lock.WLock();
-		std::map<std::string,KMultiAcserver *>::iterator it = mservers.find(as->name);
-		if (it!=mservers.end()) {
+		std::map<std::string, KMultiAcserver*>::iterator it = mservers.find(as->name);
+		if (it != mservers.end()) {
 			lock.WUnlock();
 			return false;
 		}
-		mservers.insert(std::pair<std::string,KMultiAcserver *>(as->name,as));
+		mservers.insert(std::pair<std::string, KMultiAcserver*>(as->name, as));
 		lock.WUnlock();
 		return true;
 	}
 #endif
 	std::vector<std::string> getAcserverNames(bool onlyHttp);
 	std::vector<std::string> getAllTarget();
-	bool newSingleAcserver(bool overFlag,std::map<std::string, std::string> &attr, std::string &err_msg);
+	bool newSingleAcserver(bool overFlag, std::map<std::string, std::string>& attr, std::string& err_msg);
 #ifdef ENABLE_VH_RUN_AS
-	bool cmdForm(std::map<std::string, std::string> &attribute,
-			std::string &errMsg);
-	KCmdPoolableRedirect *newCmdRedirect(std::map<std::string, std::string> &attribute,
-			std::string &errMsg);
-	KCmdPoolableRedirect *refsCmdRedirect(std::string name);
+	bool cmdForm(std::map<std::string, std::string>& attribute,
+		std::string& errMsg);
+	KCmdPoolableRedirect* newCmdRedirect(std::map<std::string, std::string>& attribute,
+		std::string& errMsg);
+	KCmdPoolableRedirect* refsCmdRedirect(std::string name);
 	bool cmdEnable(std::string name, bool enable);
-	bool delCmd(std::string name, std::string &err_msg);
-	bool addCmd(KCmdPoolableRedirect *as)
+	bool delCmd(std::string name, std::string& err_msg);
+	bool addCmd(KCmdPoolableRedirect* as)
 	{
 		lock.WLock();
-		std::map<std::string,KCmdPoolableRedirect *>::iterator it = cmds.find(as->name);
-		if (it!=cmds.end()) {
+		std::map<std::string, KCmdPoolableRedirect*>::iterator it = cmds.find(as->name);
+		if (it != cmds.end()) {
 			lock.WUnlock();
 			return false;
 		}
-		cmds.insert(std::pair<std::string,KCmdPoolableRedirect *>(as->name,as));
+		cmds.insert(std::pair<std::string, KCmdPoolableRedirect*>(as->name, as));
 		lock.WUnlock();
 		return true;
 	}
 #endif
 
-	bool delAcserver(std::string name, std::string &err_msg);	
+	bool delAcserver(std::string name, std::string& err_msg);
 	bool apiEnable(std::string name, bool enable);
-	bool delApi(std::string name, std::string &err_msg);
-	bool apiForm(std::map<std::string, std::string> &attribute,	std::string &errMsg);
-	KSingleAcserver *refsSingleAcserver(std::string name);
-	KPoolableRedirect *refsAcserver(std::string name);
+	bool delApi(std::string name, std::string& err_msg);
+	bool apiForm(std::map<std::string, std::string>& attribute, std::string& errMsg);
+	KSingleAcserver* refsSingleAcserver(std::string name);
+	KPoolableRedirect* refsAcserver(std::string name);
 
 #ifdef ENABLE_CGI
 	bool cgiEnable(std::string name, bool enable);
-	bool delCgi(std::string name, std::string &err_msg);
-	bool cgiForm(std::map<std::string, std::string> &attribute,std::string &errMsg);
+	bool delCgi(std::string name, std::string& err_msg);
+	bool cgiForm(std::map<std::string, std::string>& attribute, std::string& errMsg);
 	std::string cgiList(std::string name = "");
-	KCgiRedirect *refsCgiRedirect(std::string name);
+	KCgiRedirect* refsCgiRedirect(std::string name);
 #endif
-	KRedirect *refsRedirect(std::string target);
-	KApiRedirect *refsApiRedirect(std::string name);
+	KRedirect* refsRedirect(std::string target);
+	KApiRedirect* refsApiRedirect(std::string name);
 	void clearImportConfig();
 	friend class KAccess;
 	friend class KHttpManage;
 public:
-	bool startElement(std::string &context, std::string &qName, std::map<
-			std::string, std::string> &attribute);
-	bool startElement(KXmlContext *context, std::map<std::string,
-			std::string> &attribute) ;
-	bool endElement(std::string &context, std::string &qName);
-	void buildXML(std::stringstream &s, int flag);
+	bool startElement(std::string& context, std::string& qName, std::map<
+		std::string, std::string>& attribute);
+	bool startElement(KXmlContext* context, std::map<std::string,
+		std::string>& attribute);
+	bool endElement(std::string& context, std::string& qName);
+	void buildXML(std::stringstream& s, int flag);
 private:
 #ifdef ENABLE_CGI
-	bool newCgiRedirect(std::string name, std::string cmd, std::string arg,std::string env, std::string env_split, std::string &err_msg);
-	KCgiRedirect *getCgiRedirect(std::string name);
-	std::map<std::string, KCgiRedirect *> cgis;
+	bool newCgiRedirect(std::string name, std::string cmd, std::string arg, std::string env, std::string env_split, std::string& err_msg);
+	KCgiRedirect* getCgiRedirect(std::string name);
+	std::map<std::string, KCgiRedirect*> cgis;
 #endif
-	bool newApiRedirect(std::string name, std::string file, std::string type,std::string flag, bool delayLoad,std::string &err_msg);
-	KSingleAcserver * getSingleAcserver(std::string table_name);
+	bool newApiRedirect(std::string name, std::string file, std::string type, std::string flag, std::string& err_msg);
+	KSingleAcserver* getSingleAcserver(std::string table_name);
 #ifdef ENABLE_MULTI_SERVER
-	KMultiAcserver * getMultiAcserver(std::string table_name);
-	std::map<std::string,KMultiAcserver *> mservers;
-	KMultiAcserver *cur_mserver;
+	KMultiAcserver* getMultiAcserver(std::string table_name);
+	std::map<std::string, KMultiAcserver*> mservers;
+	KMultiAcserver* cur_mserver;
 #endif
-	KPoolableRedirect *getAcserver(std::string table_name);
-	KApiRedirect *getApiRedirect(std::string name);
-	KExtendProgram *cur_extend;
+	KPoolableRedirect* getAcserver(std::string table_name);
+	KApiRedirect* getApiRedirect(std::string name);
+	KExtendProgram* cur_extend;
 #ifdef ENABLE_VH_RUN_AS
-	KCmdPoolableRedirect *cur_cmd;
-	KCmdPoolableRedirect *getCmdRedirect(std::string name);
-	std::map<std::string,KCmdPoolableRedirect *> cmds;	
+	KCmdPoolableRedirect* cur_cmd;
+	KCmdPoolableRedirect* getCmdRedirect(std::string name);
+	std::map<std::string, KCmdPoolableRedirect*> cmds;
 #endif
-	std::map<std::string,KSingleAcserver *> acservers;
-	std::map<std::string,KApiRedirect *> apis;
+	std::map<std::string, KSingleAcserver*> acservers;
+	std::map<std::string, KApiRedirect*> apis;
 	KRWLock lock;
 
 };

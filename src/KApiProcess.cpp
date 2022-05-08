@@ -9,86 +9,47 @@
 #include "KApiProcess.h"
 #include "kmalloc.h"
 #include "lang.h"
-KUpstream * KApiProcess::GetUpstream(KHttpRequest* rq, KExtendProgram* erd)
+KPipeStream* KApiProcess::PowerThread(KVirtualHost* vh, KExtendProgram* erd)
 {
-#if 0
 	bool unix_socket = false;
 #ifdef KSOCKET_UNIX
 	unix_socket = conf.unix_socket;
 #endif
-	sp_info pi;
 	KApiRedirect* rd = static_cast<KApiRedirect*> (erd);
-	stLock.Lock();
-	if (st == NULL) {
-		st = new KApiPipeStream;
-		if (!rd->createProcess(vh, st) || !st->init(vh, WORK_TYPE_SP)
-			|| !st->listen(0, &pi, unix_socket)) {
-			delete st;
-			st = NULL;
-			stLock.Unlock();
-			success = false;
-			return NULL;
-		}
+	KApiPipeStream* st = new KApiPipeStream;
+	if (!rd->createProcess(vh, st) || !st->init(vh, WORK_TYPE_SP)
+		|| !st->listen(0, unix_socket)) {
+		delete st;
+		klog(KLOG_ERR, "cann't create api pipe stream\n");
+		return NULL;
 	}
-	stLock.Unlock();
-#ifdef KSOCKET_UNIX	
-	if (unix_socket) {
-		std::stringstream s;
-		s << "/tmp/extworker." << pi.port << ".sock";
-		s.str().swap(unix_path);
-	} else {
-#endif
-		if (!ksocket_getaddr("127.0.0.1", pi.port, AF_UNSPEC, AI_NUMERICHOST, &addr)) {
-			klog(KLOG_ERR, "cann't get 127.0.0.1 addr\n");
-			success = false;
-			return NULL;
-		}
-#ifdef KSOCKET_UNIX	
-	}
-#endif
-	success = true;
-#endif
-	return NULL;
+	return st;
 }
-KPipeStream *KApiProcess::PowerThread(KVirtualHost *vh,KExtendProgram *erd)
+KUpstream* KApiProcess::PowerResult(KHttpRequest* rq, KPipeStream* st2)
 {
-	return NULL;
-#if 0
-	bool unix_socket = false;
-#ifdef KSOCKET_UNIX
-	unix_socket = conf.unix_socket;
-#endif
-	sp_info pi;
-	KApiRedirect *rd = static_cast<KApiRedirect *> (erd);
 	stLock.Lock();
-	if (st == NULL) {
-		st = new KApiPipeStream;
-		if (!rd->createProcess(vh, st) || !st->init(vh, WORK_TYPE_SP)
-				|| !st->listen(0, &pi,unix_socket)) {
-			delete st;
-			st = NULL;
-			stLock.Unlock();
-			success = false;
-			return NULL;
-		}
+	if (st) {
+		delete st;
 	}
-	stLock.Unlock();
+	st = static_cast<KApiPipeStream*>(st2);
+	//这里把端口号保存，下次连接时就不用对stLock加锁了。
 #ifdef KSOCKET_UNIX	
 	if (unix_socket) {
 		std::stringstream s;
-		s << "/tmp/extworker." << pi.port << ".sock";
+		s << "/tmp/extworker." << st->info.port << ".sock";
 		s.str().swap(unix_path);
 	} else {
 #endif
-		if(!ksocket_getaddr("127.0.0.1", pi.port, AF_UNSPEC, AI_NUMERICHOST, &addr)){
-			klog(KLOG_ERR,"cann't get 127.0.0.1 addr\n");
-			success = false;
-			return NULL;
+		if (!ksocket_getaddr("127.0.0.1", st->info.port, AF_UNSPEC, AI_NUMERICHOST, &addr)) {
+			klog(KLOG_ERR, "cann't get 127.0.0.1 addr\n");
 		}
 #ifdef KSOCKET_UNIX	
 	}
 #endif
-	success = true;
+	stLock.Unlock();
+	kconnection* cn = TryConnect(&addr);
+	if (cn != NULL) {
+		return new_upstream(cn);
+	}
 	return NULL;
-#endif
 }

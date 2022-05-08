@@ -28,22 +28,22 @@ enum Lock_op_result
 	Lock_op_conflick,
 	Lock_op_failed
 };
-class KDavLock;
+class KDavLockFile;
 
-class KLockToken : public KCountable
+class KLockToken: public KAtomCountable
 {
 public:
-	KLockToken(const char *token,Lock_type type,int timeout);
-	~KLockToken();
+	KLockToken(const char* token, Lock_type type, int timeout);
+
 	void refresh()
 	{
 		expireTime = time(NULL) + timeout;
 	}
 	bool isExpire(time_t nowTime)
 	{
-		return expireTime<nowTime;
+		return expireTime < nowTime;
 	}
-	char *getValue()
+	char* getValue()
 	{
 		return token;
 	}
@@ -51,25 +51,29 @@ public:
 	{
 		return type;
 	}
-	void addFile(KDavLock *file);
-	void removeFile(KDavLock *file);
+	void bind(KDavLockFile* file);
 	friend class KDavLockManager;
-
+protected:
+	~KLockToken();
 private:
 	time_t expireTime;
-	char *token;
+	char* token;
 	Lock_type type;
 	int timeout;
-	std::map<char *,KDavLock *,lessr> lockedFiles;
+	KDavLockFile *locked_file;
 };
-class KDavLock
+class KDavLockFile : public KAtomCountable
 {
 public:
-	KDavLock(const char *name);
-	~KDavLock(void);
+	KDavLockFile(const char* name);
+	~KDavLockFile(void);
 	bool isExpire(time_t nowTime)
 	{
-		return expireTime<nowTime;
+		return expireTime < nowTime;
+	}
+	bool is_empty()
+	{
+		return locks.empty();
 	}
 	Lock_type getLockType()
 	{
@@ -79,44 +83,37 @@ public:
 	{
 		expireTime = time(NULL);
 	}
-	bool addLockToken(KLockToken *lockToken)
+	bool addLockToken(KLockToken* lockToken)
 	{
-		mutex.Lock();
-		if((lockToken->getType()==Lock_exclusive && type!=Lock_none) || type==Lock_exclusive){
-			mutex.Unlock();
+		if ((lockToken->getType() == Lock_exclusive && type != Lock_none) || type == Lock_exclusive) {
 			return false;
 		}
 		lockToken->addRef();
 		type = lockToken->getType();
-		locks.insert(std::pair<char *,KLockToken *>(lockToken->getValue(),lockToken));
-		mutex.Unlock();
+		locks.insert(std::pair<char*, KLockToken*>(lockToken->getValue(), lockToken));
 		return true;
 	}
-	bool removeLockToken(KLockToken *lockToken)
+	bool removeLockToken(KLockToken* lockToken)
 	{
-		mutex.Lock();
-		std::map<char *,KLockToken *,lessp>::iterator it=locks.find(lockToken->getValue());
-		if(it==locks.end()){
-			mutex.Unlock();
+		std::map<char*, KLockToken*, lessp>::iterator it = locks.find(lockToken->getValue());
+		if (it == locks.end()) {
 			return false;
 		}
 		assert(lockToken == (*it).second);
 		locks.erase(it);
-		mutex.Unlock();
 		lockToken->release();
 		return true;
 	}
-	char *getName()
+	char* getName()
 	{
 		return name;
 	}
 	friend class KDavLockManager;
 private:
 	Lock_type type;
-	char *name;
+	char* name;
 	time_t expireTime;
-	std::map<char *,KLockToken * , lessp> locks;
-	KMutex mutex;
+	std::map<char*, KLockToken*, lessp> locks;
 };
 class KDavLockManager
 {
@@ -125,19 +122,27 @@ public:
 	{
 		tokenIndex = 0;
 	}
-	KLockToken *newToken(const char *owner,Lock_type type,int timeout);
-	void releaseToken(KLockToken *lockToken);
-	Lock_op_result lock(const char *name,KLockToken *lockToken);
-	Lock_op_result unlock(const char *name,KLockToken *lockToken);
-	KLockToken *findLockToken(const char *token,const char *owner);
-	bool isFileLocked(const char *name);
+	KLockToken* new_token(const char* owner, Lock_type type, int timeout);
+	Lock_op_result lock(const char* name, KLockToken* lockToken);
+	Lock_op_result unlock(const char* name, KLockToken* lockToken);
+	KLockToken* find_lock_token(const char* token);
+	KLockToken *find_file_locked(const char* name);
 	void flush(time_t nowTime);
+	friend class KLockToken;
 private:
-	KLockToken *internalFindLockToken(const char *token,const char *owner);
-	KDavLock *internalFindLockOnFile(const char *name);
-
-	std::map<char *,KLockToken *,lessp> lockTokens;
-	std::map<char *,KDavLock *,lessr> fileLocks;
+	KLockToken* internalFindLockToken(const char* token);
+	KDavLockFile* internalFindLockOnFile(const char* name);
+	bool internal_remove(KDavLockFile* file)
+	{
+		auto it = fileLocks.find(file->getName());
+		if (it == fileLocks.end()) {
+			return false;
+		}
+		fileLocks.erase(it);
+		return true;
+	}
+	std::map<char*, KLockToken*, lessp> lockTokens;
+	std::map<char*, KDavLockFile*, lessr> fileLocks;
 	KMutex mutex;
 	unsigned tokenIndex;
 };

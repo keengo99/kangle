@@ -32,11 +32,18 @@ func (this *base) Init() error {
 	server.Handle("/read_hup", HandleReadHup)
 	server.Handle("/websocket", HandleWebsocket)
 	server.Handle("/broken_cache", HandleBrokenCache)
+	server.Handle("/upstream_http_protocol", HandleUpstreamHttpProtocol)
 	str := `<!--#start 200-->
 <config>
+	<!-- 9998开启proxy protocol端口 -->
 	<listen ip='127.0.0.1' port='9998P' type='http' />
+	<!-- 9800中转到kangle的9998端口 -->
 	<listen ip='127.0.0.1' port='9800' type='tcp' />
+	<!-- 9801中转连接上游h2(test_server的4412端口) -->
+	<listen ip='127.0.0.1' port='9801' type='http' />
+	<!-- 9900中转连接kangle的h2(kangle的9443端口) -->
 	<listen ip='127.0.0.1' port='9900' type='http' />
+	<!-- 9902 https中转上上游http(kangle的9999) -->
 	<listen ip='127.0.0.1' port='9902' type='https' certificate='etc/server.crt' certificate_key='etc/server.key' http2='1' />
 	<gzip only_gzip_cache='0' min_gzip_length='1' gzip_level='5' br_level='5'/>
 	<cache default='1' max_cache_size='256k' max_bigobj_size='1g' memory='1G' disk='1g' cache_part='1' refresh_time='30'/>
@@ -68,13 +75,8 @@ func (this *base) Init() error {
 		str += "p"
 	}
 	str += `' proto='http' life_time='10'/>	
-	<request action='server:`
-	if config.Cfg.UpstreamSsl {
-		str += "upstream_ssl"
-	} else {
-		str += "upstream"
-	}
-	str += `' >
+	<server name='upstream_h2' host='127.0.0.1' port='4412sp' proto='http' life_time='10'/>	
+	<request>
 		<table name='BEGIN'>
 			<chain  action='continue' >
 				<mark_flag  x_cache='1' age='1' ></mark_flag>
@@ -88,22 +90,23 @@ func (this *base) Init() error {
 			<chain  action='server:localhost' >
 				<acl_self_port >9902</acl_self_port>
 			</chain>
-			<chain  action='vhs' >
-				<acl_file_ext  icase='1' split='|' or='1'>php|php2</acl_file_ext>
-				<acl_path path='/static/*'/>
+			<chain  action='server:upstream_h2' >
+				<acl_self_port >9801</acl_self_port>
 			</chain>
 		</table>
 	</request>
-	<vhs >
-	<mime_type ext='*' type='text/plain'/>
-	<mime_type ext='html' type='text/html' compress='1'/>
-	<mime_type ext='id' type='text/html' compress='2'/>
-	<map file_ext='php' extend='cmd:php' allow_method='*'/>
-	<map file_ext='php2' extend='cmd:php2' allow_method='*'/>
-	</vhs>
 	<!--vh start-->
-	<vh name='default' doc_root='www'  inherit='on' app='1'>
-	<host>*</host>
+	<vh name='base' doc_root='www'  inherit='on' app='1'>		
+		<map path='/static' extend='default' confirm_file='0' allow_method='*'/>
+		<map path='/' extend='server:`
+	if config.Cfg.UpstreamSsl {
+		str += "upstream_ssl"
+	} else {
+		str += "upstream"
+	}
+	str += `' confirm_file='0' allow_method='*'/>
+		<host>127.0.0.1</host>
+		<host>localhost</host>
 	</vh>
 	</config>`
 	return kangle.CreateExtConfig(CONFIG_FILE_NAME, str)
@@ -143,6 +146,8 @@ func init() {
 	//s.AddCase("extworker", "extworker", check_extworker)
 	//s.AddCase("read_hup", "read_hup测试(配合dso以及linux下)", check_read_hup)
 	s.AddCase("websocket", "websocket", test_websocket)
+	s.AddCase("websocket_h2", "websocket和h2", test_upstream_h2_websocket)
 	s.AddCase("head", "head method", test_head_method)
 	s.AddCase("broken_no_cache", "连接中断不能缓存", check_broken_no_cache)
+	s.AddCase("upstream_http_protocol", "测试上游http协议解析", check_upstream_http_protocol)
 }

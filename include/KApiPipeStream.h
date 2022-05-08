@@ -30,15 +30,20 @@ public:
 		return chrooted;
 	}
 	bool isLoaded(KApiRedirect *rd);
-	bool listen(u_short port, sp_info *info,bool unix_socket);
-
+	bool listen(u_short port, bool unix_socket);
+	bool is_unix_socket()
+	{
+		return unix_socket;
+	}
 	/*
 	 * first create must call init
 	 */
 	bool init(KVirtualHost *vh, int workType);
+	sp_info info;
 private:
 	bool loadAllApi(KVirtualHost *vh, int workType);
 	std::map<u_short,bool> apis;
 	bool chrooted;
+	bool unix_socket;
 };
 #endif /* KAPIPIPESTREAM_H_ */

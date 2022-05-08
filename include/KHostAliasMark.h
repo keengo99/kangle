@@ -24,8 +24,7 @@ public:
 			it = m.begin();
 			KUrl *u = (*it).first;
 			m.erase(it);
-			u->destroy();
-			delete u;
+			u->relase();
 		}
 	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
@@ -71,8 +70,7 @@ public:
 				std::map<KUrl *,std::string,less_host_port>::iterator it;
 				it = m.find(u);
 				if (it!=m.end()) {
-					u->destroy();
-					delete u;
+					u->relase();
 				} else {
 					m.insert(std::pair<KUrl *,std::string>(u,alias));
 				}

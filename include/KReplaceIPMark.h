@@ -61,15 +61,15 @@ public:
 					}
 					free(h->attr);
 					free(h);
-					if (KBIT_TEST(rq->sink->data.raw_url.flags,KGL_URL_ORIG_SSL)) {
-						KBIT_SET(rq->sink->data.raw_url.flags,KGL_URL_SSL);
-						if (rq->sink->data.raw_url.port == 80) {
-							rq->sink->data.raw_url.port = 443;
+					if (KBIT_TEST(rq->sink->data.raw_url->flags,KGL_URL_ORIG_SSL)) {
+						KBIT_SET(rq->sink->data.raw_url->flags,KGL_URL_SSL);
+						if (rq->sink->data.raw_url->port == 80) {
+							rq->sink->data.raw_url->port = 443;
 						}
 					} else {
-						KBIT_CLR(rq->sink->data.raw_url.flags,KGL_URL_SSL);
-						if (rq->sink->data.raw_url.port == 443) {
-							rq->sink->data.raw_url.port = 80;
+						KBIT_CLR(rq->sink->data.raw_url->flags,KGL_URL_SSL);
+						if (rq->sink->data.raw_url->port == 443) {
+							rq->sink->data.raw_url->port = 80;
 						}
 					}
 					return true;
@@ -301,6 +301,7 @@ public:
 private:
 	kgl_str_t upstream_sign[2];
 };
+#if 0
 class KSelfIPMark : public KMark
 {
 public:
@@ -359,5 +360,6 @@ public:
 private:
 	std::string ip;
 };
+#endif
 #endif
 

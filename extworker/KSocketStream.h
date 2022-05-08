@@ -1,9 +1,9 @@
 #ifndef KSOCKETSTREAM_H
 #define KSOCKETSTREAM_H
 #include "ksocket.h"
-#include "KHttpStream.h"
+#include "KStream.h"
 
-class KSocketStream : public KWriteStream
+class KSocketStream : public KWStream
 {
 public:
 	KSocketStream(SOCKET sockfd)
@@ -22,7 +22,7 @@ public:
 	{
 		ksocket_delay(sockfd);
 	}
-	int write(KHttpRequest *rq, const char *str, int len)
+	int write(const char *str, int len) override
 	{
 		return send(sockfd, str, len, 0);
 	}

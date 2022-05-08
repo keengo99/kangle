@@ -173,7 +173,7 @@
 * obj->index.flags
 */
 #define FLAG_DEAD               1      /* */
-#define FLAG_URL_FREE           (1<<1) /* */
+//#define FLAG_URL_FREE           (1<<1) /* */
 #define FLAG_IN_MEM             (1<<2) /* */
 #define FLAG_IN_DISK            (1<<3) 
 //#define OBJ_IS_ENCODING         (1<<4)

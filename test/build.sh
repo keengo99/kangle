@@ -9,5 +9,3 @@ fi
 cd $PROJECT_PATH/test_server
 echo "building main ..."
 go build -o ../bin/main.exe test_server/main
-echo "building fcgi ..."
-go build -o ../bin/fcgi.exe test_server/fcgi

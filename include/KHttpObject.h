@@ -137,7 +137,11 @@ public:
 		list_state = LIST_IN_NONE;
 		runtime_flags = 0;
 		index.last_verified = kgl_current_sec;
-		uk.url = url;
+		if (url) {
+			uk.url = url->refs();
+		} else {
+			uk.url = nullptr;
+		}
 		uk.vary = NULL;
 		h = HASH_SIZE;
 		refs = 1;

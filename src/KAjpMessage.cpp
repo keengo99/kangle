@@ -11,7 +11,7 @@ KAjpMessage::KAjpMessage()
 {
 	buf = NULL;
 }
-KAjpMessage::KAjpMessage(KWriteStream *st) {
+KAjpMessage::KAjpMessage(KWStream *st) {
 	buf = (unsigned char *) xmalloc(AJP_PACKAGE);
 	reset();
 	this->st = st;
@@ -94,7 +94,7 @@ bool KAjpMessage::send() {
 	}
 	printf("\n");
 	*/
-	if (st->write_all(NULL, (char *) buf, pos) != STREAM_WRITE_SUCCESS) {
+	if (st->write_all((char *) buf, pos) != STREAM_WRITE_SUCCESS) {
 		return false;
 	}
 	reset();

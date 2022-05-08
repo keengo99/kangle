@@ -30,6 +30,7 @@ public:
 	int readClient(char *buf, int len) override;
 	bool setStatusCode(const char *status, int len = 0) override;
 	KGL_RESULT addHeader(const char *attr, int len = 0) override;
+	KGL_RESULT map_url_path(const char* url, LPVOID file, LPDWORD path_len) override;
 	Token_t getToken();
 	Token_t getVhToken(const char *vh_name);
 	Token_t token;

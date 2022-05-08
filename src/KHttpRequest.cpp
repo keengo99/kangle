@@ -53,11 +53,49 @@
 #include "KStaticFetchObject.h"
 #include "KAccessDsoSupport.h"
 #include "kfiber.h"
+#include "KSockPoolHelper.h"
 
 using namespace std;
 void WINAPI free_auto_memory(void *arg)
 {
 	xfree(arg);
+}
+char * KHttpRequest::map_url_path(const char* url, KBaseRedirect* caller)
+{
+	KSubVirtualHost* nsvh = NULL;
+	auto svh = get_virtual_host();
+	if (svh == NULL) {
+		return NULL;
+	}
+	char* filename = NULL;
+	KAutoUrl u;
+	const char* path = url;
+	if (parse_url(url, u.u)) {
+		path = u.u->path;
+		conf.gvm->queryVirtualHost(sink->GetBindServer(), &nsvh, u.u->host, 0);
+		if (nsvh && nsvh->vh == svh->vh) {
+			//相同的vh
+			svh = nsvh;
+		}
+	}
+	bool brd_check_passed = true;
+	if (caller != NULL) {
+		auto rd = svh->vh->refsPathRedirect(path, (int)strlen(path));
+		if (rd != caller) {
+			//无权限
+			brd_check_passed = false;
+		}
+		if (rd) {
+			rd->release();
+		}
+	}
+	if (brd_check_passed) {
+		filename = svh->mapFile(path);
+	}
+	if (nsvh) {
+		nsvh->release();
+	}
+	return filename;
 }
 void KHttpRequest::LeaveRequestQueue()
 {
@@ -176,6 +214,17 @@ void KHttpRequest::beginRequest()
 #endif
 	sink->data.iterator(handle_http_header, this);
 }
+uint32_t KHttpRequest::get_upstream_flags()
+{
+	uint32_t flags = 0;
+	if (KBIT_TEST(sink->data.flags, RQ_UPSTREAM_ERROR)) {
+		KBIT_SET(flags, KSOCKET_FLAGS_SKIP_POOL);
+	}
+	if (KBIT_TEST(sink->data.flags, RQ_HAS_CONNECTION_UPGRADE)) {
+		KBIT_SET(flags, KSOCKET_FLAGS_SKIP_POOL| KSOCKET_FLAGS_WEBSOCKET);
+	}
+	return flags;
+}
 int KHttpRequest::EndRequest() {
 #ifdef ENABLE_BIG_OBJECT_206
 	assert(bo_ctx == NULL);
@@ -208,8 +257,8 @@ KGL_RESULT KHttpRequest::HandleResult(KGL_RESULT result)
 	return result;
 }
 bool KHttpRequest::rewriteUrl(const char *newUrl, int errorCode, const char *prefix) {
-	KUrl url2;
-	if (!parse_url(newUrl, &url2)) {
+	KAutoUrl url2;
+	if (!parse_url(newUrl, url2.u)) {
 		KStringBuf nu;
 		if (prefix) {
 			if (*prefix!='/') {
@@ -232,17 +281,15 @@ bool KHttpRequest::rewriteUrl(const char *newUrl, int errorCode, const char *pre
 			free(basepath);		
 			nu << newUrl;
 		}	
-		if(!parse_url(nu.getString(),&url2)){
-			url2.destroy();
+		if(!parse_url(nu.getString(),url2.u)){
 			return false;
 		}
 	}
-	if (url2.path == NULL) {
-		url2.destroy();
+	if (url2.u->path == NULL) {
 		return false;
 	}
-	if (KBIT_TEST(url2.flags, KGL_URL_ORIG_SSL)) {
-		KBIT_SET(url2.flags, KGL_URL_SSL);
+	if (KBIT_TEST(url2.u->flags, KGL_URL_ORIG_SSL)) {
+		KBIT_SET(url2.u->flags, KGL_URL_SSL);
 	}
 	KStringBuf s;
 	if (errorCode > 0) {
@@ -257,33 +304,24 @@ bool KHttpRequest::rewriteUrl(const char *newUrl, int errorCode, const char *pre
 			s << "?" << sink->data.url->param;
 		}
 	}
-	if (url2.host == NULL) {
-		url2.host = strdup(sink->data.url->host);
+	if (url2.u->host == NULL) {
+		url2.u->host = strdup(sink->data.url->host);
 	}
-	url_decode(url2.path, 0, &url2);
-	if (ctx->obj && ctx->obj->uk.url== sink->data.url && !KBIT_TEST(ctx->obj->index.flags,FLAG_URL_FREE)) {
-		KBIT_SET(ctx->obj->index.flags,FLAG_URL_FREE);
-		ctx->obj->uk.url = sink->data.url->clone();
+	url_decode(url2.u->path, 0, url2.u);
+	if (ctx->obj && ctx->obj->uk.url== sink->data.url){// && !KBIT_TEST(ctx->obj->index.flags,FLAG_URL_FREE)) {
+		ctx->obj->uk.url->relase();
+		ctx->obj->uk.url = url2.u->refs();
 	}
-	sink->data.url->destroy();
-	sink->data.url->host = url2.host;
-	sink->data.url->path = url2.path;
+	sink->data.url->relase();
+	sink->data.url = url2.u->refs();
+
 	if (errorCode > 0) {
-		sink->data.url->param = s.stealString();
-		if (url2.param) {
-			xfree(url2.param);
-			url2.param = NULL;
+		if (sink->data.url->param) {
+			xfree(sink->data.url->param);
 		}
-	} else {
-		sink->data.url->param = url2.param;
+		sink->data.url->param = s.stealString();
 	}
-	if (url2.port > 0) {
-		sink->data.url->port = url2.port;
-	}
-	if (url2.flags > 0) {
-		sink->data.url->flags = url2.flags;
-	}
-	KBIT_SET(sink->data.raw_url.flags,KGL_URL_REWRITED);
+	KBIT_SET(sink->data.raw_url->flags,KGL_URL_REWRITED);
 	return true;
 }
 char *KHttpRequest::getUrl() {
@@ -298,13 +336,13 @@ std::string KHttpRequest::getInfo() {
 #ifdef HTTP_PROXY
 	if (meth==METH_CONNECT) {
 		s << "CONNECT " ;
-		if (sink->data.raw_url.host) {
-			s << sink->data.raw_url.host << ":" << sink->data.raw_url.port;
+		if (sink->data.raw_url->host) {
+			s << sink->data.raw_url->host << ":" << sink->data.raw_url->port;
 		}
 		return s.getString();
 	}
 #endif//}}
-	sink->data.raw_url.GetUrl(s,true);
+	sink->data.raw_url->GetUrl(s,true);
 	return s.getString();
 }
 
@@ -340,10 +378,6 @@ KHttpRequest::~KHttpRequest()
 		KSpeedLimitHelper* slh_next = slh->next;
 		delete slh;
 		slh = slh_next;
-	}
-	if (bind_ip) {
-		free(bind_ip);
-		bind_ip = NULL;
 	}
 	if (auth) {
 		delete auth;

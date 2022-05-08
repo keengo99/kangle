@@ -40,10 +40,10 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 	}
 	bool may_compress = false;
 	if (obj->need_compress) {
-		if (KBIT_TEST(rq->sink->data.raw_url.accept_encoding, KGL_ENCODING_GZIP)) {
+		if (KBIT_TEST(rq->sink->data.raw_url->accept_encoding, KGL_ENCODING_GZIP)) {
 			may_compress = true;
 #ifdef ENABLE_BROTLI
-		} else if (KBIT_TEST(rq->sink->data.raw_url.accept_encoding, KGL_ENCODING_BR)) {
+		} else if (KBIT_TEST(rq->sink->data.raw_url->accept_encoding, KGL_ENCODING_BR)) {
 			may_compress = true;
 #endif
 		}
@@ -65,7 +65,7 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 			xfree(content_type);
 			return out->f->write_message(out, rq, KGL_MSG_ERROR, "cann't seek to right position",500);
 		}
-		if (!KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_RANGED)) {
+		if (!KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED)) {
 			KStringBuf b;
 			char buf[INT2STRING_LEN];
 			b.WSTR("bytes ");
@@ -78,7 +78,7 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 			//url range的本地不缓存
 			KBIT_SET(obj->index.flags, ANSW_NO_CACHE);
 		}
-		if (!KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_RANGED)) {
+		if (!KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED)) {
 			KStringBuf b;
 			char buf[INT2STRING_LEN];
 			b.WSTR("bytes ");

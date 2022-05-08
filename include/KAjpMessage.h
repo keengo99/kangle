@@ -11,7 +11,7 @@
 #define AJP_BUFF_SIZE 8186
 #include <string>
 #include "global.h"
-#include "KHttpStream.h"
+#include "KStream.h"
 #define JK_AJP13_FORWARD_REQUEST 2
 #define JK_AJP13_SEND_BODY_CHUNK 3
 #define JK_AJP13_SEND_HEADERS    4
@@ -23,7 +23,7 @@
 class KAjpMessage {
 public:
 	KAjpMessage();
-	KAjpMessage(KWriteStream *st);
+	KAjpMessage(KWStream *st);
 	KAjpMessage(char *buf,int length);
 	virtual ~KAjpMessage();
 	int getLen()
@@ -90,7 +90,7 @@ private:
 	unsigned char *buf;
 	int pos;
 	int len;
-	KWriteStream *st;
+	KWStream *st;
 };
 
 class KAjpMessageParser {

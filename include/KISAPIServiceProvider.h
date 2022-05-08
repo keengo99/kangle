@@ -38,6 +38,10 @@ public:
 	}
 	bool execUrl(const char *url);
 	void log(const char *str);
+	int64_t get_read_left() override
+	{
+		return pECB->cbLeft;
+	}
 	int read(char *buf, int len);
 	int write(const char *buf, int len);
 	StreamState write_end(KGL_RESULT result) override;
@@ -94,13 +98,13 @@ public:
 	void setECB(EXTENSION_CONTROL_BLOCK *pECB) {
 		this->pECB = pECB;
 	}
+	EXTENSION_CONTROL_BLOCK* pECB;
 private:
 	char header_val[512];
 	void checkHeaderSend();
 	char meth;
 	char *docRoot;
-	bool headSended;
-	EXTENSION_CONTROL_BLOCK *pECB;
+	bool headSended;	
 	KStringBuf s;
 	KStringBuf status;
 };

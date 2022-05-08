@@ -209,7 +209,7 @@ public:
 	{
 		return clean_blocked;
 	}
-	int get_cache_info(KUrl *url,bool wide,KCacheInfo *ci)
+	int get_cache_info(KUrl*url,bool wide,KCacheInfo *ci)
 	{
 		int count = 0;
 		for (int i=0;i<HASH_SIZE;i++) {

@@ -52,7 +52,7 @@ public:
 	{
 		return false;
 	}
-	bool ReadHup(void *arg, result_callback result)
+	bool read_hup(void *arg, result_callback result)
 	{
 		return false;
 	}

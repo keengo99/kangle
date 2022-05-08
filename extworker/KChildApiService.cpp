@@ -1,31 +1,28 @@
 #include "KChildApiService.h"
 #include "export.h"
+#include "api_child.h"
 
 KChildApiService::KChildApiService(KApiDso* dso) : KApiService(dso)
 {
 	st = NULL;
-	post_data = NULL;
 }
 KChildApiService::~KChildApiService()
 {
-	if (post_data) {
-		xfree(post_data);
-	}
 }
-bool KChildApiService::start(KFastcgiStream<KSocketStream>* st)
+KGL_RESULT KChildApiService::start(KFastcgiStream<KSocketStream>* st)
 {
 	this->st = st;
 	if (!st->readParams(&env)) {
-		//debug("child cann't readParams\n");
-		return false;
+		debug("child cann't readParams\n");
+		return KGL_ESOCKET_BROKEN;
 	}
-	bool result = KApiService::start();
+	KGL_RESULT result = KApiService::start();
 	assert(st);
 	if (!headSended) {
 		st->write_data("Status: 200\r\n\r\n", 15);
 	}
 	if (!st->write_end()) {
-		return false;
+		return KGL_ESOCKET_BROKEN;
 	}
 	return result;
 }
@@ -41,6 +38,31 @@ int KChildApiService::writeClient(const char* str, int len)
 		return len;
 	}
 	return -1;
+}
+KGL_RESULT KChildApiService::map_url_path(const char* url, LPVOID file, LPDWORD file_len)
+{
+	int len = (int)strlen(url);
+	if (!st->write_data(API_CHILD_MAP_PATH, url, len)) {
+		return KGL_ESOCKET_BROKEN;
+	}
+	FCGI_Header header;
+	char* buf = NULL;
+	if (!st->read_package(&header, &buf, len)) {
+		return KGL_ESOCKET_BROKEN;
+	}
+	//printf("package type=[%d] len=[%d]\n", header.type, len);
+	if (header.type != API_CHILD_MAP_PATH_RESULT) {
+		if (buf) {
+			xfree(buf);
+		}
+		return KGL_ESOCKET_BROKEN;
+	}	
+	KGL_RESULT result =  set_variable(file, file_len, buf);
+	//printf("buf=[%s] file=[%s]\n", buf, (char *)file);
+	if (buf) {
+		xfree(buf);
+	}
+	return result;
 }
 int KChildApiService::readClient(char* buf, int len)
 {

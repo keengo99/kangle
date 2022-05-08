@@ -60,7 +60,7 @@ KGL_RESULT KFastcgiFetchObject::buildHead(KHttpRequest *rq)
 		package.header.contentLength = htons(sizeof(FCGI_BeginRequestBody));
 		KApiRedirect *ard = static_cast<KApiRedirect *>(brd->rd);
 		package.body.id = ard->id;
-		buffer->write_all(NULL, (char *)&package,sizeof(FCGI_BeginRequestRecord));
+		buffer->write_all((char *)&package,sizeof(FCGI_BeginRequestRecord));
 	}else{
 		fbuf.beginRequest(client->GetLifeTime()>0);
 	}
@@ -100,10 +100,32 @@ kgl_parse_result KFastcgiFetchObject::ParseHeader(KHttpRequest *rq, char **data,
 		char *packet = parse(rq, data, len,&packet_len);
 		if (packet && packet_len > 0) {
 			RestorePacket(&packet, &packet_len);
-			if (this->buf.type == FCGI_STDERR) {
+			switch (this->buf.type) {
+			case FCGI_STDERR:
 				fwrite(packet, packet_len, 1, stderr);
 				fwrite("\n", 1, 1, stderr);
-			} else {
+				break;
+			case API_CHILD_MAP_PATH:
+			{
+				char* url = (char*)malloc(packet_len + 1);
+				kgl_memcpy(url, packet, packet_len);
+				url[packet_len] = '\0';
+				char *filename = rq->map_url_path(url, this->brd);
+				int len = 0;
+				if (filename) {
+					len = (int)strlen(filename);
+				}
+				//printf("try write map_path_result filename=[%s].\n",filename?filename:"");
+				KFastcgiStream<KUpstream> fbuf(client);
+				if (!fbuf.write_data(API_CHILD_MAP_PATH_RESULT, filename, len)) {
+					klog(KLOG_ERR, "write map_path_result failed.\n");
+				}
+				if (filename) {
+					xfree(filename);
+				}
+				break;
+			}
+			default:		
 				kgl_parse_result ret = KAsyncFetchObject::ParseHeader(rq, &packet, &packet_len);
 				switch (ret) {
 				case kgl_parse_finished:

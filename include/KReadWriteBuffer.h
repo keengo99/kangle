@@ -1,8 +1,8 @@
 #ifndef KREADWRITEBUFFER_H
 #define KREADWRITEBUFFER_H
 #include "KBuffer.h"
-#include "KHttpStream.h"
-class KReadWriteBuffer: public KWriteStream
+#include "KStream.h"
+class KReadWriteBuffer: public KWStream
 {
 public:
 	KReadWriteBuffer()
@@ -79,7 +79,7 @@ public:
 	{
 		char temp[2];
 		temp[0] = ch;
-		write_all(NULL,temp,1);
+		write_all(temp,1);
 	}
 	
 	inline void print()
@@ -116,7 +116,7 @@ public:
 	}
 	krw_buffer buffer;
 protected:
-	int write(KHttpRequest *rq, const char *buf, int len)
+	int write(const char *buf, int len) override
 	{
 		int wlen;
 		char *t = getWriteBuffer(&wlen);

@@ -41,14 +41,14 @@ int apr_password_validate(const char *passwd,const char *hash);
 #endif
 using namespace std;
 bool checkSaltMd5(const char *toCheck, const char *password) {
-	int password_len = strlen(password);
+	int password_len = (int)strlen(password);
 	if (password_len<32) {
 		return false;
 	}
 	KMD5_CTX context;
 	unsigned char digest[17];
 	KMD5Init (&context);
-	KMD5Update(&context,(unsigned char *)toCheck, strlen(toCheck));
+	KMD5Update(&context,(unsigned char *)toCheck, (unsigned)strlen(toCheck));
 	KMD5Update(&context,(unsigned char *)password+32,password_len-32);
 	KMD5Final (digest, &context);
 	char buf[33];
@@ -59,7 +59,7 @@ bool checkPassword(const char *toCheck, const char *password, int cryptType) {
 	char buf[65];
 	switch (cryptType) {
 	case CRYPT_TYPE_KMD5:
-		KMD5(toCheck,strlen(toCheck), buf);
+		KMD5(toCheck,(int)strlen(toCheck), buf);
 		return strcasecmp(buf, password) == 0;
 	case CRYPT_TYPE_PLAIN:
 		return strcmp(toCheck, password) == 0;
@@ -102,10 +102,10 @@ bool checkPassword(const char *toCheck, const char *password, int cryptType) {
 			KMD5_CTX context;
  			unsigned char digest[17];
  			KMD5Init (&context);
-  			KMD5Update(&context,(unsigned char *)toCheck, user_sign - toCheck);
+  			KMD5Update(&context,(unsigned char *)toCheck, (unsigned)(user_sign - toCheck));
 			user_sign++;
 			skey++;
-			KMD5Update(&context,(unsigned char *)skey,strlen(skey));
+			KMD5Update(&context,(unsigned char *)skey,(unsigned)strlen(skey));
 			KMD5Final (digest, &context);
 			char buf[33];
 			make_digest(buf,digest);
@@ -245,7 +245,7 @@ bool KAuthMark::loadAuthFile(std::string &path) {
 		char *passwd = p+1;
 		if(!all){
 			if (reg_user) {
-				if ((reg_user->match(user,strlen(user),0)>0) != reg_user_revert) {
+				if ((reg_user->match(user,(int)strlen(user),0)>0) != reg_user_revert) {
 					users.insert(pair<string, string> (user, passwd));
 				}
 			} else {

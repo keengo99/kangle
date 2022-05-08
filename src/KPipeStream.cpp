@@ -111,7 +111,6 @@ bool KPipeStream::create() {
 	return create(fd2);
 }
 void KPipeStream::setTimeOut(int tmo) {
-	//{{ent
 #ifdef _WIN32
 	COMMTIMEOUTS tm;
 	memset(&tm,0,sizeof(tm));
@@ -119,14 +118,11 @@ void KPipeStream::setTimeOut(int tmo) {
 	SetCommTimeouts(fd[0],&tm);
 	SetCommTimeouts(fd[1],&tm);
 #else
-	//}}
 	this->tmo = tmo;
-//{{ent
 #endif
-//}}
+
 }
 bool KPipeStream::create(PIPE_T *fd) {
-	//{{ent
 #ifdef _WIN32
 	SECURITY_ATTRIBUTES sa;
 	sa.nLength = sizeof(SECURITY_ATTRIBUTES);
@@ -137,14 +133,10 @@ bool KPipeStream::create(PIPE_T *fd) {
 	}
 	return true;
 #else
-	//}}
 	return pipe(fd) == 0;
-//{{ent
 #endif
-//}}
 }
 int KPipeStream::read(char *buf, int len) {
-//{{ent
 #ifdef _WIN32
 	unsigned long bytesRead;
 	if(!ReadFile(fd[READ_PIPE],buf,len,&bytesRead,NULL)) {
@@ -152,35 +144,26 @@ int KPipeStream::read(char *buf, int len) {
 		return -1;
 	}
 	return bytesRead;
-
 #else	
-	//}}
 	if (!wait_socket_event(fd[READ_PIPE], false, tmo)) {
 		killChild();
 	}
 	return ::read(fd[READ_PIPE], buf, len);
-//{{ent
 #endif
-//}}
 }
 int KPipeStream::write(const char *buf, int len) {
-	//{{ent
 #ifdef _WIN32
 	unsigned long bytesRead;
 	if(!WriteFile(fd[WRITE_PIPE],buf,len,&bytesRead,NULL)) {
-		//debug("writePipe error errno=%d\n",GetLastError());
 		return -1;
 	}
 	return bytesRead;
 #else
-	//}}
 	if (!wait_socket_event(fd[WRITE_PIPE], true, tmo)) {
 		killChild();
 	}
 	return ::write(fd[WRITE_PIPE], buf, len);
-//{{ent
 #endif
-//}}
 }
 void KPipeStream::killChild() {
 	process.kill();

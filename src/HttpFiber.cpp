@@ -209,8 +209,8 @@ KGL_RESULT handle_connect_method(KHttpRequest* rq)
 	if (rq->sink->data.url->host == NULL) {
 		return KGL_EDATA_FORMAT;
 	}
-	if (rq->sink->data.raw_url.path == NULL) {
-		rq->sink->data.raw_url.path = strdup("/");
+	if (rq->sink->data.raw_url->path == NULL) {
+		rq->sink->data.raw_url->path = strdup("/");
 	}
 	if (rq->sink->data.url->path == NULL) {
 		rq->sink->data.url->path = strdup("/");
@@ -287,13 +287,13 @@ void start_request_fiber(KSink *sink, int header_length)
 					send_error2(rq, STATUS_BAD_REQUEST, "host not found.");
 					goto clean;
 				case query_vh_success: {
-					u_short flags = rq->sink->data.raw_url.flags;
-					rq->sink->data.raw_url.flags = 0;
+					u_short flags = rq->sink->data.raw_url->flags;
+					rq->sink->data.raw_url->flags = 0;
 					if (check_virtual_host_access_request(rq, header_length)) {
-						KBIT_SET(rq->sink->data.raw_url.flags, flags);
+						KBIT_SET(rq->sink->data.raw_url->flags, flags);
 						goto clean;
 					}
-					if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_REWRITED)) {
+					if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
 						//rewrite host
 						KSubVirtualHost *new_svh = NULL;
 						conf.gvm->queryVirtualHost(rq->sink->GetBindServer(), &new_svh, rq->sink->data.url->host, 0);
@@ -307,7 +307,7 @@ void start_request_fiber(KSink *sink, int header_length)
 							}
 						}
 					}
-					KBIT_SET(rq->sink->data.raw_url.flags, flags);
+					KBIT_SET(rq->sink->data.raw_url->flags, flags);
 					break;
 				}
 			}

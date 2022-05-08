@@ -85,7 +85,6 @@ public:
 			return ps;
 		}
 #ifdef KSOCKET_UNIX
-		//TODO: unix
 		if (!unix_path.empty()) {
 			struct sockaddr_un un_addr;
 			ksocket_unix_addr(unix_path.c_str(), &un_addr);
@@ -105,11 +104,7 @@ public:
 		kfiber_net_close(cn);
 		return NULL;
 	}
-	virtual KUpstream* PowerResult(KHttpRequest* rq, KPipeStream* st)
-	{
-		assert(false);
-		return NULL;
-	}
+	virtual KUpstream* PowerResult(KHttpRequest* rq, KPipeStream* st) = 0;
 	KPipeStream* Power(KHttpRequest* rq, KExtendProgram* rd);
 	virtual KPipeStream* PowerThread(KVirtualHost* vh, KExtendProgram* rd) = 0;
 	virtual void getProcessInfo(const USER_T& user, const std::string& name,

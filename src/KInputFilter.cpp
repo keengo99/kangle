@@ -11,7 +11,7 @@ void parseUrlParam(char* buf, int len, char** name, int* name_len, char** value,
 	*name_len = len;
 	if (eq) {
 		*eq = '\0';
-		*name_len = eq - buf;
+		*name_len = (int)(eq - buf);
 		eq++;
 		*value_len = url_decode(eq, len - (*name_len) - 1, NULL, true);
 		*value = eq;
@@ -64,13 +64,13 @@ int KInputFilter::check(KInputFilterContext* rq, const char* str, int len, bool 
 			break;
 		}
 		*p = '\0';
-		if (JUMP_DENY == checkItem(rq, hot, p - hot)) {
+		if (JUMP_DENY == checkItem(rq, hot, (int)(p - hot))) {
 			free(buf);
 			return JUMP_DENY;
 		}
 		hot = p + 1;
 	}
-	last_buf_len = strlen(hot);
+	last_buf_len = (int)strlen(hot);
 	if (isLast) {
 		int ret = checkItem(rq, hot, last_buf_len);
 		free(buf);
@@ -99,7 +99,7 @@ bool KInputFilterContext::checkGetParam(KParamFilterHook* hook)
 			*p = '\0';
 			KParamPair* pair = new KParamPair;
 			pair->next = NULL;
-			parseUrlParam(hot, p - hot, &pair->name, &pair->name_len, &pair->value, &pair->value_len);
+			parseUrlParam(hot, (int)(p - hot), &pair->name, &pair->name_len, &pair->value, &pair->value_len);
 			hot = p + 1;
 			if (last == NULL) {
 				gParamHeader = last = pair;
@@ -110,7 +110,7 @@ bool KInputFilterContext::checkGetParam(KParamFilterHook* hook)
 		}
 		KParamPair* pair = new KParamPair;
 		pair->next = NULL;
-		parseUrlParam(hot, strlen(hot), &pair->name, &pair->name_len, &pair->value, &pair->value_len);
+		parseUrlParam(hot, (int)strlen(hot), &pair->name, &pair->name_len, &pair->value, &pair->value_len);
 		if (last == NULL) {
 			gParamHeader = pair;
 		} else {
@@ -159,7 +159,7 @@ bool KInputFilterContext::parseBoundary(char* val)
 		return false;
 	}
 	hot++;
-	int boundary_len = strlen(hot);
+	int boundary_len = (int)strlen(hot);
 
 	char* boundary_end;
 	if (hot[0] == '"') {
@@ -174,7 +174,7 @@ bool KInputFilterContext::parseBoundary(char* val)
 		boundary_end = strpbrk(hot, ",;");
 	}
 	if (boundary_end) {
-		boundary_len = boundary_end - hot;
+		boundary_len = (int)(boundary_end - hot);
 	}
 	mb = new multipart_buffer;
 	mb->boundary = (char*)malloc(boundary_len + 3);

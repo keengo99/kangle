@@ -17,10 +17,10 @@
 /*
 多线程命令进程
 */
-class KCmdProcess: public KVirtualHostProcess {
+class KSPCmdProcess: public KVirtualHostProcess {
 public:
-	KCmdProcess();
-	~KCmdProcess();
+	KSPCmdProcess();
+	~KSPCmdProcess();
 	KUpstream *PowerResult(KHttpRequest* rq, KPipeStream* st);
 	KPipeStream * PowerThread(KVirtualHost *vh,KExtendProgram *rd);
 	void getProcessInfo(const USER_T &user, const std::string &name, std::stringstream &s,int &count)

@@ -62,8 +62,7 @@ int get_path(char *argv0, std::string &path);
 int get_param(int argc, char **argv, int &i,const char *param, char *value);
 KTHREAD_FUNCTION time_thread(void *arg);
 void register_gc_service(void(*flush)(void *,time_t),void *arg);
-std::string b64encode(const unsigned char *in, int len = 0);
-char *b64decode(const unsigned char *in, int *l);
+
 
 void explode_cmd(char *str,std::vector<char *> &result);
 void explode(const char *str, const char split,

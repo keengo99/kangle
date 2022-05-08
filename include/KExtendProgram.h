@@ -9,7 +9,7 @@
 
 #define WORK_TYPE_SP   0
 #define WORK_TYPE_MP    1
-#define WORK_TYPE_AUTO  2
+
 #define WORK_TYPE_MT    3
 
 class KExtendProgramString: public KDynamicString {
@@ -17,7 +17,6 @@ public:
 	KExtendProgramString(const char *extendName, KVirtualHost *vh) {
 		this->vh = vh;
 		pid = 0;
-		//{{ent
 #ifdef ENABLE_CMD_DPORT
 		if (extendName) {
 			s << extendName << "_port";
@@ -25,7 +24,6 @@ public:
 		}
 		listenPort = 0;
 #endif
-		//}}
 	}
 	void setPid(int pid) {
 		this->pid = pid;
@@ -226,8 +224,6 @@ public:
 	virtual ~KExtendProgram();
 	static const char *getTypeString(int type) {
 		switch (type) {
-		case WORK_TYPE_AUTO:
-			return "auto";
 		case WORK_TYPE_MT:
 			return "mt";
 		case WORK_TYPE_MP:
@@ -246,9 +242,6 @@ public:
 		}
 		if (strcasecmp(str, "sp") == 0) {
 			return WORK_TYPE_SP;
-		}
-		if (strcasecmp(str,"auto")==0) {
-			return WORK_TYPE_AUTO;
 		}
 		return WORK_TYPE_SP;
 	}

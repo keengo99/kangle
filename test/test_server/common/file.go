@@ -3,8 +3,21 @@ package common
 import (
 	"io"
 	"os"
+	"runtime"
 )
 
+func ExeExtendFile() string {
+	if runtime.GOOS == "windows" {
+		return ".exe"
+	}
+	return ""
+}
+func DllExtendFile() string {
+	if runtime.GOOS == "windows" {
+		return ".dll"
+	}
+	return ".so"
+}
 func CopyFile(src, dst string) {
 	in, err := os.Open(src)
 	if err != nil {

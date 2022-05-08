@@ -11,15 +11,15 @@
 #include "KAsyncFetchObject.h"
 #ifdef ENABLE_VH_RUN_AS
 //启动进程工作线程
-KCmdProcess::KCmdProcess() {
+KSPCmdProcess::KSPCmdProcess() {
 	st = NULL;
 }
-KCmdProcess::~KCmdProcess() {
+KSPCmdProcess::~KSPCmdProcess() {
 	if (st) {
 		delete st;
 	}
 }
-KUpstream *KCmdProcess::PowerResult(KHttpRequest *rq, KPipeStream* st2)
+KUpstream *KSPCmdProcess::PowerResult(KHttpRequest *rq, KPipeStream* st2)
 {
 	stLock.Lock();
 	if (st) {
@@ -37,7 +37,7 @@ KUpstream *KCmdProcess::PowerResult(KHttpRequest *rq, KPipeStream* st2)
 	}
 	return NULL;
 }
-KPipeStream *KCmdProcess::PowerThread(KVirtualHost *vh,KExtendProgram *erd)
+KPipeStream *KSPCmdProcess::PowerThread(KVirtualHost *vh,KExtendProgram *erd)
 {
 	KCmdPoolableRedirect *rd = static_cast<KCmdPoolableRedirect *> (erd);
 	KListenPipeStream *st2 = new KListenPipeStream;

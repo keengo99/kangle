@@ -16,7 +16,7 @@ public:
 	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
 			int &jumpType) {
-		KUrl *url = (raw?&rq->sink->data.raw_url:rq->sink->data.url);
+		KUrl *url = (raw?rq->sink->data.raw_url:rq->sink->data.url);
 		char *param = url->param;
 		if (param==NULL) {
 			return false;

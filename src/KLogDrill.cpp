@@ -153,7 +153,7 @@ void add_log_drill(KHttpRequest *rq,KStringBuf &s)
 	s.WSTR("#[");
 	auto svh = rq->get_virtual_host();
 	if (svh && svh->vh) {
-		s.write_all(svh->vh->name.c_str(), svh->vh->name.size());
+		s.write_all(svh->vh->name.c_str(), (int)svh->vh->name.size());
 	}
 	s.WSTR("]\n");
 	drill_count++;

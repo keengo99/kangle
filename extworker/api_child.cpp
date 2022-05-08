@@ -296,7 +296,7 @@ bool api_child_begin_request(KSocketStream *st, char *msg,u_short content_len) {
 		return false;
 	}
 	//fo->st = &client;
-	if (!fo->start(&client)) {
+	if (KGL_OK != fo->start(&client)) {
 		debug("sendHead failed\n");
 		delete fo;
 		return false;
@@ -399,7 +399,7 @@ bool cmd_create_process(KWStream *st,FCGI_Header *header,bool unix_socket)
 		if (!ls.listen()) {
 			goto done;
 		}
-		printf("success listen port=[%d] sockfd=[%x]\n",  ls.getPort(), (int)ls.fd[0]);
+		//printf("success listen port=[%d] sockfd=[%x]\n",  ls.getPort(), (int)ls.fd[0]);
 		rh.id = ls.getPort();
 #ifdef KSOCKET_UNIX
 	}
@@ -565,10 +565,10 @@ bool api_child_listen(u_short port, KPipeStream *st,bool unix_socket) {
 #endif
 		sockaddr_i addr;
 		ksocket_getaddr("127.0.0.1", 0, PF_UNSPEC, AI_NUMERICHOST, &addr);
-		cl->sockfd = ksocket_listen(&addr,0);
+		cl->sockfd = ksocket_listen(&addr,KSOCKET_BLOCK);
 		if (!ksocket_opened(cl->sockfd)) {
 			ksocket_getaddr("::1", 0, PF_UNSPEC, AI_NUMERICHOST, &addr);
-			cl->sockfd = ksocket_listen(&addr,0);
+			cl->sockfd = ksocket_listen(&addr, KSOCKET_BLOCK);
 		}
 		if (ksocket_opened(cl->sockfd)) {
 			pi.result = 0;

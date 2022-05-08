@@ -66,7 +66,7 @@ public:
 private:
 	bool methods[MAX_METHOD];
 };
-class KBaseRedirect : public KCountableEx {
+class KBaseRedirect : public KAtomCountable {
 public:
 	KBaseRedirect() {
 		rd = NULL;

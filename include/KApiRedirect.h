@@ -32,9 +32,7 @@ public:
 	bool load();
 	void setFile(std::string file);
 	bool load(std::string file);
-	KUpstream* GetUpstream(KHttpRequest* rq) override;
-	//KClientSocket *createConnection(KHttpRequest *rq);
-	//void freeConnection(KHttpRequest *rq, KClientSocket *st, bool mustClose);
+	KUpstream* GetUpstream(KHttpRequest* rq) override;	
 
 	const char *getType() {
 		return "api";
@@ -48,23 +46,9 @@ public:
 public:
 	void buildXML(std::stringstream &s);
 public:
-
-	void setDelayLoad(bool delayLoad)
-	{
-		this->delayLoad = delayLoad;
-	}
-
-public:
 	std::string apiFile;
 	KApiDso dso;
-//public:
-	//KPipeStream *createPipeStream(KVirtualHost *vh);
 private:
 	KMutex lock;
-	bool delayLoad;
-
-	/*
-	ÊÇ·ñÊÇwhmÄ£¿é¡£
-	*/
 };
 #endif /* KAPIREDIRECT_H_ */

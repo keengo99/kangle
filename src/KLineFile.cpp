@@ -108,7 +108,7 @@ bool KStreamFile::open(const char *file,const char split_char) {
 	*buf = '\0';
 	hot = buf;
 	this->split_char = split_char;
-	int len = strlen(file);
+	int len = (int)strlen(file);
 	if (len > 3 && strcasecmp(file + len - 3, ".gz") == 0) {
 		gzfp = gzopen(file, "rb");
 		return gzfp != NULL;
@@ -121,7 +121,7 @@ char *KStreamFile::read()
 	if (line != NULL) {
 		return line;
 	}
-	int hot_len = strlen(hot);
+	int hot_len = (int)strlen(hot);
 	kgl_memcpy(buf, hot, hot_len);
 	hot = buf + hot_len;
 	*hot = '\0';

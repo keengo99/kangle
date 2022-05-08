@@ -65,6 +65,7 @@
 #include "KFetchBigObject.h"
 #include "KBigObjectContext.h"
 using namespace std;
+#if 0
 //compress kbuf
 kbuf* deflate_buff(kbuf* in_buf, int level, INT64& len, bool fast) {
 	KReadWriteBuffer buffer;
@@ -83,6 +84,7 @@ kbuf* deflate_buff(kbuf* in_buf, int level, INT64& len, bool fast) {
 	len = buffer.getLen();
 	return buffer.stealBuff();
 }
+#endif
 char* skip_next_line(char* str, int& str_len) {
 	int line_pos;
 	if (str_len == 0) {
@@ -113,7 +115,7 @@ KGL_RESULT send_auth2(KHttpRequest* rq, KAutoBuffer* body)
 }
 static void log_request_error(KHttpRequest* rq, int code, const char* reason)
 {
-	char* url = rq->sink->data.raw_url.getUrl();
+	char* url = rq->sink->data.raw_url->getUrl();
 	klog(KLOG_WARNING, "request error %s %s %s %d %s\n",
 		rq->getClientIp(),
 		rq->getMethod(),
@@ -317,7 +319,7 @@ void insert_via(KHttpRequest* rq, KWStream& s, char* old_via) {
 		s << conf.hostname;
 	} else {
 		char ip[MAXIPLEN];
-		uint16_t port = rq->sink->get_self_ip(ip,sizeof(ip)-1);
+		uint16_t port = rq->sink->get_self_ip(ip, sizeof(ip) - 1);
 		s << ip << ":" << port;
 	}
 	s << "(";
@@ -352,7 +354,7 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 			start = -1;
 			send_len = 0;
 		} else {
-			if (!KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_RANGED)) {
+			if (!KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED)) {
 				build_first = false;
 				rq->responseStatus(STATUS_CONTENT_PARTIAL);
 				KStringBuf s;
@@ -370,7 +372,7 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 	}
 	if (build_first) {
 		uint16_t status_code = obj->data->status_code;
-		if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_RANGED) && rq->sink->data.status_code == STATUS_CONTENT_PARTIAL) {
+		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED) && rq->sink->data.status_code == STATUS_CONTENT_PARTIAL) {
 			//如果请求是url模拟range，则强制转换206的回应为200
 			status_code = STATUS_OK;
 		}
@@ -514,10 +516,6 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KAccess** h
 		//路径映射源确定
 		return redirect;
 	}
-	if (redirect_result) {
-		//路径映射源为空,但映射成功,意思就是用默认处理
-		goto done;
-	}
 	if (result && rq->file->isDirectory()) {
 		//文件为目录处理
 		if (!rq->file->isPrevDirectory()) {
@@ -548,15 +546,12 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KAccess** h
 		//映射源确定
 		return redirect;
 	}
-	if (redirect_result) {
-		//映射源为空,但映射成功,意思就是用默认处理
-		goto done;
-	}
 	//查找默认扩展
 	redirect = svh->vh->findDefaultRedirect(rq, rq->file, result);
 	if (redirect) {
 		return redirect;
-	} else if (result) {
+	}
+	if (result) {
 		if (rq->file->getPathInfoLength() > 0) {
 			//静态文件不支持path_info
 			result = false;
@@ -568,47 +563,11 @@ done:
 			error->set(STATUS_NOT_FOUND, "No such file or directory.");
 		}
 		return NULL;
-	} else if (redirect == NULL) {
-		redirect = new KStaticFetchObject;
 	}
-	return redirect;
-}
-
-inline int attr_tolower(const char p) {
-	if (p == '-') {
-		return '_';
+	if (redirect) {
+		return redirect;
 	}
-	return tolower(p);
-}
-int attr_casecmp(const char* s1, const char* s2)
-{
-	const unsigned char* p1 = (const unsigned char*)s1;
-	const unsigned char* p2 = (const unsigned char*)s2;
-	int result;
-	if (p1 == p2)
-		return 0;
-
-	while ((result = attr_tolower(*p1) - attr_tolower(*p2++)) == 0)
-		if (*p1++ == '\0')
-			break;
-	return result;
-}
-bool is_val(KHttpHeader* av, const char* val, int val_len)
-{
-	if (av->val_len != val_len) {
-		return false;
-	}
-	return strncasecmp(av->val, val, val_len) == 0;
-}
-bool is_attr(KHttpHeader* av, const char* attr) {
-	if (!av || !av->attr || !attr)
-		return false;
-	return attr_casecmp(av->attr, attr) == 0;
-}
-bool is_attr(KHttpHeader* av, const char* attr, int attr_len)
-{
-	assert(av && av->attr && attr);
-	return attr_casecmp(av->attr, attr) == 0;
+	return new KStaticFetchObject;
 }
 char* find_content_type(KHttpRequest* rq, KHttpObject* obj)
 {
@@ -683,21 +642,21 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* gate, KBaseRedirect* brd,
 	env->addEnv("SERVER_NAME", rq->sink->data.url->host);
 	env->addEnv("SERVER_PROTOCOL", "HTTP/1.1");
 	env->addEnv("REQUEST_METHOD", rq->getMethod());
-	const char* param = rq->sink->data.raw_url.param;
+	const char* param = rq->sink->data.raw_url->param;
 	if (param == NULL) {
-		env->addEnv("REQUEST_URI", rq->sink->data.raw_url.path);
-		if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_REWRITED)) {
-			env->addEnv("HTTP_X_REWRITE_URL", rq->sink->data.raw_url.path);
+		env->addEnv("REQUEST_URI", rq->sink->data.raw_url->path);
+		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
+			env->addEnv("HTTP_X_REWRITE_URL", rq->sink->data.raw_url->path);
 		}
 	} else {
 		KStringBuf request_uri;
-		request_uri << rq->sink->data.raw_url.path << "?" << param;
+		request_uri << rq->sink->data.raw_url->path << "?" << param;
 		env->addEnv("REQUEST_URI", request_uri.getString());
-		if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_REWRITED)) {
+		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
 			env->addEnv("HTTP_X_REWRITE_URL", request_uri.getString());
 		}
 	}
-	if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_REWRITED)) {
+	if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
 		param = rq->sink->data.url->param;
 	}
 	if (param) {
@@ -764,7 +723,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* gate, KBaseRedirect* brd,
 		env->addEnv("VH_NAME", svh->vh->name.c_str());
 	}
 #ifdef KSOCKET_SSL
-	if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_SSL)) {
+	if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
 		env->addEnv("HTTPS", "ON");
 		kssl_session* ssl = rq->sink->GetSSL();
 		if (ssl) {
@@ -777,7 +736,6 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* gate, KBaseRedirect* brd,
 		}
 	}
 #endif
-	//{{ent
 #ifdef ENABLE_UPSTREAM_PARAM
 	if (brd && brd->params.size() > 0) {
 		std::list<KParamItem>::iterator it;
@@ -789,7 +747,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* gate, KBaseRedirect* brd,
 			}
 		}
 	}
-#endif//}}
+#endif
 	return env->addEnvEnd();
 
 }

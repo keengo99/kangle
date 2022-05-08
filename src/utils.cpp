@@ -70,7 +70,7 @@ int split_host_port(char *host, char separator, size_t host_len) {
 	if (host_len == 0) {
 		size = (int)strlen(host);
 	} else {
-		size = MIN((int)strlen(host),host_len);
+		size = MIN((int)strlen(host),(int)host_len);
 	}
 	for (point = size - 1; point > 0; point--) {
 		if (host[point] == separator)

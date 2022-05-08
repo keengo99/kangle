@@ -42,16 +42,23 @@ public:
 		}
 		return "unknow";
 	}
-	int getState()
+	uint16_t getState()
 	{
 		return state;
 	}
 	std::string path;
-
-	/*
-	 * api×´Ì¬
-	 */
-	int state;
+	union
+	{
+		struct
+		{
+			uint16_t buildin : 1;
+			/*
+			 * api×´Ì¬
+			 */
+			uint16_t state;
+		};
+		uint32_t flags;
+	};
 	/*
 	 * apiµÄĞÅÏ¢
 	 */

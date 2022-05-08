@@ -53,7 +53,7 @@ public:
 						if (strcasecmp(attr,"Range")==0) {
 							KBIT_CLR(rq->sink->data.flags,RQ_HAVE_RANGE);
 						} else if (strcasecmp(attr, "Accept-Encoding") == 0) {
-							rq->sink->data.raw_url.encoding = 0;
+							rq->sink->data.raw_url->encoding = 0;
 							rq->sink->data.url->encoding = 0;
 						}
 					}

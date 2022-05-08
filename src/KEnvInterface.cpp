@@ -18,7 +18,7 @@ KEnvInterface::~KEnvInterface() {
 }
 bool KEnvInterface::addHttpEnv(const char *attr,const char *val)
 {
-	int len = strlen(attr);
+	int len = (int)strlen(attr);
 	char *dst = (char *) xmalloc(len + 6);
 	char *hot = dst;
 	strncpy(hot, "HTTP_", 5);

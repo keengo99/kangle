@@ -22,14 +22,12 @@ func (this *dso) Init() error {
 			</chain>
 		</table>
 	</request>
-	<!--vh start-->
-	<vh name='default' doc_root='www'  inherit='on' app='1'>
-	<map path='/test_dso' extend='dso:testdso:async_test' confirm_file='0' allow_method='*'/>
-	<host>*</host>
-	</vh>
+<vh name='dso' doc_root='www'  inherit='on' app='1'>
+	<map path='/' extend='dso:testdso:async_test' confirm_file='0' allow_method='*'/>
+	<host>dso.test</host>
+</vh>
 </config>
 `
-
 	kangle.CreateExtConfig("dso", content)
 	return nil
 }

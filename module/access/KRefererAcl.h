@@ -31,16 +31,14 @@ public:
 		KHttpHeader *tmp = rq->sink->data.GetHeader();
 		while (tmp) {
 			if (is_attr(tmp, kgl_expand_string("Referer"))) {
-				KUrl referer;
-				if (!parse_url(tmp->val, &referer)) {
-					referer.destroy();
+				KAutoUrl referer;
+				if (!parse_url(tmp->val, referer.u)) {
 					return false;
 				}
 				bool matched = false;
 				if (vhc) {
-					matched = (vhc->find(referer.host) != NULL);
+					matched = (vhc->find(referer.u->host) != NULL);
 				}
-				referer.destroy();
 				return matched;
 			}
 			tmp = tmp->next;

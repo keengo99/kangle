@@ -38,13 +38,9 @@ void KRedirectMethods::setMethod(const char *methodstr)
 	xfree(buf);
 }
 KPathRedirect::KPathRedirect(const char *path, KRedirect *rd) : KBaseRedirect(rd, KGL_CONFIRM_FILE_NEVER) {
-	int path_len = (int)strlen(path);
-	char *hot;
+	path_len = (int)strlen(path);
 	this->path = (char *)xmalloc(path_len + 1);
-	hot = this->path;
-	this->path_len = path_len;
-	kgl_memcpy(hot, path, path_len);
-	hot[path_len] = '\0';
+	kgl_memcpy(this->path, path, path_len+1);
 	if (*path == '~') {
 		reg = new KReg;
 #ifdef _WIN32

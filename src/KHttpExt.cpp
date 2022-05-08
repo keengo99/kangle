@@ -33,10 +33,9 @@ static struct {
 	{ "URL", "REQUEST_URI" },
 	{ NULL,	NULL } 
 };
-
-BOOL setVariable(LPVOID lpvBuffe, LPDWORD lpdwSize, const char *val,
-		bool unicode = false) {
-	char *buffer = (char *) lpvBuffe;
+KGL_RESULT set_variable(void* lpvBuffe, LPDWORD lpdwSize, const char* val, bool unicode)
+{
+	char* buffer = (char*)lpvBuffe;
 	if (val == NULL) {
 		*lpdwSize = 1;
 		if (buffer) {
@@ -49,39 +48,41 @@ BOOL setVariable(LPVOID lpvBuffe, LPDWORD lpdwSize, const char *val,
 			*lpdwSize += 1;
 		}
 		SetLastError(ERROR_NO_DATA);
-		return FALSE;
+		return KGL_ENO_DATA;
 	}
 
 	unsigned len = (unsigned)strlen(val);
-//{{ent
 #ifdef _WIN32
-	if(unicode) {
-		len = MultiByteToWideChar(CP_ACP,0,val,len,(LPWSTR)lpvBuffe,*lpdwSize/2);
-		if(buffer) {
-			buffer[2*len] = '\0';
-			buffer[2*len+1] = '\0';
+	if (unicode) {
+		len = MultiByteToWideChar(CP_ACP, 0, val, len, (LPWSTR)lpvBuffe, *lpdwSize / 2);
+		if (buffer) {
+			buffer[2 * len] = '\0';
+			buffer[2 * len + 1] = '\0';
 		}
-		*lpdwSize = (len+1)*2;
+		*lpdwSize = (len + 1) * 2;
 	} else {
 #endif
-//}}
-	if (*lpdwSize > len || buffer == NULL) {
-		*lpdwSize = len + 1;
-		if (buffer) {
-			strncpy(buffer, val, *lpdwSize);
+		if (*lpdwSize > len || buffer == NULL) {
+			*lpdwSize = len + 1;
+			if (buffer) {
+				kgl_memcpy(buffer, val, *lpdwSize);
+			}
+		} else {
+			*lpdwSize = len + 1;
+			SetLastError(ERROR_INSUFFICIENT_BUFFER);
+			return KGL_EINSUFFICIENT_BUFFER;
 		}
-	}else{
-		*lpdwSize = len + 1;
-		SetLastError(ERROR_INSUFFICIENT_BUFFER);
-		return FALSE;
-		
-	}
-//{{ent
+
 #ifdef _WIN32
-}
+	}
 #endif
-//}}
-	return TRUE;
+	return KGL_OK;
+}
+BOOL setVariable(LPVOID lpvBuffe, LPDWORD lpdwSize, const char *val,bool unicode) {
+	if (KGL_OK == set_variable((void *)lpvBuffe, lpdwSize, val, unicode)) {
+		return TRUE;
+	}
+	return FALSE;
 }
 BOOL WINAPI GetServerVariable(HCONN hConn, LPSTR lpszVariableName,LPVOID lpvBuffer, LPDWORD lpdwSize) {
 	KStringBuf s(512);
@@ -196,62 +197,20 @@ BOOL WINAPI ServerSupportFunction(HCONN hConn, DWORD dwHSERequest,LPVOID lpvBuff
 	if (fo == NULL) {
 		return FALSE;
 	}
-	//debug("api call function id=%d\n", dwHSERequest);
-	if (dwHSERequest == HSE_REQ_MAP_URL_TO_PATH_EX || dwHSERequest == HSE_REQ_MAP_URL_TO_PATH) {
-		char *buffer = (char *) lpvBuffer;
-		const char *script_name = fo->env.getEnv("SCRIPT_NAME");
-		if (strcmp(buffer,script_name)==0) {	
-			BOOL result ;
-			if (dwHSERequest == HSE_REQ_MAP_URL_TO_PATH_EX) {
-				HSE_URL_MAPEX_INFO *info = (HSE_URL_MAPEX_INFO *) lpdwDataType;
-				memset(info, 0, sizeof(HSE_URL_MAPEX_INFO));
-				info->dwFlags = HSE_URL_FLAGS_READ | HSE_URL_FLAGS_EXECUTE;
-				*lpdwSize = MAX_PATH;
-				info->cchMatchingURL = (DWORD)strlen(buffer) + 1;
-				result = setVariable(info->lpszPath, lpdwSize, fo->env.getEnv("SCRIPT_FILENAME"), false);
-				info->cchMatchingPath = *lpdwSize;
-			} else {
-				result = setVariable(lpvBuffer, lpdwSize, fo->env.getEnv("SCRIPT_FILENAME"), false);
-			}
-			return result;
+	switch (dwHSERequest) {
+	case HSE_REQ_MAP_URL_TO_PATH:
+	{
+		char* buffer = (char*)lpvBuffer;
+		KGL_RESULT result = fo->map_url_path(buffer, lpvBuffer, lpdwSize);
+		if (result == KGL_OK) {
+			return TRUE;
 		}
-		HSE_URL_MAPEX_INFO *info = (HSE_URL_MAPEX_INFO *) lpdwDataType;
-		const char *root = fo->env.getEnv("DOCUMENT_ROOT");
-		if (root == NULL) {
-			debug("DOCUMENT_ROOT is NULL\n");
-			return true;
-		}
-		KStringBuf s(256);
-		s << root;
-		if (buffer[0] == '/') {
-			s << buffer + 1;
-		} else {
-			s << buffer;
-		}
-		char *val = s.getString();
-		int len = (int)strlen(val);
-		if(dwHSERequest == HSE_REQ_MAP_URL_TO_PATH){
-			if((int)*lpdwSize < len + 1){
-				*lpdwSize = len + 1;
-				SetLastError(ERROR_INSUFFICIENT_BUFFER);
-				return FALSE;
-			}
-			strncpy(buffer,val,len);
-			buffer[len] = '\0';
-		} else {
-			if (len > MAX_PATH) {
-				debug("len is too long\n");
-				return FALSE;
-			}		
-			memset(info, 0, sizeof(HSE_URL_MAPEX_INFO));
-			strncpy(info->lpszPath, val, len);
-			info->dwFlags = HSE_URL_FLAGS_READ | HSE_URL_FLAGS_EXECUTE;
-			info->cchMatchingPath = len + 1;
-			info->cchMatchingURL = (DWORD)strlen(buffer) + 1;
-		}
-		*lpdwSize = len + 1;		
-		//		debug("success map[%s] to [%s] len=%d\n", buffer, val, len);
-		return TRUE;
+		return FALSE;
+	}
+	case HSE_REQ_MAP_URL_TO_PATH_EX:
+	{
+		return FALSE;
+	}
 	}
 	if (dwHSERequest == HSE_REQ_SEND_RESPONSE_HEADER_EX) {
 		HSE_SEND_HEADER_EX_INFO *info = (HSE_SEND_HEADER_EX_INFO *) lpvBuffer;
@@ -280,7 +239,6 @@ BOOL WINAPI ServerSupportFunction(HCONN hConn, DWORD dwHSERequest,LPVOID lpvBuff
 		}
 		return true;
 	}
-//{{ent
 #ifdef _WIN32
 	if (dwHSERequest == HSE_REQ_VECTOR_SEND) {
 		HSE_RESPONSE_VECTOR *info = (HSE_RESPONSE_VECTOR *)lpvBuffer;
@@ -308,7 +266,6 @@ BOOL WINAPI ServerSupportFunction(HCONN hConn, DWORD dwHSERequest,LPVOID lpvBuff
 		return TRUE;
 	}
 #endif
-//}}
 	if (dwHSERequest == HSE_REQ_GET_IMPERSONATION_TOKEN) {
 		Token_t token = fo->getToken();
 		if (token) {

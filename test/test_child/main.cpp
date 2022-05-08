@@ -41,15 +41,15 @@ SOCKET get_stdin_socket()
 }
 static void krequest_start(KSink* sink, int header_len)
 {
-	klog(KLOG_NOTICE, "meth=[%d] path=[%s]\n", sink->data.meth,sink->data.raw_url.path);
+	klog(KLOG_NOTICE, "meth=[%d] path=[%s]\n", sink->data.meth, sink->data.raw_url->path);
 	sink->response_status(200);
 	sink->response_connection();
 	char buf[128];
-	int len = snprintf(buf, sizeof(buf), "hello %d %d", getpid(),(int)time(NULL));
+	int len = snprintf(buf, sizeof(buf), "hello %d %d", getpid(), (int)time(NULL));
 	sink->response_content_length(len);
 	sink->response_header(kgl_expand_string("Cache-Control"), kgl_expand_string("no-cache,no-store"));
-	sink->start_response_body(len);	
-	sink->write_full(buf,len);
+	sink->start_response_body(len);
+	sink->write_all(buf, len);
 	sink->end_request();
 }
 int fastcgi_fiber(void* arg, int len) {
@@ -62,7 +62,7 @@ int fastcgi_fiber(void* arg, int len) {
 		kconnection_destroy(cn);
 		return kev_destroy;
 	}
-	klog(KLOG_NOTICE,"success read beginrequest\n");
+	klog(KLOG_NOTICE, "success read beginrequest\n");
 	char resp_buf[512];
 	int resp_len = snprintf(resp_buf, sizeof(resp_buf), "Status: 200 OK\r\nCache-Control: no-cache\r\n\r\nhello %d %d", getpid(), (int)time(NULL));
 	char pad_buf[512];
@@ -144,40 +144,50 @@ KACCEPT_CALLBACK(fastcgi_handle) {
 }
 int fiber_main(void* arg, int argc)
 {
-	klog(KLOG_NOTICE,"test_child running...\n");
+	klog(KLOG_NOTICE, "test_child running fastcgi=[%d]...\n", (int)fastcgi);
 	SOCKET s;
 	ksocket_init(s);
 	char** argv = (char**)arg;
 	kserver* server = kserver_init();
+	int result = 0;
 	if (port > 0) {
 		if (!kserver_bind(server, "127.0.0.1", port, NULL)) {
 			klog(KLOG_ERR, "cann't open port=[%d]\n", port);
-			return -1;
+			result = -1;
+			goto done;
 		}
 	} else {
 		s = get_stdin_socket();
 		klog(KLOG_NOTICE, "stdin handle=[%x]\n", (int)s);
 	}
-	klog(KLOG_NOTICE, "fastcgi=[%d]\n", fastcgi);
 	if (fastcgi) {
 		if (ksocket_opened(s)) {
-			return kserver_open_exsit(server, s, fastcgi_handle);
-		} else {
-			return kserver_open(server, 0, fastcgi_handle);
+			if (!kserver_open_exsit(server, s, fastcgi_handle)) {
+				result = -1;
+			}
+			goto done;
 		}
+		if (!kserver_open(server, 0, fastcgi_handle)) {
+			result = -1;
+		}
+		goto done;
 	}
 	if (!start_http_server(server, 0, s)) {
 		klog(KLOG_ERR, "cann't open socket for a server\n");
-		return -1;
+		result = -1;
 	}
-	return 0;
+done:
+	port = ksocket_addr_port(&server->addr);
+	klog(KLOG_NOTICE, "test_child start port=[%d] result=[%d]\n", port, result);
+	kserver_release(server);
+	return result;
 }
 int main(int argc, char** argv)
 {
 	klog_init(LogEvent);
 	kasync_init();
 	selector_manager_init(1, true);
-	if (argc >1) {
+	if (argc > 1) {
 		if (strchr(argv[1], 'f') != NULL) {
 			fastcgi = true;
 		}

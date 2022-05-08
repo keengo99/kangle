@@ -28,7 +28,7 @@ public:
 		}
 		rq->AppendFetchObject(new KTcpFetchObject(false));
 		free(rq->sink->data.url->host);
-		free(rq->sink->data.raw_url.host);
+		free(rq->sink->data.raw_url->host);
 		if (rq->sink->data.url->param) {
 			free(rq->sink->data.url->param);
 			rq->sink->data.url->param = NULL;
@@ -42,8 +42,8 @@ public:
 		} else {
 			rq->sink->data.url->port = port;
 		}
-		rq->sink->data.raw_url.host = strdup(rq->sink->data.url->host);
-		rq->sink->data.raw_url.port = rq->sink->data.url->port;
+		rq->sink->data.raw_url->host = strdup(rq->sink->data.url->host);
+		rq->sink->data.raw_url->port = rq->sink->data.url->port;
 		jumpType = JUMP_ALLOW;
 		return true;
 	}

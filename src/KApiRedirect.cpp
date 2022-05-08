@@ -160,8 +160,7 @@ KApiRedirect::KApiRedirect() {
 
 	lifeTime = 60;
 	max_error_count = 5;
-	type = WORK_TYPE_AUTO;
-	delayLoad = false;
+	type = WORK_TYPE_SP;
 	dso.ConnID = (void *)this;
 	dso.ServerSupportFunction = apiServerSupportFunction;
 	dso.ServerFree = apiServerFree;
@@ -189,6 +188,8 @@ bool KApiRedirect::load()
 #endif
 	if (strncasecmp(apiFile.c_str(), "buildin:", 8) == 0) {
 		dso.path = apiFile;
+		dso.buildin = 1;
+		type = WORK_TYPE_MT;
 		if(strcasecmp(apiFile.c_str()+8,"whm")==0) {
 #ifdef WHM_MODULE
 			strcpy(dso.apiInfo,"whm");
@@ -210,7 +211,7 @@ bool KApiRedirect::load()
 	if (!isAbsolutePath(apiFile.c_str())) {
 		dso.path = conf.path + apiFile;
 	}
-	if(type==WORK_TYPE_MT || type==WORK_TYPE_AUTO) {
+	if(type==WORK_TYPE_MT) {
 		bool result = dso.load();
 		if (result) {
 			if(strcmp(dso.apiInfo,"whm")==0){
@@ -237,14 +238,11 @@ KFetchObject *KApiRedirect::makeFetchObject(KHttpRequest *rq, KFileName *file) {
 }
 void KApiRedirect::buildXML(std::stringstream &s) {
 	s << "\t<api name='" << name << "' file='" << this->apiFile << "' ";
-	if (type != WORK_TYPE_AUTO) {
+	if (type != WORK_TYPE_SP) {
 		s << "type='" << getTypeString(type) << "' ";
 	}
 	if (!enable) {
 		s << "flag='disable' ";
-	}
-	if (delayLoad) {
-		s << "delay_load='1' ";
 	}
 	KExtendProgram::buildConfig(s);
 	s << "\t</api>\n";
@@ -253,7 +251,6 @@ bool KApiRedirect::createProcess(KVirtualHost *vh, KPipeStream *st) {
 	char *argv[2] = { (char *) conf.extworker.c_str(),NULL };
 	bool result;
 	Token_t token = NULL;
-	//st->process.detach();
 #ifdef ENABLE_VH_RUN_AS
 	token = vh->getProcessToken(result);
 	if (!result) {

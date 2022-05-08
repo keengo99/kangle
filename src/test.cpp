@@ -356,6 +356,8 @@ void test_http_parser()
 	kassert(kgl_parse_continue == khttp_parse(&parser, &hot, &len, &rs));	
 }
 bool test() {
+	printf("sizeof(size_t)=[%d],sizeof(int)=[%d]\n", sizeof(size_t),sizeof(int));
+
 	printf("sizeof(url)=[%d]\n", sizeof(KUrl));
 	//printf("offsetof st_flags=[%d] %d %d %d\n", offsetof(kselectable, st_flags), offsetof(kselectable, tmo_left), offsetof(kselectable, tmo), offsetof(kselectable, fd));
 	//printf("size=[%d]\n", kgl_align(1, 1024));

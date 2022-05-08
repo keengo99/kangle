@@ -304,19 +304,15 @@ cor_result create_http_object2(KHttpObject* obj, char* url, uint32_t flag_encodi
 		*vary = '\0';
 		vary++;
 	}
-	KUrl m_url;
-	if (!parse_url(url, &m_url) || m_url.host == NULL) {
+	KAutoUrl m_url;
+	if (!parse_url(url, m_url.u) || m_url.u->host == NULL) {
 		fprintf(stderr, "cann't parse url[%s]\n", url);
-		m_url.destroy();
 		return cor_failed;
 	}
 	KBIT_CLR(obj->index.flags, FLAG_IN_MEM);
-	KBIT_SET(obj->index.flags, FLAG_IN_DISK | FLAG_URL_FREE);
-	obj->uk.url = new KUrl;
-	obj->uk.url->host = m_url.host;
-	obj->uk.url->path = m_url.path;
-	obj->uk.url->param = m_url.param;
-	obj->uk.url->port = m_url.port;
+	KBIT_SET(obj->index.flags, FLAG_IN_DISK);
+	assert(obj->uk.url == NULL);
+	obj->uk.url = m_url.u->refs();
 	obj->uk.url->flag_encoding = flag_encoding;
 	if (vary) {
 		char* vary_val = strchr(vary, '\n');

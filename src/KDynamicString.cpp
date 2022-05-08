@@ -3,17 +3,50 @@
 #include "utils.h"
 #include "KDynamicString.h"
 #include "kmalloc.h"
-const char *getSystemEnv(const char *name) {
-	if (strncasecmp(name,"env:",4)==0) {
-		const char *value = getenv(name+4);
-		if (value==NULL) {
+
+void buildAttribute(char* buf, std::map<char*, char*, lessp_icase>& attibute) {
+	while (*buf) {
+		while (*buf && isspace((unsigned char)*buf))
+			buf++;
+		char* p = strchr(buf, '=');
+		if (p == NULL) {
+			attibute.insert(std::pair<char*, char*>(buf, NULL));
+			return;
+		}
+		int name_len = (int)(p - buf);
+		for (int i = name_len - 1; i >= 0; i--) {
+			if (isspace((unsigned char)buf[i]))
+				buf[i] = 0;
+			else
+				break;
+		}
+		*p = 0;
+		p++;
+		char* name = buf;
+		buf = p;
+		buf = getString(buf, &p, NULL, true, true);
+		if (buf == NULL) {
+			return;
+		}
+		char* value = buf;
+		buf = p;
+		attibute.insert(std::pair<char*, char*>(name, value));
+	}
+}
+
+const char* getSystemEnv(const char* name) {
+	if (strncasecmp(name, "env:", 4) == 0) {
+		const char* value = getenv(name + 4);
+		if (value == NULL) {
 			return "";
 		}
 		return value;
 	}
+	/*
 	if (strcasecmp(name, "kangle_home") == 0) {
 		return conf.path.c_str();
 	}
+	*/
 	if (strcasecmp(name, "kangle_version") == 0) {
 		return VERSION;
 	}
@@ -27,7 +60,7 @@ const char *getSystemEnv(const char *name) {
 		return ":";
 #endif
 	}
-	if (strcasecmp(name,"exe")==0) {
+	if (strcasecmp(name, "exe") == 0) {
 #ifdef _WIN32
 		return ".exe";
 #else
@@ -66,17 +99,17 @@ void KDynamicString::clean() {
 		delete curBlock;
 		curBlock = NULL;
 	}
-	std::list<KControlCodeBlock *>::iterator it;
+	std::list<KControlCodeBlock*>::iterator it;
 	for (it = blockStack.begin(); it != blockStack.end(); it++) {
 		delete (*it);
 	}
 	blockStack.clear();
 }
 bool KDynamicString::controlString(const char control_char) {
-	char *env = hot + 1;
+	char* env = hot + 1;
 	if (hot[1] == '{') {
 		env++;
-		char *end = strchr(env, '}');
+		char* end = strchr(env, '}');
 		if (end == NULL) {
 			//printf("cann't find end char `}`");
 			//return ;//s.stealString();
@@ -86,10 +119,10 @@ bool KDynamicString::controlString(const char control_char) {
 			hot = end + 1;
 		}
 	} else if (!strictModel && control_char == envChar) {
-		char *end = env;
+		char* end = env;
 		while (*end) {
 			if ((*env >= 'a' && *env <= 'z') || (*env >= 'A' && *env <= 'Z')
-					|| (*env >= '0' && *env <= '9') || *env == '_') {
+				|| (*env >= '0' && *env <= '9') || *env == '_') {
 				env++;
 				continue;
 			}
@@ -103,25 +136,25 @@ bool KDynamicString::controlString(const char control_char) {
 		hot++;
 		return true;
 	}
-	const char *val = NULL;
+	const char* val = NULL;
 	if (control_char == envChar) {
-		if (!buildValue(env,dst)) {
+		if (!buildValue(env, dst)) {
 			val = getSystemEnv(env);
 			if (val == NULL) {
 				val = getValue(env);
 			}
 		}
 	} else if (control_char == '@') {
-		char *p = strchr(env, '[');
+		char* p = strchr(env, '[');
 		if (p) {
 			*p = '\0';
 			p++;
-			char *q = strchr(p, ']');
+			char* q = strchr(p, ']');
 			if (q) {
 				*q = '\0';
 			}
 			int index = 0;
-			if (isdigit((int) *p)) {
+			if (isdigit((int)*p)) {
 				index = atoi(p);
 			} else {
 				index = getControlIndex(p);
@@ -172,12 +205,12 @@ void KDynamicString::parseString() {
 	}
 
 }
-void KDynamicString::controlCode(char *code) {
-	while (*code && isspace((unsigned char) *code)) {
+void KDynamicString::controlCode(char* code) {
+	while (*code && isspace((unsigned char)*code)) {
 		code++;
 	}
-	char *p = code;
-	while (*p && !isspace((unsigned char) *p)) {
+	char* p = code;
+	while (*p && !isspace((unsigned char)*p)) {
 		p++;
 	}
 	if (*p == '\0') {
@@ -189,18 +222,18 @@ void KDynamicString::controlCode(char *code) {
 		blockStack.push_back(curBlock);
 	}
 	curBlock = new KControlCodeBlock;
-	std::map<char *, char *, lessp_icase> attribute;
+	std::map<char*, char*, lessp_icase> attribute;
 	buildAttribute(p, attribute);
 	if (strcasecmp(code, "foreach") == 0) {
 		curBlock->index = 0;
-		char *key = attribute[(char *) "key"];
-		char *dim = attribute[(char *) "dim"];
+		char* key = attribute[(char*)"key"];
+		char* dim = attribute[(char*)"dim"];
 		if (key && dim) {
 			curBlock->key = key;
 			curBlock->count = getDimSize(dim);
-			char *orig_hot = xstrdup(hot);
+			char* orig_hot = xstrdup(hot);
 			int orig_len = (int)strlen(orig_hot);
-			char *saved_hot = hot;
+			char* saved_hot = hot;
 			for (curBlock->index = 0; curBlock->index < curBlock->count; curBlock->index++) {
 				if (curBlock->index > 0) {
 					kgl_memcpy(saved_hot, orig_hot, orig_len);
@@ -219,7 +252,7 @@ void KDynamicString::controlCode(char *code) {
 		blockStack.pop_front();
 	}
 }
-char *KDynamicString::parseDirect(char *str) {
+char* KDynamicString::parseDirect(char* str) {
 	if (buf) {
 		xfree(buf);
 	}
@@ -231,11 +264,11 @@ char *KDynamicString::parseDirect(char *str) {
 	buf = str;
 	hot = buf;
 	parseString();
-	char *result = dst->stealString();
+	char* result = dst->stealString();
 	buf = NULL;
 	return result;
 }
-char *KDynamicString::parseString(const char *str) {
+char* KDynamicString::parseString(const char* str) {
 	if (str == NULL) {
 		return NULL;
 	}
@@ -254,14 +287,14 @@ char *KDynamicString::parseString(const char *str) {
 	parseString();
 	return dst->stealString();
 }
-int KDynamicString::getControlIndex(const char *value) {
+int KDynamicString::getControlIndex(const char* value) {
 	int index;
 	if (curBlock) {
 		index = curBlock->getBlockIndex(value);
 		if (index >= 0) {
 			return index;
 		}
-		std::list<KControlCodeBlock *>::iterator it;
+		std::list<KControlCodeBlock*>::iterator it;
 		for (it = blockStack.begin(); it != blockStack.end(); it++) {
 			index = (*it)->getBlockIndex(value);
 			if (index >= 0) {

@@ -24,4 +24,5 @@ bool api_child_process(KStream *st);
 void forapifork();
 bool forcmdextend();
 void seperate_work_model();
+KGL_RESULT set_variable(void* lpvBuffe, LPDWORD lpdwSize, const char* val, bool unicode = false);
 #endif /* API_CHILD_H_ */

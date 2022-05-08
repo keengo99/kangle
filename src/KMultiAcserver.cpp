@@ -180,7 +180,7 @@ static KUpstream *connect_result(KHttpRequest *rq, KSockPoolHelper *sa, int cook
 		b.WSTR("; path=/");
 		rq->responseHeader(kgl_expand_string("Set-Cookie"), b.getBuf(), b.getSize());
 	}
-	KUpstream* us = sa->get_upstream();
+	KUpstream* us = sa->get_upstream(rq->get_upstream_flags(),rq->sink->data.raw_url->host);
 	sa->release();
 	return us;
 }

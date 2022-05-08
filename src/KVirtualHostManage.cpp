@@ -200,9 +200,9 @@ bool KVirtualHostManage::updateTempleteVirtualHost(KTempleteVirtualHost* tvh) {
 	KTempleteVirtualHost* ov = NULL;
 	lock.Lock();
 	string name = tvh->name;
-	int index = name.find_first_of(':');
+	size_t index = name.find_first_of(':');
 	string subname;
-	if (index >= 0) {
+	if (index != std::string::npos) {
 		subname = name.substr(index + 1);
 		name = name.substr(0, index);
 	}
@@ -728,12 +728,12 @@ bool KVirtualHostManage::internalRemoveVirtualHost(KVirtualHost* vh) {
 }
 int KVirtualHostManage::find_domain(const char* site, WhmContext* ctx)
 {
-	int site_len = strlen(site);
+	int site_len = (int)strlen(site);
 	const char* p = strchr(site, ':');
 	int port = 0;
 	if (p) {
 		port = atoi(p + 1);
-		site_len = p - site;
+		site_len = (int)(p - site);
 	}
 	unsigned char bind_site[256];
 	if (!revert_hostname(site, site_len, bind_site, sizeof(bind_site))) {
@@ -752,7 +752,7 @@ query_vh_result KVirtualHostManage::queryVirtualHost(kserver* ls, KSubVirtualHos
 	assert(ls);
 	query_vh_result result = query_vh_host_not_found;
 	if (site_len == 0) {
-		site_len = strlen(site);
+		site_len = (int)strlen(site);
 	}
 	unsigned char bind_site[256];
 	if (!revert_hostname(site, site_len, bind_site, sizeof(bind_site))) {
@@ -1409,7 +1409,7 @@ void KVirtualHostManage::BindGlobalListens(std::vector<KListenHost*>& services)
 int KVirtualHostManage::getCount()
 {
 	lock.Lock();
-	int count = avh.size();
+	int count = (int)avh.size();
 	lock.Unlock();
 	return count;
 }

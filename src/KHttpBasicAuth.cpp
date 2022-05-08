@@ -42,7 +42,7 @@ void KHttpBasicAuth::insertHeader(KWStream &s)
 	}
 }
 bool KHttpBasicAuth::parse(KHttpRequest *rq, const char *str) {
-	int str_len = strlen(str);
+	int str_len = (int)strlen(str);
 	if (str == NULL || str_len < 2) {
 		return false;
 	}

@@ -10,6 +10,9 @@
 #include "KHttpBasicAuth.h"
 #include "KHttpProxyFetchObject.h"
 #include "KHttpTransfer.h"
+#include "kserver.h"
+#include "api_child.h"
+
 #ifdef _WIN32
 extern HANDLE api_child_token;
 #endif
@@ -143,12 +146,21 @@ bool KApiFetchObject::setStatusCode(const char* status, int len) {
 	rq->ctx->obj->data->status_code = atoi(status);
 	return true;
 }
+KGL_RESULT KApiFetchObject::map_url_path(const char* url, LPVOID file, LPDWORD file_len)
+{
+	char* filename = rq->map_url_path(url, this->brd);
+	KGL_RESULT result = set_variable(file, file_len, filename);
+	if (filename) {
+		xfree(filename);
+	}	
+	return result;
+}
 KGL_RESULT KApiFetchObject::addHeader(const char* attr, int len) {
 
 	if (len == 0) {
 		len = (int)strlen(attr);
 	}
-	switch(push_parser.Parse(rq, attr, len)) {
+	switch (push_parser.Parse(rq, attr, len)) {
 	case kgl_parse_error:
 		return KGL_EDATA_FORMAT;
 	case kgl_parse_continue:

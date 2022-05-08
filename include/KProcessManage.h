@@ -140,7 +140,7 @@ protected:
 		if (worker==0) {
 			ps =  new KMPCmdProcess;
 		} else {
-			ps = new KCmdProcess;
+			ps = new KSPCmdProcess;
 		}
 		ps->SetParam(param);
 		return ps;

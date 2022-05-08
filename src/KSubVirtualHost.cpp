@@ -206,20 +206,20 @@ void KSubVirtualHost::setDocRoot(const char *doc_root, const char *dir) {
 	if (strncasecmp(this->dir,"http://",7)==0) {
 		http = new SubdirHttp;
 		type = subdir_http;		
-		if (!parse_url(this->dir,&http->dst)) {
+		if (!parse_url(this->dir,http->dst)) {
 			free_subtype_data();
 			klog(KLOG_ERR,"cann't parse url [%s]\n",this->dir);
 			return;
 		}
-		if (http->dst.param) {
-			char *t = strstr(http->dst.param,"life_time=");
+		if (http->dst->param) {
+			char *t = strstr(http->dst->param,"life_time=");
 			if (t) {
 				http->lifeTime = atoi(t+10);
 			}
-			http->ip = strstr(http->dst.param,"ip=");
+			http->ip = strstr(http->dst->param,"ip=");
 		//{{ent
 #ifdef ENABLE_UPSTREAM_SSL
-			http->ssl = strstr(http->dst.param,"ssl=");
+			http->ssl = strstr(http->dst->param,"ssl=");
 			if (http->ssl) {
 				http->ssl += 4;
 				t = strchr(http->ssl,'&');
@@ -365,10 +365,10 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 		return true;
 	}
 	if (type == subdir_http) {		
-		if (http->dst.host == NULL) {
+		if (http->dst->host == NULL) {
 			return false;
 		}
-		if (*(http->dst.host) == '-') {
+		if (*(http->dst->host) == '-') {
 			rq->AppendFetchObject(new KHttpProxyFetchObject());
 			return true;
 		}
@@ -378,8 +378,8 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 		tssl = http->ssl;
 #endif
 		//}}
-		int tport = http->dst.port;
-		if (http->dst.port == 0) {
+		int tport = http->dst->port;
+		if (http->dst->port == 0) {
 			tport = rq->sink->data.url->port;
 			//{{ent
 #ifdef ENABLE_UPSTREAM_SSL
@@ -388,7 +388,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 			}
 #endif//}}
 		}
-		rq->AppendFetchObject(server_container->get(http->ip, http->dst.host, tport, tssl, http->lifeTime));
+		rq->AppendFetchObject(server_container->get(http->ip, http->dst->host, tport, tssl, http->lifeTime));
 		return true;
 	}//end subdir_http
 
@@ -396,7 +396,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 	const char *proxy = NULL;
 	if (type == subdir_server) {
 		proxy = server->http_proxy;
-		if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_SSL) && server->https_proxy) {
+		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL) && server->https_proxy) {
 			proxy = server->https_proxy;
 		}
 	} else if (type == subdir_portmap) {

@@ -21,7 +21,10 @@ public:
 	KPipeStream();
 	virtual ~KPipeStream();
 	void close();
-	int read(char *buf, int len);
+	int read(char *buf, int len) override;
+	int64_t get_read_left() override {
+		return -1;
+	}
 	int write(const char *buf, int len);
 	bool create();
 	bool create_name(const char *read_pipe,const char *write_pipe);

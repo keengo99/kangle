@@ -189,7 +189,7 @@ bool WhmShellProcess::run(WhmShellContext *sc)
 				sc->lock.Unlock();
 				fwrite(buf,1,len,stdout);
 			} else {
-				sc->out_buffer.write_all(NULL, buf,len);
+				sc->out_buffer.write_all(buf,len);
 				sc->lock.Unlock();
 			}
 			//fwrite(buf,1,len,stdout);	

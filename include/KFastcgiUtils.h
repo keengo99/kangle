@@ -33,9 +33,10 @@
 void initFastcgiData();
 extern FCGI_BeginRequestRecord fastRequestStart, fastRequestStartKeepAlive;
 template<typename T>
-class KFastcgiStream: public KEnvInterface {
+class KFastcgiStream : public KEnvInterface
+{
 public:
-	KFastcgiStream(T *client, bool extend = false)
+	KFastcgiStream(T* client, bool extend = false)
 	{
 		setStream(client);
 		this->extend = extend;
@@ -51,15 +52,14 @@ public:
 	}
 	bool beginRequest(bool keepAlive = false)
 	{
-		if(extend){
-		//如果是api内部使用,则不用发送beginRequest,因为已经发送了。
+		if (extend) {
+			//如果是api内部使用,则不用发送beginRequest,因为已经发送了。
 			return true;
 		}
-		return client->write_all(NULL,
-			(char *) (keepAlive?&fastRequestStartKeepAlive:&fastRequestStart),
+		return client->write_all((char*)(keepAlive ? &fastRequestStartKeepAlive : &fastRequestStart),
 			sizeof(FCGI_BeginRequestRecord)) == STREAM_WRITE_SUCCESS;
 	}
-	inline void setStream(T *client)
+	inline void setStream(T* client)
 	{
 		this->client = client;
 	}
@@ -69,7 +69,7 @@ public:
 			xfree(readBuf);
 		}
 	}
-	bool addEnv(const char *name, const char *value)
+	bool addEnv(const char* name, const char* value)
 	{
 		unsigned name_len = (unsigned)strlen(name);
 		unsigned value_len = (unsigned)strlen(value);
@@ -83,7 +83,7 @@ public:
 				break;
 			}
 		}
-		assert(name_len>0);
+		assert(name_len > 0);
 		addLen(name_len);
 		addLen(value_len);
 		//printf("add env name=[%s:%d] value=[%s:%d]\n",name,name_len,value,value_len);
@@ -91,96 +91,125 @@ public:
 		buff.write_all(value, value_len);
 		return true;
 	}
-	bool write_data(const char *buf, int len)
+	bool write_data(unsigned char type, const char* buf, int len)
 	{
-		if(len==0){
-			return sendRecordHeader(FCGI_STDIN, 0);
+		if (len == 0) {
+			return sendRecordHeader(type, 0);
 		}
 		//printf("write data len=%d\n",len);
-		while(len>0){
-			int this_send = MIN(len,32767);
-			if (!sendRecordHeader(FCGI_STDIN, this_send)) {
+		while (len > 0) {
+			int this_send = MIN(len, 32767);
+			if (!sendRecordHeader(type, this_send)) {
 				return false;
 			}
-			if(!client->write_all(NULL, buf, this_send)){
+			if (KGL_OK != client->write_all(buf, this_send)) {
 				return false;
 			}
-			len-=this_send;
-			buf+=this_send;
+			len -= this_send;
+			buf += this_send;
 		}
 		return true;
 	}
-	bool write_end(bool close=false)
+	bool write_data(const char* buf, int len)
 	{
-			//debug("call write_end close=%d\n",close);
+		return write_data(FCGI_STDIN, buf, len);
+	}
+	bool write_end(bool close = false)
+	{
+		//debug("call write_end close=%d\n",close);
 		if (!write_data(NULL, 0)) {
 			//debug("send STDIN NULL faled\n");
 			return false;
 		}
-		if(close){
-			return sendRecordHeader(FCGI_ABORT_REQUEST,0);
+		if (close) {
+			return sendRecordHeader(FCGI_ABORT_REQUEST, 0);
 		}
 		//printf("send FCGI_END_REQUEST\n");
 		return sendRecordHeader(FCGI_END_REQUEST, 0);
 	}
-	bool read(char **buffer, int &len)
+	bool read_package(FCGI_Header* header, char** buffer, int& len)
 	{
-		char *b = NULL;
+		*buffer = NULL;
+		memset(header, 0, sizeof(header));
+		if (!client->read_all((char*)header, sizeof(header))) {
+			return false;
+		}
+		len = ntohs(header->contentLength);
+		if (len > 0) {
+			*buffer = (char*)malloc(len + 1);
+			if (!client->read_all(*buffer, len)) {
+				goto failed;
+			}
+			(*buffer)[len] = '\0';
+		}
+		if (recvPaddingData(header)) {
+			return true;
+		}
+	failed:
+		if (*buffer) {
+			xfree(*buffer);
+			*buffer = NULL;
+		}
+		return false;
+	}
+	bool read(char** buffer, int& len)
+	{
+		char* b = NULL;
 		*buffer = NULL;
 		FCGI_Header header;
 		memset(&header, 0, sizeof(header));
-		reread: if (!client->read_all((char *) &header, sizeof(header))) {
-			//		printf("cann't recv fastcgi header\n");
+	reread: if (!client->read_all((char*)&header, sizeof(header))) {
+		//		printf("cann't recv fastcgi header\n");
 			//client->setLastError(1);
+		return false;
+	}
+	len = ntohs(header.contentLength);
+	//printf("type=%d,len=%d\n",header.type,len);
+	if (header.type == FCGI_STDOUT || header.type == FCGI_STDIN) {
+		assert(b == NULL);
+		if (len == 0) {
+			//STDOUT end now wait request_end
+			recvPaddingData(&header);
+			goto reread;
+		}
+		b = (char*)xmalloc(len);
+		if (b == NULL) {
 			return false;
 		}
-		len = ntohs(header.contentLength);
-		//printf("type=%d,len=%d\n",header.type,len);
-		if (header.type == FCGI_STDOUT || header.type == FCGI_STDIN) {
-			assert(b==NULL);
-			if (len == 0) {
-				//STDOUT end now wait request_end
-				recvPaddingData(&header);
-				goto reread;
-			}
-			b = (char *) xmalloc(len);
-			if (b == NULL) {
-				return false;
-			}
-			if (client->read_all(b, len)) {
-				recvPaddingData(&header);
-				*buffer = b;
-				//	b[len]='\0';
-				//	printf("buf=[%s]\n",b);
-				return true;
-			}
-			xfree(b);
-			return false;
-		}
-		//	unsigned contentLength = ntohs(header.contentLength);
-		if (len > 0) {
-			char *buf = (char *) malloc(len + 1);
-			if (!client->read_all(buf, len)) {
-				xfree(buf);
-				return false;
-			}
-			if (header.type == FCGI_STDERR) {
-				buf[len] = 0;
-				fprintf(stderr, "[fastcgi] %s\n", buf);
-			}
-			xfree(buf);
-		}
-		recvPaddingData(&header);
-		if (header.type == FCGI_END_REQUEST) {
+		if (client->read_all(b, len)) {
+			recvPaddingData(&header);
+			*buffer = b;
+			//	b[len]='\0';
+			//	printf("buf=[%s]\n",b);
 			return true;
 		}
-		if(header.type == FCGI_ABORT_REQUEST) {
+		xfree(b);
+		return false;
+	}
+	//	unsigned contentLength = ntohs(header.contentLength);
+	if (len > 0) {
+		char* buf = (char*)malloc(len + 1);
+		if (!client->read_all(buf, len)) {
+			xfree(buf);
 			return false;
 		}
-		//	printf("unknow fastcgi type=%d\n", header.type);
-		goto reread;
+		if (header.type == FCGI_STDERR) {
+			buf[len] = 0;
+			fprintf(stderr, "[fastcgi] %s\n", buf);
+		}
+		xfree(buf);
 	}
-	int read(char *buf, int len)
+	recvPaddingData(&header);
+	if (header.type == FCGI_END_REQUEST) {
+		return true;
+	}
+	if (header.type == FCGI_ABORT_REQUEST) {
+		return false;
+	}
+	//	printf("unknow fastcgi type=%d\n", header.type);
+	goto reread;
+	}
+	int read(char* buf, int len)
 	{
 		int readLen = len;
 		for (int i = 0; i < 2; i++) {
@@ -193,9 +222,9 @@ public:
 				readLeft -= readLen;
 				return readLen;
 			}
-			if(readBuf){
+			if (readBuf) {
 				xfree(readBuf);
-				readBuf=NULL;
+				readBuf = NULL;
 			}
 			if (!read(&readBuf, readLeft)) {
 				return -1;
@@ -207,16 +236,16 @@ public:
 		}
 		return -1;
 	}
-	bool readParams(KEnvInterface *env)
+	bool readParams(KEnvInterface* env)
 	{
 		FCGI_Header header;
 		for (;;) {
-			if (!client->read_all((char *) &header, sizeof(header))) {
+			if (!client->read_all((char*)&header, sizeof(header))) {
 				debug("cann't read params header\n");
 				return false;
 			}
 			if (header.type != FCGI_PARAMS) {
-				debug("header type =%d is error\n",header.type);
+				debug("header type =%d is error\n", header.type);
 				return false;
 			}
 			int content_len = htons(header.contentLength);
@@ -234,7 +263,7 @@ public:
 		 */
 		return false;
 	}
-	bool readParamsPackage(KEnvInterface *env, int content_len)
+	bool readParamsPackage(KEnvInterface* env, int content_len)
 	{
 		bool result;
 		for (;;) {
@@ -259,13 +288,13 @@ public:
 			}
 			*/
 			content_len -= value_len;
-			char *name = (char *) xmalloc(name_len+1);
-			char *value = (char *) xmalloc(value_len+1);
+			char* name = (char*)xmalloc(name_len + 1);
+			char* value = (char*)xmalloc(value_len + 1);
 			if (!client->read_all(name, name_len)) {
 				debug("cann't read name\n");
 				goto error;
 			}
-			if (value_len>0 && !client->read_all(value, value_len)) {
+			if (value_len > 0 && !client->read_all(value, value_len)) {
 				debug("cann't read value\n");
 				goto error;
 			}
@@ -278,7 +307,7 @@ public:
 			} else {
 				env->addEnv(name, value);
 			}
-			error: xfree(name);
+		error: xfree(name);
 			xfree(value);
 			if (!result) {
 				return false;
@@ -291,12 +320,10 @@ public:
 			if (!sendRecordHeader(FCGI_PARAMS, buff.getLen())) {
 				return false;
 			}
-			StreamState result = STREAM_WRITE_SUCCESS;
 			kbuf* buf = buff.head;
 			while (buf) {
 				if (buf->used > 0) {
-					result = client->write_all(NULL, buf->data, buf->used);
-					if (result == STREAM_WRITE_FAILED) {
+					if (KGL_OK != client->write_all(buf->data, buf->used)) {
 						return false;
 					}
 				}
@@ -306,7 +333,7 @@ public:
 		}
 		return true;
 	}
-	bool recvPaddingData(FCGI_Header *header)
+	bool recvPaddingData(FCGI_Header* header)
 	{
 		if (header->paddingLength == 0) {
 			return true;
@@ -333,18 +360,18 @@ public:
 		header.type = type;
 		header.contentLength = htons(contentLength);
 		header.requestIdB0 = 1;
-		return client->write_all(NULL, (char *) &header, sizeof(header)) == STREAM_WRITE_SUCCESS;
+		return client->write_all((char*)&header, sizeof(header)) == KGL_OK;
 	}
-	
+
 	bool extend;
-	bool addHttpHeader(char *attr, char *val)
+	bool addHttpHeader(char* attr, char* val)
 	{
 		if (!extend) {
 			return KEnvInterface::addHttpHeader(attr, val);
 		}
 		int len = (int)strlen(attr);
-		char *dst = (char *) xmalloc(len + 6);
-		char *hot = dst;
+		char* dst = (char*)xmalloc(len + 6);
+		char* hot = dst;
 		strncpy(hot, "HTTP_", 5);
 		hot += 5;
 		strncpy(hot, attr, len);
@@ -357,37 +384,37 @@ public:
 private:
 	void addLen(unsigned len)
 	{
-			//printf("addLen len=%d\n",len);
+		//printf("addLen len=%d\n",len);
 		if (len > 127) {
 			len = htonl(len | 0x80000000);
 			//printf(">127 %x\n",len);
-			buff.write_all((char *) &len, 4);
+			buff.write_all((char*)&len, 4);
 		} else {
 			unsigned char char_len = len;
-			buff.write_all((char *) &char_len, 1);
+			buff.write_all((char*)&char_len, 1);
 		}
 	}
-	unsigned readLen(int &content_len)
+	unsigned readLen(int& content_len)
 	{
 		unsigned char len[5];
-		if (!client->read_all((char *)len, 1)) {
+		if (!client->read_all((char*)len, 1)) {
 			return 0;
 		}
-		if (KBIT_TEST(len[0],0x80)) {
-			KBIT_CLR(len[0],0x80);
+		if (KBIT_TEST(len[0], 0x80)) {
+			KBIT_CLR(len[0], 0x80);
 			content_len -= 4;
-			if (!client->read_all((char *)len + 1, 3)) {
+			if (!client->read_all((char*)len + 1, 3)) {
 				return 0;
 			}
-			unsigned *long_len = (unsigned *)len;
+			unsigned* long_len = (unsigned*)len;
 			return ntohl(*long_len);
 		}
 		content_len--;
 		return len[0];
 	}
 	int readLeft;
-	char *readBuf;
-	char *readHot;
+	char* readBuf;
+	char* readHot;
 	KBuffer buff;
 	T* client;
 };

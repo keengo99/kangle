@@ -126,7 +126,12 @@ func Post(path string, header map[string]string, body string, cb ClientCheckBack
 	time.Sleep(20 * time.Millisecond)
 }
 func Request(method string, path string, host string, header map[string]string, cb ClientCheckBack) {
-	url := fmt.Sprintf("%s%s", config.Cfg.UrlPrefix, path)
+	var url string
+	if strings.Contains(path, "://") {
+		url = path
+	} else {
+		url = fmt.Sprintf("%s%s", config.Cfg.UrlPrefix, path)
+	}
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		if cb != nil {

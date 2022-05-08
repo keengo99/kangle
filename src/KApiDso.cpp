@@ -28,10 +28,13 @@
 #include "log.h"
 #include "utils.h"
 #include "KApiDso.h"
+#include "KDynamicString.h"
+
 using namespace std;
 
 KApiDso::KApiDso()
 {
+	flags = 0;
 	handle = NULL;
 	GetExtensionVersion = NULL;
 	HttpExtensionProc = NULL;
@@ -40,13 +43,13 @@ KApiDso::KApiDso()
 	ConnID = NULL;
 	ServerFree = NULL;
 	ServerSupportFunction = NULL;
-	memset(apiInfo,0,sizeof(apiInfo));
+	memset(apiInfo, 0, sizeof(apiInfo));
 }
 KApiDso::~KApiDso()
 {
 	unload();
 }
-const char *KApiDso::getError() {
+const char* KApiDso::getError() {
 #ifndef _WIN32
 	return dlerror();
 #else
@@ -60,25 +63,25 @@ bool KApiDso::reload() {
 }
 void KApiDso::unload() {
 	BOOL terminate = TRUE;
-	if(TerminateExtension){
+	if (TerminateExtension) {
 		debug("call Terminate\n");
 		terminate = TerminateExtension(0);
 		TerminateExtension = NULL;
 	}
 	if (handle) {
-		debug("unload api [%s]\n",path.c_str());
+		debug("unload api [%s]\n", path.c_str());
 		if (terminate) {
 			FreeLibrary(handle);
 		}
 		handle = NULL;
 		GetExtensionVersion = NULL;
-		HttpExtensionProc = NULL;	
+		HttpExtensionProc = NULL;
 	}
 }
 bool KApiDso::load(std::string file) {
 	//apiFile = file;
-	assert(handle==NULL);
-	assert(GetExtensionVersion==NULL);
+	assert(handle == NULL);
+	assert(GetExtensionVersion == NULL);
 	path = file;
 	return load();
 }
@@ -87,17 +90,17 @@ bool KApiDso::init() {
 	memset(&info, 0, sizeof(HSE_VERSION_INFO));
 	info.dwExtensionVersion = HSE_VERSION;
 	strncpy(info.hvcb.lpszExtensionDesc, path.c_str(),
-			sizeof(info.hvcb.lpszExtensionDesc) - 1);
+		sizeof(info.hvcb.lpszExtensionDesc) - 1);
 	info.hvcb.cbSize = sizeof(HSE_VERSION_CONTROL_BLOCK);
 	info.hvcb.ConnID = this->ConnID;
 	info.hvcb.ServerFree = this->ServerFree;
 	info.hvcb.ServerSupportFunction = this->ServerSupportFunction;
 	if (GetExtensionVersion(&info) == FALSE) {
-		klog(KLOG_ERR,"call GetExtensionVersion return failed %s %d\n",path.c_str(), GetLastError());
+		klog(KLOG_ERR, "call GetExtensionVersion return failed %s %d\n", path.c_str(), GetLastError());
 		unload();
 		return false;
 	}
-	snprintf(apiInfo,sizeof(apiInfo),"%d.%d",HIWORD(info.dwExtensionVersion),LOWORD(info.dwExtensionVersion));
+	snprintf(apiInfo, sizeof(apiInfo), "%d.%d", HIWORD(info.dwExtensionVersion), LOWORD(info.dwExtensionVersion));
 	state = STATE_LOAD_SUCCESS;
 	debug("load [%s] success\n", path.c_str());
 	return true;
@@ -109,40 +112,40 @@ bool KApiDso::load() {
 		return true;
 	}
 	state = STATE_LOAD_FAILED;
-//{{ent
 #ifdef _WIN32
-	char *file_path = getPath(path.c_str());
+	char* file_path = getPath(path.c_str());
 	if (file_path != NULL) {
 		SetDllDirectory(file_path);
 		xfree(file_path);
 	}
 #endif
-//}}
-	handle = LoadLibrary(path.c_str());
+	KDynamicString ds;
+	char* filename = ds.parseString(path.c_str());
+	handle = LoadLibrary(filename);
 	if (handle == NULL) {
-		klog(KLOG_ERR,"cann't LoadLibrary %s %s\n", path.c_str(), getError());
+		klog(KLOG_ERR, "cann't LoadLibrary %s %s\n", filename, getError());
+		xfree(filename);
 		return false;
 	}
-//{{ent
+	xfree(filename);
 #ifdef _WIN32
 	SetDllDirectory(NULL);
 #endif
-//}}
-	GetExtensionVersion = (GetExtensionVersionf) GetProcAddress(handle,
-			"GetExtensionVersion");
+	GetExtensionVersion = (GetExtensionVersionf)GetProcAddress(handle,
+		"GetExtensionVersion");
 	if (GetExtensionVersion == NULL) {
 		debug("cann't find GetExtensionVersion function\n");
 		unload();
 		return false;
 	}
-	HttpExtensionProc = (HttpExtensionProcf) GetProcAddress(handle,
-			"HttpExtensionProc");
+	HttpExtensionProc = (HttpExtensionProcf)GetProcAddress(handle,
+		"HttpExtensionProc");
 	if (HttpExtensionProc == NULL) {
 		debug("cann't find HttpExtensionProc function\n");
 		unload();
 		return false;
 	}
-	TerminateExtension = (TerminateExtensionf) GetProcAddress(handle,
-			"TerminateExtension");
+	TerminateExtension = (TerminateExtensionf)GetProcAddress(handle,
+		"TerminateExtension");
 	return init();
 }

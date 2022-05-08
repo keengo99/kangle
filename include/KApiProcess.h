@@ -48,8 +48,8 @@ public:
 		stLock.Unlock();
 		return true;
 	}
-	KUpstream* GetUpstream(KHttpRequest* rq, KExtendProgram* rd) override;
-	KPipeStream *PowerThread(KVirtualHost *vh, KExtendProgram *rd);
+	KPipeStream *PowerThread(KVirtualHost *vh, KExtendProgram *rd) override;
+	KUpstream* PowerResult(KHttpRequest* rq, KPipeStream* st2) override;
 	//{{ent
 #ifdef ENABLE_ADPP
 	void flushCpuUsage(const std::string &user,const std::string &name,ULONG64 cpuTime)

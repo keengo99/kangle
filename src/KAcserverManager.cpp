@@ -267,11 +267,9 @@ std::string KAcserverManager::apiList(std::string name) {
 		<< "' " << (m_a ? "readonly" : "") << "><br>\n";
 	s << klang["file"] << ": <input name='file' size='80' value='" << (m_a ? m_a->apiFile
 		: "") << "'><br>\n";
-	s << "<input type=checkbox name='sp' value='1' ";
-	if (m_a == NULL || m_a->type == WORK_TYPE_SP) {
-		s << "checked";
+	if (m_a  && m_a->type == WORK_TYPE_MT) {
+		s << "<input type=hidden name='mt' value='1'>";		
 	}
-	s << ">" << klang["seperate_process"] << "<br>";
 	s << "<input type='submit' value='" << LANG_SUBMIT << "'>";
 	s << "</form>";
 	lock.RUnlock();
@@ -363,8 +361,8 @@ bool KAcserverManager::apiForm(std::map<std::string, std::string>& attribute,
 			lock.WUnlock();
 			return false;
 		}
-		result = newApiRedirect(name, attribute["file"], (attribute["sp"]
-			== "1" ? "sp" : "auto"), "", false, errMsg);
+		result = newApiRedirect(name, attribute["file"], (attribute["mt"]
+			== "1" ? "mt" : "sp"), "", errMsg);
 	} else if (action == "edit") {
 		KApiRedirect* rd = getApiRedirect(name);
 		if (rd == NULL) {
@@ -374,10 +372,10 @@ bool KAcserverManager::apiForm(std::map<std::string, std::string>& attribute,
 		}
 		string file = attribute["file"];
 		rd->type = WORK_TYPE_SP;
-		if (attribute["sp"] == "1") {
-			rd->type = WORK_TYPE_SP;
+		if (attribute["mt"] == "1") {
+			rd->type = WORK_TYPE_MT;
 		} else {
-			rd->type = WORK_TYPE_AUTO;
+			rd->type = WORK_TYPE_SP;
 		}
 		if (rd->apiFile != file) {
 			rd->dso.unload();
@@ -1137,9 +1135,7 @@ KRedirect* KAcserverManager::refsRedirect(std::string target) {
 	}
 	return NULL;
 }
-bool KAcserverManager::newApiRedirect(std::string name, std::string file,
-	std::string type, std::string flag, bool delayLoad,
-	std::string& err_msg) {
+bool KAcserverManager::newApiRedirect(std::string name, std::string file, std::string type, std::string flag, std::string& err_msg) {
 	if (getApiRedirect(name)) {
 		return false;
 	}
@@ -1151,7 +1147,6 @@ bool KAcserverManager::newApiRedirect(std::string name, std::string file,
 	if (strstr(flag.c_str(), "disable") != NULL) {
 		rd->enable = false;
 	}
-	rd->setDelayLoad(delayLoad);
 	if (this != conf.gam) {
 		KApiRedirect* sa = conf.gam->refsApiRedirect(name);
 		if (sa) {
@@ -1171,7 +1166,6 @@ bool KAcserverManager::newApiRedirect(std::string name, std::string file,
 		}
 	}
 	cur_extend = rd;
-	//	cur_extend->parseConfig(attribute);
 	return true;
 }
 #ifdef ENABLE_VH_RUN_AS	
@@ -1319,12 +1313,7 @@ bool KAcserverManager::startElement(std::string& context, std::string& qName,
 	if (qName == "api") {
 		string name = attribute["name"];
 		string file = attribute["file"];
-		bool delayLoad = false;
-		if (attribute["delay_load"] == "1") {
-			delayLoad = true;
-		}
-		if (!newApiRedirect(name, file, attribute["type"], attribute["flag"],
-			delayLoad, errMsg)) {
+		if (!newApiRedirect(name, file, attribute["type"], attribute["flag"], errMsg)) {
 			fprintf(stderr, "cann't load api[%s] ,errmsg=%s\n", name.c_str(),
 				errMsg.c_str());
 		}

@@ -85,24 +85,20 @@ inline void release_obj(KHttpObject *obj) {
 int clean_cache(KReg *reg,int flag);
 inline int clean_cache(const char *str,bool wide)
 {
-	KUrl url;
-	if (!parse_url(str,&url)) {
-		url.destroy();
+	KAutoUrl url;
+	if (!parse_url(str,url.u)) {
 		return 0;
 	}
-	int count = cache.clean_cache(&url,wide);
-	url.destroy();
+	int count = cache.clean_cache(url.u,wide);
 	return count;
 }
 inline int get_cache_info(const char *str,bool wide,KCacheInfo *ci)
 {
-	KUrl url;
-	if (!parse_url(str,&url)) {
-		url.destroy();
+	KAutoUrl url;
+	if (!parse_url(str,url.u)) {
 		return 0;
 	}
-	int count = cache.get_cache_info(&url,wide,ci);
-	url.destroy();
+	int count = cache.get_cache_info(url.u,wide,ci);
 	return count;
 }
 bool cache_prefetch(const char *url);

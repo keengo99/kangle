@@ -1286,6 +1286,7 @@ int main_fiber(void* arg, int argc)
 		kthread_pool_start(clean_tempfile_thread, NULL);
 	}
 #endif
+	//assert(test());
 	return 0;
 }
 void StartAll() {

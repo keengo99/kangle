@@ -35,24 +35,26 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 		return NULL;
 	}
 	KSimulateSink* ss = new KSimulateSink;
+	ss->data.raw_url = new KUrl;
 	KHttpRequest* rq = new KHttpRequest(ss);
 	selectable_bind(&ss->c->st, selector);	
 	selectable_bind_opaque(&ss->c->st, rq, kgl_opaque_server);
-	if (!parse_url(ctx->url, &rq->sink->data.raw_url)) {
-		rq->sink->data.raw_url.destroy();
+	if (!parse_url(ctx->url, ss->data.raw_url)) {
+		ss->data.raw_url->relase();
+		ss->data.raw_url = new KUrl;
 		KStringBuf nu;
 		nu << ctx->url << "/";
-		if (!parse_url(nu.getString(), &rq->sink->data.raw_url)) {
+		if (!parse_url(nu.getString(), ss->data.raw_url)) {
 			delete rq;
 			return NULL;
 		}
 	}
-	if (rq->sink->data.raw_url.host == NULL) {
+	if (ss->data.raw_url->host == NULL) {
 		delete rq;
 		return NULL;
 	}
-	if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_ORIG_SSL)) {
-		KBIT_SET(rq->sink->data.raw_url.flags, KGL_URL_SSL);
+	if (KBIT_TEST(ss->data.raw_url->flags, KGL_URL_ORIG_SSL)) {
+		KBIT_SET(ss->data.raw_url->flags, KGL_URL_SSL);
 	}
 
 	if (ctx->host) {
@@ -99,7 +101,7 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 		KBIT_SET(rq->sink->data.flags, RQ_HAS_CONTENT_LEN);
 	}
 	if (KBIT_TEST(ctx->flags, KF_SIMULATE_LOCAL)) {
-		ss->c->server = conf.gvm->RefsServer(rq->sink->data.raw_url.port);
+		ss->c->server = conf.gvm->RefsServer(rq->sink->data.raw_url->port);
 		if (ss->c->server == NULL) {
 			ss->body = NULL;
 			delete rq;

@@ -28,15 +28,16 @@ public:
 	SubdirHttp()
 	{
 		memset(this, 0, sizeof(SubdirHttp));
+		dst = new KUrl;
 	}
 	~SubdirHttp() {
+		dst->relase();
 	}
-	KUrl dst;
+	KUrl *dst;
 	char *ip;
-	//{{ent
 #ifdef ENABLE_UPSTREAM_SSL
 	char *ssl;
-#endif//}}
+#endif
 	int lifeTime;
 };
 class SubdirServer

@@ -51,13 +51,13 @@ void get_url_info(KSink* rq, KStringBuf& s) {
 #ifdef HTTP_PROXY
 	if (rq->data.meth == METH_CONNECT) {
 		s << "CONNECT ";
-		if (rq->data.raw_url.host) {
-			s << rq->data.raw_url.host << ":" << rq->data.raw_url.port;
+		if (rq->data.raw_url->host) {
+			s << rq->data.raw_url->host << ":" << rq->data.raw_url->port;
 		}
 		return;
 	}
 #endif//}}
-	rq->data.raw_url.GetUrl(s, true);
+	rq->data.raw_url->GetUrl(s, true);
 	return;
 }
 
@@ -984,7 +984,8 @@ bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* co
 	}
 	kbuf* gzipOut = NULL;
 	rq->responseConnection();
-	if (content_length > conf.min_compress_length && msg && KBIT_TEST(rq->sink->data.raw_url.accept_encoding, KGL_ENCODING_GZIP)) {
+#if 0
+	if (content_length > conf.min_compress_length && msg && KBIT_TEST(rq->sink->data.raw_url->accept_encoding, KGL_ENCODING_GZIP)) {
 		kbuf in;
 		memset(&in, 0, sizeof(in));
 		in.data = (char*)msg;
@@ -993,6 +994,7 @@ bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* co
 		KBIT_SET(rq->sink->data.flags, RQ_TE_COMPRESS);
 		rq->responseHeader(kgl_expand_string("Content-Encoding"), kgl_expand_string("gzip"));
 	}
+#endif
 	if (content_length >= 0) {
 		rq->responseHeader(kgl_expand_string("Content-length"), (int)content_length);
 	}

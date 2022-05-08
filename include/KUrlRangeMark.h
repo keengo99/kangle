@@ -46,7 +46,7 @@ public:
 					v << rq->sink->data.range_to;
 				}
 				KBIT_SET(rq->sink->data.flags,RQ_HAVE_RANGE);
-				KBIT_SET(rq->sink->data.raw_url.flags,KGL_URL_RANGED);
+				KBIT_SET(rq->sink->data.raw_url->flags,KGL_URL_RANGED);
 				rq->sink->data.AddHeader(kgl_expand_string("Range"),v.getString(),v.getSize());
 				result = true;
 			}

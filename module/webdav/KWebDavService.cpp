@@ -13,19 +13,21 @@
 
 #define MAX_DEPTH 1
 #define MAX_DOCUMENT_SIZE   1048576
+//static const char* allowed_header ="OPTIONS,GET,HEAD,POST,DELETE,PROPFIND,PROPPATCH,COPY,MOVE,LOCK,UNLOCK,MKCOL,PUT";
+static const char* allowed_header = "OPTIONS,GET,HEAD,POST,DELETE,PROPFIND,PROPPATCH,COPY,MOVE,MKCOL,PUT";
+static const char* xml_head = "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n";
+static const char* xml_dav_ns = "xmlns:D=\"DAV:\"";
+/*
 static const char
-		*allowed_header =
-				"OPTIONS,GET,HEAD,POST,DELETE,PROPFIND,PROPPATCH,COPY,MOVE,LOCK,UNLOCK,MKCOL,PUT";
-static const char *xml_head = "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n";
-static const char *xml_dav_ns = "xmlns:D=\"DAV:\"";
-static const char
-		*xml_supported_lock =
-				"\n<D:supportedlock><D:lockentry><D:lockscope><D:exclusive/></D:lockscope><D:locktype><D:write/></D:locktype>"
-					"</D:lockentry>" "<D:lockentry>"
-					"<D:lockscope><D:shared/></D:lockscope>"
-					"<D:locktype><D:write/></D:locktype>"
-					"</D:lockentry></D:supportedlock>";
-KResourceMaker *rsMaker = new KFSResourceMaker;
+* xml_supported_lock =
+"\n<D:supportedlock><D:lockentry><D:lockscope><D:exclusive/></D:lockscope><D:locktype><D:write/></D:locktype>"
+"</D:lockentry>" "<D:lockentry>"
+"<D:lockscope><D:shared/></D:lockscope>"
+"<D:locktype><D:write/></D:locktype>"
+"</D:lockentry></D:supportedlock>";
+*/
+static const char* xml_supported_lock ="\n<D:supportedlock></D:supportedlock>";
+KResourceMaker* rsMaker = new KFSResourceMaker;
 KDavLockManager lockManager;
 using namespace std;
 KWebDavService::KWebDavService() {
@@ -36,7 +38,7 @@ KWebDavService::~KWebDavService() {
 		xfree(if_token);
 	}
 }
-bool KWebDavService::service(KServiceProvider *provider) {
+bool KWebDavService::service(KISAPIServiceProvider* provider) {
 	this->provider = provider;
 	switch (provider->getMethod()) {
 	case METH_OPTIONS:
@@ -73,11 +75,11 @@ bool KWebDavService::send(int status_code) {
 	return provider->sendStatus(status_code, NULL);
 }
 bool KWebDavService::doGet(bool head) {
-	KResource *rs = rsMaker->bindResource(provider->getFileName(),	provider->getRequestUri());
+	KResource* rs = rsMaker->bindResource(provider->getFileName(), provider->getRequestUri());
 	if (rs == NULL) {
 		return send(STATUS_NOT_FOUND);
 	}
-	char *if_modified_since = provider->getHttpHeader("If-Modified-Since");
+	char* if_modified_since = provider->getHttpHeader("If-Modified-Since");
 	if (if_modified_since) {
 		time_t ims = parse1123time(if_modified_since);
 		provider->freeHttpHeader(if_modified_since);
@@ -86,13 +88,13 @@ bool KWebDavService::doGet(bool head) {
 			return send(STATUS_NOT_MODIFIED);
 		}
 	}
-	provider->sendStatus(200,"OK");
+	provider->sendStatus(200, "OK");
 	provider->sendUnknowHeader("Cache-Control", "no-cache,no-store");
 	char tbuf[50];
 	mk1123time(rs->getLastModified(), tbuf, sizeof(tbuf));
 	provider->sendUnknowHeader("Last-Modified", tbuf);
 	if (!head && rs->open(false)) {
-		KWStream *out = provider->getOutputStream();
+		KWStream* out = provider->getOutputStream();
 		char buf[1024];
 		for (;;) {
 			int len = rs->read(buf, sizeof(buf));
@@ -112,8 +114,8 @@ bool KWebDavService::doCopy() {
 	return true;
 }
 bool KWebDavService::doDelete() {
-	KResource *rs = rsMaker->bindResource(provider->getFileName(),
-			provider->getRequestUri());
+	KResource* rs = rsMaker->bindResource(provider->getFileName(),
+		provider->getRequestUri());
 	if (rs == NULL) {
 		return send(STATUS_NOT_FOUND);
 	}
@@ -126,24 +128,24 @@ bool KWebDavService::doDelete() {
 bool KWebDavService::doOptions() {
 	send(STATUS_OK);
 	provider->sendUnknowHeader("Allow", allowed_header);
-	provider->sendUnknowHeader("DAV", "1,2,3");
+	provider->sendUnknowHeader("DAV", "1");
 	return true;
 }
 bool KWebDavService::doPut() {
 	//TODO:检查锁
-	KResource *rs = rsMaker->makeFile(provider->getFileName(),
-			provider->getRequestUri());
+	KResource* rs = rsMaker->makeFile(provider->getFileName(),
+		provider->getRequestUri());
 	if (rs == NULL) {
 		return send(STATUS_FORBIDEN);
 	}
 	int len = 0;
-	KRStream *in = provider->getInputStream();
-	int content_length = provider->getContentLength();
+	KRStream* in = provider->getInputStream();
+	int64_t content_length = provider->getContentLength();
 	content_length -= len;
 	bool result = true;
 	while (content_length > 0) {
 		char buf[512];
-		int this_read_len = MIN(content_length,(int)sizeof(buf));
+		int this_read_len = (int)(MIN(content_length, sizeof(buf)));
 		int actual_read_len = in->read(buf, this_read_len);
 		if (actual_read_len <= 0) {
 			result = false;
@@ -161,8 +163,8 @@ bool KWebDavService::doPut() {
 	}
 	return result;
 }
-bool KWebDavService::parseDocument(KXmlDocument &document) {
-	int content_length = provider->getContentLength();
+bool KWebDavService::parseDocument(KXmlDocument& document) {
+	int64_t content_length = provider->getContentLength();
 	if (content_length > MAX_DOCUMENT_SIZE) {
 		return false;
 	}
@@ -170,16 +172,17 @@ bool KWebDavService::parseDocument(KXmlDocument &document) {
 		return false;
 	}
 	int len = 0;
-	char *buf = (char *) xmalloc(content_length+1);
+	char* buf = (char*)xmalloc(content_length + 1);
 	if (len < content_length) {
 		//not all data have
-		KRStream *in = provider->getInputStream();
-		if (!in->read_all(buf + len, content_length - len)) {
+		KRStream* in = provider->getInputStream();
+		if (!in->read_all(buf + len, (int)(content_length - len))) {
 			xfree(buf);
 			return false;
 		}
 	}
 	buf[content_length] = '\0';
+	printf("xml=[%s]\n", buf);
 	try {
 		document.parse(buf);
 		xfree(buf);
@@ -190,20 +193,20 @@ bool KWebDavService::parseDocument(KXmlDocument &document) {
 	}
 
 }
-const char *KWebDavService::getIfToken() {
+const char* KWebDavService::getIfToken() {
 	if (if_token) {
 		return if_token;
 	}
-	char *if_val = provider->getHttpHeader("If");
+	char* if_val = provider->getHttpHeader("If");
 	if (if_val == NULL) {
 		return NULL;
 	}
-	char *p = strchr(if_val, '<');
+	char* p = strchr(if_val, '<');
 	if (p == NULL) {
 		provider->freeHttpHeader(if_val);
 		return NULL;
 	}
-	if_token = xstrdup(p+1);
+	if_token = xstrdup(p + 1);
 	provider->freeHttpHeader(if_val);
 	p = strchr(if_token, '>');
 	if (p) {
@@ -216,20 +219,21 @@ bool KWebDavService::doLock() {
 	KXmlDocument document;
 	char ips[255];
 	int len = sizeof(ips);
-	provider->getEnv("REMOTE_ADDR",ips,&len);
+	provider->getEnv("REMOTE_ADDR", ips, &len);
 	if (!parseDocument(document)) {
 		if (getIfToken() != NULL) {
 			//todo:refresh the lock
-			KLockToken *token = lockManager.findLockToken(if_token,ips);
+			KLockToken* token = lockManager.find_lock_token(if_token);
 			if (token != NULL) {
 				token->refresh();
-				lockManager.releaseToken(token);
+				token->release();
 			}
 			return send(STATUS_OK);
 		}
 		return send(STATUS_BAD_REQUEST);
+
 	}
-	KXmlNode *node = document.getRootNode();
+	KXmlNode* node = document.getRootNode();
 	if (node == NULL) {
 		return send(STATUS_BAD_REQUEST);
 	}
@@ -246,12 +250,11 @@ bool KWebDavService::doLock() {
 	if (type == Lock_none) {
 		return send(STATUS_BAD_REQUEST);
 	}
-	KLockToken *token = lockManager.newToken(ips, type,3600);
+	KLockToken* token = lockManager.new_token(ips, type, 3600);
 	if (token == NULL) {
 		return send(STATUS_SERVER_ERROR);
 	}
-	//TODO:这里要真lock了。
-	Lock_op_result result = Lock_op_success;//lockManager.lock(provider->getFileName(),token);
+	Lock_op_result result = lockManager.lock(provider->getFileName(), token);
 	if (result != Lock_op_success) {
 		send(423);
 	} else {
@@ -259,7 +262,7 @@ bool KWebDavService::doLock() {
 		h << "<" << token->getValue() << ">";
 		provider->sendUnknowHeader("Lock-Token", h.str().c_str());
 		writeXmlHeader();
-		KWStream *s = provider->getOutputStream();
+		KWStream* s = provider->getOutputStream();
 		*s << "<D:prop " << xml_dav_ns << "><D:lockdiscovery><D:activelock>";
 		*s << "<D:locktype><D:write/></D:locktype>";
 		*s << "<D:lockscope><D:";
@@ -280,15 +283,15 @@ bool KWebDavService::doLock() {
 		*s << "</D:locktoken></D:activelock>\n";
 		*s << "</D:lockdiscovery></D:prop>";
 	}
-	lockManager.releaseToken(token);
+	token->release();
 	return true;
 }
 bool KWebDavService::doUnlock() {
-	return false;
+	return send(STATUS_METH_NOT_ALLOWED);
 }
 bool KWebDavService::doMkcol() {
-	KResource *rs = rsMaker->makeDirectory(provider->getFileName(),
-			provider->getRequestUri());
+	KResource* rs = rsMaker->makeDirectory(provider->getFileName(),
+		provider->getRequestUri());
 	if (rs) {
 		send(STATUS_CREATED);
 		delete rs;
@@ -300,18 +303,18 @@ bool KWebDavService::doMkcol() {
 bool KWebDavService::doProppatch() {
 	KXmlDocument document;
 	parseDocument(document);
-	KXmlNode *node = document.getNode("propertyupdate/set/prop");
+	KXmlNode* node = document.getNode("propertyupdate/set/prop");
 	if (node != NULL) {
 		//todo for set;
 	}
 	node = document.getNode("propertyupdate/remove/prop");
 	//todo:for remove
-	KResource *rs = rsMaker->bindResource(provider->getFileName(),
-			provider->getRequestUri());
+	KResource* rs = rsMaker->bindResource(provider->getFileName(),
+		provider->getRequestUri());
 	if (rs == NULL) {
 		return send(STATUS_NOT_FOUND);
 	}
-	KWStream *s = provider->getOutputStream();
+	KWStream* s = provider->getOutputStream();
 	provider->sendStatus(STATUS_MULTI_STATUS, NULL);
 	writeXmlHeader();
 	*s << "<D:multistatus " << xml_dav_ns << ">\n";
@@ -324,10 +327,10 @@ bool KWebDavService::doProppatch() {
 bool KWebDavService::writeXmlHeader() {
 	provider->sendUnknowHeader("Content-Type", "text/xml; charset=utf-8");
 	return provider->getOutputStream()->write_all(xml_head)
-			== STREAM_WRITE_SUCCESS;
+		== STREAM_WRITE_SUCCESS;
 
 }
-bool KWebDavService::listResourceProp(KResource *rs, int depth) {
+bool KWebDavService::listResourceProp(KResource* rs, int depth) {
 	//KWStream *s = provider->getOutputStream();
 	if (!writeResourceProp(rs)) {
 		return false;
@@ -335,9 +338,9 @@ bool KWebDavService::listResourceProp(KResource *rs, int depth) {
 	bool result = true;
 	//	printf("depth=%d\n",depth);
 	if (depth-- > 0 && rs->isDirectory()) {
-		std::list<KResource *> childs;
+		std::list<KResource*> childs;
 		rs->listChilds(childs);
-		std::list<KResource *>::iterator it;
+		std::list<KResource*>::iterator it;
 		for (it = childs.begin(); it != childs.end(); it++) {
 			result = listResourceProp(*it, depth);
 			if (!result) {
@@ -354,7 +357,7 @@ bool KWebDavService::doPropfind() {
 	KXmlDocument document;
 	parseDocument(document);
 
-	char *depth_header = provider->getHttpHeader("Depth");
+	char* depth_header = provider->getHttpHeader("Depth");
 	//printf("depth=%s\n",depth_header);
 	int depth = 0;
 	if (depth_header) {
@@ -365,12 +368,11 @@ bool KWebDavService::doPropfind() {
 		}
 		provider->freeHttpHeader(depth_header);
 	}
-	KResource *rs = rsMaker->bindResource(provider->getFileName(),
-			provider->getRequestUri());
+	KResource* rs = rsMaker->bindResource(provider->getFileName(), provider->getRequestUri());
 	if (rs == NULL) {
 		return send(STATUS_NOT_FOUND);
 	}
-	KWStream *s = provider->getOutputStream();
+	KWStream* s = provider->getOutputStream();
 	provider->sendStatus(STATUS_MULTI_STATUS, NULL);
 	writeXmlHeader();
 	*s << "<D:multistatus " << xml_dav_ns << ">\n";
@@ -379,9 +381,9 @@ bool KWebDavService::doPropfind() {
 	delete rs;
 	return result;
 }
-bool KWebDavService::writeResourceProp(KResource *rs) {
-	KWStream *s = provider->getOutputStream();
-	KAttribute *attribute = rs->getAttribute();
+bool KWebDavService::writeResourceProp(KResource* rs) {
+	KWStream* s = provider->getOutputStream();
+	KAttribute* attribute = rs->getAttribute();
 	*s << "<D:response>\n";
 	*s << "<D:href>" << url_encode(rs->getPath(), 0);
 	if (rs->isDirectory()) {
@@ -390,10 +392,10 @@ bool KWebDavService::writeResourceProp(KResource *rs) {
 	*s << "</D:href>\n";
 	*s << "<D:propstat><D:prop>\n";
 	if (attribute) {
-		std::map<char *, char *, attrp>::iterator it;
+		std::map<char*, char*, attrp>::iterator it;
 		for (it = attribute->atts.begin(); it != attribute->atts.end(); it++) {
 			*s << "<D:" << (*it).first << ">" << (*it).second << "</D:"
-					<< (*it).first << ">\n";
+				<< (*it).first << ">\n";
 		}
 	}
 	if (rs->isDirectory()) {
@@ -409,22 +411,28 @@ bool KWebDavService::writeResourceProp(KResource *rs) {
 	return true;
 }
 bool KWebDavService::doMove() {
-	char destination[512];
+	KXmlDocument document;
+	if (!parseDocument(document)) {
+	}
+	char destination[1024];
 	int len = sizeof(destination);
-	if (!provider->getEnv("DAV_DESTINATION", destination, &len) || len <= 0) {
+	if (!provider->getEnv("HTTP_DESTINATION", destination, &len) || len <= 0) {
+		return send(STATUS_BAD_REQUEST);
+	}
+	DWORD destination_len = sizeof(destination);
+	if (provider->pECB->ServerSupportFunction(provider->pECB->ConnID, HSE_REQ_MAP_URL_TO_PATH, destination, &destination_len, NULL) == FALSE) {
 		return send(STATUS_BAD_REQUEST);
 	}
 
-	KResource *rs = rsMaker->bindResource(provider->getFileName(),
-			provider->getRequestUri());
+	KResource* rs = rsMaker->bindResource(provider->getFileName(), provider->getRequestUri());
 	if (rs == NULL) {
 		return send(STATUS_NOT_FOUND);
 	}
 	int status = STATUS_CREATED;
 	//TODO:check lock
-	KResource *rsd = rsMaker->bindResource(destination, "/");
+	KResource* rsd = rsMaker->bindResource(destination, "/");
 	if (rsd) {
-		char *overWriteHeader = provider->getHttpHeader("Overwrite");
+		char* overWriteHeader = provider->getHttpHeader("Overwrite");
 		if (overWriteHeader) {
 			if (strcasecmp(overWriteHeader, "T") != 0) {
 				delete rsd;
@@ -440,8 +448,8 @@ bool KWebDavService::doMove() {
 	}
 	if (rs->rename(destination)) {
 		send(status);
-		char *dst = provider->getHttpHeader("Destination");
-		provider->sendUnknowHeader("Location",dst);
+		char* dst = provider->getHttpHeader("Destination");
+		provider->sendUnknowHeader("Location", dst);
 		provider->freeHttpHeader(dst);
 
 	} else {

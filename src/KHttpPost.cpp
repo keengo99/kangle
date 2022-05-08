@@ -86,7 +86,7 @@ bool KHttpPost::addData(const char *data,int len)
 }
 bool KHttpPost::readData(KRStream *st)
 {	
-	int used = hot - buffer;
+	int used = (int)(hot - buffer);
 	int leftRead = totalLen - used;
 	for(;;){
 		if(leftRead<=0){

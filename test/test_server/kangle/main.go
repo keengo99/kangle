@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"runtime"
 	"test_server/common"
 	"test_server/config"
 	"time"
@@ -50,10 +49,13 @@ func CreateMainConfig(malloc_debug int) (err error) {
 	<listen ip='127.0.0.1' port='9943' type='https' certificate='etc/server.crt' certificate_key='etc/server.key' http2='1' />
 	<listen ip='127.0.0.1' port='9911' type='manage' />
 	<admin user='admin' password='kangle' crypt='plain' auth_type='Basic' admin_ips='~127.0.0.1'/>
-	<request action='vhs' >
-	</request>
+	<request action='vhs'></request>
+	<vhs >
+		<mime_type ext='*' type='text/plain'/>
+		<mime_type ext='html' type='text/html' compress='1'/>
+		<mime_type ext='id' type='text/html' compress='2'/>
+	</vhs>
 </config>`
-
 	config_file, err := os.Create(config.Cfg.BasePath + "/etc/config.xml")
 	if err != nil {
 		panic(err)
@@ -62,28 +64,18 @@ func CreateMainConfig(malloc_debug int) (err error) {
 	_, err = config_file.WriteString(fmt.Sprintf(str, malloc_debug))
 	return
 }
-func exeExtendFile() string {
-	if runtime.GOOS == "windows" {
-		return ".exe"
-	}
-	return ""
-}
-func dllExtendFile() string {
-	if runtime.GOOS == "windows" {
-		return ".dll"
-	}
-	return ".so"
-}
+
 func Prepare(kangle_path string) {
 	os.Mkdir(config.Cfg.BasePath+"/etc", 0755)
 	os.Mkdir(config.Cfg.BasePath+"/var", 0755)
 	os.Mkdir(config.Cfg.BasePath+"/ext", 0755)
 	os.Mkdir(config.Cfg.BasePath+"/bin", 0755)
-	kangleCommand = config.Cfg.BasePath + "/bin/kangle" + exeExtendFile()
-	common.CopyFile(kangle_path+"/kangle"+exeExtendFile(), kangleCommand)
-	common.CopyFile(kangle_path+"/extworker"+exeExtendFile(), config.Cfg.BasePath+"/bin/extworker"+exeExtendFile())
-	common.CopyFile(kangle_path+"/testdso"+dllExtendFile(), config.Cfg.BasePath+"/bin/testdso"+dllExtendFile())
-	common.CopyFile(kangle_path+"/webdav"+dllExtendFile(), config.Cfg.BasePath+"/bin/webdav"+dllExtendFile())
+	kangleCommand = config.Cfg.BasePath + "/bin/kangle" + common.ExeExtendFile()
+	common.CopyFile(kangle_path+"/kangle"+common.ExeExtendFile(), kangleCommand)
+	common.CopyFile(kangle_path+"/extworker"+common.ExeExtendFile(), config.Cfg.BasePath+"/bin/extworker"+common.ExeExtendFile())
+	common.CopyFile(kangle_path+"/test_child"+common.ExeExtendFile(), config.Cfg.BasePath+"/bin/test_child"+common.ExeExtendFile())
+	common.CopyFile(kangle_path+"/testdso"+common.DllExtendFile(), config.Cfg.BasePath+"/bin/testdso"+common.DllExtendFile())
+	common.CopyFile(kangle_path+"/webdav"+common.DllExtendFile(), config.Cfg.BasePath+"/bin/webdav"+common.DllExtendFile())
 	Start()
 	time.Sleep(time.Second)
 }

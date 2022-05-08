@@ -114,6 +114,7 @@ void sigcatch(int sig) {
 void seperate_usage();
 int main(int argc,char **argv)
 {
+	printf("extworker started pid=[%d]\n", getpid());
 	::argc = argc;
 	::argv = argv;
 	ksocket_startup();

@@ -198,11 +198,22 @@ KFetchObject *KVirtualHost::findDefaultRedirect(KHttpRequest *rq,
 	lock.Unlock();
 	return fo;
 }
+KBaseRedirect* KVirtualHost::refsPathRedirect(const char* path, int path_len)
+{
+	KLocker locker(&lock);
+	for (auto it = pathRedirects.begin(); it != pathRedirects.end(); it++) {
+		if ((*it)->match(path, path_len)) {
+			(*it)->addRef();
+			return (*it);
+		}
+	}
+	return NULL;
+}
 KFetchObject *KVirtualHost::findPathRedirect(KHttpRequest *rq, KFileName *file,const char *path,
 		bool fileExsit, bool &result) {
 	KFetchObject *fo = NULL;
 	int path_len = (int)strlen(path);
-	lock.Lock();
+	KLocker locker(&lock);
 	list<KPathRedirect *>::iterator it2;
 	for (it2 = pathRedirects.begin(); it2 != pathRedirects.end(); it2++) {
 		if ((*it2)->match(path,path_len) && (*it2)->allowMethod.matchMethod(rq->sink->data.meth)) {
@@ -216,7 +227,6 @@ KFetchObject *KVirtualHost::findPathRedirect(KHttpRequest *rq, KFileName *file,c
 			}
 		}
 	}
-	lock.Unlock();
 	return fo;
 }
 KFetchObject *KVirtualHost::findFileExtRedirect(KHttpRequest *rq,

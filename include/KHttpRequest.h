@@ -126,6 +126,7 @@ public:
 	char *getUrl();
 	void beginRequest();
 	int EndRequest();
+	uint32_t get_upstream_flags();
 	int getFollowLink()
 	{
 		int follow_link = 0;
@@ -147,6 +148,7 @@ public:
 	void EnterRequestQueue();
 	void LeaveRequestQueue();
 	bool NeedTempFile(bool upload);
+	char *map_url_path(const char* url, KBaseRedirect *caller);
 	uint32_t filter_flags;
 	KSink *sink;
 	//数据源
@@ -280,8 +282,6 @@ public:
 	{
 		return sink->get_client_ip();
 	}
-	//连接上游时，绑定的本机ip
-	char *bind_ip;	
 	void registerRequestCleanHook(kgl_cleanup_f callBack,void *data)
 	{
 		assert(sink->pool);

@@ -51,7 +51,7 @@ void WhmShell::readStdin(WhmShellContext *sc,WhmContext *context)
 	std::map<std::string,std::string>::iterator it;
 	it =  context->getUrlValue()->attribute.find("-");
 	if (it!=context->getUrlValue()->attribute.end()) {
-		sc->in_buffer.write_all(NULL, (*it).second.c_str(),(int)(*it).second.size());
+		sc->in_buffer.write_all((*it).second.c_str(),(int)(*it).second.size());
 	}
 }
 void WhmShell::initContext(WhmShellContext *sc,WhmContext *context)

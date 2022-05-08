@@ -259,7 +259,7 @@ void log_access(KHttpRequest* rq) {
 	const char* user_agent = NULL;
 	char tmp[64];
 	int default_port = 80;
-	if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_SSL)) {
+	if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
 		default_port = 443;
 	}
 	l << rq->getClientIp();
@@ -286,8 +286,8 @@ void log_access(KHttpRequest* rq) {
 #ifdef HTTP_PROXY
 	if (rq->sink->data.meth != METH_CONNECT)
 #endif
-		l << (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_SSL) ? "https://" : "http://");
-	KUrl* url = &rq->sink->data.raw_url;
+		l << (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL) ? "https://" : "http://");
+	KUrl* url = rq->sink->data.raw_url;
 	referer = (char*)rq->GetHttpValue("Referer");
 	user_agent = rq->GetHttpValue("User-Agent");
 	l << url->host;
@@ -474,15 +474,15 @@ KGL_RESULT stageHttpManage(KHttpRequest* rq)
 		conf.admin_lock.Unlock();
 		char ips[MAXIPLEN];
 		rq->sink->get_peer_ip(ips, sizeof(ips));
-		klog(KLOG_WARNING, "[ADMIN_FAILED] %s %s\n", ips, rq->sink->data.raw_url.path);
+		klog(KLOG_WARNING, "[ADMIN_FAILED] %s %s\n", ips, rq->sink->data.raw_url->path);
 		return stageHttpManageLogin(rq);
 	}
 	conf.admin_lock.Unlock();
 	char ips[MAXIPLEN];
 	rq->sink->get_peer_ip(ips, sizeof(ips));
 	klog(KLOG_NOTICE, "[ADMIN_SUCCESS]%s %s%s%s\n",
-		ips, rq->sink->data.raw_url.path,
-		(rq->sink->data.raw_url.param ? "?" : ""), (rq->sink->data.raw_url.param ? rq->sink->data.raw_url.param : ""));
+		ips, rq->sink->data.raw_url->path,
+		(rq->sink->data.raw_url->param ? "?" : ""), (rq->sink->data.raw_url->param ? rq->sink->data.raw_url->param : ""));
 	if (strstr(rq->sink->data.url->path, ".whm")
 		|| strcmp(rq->sink->data.url->path, "/logo.gif") == 0
 		|| strcmp(rq->sink->data.url->path, "/main.css") == 0) {
