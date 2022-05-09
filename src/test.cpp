@@ -24,7 +24,6 @@
 #include <assert.h>
 #include <string.h>
 #include "global.h"
-#include "lib.h"
 #include "KGzip.h"
 #include "do_config.h"
 #include "kmalloc.h"

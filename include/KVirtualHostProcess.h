@@ -162,7 +162,9 @@ protected:
 	{
 		return true;
 	}
+#ifdef KSOCKET_UNIX
 	std::string unix_path;
+#endif
 private:
 	void NoticePowerResult(bool result);
 	void AddQueue()

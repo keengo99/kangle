@@ -1,5 +1,5 @@
 #include "time_utils.h"
-#include "lib.h"
+#include "KHttpLib.h"
 volatile char cachedDateTime[sizeof("Mon, 28 Sep 1970 06:00:00 GMT")+2];
 volatile char cachedLogTime[sizeof("[28/Sep/1970:12:00:00 +0600]")+2];
 KMutex timeLock;

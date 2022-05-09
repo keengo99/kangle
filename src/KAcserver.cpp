@@ -17,7 +17,7 @@
  */
 #include <string.h>
 #include "KAcserver.h"
-#include "KSockFastcgiFetchObject.h"
+#include "KFastcgiFetchObject.h"
 #include "KHttpProxyFetchObject.h"
 #include "KAjpFetchObject.h"
 #include "KTcpFetchObject.h"
