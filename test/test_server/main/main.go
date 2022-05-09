@@ -109,7 +109,7 @@ func main() {
 		config.Cfg.UpstreamHttp2)
 	kangle.CheckExtDir()
 	server.Start()
-	server.StartFcgiServer()
+	//server.StartFcgiServer()
 	var suites []string
 	if len(*test_case) == 0 {
 		suites = suite.GetSuies()
