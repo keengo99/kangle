@@ -57,7 +57,6 @@
 #include "KTimeAcl.h"
 #include "KHttpProxyFetchObject.h"
 #include "KVirtualHost.h"
-#include "KNsVirtualHost.h"
 #include "KVirtualHostManage.h"
 #include "KFastcgiFetchObject.h"
 #include "KRewriteMark.h"

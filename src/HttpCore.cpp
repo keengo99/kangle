@@ -49,7 +49,6 @@
 #include "kselector.h"
 #include "KDirectoryFetchObject.h"
 #include "KStaticFetchObject.h"
-#include "KSyncFetchObject.h"
 #include "KCacheFetchObject.h"
 #include "KRewriteMarkEx.h"
 #include "KUrlParser.h"

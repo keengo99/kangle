@@ -9,7 +9,6 @@
 #include "http.h"
 #include "KLastModify.h"
 #include "KUrlValue.h"
-#include "KSyncFetchObject.h"
 enum {
 	USER_TYPE_UNAUTH, USER_TYPE_ADMIN, USER_TYPE_VIRTUALHOST, USER_TYPE_NORMAL
 };

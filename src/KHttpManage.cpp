@@ -342,7 +342,7 @@ bool KHttpManage::extends(unsigned item) {
 	stringstream s;
 	unsigned i;
 
-	const size_t max_extends = 6;
+	const size_t max_extends = 5;
 	const char* extends_header[max_extends] = { klang["single_server"]
 #ifdef ENABLE_MULTI_SERVER
 			,klang["multi_server"]
@@ -351,15 +351,10 @@ bool KHttpManage::extends(unsigned item) {
 #endif
 
 #ifndef HTTP_PROXY
-			,klang["api"],
-#ifdef ENABLE_CGI
-		klang["cgi"],
-#else
-		NULL,
-#endif
+		,klang["api"],
 		klang["cmd"]
 #else
-		,NULL,NULL,NULL
+		,NULL,NULL
 #endif
 #ifdef ENABLE_KSAPI_FILTER
 			,"dso"
@@ -400,23 +395,15 @@ bool KHttpManage::extends(unsigned item) {
 			name = getUrlValue("name");
 		}
 		s << conf.gam->apiList(name);
-#ifdef ENABLE_CGI
-	} else if (item == 3) {
-		string name;
-		if (getUrlValue("action") == "edit") {
-			name = getUrlValue("name");
-		}
-		s << conf.gam->cgiList(name);
-#endif
 #ifdef ENABLE_VH_RUN_AS
-	} else if (item == 4) {
+	} else if (item == 3) {
 		string name;
 		if (getUrlValue("action") == "edit") {
 			name = getUrlValue("name");
 		}
 		s << conf.gam->cmdList(name);
 #endif
-	} else if (item == 5) {
+	} else if (item == 4) {
 #ifdef ENABLE_KSAPI_FILTER
 		if (conf.dem) {
 			conf.dem->html(s);
@@ -2171,22 +2158,6 @@ function sortrq(index)\
 		s << "</body></html>";
 		return sendHttp(s.str());
 	}
-
-#ifdef ENABLE_CGI
-	if (strcmp(rq->sink->data.url->path, "/cgienable") == 0) {
-		bool enable = false;
-		if (getUrlValue("flag") == "enable") {
-			enable = true;
-		}
-		if (conf.gam->cgiEnable(getUrlValue("name"), enable)) {
-			if (!saveConfig()) {
-				return sendErrorSaveConfig();
-			}
-			return extends(3);
-		}
-		return sendErrPage("error set flag");
-	}
-#endif
 	if (strcmp(rq->sink->data.url->path, "/apienable") == 0) {
 		bool enable = false;
 		if (getUrlValue("flag") == "enable") {
@@ -2210,7 +2181,7 @@ function sortrq(index)\
 			if (!saveConfig()) {
 				return sendErrorSaveConfig();
 			}
-			return extends(4);
+			return extends(3);
 		}
 		return sendErrPage("error set flag");
 	}
@@ -2220,7 +2191,7 @@ function sortrq(index)\
 			if (!saveConfig()) {
 				return sendErrorSaveConfig();
 			}
-			return sendRedirect("/extends?item=4");
+			return sendRedirect("/extends?item=3");
 		}
 		return sendErrPage(errMsg.c_str());
 	}
@@ -2230,7 +2201,7 @@ function sortrq(index)\
 			if (!saveConfig()) {
 				return sendErrorSaveConfig();
 			}
-			return extends(4);
+			return extends(3);
 		}
 		return sendErrPage(errMsg.c_str());
 
@@ -2246,18 +2217,6 @@ function sortrq(index)\
 		}
 		return sendErrPage(errMsg.c_str());
 	}
-#ifdef ENABLE_CGI
-	if (strcmp(rq->sink->data.url->path, "/cgiform") == 0) {
-		std::string errMsg;
-		if (conf.gam->cgiForm(urlParam, errMsg)) {
-			if (!saveConfig()) {
-				return sendErrorSaveConfig();
-			}
-			return sendRedirect("/extends?item=3");
-		}
-		return sendErrPage(errMsg.c_str());
-	}
-#endif
 	if (strcmp(rq->sink->data.url->path, "/delapi") == 0) {
 		std::string errMsg;
 		if (conf.gam->delApi(getUrlValue("name"), errMsg)) {
@@ -2269,19 +2228,6 @@ function sortrq(index)\
 		return sendErrPage(errMsg.c_str());
 
 	}
-#ifdef ENABLE_CGI
-	if (strcmp(rq->sink->data.url->path, "/delcgi") == 0) {
-		std::string errMsg;
-		if (conf.gam->delCgi(getUrlValue("name"), errMsg)) {
-			if (!saveConfig()) {
-				return sendErrorSaveConfig();
-			}
-			return extends(3);
-		}
-		return sendErrPage(errMsg.c_str());
-
-	}
-#endif
 	if (strcmp(rq->sink->data.url->path, "/changelang") == 0) {
 		strncpy(conf.lang, getUrlValue("lang").c_str(), sizeof(conf.lang) - 1);
 		if (!saveConfig()) {

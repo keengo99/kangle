@@ -22,7 +22,6 @@
 #include "KSingleAcserver.h"
 #include "KMultiAcserver.h"
 #include "KCmdPoolableRedirect.h"
-#include "KCgiRedirect.h"
 #include "KRWLock.h"
 #include "KExtendProgram.h"
 #include <string>
@@ -113,13 +112,6 @@ public:
 	KSingleAcserver* refsSingleAcserver(std::string name);
 	KPoolableRedirect* refsAcserver(std::string name);
 
-#ifdef ENABLE_CGI
-	bool cgiEnable(std::string name, bool enable);
-	bool delCgi(std::string name, std::string& err_msg);
-	bool cgiForm(std::map<std::string, std::string>& attribute, std::string& errMsg);
-	std::string cgiList(std::string name = "");
-	KCgiRedirect* refsCgiRedirect(std::string name);
-#endif
 	KRedirect* refsRedirect(std::string target);
 	KApiRedirect* refsApiRedirect(std::string name);
 	void clearImportConfig();
@@ -133,11 +125,6 @@ public:
 	bool endElement(std::string& context, std::string& qName);
 	void buildXML(std::stringstream& s, int flag);
 private:
-#ifdef ENABLE_CGI
-	bool newCgiRedirect(std::string name, std::string cmd, std::string arg, std::string env, std::string env_split, std::string& err_msg);
-	KCgiRedirect* getCgiRedirect(std::string name);
-	std::map<std::string, KCgiRedirect*> cgis;
-#endif
 	bool newApiRedirect(std::string name, std::string file, std::string type, std::string flag, std::string& err_msg);
 	KSingleAcserver* getSingleAcserver(std::string table_name);
 #ifdef ENABLE_MULTI_SERVER

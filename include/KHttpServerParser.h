@@ -20,7 +20,6 @@
 #include <time.h>
 #include "KXmlEvent.h"
 #include "KVirtualHost.h"
-#include "KNsVirtualHost.h"
 #include "KAccess.h"
 #ifndef HTTP_PROXY
 

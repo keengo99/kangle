@@ -12,9 +12,7 @@
 #define VH_CONFIG_FILE	"/etc/vh.xml"
 #include "KXmlSupport.h"
 #include "KVirtualHost.h"
-#include "KNsVirtualHost.h"
 #include "KMutex.h"
-#include "KIpVirtualHost.h"
 #include "KDynamicListen.h"
 class KGTempleteVirtualHost;
 
