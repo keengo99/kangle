@@ -34,7 +34,7 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 	if (!kflike(fd)) {
 		return out->f->write_message(out, rq, KGL_MSG_ERROR, "file not found", STATUS_NOT_FOUND);
 	}
-	fp = kfiber_file_bind(fd);
+	fp = kfiber_file_bind(fd, KFILE_ASYNC);
 	if (fp == NULL) {
 		kfclose(fd);
 		return out->f->write_message(out, rq, KGL_MSG_ERROR, "file not found", STATUS_NOT_FOUND);
