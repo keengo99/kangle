@@ -27,9 +27,13 @@ KUpstream *KSPCmdProcess::PowerResult(KHttpRequest *rq, KPipeStream* st2)
 	}
 	st = static_cast<KListenPipeStream *>(st2);
 	//这里把端口号保存，下次连接时就不用对stLock加锁了。
+#ifdef KSOCKET_UNIX
 	if (unix_path.empty()) {
+#endif
 		ksocket_getaddr("127.0.0.1", st->getPort(), AF_UNSPEC, AI_NUMERICHOST, &addr);
+#ifdef KSOCKET_UNIX
 	}
+#endif
 	stLock.Unlock();
 	kconnection* cn = TryConnect(&addr);
 	if (cn != NULL) {
@@ -44,7 +48,9 @@ KPipeStream *KSPCmdProcess::PowerThread(KVirtualHost *vh,KExtendProgram *erd)
 	if (rd->port > 0) {
 		st2->setPort(rd->port);
 	}
+#ifdef KSOCKET_UNIX
 	unix_path.clear();
+#endif
 	bool result = rd->Exec(vh, st2, false);
 	if (!result) {
 		delete st2;
