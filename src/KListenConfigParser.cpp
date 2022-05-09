@@ -24,7 +24,6 @@
 #include "kmalloc.h"
 #include "kthread.h"
 #include "KRequestQueue.h"
-#include "lib.h"
 #include "do_config.h"
 using namespace std;
 KListenConfigParser listenConfigParser;

@@ -27,8 +27,8 @@ class KChunked : public KHttpStream
 public:
 	KChunked(KWriteStream *st,bool autoDelete);
 	~KChunked();
-	StreamState write_all(KHttpRequest *rq, const char *buf,int size);
-	StreamState write_end(KHttpRequest *rq, KGL_RESULT result);
+	StreamState write_all(void *rq, const char *buf,int size) override;
+	StreamState write_end(void *rq, KGL_RESULT result) override;
 private:
 	bool firstPackage;
 };

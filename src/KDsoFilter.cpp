@@ -33,15 +33,15 @@ KDsoFilter::~KDsoFilter()
 {
 	filter->release(ctx.module);
 }
-KGL_RESULT KDsoFilter::flush(KHttpRequest *rq)
+KGL_RESULT KDsoFilter::flush(void*rq)
 {
 	return filter->flush(rq,&ctx);
 }
-KGL_RESULT KDsoFilter::write_all(KHttpRequest *rq, const char *buf, int len)
+KGL_RESULT KDsoFilter::write_all(void*rq, const char *buf, int len)
 {
 	return filter->write_all(rq, &ctx, buf, len);
 }
-KGL_RESULT KDsoFilter::write_end(KHttpRequest *rq, KGL_RESULT result)
+KGL_RESULT KDsoFilter::write_end(void *rq, KGL_RESULT result)
 {
 	return filter->write_end(rq, &ctx, result);
 }

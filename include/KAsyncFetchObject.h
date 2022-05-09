@@ -19,7 +19,6 @@ struct kgl_pop_header {
 	uint16_t status_send : 1;
 	uint16_t no_body:1;
 	int keep_alive_time_out;
-	time_t first_body_time;
 };
 /**
 * 异步调用扩展，所以支持异步调用的扩展从该类继承
@@ -44,7 +43,7 @@ public:
 				|| !rq->ctx->upstream_expected_done) {
 				pop_header.keep_alive_time_out = -1;
 			}
-			client->gc(pop_header.keep_alive_time_out, pop_header.first_body_time);
+			client->gc(pop_header.keep_alive_time_out);
 			client = NULL;
 		}		
 		ResetBuffer();		
@@ -53,7 +52,7 @@ public:
 	{
 		assert(client==NULL);	
 		if (client) {
-			client->gc(-1,0);
+			client->gc(-1);
 		}
 		if (buffer) {
 			delete buffer;

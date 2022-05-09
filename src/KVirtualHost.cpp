@@ -35,7 +35,6 @@
 #include "KLogManage.h"
 #include "KAccessParser.h"
 #include "cache.h"
-#include "lib.h"
 #include "utils.h"
 #include "kmalloc.h"
 #include "KApiRedirect.h"

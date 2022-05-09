@@ -63,16 +63,15 @@ KLockToken* KDavLockManager::new_token(const char* owner, Lock_type type, int ti
 	mutex.Lock();
 	s << time(NULL) << "-" << tokenIndex++;
 	KLockToken* token = new KLockToken(s.str().c_str(), type, timeout);
-	token->addRef();
-	lockTokens.insert(pair<char*, KLockToken*>(token->getValue(), token));
 	mutex.Unlock();
 	return token;
 }
-Lock_op_result KDavLockManager::unlock(const char* name, KLockToken* lockToken)
+Lock_op_result KDavLockManager::unlock(KLockToken* lockToken)
 {
 	auto result = Lock_op_failed;
+	assert(lockToken->locked_file);
 	mutex.Lock();
-	std::map<char*, KDavLockFile*, lessr>::iterator it = fileLocks.find((char*)name);
+	std::map<char*, KDavLockFile*, lessr>::iterator it = fileLocks.find(lockToken->locked_file->getName());
 	if (it == fileLocks.end()) {
 		assert(false);
 		mutex.Unlock();
@@ -88,16 +87,6 @@ Lock_op_result KDavLockManager::unlock(const char* name, KLockToken* lockToken)
 	}
 	mutex.Unlock();
 	return result;
-}
-KLockToken* KDavLockManager::find_lock_token(const char* token)
-{
-	mutex.Lock();
-	KLockToken* lockToken = internalFindLockToken(token);
-	if (lockToken) {
-		lockToken->addRef();
-	}
-	mutex.Unlock();
-	return lockToken;
 }
 KLockToken *KDavLockManager::find_file_locked(const char* name)
 {
@@ -117,6 +106,7 @@ KLockToken *KDavLockManager::find_file_locked(const char* name)
 }
 void KDavLockManager::flush(time_t nowTime)
 {
+#if 0
 	mutex.Lock();
 	for (auto it = lockTokens.begin(); it != lockTokens.end(); ) {
 		KLockToken* token = (*it).second;
@@ -138,14 +128,7 @@ void KDavLockManager::flush(time_t nowTime)
 		it++;	
 	}
 	mutex.Unlock();
-}
-KLockToken* KDavLockManager::internalFindLockToken(const char* token)
-{
-	map<char*, KLockToken*, lessp>::iterator it = lockTokens.find((char*)token);
-	if (it == lockTokens.end()) {
-		return NULL;
-	}
-	return (*it).second;
+#endif
 }
 KDavLockFile* KDavLockManager::internalFindLockOnFile(const char* name)
 {

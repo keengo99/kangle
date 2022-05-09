@@ -3,7 +3,7 @@
 #include <string.h>
 #include "global.h"
 #include "kmalloc.h"
-#include "lib.h"
+#include "KHttpLib.h"
 #include "ksapi.h"
 #include "KStringBuf.h"
 

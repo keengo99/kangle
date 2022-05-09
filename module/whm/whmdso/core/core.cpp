@@ -33,7 +33,7 @@
 #include "extern.h"
 #include "kserver.h"
 #include "cache.h"
-#include "lib.h"
+#include "KHttpLib.h"
 #include "KConfigBuilder.h"
 #include "KAcserverManager.h"
 #include "KTempleteVirtualHost.h"

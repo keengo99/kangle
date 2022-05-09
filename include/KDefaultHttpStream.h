@@ -6,9 +6,9 @@
 class KDefaultHttpStream : public KWriteStream {
 public:
 protected:
-	int write(KHttpRequest *rq, const char *buf, int len)
+	int write(void *rq, const char *buf, int len) override
 	{
-		return rq->Write(buf, len);
+		return ((KHttpRequest *)rq)->Write(buf, len);
 	}
 };
 #endif

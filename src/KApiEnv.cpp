@@ -22,7 +22,7 @@
  *  Author: KangHongjiu <keengo99@gmail.com>
  */
 #include "KApiEnv.h"
-#include "lib.h"
+#include "KHttpLib.h"
 #include "ksapi.h"
 #include "kmalloc.h"
 

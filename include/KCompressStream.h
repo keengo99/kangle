@@ -2,6 +2,7 @@
 #define KCOMPRESS_STREAM_H_99
 #include "KHttpStream.h"
 class KHttpObject;
+class KHttpRequest;
 class KCompressStream : public KHttpStream
 {
 public:

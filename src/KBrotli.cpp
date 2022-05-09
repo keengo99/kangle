@@ -10,7 +10,7 @@ KBrotliCompress::~KBrotliCompress()
 {
 	BrotliEncoderDestroyInstance(state);
 }
-KGL_RESULT KBrotliCompress::Compress(KHttpRequest *rq, const uint8_t **str, size_t len, BrotliEncoderOperation op)
+KGL_RESULT KBrotliCompress::Compress(void *rq, const uint8_t **str, size_t len, BrotliEncoderOperation op)
 {
 	char out[8192];
 	do {
@@ -29,11 +29,11 @@ KGL_RESULT KBrotliCompress::Compress(KHttpRequest *rq, const uint8_t **str, size
 	} while (BrotliEncoderHasMoreOutput(state));
 	return KGL_OK;
 }
-KGL_RESULT KBrotliCompress::write_all(KHttpRequest *rq, const char *str, int len)
+KGL_RESULT KBrotliCompress::write_all(void*rq, const char *str, int len)
 {
 	return Compress(rq, (const uint8_t **)&str, (size_t)len, BROTLI_OPERATION_PROCESS);
 }
-KGL_RESULT KBrotliCompress::flush(KHttpRequest *rq)
+KGL_RESULT KBrotliCompress::flush(void *rq)
 {
 	KGL_RESULT result2 = Compress(rq,NULL,0, BROTLI_OPERATION_FLUSH);
 	if (result2 != KGL_OK) {
@@ -41,7 +41,7 @@ KGL_RESULT KBrotliCompress::flush(KHttpRequest *rq)
 	}
 	return KGL_OK;
 }
-KGL_RESULT KBrotliCompress::write_end(KHttpRequest *rq, KGL_RESULT result)
+KGL_RESULT KBrotliCompress::write_end(void *rq, KGL_RESULT result)
 {
 	KGL_RESULT result2 = Compress(rq, NULL, 0, BROTLI_OPERATION_FINISH);
 	if (result2 != KGL_OK) {

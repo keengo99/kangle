@@ -132,6 +132,7 @@ func Request(method string, path string, host string, header map[string]string, 
 	} else {
 		url = fmt.Sprintf("%s%s", config.Cfg.UrlPrefix, path)
 	}
+	//fmt.Printf("new request url=[%s]\n", url)
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		if cb != nil {
@@ -145,7 +146,7 @@ func Request(method string, path string, host string, header map[string]string, 
 		}
 	}
 	var client *http.Client
-	if strings.HasPrefix(config.Cfg.UrlPrefix, "https://") && config.Cfg.Http2 {
+	if strings.HasPrefix(url, "https://") && config.Cfg.Http2 {
 		client = Http2Client
 	} else {
 		client = Http1Client

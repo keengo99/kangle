@@ -20,7 +20,6 @@ KApiFetchObject::KApiFetchObject(KApiRedirect* rd) :
 	KApiService(&rd->dso) {
 	rq = NULL;
 	token = NULL;
-	responseDenied = false;
 	push_parser.parser.first_same = 1;
 }
 
@@ -109,11 +108,17 @@ KGL_RESULT KApiFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_out
 		chrooted = rq->get_virtual_host()->vh->chroot;
 #endif
 		make_http_env(rq, in, brd, rq->sink->data.if_modified_since, rq->file, &env, chrooted);
-		result = start();
+		start();
 	}
 	if (!headSended && result == KGL_OK) {
 		headSended = true;
 		result = out->f->write_header_finish(out, rq);
+	}
+	if (result == KGL_NO_BODY) {
+		return result;
+	}
+	if (no_body) {
+		return KGL_NO_BODY;
 	}
 	return out->f->write_end(out, rq, result);
 }
@@ -166,8 +171,14 @@ KGL_RESULT KApiFetchObject::addHeader(const char* attr, int len) {
 	case kgl_parse_continue:
 		return KGL_OK;
 	case kgl_parse_finished:
+	{
 		headSended = true;
-		return out->f->write_header_finish(out, rq);
+		auto result = out->f->write_header_finish(out, rq);
+		if (result == KGL_NO_BODY) {
+			no_body = true;
+		}
+		return result;
+	}
 	default:
 		kassert(false);
 		return KGL_EDATA_FORMAT;
@@ -192,10 +203,7 @@ int KApiFetchObject::writeClient(const char* str, int len) {
 	default:
 		break;
 	}
-	if (rq->tr->TrySyncWrite(rq)) {
-		return len;
-	}
-	return -1;
+	return len;
 }
 int KApiFetchObject::readClient(char* buf, int len) {
 	return rq->Read(buf, len);

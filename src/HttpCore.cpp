@@ -30,7 +30,7 @@
 #include "cache.h"
 #include "http.h"
 #include "utils.h"
-#include "lib.h"
+#include "KHttpLib.h"
 
 #include "KBuffer.h"
 #include "KHttpRequest.h"

@@ -27,9 +27,9 @@ public:
 	}
 	~KCacheStream();
 	void init(KHttpRequest *rq, KHttpObject *obj, cache_model cache_layer);
-	StreamState write_direct(KHttpRequest *rq, char *buf,int len);
-	StreamState write_all(KHttpRequest *rq, const char *buf,int len);
-	StreamState write_end(KHttpRequest *rq, KGL_RESULT result);
+	StreamState write_direct(void *rq, char *buf,int len) override;
+	StreamState write_all(void*rq, const char *buf,int len)override;
+	StreamState write_end(void*rq, KGL_RESULT result)override;
 private:
 	void CheckMemoryCacheSize(KHttpRequest *rq);
 #ifdef ENABLE_DISK_CACHE	

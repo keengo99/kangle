@@ -98,15 +98,7 @@ public:
 #endif//}}
 	};
 };
-inline bool is_status_code_no_body(int status_code) {
-		if (status_code == 100
-			|| status_code == STATUS_NOT_MODIFIED
-			|| status_code == STATUS_NO_CONTENT) {
-			//no content,see rfc2616.
-			return true;
-		}
-		return false;
-}
+
 inline bool status_code_can_cache(u_short code) {
 	switch (code) {
 	case STATUS_OK:

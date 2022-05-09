@@ -124,13 +124,11 @@ public:
 	}
 	KLockToken* new_token(const char* owner, Lock_type type, int timeout);
 	Lock_op_result lock(const char* name, KLockToken* lockToken);
-	Lock_op_result unlock(const char* name, KLockToken* lockToken);
-	KLockToken* find_lock_token(const char* token);
+	Lock_op_result unlock(KLockToken* lockToken);
 	KLockToken *find_file_locked(const char* name);
 	void flush(time_t nowTime);
 	friend class KLockToken;
 private:
-	KLockToken* internalFindLockToken(const char* token);
 	KDavLockFile* internalFindLockOnFile(const char* name);
 	bool internal_remove(KDavLockFile* file)
 	{
@@ -141,7 +139,6 @@ private:
 		fileLocks.erase(it);
 		return true;
 	}
-	std::map<char*, KLockToken*, lessp> lockTokens;
 	std::map<char*, KDavLockFile*, lessr> fileLocks;
 	KMutex mutex;
 	unsigned tokenIndex;

@@ -5,7 +5,7 @@
 #include "KVirtualHostManage.h"
 #include "kselector_manager.h"
 #include "KPreRequest.h"
-#include "lib.h"
+#include "KHttpLib.h"
 #include "WhmContext.h"
 #include "KHttpServer.h"
 #define DEFAULT_IPV4_IP  "0.0.0.0"

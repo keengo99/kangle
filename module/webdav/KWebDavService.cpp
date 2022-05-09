@@ -8,8 +8,10 @@
 #include "KWebDavService.h"
 #include "KDavLock.h"
 #include "KHttpKeyValue.h"
-#include "lib.h"
 #include "KFSResource.h"
+#include "KUrl.h"
+#include "KHttpLib.h"
+#include "KDefer.h"
 
 #define MAX_DEPTH 1
 #define MAX_DOCUMENT_SIZE   1048576
@@ -40,45 +42,67 @@ KWebDavService::~KWebDavService() {
 }
 bool KWebDavService::service(KISAPIServiceProvider* provider) {
 	this->provider = provider;
-	switch (provider->getMethod()) {
-	case METH_OPTIONS:
-		return doOptions();
-	case METH_PUT:
-		return doPut();
-	case METH_LOCK:
-		return doLock();
-	case METH_UNLOCK:
-		return doUnlock();
-	case METH_PROPFIND:
-		return doPropfind();
-	case METH_PROPPATCH:
-		return doProppatch();
-	case METH_MKCOL:
-		return doMkcol();
-	case METH_MOVE:
-		return doMove();
-	case METH_COPY:
-		return doCopy();
-	case METH_DELETE:
-		return doDelete();
-	case METH_GET:
-		return doGet(false);
-	case METH_HEAD:
-		return doGet(true);
-	default:
-		provider->sendUnknowHeader("Allow", allowed_header);
-		return send(STATUS_METH_NOT_ALLOWED);
+	try {
+		switch (provider->getMethod()) {
+		case METH_OPTIONS:
+			return doOptions();
+		case METH_PUT:
+			return doPut();
+		case METH_LOCK:
+			return doLock();
+		case METH_UNLOCK:
+			return doUnlock();
+		case METH_PROPFIND:
+			return doPropfind();
+		case METH_PROPPATCH:
+			return doProppatch();
+		case METH_MKCOL:
+			return doMkcol();
+		case METH_MOVE:
+			return doMove();
+		case METH_COPY:
+			return doCopy();
+		case METH_DELETE:
+			return doDelete();
+		case METH_GET:
+			return doGet(false);
+		case METH_HEAD:
+			return doGet(true);
+		default:
+			provider->sendUnknowHeader("Allow", allowed_header);
+			return send(STATUS_METH_NOT_ALLOWED);
+		}
+	} catch (...) {
+		printf("catch exception\n");
 	}
 	return true;
+}
+uint16_t KWebDavService::check_file_locked(KLockToken *lock_token)
+{
+	if (lock_token == nullptr) {
+		return STATUS_OK;
+	}
+	const char* if_token = getIfToken();
+	if (if_token == nullptr) {
+		return STATUS_LOCKED;
+	}
+	if (strcasecmp(lock_token->getValue(), if_token) != 0) {
+		return STATUS_PRECONDITION;
+	}
+	return STATUS_OK;
 }
 bool KWebDavService::send(int status_code) {
 	return provider->sendStatus(status_code, NULL);
 }
 bool KWebDavService::doGet(bool head) {
-	KResource* rs = rsMaker->bindResource(provider->getFileName(), provider->getRequestUri());
+	KResource* rs = rsMaker->bindResource(provider->getFileName(), provider->getRequestUri());		
 	if (rs == NULL) {
 		return send(STATUS_NOT_FOUND);
 	}
+	provider->sendUnknowHeader("Cache-Control", "no-cache,no-store");
+	provider->sendUnknowHeader("X-Accel-Redirect", provider->getRequestUri());
+	return send(STATUS_OK);
+#if 0
 	char* if_modified_since = provider->getHttpHeader("If-Modified-Since");
 	if (if_modified_since) {
 		time_t ims = parse1123time(if_modified_since);
@@ -109,13 +133,78 @@ bool KWebDavService::doGet(bool head) {
 	}
 	delete rs;
 	return true;
+#endif
 }
 bool KWebDavService::doCopy() {
-	return true;
+	KXmlDocument document;
+	if (!parseDocument(document)) {
+	}
+	char destination[1024];
+	int len = sizeof(destination);
+	if (!provider->getEnv("HTTP_DESTINATION", destination, &len) || len <= 0) {
+		return send(STATUS_BAD_REQUEST);
+	}
+
+	DWORD destination_len = sizeof(destination);
+	if (provider->pECB->ServerSupportFunction(provider->pECB->ConnID, HSE_REQ_MAP_URL_TO_PATH, destination, &destination_len, NULL) == FALSE) {
+		return send(STATUS_BAD_REQUEST);
+	}
+
+	auto lock_token = lockManager.find_file_locked(destination);
+	auto status_code = check_file_locked(lock_token);
+	if (lock_token) {
+		lock_token->release();
+	}
+	if (status_code != STATUS_OK) {
+		return send(status_code);
+	}
+
+	auto rs = rsMaker->bindResource(provider->getFileName(), provider->getRequestUri());
+	if (rs == NULL) {
+		return send(STATUS_NOT_FOUND);
+	}
+	defer(delete rs);
+	int status = STATUS_CREATED;
+	if (!rs->open(false)) {
+		return send(STATUS_FORBIDEN);
+	}
+	auto dst = rsMaker->bindResource(destination, "/");
+	if (dst) {
+		defer(delete dst);
+		char* overWriteHeader = provider->getHttpHeader("Overwrite");
+		if (overWriteHeader) {
+			if (strcasecmp(overWriteHeader, "T") != 0) {
+				provider->freeHttpHeader(overWriteHeader);
+				return send(STATUS_PRECONDITION);
+			}
+			provider->freeHttpHeader(overWriteHeader);
+		}
+		status = STATUS_NO_CONTENT;
+		dst->remove();
+	}
+	dst = rsMaker->makeFile(destination, "/");
+	if (dst == nullptr) {
+		return send(STATUS_FORBIDEN);
+	}
+	defer(delete dst);
+	if (!rs->copy(dst)) {
+		return send(STATUS_FORBIDEN);
+	}
+	send(status);
+	provider->getEnv("HTTP_DESTINATION", destination, &len);
+	return provider->sendUnknowHeader("Location", destination);	
+	
 }
 bool KWebDavService::doDelete() {
-	KResource* rs = rsMaker->bindResource(provider->getFileName(),
-		provider->getRequestUri());
+	auto lock_token = lockManager.find_file_locked(provider->getFileName());
+	auto status_code = check_file_locked(lock_token);
+	if (lock_token) {
+		lock_token->release();
+	}
+	if (status_code != STATUS_OK) {
+		return send(status_code);
+	}
+	KResource* rs = rsMaker->bindResource(provider->getFileName(), provider->getRequestUri());
 	if (rs == NULL) {
 		return send(STATUS_NOT_FOUND);
 	}
@@ -123,18 +212,25 @@ bool KWebDavService::doDelete() {
 		send(STATUS_FORBIDEN);
 	}
 	delete rs;
-	return true;
+	return send(STATUS_NO_CONTENT);
 }
 bool KWebDavService::doOptions() {
 	send(STATUS_OK);
 	provider->sendUnknowHeader("Allow", allowed_header);
-	provider->sendUnknowHeader("DAV", "1");
+	provider->sendUnknowHeader("DAV", "1,2,3");
 	return true;
 }
-bool KWebDavService::doPut() {
-	//TODO:¼ì²éËø
-	KResource* rs = rsMaker->makeFile(provider->getFileName(),
-		provider->getRequestUri());
+bool KWebDavService::doPut() {	
+	auto lock_token = lockManager.find_file_locked(provider->getFileName());
+	auto status_code = check_file_locked(lock_token);
+	if (lock_token) {
+		lock_token->release();
+	}
+	if (status_code != STATUS_OK) {
+		return send(status_code);
+	}
+
+	KResource* rs = rsMaker->makeFile(provider->getFileName(),provider->getRequestUri());
 	if (rs == NULL) {
 		return send(STATUS_FORBIDEN);
 	}
@@ -168,7 +264,7 @@ bool KWebDavService::parseDocument(KXmlDocument& document) {
 	if (content_length > MAX_DOCUMENT_SIZE) {
 		return false;
 	}
-	if (content_length == 0) {
+	if (content_length <= 0) {
 		return false;
 	}
 	int len = 0;
@@ -181,8 +277,7 @@ bool KWebDavService::parseDocument(KXmlDocument& document) {
 			return false;
 		}
 	}
-	buf[content_length] = '\0';
-	printf("xml=[%s]\n", buf);
+	buf[content_length] = '\0';	
 	try {
 		document.parse(buf);
 		xfree(buf);
@@ -201,12 +296,12 @@ const char* KWebDavService::getIfToken() {
 	if (if_val == NULL) {
 		return NULL;
 	}
-	char* p = strchr(if_val, '<');
+	char* p = strstr(if_val, "(<");
 	if (p == NULL) {
 		provider->freeHttpHeader(if_val);
 		return NULL;
 	}
-	if_token = xstrdup(p + 1);
+	if_token = xstrdup(p + 2);
 	provider->freeHttpHeader(if_val);
 	p = strchr(if_token, '>');
 	if (p) {
@@ -215,23 +310,53 @@ const char* KWebDavService::getIfToken() {
 	return if_token;
 
 }
+bool KWebDavService::response_lock_body(KLockToken* token)
+{
+	writeXmlHeader();
+	KWStream* s = provider->getOutputStream();
+	*s << "<D:prop " << xml_dav_ns << "><D:lockdiscovery><D:activelock>";
+	*s << "<D:locktype><D:write/></D:locktype>";
+	*s << "<D:lockscope><D:";
+	switch (token->getType()) {
+	case Lock_exclusive:
+		*s << "exclusive";
+		break;
+	case Lock_share:
+		*s << "shared";
+		break;
+	default:
+		*s << "none";
+		break;
+	}
+	*s << "/></D:lockscope>\n";
+	*s << "<D:depth>0</D:depth>";
+	*s << "<D:locktoken><D:href>" << token->getValue() << "</D:href>";
+	*s << "</D:locktoken></D:activelock>\n";
+	*s << "</D:lockdiscovery></D:prop>";
+	return true;
+}
 bool KWebDavService::doLock() {
 	KXmlDocument document;
 	char ips[255];
 	int len = sizeof(ips);
 	provider->getEnv("REMOTE_ADDR", ips, &len);
 	if (!parseDocument(document)) {
-		if (getIfToken() != NULL) {
-			//todo:refresh the lock
-			KLockToken* token = lockManager.find_lock_token(if_token);
-			if (token != NULL) {
-				token->refresh();
-				token->release();
-			}
-			return send(STATUS_OK);
+		//flush the lock
+		auto lock_token = lockManager.find_file_locked(provider->getFileName());
+		if (lock_token == nullptr) {
+			return send(STATUS_BAD_REQUEST);
 		}
-		return send(STATUS_BAD_REQUEST);
-
+		defer(lock_token->release());
+		const char* if_token = getIfToken();
+		if (if_token == nullptr) {
+			return send(STATUS_BAD_REQUEST);
+		}
+		if (strcasecmp(lock_token->getValue(), if_token) != 0) {
+			return send(STATUS_PRECONDITION);
+		}
+		lock_token->refresh();
+		send(STATUS_OK);
+		return response_lock_body(lock_token);
 	}
 	KXmlNode* node = document.getRootNode();
 	if (node == NULL) {
@@ -254,44 +379,45 @@ bool KWebDavService::doLock() {
 	if (token == NULL) {
 		return send(STATUS_SERVER_ERROR);
 	}
+	defer(token->release());
+	//printf("lock file=[%s]\n", provider->getFileName());
 	Lock_op_result result = lockManager.lock(provider->getFileName(), token);
 	if (result != Lock_op_success) {
-		send(423);
-	} else {
-		std::stringstream h;
-		h << "<" << token->getValue() << ">";
-		provider->sendUnknowHeader("Lock-Token", h.str().c_str());
-		writeXmlHeader();
-		KWStream* s = provider->getOutputStream();
-		*s << "<D:prop " << xml_dav_ns << "><D:lockdiscovery><D:activelock>";
-		*s << "<D:locktype><D:write/></D:locktype>";
-		*s << "<D:lockscope><D:";
-		switch (token->getType()) {
-		case Lock_exclusive:
-			*s << "exclusive";
-			break;
-		case Lock_share:
-			*s << "shared";
-			break;
-		default:
-			*s << "none";
-			break;
-		}
-		*s << "/></D:lockscope>\n";
-		*s << "<D:depth>0</D:depth>";
-		*s << "<D:locktoken><D:href>" << token->getValue() << "</D:href>";
-		*s << "</D:locktoken></D:activelock>\n";
-		*s << "</D:lockdiscovery></D:prop>";
+		return send(423);
 	}
-	token->release();
-	return true;
+	std::stringstream h;
+	h << "<" << token->getValue() << ">";
+	provider->sendUnknowHeader("Lock-Token", h.str().c_str());
+	return response_lock_body(token);
 }
 bool KWebDavService::doUnlock() {
-	return send(STATUS_METH_NOT_ALLOWED);
+	char token_header[512];
+	int len = sizeof(token_header);
+	if (!provider->getEnv("HTTP_LOCK_TOKEN", token_header, &len)) {
+		return send(STATUS_BAD_REQUEST);
+	}
+	char* token = strchr(token_header, '<');
+	if (token == nullptr) {
+		return send(STATUS_BAD_REQUEST);
+	}
+	token++;
+	char* e = strrchr(token_header, '>');
+	if (e) {
+		*e = '\0';
+	}
+	auto lock_token = lockManager.find_file_locked(provider->getFileName());
+	if (lock_token == nullptr) {
+		return send(STATUS_CONFLICT);
+	}
+	defer(lock_token->release());
+	if (strcasecmp(lock_token->getValue(), token) != 0) {
+		return send(STATUS_FORBIDEN);
+	}
+	lockManager.unlock(lock_token);
+	return send(STATUS_NO_CONTENT);
 }
 bool KWebDavService::doMkcol() {
-	KResource* rs = rsMaker->makeDirectory(provider->getFileName(),
-		provider->getRequestUri());
+	KResource* rs = rsMaker->makeDirectory(provider->getFileName(),provider->getRequestUri());
 	if (rs) {
 		send(STATUS_CREATED);
 		delete rs;
@@ -372,6 +498,22 @@ bool KWebDavService::doPropfind() {
 	if (rs == NULL) {
 		return send(STATUS_NOT_FOUND);
 	}
+	if (rs->isDirectory()) {
+		char* path = rs->getPath();
+		int len = (int)strlen(path);
+		if (len > 1) {
+			if (path[len - 1] == '/') {
+				path[len - 1] = '\0';
+			} else {
+				KStringBuf s;
+				s << path << "/";
+				send(STATUS_MOVED);
+				provider->sendUnknowHeader("Location", s.getString());
+				delete rs;
+				return true;
+			}
+		}
+	}
 	KWStream* s = provider->getOutputStream();
 	provider->sendStatus(STATUS_MULTI_STATUS, NULL);
 	writeXmlHeader();
@@ -423,7 +565,22 @@ bool KWebDavService::doMove() {
 	if (provider->pECB->ServerSupportFunction(provider->pECB->ConnID, HSE_REQ_MAP_URL_TO_PATH, destination, &destination_len, NULL) == FALSE) {
 		return send(STATUS_BAD_REQUEST);
 	}
-
+	auto src_token = lockManager.find_file_locked(provider->getFileName());
+	auto status_code = check_file_locked(src_token);
+	if (src_token) {
+		src_token->release();
+	}
+	if (status_code != STATUS_OK) {
+		return send(status_code);
+	}
+	auto dst_lock_token = lockManager.find_file_locked(destination);
+	status_code = check_file_locked(dst_lock_token);
+	if (dst_lock_token) {
+		dst_lock_token->release();
+	}
+	if (status_code != STATUS_OK) {
+		return send(status_code);
+	}
 	KResource* rs = rsMaker->bindResource(provider->getFileName(), provider->getRequestUri());
 	if (rs == NULL) {
 		return send(STATUS_NOT_FOUND);

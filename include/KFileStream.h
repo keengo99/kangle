@@ -9,11 +9,11 @@ public:
 	{
 		return fp.open(str, model);
 	}
-	int write(KHttpRequest *rq, const char *buf, int len)
+	int write(void *rq, const char *buf, int len) override
 	{
 		return fp.write(buf, len);
 	}
-	StreamState write_end(KHttpRequest *rq) {
+	KGL_RESULT write_end(void*rq, KGL_RESULT result) override {
 		if (last_modified > 0) {
 			if (!kfutime(fp.getHandle(), last_modified)) {
 				//printf("update modifi time=[%x] error\n", (unsigned)last_modified);

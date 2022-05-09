@@ -138,7 +138,7 @@ const char *KFileName::getExt() {
 	return ext;
 }
 char *KFileName::concatDir(const char *docRoot, const char *file) {
-	char *triped_path = tripDir2(file, '/');
+	char *triped_path = tripDir2(file, PATH_SPLIT_CHAR);
 	if (triped_path == NULL) {
 		return NULL;
 	}

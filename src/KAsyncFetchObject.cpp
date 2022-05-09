@@ -235,10 +235,7 @@ KGL_RESULT KAsyncFetchObject::ReadBody(KHttpRequest* rq)
 			return KGL_OK;
 		}
 		char *buf = (char*)getUpstreamBuffer(&len);
-		WSABUF bufs;
-		bufs.iov_base = buf;
-		bufs.iov_len = len;
-		int got = client->read(&bufs, 1);
+		int got = client->read(buf, len);
 		if (got <= 0) {
 			pop_header.keep_alive_time_out = -1;
 			return  got == 0 ? KGL_OK : KGL_ESOCKET_BROKEN;
@@ -267,10 +264,7 @@ KGL_RESULT KAsyncFetchObject::ReadHeader(KHttpRequest *rq, kfiber **post_fiber)
 	int len;
 	for (;;) {		
 		char *buf = (char *)getUpstreamBuffer(&len);
-		WSABUF bufs;
-		bufs.iov_base = buf;
-		bufs.iov_len = len;
-		int got = client->read(&bufs, 1);		
+		int got = client->read(buf, len);		
 		if (got <= 0) {
 			return KGL_ESOCKET_BROKEN;
 		}
@@ -421,7 +415,6 @@ void KAsyncFetchObject::CreatePostFiber(KHttpRequest* rq, kfiber** post_fiber)
 }
 KGL_RESULT KAsyncFetchObject::readHeadSuccess(KHttpRequest *rq,kfiber **post_fiber)
 {
-	pop_header.first_body_time = kgl_current_sec;
 	client->IsGood();
 	if (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
 		rq->sink->SetNoDelay(true);

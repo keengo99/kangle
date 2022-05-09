@@ -18,8 +18,8 @@ public:
 	{
 
 	}
-	StreamState write_all(KHttpRequest *rq, const char *buf, int len);
-	StreamState write_end(KHttpRequest *rq,KGL_RESULT result);
+	StreamState write_all(void*rq, const char *buf, int len) override;
+	StreamState write_end(void*rq,KGL_RESULT result) override;
 private:
 	KSharedBigObject *sbo;
 };

@@ -40,7 +40,6 @@
 #include	"log.h"
 #include 	"KHttpManage.h"
 #include 	"kselector_manager.h"
-#include 	"lib.h"
 #include	"kmalloc.h"
 #include "KHttpObjectHash.h"
 #include "kthread.h"

@@ -12,7 +12,7 @@ KChunked::~KChunked()
 {
 
 }
-StreamState KChunked::write_all(KHttpRequest *rq, const char *buf,int size)
+StreamState KChunked::write_all(void *rq, const char *buf,int size)
 {
 	if (size<=0) {
 		return STREAM_WRITE_SUCCESS;
@@ -31,7 +31,7 @@ StreamState KChunked::write_all(KHttpRequest *rq, const char *buf,int size)
 	}
 	return st->write_all(rq, buf,size);
 }
-StreamState KChunked::write_end(KHttpRequest *rq, KGL_RESULT result)
+StreamState KChunked::write_end(void*rq, KGL_RESULT result)
 {
 	if (result == KGL_OK) {
 		//仅全部正常时，才发送结尾，避免下游非正常缓存

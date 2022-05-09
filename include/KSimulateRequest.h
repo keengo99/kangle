@@ -10,6 +10,7 @@
 #include "KSink.h"
 #include "kfiber.h"
 #ifdef ENABLE_SIMULATE_HTTP
+class KHttpRequest;
 KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx);
 int kgl_start_simulate_request(KHttpRequest *rq, kfiber** fiber = NULL);
 int kgl_simuate_http_request(kgl_async_http *ctx, kfiber** fiber = NULL);

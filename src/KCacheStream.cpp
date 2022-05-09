@@ -26,8 +26,9 @@ void KCacheStream::init(KHttpRequest *rq, KHttpObject *obj, cache_model cache_la
 #endif
 	buffer = new KAutoBuffer();
 }
-StreamState KCacheStream::write_end(KHttpRequest *rq, KGL_RESULT result)
+StreamState KCacheStream::write_end(void *arg, KGL_RESULT result)
 {
+	auto rq = (KHttpRequest*)arg;
 	if (result != KGL_OK) {
 		return KHttpStream::write_end(rq, result);
 	}
@@ -85,8 +86,9 @@ void KCacheStream::CheckMemoryCacheSize(KHttpRequest *rq)
 	delete buffer;
 	buffer = NULL;
 }
-StreamState KCacheStream::write_direct(KHttpRequest *rq, char *buf,int len)
+StreamState KCacheStream::write_direct(void *arg, char *buf,int len)
 {
+	auto rq = (KHttpRequest*)arg;
 	StreamState result = KHttpStream::write_all(rq, buf,len);
 	if (buffer) {
 		buffer->write_direct(buf, len);
@@ -104,8 +106,9 @@ StreamState KCacheStream::write_direct(KHttpRequest *rq, char *buf,int len)
 	return result;
 }
 
-StreamState KCacheStream::write_all(KHttpRequest *rq, const char *buf,int len)
+StreamState KCacheStream::write_all(void *arg, const char *buf,int len)
 {
+	auto rq = (KHttpRequest*)arg;
 	StreamState result = KHttpStream::write_all(rq, buf,len);
 	if (buffer) {
 		buffer->write_all(buf, len);

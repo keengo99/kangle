@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include "KHttpResponseParser.h"
-#include "lib.h"
 #include "http.h"
 #include "KHttpFieldValue.h"
 #include "time_utils.h"
@@ -111,11 +110,7 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 			(strcasecmp(attr, "X-Accel-Redirect") == 0 || strcasecmp(attr, "X-Proxy-Redirect") == 0)) {
 			KBIT_SET(obj->index.flags, ANSW_XSENDFILE);
 			return kgl_header_insert_begin;
-		}
-		if (strcasecmp(attr, "X-No-Buffer") == 0) {
-			KBIT_SET(rq->filter_flags, RF_NO_BUFFER);
-			return kgl_header_no_insert;
-		}
+		}		
 		if (strcasecmp(attr, "X-Gzip") == 0) {
 			obj->need_compress = 1;
 			return kgl_header_no_insert;

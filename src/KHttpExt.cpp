@@ -233,11 +233,11 @@ BOOL WINAPI ServerSupportFunction(HCONN hConn, DWORD dwHSERequest,LPVOID lpvBuff
 		}
 		if (header) {
 			KGL_RESULT result = fo->addHeader(header, (int)strlen(header));
-			if (result != KGL_OK) {
+			if (result != KGL_OK && result!=KGL_NO_BODY) {
 				return FALSE;
 			}
 		}
-		return true;
+		return TRUE;
 	}
 #ifdef _WIN32
 	if (dwHSERequest == HSE_REQ_VECTOR_SEND) {

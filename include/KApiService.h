@@ -10,6 +10,8 @@ public:
 	KApiService(KApiDso *dso)
 	{
 		headSended = false;
+		no_body = false;
+		responseDenied = false;
 		this->dso = dso;
 	}
 	virtual ~KApiService()
@@ -30,7 +32,6 @@ public:
 		case HSE_STATUS_PENDING:
 			return KGL_ENOT_SUPPORT;
 		default:
-			printf("process result=[%d]\n", result);
 			return KGL_EUNKNOW;
 		}
 	}
@@ -47,6 +48,7 @@ public:
 	KApiEnv env;
 	bool headSended;
 	bool responseDenied;
+	bool no_body;
 	EXTENSION_CONTROL_BLOCK ecb;
 	KApiDso *dso;
 };

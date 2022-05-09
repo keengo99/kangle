@@ -6,7 +6,7 @@
 #include "utils.h"
 #include "log.h"
 #include "kmd5.h"
-#include "lib.h"
+#include "KHttpLib.h"
 #include "lang.h"
 #include "KConfigBuilder.h"
 #include "KConfigParser.h"

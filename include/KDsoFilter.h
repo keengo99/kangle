@@ -7,9 +7,9 @@ class KDsoFilter : public KHttpStream
 public:
 	KDsoFilter(kgl_filter *filter,void *dso_ctx);
 	~KDsoFilter();
-	KGL_RESULT flush(KHttpRequest *rq);
-	KGL_RESULT write_all(KHttpRequest *rq, const char *buf, int len);
-	KGL_RESULT write_end(KHttpRequest *rq, KGL_RESULT result);
+	KGL_RESULT flush(void *rq) override;
+	KGL_RESULT write_all(void*rq, const char *buf, int len)override;
+	KGL_RESULT write_end(void*rq, KGL_RESULT result)override;
 	kgl_filter_context ctx;
 	kgl_filter *filter;
 };

@@ -59,19 +59,17 @@ public:
 	/*
 	 * send actual data to client. cann't head data or chunked head
 	 */
-	StreamState write_all(KHttpRequest *rq, const char *str, int len);
+	StreamState write_all(void*rq, const char *str, int len) override;
 	/*
 	 * 写数据流结束。如果没有发送(可能存在buffer里)，则要立即发送数据。
 	 */
-	StreamState write_end(KHttpRequest *rq, KGL_RESULT result);
+	StreamState write_end(void*rq, KGL_RESULT result) override;
 	StreamState sendHead(KHttpRequest *rq, bool isEnd);
 	kev_result TryWrite(KHttpRequest *rq);
-	bool TrySyncWrite(KHttpRequest *rq);
 	friend class KDeChunked;
 	friend class KGzip;
 public:
 	KHttpObject *obj;
-	KReadWriteBuffer buffer;
 private:
 	bool loadStream(KHttpRequest *rq, KCompressStream *compress_st, cache_model cache_layer);
 	//bool isHeadSend;

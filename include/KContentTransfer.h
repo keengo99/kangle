@@ -9,10 +9,10 @@
 class KContentTransfer : public KHttpStream
 {
 public:
-	KContentTransfer(KWriteStream *st, bool autoDelete) : KHttpStream(st, autoDelete)
+	KContentTransfer(KWriteStream *st, bool autoDelete) : KHttpStream(st, autoDelete) 
 	{
 
 	}
-	StreamState write_all(KHttpRequest *rq,const char *str,int len);
+	StreamState write_all(void *rq,const char *str,int len)override;
 };
 #endif

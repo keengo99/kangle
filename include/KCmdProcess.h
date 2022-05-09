@@ -103,41 +103,34 @@ class KSingleListenPipeStream : public KListenPipeStream,public KPoolableSocketC
 public:
 	KSingleListenPipeStream()
 	{
-		socket = NULL;
 		lastActive = kgl_current_sec;
 	}
 	~KSingleListenPipeStream()
 	{
-		if (socket) { 
-			socket->Destroy();
-		}
 		unlink_unix();
 	}
 	KUpstream *getConnection(KHttpRequest *rq)
 	{
 		lastActive = kgl_current_sec;
-		KUpstream*st = socket;
-		if(st == NULL) {
-			st = KPoolableSocketContainer::get_pool_socket();
-			if (st) {
-				return st;
-			}
-			kconnection* cn = kfiber_net_open(&addr);
-			if (kfiber_net_connect(cn, NULL, 0) != 0) {
-				kfiber_net_close(cn);
-				return NULL;
-			}
-			st = new_upstream(cn);
+		KUpstream*st = KPoolableSocketContainer::get_pool_socket();
+		if (st) {
+			return st;
 		}
+		kconnection* cn = kfiber_net_open(&addr);
+		if (kfiber_net_connect(cn, NULL, 0) != 0) {
+			kfiber_net_close(cn);
+			return NULL;
+		}
+		st = new_upstream(cn);		
 		if (st) {
 			bind(st);
 		}
 		return st;
 	}
-	void gcSocket(KUpstream* st, int lifeTime, time_t base_time)
+	void gcSocket(KUpstream* st, int lifeTime) override
 	{
 		//使用了KTsUpstream后，windows下多iocp，也可以使用长连接.
-		KPoolableSocketContainer::gcSocket(st, lifeTime, base_time);
+		KPoolableSocketContainer::gcSocket(st, lifeTime);
 		kassert(vprocess!=NULL);
 		vprocess->gcProcess(this);
 	}
@@ -147,11 +140,11 @@ public:
 	}
 	unsigned getSize()
 	{
-		return socket?1:0;
+		return KPoolableSocketContainer::getSize();
 	}
 	friend class KMPCmdProcess;
 private:
-	KUpstream *socket;
+	//KUpstream *socket;
 	KMPCmdProcess *vprocess;
 #ifdef KSOCKET_UNIX
 	union {

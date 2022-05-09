@@ -24,7 +24,7 @@
 #include "KFastcgiFetchObject.h"
 #include "KFastcgiUtils.h"
 #include "http.h"
-#include "lib.h"
+#include "KHttpLib.h"
 #include "lang.h"
 #include "KHttpResponseParser.h"
 //#include "KHttpTransfer.h"

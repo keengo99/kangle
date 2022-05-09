@@ -52,16 +52,14 @@ static void krequest_start(KSink* sink, int header_len)
 	sink->write_all(buf, len);
 	sink->end_request();
 }
-int fastcgi_fiber(void* arg, int len) {
-	klog(KLOG_NOTICE, "fastcgi_handle...\n");
-	kconnection* cn = (kconnection*)arg;
+bool fastcgi_connect(kconnection* cn) {	
 	FCGI_BeginRequestRecord record;
-	len = sizeof(record);
+	int len = sizeof(record);
 	if (!kfiber_net_read_full(cn, (char*)&record, &len)) {
 		klog(KLOG_ERR, "cann't read begin record len=[%d]\n", len);
-		kconnection_destroy(cn);
-		return kev_destroy;
+		return false;
 	}
+	bool keep_conn = KBIT_TEST(record.body.flags, FCGI_KEEP_CONN);
 	klog(KLOG_NOTICE, "success read beginrequest\n");
 	char resp_buf[512];
 	int resp_len = snprintf(resp_buf, sizeof(resp_buf), "Status: 200 OK\r\nCache-Control: no-cache\r\n\r\nhello %d %d", getpid(), (int)time(NULL));
@@ -122,7 +120,7 @@ int fastcgi_fiber(void* arg, int len) {
 				if (!kfiber_net_write_full(cn, (char*)&resp_header, &header_len)) {
 					goto err;
 				}
-				goto err;
+				goto done;
 			}
 		}
 		if (body) {
@@ -130,12 +128,26 @@ int fastcgi_fiber(void* arg, int len) {
 			body = NULL;
 		}
 	}
-	return 0;
 err:
-	kconnection_destroy(cn);
+	keep_conn = false;
+done:
 	if (body) {
 		free(body);
 	}
+	return keep_conn;
+}
+int fastcgi_fiber(void* arg, int len) {
+	klog(KLOG_NOTICE, "fastcgi_handle...\n");
+	kconnection* cn = (kconnection*)arg;
+	for (;;) {
+		if (!fastcgi_connect(cn)) {
+			klog(KLOG_NOTICE, "not keep connection\n");
+			break;
+		}
+		klog(KLOG_NOTICE, "keep connection\n");
+	}
+	klog(KLOG_NOTICE, "destroy connection...\n");
+	kconnection_destroy(cn);
 	return 0;
 }
 KACCEPT_CALLBACK(fastcgi_handle) {

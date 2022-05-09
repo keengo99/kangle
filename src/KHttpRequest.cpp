@@ -26,7 +26,6 @@
 #include "KBuffer.h"
 #include "KHttpRequest.h"
 #include "kthread.h"
-#include "lib.h"
 #include "http.h"
 #include "KVirtualHost.h"
 #include "kselector.h"
@@ -70,7 +69,7 @@ char * KHttpRequest::map_url_path(const char* url, KBaseRedirect* caller)
 	char* filename = NULL;
 	KAutoUrl u;
 	const char* path = url;
-	if (parse_url(url, u.u)) {
+	if (parse_url(url, u.u) && u.u->host!=nullptr) {
 		path = u.u->path;
 		conf.gvm->queryVirtualHost(sink->GetBindServer(), &nsvh, u.u->host, 0);
 		if (nsvh && nsvh->vh == svh->vh) {

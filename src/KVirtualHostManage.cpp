@@ -25,7 +25,6 @@
 #include "KVirtualHostManage.h"
 #include "KLineFile.h"
 #include "kmalloc.h"
-#include "lib.h"
 #include "lang.h"
 #include "KHttpServerParser.h"
 #include "KAcserverManager.h"

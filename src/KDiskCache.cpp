@@ -6,7 +6,7 @@
 #include "do_config.h"
 #include "directory.h"
 #include "cache.h"
-#include "lib.h"
+#include "KHttpLib.h"
 #include "KHttpObject.h"
 #include "KHttpObjectHash.h"
 #include "kmalloc.h"

@@ -33,7 +33,6 @@
 
 #include "utils.h"
 #include "kthread.h"
-#include "lib.h"
 #include "KBuffer.h"
 #include "KHttpRequest.h"
 #include "kselector_manager.h"

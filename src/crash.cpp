@@ -135,7 +135,7 @@ void upload_dmp_file(const char *file,const char *url)
 
 	s << "--" << file_ctx->bounder << "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"" << file_ctx->filename << "\"\r\n";
 	s << "Content-Type: text/plain" << "\r\n\r\n";
-	file_ctx->data_left = s.str().size();
+	file_ctx->data_left = (int)s.str().size();
 	file_ctx->data = (char *)kgl_pnalloc(file_ctx->pool, file_ctx->data_left);
 	memcpy(file_ctx->data, s.str().c_str(), file_ctx->data_left);
 	

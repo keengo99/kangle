@@ -20,6 +20,7 @@ public:
 	bool remove();
 	bool isDirectory();
 	bool open(bool writeFlag=true);
+	bool copy(KResource *dst) override;
 	bool close();
 	int write(const char *buf,int len);
 	int read(char *buf,int len);

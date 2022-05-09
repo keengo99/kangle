@@ -10,6 +10,7 @@ public:
 	virtual ~KResource(void);
 	virtual KAttribute *getAttribute() = 0;
 	virtual bool rename(const char *newName) = 0;
+	virtual bool copy(KResource *dst) = 0;
 	virtual bool remove() = 0;
 	virtual bool bind(const char *name, KAttribute *attribute) = 0;
 	virtual bool unbind(const char *name) = 0;
@@ -20,7 +21,7 @@ public:
 	{
 		return false;
 	}
-	const char *getPath()
+	char *getPath()
 	{
 		return path;
 	}

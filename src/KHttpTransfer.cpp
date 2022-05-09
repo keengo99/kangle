@@ -37,16 +37,6 @@
 #include "cache.h"
 
 
-bool KHttpTransfer::TrySyncWrite(KHttpRequest *rq)
-{
-	kbuf *buf = buffer.stealBuff();
-	if (buf) {
-		bool result = rq->WriteBuff(buf);
-		destroy_kbuf(buf);
-		return result;
-	}
-	return true;
-}
 kev_result KHttpTransfer::TryWrite(KHttpRequest *rq)
 {
 	assert(false);
@@ -65,7 +55,8 @@ KHttpTransfer::~KHttpTransfer() {
 	
 }
 
-StreamState KHttpTransfer::write_all(KHttpRequest *rq, const char *str, int len) {
+StreamState KHttpTransfer::write_all(void *arg, const char *str, int len) {
+	auto rq = (KHttpRequest*)arg;
 	if (len<=0) {
 		return STREAM_WRITE_SUCCESS;
 	}
@@ -80,7 +71,8 @@ StreamState KHttpTransfer::write_all(KHttpRequest *rq, const char *str, int len)
 	}
 	return st->write_all(rq, str, len);
 }
-StreamState KHttpTransfer::write_end(KHttpRequest *rq, KGL_RESULT result) {
+StreamState KHttpTransfer::write_end(void *arg, KGL_RESULT result) {
+	auto rq = (KHttpRequest*)arg;
 	if (st == NULL) {
 		if (sendHead(rq, true) != STREAM_WRITE_SUCCESS) {
 			KBIT_SET(rq->sink->data.flags,RQ_CONNECTION_CLOSE);

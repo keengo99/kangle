@@ -25,7 +25,7 @@
 //#include "KFilter.h"
 #include "KModelManager.h"
 #include "KTable.h"
-#include "lib.h"
+#include "KHttpLib.h"
 #include<list>
 #include "kmalloc.h"
 using namespace std;

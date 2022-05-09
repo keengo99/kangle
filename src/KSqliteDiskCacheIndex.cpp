@@ -1,5 +1,5 @@
 #include "KSqliteDiskCacheIndex.h"
-#include "lib.h"
+#include "KHttpLib.h"
 #include "KCache.h"
 #ifdef ENABLE_SQLITE_DISK_INDEX
 #ifndef _WIN32

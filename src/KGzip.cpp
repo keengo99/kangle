@@ -56,7 +56,7 @@ KGzipCompress::~KGzipCompress()
 	}
 	deflateEnd(&strm);
 }
-StreamState KGzipCompress::write_all(KHttpRequest *rq, const char *str,int len)
+StreamState KGzipCompress::write_all(void*rq, const char *str,int len)
 {
 	strm.avail_in = len;
 	strm.next_in = (unsigned char *) str;
@@ -65,7 +65,7 @@ StreamState KGzipCompress::write_all(KHttpRequest *rq, const char *str,int len)
 	//}
 	return compress(rq, Z_NO_FLUSH);
 }
-StreamState KGzipCompress::write_end(KHttpRequest *rq, KGL_RESULT result)
+StreamState KGzipCompress::write_end(void *rq, KGL_RESULT result)
 {
 	if (strm.total_in<= 0) {
 		return KHttpStream::write_end(rq, STREAM_WRITE_FAILED);
@@ -101,7 +101,7 @@ StreamState KGzipCompress::write_end(KHttpRequest *rq, KGL_RESULT result)
 	}
 	return KHttpStream::write_end(rq, result);
 }
-StreamState KGzipCompress::compress(KHttpRequest *rq, int flush_flag)
+StreamState KGzipCompress::compress(void *rq, int flush_flag)
 {
 	if(!isSuccess){
 		return STREAM_WRITE_FAILED;
@@ -153,7 +153,7 @@ KGzipDecompress::KGzipDecompress(bool use_deflate,KWriteStream *st,bool autoDele
 	isSuccess = true;
 	return;
 }
-StreamState KGzipDecompress::decompress(KHttpRequest *rq, int flush_flag)
+StreamState KGzipDecompress::decompress(void*rq, int flush_flag)
 {
 	int ret = 0;
 	char out[GZIP_CHUNK];
@@ -180,7 +180,7 @@ StreamState KGzipDecompress::decompress(KHttpRequest *rq, int flush_flag)
 	} while (strm.avail_out==0);
 	return STREAM_WRITE_SUCCESS;
 }
-StreamState KGzipDecompress::write_end(KHttpRequest *rq, KGL_RESULT result)
+StreamState KGzipDecompress::write_end(void*rq, KGL_RESULT result)
 {
 	KGL_RESULT result2 = decompress(rq, Z_FINISH);
 	if (result2!=KGL_OK) {
@@ -188,7 +188,7 @@ StreamState KGzipDecompress::write_end(KHttpRequest *rq, KGL_RESULT result)
 	}
 	return KHttpStream::write_end(rq, result);
 }
-StreamState KGzipDecompress::write_all(KHttpRequest *rq, const char *str,int len)
+StreamState KGzipDecompress::write_all(void*rq, const char *str,int len)
 {
 	int skip_len = MIN(in_skip,len);
 	in_skip -= skip_len;

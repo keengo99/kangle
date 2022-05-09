@@ -12,7 +12,7 @@
 #include "KBufferFetchObject.h"
 #include "KBigObjectContext.h"
 #include "KHttpServer.h"
-
+#include "KDefaultFetchObject.h"
 
 int stage_end_request(KHttpRequest* rq, KGL_RESULT result)
 {	
@@ -28,7 +28,62 @@ int stage_end_request(KHttpRequest* rq, KGL_RESULT result)
 #endif//}}
 	return rq->EndRequest();
 }
-KGL_RESULT process_upstream_no_body(KHttpRequest *rq)
+
+KGL_RESULT handleXSendfile(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out)
+{
+	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER)) {
+		return send_error2(rq, STATUS_SERVER_ERROR, "X-Accel-Redirect cann't send body");
+	}
+	char* xurl = NULL;
+	bool x_proxy_redirect = false;
+	KHttpHeader* header = rq->ctx->obj->data->headers;
+	while (header) {
+		if (strcasecmp(header->attr, "X-Accel-Redirect") == 0) {
+			xurl = header->val;
+			x_proxy_redirect = false;
+#if 0
+		} else if (strcasecmp(header->attr, "X-Proxy-Redirect") == 0) {
+			xurl = header->val;
+			x_proxy_redirect = true;
+#endif
+		} else {
+			rq->responseHeader(header->attr, header->attr_len, header->val, header->val_len);
+		}
+		header = header->next;
+	}
+	kassert(xurl != NULL);
+	if (xurl == NULL) {
+		return send_error2(rq, STATUS_SERVER_ERROR, "missing X-Accel-Redirect header");
+	}
+#if 0
+	if (!rq->rewriteUrl(xurl, 0)) {
+		return send_error2(rq, STATUS_SERVER_ERROR, "X-Accel-Redirect value is not right");
+	}
+#endif
+	rq->ctx->internal = 1;
+	rq->ctx->replace = 1;
+	if (rq->file) {
+		delete rq->file;
+		rq->file = NULL;
+	}
+	char* filename = rq->map_url_path(xurl, nullptr);
+	rq->ctx->clean_obj(rq);
+	rq->ctx->obj = new KHttpObject(rq);
+	rq->ctx->new_object = 1;
+	if (filename == nullptr) {
+		return send_error2(rq, STATUS_SERVER_ERROR, "X-Accel-Redirect cann't map url");
+	}
+	rq->file = new KFileName;
+	bool result = rq->file->setName(filename);
+	xfree(filename);
+	if (!result) {
+		return send_error2(rq, STATUS_NOT_FOUND, "No Such File.");
+	}
+	auto fo = new KDefaultFetchObject();
+	rq->AppendFetchObject(fo);
+	return rq->HandleResult(fo->Open(rq,in,out));
+}
+KGL_RESULT process_upstream_no_body(KHttpRequest *rq, kgl_input_stream* in, kgl_output_stream* out)
 {
 	//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
@@ -44,7 +99,7 @@ KGL_RESULT process_upstream_no_body(KHttpRequest *rq)
 #endif//}}
 	if (!KBIT_TEST(rq->filter_flags, RQ_SWAP_OLD_OBJ) && KBIT_TEST(rq->ctx->obj->index.flags, ANSW_XSENDFILE)) {
 		//TODO: handleXSendfile
-		//return handleXSendfile(rq);
+		return handleXSendfile(rq,in,out);
 	}
 	kassert(!KBIT_TEST(rq->sink->data.flags, RQ_SYNC));
 	if (KBIT_TEST(rq->filter_flags, RQ_SWAP_OLD_OBJ)) {
@@ -97,7 +152,7 @@ KGL_RESULT open_fetchobj(KHttpRequest* rq, KFetchObject* fo, kgl_input_stream* i
 	//printf("open fetchobj result=[%d]\n", result);
 	switch (result) {
 	case KGL_NO_BODY:
-		return process_upstream_no_body(rq);
+		return process_upstream_no_body(rq,in,out);
 	case KGL_EDENIED:
 		return send_error2(rq, STATUS_FORBIDEN, "access denied by response control");
 	default:

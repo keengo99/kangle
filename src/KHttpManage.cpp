@@ -15,7 +15,7 @@
 #include <ctype.h>
 #include <time.h>
 #include "kmalloc.h"
-#include "lib.h"
+#include "KHttpLib.h"
 #include "KHttpRequest.h"
 #include "KAcserverManager.h"
 #include "KSingleAcserver.h"
@@ -48,6 +48,9 @@ using namespace std;
 using namespace kangle;
 KTHREAD_FUNCTION check_autoupdate(void* param);
 void get_url_info(KSink* rq, KStringBuf& s) {
+	if (rq->data.raw_url == NULL) {
+		return;
+	}
 #ifdef HTTP_PROXY
 	if (rq->data.meth == METH_CONNECT) {
 		s << "CONNECT ";

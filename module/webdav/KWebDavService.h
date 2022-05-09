@@ -9,6 +9,8 @@
 #include "KISAPIServiceProvider.h"
 #include "KResource.h"
 #include "KXmlDocument.h"
+
+class KLockToken;
 class KWebDavService {
 public:
 	KWebDavService();
@@ -30,8 +32,10 @@ private:
 	bool writeResourceProp(KResource *rs);
 	bool listResourceProp(KResource *rs,int depth);
 	bool writeXmlHeader();
+	bool response_lock_body(KLockToken* token);
 	KISAPIServiceProvider *provider;
 	bool parseDocument(KXmlDocument &document);
+	uint16_t check_file_locked(KLockToken* lock_token);
 	const char *getIfToken();
 	char *if_token;
 

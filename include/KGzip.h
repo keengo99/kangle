@@ -39,10 +39,10 @@ class KGzipDecompress : public KHttpStream
 public:
 	KGzipDecompress(bool use_deflate,KWriteStream *st,bool autoDelete);
 	~KGzipDecompress();
-	KGL_RESULT write_all(KHttpRequest *rq, const char *str,int len);
-	KGL_RESULT write_end(KHttpRequest *rq, KGL_RESULT result);
+	KGL_RESULT write_all(void *rq, const char *str,int len) override;
+	KGL_RESULT write_end(void*rq, KGL_RESULT result) override;
 private:
-	KGL_RESULT decompress(KHttpRequest *rq, int flush_flag);	
+	KGL_RESULT decompress(void*rq, int flush_flag);
 	z_stream strm;
 	bool isSuccess;
 	bool use_deflate;
@@ -53,18 +53,18 @@ class KGzipCompress : public KCompressStream
 public:
 	KGzipCompress(int gzip_level);
 	~KGzipCompress();
-	KGL_RESULT write_all(KHttpRequest *rq, const char *str,int len);
-	KGL_RESULT write_end(KHttpRequest *rq, KGL_RESULT result);
+	KGL_RESULT write_all(void*rq, const char *str,int len) override;
+	KGL_RESULT write_end(void*rq, KGL_RESULT result) override;
 	void setFast(bool fast)
 	{
 		this->fast = fast;
 	}
-	KGL_RESULT flush(KHttpRequest *rq)
+	KGL_RESULT flush(void*rq) override
 	{
 		return compress(rq, Z_SYNC_FLUSH);
 	}
 private:
-	KGL_RESULT compress(KHttpRequest *rq, int flush_flag);
+	KGL_RESULT compress(void *rq, int flush_flag);
 	z_stream strm;
 	char *out;
 	unsigned used;

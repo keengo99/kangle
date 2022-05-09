@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include "global.h"
 
-#include "lib.h"
+#include "KHttpLib.h"
 #include "ksocket.h"
 
 #include "log.h"

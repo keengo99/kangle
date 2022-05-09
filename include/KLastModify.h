@@ -1,6 +1,6 @@
 #ifndef KLASTMODIFY_H_
 #define KLASTMODIFY_H_
-#include "lib.h"
+#include "KHttpLib.h"
 class KLastModify {
 public:
 	void setTime(time_t lastTime) {

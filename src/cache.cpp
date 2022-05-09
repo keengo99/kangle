@@ -102,18 +102,6 @@ bool stored_obj(KHttpRequest *rq, KHttpObject *obj,KHttpObject *old_obj) {
 	if (KBIT_TEST(obj->index.flags,OBJ_IS_STATIC2)) {
 		clean_static_obj_header(obj);
 	}
-#if 0
-	if (obj->data && obj->data->type == SAVING_OBJECT && obj->data->fp) {
-		obj->saveFileIndex(obj->data->fp);
-		obj->data->fp->close();
-		delete obj->data->fp;
-		obj->data->fp = NULL;
-		obj->data->type = MEMORY_OBJECT;
-		if (dci) {
-			dci->start(ci_add, obj);
-		}
-	}
-#endif
 	if (old_obj) {
 		old_obj->Dead();
 	}

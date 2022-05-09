@@ -24,7 +24,7 @@
 #include "kmalloc.h"
 #include "kthread.h"
 #include "KRequestQueue.h"
-#include "lib.h"
+#include "KHttpLib.h"
 #include "kmd5.h"
 #include "do_config.h"
 #include "KListenConfigParser.h"

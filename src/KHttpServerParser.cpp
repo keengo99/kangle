@@ -32,7 +32,6 @@
 #include "KXml.h"
 #include "utils.h"
 #include "KVirtualHostDatabase.h"
-#include "lib.h"
 #include "extern.h"
 #include "KHttpFilterManage.h"
 #include "kmalloc.h"

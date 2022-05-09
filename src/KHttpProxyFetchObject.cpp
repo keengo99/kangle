@@ -6,7 +6,6 @@
  */
 #include "do_config.h"
 #include "KHttpProxyFetchObject.h"
-#include "lib.h"
 #include "http.h"
 #include "kmd5.h"
 #include "log.h"
