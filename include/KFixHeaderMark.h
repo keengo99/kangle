@@ -20,18 +20,18 @@ public:
 			free(header);
 		}
 	}
-	StreamState write_all(KHttpRequest *rq, const char *buf, int len)
+	StreamState write_all(void *rq, const char *buf, int len) override
 	{
 		write_header(rq);
 		return KHttpStream::write_all(rq, buf,len);
 	}
-	StreamState write_end(KHttpRequest *rq, KGL_RESULT result)
+	StreamState write_end(void *rq, KGL_RESULT result) override
 	{
 		write_header(rq);
 		return KHttpStream::write_end(rq, result);
 	}
 private:
-	void write_header(KHttpRequest *rq) {
+	void write_header(void*rq) {
 		if (header) {
 			if (st) {
 				st->write_all(rq, header,len);

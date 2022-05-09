@@ -22,7 +22,7 @@ KReplaceContentFilter::~KReplaceContentFilter()
 		free(prevData);
 	}
 }
-bool KReplaceContentFilter::dumpBuffer(KHttpRequest *rq)
+bool KReplaceContentFilter::dumpBuffer(void *rq)
 {
 	StreamState result = STREAM_WRITE_SUCCESS;
 	kbuf *buf = b.stealBuffFast();
@@ -44,7 +44,7 @@ bool KReplaceContentFilter::dumpBuffer(KHttpRequest *rq)
 	}
 	return result == STREAM_WRITE_SUCCESS;
 }
-bool KReplaceContentFilter::writeBuffer(KHttpRequest *rq, const char *str,int len)
+bool KReplaceContentFilter::writeBuffer(void *rq, const char *str,int len)
 {
 	if (max_buffer==0) {
 		if (KHttpStream::write_all(rq, str,len)!=STREAM_WRITE_SUCCESS) {
@@ -64,7 +64,7 @@ bool KReplaceContentFilter::writeBuffer(KHttpRequest *rq, const char *str,int le
 	}
 	return true;
 }
-StreamState KReplaceContentFilter::write_all(KHttpRequest *rq, const char *buf, int len)
+StreamState KReplaceContentFilter::write_all(void *rq, const char *buf, int len)
 {
 	if (stoped) {
 		return STREAM_WRITE_SUCCESS;
@@ -132,7 +132,7 @@ StreamState KReplaceContentFilter::write_all(KHttpRequest *rq, const char *buf, 
 	}
 	return result;
 }
-StreamState KReplaceContentFilter::write_end(KHttpRequest *rq, KGL_RESULT result)
+StreamState KReplaceContentFilter::write_end(void *rq, KGL_RESULT result)
 {
 	dumpBuffer(rq);
 	if (prevData) {

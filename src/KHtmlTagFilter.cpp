@@ -43,7 +43,7 @@ KHtmlTagFilter::~KHtmlTagFilter()
 		xfree(prevData);
 	}
 }
-StreamState KHtmlTagFilter::write_all(KHttpRequest *rq, const char *str, int len)
+StreamState KHtmlTagFilter::write_all(void *rq, const char *str, int len)
 {
 	char *buf = NULL;
 	const char *start = NULL;
@@ -109,7 +109,7 @@ StreamState KHtmlTagFilter::write_all(KHttpRequest *rq, const char *str, int len
 	}
 	return result;
 }
-bool KHtmlTagFilter::dealTag(KHttpRequest *rq, const char *str,const char *end)
+bool KHtmlTagFilter::dealTag(void*rq, const char *str,const char *end)
 {
 	const char *tagName;
 	int tag_len;
@@ -246,7 +246,7 @@ int KHtmlTagFilter::findUrl(const char *str,const char *end,html_tag_t *tag,cons
 	}
 	return -1;
 }
-StreamState KHtmlTagFilter::write_end(KHttpRequest *rq, KGL_RESULT result)
+StreamState KHtmlTagFilter::write_end(void *rq, KGL_RESULT result)
 {
 	if (prevData) {
 		KGL_RESULT result2 = KHttpStream::write_all(rq, prevData, prevLen);
@@ -256,125 +256,3 @@ StreamState KHtmlTagFilter::write_end(KHttpRequest *rq, KGL_RESULT result)
 	}
 	return KHttpStream::write_end(rq, result);
 }
-/*
-StreamState KHtmlTagFilter::KWUpStream::write_all(const char *buf,int len)
-{
-	const char *hot = buf;
-	//todo:bufferÒªÉ¾³ý
-	char *buffer = NULL;
-	StreamState result = STREAM_WRITE_SUCCESS;
-	if (prevCssData) {
-		int new_len = len + prevCssLen;
-		buffer = (char *)malloc(new_len + 1);
-		kgl_memcpy(buffer,prevCssData,prevCssLen);
-		kgl_memcpy(buffer + prevCssLen,buf,len);
-		free(prevCssData);
-		prevCssData = NULL;
-		hot = buffer;
-		len = new_len;
-	}
-	if (read_css_url_model) {
-		if (!read_css_url(&hot,len)) {
-			prevCssLen = len;
-			prevCssData = (char *)malloc(prevCssLen);
-			kgl_memcpy(prevCssData,hot,prevCssLen);
-			len = 0;
-		}
-	}
-	int ovector[6];
-	while (len>0) {
-		int ret = cssReg.match(hot,len,PCRE_PARTIAL,ovector,6);
-		if (ret>0) {
-			if (KWUpStream::write_all(hot,ovector[3])!=STREAM_WRITE_SUCCESS) {
-				result = STREAM_WRITE_FAILED;
-				break;
-			}
-			int start = ovector[3];
-			hot += start;
-			len -= start;
-			read_css_url_model = true;
-			if (read_css_url(&hot,len)) {
-				continue;
-			}
-			ret = PCRE_ERROR_PARTIAL;
-		}
-		if (ret==PCRE_ERROR_PARTIAL) {
-			prevCssLen = len;
-			prevCssData = (char *)malloc(prevCssLen);
-			kgl_memcpy(prevCssData,hot,prevCssLen);
-			break;
-		}
-		if (!KWUpStream::write_all(hot,len)) {
-			result = STREAM_WRITE_FAILED;
-		}
-		break;
-	}
-	if (buffer) {
-		free(buffer);
-	}
-	return result;
-}
-StreamState KHtmlTagFilter::KWUpStream::write_all_end()
-{
-	if (prevCssData) {
-		if(KWUpStream::write_all(prevCssData,prevCssLen)!=STREAM_WRITE_SUCCESS){
-			return STREAM_WRITE_FAILED;
-		}
-	}
-	return KWUpStream::write_end();
-}
-bool KHtmlTagFilter::read_css_url(const char **buf,int &len)
-{
-	const char *orign_buf = *buf;
-	int orign_len = len;
-	while (len>0 && isspace((unsigned char)**buf)) {
-		(*buf)++;
-		len--;
-	}
-	if (len<=0) {
-		*buf = orign_buf;
-		len = orign_len;
-		return false;
-	}
-	const char *end = (const char *)memchr(*buf,')',len);
-	if (end==NULL) {
-		*buf = orign_buf;
-		len = orign_len;
-		return false;
-	}
-	char end_char=0;
-	if (**buf=='"' || **buf=='\'') {
-		end_char=(**buf);
-		(*buf)++;
-		len--;
-	}
-	assert(len>=0);
-	while (end>*buf) {
-		if (isspace((unsigned char)*end)) {
-			end--;
-			continue;
-		}
-		if (end_char==0 || end_char==*end) {
-			break;
-		}
-		end--;
-	}
-	const char *src_url = *buf;
-	int url_len = end - *buf;
-	int space_len = *buf - orign_buf;
-	if (space_len>0) {
-		if (KWUpStream::write_all(orign_buf,space_len)!=STREAM_WRITE_SUCCESS) {
-			return true;
-		}
-	}
-	read_css_url_model = false;
-	char *url = rewriteUrl(param,"url",src_url,url_len);
-	if (url==NULL) {
-		return KWUpStream::write_all(src_url,url_len) == STREAM_WRITE_SUCCESS;
-	}
-	KWUpStream::write_all(url,strlen(url));
-	*buf += url_len;
-	len -= url_len;
-	return true;	
-}
-*/

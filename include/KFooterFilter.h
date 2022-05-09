@@ -5,7 +5,7 @@
 class KFooterFilter : public KHttpStream
 {
 public:
-	StreamState write_all(KHttpRequest *rq, const char *buf, int len) 
+	StreamState write_all(void *rq, const char *buf, int len) override
 	{
 		if (replace) {
 			return STREAM_WRITE_SUCCESS;
@@ -18,7 +18,7 @@ public:
 		}
 		return KHttpStream::write_all(rq, buf,len);
 	}
-	StreamState write_end(KHttpRequest *rq, KGL_RESULT result) {
+	StreamState write_end(void *rq, KGL_RESULT result) {
 		if (!footer.empty() && (!head||replace)) {
 			if (KHttpStream::write_all(rq, footer.c_str(),footer.size())==STREAM_WRITE_FAILED) {
 				result = STREAM_WRITE_FAILED;

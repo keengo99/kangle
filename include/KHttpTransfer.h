@@ -65,7 +65,6 @@ public:
 	 */
 	StreamState write_end(void*rq, KGL_RESULT result) override;
 	StreamState sendHead(KHttpRequest *rq, bool isEnd);
-	kev_result TryWrite(KHttpRequest *rq);
 	friend class KDeChunked;
 	friend class KGzip;
 public:

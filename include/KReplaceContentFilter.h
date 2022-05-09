@@ -11,8 +11,8 @@ class KReplaceContentFilter : public KHttpStream
 public:
 	KReplaceContentFilter();
 	~KReplaceContentFilter();
-	KGL_RESULT write_all(KHttpRequest *rq, const char *buf, int len);
-	KGL_RESULT write_end(KHttpRequest *rq, KGL_RESULT result);
+	KGL_RESULT write_all(void *rq, const char *buf, int len) override;
+	KGL_RESULT write_end(void *rq, KGL_RESULT result) override;
 	void setBuffer(int max_buffer)
 	{
 		this->max_buffer = max_buffer;
@@ -26,8 +26,8 @@ public:
 		//this->reg = reg;
 	}
 private:
-	bool writeBuffer(KHttpRequest *rq, const char *str,int len);
-	bool dumpBuffer(KHttpRequest *rq);
+	bool writeBuffer(void *rq, const char *str,int len);
+	bool dumpBuffer(void*rq);
 	char *prevData;
 	int prevDataLength;
 	bool stoped;

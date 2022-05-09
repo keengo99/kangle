@@ -19,8 +19,8 @@ class KHtmlTagFilter : public KHttpStream
 public:
 	KHtmlTagFilter();
 	~KHtmlTagFilter();
-	StreamState write_all(KHttpRequest *rq, const char *buf, int len);
-	StreamState write_end(KHttpRequest *rq, KGL_RESULT result);
+	StreamState write_all(void *rq, const char *buf, int len) override;
+	StreamState write_end(void*rq, KGL_RESULT result) override;
 	void setHook(rewriteUrlCallBack rewriteUrl,rewriteUrlEndCallBack rewriteUrlEnd,void *param,html_tag_t *tag_head)
 	{
 		this->rewriteUrl = rewriteUrl;
@@ -29,7 +29,7 @@ public:
 		this->tag_head = tag_head;
 	}
 private:
-	bool dealTag(KHttpRequest *rq, const char *str,const char *end);
+	bool dealTag(void*rq, const char *str,const char *end);
 	html_tag_t *matchTag(const char *tag,int len);
 	//找URL,-1=失败,成功返回charEnd('或")或1表示没有charEnd
 	int findUrl(const char *str,const char *end,html_tag_t *tag,const char **url,int &url_len);

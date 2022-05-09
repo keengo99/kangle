@@ -37,11 +37,6 @@
 #include "cache.h"
 
 
-kev_result KHttpTransfer::TryWrite(KHttpRequest *rq)
-{
-	assert(false);
-	return kev_err;
-}
 KHttpTransfer::KHttpTransfer(KHttpRequest *rq, KHttpObject *obj) {
 	init(rq, obj);
 }
