@@ -90,7 +90,7 @@
 #include "HttpFiber.h"
 #include "KSimulateRequest.h"
 
-void flush_net_request(time_t now_time);
+//void flush_net_request(time_t now_time);
 
 
 #ifndef HAVE_DAEMON
@@ -182,10 +182,6 @@ int clean_memory_leak_fiber(void *arg,int argc)
 	delete conf.sysHost;
 	conf.sysHost = NULL;
 	packageManage.clean();
-	//{{ent
-#ifdef ENABLE_FATBOY
-	flush_net_request(kgl_current_sec + 172800);
-#endif//}}
 #ifndef HTTP_PROXY
 	delete conf.gvm;
 	delete conf.gam;

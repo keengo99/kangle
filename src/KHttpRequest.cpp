@@ -208,7 +208,7 @@ void KHttpRequest::beginRequest()
 	}
 #ifdef MALLOCDEBUG
 	if (quit_program_flag != PROGRAM_NO_QUIT) {
-		SET(sink->data.flags, RQ_CONNECTION_CLOSE);
+		KBIT_SET(sink->data.flags, RQ_CONNECTION_CLOSE);
 	}
 #endif
 	sink->data.iterator(handle_http_header, this);
