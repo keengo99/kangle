@@ -210,7 +210,7 @@ bool KExtendProgramConfig::handle(KExtendProgramString *ds) {
 		ds->addEnv("src_dir",dir);
 		xfree(dir);
 	}
-	if (file.fileSize > 4194304) {
+	if (file.get_file_size() > 4194304) {
 		klog(KLOG_ERR, "file [%s] is too big(size=%d) max is 4M\n", dst.c_str());
 		goto done;
 	}
@@ -238,10 +238,10 @@ bool KExtendProgramConfig::handle(KExtendProgramString *ds) {
 		klog(KLOG_ERR, "cann't open src file [%s] for read\n", file.getName());
 		goto done;
 	}
-	src_buf = (char *) xmalloc((int)file.fileSize+1);
-	len = src_fp.read(src_buf,(int)file.fileSize);
-	if (len!=file.fileSize) {
-		klog(KLOG_ERR, "cann't read complete src file [%s] readed=[%d],fileSize=[%d]\n", file.getName(),len,file.fileSize);
+	src_buf = (char *) xmalloc((int)file.get_file_size()+1);
+	len = src_fp.read(src_buf,(int)file.get_file_size());
+	if (len!=file.get_file_size()) {
+		klog(KLOG_ERR, "cann't read complete src file [%s] readed=[%d],fileSize=[%d]\n", file.getName(),len,file.get_file_size());
 		goto done;
 	}
 	if (!dst_fp.open(dst_tmp.getString(),fileWrite)) {
@@ -249,12 +249,12 @@ bool KExtendProgramConfig::handle(KExtendProgramString *ds) {
 		goto done;
 	}
 	if (only_copy) {
-		if (file.fileSize!=dst_fp.write(src_buf,(int)file.fileSize)) {
+		if (file.get_file_size()!=dst_fp.write(src_buf,(int)file.get_file_size())) {
 			klog(KLOG_ERR,"cann't write to tmp file .\n");
 			goto done;
 		}
 	} else {
-		src_buf[file.fileSize] = '\0';
+		src_buf[file.get_file_size()] = '\0';
 		dst_buf = ds->parseString(src_buf);
 		if (dst_buf == NULL) {
 			klog(KLOG_ERR, "cann't parse src file content [%s]\n", file.getName());

@@ -24,7 +24,7 @@ public:
 	{
 		return false;
 	}
-	bool internal_response_status(uint16_t status_code)
+	bool internal_response_status(uint16_t status_code) override
 	{
 		this->status_code = status_code;
 		return true;

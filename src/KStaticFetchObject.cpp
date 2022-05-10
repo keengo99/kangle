@@ -29,8 +29,14 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 	}
 	assert(fp == NULL);
 	assert(rq->file);
-	fp = kfiber_file_open(rq->file->getName(), fileRead, KFILE_ASYNC);
+
+	FILE_HANDLE fd = rq->file->open(fileRead, KFILE_ASYNC);
+	if (!kflike(fd)) {
+		return out->f->write_message(out, rq, KGL_MSG_ERROR, "file not found", STATUS_NOT_FOUND);
+	}
+	fp = kfiber_file_bind(fd);
 	if (fp == NULL) {
+		kfclose(fd);
 		return out->f->write_message(out, rq, KGL_MSG_ERROR, "file not found", STATUS_NOT_FOUND);
 	}
 	//处理content-type
@@ -48,15 +54,15 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 #endif
 		}
 	}
-	if (may_compress && rq->file->fileSize >= conf.min_compress_length) {
+	if (may_compress && rq->file->get_file_size() >= conf.min_compress_length) {
 		//如果可能压缩，则不回应206
 		KBIT_CLR(rq->sink->data.flags, RQ_HAVE_RANGE);
 	}
 	int status_code = STATUS_OK;
-	int64_t left_send = (int64_t)rq->file->fileSize;
+	int64_t left_send = (int64_t)rq->file->get_file_size();
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAVE_RANGE)) {
 		//处理部分数据请求
-		rq->ctx->content_range_length = rq->file->fileSize;
+		rq->ctx->content_range_length = rq->file->get_file_size();
 		if (!rq->sink->adjust_range(&left_send)) {
 			xfree(content_type);
 			return out->f->write_message(out, rq, KGL_MSG_ERROR, "range error",416);
@@ -71,7 +77,7 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 			b.WSTR("bytes ");
 			b << int2string(rq->sink->data.range_from, buf) << "-";
 			b << int2string(rq->sink->data.range_to, buf) << "/";
-			b << int2string(rq->file->fileSize, buf);
+			b << int2string(rq->file->get_file_size(), buf);
 			out->f->write_unknow_header(out, rq, kgl_expand_string("Content-Range"), b.getString(), b.getSize());
 			status_code = STATUS_CONTENT_PARTIAL;
 		} else {
@@ -84,7 +90,7 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 			b.WSTR("bytes ");
 			b << int2string(rq->sink->data.range_from, buf) << "-";
 			b << int2string(rq->sink->data.range_to, buf) << "/";
-			b << int2string(rq->file->fileSize, buf);
+			b << int2string(rq->file->get_file_size(), buf);
 			out->f->write_unknow_header(out, rq, kgl_expand_string("Content-Range"), b.getString(), b.getSize());
 			status_code = STATUS_CONTENT_PARTIAL;
 		} else {

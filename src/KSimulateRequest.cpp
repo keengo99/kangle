@@ -113,6 +113,7 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 		}
 		rq->ctx->skip_access = 1;
 	}
+	ss->begin_request();
 	return rq;
 }
 int kgl_start_simulate_request(KHttpRequest *rq,kfiber **fiber)
@@ -124,7 +125,6 @@ int kgl_start_simulate_request(KHttpRequest *rq,kfiber **fiber)
 		}
 		return kfiber_create(skip_access_request, rq, 0, conf.fiber_stack_size, fiber);
 	}
-//return kfiber_create(start_request_fiber, rq, 0, conf.fiber_stack_size, fiber);
 	return 0;
 }
 int kgl_simuate_http_request(kgl_async_http *ctx,kfiber **fiber)
@@ -141,7 +141,6 @@ int WINAPI test_header_hook(void *arg,int code,KHttpHeader *header)
 }
 int WINAPI test_body_hook(void *arg,const char *data,int len)
 {
-	printf("len = %d\n",len);
 	if (data) {
 		fwrite(data, 1, len, stdout);
 	}
@@ -154,7 +153,18 @@ int WINAPI test_post_hook(void *arg,char *buf,int len)
 }
 static void WINAPI timer_simulate(void *arg)
 {
-	test_simulate_request();
+	kgl_async_http ctx;
+	memset(&ctx, 0, sizeof(ctx));
+	ctx.url = "http://www.baidu.com/";
+	ctx.meth = "get";
+	ctx.post_len = 0;
+	ctx.flags = 0;
+	ctx.body = test_body_hook;
+	ctx.arg = NULL;
+	ctx.rh = NULL;
+	ctx.post = test_post_hook;
+	kgl_simuate_http_request(&ctx);
+	//asyncHttpRequest(METH_GET,"http://www.kangleweb.net/test.php",NULL,test_header_hook,test_body_hook,NULL);
 }
 
 KSimulateSink::KSimulateSink() : KSink(NULL)
@@ -333,10 +343,10 @@ void test_simulate_proxy()
 }
 int test_simulate_fiber(void* arg, int got)
 {
-	test_simulate_proxy();
-	int code;
-	kgl_async_download("https://www.cdnbest.com/public/view/default/js/global.js", "d:\\test.js",&code);
-	printf("code=[%d]\n", code);
+	//test_simulate_proxy();
+	//int code;
+	//kgl_async_download("https://www.cdnbest.com/public/view/default/js/global.js", "d:\\test.js",&code);
+	//printf("code=[%d]\n", code);
 	return 0;
 }
 bool test_simulate_request()
@@ -344,21 +354,8 @@ bool test_simulate_request()
 	//kfiber_create2(get_perfect_selector(), test_simulate_fiber, NULL, 0, 0, NULL);	
 	//async_download("http://127.0.0.1:4411/range?g=1", "d:\\test.gz", test_simulate_callback, NULL);
 	
-	return true;
-	timer_run(timer_simulate, NULL, 2000, 0);
-	kgl_async_http ctx;
-	memset(&ctx, 0, sizeof(ctx));
-	ctx.url = "http://test.monitor.dnsdun.com:1112/monitor?a=status_all&name=test&version=2.2";
-	ctx.meth = "get";
-	ctx.post_len = 0;
-	//ctx.header = test_header_hook;
-	ctx.flags = KF_SIMULATE_GZIP;
-	ctx.body = test_body_hook;
-	ctx.arg = NULL;
-	ctx.rh = NULL;
-	ctx.post = test_post_hook;
-	kgl_simuate_http_request(&ctx);
-	//asyncHttpRequest(METH_GET,"http://www.kangleweb.net/test.php",NULL,test_header_hook,test_body_hook,NULL);
+	//return true;
+	timer_run(timer_simulate, NULL, 0, 0);
 	return true;
 }
 #endif

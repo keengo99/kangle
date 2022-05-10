@@ -377,7 +377,7 @@ bool load_config_file(KFileName* file, int inclevel, KStringBuf& s, int& id, boo
 		klog(KLOG_ERR, "include level [%d] is limited.\n", inclevel);
 		return false;
 	}
-	int len = (int)file->fileSize;
+	int len = (int)file->get_file_size();
 	if (len <= 0 || len > 1048576) {
 		klog(KLOG_ERR, "config file [%s] length is wrong\n", file->getName());
 		return false;

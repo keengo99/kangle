@@ -140,6 +140,9 @@ bool KApiFetchObject::initECB(EXTENSION_CONTROL_BLOCK* ecb) {
 	if (ecb->lpszQueryString == NULL) {
 		ecb->lpszQueryString = (char*)"";
 	}
+	if (ecb->lpszPathTranslated == NULL) {
+		ecb->lpszPathTranslated = (char*)"";
+	}
 	ecb->ServerSupportFunction = ServerSupportFunction;
 	ecb->GetServerVariable = GetServerVariable;
 	ecb->WriteClient = WriteClient;

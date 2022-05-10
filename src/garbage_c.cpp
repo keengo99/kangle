@@ -168,7 +168,7 @@ void reloadVirtualHostConfig() {
 */
 KTHREAD_FUNCTION time_thread(void* arg) {
 #ifdef ENABLE_SIMULATE_HTTP
-	kassert(test_simulate_request());
+	//kassert(test_simulate_request());
 #endif
 	//assert(test_timer());
 	unsigned i = rand();

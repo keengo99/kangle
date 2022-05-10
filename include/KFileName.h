@@ -50,21 +50,20 @@ public:
 	 */
 	bool setName(const char *docRoot, const char *triped_path, int follow_link);
 	bool setName(const char *path);
-	bool giveName(char *path);
+	//bool giveName(char *path);
 	const char *getName();
 #ifdef ENABLE_UNICODE_FILE
 	const wchar_t *getNameW();
 #endif
-	char *saveName();
-	void restoreName(char *n);
-	size_t getNameLen();
+
+	//size_t getNameLen();
 	CheckLinkState checkLink(const char *path, int follow_link);
 	bool operator ==(KFileName &a);
 	static bool tripDir(std::string &dir);
 	static char *tripDir2(const char *dir, const char split_char);
 	static void tripDir3(char *path,const char split_char);
 	static char *concatDir(const char *doc_root,const char *file);
-	bool getFileInfo();
+
 	bool isDirectory();
 	bool isPrevDirectory()
 	{
@@ -72,13 +71,18 @@ public:
 	}
 	bool canExecute();
 	time_t getLastModified() const;
-	INT64 fileSize;
+	int64_t get_file_size()
+	{
+		return buf.st_size;
+	}
 	static char *makeExt(const char *file);
 	const char *getExt();
+	
 	const char *getIndex(){
 		return index;
 	}
 	void setIndex(const char *index);
+	
 	bool isLinkChecked()
 	{
 		return linkChecked;
@@ -87,19 +91,34 @@ public:
 	{
 		return pathInfoLength;
 	}
+	FILE_HANDLE open(fileModel model, int flag)
+	{
+#ifdef _WIN32
+		const wchar_t *wname = getNameW();
+		if (wname == NULL) {
+			return INVALID_HANDLE_VALUE;
+		}
+		return kfopen_w(wname, model, flag);
+#else
+		return kfopen(getName(), model, flag);
+#endif
+	}
 private:
+	//char* saveName();
+	//void restoreName(char* n);
+	bool getFileInfo(int name_len);
 #ifdef ENABLE_UNICODE_FILE
 	wchar_t *wname;
 #endif
 	char *name;
 	char *ext;
-	char *index;
-	size_t name_len;
+	char *index;	
 	struct _stat64 buf;
-	bool prev_dir;
-	bool linkChecked;
+	//int name_len;	
 	//path_info时，url的长度
 	unsigned pathInfoLength;
+	bool prev_dir;
+	bool linkChecked;	
 };
 class KFile
 {
@@ -124,22 +143,6 @@ public:
 	int sendfile(SOCKET sockfd, off_t offset, int size)
 	{
 		return ::sendfile(sockfd, fp, &offset, (size_t)size);
-	}
-#endif
-#ifdef _WIN32
-	bool readEx(char *buf, int len, LPOVERLAPPED lp, LPOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine)
-	{
-		return ReadFileEx(fp, buf, len, lp, lpCompletionRoutine) == TRUE;
-	}
-	bool connectIOCP(HANDLE iocp, void *data)
-	{
-		CreateIoCompletionPort(fp, iocp, (ULONG_PTR)data, 0);
-		return true;
-	}
-	bool openW(const wchar_t *path, fileModel model, int flag = 0)
-	{
-		fp = kfopen_w(path, model, flag);
-		return kflike(fp);
 	}
 #endif
 	INT64 getFileSize()

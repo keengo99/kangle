@@ -699,7 +699,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* gate, KBaseRedirect* brd,
 				env->addEnv("PATH_INFO", rq->sink->data.url->path);
 			}
 		}
-		if (skip_length < file->getNameLen()) {
+		if (skip_length==0 || skip_length < strlen(file->getName())) {
 			if (pathInfoLength > 0) {
 				KStringBuf s;
 				s << file->getName() + skip_length << rq->sink->data.url->path + pathInfoLength;

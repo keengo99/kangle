@@ -141,7 +141,7 @@ void upload_dmp_file(const char *file,const char *url)
 	
 	s.str("");
 	s << "multipart/form-data; boundary=" << file_ctx->bounder;
-	KHttpHeader *header = new_pool_http_header(file_ctx->pool, kgl_expand_string("Content-Type"), s.str().c_str(), s.str().size());
+	KHttpHeader *header = new_pool_http_header(file_ctx->pool, kgl_expand_string("Content-Type"), s.str().c_str(), (int)s.str().size());
 	ctx.rh = header;
 	ctx.post_len = (int)file_ctx->fp.getFileSize() + file_ctx->data_left + file_ctx->bounder.size()+8;
 	if (kgl_simuate_http_request(&ctx) != 0) {

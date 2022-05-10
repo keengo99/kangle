@@ -452,7 +452,7 @@ void KAsyncFetchObject::PushStatus(KHttpRequest *rq, int status_code)
 }
 KGL_RESULT KAsyncFetchObject::PushHeader(KHttpRequest *rq, const char *attr, int attr_len, const char *val, int val_len, bool request_line)
 {
-	//printf("attr=[%s] val=[%s] request_line=[%d]\n", attr,val, request_line);
+	printf("attr=[%s] val=[%s] request_line=[%d]\n", attr,val, request_line);
 	if (request_line && pop_header.proto == Proto_http) {
 		if (strncasecmp(attr, "HTTP/", 5) == 0) {
 			const char *dot = strchr(attr + 5, '.');

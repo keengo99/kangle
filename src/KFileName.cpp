@@ -89,7 +89,7 @@ KFileName::KFileName() {
 }
 KFileName::~KFileName() {
 	if (name) {
-		assert(name_len == strlen(name));
+		//assert(name_len == strlen(name));
 		xfree(name);
 	}
 #ifdef ENABLE_UNICODE_FILE
@@ -312,7 +312,7 @@ void KFileName::setIndex(const char *index) {
 time_t KFileName::getLastModified() const{
 	return buf.st_mtime;
 }
-bool KFileName::getFileInfo() {
+bool KFileName::getFileInfo(int name_len) {
 	if (name == NULL || name_len<1) {
 		return false;
 	}
@@ -341,43 +341,41 @@ bool KFileName::getFileInfo() {
 		return false;
 	}
 #endif
-	fileSize = buf.st_size;
 	return true;
 
 }
 const char *KFileName::getName() {
 	return name;
 }
-size_t KFileName::getNameLen() {
-	return name_len;
-}
+/*
 bool KFileName::giveName(char *path) {
 	if (name) {
 		xfree(name);
 	}
 	name = path;
-	name_len = strlen(path);
+	//name_len = strlen(path);
 #ifdef ENABLE_UNICODE_FILE
 	if(wname){
 		xfree(wname);
 		wname = NULL;
 	}
 #endif
-	return getFileInfo();
+	return getFileInfo(strlen(path));
 }
+*/
 bool KFileName::setName(const char *path) {
 	if (name) {
 		xfree(name);
 	}
 	name = xstrdup(path);
-	name_len = strlen(path);
+	//name_len = strlen(path);
 #ifdef ENABLE_UNICODE_FILE
 	if(wname){
 		xfree(wname);
 		wname = NULL;
 	}
 #endif
-	return getFileInfo();
+	return getFileInfo(strlen(name));
 }
 /*
 
@@ -447,7 +445,7 @@ bool KFileName::setName(const char *docRoot, const char *triped_path,
 			return false;
 		}
 		int len = strlen(triped_path);
-		name_len = doclen + len;
+		int name_len = doclen + len;
 		name = (char *) xmalloc(name_len+2);
 		kgl_memcpy(name, docRoot, doclen);
 		if (docRoot[doclen - 1] != '/' 
@@ -470,7 +468,7 @@ bool KFileName::setName(const char *docRoot, const char *triped_path,
 			kgl_memcpy(name + doclen, triped_path, len);
 		}
 		name[name_len] = '\0';
-		return getFileInfo();
+		return getFileInfo(name_len);
 	}
 	linkChecked = true;
 	int path_len = doclen + strlen(triped_path) + 1;
@@ -524,7 +522,7 @@ bool KFileName::setName(const char *docRoot, const char *triped_path,
 		src = p + 1;
 	}
 	name = path;
-	name_len = strlen(path);
+	//name_len = strlen(path);
 	if(result==CheckLinkIsFile){
 		const char *p = strchr(src,'/');
 		if(p){
@@ -532,13 +530,13 @@ bool KFileName::setName(const char *docRoot, const char *triped_path,
 		}
 	}
 	if (result == CheckLinkContinue || result == CheckLinkIsFile) {
-		fileSize = buf.st_size;
 		return true;
 	}
 	assert(ext==NULL);
 	ext = makeExt(triped_path);
 	return false;
 }
+/*
 char *KFileName::saveName() {
 	char *n = name;
 	name = NULL;
@@ -555,7 +553,7 @@ void KFileName::restoreName(char *n) {
 		xfree(name);
 	}
 	name = n;
-	name_len = strlen(name);
+	//name_len = strlen(name);
 #ifdef ENABLE_UNICODE_FILE
 	if(wname){
 		xfree(wname);
@@ -563,6 +561,7 @@ void KFileName::restoreName(char *n) {
 	}
 #endif
 }
+*/
 #ifdef ENABLE_UNICODE_FILE
 const wchar_t *KFileName::getNameW()
 {
@@ -572,7 +571,7 @@ const wchar_t *KFileName::getNameW()
 	if(name==NULL){
 		return NULL;
 	}
-	wname = FileNametoUnicode(name,name_len);
+	wname = FileNametoUnicode(name,strlen(name));
 	return wname;
 }
 #endif

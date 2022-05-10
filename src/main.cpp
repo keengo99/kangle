@@ -88,6 +88,7 @@
 #include "kfiber.h"
 #include "KHttpServer.h"
 #include "HttpFiber.h"
+#include "KSimulateRequest.h"
 
 void flush_net_request(time_t now_time);
 

@@ -281,9 +281,9 @@ bool KApacheConfig::parse(char* buf)
 }
 bool KApacheConfig::load(KFileName* file)
 {
-	if (file->fileSize > max_htaccess_file_size) {
+	if (file->get_file_size() > max_htaccess_file_size) {
 		klog(KLOG_ERR, "the file [%s] size=[%d] is too big\n", file->getName(),
-			file->fileSize);
+			file->get_file_size());
 		return false;
 	}
 	KFile fp;
@@ -291,12 +291,12 @@ bool KApacheConfig::load(KFileName* file)
 		klog(KLOG_ERR, "cann't open file[%s] for read\n", file->getName());
 		return false;
 	}
-	char* buf = (char*)xmalloc((int)file->fileSize + 1);
+	char* buf = (char*)xmalloc((int)file->get_file_size() + 1);
 	if (buf == NULL) {
 		klog(KLOG_ERR, "no memory to alloc %s:%d", __FILE__, __LINE__);
 		return false;
 	}
-	int len = fp.read(buf, (int)file->fileSize);
+	int len = fp.read(buf, (int)file->get_file_size());
 	buf[len] = '\0';
 	return parse(buf);
 }

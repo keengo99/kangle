@@ -99,41 +99,10 @@ bool KWebDavService::doGet(bool head) {
 	if (rs == NULL) {
 		return send(STATUS_NOT_FOUND);
 	}
+	delete rs;
 	provider->sendUnknowHeader("Cache-Control", "no-cache,no-store");
 	provider->sendUnknowHeader("X-Accel-Redirect", provider->getRequestUri());
 	return send(STATUS_OK);
-#if 0
-	char* if_modified_since = provider->getHttpHeader("If-Modified-Since");
-	if (if_modified_since) {
-		time_t ims = parse1123time(if_modified_since);
-		provider->freeHttpHeader(if_modified_since);
-		if (ims == rs->getLastModified()) {
-			delete rs;
-			return send(STATUS_NOT_MODIFIED);
-		}
-	}
-	provider->sendStatus(200, "OK");
-	provider->sendUnknowHeader("Cache-Control", "no-cache,no-store");
-	char tbuf[50];
-	mk1123time(rs->getLastModified(), tbuf, sizeof(tbuf));
-	provider->sendUnknowHeader("Last-Modified", tbuf);
-	if (!head && rs->open(false)) {
-		KWStream* out = provider->getOutputStream();
-		char buf[1024];
-		for (;;) {
-			int len = rs->read(buf, sizeof(buf));
-			if (len <= 0) {
-				break;
-			}
-			if (!out->write_all(buf, len)) {
-				break;
-			}
-		}
-
-	}
-	delete rs;
-	return true;
-#endif
 }
 bool KWebDavService::doCopy() {
 	KXmlDocument document;
@@ -385,6 +354,17 @@ bool KWebDavService::doLock() {
 	if (result != Lock_op_success) {
 		return send(423);
 	}
+	KResource* rs = rsMaker->bindResource(provider->getFileName(), "/");
+	if (rs == nullptr) {
+		rs = rsMaker->makeFile(provider->getFileName(), "/");
+		if (rs == nullptr) {
+			return send(STATUS_FORBIDEN);
+		}
+		send(STATUS_CREATED);
+	} else {
+		send(STATUS_OK);
+	}
+	delete rs;
 	std::stringstream h;
 	h << "<" << token->getValue() << ">";
 	provider->sendUnknowHeader("Lock-Token", h.str().c_str());

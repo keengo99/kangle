@@ -117,7 +117,7 @@ void KLogZeroManageTask::handle()
 	if(log_size>0){
 		INT64 totalSize = 0;
 		for(it=files.begin();it!=files.end();it++){
-			totalSize += (*it)->fileSize;
+			totalSize += (*it)->get_file_size();
 		}
 		for(;;){
 			if(totalSize < log_size){
@@ -127,7 +127,7 @@ void KLogZeroManageTask::handle()
 			if(it==files.end()){
 				break;
 			}
-			totalSize -= (*it)->fileSize;
+			totalSize -= (*it)->get_file_size();
 			removeLog((*it));
 			files.pop_front();
 
