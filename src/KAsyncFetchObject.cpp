@@ -161,7 +161,7 @@ KGL_RESULT KAsyncFetchObject::InternalProcess(KHttpRequest *rq, kfiber** post_fi
 	}
 	client->BindOpaque(this);
 	client->SetTimeOut(rq->sink->GetTimeOut());
-	client->BindSelector(rq->sink->GetSelector());
+	assert(rq->sink->GetSelector()==kgl_get_tls_selector());
 	int64_t post_length = in->f->get_read_left(in, rq);
 	if (post_length == -1 && !client->IsMultiStream()) {
 		chunk_post = 1;
