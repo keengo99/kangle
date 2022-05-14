@@ -37,7 +37,7 @@ public:
 	 */
 	virtual bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType) = 0;
 	virtual KMark *newInstance() = 0;
-	virtual int32_t Shutdown()
+	virtual int32_t shutdown()
 	{
 		return 0;
 	}

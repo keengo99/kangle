@@ -21,7 +21,7 @@ public:
 	{
 		if (header.empty()) {
 #ifdef ENABLE_PROXY_PROTOCOL
-			kconnection *c = rq->sink->GetConnection();
+			kconnection *c = rq->sink->get_connection();
 			if (c && c->proxy && c->proxy->src) {				
 				char ips[MAXIPLEN];
 				if (ksocket_sockaddr_ip(c->proxy->src, ips, MAXIPLEN - 1)) {

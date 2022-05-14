@@ -344,7 +344,7 @@ void log_access(KHttpRequest* rq) {
 #endif
 #ifdef KSOCKET_SSL
 #ifdef SSL_READ_EARLY_DATA_SUCCESS
-	kssl_session* ssl = rq->sink->GetSSL();
+	kssl_session* ssl = rq->sink->get_ssl();
 	if (ssl && ssl->in_early) {
 		l.WSTR("e");
 	}

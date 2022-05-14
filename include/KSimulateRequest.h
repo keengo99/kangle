@@ -20,7 +20,7 @@ public:
 	KSimulateSink();
 	~KSimulateSink();
 
-	bool SetTransferChunked()
+	bool set_transfer_chunked() override
 	{
 		return false;
 	}
@@ -29,7 +29,7 @@ public:
 		this->status_code = status_code;
 		return true;
 	}
-	bool response_header(const char *name, int name_len, const char *val, int val_len)
+	bool response_header(const char *name, int name_len, const char *val, int val_len) override
 	{
 		KHttpHeader *header = new_pool_http_header(c->pool, name, name_len, val, val_len);
 		if (header) {
@@ -37,38 +37,38 @@ public:
 		}
 		return true;
 	}
-	bool ResponseConnection(const char *val, int val_len)
+	bool response_connection(const char *val, int val_len) override
 	{
 		return false;
 	}
 	//返回头长度,-1表示出错
-	int StartResponseBody(int64_t body_size)
+	int internal_start_response_body(int64_t body_size) override
 	{
 		if (header) {
 			header(arg, status_code, header_manager.header);
 		}
 		return 0;
 	}
-	bool IsLocked()
+	bool is_locked() override
 	{
 		return false;
 	}
-	bool read_hup(void *arg, result_callback result)
+	bool read_hup(void *arg, result_callback result) override
 	{
 		return false;
 	}
-	void RemoveReadHup()
+	void remove_read_hup() override
 	{
 
 	}
-	int internal_read(char *buf,int len)
+	int internal_read(char *buf,int len) override
 	{
 		if (post) { 
 			return post(arg, buf, len);
 		}
 		return -1;
 	}
-	bool HasHeaderDataToSend()
+	bool HasHeaderDataToSend() 
 	{
 		return false;
 	}
@@ -87,31 +87,31 @@ public:
 		return true;
 	}
 	int end_request();
-	void AddSync()
+	void add_sync()
 	{
 
 	}
-	void RemoveSync()
+	void remove_sync()
 	{
 
 	}
-	void Shutdown()
+	void shutdown()
 	{
 
 	}
-	kconnection *GetConnection()
+	kconnection *get_connection()
 	{
 		return c;
 	}
-	void SetTimeOut(int tmo_count)
+	void set_time_out(int tmo_count)
 	{
 
 	}
-	int GetTimeOut()
+	int get_time_out()
 	{
 		return c->st.tmo;
 	}
-	void Flush()
+	void flush()
 	{
 
 	}

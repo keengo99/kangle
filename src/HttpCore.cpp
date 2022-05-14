@@ -724,7 +724,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* gate, KBaseRedirect* brd,
 #ifdef KSOCKET_SSL
 	if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
 		env->addEnv("HTTPS", "ON");
-		kssl_session* ssl = rq->sink->GetSSL();
+		kssl_session* ssl = rq->sink->get_ssl();
 		if (ssl) {
 #ifdef SSL_READ_EARLY_DATA_SUCCESS
 			if (ssl->in_early) {

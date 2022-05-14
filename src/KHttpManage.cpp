@@ -1361,11 +1361,11 @@ bool checkManageLogin(KHttpRequest* rq) {
 
 	const char* x_real_ip = rq->GetHttpValue(X_REAL_IP_HEADER);
 	if (x_real_ip != NULL) {
-		rq->sink->Shutdown();
+		rq->sink->shutdown();
 		return false;
 	}
 #ifdef KSOCKET_UNIX
-	kserver* server = rq->sink->GetBindServer();
+	kserver* server = rq->sink->get_bind_server();
 	if (server && server->addr.v4.sin_family == AF_UNIX) {
 		return true;
 	}
@@ -1376,7 +1376,7 @@ bool checkManageLogin(KHttpRequest* rq) {
 		std::string manage_sec_file = conf.path + "manage.sec";
 		KFile file;
 		if (file.open(manage_sec_file.c_str(), fileRead)) {
-			rq->sink->Shutdown();
+			rq->sink->shutdown();
 			return false;
 		}
 	}

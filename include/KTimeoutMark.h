@@ -13,7 +13,7 @@ public:
 	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType)
 	{
-		rq->sink->SetTimeOut(v);
+		rq->sink->set_time_out(v);
 		return true;
 	}
 	KMark *newInstance()

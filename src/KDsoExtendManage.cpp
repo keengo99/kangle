@@ -93,10 +93,10 @@ KRedirect *KDsoExtendManage::RefsRedirect(std::string &name)
 	lock.Unlock();
 	return rd; 
 }
-void KDsoExtendManage::Shutdown()
+void KDsoExtendManage::shutdown()
 {
 	std::map<const char *, KDsoExtend *, lessp>::iterator it;
 	for (it = dsos.begin();it != dsos.end();it++) {
-		(*it).second->Shutdown();
+		(*it).second->shutdown();
 	}
 }

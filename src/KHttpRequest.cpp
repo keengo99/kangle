@@ -71,7 +71,7 @@ char * KHttpRequest::map_url_path(const char* url, KBaseRedirect* caller)
 	const char* path = url;
 	if (parse_url(url, u.u) && u.u->host!=nullptr) {
 		path = u.u->path;
-		conf.gvm->queryVirtualHost(sink->GetBindServer(), &nsvh, u.u->host, 0);
+		conf.gvm->queryVirtualHost(sink->get_bind_server(), &nsvh, u.u->host, 0);
 		if (nsvh && nsvh->vh == svh->vh) {
 			//ÏàÍ¬µÄvh
 			svh = nsvh;
@@ -99,13 +99,13 @@ char * KHttpRequest::map_url_path(const char* url, KBaseRedirect* caller)
 void KHttpRequest::LeaveRequestQueue()
 {
 	sink->set_state(STATE_SEND);
-	sink->RemoveSync();
+	sink->remove_sync();
 }
 void KHttpRequest::EnterRequestQueue()
 {
 	KBIT_SET(sink->data.flags, RQ_QUEUED);
 	sink->set_state(STATE_QUEUE);
-	sink->AddSync();
+	sink->add_sync();
 }
 void KHttpRequest::SetSelfPort(uint16_t port, bool ssl)
 {

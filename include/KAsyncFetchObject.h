@@ -76,7 +76,7 @@ public:
 public:
 	void WaitPostFiber(KHttpRequest* rq, kfiber *post_fiber)
 	{
-		rq->sink->Shutdown();
+		rq->sink->shutdown();
 		int retval;
 		kfiber_join(post_fiber, &retval);
 	}

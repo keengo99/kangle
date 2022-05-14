@@ -20,7 +20,7 @@ bool http2_header_callback(KUpstream *us, void *arg, const char *attr, int attr_
 {
 	KHttpRequest *rq = (KHttpRequest *)arg;
 	KAsyncFetchObject *fo = (KAsyncFetchObject *)us->GetOpaque();
-	assert(kselector_is_same_thread(rq->sink->GetSelector()));
+	assert(kselector_is_same_thread(rq->sink->get_selector()));
 	if (KGL_OK != fo->PushHeader(rq, attr, attr_len, val, val_len, is_first)) {
 		return false;
 	}

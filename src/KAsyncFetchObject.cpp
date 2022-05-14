@@ -34,7 +34,7 @@ int process_post_fiber(void *arg, int got)
 	delete[]args;
 	int result = (int)fo->ProcessPost(rq);
 	if (fo->client) {
-		fo->client->Shutdown();
+		fo->client->shutdown();
 	}
 	return result;
 }
@@ -42,7 +42,7 @@ int process_post_fiber(void *arg, int got)
 KUpstream * proxy_tcp_connect(KHttpRequest *rq)
 {
 	char ips[MAXIPLEN];
-	kconnection *cn = rq->sink->GetConnection();
+	kconnection *cn = rq->sink->get_connection();
 	if (cn->proxy == NULL || cn->proxy->dst == NULL) {
 		return NULL;
 	}
@@ -84,7 +84,7 @@ KUpstream * proxy_connect(KHttpRequest *rq)
 		}
 		sockaddr_i s_sockaddr;
 		socklen_t addr_len = sizeof(sockaddr_i);
-		::getsockname(rq->sink->GetConnection()->st.fd, (struct sockaddr *) &s_sockaddr, &addr_len);
+		::getsockname(rq->sink->get_connection()->st.fd, (struct sockaddr *) &s_sockaddr, &addr_len);
 		ksocket_sockaddr_ip(&s_sockaddr, mip, MAXIPLEN);
 		host = mip;
 #ifdef KSOCKET_IPV6
@@ -160,8 +160,8 @@ KGL_RESULT KAsyncFetchObject::InternalProcess(KHttpRequest *rq, kfiber** post_fi
 		return out->f->write_message(out, rq, KGL_MSG_ERROR, "Cann't connect to remote host", STATUS_GATEWAY_TIMEOUT);
 	}
 	client->BindOpaque(this);
-	client->SetTimeOut(rq->sink->GetTimeOut());
-	assert(rq->sink->GetSelector()==kgl_get_tls_selector());
+	client->set_time_out(rq->sink->get_time_out());
+	assert(rq->sink->get_selector()==kgl_get_tls_selector());
 	int64_t post_length = in->f->get_read_left(in, rq);
 	if (post_length == -1 && !client->IsMultiStream()) {
 		chunk_post = 1;
@@ -260,7 +260,7 @@ KGL_RESULT KAsyncFetchObject::ReadHeader(KHttpRequest *rq, kfiber **post_fiber)
 		}
 		return result;
 	}
-	client->SetNoDelay(false);
+	client->set_no_delay(false);
 	int len;
 	for (;;) {		
 		char *buf = (char *)getUpstreamBuffer(&len);
@@ -326,7 +326,7 @@ KGL_RESULT KAsyncFetchObject::SendHeader(KHttpRequest* rq)
 		return KGL_OK;
 	}
 	//debug_print_buff(buffer->getHead());
-	client->SetDelay();
+	client->set_delay();
 	WSABUF buf[16];
 	for (;;) {
 		int bc = buffer->getReadBuffer(buf, kgl_countof(buf));
@@ -417,14 +417,14 @@ KGL_RESULT KAsyncFetchObject::readHeadSuccess(KHttpRequest *rq,kfiber **post_fib
 {
 	client->IsGood();
 	if (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
-		rq->sink->SetNoDelay(true);
-		client->SetNoDelay(true);
-		int tmo = rq->sink->GetTimeOut();
+		rq->sink->set_no_delay(true);
+		client->set_no_delay(true);
+		int tmo = rq->sink->get_time_out();
 		if (tmo < 5) {
 			tmo = 5;
-			rq->sink->SetTimeOut(tmo);
+			rq->sink->set_time_out(tmo);
 		}
-		client->SetTimeOut(tmo);
+		client->set_time_out(tmo);
 		CreatePostFiber(rq, post_fiber);
 	}
 	return PushHeaderFinished(rq);

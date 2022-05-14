@@ -59,7 +59,7 @@ kev_result KSboFile::read(KHttpRequest *rq, char *buffer,INT64 offset, int *leng
 	block_length = MIN(block_length, (INT64)*length);
 	*length = (int)block_length;
 	//printf("read from disk buffer=[%p]\n",buffer);
-	if (!kgl_selector_module.aio_read(rq->sink->GetSelector(), aio_file, buffer, offset + rq->bo_ctx->gobj->index.head_size, (int)block_length, cb, rq)) {
+	if (!kgl_selector_module.aio_read(rq->sink->get_selector(), aio_file, buffer, offset + rq->bo_ctx->gobj->index.head_size, (int)block_length, cb, rq)) {
 		return cb(aio_file, rq, NULL, -1);
 	}
 	return kev_ok;
@@ -174,7 +174,7 @@ kev_result KSboFile::flush(KHttpRequest *rq,KHttpObject *obj, aio_callback cb)
 		}
 		//printf("aio_write sb_offset=[" INT64_FORMAT "] length=[%d]\n", sb_offset, write_length);
 		/*
-		if (!kgl_selector_module.aio_write(rq->sink->GetSelector(), aio_file, write_hot, sb_offset + obj->index.head_size, write_length, cb, rq)) {
+		if (!kgl_selector_module.aio_write(rq->sink->get_selector(), aio_file, write_hot, sb_offset + obj->index.head_size, write_length, cb, rq)) {
 			return cb(aio_file, rq, NULL, -1);
 		}
 		*/
@@ -212,7 +212,7 @@ bool KSboFile::raw_write(KHttpRequest *rq, char *buffer, INT64 offset, int lengt
 		offset,
 		length,
 		(u_char)buffer[0]);
-	return kgl_selector_module.aio_write(rq->sink->GetSelector(), aio_file, buffer, offset, length, cb, rq);
+	return kgl_selector_module.aio_write(rq->sink->get_selector(), aio_file, buffer, offset, length, cb, rq);
 }
 #endif//}}
 #endif

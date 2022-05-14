@@ -69,7 +69,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 #ifdef KSOCKET_SSL
 	case KGL_VAR_SSL_VAR:
 	{
-		kssl_session *ssl = rq->sink->GetSSL();
+		kssl_session *ssl = rq->sink->get_ssl();
 		if (ssl) {
 			char *result = ssl_var_lookup(ssl->ssl, name);
 			if (result) {

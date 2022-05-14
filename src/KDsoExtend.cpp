@@ -160,7 +160,7 @@ bool KDsoExtend::load(const char *filename, std::map<std::string, std::string> &
 	}
 	return true;
 }
-void KDsoExtend::Shutdown()
+void KDsoExtend::shutdown()
 {
 	if (kgl_dso_finit) {
 		kgl_dso_finit(0);

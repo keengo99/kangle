@@ -22,7 +22,7 @@ public:
 	virtual ~KPipeStream();
 	void close();
 	int read(char *buf, int len) override;
-	int64_t get_read_left() override {
+	int64_t get_left() override {
 		return -1;
 	}
 	int write(const char *buf, int len);

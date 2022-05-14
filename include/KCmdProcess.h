@@ -92,7 +92,7 @@ public:
 #endif//}}
 	bool canDestroy(time_t nowTime);
 private:
-	KUpstream* GetConnection(KHttpRequest *rq, KSingleListenPipeStream* sp);
+	KUpstream* get_connection(KHttpRequest *rq, KSingleListenPipeStream* sp);
 	KSingleListenPipeStream *freeProcessList;
 	KSingleListenPipeStream *busyProcessList;
 	KMutex stLock;

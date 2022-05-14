@@ -33,7 +33,7 @@ public:
 	void ListUpstream(std::stringstream &s);
 	void ListTarget(std::vector<std::string> &target);
 	KRedirect *RefsRedirect(std::string &name);
-	void Shutdown();
+	void shutdown();
 	kgl_dso_init_f kgl_dso_init;
 	kgl_dso_finit_f kgl_dso_finit;
 	kgl_dso_version version;

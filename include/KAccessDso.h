@@ -26,7 +26,7 @@ public:
 			access->free_ctx(ctx.module);
 		}
 	}
-	int32_t Shutdown();
+	int32_t shutdown();
 	void Init();
 	uint32_t process(KHttpRequest *rq, KAccessContext *cn,DWORD notify);
 	KAccessDso *newInstance()
@@ -63,9 +63,9 @@ public:
 	{
 		delete ad;
 	}
-	int32_t Shutdown()
+	int32_t shutdown()
 	{
-		return ad->Shutdown();
+		return ad->shutdown();
 	}
 	void Init()
 	{

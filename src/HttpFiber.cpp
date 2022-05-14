@@ -179,12 +179,12 @@ query_vh_result query_virtual(KHttpRequest *rq, const char *hostname, int len, i
 	query_vh_result vh_result;
 	KSubVirtualHost* svh = NULL;
 #ifdef KSOCKET_SSL
-	kconnection *c = rq->sink->GetConnection();
+	kconnection *c = rq->sink->get_connection();
 	if (c && c->sni) {
 		vh_result = kgl_use_ssl_sni(c, &svh);
 	} else
 #endif
-		vh_result = conf.gvm->queryVirtualHost(rq->sink->GetBindServer(), &svh, hostname, len);
+		vh_result = conf.gvm->queryVirtualHost(rq->sink->get_bind_server(), &svh, hostname, len);
 	rq->sink->data.bind_opaque(svh);
 #ifdef ENABLE_VH_RS_LIMIT
 	if (query_vh_success == vh_result && svh) {
@@ -351,7 +351,7 @@ void start_request_fiber(KSink *sink, int header_length)
 					if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
 						//rewrite host
 						KSubVirtualHost *new_svh = NULL;
-						conf.gvm->queryVirtualHost(rq->sink->GetBindServer(), &new_svh, rq->sink->data.url->host, 0);
+						conf.gvm->queryVirtualHost(rq->sink->get_bind_server(), &new_svh, rq->sink->data.url->host, 0);
 						if (new_svh) {
 							auto svh = rq->get_virtual_host();
 							if (new_svh->vh == svh->vh) {
@@ -389,7 +389,7 @@ clean:
 KGL_RESULT handle_error(KHttpRequest *rq, int code, const char *msg) {
 
 	if (code == 0) {
-		rq->sink->Shutdown();
+		rq->sink->shutdown();
 		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 		return KGL_OK;
 	}
@@ -758,7 +758,7 @@ KGL_RESULT process_cache_request(KHttpRequest *rq) {
 				delete rq->file;
 				rq->file = NULL;
 			}
-			assert(!rq->IsFetchObjectEmpty() || KBIT_TEST(rq->sink->GetBindServer()->flags, WORK_MODEL_MANAGE) || rq->sink->data.opaque);
+			assert(!rq->IsFetchObjectEmpty() || KBIT_TEST(rq->sink->get_bind_server()->flags, WORK_MODEL_MANAGE) || rq->sink->data.opaque);
 			return load_object(rq);
 		}
 	}

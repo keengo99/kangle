@@ -237,7 +237,7 @@ KVirtualHost* KVirtualHostManage::refsVirtualHostByName(std::string name) {
 	lock.Unlock();
 	return vh;
 }
-void KVirtualHostManage::Shutdown()
+void KVirtualHostManage::shutdown()
 {
 	dlisten.Close();
 }

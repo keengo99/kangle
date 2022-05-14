@@ -16,7 +16,7 @@ public:
 		return "ssl_serial";
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) {		
-		kssl_session *ssl = rq->sink->GetSSL();
+		kssl_session *ssl = rq->sink->get_ssl();
 		if (ssl) {
 			char *serial = ssl_var_lookup(ssl->ssl, "CERT_SERIALNUMBER");
 			if (serial == NULL) {

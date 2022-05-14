@@ -338,7 +338,7 @@ KTcpUpstream *KCmdPoolableRedirect::createPipeStream(KVirtualHost *vh,KListenPip
 	}
 #ifndef _WIN32
 	if(socket){
-		ksocket_no_block(socket->GetConnection()->st.fd);
+		ksocket_no_block(socket->get_connection()->st.fd);
 	}
 #endif
 	return socket;

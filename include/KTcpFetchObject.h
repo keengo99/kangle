@@ -33,7 +33,7 @@ public:
 		if (proxy_protocol) {
 			kbuf* buf = build_proxy_header(rq->getClientIp());
 			if (buf == NULL) {
-				rq->sink->Shutdown();
+				rq->sink->shutdown();
 				return KGL_EUNKNOW;
 			}
 			buffer->Append(buf);

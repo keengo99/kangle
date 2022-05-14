@@ -38,7 +38,7 @@ public:
 	}
 	bool execUrl(const char *url);
 	void log(const char *str);
-	int64_t get_read_left() override
+	int64_t get_left() override
 	{
 		return pECB->cbLeft;
 	}

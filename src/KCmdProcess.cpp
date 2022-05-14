@@ -128,7 +128,7 @@ KUpstream *KMPCmdProcess::PowerResult(KHttpRequest *rq, KPipeStream* st2)
 	}
 	return NULL;
 }
-KUpstream* KMPCmdProcess::GetConnection(KHttpRequest* rq, KSingleListenPipeStream* sp)
+KUpstream* KMPCmdProcess::get_connection(KHttpRequest* rq, KSingleListenPipeStream* sp)
 {
 	addRef();
 	KUpstream* socket = sp->getConnection(rq);
@@ -150,7 +150,7 @@ KUpstream* KMPCmdProcess::GetUpstream(KHttpRequest* rq, KExtendProgram* rd)
 	}
 	stLock.Unlock();
 	if (sp) {
-		return GetConnection(rq, sp);
+		return get_connection(rq, sp);
 	}
 	KCmdPoolableRedirect* cmd = static_cast<KCmdPoolableRedirect*>(rd);
 	cmd->LockCommand();

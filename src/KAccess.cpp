@@ -148,7 +148,7 @@ int32_t KAccess::ShutdownMarkModule()
 	std::map<std::string, KMark *>::iterator it;
 	for (int i = 0;i < 2;i++) {
 		for (it = KAccess::markFactorys[i].begin();it != markFactorys[i].end();it++) {
-			result += (*it).second->Shutdown();
+			result += (*it).second->shutdown();
 		}
 	}
 	return result;

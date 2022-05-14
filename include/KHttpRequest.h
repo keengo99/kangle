@@ -291,7 +291,7 @@ public:
 	}
 	void registerConnectCleanHook(kgl_cleanup_f callBack,void *data)
 	{
-		kgl_pool_cleanup_t *cn = kgl_pool_cleanup_add(sink->GetConnectionPool(), 0);
+		kgl_pool_cleanup_t *cn = kgl_pool_cleanup_add(sink->get_connection_pool(), 0);
 		cn->data = data;
 		cn->handler = callBack;
 	}	
@@ -301,7 +301,7 @@ public:
 	}
 	uint8_t GetWorkModel()
 	{
-		kserver *server = sink->GetBindServer();
+		kserver *server = sink->get_bind_server();
 		if (server == NULL) {
 			return 0;
 		}
@@ -322,7 +322,7 @@ public:
 	//从堆上分配内存，在rq删除时，自动释放。
 	void *alloc_connect_memory(int size)
 	{
-		return kgl_pnalloc(sink->GetConnectionPool(), size);
+		return kgl_pnalloc(sink->get_connection_pool(), size);
 	}
 	void *alloc_request_memory(int size)
 	{
@@ -343,14 +343,14 @@ public:
 	{
 		return KBIT_TEST(sink->data.flags, RQ_SYNC);
 	}
-	void AddSync()
+	void add_sync()
 	{
-		sink->AddSync();
+		sink->add_sync();
 		KBIT_SET(sink->data.flags, RQ_SYNC);
 	}
-	void RemoveSync()
+	void remove_sync()
 	{
-		sink->RemoveSync();
+		sink->remove_sync();
 		KBIT_CLR(sink->data.flags, RQ_SYNC);
 	}
 	int Read(char *buf, int len);

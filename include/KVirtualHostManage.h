@@ -25,7 +25,7 @@ public:
 	void getHtml(std::stringstream &s,std::string vh_name,int id, KUrlValue &attribute);
 	void GetListenHtml(std::stringstream &s);
 	void GetListenWhm(WhmContext *ctx);
-	void Shutdown();
+	void shutdown();
 	void build(std::stringstream &s);
 	bool saveConfig(std::string &errMsg);
 	bool vhAction(KVirtualHost *ov,KTempleteVirtualHost *tm,KUrlValue &attribute, std::string &errMsg);

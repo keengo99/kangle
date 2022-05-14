@@ -18,7 +18,7 @@ public:
 		return "work_model";
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) {
-		return KBIT_TEST(rq->sink->GetBindServer()->flags,flag)>0;
+		return KBIT_TEST(rq->sink->get_bind_server()->flags,flag)>0;
 	}
 	std::string getDisplay() {
 		std::stringstream s;

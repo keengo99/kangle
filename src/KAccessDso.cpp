@@ -105,7 +105,7 @@ void KAccessDso::Init()
 	access->init_shutdown(ctx.module, false);
 	return;
 }
-int32_t KAccessDso::Shutdown()
+int32_t KAccessDso::shutdown()
 {
 	if (access->init_shutdown == NULL) {
 		return 0;

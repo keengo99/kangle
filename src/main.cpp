@@ -241,7 +241,7 @@ void shutdown() {
 	}
 	cache.shutdown_disk(true);
 	conf.gvm->UnBindGlobalListens(conf.service);
-	conf.gvm->Shutdown();
+	conf.gvm->shutdown();
 	conf.default_cache = 0;
 #ifdef ENABLE_DISK_CACHE
 	if (conf.disk_cache > 0) {
@@ -255,7 +255,7 @@ void shutdown() {
 	conf.gvm->dumpFlow();
 #endif
 	if (conf.dem) {
-		conf.dem->Shutdown();
+		conf.dem->shutdown();
 	}
 	klog(KLOG_INFO, "shutdown now\n");
 	accessLogger.close();
