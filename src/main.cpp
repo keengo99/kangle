@@ -1047,6 +1047,10 @@ void init_safe_process()
 	string configFile = conf.path + "/etc";
 #endif
 	configFile += CONFIG_FILE;
+	KXml::fopen = (kxml_fopen)kfopen;
+	KXml::fclose = (kxml_fclose)kfclose;
+	KXml::fsize = (kxml_fsize)kfsize;
+	KXml::fread = (kxml_fread)kfread;
 	listenConfigParser.parse(configFile.c_str());
 }
 void init_stderr()
