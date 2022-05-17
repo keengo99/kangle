@@ -160,9 +160,9 @@ public:
 	}
 	void sync_data()
 	{
-#ifdef _WIN32
+#if defined(_WIN32)
 		FlushFileBuffers(fp);
-#elif LINUX
+#elif defined(LINUX)
 		fdatasync(fp);
 #else
 		fsync(fp);
