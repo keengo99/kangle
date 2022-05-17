@@ -464,7 +464,7 @@ bool KWebDavService::doPropfind() {
 	parseDocument(document);
 
 	char* depth_header = provider->getHttpHeader("Depth");
-	//printf("depth=%s\n",depth_header);
+	//printf("filename=[%s]\n", provider->getFileName());
 	int depth = 0;
 	if (depth_header) {
 		if (strcasecmp(depth_header, "1") == 0) {
@@ -478,6 +478,7 @@ bool KWebDavService::doPropfind() {
 	if (rs == NULL) {
 		return send(STATUS_NOT_FOUND);
 	}
+#if 0
 	if (rs->isDirectory()) {
 		char* path = rs->getPath();
 		int len = (int)strlen(path);
@@ -486,7 +487,7 @@ bool KWebDavService::doPropfind() {
 				path[len - 1] = '\0';
 			} else {
 				KStringBuf s;
-				s << path << "/";
+				s << url_encode(path, strlen(path)).c_str() << "/";
 				send(STATUS_MOVED);
 				provider->sendUnknowHeader("Location", s.getString());
 				delete rs;
@@ -494,6 +495,7 @@ bool KWebDavService::doPropfind() {
 			}
 		}
 	}
+#endif
 	KWStream* s = provider->getOutputStream();
 	provider->sendStatus(STATUS_MULTI_STATUS, NULL);
 	writeXmlHeader();

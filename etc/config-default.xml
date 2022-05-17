@@ -16,9 +16,9 @@
 	<!--
 	<server name='apache' type='http' host='localhost' port='82'/>
 	<server name='php' type='fastcgi' host='localhost' port='10080'/>
-	<cgi name='php' cmd='/usr/bin/php-cgi' env='REDIRECT_STATUS=CGI'/>
-	<api name='php' file='bin/libphp5.so'/>
 	-->
+	<api name='webdav' file='bin/webdav.${dso}'  life_time='60' max_error_count='5'>
+	</api>
 	<api name='whm' file='buildin:whm'/>
 	<request action='vhs' >
 	</request>

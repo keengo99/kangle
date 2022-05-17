@@ -118,12 +118,11 @@ int main(int argc,char **argv)
 	::argc = argc;
 	::argv = argv;
 	ksocket_startup();
-//{{ent
 #ifdef _WIN32
 	CoInitializeEx(NULL, COINIT_MULTITHREADED);
 	SetUnhandledExceptionFilter(CustomUnhandledExceptionFilter);
 #endif
-//}}
+
 #ifndef _WIN32
 	signal(SIGPIPE, SIG_IGN);
 	signal(SIGHUP, SIG_IGN);
@@ -145,7 +144,6 @@ int main(int argc,char **argv)
 		}
 	}
 	KPipeStream st;
-//{{ent
 #ifdef _WIN32
 	int pid = GetCurrentProcessId();
 	KStringBuf rf(64),wf(64);
@@ -157,13 +155,10 @@ int main(int argc,char **argv)
 		return 1;
 	}
 #else
-//}}
 	signal(SIGCHLD, sigcatch);
 	st.fd[0] = 4;
 	st.fd[1] = 5;
-//{{ent
 #endif
-//}}
 	for (;;) {
 		if (!api_child_process(&st)) {
 			break;
