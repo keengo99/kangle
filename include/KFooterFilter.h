@@ -18,7 +18,7 @@ public:
 		}
 		return KHttpStream::write_all(rq, buf,len);
 	}
-	StreamState write_end(void *rq, KGL_RESULT result) {
+	StreamState write_end(void *rq, KGL_RESULT result) override{
 		if (!footer.empty() && (!head||replace)) {
 			if (KHttpStream::write_all(rq, footer.c_str(),footer.size())==STREAM_WRITE_FAILED) {
 				result = STREAM_WRITE_FAILED;

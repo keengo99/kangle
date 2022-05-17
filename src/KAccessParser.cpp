@@ -63,7 +63,7 @@ bool KAccessParser::parseString(const char *str,KAccess *access)
 	try {
 		result=xmlParser.parseString(str);
 	} catch(KXmlException &e) {
-		fprintf(stderr,e.what());
+		fprintf(stderr,"%s\n",e.what());
 		return false;
 	}
 	return result;
@@ -77,7 +77,7 @@ bool KAccessParser::parseFile(std::string file,KAccess *access)
 	try {
 		result=xmlParser.parseFile(file);
 	} catch(KXmlException &e) {
-		fprintf(stderr,e.what());
+		fprintf(stderr, "%s\n", e.what());
 		return false;
 	}
 	return result;

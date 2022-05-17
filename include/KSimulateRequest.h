@@ -72,7 +72,7 @@ public:
 	{
 		return false;
 	}
-	int internal_write(WSABUF *buf, int bc)
+	int internal_write(WSABUF *buf, int bc) override
 	{
 		if (body) {
 			if (body(arg, (char*)buf[0].iov_base, buf[0].iov_len) == 0) {
@@ -81,37 +81,37 @@ public:
 		}
 		return -1;
 	}
-	bool get_self_addr(sockaddr_i *addr)
+	bool get_self_addr(sockaddr_i *addr) override
 	{
 		kgl_memcpy(addr, &c->addr, sizeof(sockaddr_i));
 		return true;
 	}
-	int end_request();
-	void add_sync()
+	int end_request() override;
+	void add_sync() override
 	{
 
 	}
-	void remove_sync()
+	void remove_sync() override
 	{
 
 	}
-	void shutdown()
+	void shutdown() override
 	{
 
 	}
-	kconnection *get_connection()
+	kconnection *get_connection() override
 	{
 		return c;
 	}
-	void set_time_out(int tmo_count)
+	void set_time_out(int tmo_count) override
 	{
 
 	}
-	int get_time_out()
+	int get_time_out() override
 	{
 		return c->st.tmo;
 	}
-	void flush()
+	void flush() override
 	{
 
 	}

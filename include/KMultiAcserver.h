@@ -32,10 +32,10 @@ public:
 	KMultiAcserver(KSockPoolHelper *nodes);
 	virtual ~KMultiAcserver();
 public:
-	KUpstream* GetUpstream(KHttpRequest* rq);
+	KUpstream* GetUpstream(KHttpRequest* rq) override;
 	unsigned getPoolSize();
 	bool editNode(std::map<std::string,std::string> &attr);
-	void buildXML(std::stringstream &s);
+	void buildXML(std::stringstream &s) override;
 	void buildAttribute(std::stringstream &s);
 	static void baseHtml(KMultiAcserver *mserver,std::stringstream &s);
 	void getHtml(std::stringstream &s);
@@ -44,7 +44,7 @@ public:
 	static std::string form(KMultiAcserver *mserver);
 	void parse(std::map<std::string,std::string> &attribute);
 	void parseNode(const char *nodeString);
-	const char *getType()
+	const char *getType() override
 	{
 		return "mserver";
 	}
@@ -55,7 +55,7 @@ public:
 	void setErrorTryTime(int max_error_count,int errorTryTime);
 	static std::string nodeForm(std::string name,KMultiAcserver *as,unsigned nodeIndex);
 	bool delNode(int nodeIndex);
-	bool isChanged(KPoolableRedirect *rd);
+	bool isChanged(KPoolableRedirect *rd) override;
 	void buildVNode();
 	void set_proto(Proto_t proto) override;
 	bool ip_hash;

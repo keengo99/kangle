@@ -342,6 +342,8 @@ kgl_parse_result KMultiPartInputFilter::parseHeader(KInputFilterContext *rq)
 		case kgl_parse_finished:
 			rq->mb->model = MULTIPART_BODY_MODEL;
 			return ret;
+		default:
+			return ret;
 		}
 	}
 	return kgl_parse_continue;

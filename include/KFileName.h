@@ -162,7 +162,7 @@ public:
 	{
 #ifdef _WIN32
 		FlushFileBuffers(fp);
-#elif O_DSYNC
+#elif LINUX
 		fdatasync(fp);
 #else
 		fsync(fp);

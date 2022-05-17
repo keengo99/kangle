@@ -72,7 +72,7 @@ bool KCmdPoolableRedirect::Exec(KVirtualHost* vh, KListenPipeStream* st,bool isS
 	if (chuser) {
 		token = vh->createToken(result);
 		if (!result) {
-			return NULL;
+			return false;
 		}
 		
 	}
@@ -379,11 +379,12 @@ void KCmdPoolableRedirect::parseConfig(std::map<std::string, std::string> &attri
 {
 	KExtendProgram::parseConfig(attribute);
 	bool changed = false;
-	set_proto(KPoolableRedirect::parseProto(attribute["proto"].c_str()));
+	auto proto = KPoolableRedirect::parseProto(attribute["proto"].c_str());
 	if (this->proto!=proto) {
 		this->proto = proto;
 		changed = true;
 	}
+	set_proto(proto);
 	if (cmd!=attribute["file"]) {
 		changed = true;
 		cmd = attribute["file"];

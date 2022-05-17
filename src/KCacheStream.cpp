@@ -46,7 +46,6 @@ StreamState KCacheStream::write_end(void *arg, KGL_RESULT result)
 	}
 	if (buffer) {
 		set_buffer_obj(buffer,obj);
-		kassert(disk_cache == NULL);
 	}
 #ifdef ENABLE_DISK_CACHE
 	if (disk_cache) {
@@ -92,7 +91,9 @@ StreamState KCacheStream::write_direct(void *arg, char *buf,int len)
 	StreamState result = KHttpStream::write_all(rq, buf,len);
 	if (buffer) {
 		buffer->write_direct(buf, len);
+#ifdef ENABLE_DISK_CACHE
 		kassert(disk_cache == NULL);
+#endif
 		CheckMemoryCacheSize(rq);
 		return result;
 	}
@@ -112,7 +113,9 @@ StreamState KCacheStream::write_all(void *arg, const char *buf,int len)
 	StreamState result = KHttpStream::write_all(rq, buf,len);
 	if (buffer) {
 		buffer->write_all(buf, len);
+#ifdef ENABLE_DISK_CACHE
 		kassert(disk_cache == NULL);
+#endif
 		CheckMemoryCacheSize(rq);
 		return result;
 	}

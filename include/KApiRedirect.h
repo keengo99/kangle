@@ -28,13 +28,13 @@ public:
 	{
 		return name.c_str();
 	}
-	KFetchObject *makeFetchObject(KHttpRequest *rq, KFileName *file);
+	KFetchObject *makeFetchObject(KHttpRequest *rq, KFileName *file) override;
 	bool load();
 	void setFile(std::string file);
 	bool load(std::string file);
 	KUpstream* GetUpstream(KHttpRequest* rq) override;	
 
-	const char *getType() {
+	const char *getType() override {
 		return "api";
 	}
 	bool createProcess(KVirtualHost *vh, KPipeStream *st);
@@ -44,7 +44,7 @@ public:
 		return false;
 	}
 public:
-	void buildXML(std::stringstream &s);
+	void buildXML(std::stringstream &s) override;
 public:
 	std::string apiFile;
 	KApiDso dso;

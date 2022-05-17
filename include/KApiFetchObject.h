@@ -23,7 +23,7 @@ class KApiFetchObject: public KFetchObject , public KApiService {
 public:
 	KApiFetchObject(KApiRedirect *rd);
 	virtual ~KApiFetchObject();
-	KGL_RESULT Open(KHttpRequest *rq, kgl_input_stream* in, kgl_output_stream* out);
+	KGL_RESULT Open(KHttpRequest *rq, kgl_input_stream* in, kgl_output_stream* out) override;
 	friend class KApiRedirect;
 public:
 	int writeClient(const char *str, int len) override;
@@ -31,7 +31,7 @@ public:
 	bool setStatusCode(const char *status, int len = 0) override;
 	KGL_RESULT addHeader(const char *attr, int len = 0) override;
 	KGL_RESULT map_url_path(const char* url, LPVOID file, LPDWORD path_len) override;
-	Token_t getToken();
+	Token_t getToken() override;
 	Token_t getVhToken(const char *vh_name);
 	Token_t token;
 #ifndef _WIN32

@@ -247,6 +247,8 @@ KGL_RESULT st_write_message(kgl_output_stream*st, KREQUEST r, KGL_MSG_TYPE msg_t
 			}
 		}
 		break;
+	default:
+		break;
 	}
 	return result ? KGL_OK : KGL_ESOCKET_BROKEN;
 }
@@ -333,6 +335,10 @@ KGL_RESULT check_write_header(kgl_output_stream* st, KREQUEST r, kgl_header_type
 			rq->ctx->left_read = *content_length;
 			return rq->responseContentLength(*content_length) ? KGL_OK : KGL_EINVALID_PARAMETER;
 		}
+		default:
+			//NOT SUPPORT
+			assert(false);
+			return KGL_ENOT_SUPPORT;
 		}
 	}
 	return rq->responseHeader(attr, val, val_len) ? KGL_OK : KGL_EINVALID_PARAMETER;

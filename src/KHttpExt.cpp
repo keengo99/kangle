@@ -306,10 +306,13 @@ char *utf82charset(const char *str, size_t len, const char *charset) {
 	char *buf_str = buf;
 	size_t ret_len;
 	memset(buf, 0, buf_len);
+	ret_len = iconv(cp, (char **)&str, &len, &buf_str, &buf_len);
+#if 0
 #ifdef _LIBICONV_VERSION
 	ret_len = iconv(cp, (const char **)&str, &len, &buf_str, &buf_len);
 #else
 	ret_len = iconv(cp, (char **)&str, &len, &buf_str, &buf_len);
+#endif
 #endif
 	iconv_close(cp);
 	char *ret_str = strdup(buf);

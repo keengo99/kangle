@@ -29,14 +29,11 @@
 #define KANGLE_ULT                 1
 
 
-#define ENABLE_BIG_OBJECT_206      1
-#define ENABLE_BIG_OBJECT          1
-
 #cmakedefine HTTP_PROXY
 #cmakedefine ENABLE_BROTLI
 #cmakedefine KANGLE_VERSION 	"@KANGLE_VERSION@"
 #cmakedefine ENABLE_JEMALLOC
-
+#cmakedefine ENABLE_DISK_CACHE
 #ifndef PROGRAM_NAME
 #define PROGRAM_NAME     "kangle"
 #endif
@@ -52,7 +49,10 @@
 #ifndef MIN
 	#define MIN(a,b)  ((a)>(b)?(b):(a))
 #endif
-
+#ifdef ENABLE_DISK_CACHE
+	#define ENABLE_BIG_OBJECT_206      1
+	#define ENABLE_BIG_OBJECT          1
+#endif
 #define	 GC_SLEEP_MSEC	5000
 
 #define  NBUFF_SIZE     8192
@@ -149,7 +149,7 @@
 
 #define ENABLE_MSERVER_ICP         1
 #define ENABLE_BLACK_LIST          1
-#define ENABLE_DISK_CACHE          1
+//#define ENABLE_DISK_CACHE          1
 #define KSOCKET_IPV6	           1
 #define ENABLE_FATBOY              1
 #define ENABLE_UPSTREAM_PARAM      1

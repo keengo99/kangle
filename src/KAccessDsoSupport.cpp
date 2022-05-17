@@ -363,6 +363,8 @@ KGL_RESULT base_support_function(KHttpRequest *rq, KF_REQ_TYPE req, PVOID data, 
 		rq->ctx->obj->uk.url->accept_encoding = (uint8_t)(~0);
 		return KGL_OK;
 	}
+	default:
+		break;
 	}
 	return KGL_ENOT_SUPPORT;
 }

@@ -130,7 +130,6 @@ public:
 	bool read_package(FCGI_Header* header, char** buffer, int& len)
 	{
 		*buffer = NULL;
-		memset(header, 0, sizeof(header));
 		if (!client->read_all((char*)header, sizeof(header))) {
 			return false;
 		}
@@ -157,7 +156,6 @@ public:
 		char* b = NULL;
 		*buffer = NULL;
 		FCGI_Header header;
-		memset(&header, 0, sizeof(header));
 	reread: if (!client->read_all((char*)&header, sizeof(header))) {
 		//		printf("cann't recv fastcgi header\n");
 			//client->setLastError(1);

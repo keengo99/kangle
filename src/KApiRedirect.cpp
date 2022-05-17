@@ -113,7 +113,7 @@ static BOOL WINAPI apiServerSupportFunction(HCONN hConn, DWORD dwHSERequest,
 				delete env;
 			}
 			if (PID_LIKE(pid)) {
-				*ret = (void *)pid;
+				*ret = (void *)(intptr_t)pid;
 				return TRUE;
 			}
 			return FALSE;

@@ -25,7 +25,7 @@ public:
 	int64_t get_left() override {
 		return -1;
 	}
-	int write(const char *buf, int len);
+	int write(const char *buf, int len) override;
 	bool create();
 	bool create_name(const char *read_pipe,const char *write_pipe);
 	bool connect_name(const char *read_pipe,const char *write_pipe);

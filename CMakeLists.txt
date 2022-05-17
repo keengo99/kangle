@@ -4,7 +4,7 @@ set(KANGLE_VERSION "3.6.0")
 
 set(CPACK_PACKAGE_VERSION ${KANGLE_VERSION})
 set(KANGLE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/)
-
+set(CMAKE_CXX_STANDARD 14)
 file(GLOB KANGLE_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h  
@@ -62,6 +62,7 @@ check_symbol_exists(KSOCKET_SSL ${KASYNC_INCLUDE_DIR}/kasync_config.h HAVE_KSOCK
 set(KANGLE_LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/kasync/build")
 option(ENABLE_BROTLI "enable brotli compress support" OFF)
 option(HTTP_PROXY "build kangle as proxy server" OFF)
+option(ENABLE_DISK_CACHE "enable disk cache" ON)
 
 if (ENABLE_BROTLI)
     check_include_file("brotli/encode.h" ENABLE_BROTLI)
@@ -76,7 +77,7 @@ set(KASYNC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/kasync)
 add_subdirectory(khttpd)
 
 
-list(APPEND KANGLE_SOURCE_FILES ${KHTTPD_SOURCE_FILES})
+#list(APPEND KANGLE_SOURCE_FILES ${KHTTPD_SOURCE_FILES})
 list(APPEND KANGLE_INCLUDE_DIR ${KHTTPD_INCLUDE_DIR})
 list(APPEND KANGLE_LIBS ${KHTTPD_LIBS})
 #windows
@@ -98,16 +99,25 @@ else()
 		message(FATAL_ERROR "cann't found zlib")
 	endif()
 	list(APPEND KANGLE_LIBS ZLIB::ZLIB)
-	include(FindSQLite3)
-	if (NOT SQLite3_FOUND)
-		message(FATAL_ERROR "cann't found sqlite3 lib")
-	endif()
-	list(APPEND KANGLE_LIBS SQLite::SQLite3)
 	list(APPEND KANGLE_LIBS ${PCRE_LIBRARIES})
 	if (CMAKE_SYSTEM_NAME MATCHES "Linux")
 		list(APPEND KANGLE_LIBS dl)
+    elseif (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+        list(APPEND KANGLE_LIBS iconv)
 	endif()	
 endif()
+
+include(FindSQLite3)
+if (SQLite3_FOUND)
+    list(APPEND KANGLE_LIBS SQLite::SQLite3)
+    set(SQLITE3_LIB SQLite::SQLite3)
+else()
+    add_library(sqlite3 ${CMAKE_CURRENT_SOURCE_DIR}/third_party/sqlite/sqlite3.c)
+    target_include_directories(sqlite3 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/third_party/sqlite)
+    list(APPEND KANGLE_LIBS sqlite3)
+    set(SQLITE3_LIB sqlite3)
+endif()
+
 if (ENABLE_JEMALLOC)
 	list(APPEND KANGLE_LIBS jemalloc)
 endif()
@@ -131,6 +141,8 @@ if (NOT HTTP_PROXY)
     set_property(TARGET vhs_sqlite PROPERTY  PREFIX "")
     target_include_directories(vhs_sqlite PUBLIC ${KANGLE_INCLUDE_DIR})
     target_link_directories(vhs_sqlite PUBLIC ${KANGLE_LIBS_DIR})
+    target_link_libraries(vhs_sqlite ${SQLITE3_LIB})
+
     set_property(TARGET testdso PROPERTY  PREFIX "")
     target_include_directories(testdso PUBLIC ${KANGLE_INCLUDE_DIR})
     target_link_directories(testdso PUBLIC ${KANGLE_LIBS_DIR})

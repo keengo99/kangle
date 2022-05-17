@@ -365,6 +365,9 @@ void start_request_fiber(KSink *sink, int header_length)
 					KBIT_SET(rq->sink->data.raw_url->flags, flags);
 					break;
 				}
+				default:
+					send_error2(rq, STATUS_SERVER_ERROR, "query vh result unknow.");
+					goto clean;
 			}
 		}
 	}

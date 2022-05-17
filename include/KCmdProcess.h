@@ -73,13 +73,13 @@ class KMPCmdProcess: public KVirtualHostProcess {
 public:
 	KMPCmdProcess();
 	~KMPCmdProcess();
-	KUpstream* GetUpstream(KHttpRequest* rq, KExtendProgram* rd);
+	KUpstream* GetUpstream(KHttpRequest* rq, KExtendProgram* rd) override;
 	//kev_result handleRequest(KHttpRequest *rq,KExtendProgram *rd, KAsyncFetchObject *fo);
-	void getProcessInfo(const USER_T &user, const std::string &name,std::stringstream &s,int &count);
-	bool killProcess(int pid);
+	void getProcessInfo(const USER_T &user, const std::string &name,std::stringstream &s,int &count) override;
+	bool killProcess(int pid) override;
 	//KTcpUpstream *poweron(KVirtualHost *vh,KExtendProgram *erd, bool &success);
-	KPipeStream*PowerThread(KVirtualHost* vh, KExtendProgram* rd);
-	KUpstream *PowerResult(KHttpRequest* rq, KPipeStream* st);
+	KPipeStream*PowerThread(KVirtualHost* vh, KExtendProgram* rd) override;
+	KUpstream *PowerResult(KHttpRequest* rq, KPipeStream* st) override;
 	void gcProcess(KSingleListenPipeStream *st);
 	bool isMultiProcess()
 	{
@@ -88,9 +88,9 @@ public:
 	void set_tcp(bool tcp) override;
 	//{{ent
 #ifdef ENABLE_ADPP
-	void flushCpuUsage(const std::string &user,const std::string &name,ULONG64 cpuTime);
+	void flushCpuUsage(const std::string &user,const std::string &name,ULONG64 cpuTime) override;
 #endif//}}
-	bool canDestroy(time_t nowTime);
+	bool canDestroy(time_t nowTime) override;
 private:
 	KUpstream* get_connection(KHttpRequest *rq, KSingleListenPipeStream* sp);
 	KSingleListenPipeStream *freeProcessList;
@@ -134,13 +134,9 @@ public:
 		kassert(vprocess!=NULL);
 		vprocess->gcProcess(this);
 	}
-	void isBad(KUpstream *st,BadStage stage)
+	void isBad(KUpstream *st,BadStage stage) override
 	{
 		process.kill();
-	}
-	unsigned getSize()
-	{
-		return KPoolableSocketContainer::getSize();
 	}
 	friend class KMPCmdProcess;
 private:

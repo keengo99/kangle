@@ -21,7 +21,7 @@ class KISAPIServiceProvider: public KServiceProvider, public KStream {
 public:
 	KISAPIServiceProvider();
 	virtual ~KISAPIServiceProvider();
-	Token_t getToken() {
+	Token_t getToken() override {
 		Token_t token;
 		if (pECB->ServerSupportFunction(pECB->ConnID,
 				HSE_REQ_GET_IMPERSONATION_TOKEN, (LPVOID) &token, NULL, NULL)
@@ -30,44 +30,44 @@ public:
 		}
 		return NULL;
 	}
-	KWStream *getOutputStream() {
+	KWStream *getOutputStream() override{
 		return this;
 	}
-	KRStream *getInputStream() {
+	KRStream *getInputStream() override{
 		return this;
 	}
-	bool execUrl(const char *url);
-	void log(const char *str);
+	bool execUrl(const char *url) override;
+	void log(const char *str) override;
 	int64_t get_left() override
 	{
 		return pECB->cbLeft;
 	}
-	int read(char *buf, int len);
-	int write(const char *buf, int len);
+	int read(char *buf, int len) override;
+	int write(const char *buf, int len) override;
 	StreamState write_end(KGL_RESULT result) override;
-	char getMethod() {
+	char getMethod() override {
 		if (meth != METH_UNSET) {
 			return meth;
 		}
 		meth = KHttpKeyValue::getMethod(pECB->lpszMethod);
 		return meth;
 	}
-	const char *getFileName() {
+	const char *getFileName() override{
 		return pECB->lpszPathTranslated;
 	}
-	const char *getQueryString() {
+	const char *getQueryString() override{
 		return pECB->lpszQueryString;
 	}
-	const char *getRequestUri() {
+	const char *getRequestUri() override{
 		return pECB->lpszPathInfo;
 	}
-	INT64 getContentLength() {
+	INT64 getContentLength() override {
 		return pECB->cbTotalBytes;
 	}
-	const char *getContentType() {
+	const char *getContentType() override{
 		return pECB->lpszContentType;
 	}	
-	char *getHttpHeader(const char *attr) {
+	char *getHttpHeader(const char *attr) override{
 		std::stringstream s;
 		s << "HTTP_";
 		while (*attr) {
@@ -84,15 +84,15 @@ public:
 		}
 		return NULL;
 	}
-	bool isHeadSend() {
+	bool isHeadSend() override{
 		return headSended;
 	}
-	bool sendKnowHeader(int attr, const char *val) {
+	bool sendKnowHeader(int attr, const char *val) override{
 		return true;
 	}
-	bool sendUnknowHeader(const char *attr, const char *val);
-	bool sendStatus(int statusCode, const char *statusLine);
-	bool getEnv(const char *attr, char *val, int *len);
+	bool sendUnknowHeader(const char *attr, const char *val) override;
+	bool sendStatus(int statusCode, const char *statusLine) override;
+	bool getEnv(const char *attr, char *val, int *len) override;
 
 	//bool getServerVar(const char *name, char *value, int len);
 	void setECB(EXTENSION_CONTROL_BLOCK *pECB) {

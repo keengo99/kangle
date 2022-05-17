@@ -36,16 +36,16 @@ public:
 		return name.c_str();
 	}
 	KUpstream* GetUpstream(KHttpRequest* rq) override;
-	void parseConfig(std::map<std::string, std::string> &attribute);
+	void parseConfig(std::map<std::string, std::string> &attribute) override;
 
 	KProcessManage *getProcessManage() {
 		return static_cast<KProcessManage *>(&pm);
 	}
 	bool Exec(KVirtualHost* vh, KListenPipeStream* st, bool isSameRunning);
 	//KTcpUpstream *createPipeStream(KVirtualHost *vh, KListenPipeStream *st, std::string &unix_path,bool isSameRunning);
-	bool parseEnv(std::map<std::string, std::string> &attribute);
-	void buildXML(std::stringstream &s);
-	const char *getType() {
+	bool parseEnv(std::map<std::string, std::string> &attribute) override;
+	void buildXML(std::stringstream &s) override;
+	const char *getType() override {
 		return "cmd";
 	}
 	void LockCommand()
@@ -56,7 +56,7 @@ public:
 	{
 		kfiber_mutex_unlock(lock);
 	}
-	bool isChanged(KPoolableRedirect *rd);
+	bool isChanged(KPoolableRedirect *rd) override;
 	void set_proto(Proto_t proto) override;
 	bool chuser;
 	int worker;

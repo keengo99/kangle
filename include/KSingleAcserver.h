@@ -19,7 +19,7 @@ public:
 	unsigned getPoolSize() {
 		return sockHelper->getSize();
 	}
-	bool isChanged(KPoolableRedirect *rd)
+	bool isChanged(KPoolableRedirect *rd) override
 	{
 		if (KPoolableRedirect::isChanged(rd)) {
 			return true;
@@ -27,14 +27,14 @@ public:
 		KSingleAcserver *sa = static_cast<KSingleAcserver *>(rd);
 		return sockHelper->isChanged(sa->sockHelper);
 	}
-	KUpstream* GetUpstream(KHttpRequest* rq);
+	KUpstream* GetUpstream(KHttpRequest* rq) override;
 	bool setHostPort(std::string host, const char *port);
-	const char *getType() {
+	const char *getType() override{
 		return "server";
 	}
 	void set_proto(Proto_t proto) override;
 public:
-	void buildXML(std::stringstream &s);
+	void buildXML(std::stringstream &s) override;
 	KSockPoolHelper *sockHelper;
 };
 #endif /* KSingleAcserver_H_ */

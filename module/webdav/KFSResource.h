@@ -15,20 +15,20 @@ class KFSResource :
 public:
 	KFSResource(struct stat *buf);
 	~KFSResource(void);
-	KAttribute *getAttribute();
-	bool rename(const char *newName);
-	bool remove();
-	bool isDirectory();
-	bool open(bool writeFlag=true);
+	KAttribute *getAttribute() override;
+	bool rename(const char *newName) override;
+	bool remove() override;
+	bool isDirectory() override;
+	bool open(bool writeFlag=true) override;
 	bool copy(KResource *dst) override;
-	bool close();
-	int write(const char *buf,int len);
-	int read(char *buf,int len);
-	bool bind(const char *name, KAttribute *attribute) ;
-	bool unbind(const char *name) ;
-	bool rebind(const char *name, KAttribute *attribute) ;
-	void listChilds(std::list<KResource *> &result);
-	time_t getLastModified()
+	bool close() override;
+	int write(const char *buf,int len) override;
+	int read(char *buf,int len) override;
+	bool bind(const char *name, KAttribute *attribute) override;
+	bool unbind(const char *name) override;
+	bool rebind(const char *name, KAttribute *attribute) override;
+	void listChilds(std::list<KResource *> &result) override;
+	time_t getLastModified() override
 	{
 		return buf->st_mtime;
 	}
