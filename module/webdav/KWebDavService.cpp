@@ -478,13 +478,13 @@ bool KWebDavService::doPropfind() {
 	if (rs == NULL) {
 		return send(STATUS_NOT_FOUND);
 	}
-#if 0
 	if (rs->isDirectory()) {
 		char* path = rs->getPath();
 		int len = (int)strlen(path);
 		if (len > 1) {
 			if (path[len - 1] == '/') {
 				path[len - 1] = '\0';
+#if 0
 			} else {
 				KStringBuf s;
 				s << url_encode(path, strlen(path)).c_str() << "/";
@@ -492,10 +492,11 @@ bool KWebDavService::doPropfind() {
 				provider->sendUnknowHeader("Location", s.getString());
 				delete rs;
 				return true;
+#endif
 			}
 		}
 	}
-#endif
+
 	KWStream* s = provider->getOutputStream();
 	provider->sendStatus(STATUS_MULTI_STATUS, NULL);
 	writeXmlHeader();
