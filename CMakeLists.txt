@@ -166,7 +166,7 @@ install(FILES
      ${KANGLE_DIR}/kasync/include/kfeature.h    
      ${KANGLE_DIR}/kasync/include/kforwin32.h     
      ${KANGLE_DIR}/kasync/include/kasync_config.h
-     ${KANGLE_DIR}/khttpd/include/khttpd.h   
+     ${KANGLE_DIR}/khttpd/include/khttp.h   
      TYPE INCLUDE)
 install(DIRECTORY
     ${KANGLE_DIR}/webadmin/

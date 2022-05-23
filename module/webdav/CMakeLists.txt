@@ -42,7 +42,4 @@ target_include_directories(webdav PUBLIC ${CMAKE_REQUIRED_INCLUDES} ${KWEBDAV_IN
 
 set(CMAKE_INSTALL_PREFIX ${KANGLE_DIR})
 install(TARGETS webdav LIBRARY DESTINATION bin)
-install(DIRECTORY
-     ${CMAKE_CURRENT_SOURCE_DIR}/../ext/
-    DESTINATION "ext"
-)
+
