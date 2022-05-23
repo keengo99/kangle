@@ -88,7 +88,8 @@ KGL_RESULT KFastcgiFetchObject::buildHead(KHttpRequest *rq)
 		buffer->destroy();
 		return KGL_EUNKNOW;
 	}
-	if (!rq->has_post_data()) {
+	
+	if (!rq->has_post_data(in)) {
 		appendPostEnd();
 	}
 	return KGL_OK;
@@ -200,7 +201,7 @@ void KFastcgiFetchObject::buildPost(KHttpRequest *rq)
 	fcgiheader->contentLength = htons(postLen);
 	fcgiheader->requestIdB0 = 1;
 	buffer->insertBuffer(fcgibuff);
-	if(!rq->has_post_data()){
+	if(!rq->has_post_data(in)){
 		appendPostEnd();
 	}
 }

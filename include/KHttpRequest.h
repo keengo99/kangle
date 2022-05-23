@@ -120,7 +120,7 @@ public:
 	bool isBad();
 	void set_url_param(char *param);
 	//判断是否还有post数据可读
-	bool has_post_data();
+	bool has_post_data(kgl_input_stream* in);
 
 	std::string getInfo();
 	char *getUrl();

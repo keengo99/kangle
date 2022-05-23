@@ -82,6 +82,7 @@ KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest *rq)
 	b.putShort(rq->sink->get_self_port());
 	//is secure
 	b.putByte(KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL) ? 1 : 0);
+	int64_t content_length = in->f->get_read_left(in, rq);
 	KHttpHeader *header = rq->sink->data.GetHeader();
 	int count = 0;
 	while (header) {
@@ -93,7 +94,7 @@ KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest *rq)
 	if (rq->sink->data.if_modified_since != 0 || rq->sink->data.if_none_match != NULL) {
 		count++;
 	}
-	if (rq->sink->data.content_length > 0) {
+	if (content_length > 0) {
 		count++;
 	}
 	b.putShort(count);
@@ -122,9 +123,9 @@ KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest *rq)
 		b.putString(header->val);
 	do_not_insert:header = header->next;
 	}
-	if (rq->sink->data.content_length > 0) {
+	if (content_length > 0) {
 		b.putShort(0xA008);
-		b.putString((char *)int2string(rq->sink->data.content_length, tmpbuff));
+		b.putString((char *)int2string(content_length, tmpbuff));
 	}
 	if (rq->sink->data.if_modified_since != 0) {
 		char tmpbuff[50];

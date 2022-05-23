@@ -181,10 +181,14 @@ KHttpHeaderIteratorResult handle_http_header(void* arg, KHttpHeader* header)
 				delete rq->auth;
 			}
 			rq->auth = tauth;
+#ifdef HTTP_PROXY
 			return KHttpHeaderIteratorResult::Free;
-#ifdef ENABLE_TPROXY
-		}
 #endif
+
+#ifdef ENABLE_TPROXY
+			}
+#endif
+			return KHttpHeaderIteratorResult::Continue;
 		}
 		if (0 == attr_casecmp(header->attr, "Content-Type")) {
 #ifdef ENABLE_INPUT_FILTER
@@ -443,8 +447,9 @@ KSubVirtualHost* KHttpRequest::get_virtual_host()
 {
 	return static_cast<KSubVirtualHost*>(sink->data.opaque);
 }
-bool KHttpRequest::has_post_data() {
-	return sink->data.left_read>0;
+
+bool KHttpRequest::has_post_data(kgl_input_stream* in) {
+	return in->f->get_read_left(in, this) != 0;
 }
 int KHttpRequest::checkFilter(KHttpObject *obj) {
 	int action = JUMP_ALLOW;
