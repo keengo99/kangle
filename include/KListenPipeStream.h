@@ -60,7 +60,7 @@ public:
 		sockaddr_i addr;
 
 		ksocket_getaddr(host, port, AF_UNSPEC, AI_NUMERICHOST,&addr);
-		SOCKET sockfd = ksocket_listen(&addr, 0);
+		SOCKET sockfd = ksocket_listen(&addr, KSOCKET_BLOCK);
 		if (!ksocket_opened(sockfd)) {
 			return false;
 		}

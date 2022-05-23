@@ -557,7 +557,7 @@ bool api_child_listen(u_short port, KPipeStream *st,bool unix_socket) {
 		s << "/tmp/extworker." << pi.port << ".sock";
 		s.str().swap(cl->unix_path);
 		ksocket_unix_addr(cl->unix_path.c_str(),&addr);
-		cl->sockfd = ksocket_listen((sockaddr_i *)&addr,0);
+		cl->sockfd = ksocket_listen((sockaddr_i *)&addr, KSOCKET_BLOCK);
 		if (!ksocket_opened(cl->sockfd)) {
 			pi.result = 1;
 		}
