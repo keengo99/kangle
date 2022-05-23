@@ -13,7 +13,7 @@ func HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 	cn, wb, _ := hj.Hijack()
 	wb.WriteString("HTTP/1.1 200\r\nConnection: upgrade\r\n\r\n")
 	wb.Flush()
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	if r.Form.Get("first") == "client" {
 		buf := make([]byte, 8)
 		n, err := wb.Read(buf)
@@ -23,6 +23,7 @@ func HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 		}
 		wb.Flush()
 	} else {
+		time.Sleep(500 * time.Millisecond)
 		wb.WriteString("ok")
 		wb.Flush()
 		buf := make([]byte, 8)
