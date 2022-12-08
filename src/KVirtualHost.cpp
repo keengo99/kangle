@@ -928,7 +928,7 @@ bool KVirtualHost::setSSLInfo(std::string certfile,std::string keyfile,std::stri
 	this->key_file = keyfile;
 	this->cipher = cipher.c_str();
 	this->protocols = protocols.c_str();
-	bool *http2 = NULL;
+	u_char *http2 = NULL;
 #ifdef ENABLE_HTTP2
 	http2 = &this->http2;
 #endif

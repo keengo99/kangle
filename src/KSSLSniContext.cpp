@@ -8,10 +8,10 @@ KSSLSniContext::~KSSLSniContext()
 		svh->release();
 	}
 }
-void *kgl_create_ssl_sni(SSL *ssl, kconnection *c, const char *hostname)
+void *kgl_create_ssl_sni(SSL *ssl, KOPAQUE server_ctx, const char *hostname)
 {
 	KSSLSniContext *sni = new KSSLSniContext;
-	sni->result = conf.gvm->queryVirtualHost(c->server, &sni->svh, hostname, 0);
+	sni->result = conf.gvm->queryVirtualHost((KVirtualHostContainer *)server_ctx, &sni->svh, hostname, 0);
 	if (sni->result != query_vh_success) {
 		return sni;
 	}

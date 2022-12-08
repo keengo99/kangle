@@ -119,7 +119,7 @@ bool KSubVirtualHost::SetSslInfo(const char *crt, const char *key)
 	}	else if (!isAbsolutePath(key)) {
 		keyfile = vh->doc_root + key;
 	}
-	bool *http2 = NULL;
+	u_char *http2 = NULL;
 #ifdef ENABLE_HTTP2
 	http2 = &vh->http2;
 #endif

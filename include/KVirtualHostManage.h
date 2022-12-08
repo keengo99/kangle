@@ -54,7 +54,7 @@ public:
 	 * É¾³ýÐéÄâÖ÷»ú
 	 */
 	bool removeVirtualHost(KVirtualHost *vh);
-	query_vh_result queryVirtualHost(kserver *ls,KSubVirtualHost **rq_svh,const char *site,int site_len);
+	query_vh_result queryVirtualHost(KVirtualHostContainer *vhc,KSubVirtualHost **rq_svh,const char *site,int site_len);
 	int find_domain(const char *domain, WhmContext *ctx);
 	void getAllVh(std::list<std::string> &vhs,bool status,bool onlydb);
 	bool getAllTempleteVh(const char *templeteGroup,std::list<std::string> &vhs);

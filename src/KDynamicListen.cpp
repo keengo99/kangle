@@ -69,7 +69,7 @@ void kserver_remove_global_vh(kserver *server, KVirtualHost *vh)
 kgl_ssl_ctx *kserver_load_ssl(kserver *server, KSslConfig *ssl_config)
 {
 	server->ssl = 1;
-	kgl_ssl_ctx *ssl_ctx = ssl_config->GetSSLCtx(&server->http2);
+	kgl_ssl_ctx *ssl_ctx = ssl_config->GetSSLCtx(&server->alpn);
 	if (ssl_ctx) {
 		KBIT_SET(server->flags, WORK_MODEL_SSL);
 	}
@@ -162,7 +162,7 @@ kserver *KDynamicListen::Add(KListenKey *key, KSslConfig *ssl_config)
 	if (need_load_ssl) {
 		ssl_ctx = kserver_load_ssl(server, ssl_config);
 #ifdef ENABLE_HTTP2
-		server->http2 = ssl_config->http2;
+		server->alpn = ssl_config->http2;
 #endif
 #ifdef KSOCKET_SSL
 		server->early_data = ssl_config->early_data;

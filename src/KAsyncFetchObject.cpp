@@ -508,6 +508,10 @@ KGL_RESULT KAsyncFetchObject::PushHeader(KHttpRequest *rq, const char *attr, int
 			return KGL_OK;
 		}
 	}
+	if (!strcasecmp(attr, "Alt-Svc")) {
+		//TODO: handle alt-svc
+		return KGL_OK;
+	}
 	if (!strcasecmp(attr, "Content-length")) {
 		rq->ctx->know_length = 1;
 		rq->ctx->left_read = string2int(val);

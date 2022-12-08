@@ -107,6 +107,12 @@ public:
 	{
 
 	}
+	uint8_t get_server_model() override {
+		return 0;
+	}
+	KOPAQUE get_server_opaque()  override {
+		return NULL;
+	}
 	int get_time_out() override
 	{
 		return c->st.tmo;

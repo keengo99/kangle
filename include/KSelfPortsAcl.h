@@ -33,7 +33,9 @@ public:
 		return "listen_ports";
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) {
-		return KMultiIntAcl::match(ksocket_addr_port(&rq->sink->get_bind_server()->addr));
+		sockaddr_i addr = { 0 };
+		rq->sink->get_self_addr(&addr);
+		return KMultiIntAcl::match(ksocket_addr_port(&addr));
 	}
 };
 #endif

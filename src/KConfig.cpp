@@ -48,11 +48,11 @@ KGlobalConfig conf;
 void load_config(KConfig* cconf, bool firstTime);
 void post_load_config(bool firstTime);
 #ifdef KSOCKET_SSL
-kgl_ssl_ctx* KSslConfig::GetSSLCtx(const char* certfile, const char* keyfile, bool* http2)
+kgl_ssl_ctx* KSslConfig::GetSSLCtx(const char* certfile, const char* keyfile, u_char* alpn)
 {
 	void* ssl_ctx_data = NULL;
 #ifdef ENABLE_HTTP2
-	ssl_ctx_data = http2;
+	ssl_ctx_data = alpn;
 #endif
 	SSL_CTX* ssl_ctx = kgl_ssl_ctx_new_server(certfile,
 		keyfile,

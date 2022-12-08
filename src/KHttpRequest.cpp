@@ -71,7 +71,7 @@ char * KHttpRequest::map_url_path(const char* url, KBaseRedirect* caller)
 	const char* path = url;
 	if (parse_url(url, u.u) && u.u->host!=nullptr) {
 		path = u.u->path;
-		conf.gvm->queryVirtualHost(sink->get_bind_server(), &nsvh, u.u->host, 0);
+		conf.gvm->queryVirtualHost((KVirtualHostContainer*)sink->get_server_opaque(), &nsvh, u.u->host, 0);
 		if (nsvh && nsvh->vh == svh->vh) {
 			//ПаН¬µДvh
 			svh = nsvh;

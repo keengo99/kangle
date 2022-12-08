@@ -498,7 +498,7 @@ typedef struct _kgl_socket_client_function
 	int (*readv)(KSOCKET_CLIENT s, WSABUF* buf, int bc);
 	KSELECTOR(*get_selector)(KSOCKET_CLIENT s);
 	void(*set_opaque)(KSOCKET_CLIENT s, KOPAQUE data);
-	void(*close_client)(KSOCKET_CLIENT s);
+	void(*close)(KSOCKET_CLIENT s);
 	void(*shutdown)(KSOCKET_CLIENT s);	
 } kgl_socket_client_function;
 

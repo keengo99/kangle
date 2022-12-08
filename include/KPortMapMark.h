@@ -23,7 +23,7 @@ public:
 	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,int &jumpType)
 	{
-		if (!KBIT_TEST(rq->sink->get_bind_server()->flags,WORK_MODEL_TCP) || rq->IsFetchObjectEmpty()) {
+		if (!KBIT_TEST(rq->sink->get_server_model(),WORK_MODEL_TCP) || rq->IsFetchObjectEmpty()) {
 			return false;
 		}
 		rq->AppendFetchObject(new KTcpFetchObject(false));

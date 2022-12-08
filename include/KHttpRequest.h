@@ -301,11 +301,7 @@ public:
 	}
 	uint8_t GetWorkModel()
 	{
-		kserver *server = sink->get_bind_server();
-		if (server == NULL) {
-			return 0;
-		}
-		return server->flags;
+		return sink->get_server_model();
 	}
 	void InsertFetchObject(KFetchObject *fo);
 	void AppendFetchObject(KFetchObject *fo);

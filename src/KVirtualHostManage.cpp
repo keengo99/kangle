@@ -747,18 +747,16 @@ int KVirtualHostManage::find_domain(const char* site, WhmContext* ctx)
 /*
  * 查找虚拟主机并绑定在rq上。
  */
-query_vh_result KVirtualHostManage::queryVirtualHost(kserver* ls, KSubVirtualHost** rq_svh, const char* site, int site_len) {
-	assert(ls);
+query_vh_result KVirtualHostManage::queryVirtualHost(KVirtualHostContainer *vhc, KSubVirtualHost** rq_svh, const char* site, int site_len) {
 	query_vh_result result = query_vh_host_not_found;
+	if (vhc == NULL) {
+		return result;
+	}
 	if (site_len == 0) {
 		site_len = (int)strlen(site);
 	}
 	unsigned char bind_site[256];
 	if (!revert_hostname(site, site_len, bind_site, sizeof(bind_site))) {
-		return result;
-	}
-	KVirtualHostContainer* vhc = (KVirtualHostContainer*)kserver_get_opaque(ls);
-	if (vhc == NULL) {
 		return result;
 	}
 	lock.Lock();

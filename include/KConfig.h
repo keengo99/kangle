@@ -78,13 +78,13 @@ public:
 #ifdef KSOCKET_SSL
 	virtual std::string GetCertFile();
 	virtual std::string GetKeyFile();
-	kgl_ssl_ctx *GetSSLCtx(const char *certfile, const char *keyfile,bool *http2);
-	kgl_ssl_ctx *GetSSLCtx(bool *http2)
+	kgl_ssl_ctx *GetSSLCtx(const char *certfile, const char *keyfile,u_char * alpn);
+	kgl_ssl_ctx *GetSSLCtx(u_char *alpn)
 	{
-		return GetSSLCtx(GetCertFile().c_str(), GetKeyFile().c_str(),http2);
+		return GetSSLCtx(GetCertFile().c_str(), GetKeyFile().c_str(), alpn);
 	}
 #ifdef ENABLE_HTTP2
-	bool http2;
+	u_char http2;
 #endif
 	bool early_data;
 	std::string cipher;
