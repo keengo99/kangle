@@ -99,13 +99,11 @@ char * KHttpRequest::map_url_path(const char* url, KBaseRedirect* caller)
 void KHttpRequest::LeaveRequestQueue()
 {
 	sink->set_state(STATE_SEND);
-	sink->remove_sync();
 }
 void KHttpRequest::EnterRequestQueue()
 {
 	KBIT_SET(sink->data.flags, RQ_QUEUED);
 	sink->set_state(STATE_QUEUE);
-	sink->add_sync();
 }
 void KHttpRequest::SetSelfPort(uint16_t port, bool ssl)
 {

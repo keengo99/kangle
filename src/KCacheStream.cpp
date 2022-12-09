@@ -130,7 +130,6 @@ StreamState KCacheStream::write_all(void *arg, const char *buf,int len)
 #ifdef ENABLE_DISK_CACHE
 KDiskCacheStream *KCacheStream::NewDiskCache(KHttpRequest *rq)
 {
-	kassert(!rq->IsSync());
 	KDiskCacheStream *disk_cache = new KDiskCacheStream;
 	if (!disk_cache->Open(rq, obj)) {
 		delete disk_cache;

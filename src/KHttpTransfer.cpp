@@ -91,8 +91,7 @@ StreamState KHttpTransfer::sendHead(KHttpRequest *rq, bool isEnd) {
 		content_len = obj->index.content_length;
 #ifdef ENABLE_DISK_CACHE
 		if (content_len > conf.max_cache_size) {
-			if (rq->IsSync()
-				|| content_len > conf.max_bigobj_size
+			if (content_len > conf.max_bigobj_size
 				|| !obj_can_disk_cache(rq, obj)) {
 				cache_layer = cache_none;
 			} else {

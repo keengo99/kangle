@@ -335,20 +335,6 @@ public:
 		}
 		return NULL;
 	}
-	bool IsSync()
-	{
-		return KBIT_TEST(sink->data.flags, RQ_SYNC);
-	}
-	void add_sync()
-	{
-		sink->add_sync();
-		KBIT_SET(sink->data.flags, RQ_SYNC);
-	}
-	void remove_sync()
-	{
-		sink->remove_sync();
-		KBIT_CLR(sink->data.flags, RQ_SYNC);
-	}
 	int Read(char *buf, int len);
 #ifdef ENABLE_REQUEST_QUEUE
 	bool NeedQueue();

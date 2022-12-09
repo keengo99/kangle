@@ -87,14 +87,6 @@ public:
 		return true;
 	}
 	int end_request() override;
-	void add_sync() override
-	{
-
-	}
-	void remove_sync() override
-	{
-
-	}
 	void shutdown() override
 	{
 

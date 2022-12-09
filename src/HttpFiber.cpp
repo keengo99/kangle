@@ -101,7 +101,6 @@ KGL_RESULT process_upstream_no_body(KHttpRequest *rq, kgl_input_stream* in, kgl_
 		//TODO: handleXSendfile
 		return handleXSendfile(rq,in,out);
 	}
-	kassert(!KBIT_TEST(rq->sink->data.flags, RQ_SYNC));
 	if (KBIT_TEST(rq->filter_flags, RQ_SWAP_OLD_OBJ)) {
 		rq->ctx->popObj();
 		KBIT_CLR(rq->filter_flags, RQ_SWAP_OLD_OBJ);
