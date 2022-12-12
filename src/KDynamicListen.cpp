@@ -68,7 +68,7 @@ void kserver_remove_global_vh(kserver *server, KVirtualHost *vh)
 #ifdef KSOCKET_SSL
 kgl_ssl_ctx *kserver_load_ssl(kserver *server, KSslConfig *ssl_config)
 {
-	server->ssl = 1;
+	KBIT_SET(server->flags, KGL_SERVER_SSL);
 	kgl_ssl_ctx *ssl_ctx = ssl_config->GetSSLCtx(&server->alpn);
 	if (ssl_ctx) {
 		KBIT_SET(server->flags, WORK_MODEL_SSL);
@@ -118,10 +118,9 @@ void KDynamicListen::Delete(KListenKey *key,KVirtualHost *vh)
 	} else {
 		listen->SyncFlag();
 #ifdef KSOCKET_SSL
-		if (listen->key->ssl == 0 && listen->server->ssl) {
+		if (listen->key->ssl == 0 && KBIT_TEST(listen->server->flags, KGL_SERVER_SSL)) {
 			//remove ssl
-			listen->server->ssl = 0;
-			KBIT_CLR(listen->server->flags, WORK_MODEL_SSL);
+			KBIT_CLR(listen->server->flags, WORK_MODEL_SSL|KGL_SERVER_SSL);
 			kserver_set_ssl_ctx(listen->server,NULL);
 		}
 #endif
@@ -146,7 +145,7 @@ kserver *KDynamicListen::Add(KListenKey *key, KSslConfig *ssl_config)
 	} else {
 		listen = (KListen *)node->data;
 		server = listen->server;
-		if (key->global > 0 && !server->global) {
+		if (key->global > 0 && !KBIT_TEST(server->flags,KGL_SERVER_GLOBAL)) {
 			conf.gvm->BindGlobalVirtualHost(server);
 		}
 		listen->key->SetFlag(key);
@@ -165,12 +164,12 @@ kserver *KDynamicListen::Add(KListenKey *key, KSslConfig *ssl_config)
 		server->alpn = ssl_config->http2;
 #endif
 #ifdef KSOCKET_SSL
-		server->early_data = ssl_config->early_data;
+		kserver_set_flag(server, KGL_SERVER_EARLY_DATA, ssl_config->early_data);
 #endif
 	}
 #endif
 	listen->SyncFlag();
-	if (!server->started) {
+	if (!KBIT_TEST(server->flags, KGL_SERVER_START)) {
 		initListen(listen->key, server, ssl_ctx);
 #ifdef KSOCKET_SSL
 	} else if (ssl_ctx) {
@@ -364,7 +363,7 @@ void KDynamicListen::getListenKey(KListenHost *lh,const char *port,bool ipv4,std
 static iterator_ret bind_global_virtual_host_iterator(void *data, void *argv)
 {
 	kserver *server = ((KListen *)data)->server;
-	if (server->global) {
+	if (KBIT_TEST(server->flags, KGL_SERVER_GLOBAL)) {
 		kserver_add_global_vh(server, (KVirtualHost *)argv);
 	}
 	return iterator_continue;
@@ -372,7 +371,7 @@ static iterator_ret bind_global_virtual_host_iterator(void *data, void *argv)
 static iterator_ret unbind_global_virtual_host_iterator(void *data, void *argv)
 {
 	kserver *server = ((KListen *)data)->server;
-	if (server->global) {
+	if (KBIT_TEST(server->flags, KGL_SERVER_GLOBAL)) {
 		kserver_remove_global_vh(server, (KVirtualHost *)argv);
 	}
 	return iterator_continue;
@@ -428,7 +427,7 @@ static iterator_ret listen_whm_iterator(void *data, void *argv)
 	kassert(!listen->IsEmpty());
 	WhmContext *ctx = (WhmContext *)argv;
 	kserver *server = listen->server;
-	if (server->started) {
+	if (KBIT_TEST(listen->server->flags, KGL_SERVER_START)) {
 		std::stringstream s;
 		bool unix_socket = false;
 #ifdef KSOCKET_UNIX
@@ -482,7 +481,7 @@ static iterator_ret listen_html_iterator(void *data, void *argv)
 	KListen *listen = (KListen *)data;
 	std::stringstream *s = (std::stringstream *)argv;
 	kserver *server = listen->server;
-	if (server->started) {
+	if (KBIT_TEST(listen->server->flags, KGL_SERVER_START)) {
 		*s << "<tr>";
 		bool unix_socket = false;
 #ifdef KSOCKET_UNIX
@@ -546,7 +545,7 @@ static iterator_ret query_domain_iterator(void *data, void *argv)
 	query_domain_param *param = (query_domain_param *)argv;
 	KListen *listen = (KListen *)data;
 	kserver *server = listen->server;
-	if (server->closed || !server->started ||
+	if (!KBIT_TEST(server->flags,KGL_SERVER_START) ||
 		KBIT_TEST(server->flags, WORK_MODEL_MANAGE) ||
 		(param->port>0 && listen->key->port!=param->port)) {
 		return iterator_continue;

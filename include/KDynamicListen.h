@@ -127,8 +127,16 @@ public:
 		} else {
 			KBIT_CLR(server->flags, WORK_MODEL_UNIX);
 		}
-		server->global = global > 0;
-		server->dynamic = dynamic > 0;
+		if (dynamic) {
+			KBIT_SET(server->flags, KGL_SERVER_DYNAMIC);
+		} else {
+			KBIT_CLR(server->flags, KGL_SERVER_DYNAMIC);
+		}
+		if (global) {
+			KBIT_SET(server->flags, KGL_SERVER_GLOBAL);
+		} else {
+			KBIT_CLR(server->flags, KGL_SERVER_GLOBAL);
+		}
 	}
 	std::string ip;
 	int port;

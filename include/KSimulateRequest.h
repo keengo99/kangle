@@ -99,7 +99,7 @@ public:
 	{
 
 	}
-	uint8_t get_server_model() override {
+	uint32_t get_server_model() override {
 		return 0;
 	}
 	KOPAQUE get_server_opaque()  override {
