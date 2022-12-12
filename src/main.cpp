@@ -732,11 +732,11 @@ static int Usage(bool only_version = false) {
 #ifdef ENABLE_HTTP2
 			" h2"
 #endif
+#ifdef ENABLE_HTTP3
+			" h3"
+#endif
 #ifdef ENABLE_PROXY_PROTOCOL
 		   " proxy"
-#endif
-#ifdef ENABLE_UPSTREAM_SSL
-		" u-ssl"
 #endif
 #ifdef ENABLE_BIG_OBJECT
 #ifdef ENABLE_BIG_OBJECT_206
@@ -745,23 +745,13 @@ static int Usage(bool only_version = false) {
            " big-object"
 #endif
 #endif
-#ifdef ENABLE_UPSTREAM_HTTP2
-			" u-h2"
-#endif
 #ifdef IP_TRANSPARENT
 #ifdef ENABLE_TPROXY
 			" tproxy"
 #endif
 #endif
-#ifdef ENABLE_MSERVER_ICP
-			" mserver-icp"
-#endif
-
 #ifdef ENABLE_DISK_CACHE
 			" disk-cache"
-#endif
-#ifdef ENABLE_SQLITE_DISK_INDEX
-			" sqlite-disk-index"
 #endif
 #ifndef NDEBUG
 		" debug"
