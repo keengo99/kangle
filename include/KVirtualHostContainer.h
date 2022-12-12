@@ -3,13 +3,13 @@
 #include "krbtree.h"
 #include <string.h>
 #include "KHttpHeader.h"
+#include "KHttpLib.h"
 
 typedef unsigned char * domain_t;
 class KSubVirtualHost;
 class KHttpRequest;
 class KVirtualHost;
-#define kgl_tolower(c)      (unsigned char) ((c >= 'A' && c <= 'Z') ? (c | 0x20) : c)
-#define kgl_toupper(c)      (unsigned char) ((c >= 'a' && c <= 'z') ? (c & ~0x20) : c)
+
 inline int memn2cmp(unsigned char *s1, unsigned char *s2)
 {
 	unsigned char n;

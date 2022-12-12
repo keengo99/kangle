@@ -1358,15 +1358,13 @@ void KHttpManage::parsePostData() {
 	postData = buffer;
 }
 bool checkManageLogin(KHttpRequest* rq) {
-
 	const char* x_real_ip = rq->GetHttpValue(X_REAL_IP_HEADER);
 	if (x_real_ip != NULL) {
 		rq->sink->shutdown();
 		return false;
 	}
 #ifdef KSOCKET_UNIX
-	kserver* server = rq->sink->get_bind_server();
-	if (server && server->addr.v4.sin_family == AF_UNIX) {
+	if (KBIT_TEST(rq->sink->get_server_model(),WORK_MODEL_UNIX)) {
 		return true;
 	}
 #endif

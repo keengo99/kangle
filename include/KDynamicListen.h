@@ -122,6 +122,11 @@ public:
 			KBIT_CLR(server->flags, WORK_MODEL_TPROXY);
 		}
 #endif
+		if (server->addr.v4.sin_family == AF_UNIX) {
+			KBIT_SET(server->flags, WORK_MODEL_UNIX);
+		} else {
+			KBIT_CLR(server->flags, WORK_MODEL_UNIX);
+		}
 		server->global = global > 0;
 		server->dynamic = dynamic > 0;
 	}
