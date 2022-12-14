@@ -106,7 +106,7 @@ private:
 	void BindGlobalVirtualHost(kserver *server);
 	void UnBindGlobalVirtualHost(kserver *server);
 #ifdef ENABLE_SVH_SSL
-	KVirtualHostContainer *ssl_config;
+	KDomainMap *ssl_config;
 #endif
 private:
 	static KMutex lock;

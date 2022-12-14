@@ -15,9 +15,9 @@ public:
 	query_vh_result result;
 	KSubVirtualHost *svh;
 };
-void *kgl_create_ssl_sni(SSL *ssl, KOPAQUE server_ctx, const char *hostname);
+void *kgl_lookup_sni_ssl_ctx(KOPAQUE server_ctx, const char *hostname, SSL_CTX **ssl_ctx);
 void kgl_free_ssl_sni(void *sni);
-query_vh_result kgl_use_ssl_sni(kconnection *c, KSubVirtualHost **svh);
+query_vh_result kgl_use_ssl_sni(void *sni, KSubVirtualHost **svh);
 #endif
 #endif
 

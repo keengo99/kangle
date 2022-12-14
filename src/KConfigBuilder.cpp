@@ -120,7 +120,7 @@ void KConfigBuilder::build(std::stringstream &s) {
 				s << "protocols='" << conf.service[i]->protocols << "' ";
 			}
 #ifdef ENABLE_HTTP2
-			s << "http2='" << (conf.service[i]->http2 ?"1":"0") << "' ";
+			s << "alpn='" << (int)conf.service[i]->alpn << "' ";
 #endif
 			s << "early_data='" << (conf.service[i]->early_data ? "1" : "0") << "' ";
 		}

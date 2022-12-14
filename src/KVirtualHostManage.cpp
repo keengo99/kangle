@@ -78,7 +78,8 @@ KVirtualHostManage::~KVirtualHostManage() {
 	kassert(this != conf.gvm || dlisten.IsEmpty());
 #ifdef ENABLE_SVH_SSL
 	if (ssl_config) {
-		ssl_config->Destroy(free_ssl_certifycate);
+		ssl_config->clear(free_ssl_certifycate);
+		delete ssl_config;
 	}
 #endif
 }
@@ -90,7 +91,7 @@ void KVirtualHostManage::copy(KVirtualHostManage* vm)
 	avh.swap(vm->avh);
 	gtvhs.swap(vm->gtvhs);
 #ifdef ENABLE_SVH_SSL
-	KVirtualHostContainer* tmp_ssl_config = ssl_config;
+	KDomainMap* tmp_ssl_config = ssl_config;
 	ssl_config = vm->ssl_config;
 	vm->ssl_config = tmp_ssl_config;
 #endif
@@ -703,14 +704,14 @@ void KVirtualHostManage::UnBindGlobalVirtualHost(kserver* server)
 {
 	std::map<std::string, KVirtualHost*>::iterator it;
 	for (it = avh.begin(); it != avh.end(); it++) {
-		kserver_remove_global_vh(server, (*it).second);
+		kgl_vhc_remove_global_vh(get_vh_container(server), (*it).second);
 	}
 }
 void KVirtualHostManage::BindGlobalVirtualHost(kserver* server)
 {
 	std::map<std::string, KVirtualHost*>::iterator it;
 	for (it = avh.begin(); it != avh.end(); it++) {
-		kserver_add_global_vh(server, (*it).second);
+		kgl_vhc_add_global_vh(get_vh_container(server), (*it).second);
 	}
 }
 bool KVirtualHostManage::internalRemoveVirtualHost(KVirtualHost* vh) {
@@ -760,7 +761,7 @@ query_vh_result KVirtualHostManage::queryVirtualHost(KVirtualHostContainer *vhc,
 		return result;
 	}
 	lock.Lock();
-	KSubVirtualHost* svh = (KSubVirtualHost*)vhc->find(bind_site);
+	KSubVirtualHost* svh = (KSubVirtualHost*)vhc->get_root()->find(bind_site);
 	if (svh) {
 		result = query_vh_success;
 		if ((*rq_svh) != svh) {
@@ -954,8 +955,10 @@ void KVirtualHostManage::getVhDetail(std::stringstream& s, KVirtualHost* vh, boo
 #endif
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
 #ifdef ENABLE_HTTP2
-	s << "<input name='http2' type='checkbox' value='1'"
-		<< ((vh && vh->http2) ? "checked" : "") << ">http2";
+	s << "<input name='http2' type='checkbox' value='1'" << ((vh && KBIT_TEST(vh->alpn, KGL_ALPN_HTTP2) > 0) ? "checked" : "") << ">http2";	
+#endif
+#ifdef ENABLE_HTTP3
+	s << "<input name='http3' type='checkbox' value='1'" << ((vh && KBIT_TEST(vh->alpn, KGL_ALPN_HTTP3) > 0) ? "checked" : "") << ">http3";
 #endif
 #ifdef SSL_READ_EARLY_DATA_SUCCESS
 	s << "<input type='checkbox' name='early_data' value='1' ";
@@ -1456,7 +1459,7 @@ void KVirtualHostManage::InternalBindVirtualHost(KVirtualHost* vh)
 			}
 			KSslCertificate* cert = (KSslCertificate*)ssl_config->find(svh->bind_host, svh->wide);
 			if (cert) {
-				svh->SetSslInfo(cert->cert_file.c_str(), cert->key_file.c_str());
+				svh->set_ssl_info(cert->cert_file.c_str(), cert->key_file.c_str());
 			}
 		}
 	}
@@ -1497,7 +1500,7 @@ bool KVirtualHostManage::BindSsl(const char* domain, const char* cert_file, cons
 	cert->key_file = key_file;
 	lock.Lock();
 	if (ssl_config == NULL) {
-		ssl_config = new KVirtualHostContainer;
+		ssl_config = new KDomainMap;
 	}
 	bool result = ssl_config->bind(domain, cert, kgl_bind_unique);
 	if (!result) {

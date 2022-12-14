@@ -4,6 +4,7 @@
 #include <string.h>
 #include "KHttpHeader.h"
 #include "KHttpLib.h"
+#include "KAtomCountable.h"
 
 typedef unsigned char * domain_t;
 class KSubVirtualHost;
@@ -110,32 +111,65 @@ struct inter_domain_iterator_arg {
 	int domain_len;
 };
 
-class KVirtualHostContainer
+
+class KDomainMap
 {
 public:
-	KVirtualHostContainer();
-	~KVirtualHostContainer();
-	void iterator(domain_iterator it,void *arg);
-	void iterator(inter_domain_iterator_arg *it);
-	bool bind(const char *domain,void *vh,kgl_bind_level high);
-	kgl_del_result unbind(const char *domain,void *vh);
-	void *find(const char *domain);
+	KDomainMap()
+	{
+		memset(this, 0, sizeof(KDomainMap));
+	}
+	~KDomainMap()
+	{
+		clear();
+		if (name) {
+			xfree(name);
+		}
+	}
+	void iterator(domain_iterator it, void* arg);
+	void iterator(inter_domain_iterator_arg* it);
+	bool bind(const char* domain, void* vh, kgl_bind_level high);
+	kgl_del_result unbind(const char* domain, void* vh);	
 
-	bool add(domain_t name, bool wide, kgl_bind_level high, void *vh);
-	kgl_del_result del(domain_t name, bool wide, void *vh);
-	void *find(domain_t name,bool wide=false);
-	void clear(kgl_cleanup_f handler=NULL);
-	void Destroy(kgl_cleanup_f handler);
-	bool isEmpty() {
-		if (wide_list==NULL && list==NULL && tree==NULL) {
+	bool add(domain_t name, bool wide, kgl_bind_level high, void* vh);
+	kgl_del_result del(domain_t name, bool wide, void* vh);
+	void* find(domain_t name, bool wide = false);
+	void* find(const char* domain);
+	void clear(kgl_cleanup_f handler = NULL);
+	bool is_empty() {
+		if (wide_list == NULL && list == NULL && tree == NULL) {
 			return true;
 		}
 		return false;
 	}
-	domain_t name;
+	domain_t name;	
 private:
-	krb_tree *tree;
-	KBindVirtualHost *wide_list;
-	KBindVirtualHost *list;
+	krb_tree* tree;
+	KBindVirtualHost* wide_list;
+	KBindVirtualHost* list;
+};
+/**
+* do not call this class direct!
+* it's not thread safe.
+* please call this function in KVirtualHostManage
+*/
+class KVirtualHostContainer : public KAtomCountable
+{
+public:
+	KVirtualHostContainer();
+	KDomainMap* get_root()
+	{
+		return &root;
+	}
+	void* find(const char* domain)
+	{
+		return root.find(domain);
+	}
+	void bind_vh(KVirtualHost* vh, bool high = false);
+	void unbind_vh(KVirtualHost* vh);
+protected:
+	~KVirtualHostContainer();
+private:
+	KDomainMap root;
 };
 #endif

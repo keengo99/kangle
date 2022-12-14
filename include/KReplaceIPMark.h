@@ -21,10 +21,10 @@ public:
 	{
 		if (header.empty()) {
 #ifdef ENABLE_PROXY_PROTOCOL
-			kconnection *c = rq->sink->get_connection();
-			if (c && c->proxy && c->proxy->src) {				
+			auto proxy = rq->sink->get_proxy_info();
+			if (proxy && proxy->src) {				
 				char ips[MAXIPLEN];
-				if (ksocket_sockaddr_ip(c->proxy->src, ips, MAXIPLEN - 1)) {
+				if (ksocket_sockaddr_ip(proxy->src, ips, MAXIPLEN - 1)) {
 					rq->sink->set_client_ip(ips);
 					return true;
 				}

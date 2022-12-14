@@ -89,13 +89,13 @@ bool test_pipe() {
 }
 void test_vh_container()
 {
-	KVirtualHostContainer *vhc = new KVirtualHostContainer;
+	KDomainMap *vhc = new KDomainMap;
 	vhc->bind("*.a.com", (void *)1, kgl_bind_unique);
 	vhc->bind("a.com", (void *)2, kgl_bind_unique);
 	void *result = vhc->find("*.a.com");
 	intptr_t ret = (intptr_t)result;
 	kassert(ret == 1);
-	vhc->Destroy(NULL);
+	delete vhc;
 }
 void test_regex() {
 	KReg reg;
@@ -356,7 +356,7 @@ void test_http_parser()
 }
 bool test() {
 	printf("sizeof(size_t)=[%d],sizeof(int)=[%d]\n", sizeof(size_t),sizeof(int));
-
+	
 	printf("sizeof(url)=[%d]\n", sizeof(KUrl));
 	//printf("offsetof st_flags=[%d] %d %d %d\n", offsetof(kselectable, st_flags), offsetof(kselectable, tmo_left), offsetof(kselectable, tmo), offsetof(kselectable, fd));
 	//printf("size=[%d]\n", kgl_align(1, 1024));

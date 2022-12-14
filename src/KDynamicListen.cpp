@@ -17,61 +17,39 @@ static int listen_key_cmp(void *key, void *data)
 	KListen *listen = (KListen *)data;
 	return lk->cmp(listen->key);
 }
-static void kserver_clean_ctx(void *ctx)
+static void kgl_release_vh_container(void *ctx)
 {
 	KVirtualHostContainer *vhc = (KVirtualHostContainer *)ctx;
-	delete vhc;
+	vhc->release();
 }
-void kserver_remove_vh(kserver *server, KVirtualHost *vh)
+
+static bool kserver_start(kserver *server,KListenKey *lk, kgl_ssl_ctx *ssl_ctx)
 {
-	KVirtualHostContainer* vhc = (KVirtualHostContainer*)kserver_get_opaque(server);
-#ifndef HTTP_PROXY
-	std::list<KSubVirtualHost *>::iterator it2;
-	for (it2 = vh->hosts.begin(); it2 != vh->hosts.end(); it2++) {
-		vhc->del((*it2)->bind_host,(*it2)->wide,(*it2));
-	}
-#endif
-}
-static bool kserver_start(kserver *server,const KListenKey *lk, kgl_ssl_ctx *ssl_ctx)
-{
-	int flag = (lk->ipv4 ? KSOCKET_ONLY_IPV4 : KSOCKET_ONLY_IPV6);
-	KBIT_SET(flag, KSOCKET_FASTOPEN);
 	if (!kserver_bind(server, lk->ip.c_str(), lk->port, ssl_ctx)) {
 		return false;
 	}
-	return start_http_server(server, flag);
+	return start_http_server(server, lk->get_socket_flag());
 }
-void kserver_bind_vh(kserver *server, KVirtualHost *vh,bool high)
-{
-	KVirtualHostContainer *vhc = (KVirtualHostContainer *)kserver_get_opaque(server);
-	std::list<KSubVirtualHost *>::iterator it2;
-	for (it2 = vh->hosts.begin(); it2 != vh->hosts.end(); it2++) {
-		vhc->add((*it2)->bind_host, (*it2)->wide, high ? kgl_bind_high : kgl_bind_low,(*it2));
-	}
-}
-void kserver_add_global_vh(kserver *server, KVirtualHost *vh)
+
+void kgl_vhc_add_global_vh(KVirtualHostContainer* vhc, KVirtualHost *vh)
 {
 #ifndef HTTP_PROXY
-	if (vh->binds.empty()) {
-		kserver_bind_vh(server,vh, false);
-	}
+	vhc->bind_vh(vh, false);
 #endif
 }
-void kserver_remove_global_vh(kserver *server, KVirtualHost *vh)
+void kgl_vhc_remove_global_vh(KVirtualHostContainer* vhc, KVirtualHost *vh)
 {
 #ifndef HTTP_PROXY
-	if (vh->binds.empty()) {
-		kserver_remove_vh(server,vh);
-	}
+	vhc->unbind_vh(vh);
 #endif
 }
 #ifdef KSOCKET_SSL
-kgl_ssl_ctx *kserver_load_ssl(kserver *server, KSslConfig *ssl_config)
+kgl_ssl_ctx *kserver_load_ssl(uint32_t *flags,KSslConfig *ssl_config)
 {
-	KBIT_SET(server->flags, KGL_SERVER_SSL);
-	kgl_ssl_ctx *ssl_ctx = ssl_config->GetSSLCtx(&server->alpn);
+	KBIT_SET(*flags, KGL_SERVER_SSL);
+	kgl_ssl_ctx *ssl_ctx = ssl_config->refs_ssl_ctx();
 	if (ssl_ctx) {
-		KBIT_SET(server->flags, WORK_MODEL_SSL);
+		KBIT_SET(*flags, WORK_MODEL_SSL);
 	}
 	return ssl_ctx;
 }
@@ -79,19 +57,52 @@ kgl_ssl_ctx *kserver_load_ssl(kserver *server, KSslConfig *ssl_config)
 static bool kserver_is_empty(kserver *server)
 {
 	KVirtualHostContainer *vhc = (KVirtualHostContainer *)kserver_get_opaque(server);
-	return vhc->isEmpty();
+	return vhc->get_root()->is_empty();
 }
-static kserver *kserver_new()
+static kserver *kserver_new(KVirtualHostContainer* vhc)
 {
-	KVirtualHostContainer *vhc = new KVirtualHostContainer();
 	kserver *server = kserver_init();
-	kserver_set_opaque(server, kserver_clean_ctx, vhc);
+	kserver_set_opaque(server, kgl_release_vh_container, vhc);
 	//kserver_bind(server, handle_connection, kserver_clean_ctx, vhc);
 	return server;
 }
-void KListen::SyncFlag()
+void KListen::sync_flag(kgl_ssl_ctx *ssl_ctx)
 {
-	key->set_work_model(server);
+	key->set_work_model(&server->flags);
+#ifdef ENABLE_HTTP3
+	if ((key->h3 == 0 || key->ssl==0) && h3_server) {
+		h3_server->shutdown();
+		h3_server->release();
+		h3_server = nullptr;
+	} else if (key->h3 > 0 && key->ssl>0 && h3_server == nullptr) {
+		if (ssl_ctx == nullptr) {
+			ssl_ctx = server->ssl_ctx;
+		}
+		if (ssl_ctx == nullptr) {
+			klog(KLOG_ERR, "h3 only work with https listen\n");
+			return;
+		}
+		KBIT_SET(ssl_ctx->alpn, KGL_ALPN_HTTP3);
+		kgl_add_ref_ssl_ctx(ssl_ctx);
+		h3_server = kgl_h3_new_server(key->ip.c_str(), key->port, key->get_socket_flag(), ssl_ctx, server->flags);
+		if (h3_server == nullptr) {
+			kgl_release_ssl_ctx(ssl_ctx);
+			klog(KLOG_ERR, "cann't new h3 server on [%s:%d]\n", key->ip.c_str(), key->port);
+			return;
+		}
+		auto vhc = get_vh_container(server);
+		if (vhc == nullptr) {
+			klog(KLOG_ERR, "panic cann't found vhc\n");
+			return;
+		}
+		vhc->addRef();
+		h3_server->bind_data(kgl_release_vh_container, vhc);
+		return;
+	}
+	if (h3_server) {
+		key->set_work_model(&h3_server->flags);
+	}
+#endif
 }
 void KDynamicListen::Delete(KListenKey *key,KVirtualHost *vh)
 {
@@ -104,7 +115,7 @@ void KDynamicListen::Delete(KListenKey *key,KVirtualHost *vh)
 	KListen *listen = (KListen *)node->data;
 	listen->key->ClearFlag(key);
 	if (vh) {
-		kserver_remove_vh(listen->server, vh);
+		get_vh_container(listen->server)->unbind_vh(vh);
 	}
 	if (key->global > 0 && listen->key->global == 0) {
 		conf.gvm->UnBindGlobalVirtualHost(listen->server);
@@ -116,7 +127,7 @@ void KDynamicListen::Delete(KListenKey *key,KVirtualHost *vh)
 		rbtree_remove(&listens, node);
 		delete listen;
 	} else {
-		listen->SyncFlag();
+		listen->sync_flag(nullptr);
 #ifdef KSOCKET_SSL
 		if (listen->key->ssl == 0 && KBIT_TEST(listen->server->flags, KGL_SERVER_SSL)) {
 			//remove ssl
@@ -126,16 +137,19 @@ void KDynamicListen::Delete(KListenKey *key,KVirtualHost *vh)
 #endif
 	}
 }
-kserver *KDynamicListen::Add(KListenKey *key, KSslConfig *ssl_config)
+void KDynamicListen::add(KListenKey *key, KSslConfig *ssl_config, KVirtualHost *vh)
 {
 	KListen *listen;
 	kserver *server = NULL;
 	kgl_ssl_ctx *ssl_ctx = NULL;
 	int new_flag = 0;
 	bool need_load_ssl = false;
+	uint32_t flags = 0;
 	krb_node *node = rbtree_insert(&listens, key, &new_flag, listen_key_cmp);
+	KVirtualHostContainer* vhc = nullptr;
 	if (new_flag) {
-		server = kserver_new();
+		vhc = new KVirtualHostContainer();
+		server = kserver_new(vhc);
 		listen = new KListen(key, server);
 		node->data = listen;
 		if (key->global>0) {
@@ -159,42 +173,43 @@ kserver *KDynamicListen::Add(KListenKey *key, KSslConfig *ssl_config)
 	}
 #ifdef KSOCKET_SSL
 	if (need_load_ssl) {
-		ssl_ctx = kserver_load_ssl(server, ssl_config);
-#ifdef ENABLE_HTTP2
-		server->alpn = ssl_config->http2;
-#endif
-#ifdef KSOCKET_SSL
-		kserver_set_flag(server, KGL_SERVER_EARLY_DATA, ssl_config->early_data);
-#endif
+		ssl_ctx = kserver_load_ssl(&server->flags, ssl_config);
 	}
 #endif
-	listen->SyncFlag();
+	listen->sync_flag(ssl_ctx);
+#ifdef ENABLE_HTTP3
+	if (listen->h3_server && !listen->h3_server->is_shutdown() && ssl_ctx) {	
+		listen->h3_server->update_ssl_ctx(ssl_ctx);
+	}
+#endif
 	if (!KBIT_TEST(server->flags, KGL_SERVER_START)) {
-		initListen(listen->key, server, ssl_ctx);
+		init_listen(listen->key, listen, ssl_ctx);
 #ifdef KSOCKET_SSL
 	} else if (ssl_ctx) {
 		kserver_set_ssl_ctx(server, (kgl_ssl_ctx *)ssl_ctx);
 #endif
 	}
-	return server;
+	if (vh) {
+		get_vh_container(server)->bind_vh(vh, true);
+	}
+	return;
 }
 void KDynamicListen::AddDynamic(const char *str,KVirtualHost *vh)
 {
 	std::list<KListenKey *> lk;
-	parseListen(str,lk);
+	parseListen(str,lk,vh);
 	if (lk.empty()) {
 		return;
 	}
 	std::list<KListenKey *>::iterator it;
 	for (it=lk.begin();it!=lk.end();it++) {
-		kserver *server = Add((*it), vh);
-		kserver_bind_vh(server,vh,true);
+		add((*it), vh, vh);
 	}
 }
 void KDynamicListen::RemoveDynamic(const char *str,KVirtualHost *vh)
 {
 	std::list<KListenKey *> lk;
-	parseListen(str,lk);
+	parseListen(str,lk,vh);
 	if (lk.empty()) {
 		return;
 	}
@@ -228,7 +243,7 @@ bool KDynamicListen::AddGlobal(KListenHost *lh)
 	lh->listened = true;
 	std::list<KListenKey *>::iterator it2;
 	for (it2=lk.begin();it2!=lk.end();it2++) {
-		Add((*it2), lh);
+		add((*it2), lh, nullptr);
 	}
 	return true;
 }
@@ -273,7 +288,7 @@ void KDynamicListen::parseListen(KListenHost *lh,std::list<KListenKey *> &lk)
 	getListenKey(lh,ipv4,lk);
 	return;
 }
-void KDynamicListen::parseListen(const char *listen,std::list<KListenKey *> &lks)
+void KDynamicListen::parseListen(const char *listen,std::list<KListenKey *> &lks, KVirtualHost* vh)
 {
 	char *buf = strdup(listen);
 	char *p = strrchr(buf,':');
@@ -282,14 +297,14 @@ void KDynamicListen::parseListen(const char *listen,std::list<KListenKey *> &lks
 		p++;
 		KListenKey *lk = new KListenKey;
 		lk->dynamic = 1;
-		parse_port(p, lk);
+		parse_port(p, lk, vh);
 		if (strcmp(buf,"*")==0) {
 			lk->ip = DEFAULT_IPV4_IP;
 			lk->ipv4 = true;
 			lks.push_back(lk);			
 #ifdef KSOCKET_IPV6
 			lk = new KListenKey;
-			parse_port(p, lk);
+			parse_port(p, lk, vh);
 			lk->ip = DEFAULT_IPV6_IP;
 			lk->ipv4 = false;
 			lk->dynamic = 1;
@@ -314,10 +329,16 @@ void KDynamicListen::parseListen(const char *listen,std::list<KListenKey *> &lks
 	}
 	free(buf);
 }
-bool KDynamicListen::initListen(const KListenKey *lk,kserver *server, kgl_ssl_ctx *ssl_ctx)
+bool KDynamicListen::init_listen(KListenKey *lk, KListen *listen, kgl_ssl_ctx *ssl_ctx)
 {
 	kassert(is_selector_manager_init());
-	return kserver_start(server, lk, ssl_ctx);
+	bool result = kserver_start(listen->server, lk, ssl_ctx);
+#ifdef ENABLE_HTTP3
+	if (result && listen->h3_server) {		
+		kgl_set_flag(&listen->server->flags, WORK_MODEL_ALT_H3, listen->h3_server->start());		
+	}
+#endif
+	return result;
 }
 void KDynamicListen::getListenKey(KListenHost *lh,bool ipv4,std::list<KListenKey *> &lk)
 {
@@ -343,12 +364,17 @@ void KDynamicListen::getListenKey(KListenHost *lh,const char *port,bool ipv4,std
 	KListenKey *key = new KListenKey;
 	key->global = 1;
 	key->ssl = KBIT_TEST(lh->model,WORK_MODEL_SSL) > 0;
+#ifdef ENABLE_HTTP3
+	if (key->ssl > 0) {
+		key->h3 = KBIT_TEST(lh->alpn, KGL_ALPN_HTTP3) > 0;
+	}
+#endif
 	key->manage = KBIT_TEST(lh->model, WORK_MODEL_MANAGE) > 0;
 #ifdef WORK_MODEL_TCP
 	key->tcp = KBIT_TEST(lh->model, WORK_MODEL_TCP) > 0;
 #endif
 	key->ipv4 = ipv4;
-	parse_port(port, key);
+	parse_port(port, key, NULL);
 	if (lh->ip=="*") {
 		if (ipv4) {
 			key->ip = DEFAULT_IPV4_IP;
@@ -364,7 +390,7 @@ static iterator_ret bind_global_virtual_host_iterator(void *data, void *argv)
 {
 	kserver *server = ((KListen *)data)->server;
 	if (KBIT_TEST(server->flags, KGL_SERVER_GLOBAL)) {
-		kserver_add_global_vh(server, (KVirtualHost *)argv);
+		kgl_vhc_add_global_vh(get_vh_container(server), (KVirtualHost *)argv);
 	}
 	return iterator_continue;
 }
@@ -372,7 +398,7 @@ static iterator_ret unbind_global_virtual_host_iterator(void *data, void *argv)
 {
 	kserver *server = ((KListen *)data)->server;
 	if (KBIT_TEST(server->flags, KGL_SERVER_GLOBAL)) {
-		kserver_remove_global_vh(server, (KVirtualHost *)argv);
+		kgl_vhc_remove_global_vh(get_vh_container(server), (KVirtualHost *)argv);
 	}
 	return iterator_continue;
 }
@@ -390,12 +416,23 @@ void KDynamicListen::Close()
 {
 	rbtree_iterator(&listens, close_server_iterator, NULL);
 }
-void KDynamicListen::parse_port(const char *p, KListenKey *lk)
+void KDynamicListen::parse_port(const char *p, KListenKey *lk,KVirtualHost *vh)
 {
 	lk->port = atoi(p);
 	if (strchr(p, 's')) {
 		lk->ssl = 1;
+#ifdef ENABLE_HTTP3
+		if (vh && KBIT_TEST(vh->alpn, KGL_ALPN_HTTP3)) {
+			lk->h3 = 1;
+		}
+#endif
 	}
+#ifdef ENABLE_HTTP3
+	if (strchr(p, 'q')) {
+		lk->ssl = 1;
+		lk->h3 = 1;
+	}
+#endif
 #ifdef ENABLE_TPROXY
 	if (strchr(p, 'x')) {
 		lk->tproxy = 1;
@@ -466,6 +503,9 @@ static iterator_ret listen_whm_iterator(void *data, void *argv)
 		s << "</tcp_ip>";
 		s << "<global>" << (int)listen->key->global << "</global>";
 		s << "<dynamic>" << (int)listen->key->dynamic << "</dynamic>";
+#ifdef ENABLE_HTTP3
+		s << "<h3>" << (int)listen->key->h3 << "</h3>";
+#endif
 		s << "<multi_bind>" << (is_server_multi_selectable(server) ? 1 : 0) << "</multi_bind>";
 		s << "<refs>" << katom_get((void *)&server->refs) << "</refs>";
 		ctx->add("listen", s.str().c_str(), false);
@@ -496,6 +536,11 @@ static iterator_ret listen_html_iterator(void *data, void *argv)
 			*s << "<td>" << ip << "</td>";
 			*s << "<td>" << ksocket_addr_port(&server->addr);
 #ifdef KSOCKET_UNIX
+		}
+#endif
+#ifdef ENABLE_HTTP3
+		if (KBIT_TEST(server->flags, WORK_MODEL_ALT_H3 | WORK_MODEL_SSL) == (WORK_MODEL_ALT_H3 | WORK_MODEL_SSL)) {
+			*s << "q";
 		}
 #endif
 #ifdef WORK_MODEL_PROXY
@@ -552,7 +597,7 @@ static iterator_ret query_domain_iterator(void *data, void *argv)
 	}
 	KVirtualHostContainer* vhc = (KVirtualHostContainer*)kserver_get_opaque(server);
 	assert(vhc != NULL);
-	KSubVirtualHost *svh = (KSubVirtualHost *)vhc->find(param->host);
+	KSubVirtualHost *svh = (KSubVirtualHost *)vhc->get_root()->find(param->host);
 	if (svh) {
 		KStringBuf s;
 		if (!listen->key->ipv4) {

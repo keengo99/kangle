@@ -42,14 +42,14 @@ int process_post_fiber(void *arg, int got)
 KUpstream * proxy_tcp_connect(KHttpRequest *rq)
 {
 	char ips[MAXIPLEN];
-	kconnection *cn = rq->sink->get_connection();
-	if (cn->proxy == NULL || cn->proxy->dst == NULL) {
+	auto proxy = rq->sink->get_proxy_info();
+	if (proxy == NULL || proxy->dst == NULL) {
 		return NULL;
 	}
-	if (!ksocket_sockaddr_ip(cn->proxy->dst, ips, MAXIPLEN-1)) {
+	if (!ksocket_sockaddr_ip(proxy->dst, ips, MAXIPLEN-1)) {
 		return NULL;
 	}
-	uint16_t port = ntohs(cn->proxy->dst->v4.sin_port);
+	uint16_t port = ntohs(proxy->dst->v4.sin_port);
 	KSingleAcserver *server = new KSingleAcserver;
 	server->set_proto(Proto_tcp);
 	server->sockHelper->setHostPort(ips, port, NULL);

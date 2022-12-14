@@ -357,8 +357,18 @@ public:
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
 	kgl_ssl_ctx *ssl_ctx;
 	bool setSSLInfo(std::string certfile,std::string keyfile,std::string cipher,std::string protocols);
-	std::string GetCertFile();
-	std::string GetKeyFile();
+	std::string get_cert_file() override;
+	std::string get_key_file() override;
+	kgl_ssl_ctx* refs_ssl_ctx() override {
+		if (ssl_ctx == nullptr) {
+			this->ssl_ctx = KSslConfig::refs_ssl_ctx();
+		}
+		if (ssl_ctx == nullptr) {
+			return nullptr;
+		}
+		kgl_add_ref_ssl_ctx(ssl_ctx);
+		return ssl_ctx;
+	}
 #endif
 private:
 #ifdef ENABLE_VH_RS_LIMIT

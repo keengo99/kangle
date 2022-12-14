@@ -49,7 +49,7 @@ public:
 		if (meth != METH_UNSET) {
 			return meth;
 		}
-		meth = KHttpKeyValue::getMethod(pECB->lpszMethod);
+		meth = KHttpKeyValue::get_method(pECB->lpszMethod, (int)strlen(pECB->lpszMethod));
 		return meth;
 	}
 	const char *getFileName() override{

@@ -48,45 +48,49 @@ KGlobalConfig conf;
 void load_config(KConfig* cconf, bool firstTime);
 void post_load_config(bool firstTime);
 #ifdef KSOCKET_SSL
-kgl_ssl_ctx* KSslConfig::GetSSLCtx(const char* certfile, const char* keyfile, u_char* alpn)
+kgl_ssl_ctx* KSslConfig::new_ssl_ctx(const char* certfile, const char* keyfile)
 {
 	void* ssl_ctx_data = NULL;
+	kgl_ssl_ctx *ssl_ctx = kgl_new_ssl_ctx(NULL);
+	ssl_ctx->alpn = alpn;
 #ifdef ENABLE_HTTP2
-	ssl_ctx_data = alpn;
+	ssl_ctx_data = &ssl_ctx->alpn;
 #endif
-	SSL_CTX* ssl_ctx = kgl_ssl_ctx_new_server(certfile,
+	SSL_CTX* ctx = kgl_ssl_ctx_new_server(certfile,
 		keyfile,
 		NULL,
 		NULL,
 		ssl_ctx_data);
-	if (ssl_ctx == NULL) {
+	if (ctx == NULL) {
 		klog(KLOG_ERR,
 			"Cann't init ssl context certificate=[%s],certificate_key=[%s]\n",
 			certfile ? certfile : "",
 			keyfile ? keyfile : "");
+		kgl_release_ssl_ctx(ssl_ctx);
 		return NULL;
 	}
 	if (early_data) {
-		kgl_ssl_ctx_set_early_data(ssl_ctx, true);
+		kgl_ssl_ctx_set_early_data(ctx, true);
 	}
 	if (!cipher.empty()) {
-		if (!kgl_ssl_ctx_set_cipher_list(ssl_ctx, cipher.c_str())) {
+		if (!kgl_ssl_ctx_set_cipher_list(ctx, cipher.c_str())) {
 			klog(KLOG_WARNING, "cipher [%s] is not support\n", cipher.c_str());
 		}
 	}
 	if (!protocols.empty()) {
-		kgl_ssl_ctx_set_protocols(ssl_ctx, protocols.c_str());
+		kgl_ssl_ctx_set_protocols(ctx, protocols.c_str());
 	}
-	return kgl_new_ssl_ctx(ssl_ctx);
+	ssl_ctx->ctx = ctx;
+	return ssl_ctx;
 }
-std::string KSslConfig::GetCertFile()
+std::string KSslConfig::get_cert_file()
 {
 	if (isAbsolutePath(cert_file.c_str())) {
 		return cert_file;
 	}
 	return  conf.path + cert_file;
 }
-std::string KSslConfig::GetKeyFile()
+std::string KSslConfig::get_key_file()
 {
 	if (isAbsolutePath(key_file.c_str())) {
 		return key_file;

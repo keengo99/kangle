@@ -106,7 +106,7 @@ void KSubVirtualHost::release()
 	vh->destroy();
 }
 #ifdef ENABLE_SVH_SSL
-bool KSubVirtualHost::SetSslInfo(const char *crt, const char *key)
+bool KSubVirtualHost::set_ssl_info(const char *crt, const char *key)
 {
 	std::string certfile,keyfile;
 	if (*crt == '-') {
@@ -116,14 +116,11 @@ bool KSubVirtualHost::SetSslInfo(const char *crt, const char *key)
 	}
 	if (*key == '-') {
 		keyfile = conf.path + (key + 1);
-	}	else if (!isAbsolutePath(key)) {
+	} else if (!isAbsolutePath(key)) {
 		keyfile = vh->doc_root + key;
 	}
-	u_char *http2 = NULL;
-#ifdef ENABLE_HTTP2
-	http2 = &vh->http2;
-#endif
-	ssl_ctx = vh->GetSSLCtx(certfile.c_str(),keyfile.c_str(),http2);
+	assert(ssl_ctx == nullptr);
+	ssl_ctx = vh->new_ssl_ctx(certfile.c_str(),keyfile.c_str());
 	if (ssl_ctx == NULL) {
 		return false;
 	}
@@ -198,7 +195,7 @@ void KSubVirtualHost::setDocRoot(const char *doc_root, const char *dir) {
 		if (ssl_key != NULL) {
 			*ssl_key = '\0';
 			ssl_key++;
-			SetSslInfo(ssl_crt, ssl_key);
+			set_ssl_info(ssl_crt, ssl_key);
 		}
 #endif
 	}

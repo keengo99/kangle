@@ -76,15 +76,16 @@ class KSslConfig : public KSslCertificate
 {
 public:
 #ifdef KSOCKET_SSL
-	virtual std::string GetCertFile();
-	virtual std::string GetKeyFile();
-	kgl_ssl_ctx *GetSSLCtx(const char *certfile, const char *keyfile,u_char * alpn);
-	kgl_ssl_ctx *GetSSLCtx(u_char *alpn)
+	virtual std::string get_cert_file();
+	virtual std::string get_key_file();
+
+	kgl_ssl_ctx *new_ssl_ctx(const char *certfile, const char *keyfile);
+	virtual kgl_ssl_ctx *refs_ssl_ctx()
 	{
-		return GetSSLCtx(GetCertFile().c_str(), GetKeyFile().c_str(), alpn);
+		return new_ssl_ctx(get_cert_file().c_str(), get_key_file().c_str());
 	}
 #ifdef ENABLE_HTTP2
-	u_char http2;
+	u_char alpn;
 #endif
 	bool early_data;
 	std::string cipher;

@@ -102,7 +102,7 @@ private:
 		vhc.iterator(multi_domain_iterator,&s);
 		return s.str();
 	}
-	KVirtualHostContainer vhc;
+	KDomainMap vhc;
 };
 
 #endif /*KHOSTACL_H_*/

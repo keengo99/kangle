@@ -26,7 +26,7 @@ void KRedirectMethods::setMethod(const char *methodstr)
 		if (p) {
 			*p = '\0';
 		}
-		int meth = KHttpKeyValue::getMethod(hot);
+		int meth = KHttpKeyValue::get_method(hot, (int)strlen(hot));
 		if (meth > 0) {
 			methods[meth] = 1;
 		}

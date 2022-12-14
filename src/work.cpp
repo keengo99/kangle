@@ -300,12 +300,17 @@ void log_access(KHttpRequest* rq) {
 	if (url->param) {
 		l << "?" << url->param;
 	}
-#ifdef ENABLE_HTTP2
-	if (rq->sink->data.http_major > 1) {
+	switch (rq->sink->data.http_major) {
+	case 2:
 		l.WSTR(" HTTP/2\" ");
-	} else
-#endif	
+		break;
+	case 3:
+		l.WSTR(" HTTP/3\" ");
+		break;
+	default:
 		l.WSTR(" HTTP/1.1\" ");
+		break;
+	}
 	l << rq->sink->data.status_code << " ";
 #ifdef _WIN32
 	const char* formatString = "%I64d";

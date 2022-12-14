@@ -1241,7 +1241,7 @@ int main_fiber(void* arg, int argc)
 	kgl_update_http_time();
 #ifdef KSOCKET_SSL
 	kssl_init2();
-	kssl_set_sni_callback(kgl_create_ssl_sni, kgl_free_ssl_sni);
+	kssl_set_sni_callback(kgl_lookup_sni_ssl_ctx, kgl_free_ssl_sni);
 #endif
 	init_http_server_callback(kangle::kgl_on_new_connection, start_request_fiber);
 	do_config(true);

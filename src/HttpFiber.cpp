@@ -178,9 +178,9 @@ query_vh_result query_virtual(KHttpRequest *rq, const char *hostname, int len, i
 	query_vh_result vh_result;
 	KSubVirtualHost* svh = NULL;
 #ifdef KSOCKET_SSL
-	kconnection *c = rq->sink->get_connection();
-	if (c && c->sni) {
-		vh_result = kgl_use_ssl_sni(c, &svh);
+	void* sni = rq->sink->get_sni();
+	if (sni) {
+		vh_result = kgl_use_ssl_sni(sni, &svh);
 	} else
 #endif
 		vh_result = conf.gvm->queryVirtualHost((KVirtualHostContainer *)rq->sink->get_server_opaque(), &svh, hostname, len);

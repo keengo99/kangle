@@ -681,8 +681,8 @@ void KVirtualHost::buildXML(std::stringstream &s) {
 		s << " protocols='" << protocols << "'";
 	}
 #ifdef ENABLE_HTTP2
-	if (http2) {
-		s << " http2='1'";
+	if (alpn>0) {
+		s << " alpn='" << (int)alpn << "'";
 	}
 #endif
 #ifdef SSL_READ_EARLY_DATA_SUCCESS
@@ -896,7 +896,7 @@ void KVirtualHost::setApp(int app)
 	}
 }
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
-std::string KVirtualHost::GetCertFile()
+std::string KVirtualHost::get_cert_file()
 {
 	if (cert_file.empty()) {
 		return cert_file;
@@ -909,7 +909,7 @@ std::string KVirtualHost::GetCertFile()
 	}
 	return cert_file;
 }
-std::string KVirtualHost::GetKeyFile()
+std::string KVirtualHost::get_key_file()
 {
 	if (key_file.empty()) {
 		return key_file;
@@ -928,11 +928,11 @@ bool KVirtualHost::setSSLInfo(std::string certfile,std::string keyfile,std::stri
 	this->key_file = keyfile;
 	this->cipher = cipher.c_str();
 	this->protocols = protocols.c_str();
-	u_char *http2 = NULL;
-#ifdef ENABLE_HTTP2
-	http2 = &this->http2;
-#endif
-	this->ssl_ctx = GetSSLCtx(http2);
-	return this->ssl_ctx != NULL;
+	if (ssl_ctx) {
+		//if an old exsit, release it;
+		kgl_release_ssl_ctx(ssl_ctx);
+		ssl_ctx = nullptr;
+	}
+	return true;
 }
 #endif

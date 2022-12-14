@@ -75,10 +75,9 @@ public:
 			}
 			if (strcmp(hot, "-") == 0) {
 				this->host_null = true;
-			}
-			else {
+			} else {
 				if (vhc == NULL) {
-					vhc = new KVirtualHostContainer;
+					vhc = new KDomainMap;
 				}
 				vhc->bind(hot, this, kgl_bind_unique);
 			}
@@ -115,7 +114,7 @@ public:
 		s << "'>";
 	}
 private:
-	KVirtualHostContainer *vhc;
+	KDomainMap *vhc;
 	bool host_null;
 };
 #endif

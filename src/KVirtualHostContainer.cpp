@@ -6,46 +6,25 @@
 static int vh_container_find_cmp(void *k, void *k2)
 {
 	unsigned char *s1 = (unsigned char *)k;
-	KVirtualHostContainer *s2 = (KVirtualHostContainer *)k2;
+	KDomainMap*s2 = (KDomainMap*)k2;
 	return memn2cmp(s1, (unsigned char *)s2->name);
 }
 KVirtualHostContainer::KVirtualHostContainer()
 {
-	memset(this,0,sizeof(KVirtualHostContainer));
+	
 }
 KVirtualHostContainer::~KVirtualHostContainer()
 {
-	clear();
-	if (name) {
-		xfree(name);
-	}
+	
 }
-#if 0
-void KVirtualHostContainer::removeVirtualHost(KVirtualHost *vh)
+static iterator_ret clear_iterator(void *data,void *argv)
 {
-	std::list<KSubVirtualHost *>::iterator it2;	
-	for (it2 = vh->hosts.begin(); it2 != vh->hosts.end(); it2++) {
-		unbindVirtualHost((*it2));
-	}
-}
-void KVirtualHostContainer::addVirtualHost(KVirtualHost *vh,kgl_bind_level level)
-{
-	std::list<KSubVirtualHost *>::iterator it2;
-	for (it2 = vh->hosts.begin(); it2 != vh->hosts.end(); it2++) {
-		if(!bindVirtualHost((*it2),level) ) {
-			(*it2)->allSuccess = false;
-		}
-	}
-}
-#endif
-static iterator_ret clearVirtualHostIterator(void *data,void *argv)
-{
-	KVirtualHostContainer *vhc = (KVirtualHostContainer *)data;
-	kgl_cleanup_f handler = (kgl_cleanup_f)argv;
-	vhc->Destroy(handler);
+	KDomainMap*vhc = (KDomainMap*)data;
+	vhc->clear((kgl_cleanup_f)argv);
+	delete vhc;
 	return iterator_remove_continue;
 }
-void KVirtualHostContainer::clear(kgl_cleanup_f handler)
+void KDomainMap::clear(kgl_cleanup_f handler)
 {
 	KBindVirtualHost *next;
 	while (list) {
@@ -65,35 +44,14 @@ void KVirtualHostContainer::clear(kgl_cleanup_f handler)
 		wide_list = next;
 	}
 	if (tree) {
-		rbtree_iterator(tree,clearVirtualHostIterator, (void *)handler);
+		rbtree_iterator(tree, clear_iterator, (void *)handler);
 		rbtree_destroy(tree);
 		tree = NULL;
 	}
 }
-#if 0
-void KVirtualHostContainer::iterator(iteratorbt it, void *arg)
+static iterator_ret list_domain_iterator(void *data,void *argv)
 {
-	KBindVirtualHost *next;
-	while (list) {
-		next = list->next;
-		delete list;
-		list = next;
-	}
-	while (wide_list) {
-		next = wide_list->next;
-		delete wide_list;
-		wide_list = next;
-	}
-	if (tree) {
-		rbtree_iterator(tree, clearVirtualHostIterator, NULL);
-		rbtree_destroy(tree);
-		tree = NULL;
-	}
-}
-#endif
-static iterator_ret listDomainIterator(void *data,void *argv)
-{
-	KVirtualHostContainer *vhc = (KVirtualHostContainer *)data;
+	KDomainMap*vhc = (KDomainMap*)data;
 	inter_domain_iterator_arg *it = (inter_domain_iterator_arg*)argv;
 	vhc->iterator(it);
 	return iterator_continue;
@@ -144,12 +102,7 @@ void iterator_call_back(inter_domain_iterator_arg *it,bool wide,void *vh)
 	it->it(it->arg,domain,vh);
 	free(domain);
 }
-void KVirtualHostContainer::Destroy(kgl_cleanup_f handler)
-{
-	clear(handler);
-	delete this;
-}
-void KVirtualHostContainer::iterator(inter_domain_iterator_arg *it)
+void KDomainMap::iterator(inter_domain_iterator_arg *it)
 {	
 	domain_t domain = NULL;
 	domain_t orig_domain = it->domain;
@@ -175,7 +128,7 @@ void KVirtualHostContainer::iterator(inter_domain_iterator_arg *it)
 		next = next->next;		
 	}
 	if (tree) {	
-		rbtree_iterator(tree,listDomainIterator,it);		
+		rbtree_iterator(tree,list_domain_iterator,it);		
 	}
 	if (domain) {
 		free(domain);
@@ -183,7 +136,7 @@ void KVirtualHostContainer::iterator(inter_domain_iterator_arg *it)
 	it->domain = orig_domain;
 	it->domain_len = orig_domain_len;
 }
-void KVirtualHostContainer::iterator(domain_iterator it,void *arg)
+void KDomainMap::iterator(domain_iterator it,void *arg)
 {
 	inter_domain_iterator_arg it_arg;
 	memset(&it_arg,0,sizeof(inter_domain_iterator_arg));
@@ -200,7 +153,21 @@ bool convert(const char *domain,bool &wide,domain_t buf,int buf_size) {
 	}
 	return revert_hostname(domain,(int)strlen(domain),buf,buf_size);
 }
-bool KVirtualHostContainer::bind(const char *domain,void *vh,kgl_bind_level level)
+void KVirtualHostContainer::bind_vh(KVirtualHost* vh, bool high)
+{
+	std::list<KSubVirtualHost*>::iterator it2;
+	for (it2 = vh->hosts.begin(); it2 != vh->hosts.end(); it2++) {
+		root.add((*it2)->bind_host, (*it2)->wide, high ? kgl_bind_high : kgl_bind_low, (*it2));
+	}
+}
+void KVirtualHostContainer::unbind_vh(KVirtualHost* vh)
+{
+	std::list<KSubVirtualHost*>::iterator it2;
+	for (it2 = vh->hosts.begin(); it2 != vh->hosts.end(); it2++) {
+		root.del((*it2)->bind_host, (*it2)->wide, (*it2));
+	}
+}
+bool KDomainMap::bind(const char *domain,void *vh,kgl_bind_level level)
 {
 	unsigned char hostname[256];
 	bool wide;
@@ -209,7 +176,7 @@ bool KVirtualHostContainer::bind(const char *domain,void *vh,kgl_bind_level leve
 	}
 	return add(hostname,wide,level,vh);
 }
-kgl_del_result KVirtualHostContainer::unbind(const char *domain,void *vh)
+kgl_del_result KDomainMap::unbind(const char *domain,void *vh)
 {
 	unsigned char hostname[256];
 	bool wide;
@@ -218,7 +185,7 @@ kgl_del_result KVirtualHostContainer::unbind(const char *domain,void *vh)
 	}
 	return del(hostname,wide,vh);
 }
-void *KVirtualHostContainer::find(const char *domain)
+void * KDomainMap::find(const char *domain)
 {
 	unsigned char hostname[256];
 	bool wide;
@@ -227,35 +194,7 @@ void *KVirtualHostContainer::find(const char *domain)
 	}
 	return find(hostname,wide);
 }
-#if 0
-query_vh_result KVirtualHostContainer::findVirtualHost(KSubVirtualHost **rq_svh,domain_t hostname)
-{
-	KSubVirtualHost *svh = (KSubVirtualHost *)find(hostname);
-	if (svh==NULL) {
-		return query_vh_host_not_found;
-	}
-	if ((*rq_svh)!=svh) {
-		//虚拟主机变化了?把老的释放，引用新的
-		if (*rq_svh) {
-			(*rq_svh)->release();
-			(*rq_svh) = NULL;
-		}
-		svh->vh->addRef();
-		(*rq_svh) = svh;
-	}
-	return query_vh_success;	
-}
-kgl_del_result KVirtualHostContainer::unbindVirtualHost(KSubVirtualHost *svh) {
-	assert(svh->bind_host);
-	return this->del(svh->bind_host,svh->wide,svh);
-}
-bool KVirtualHostContainer::bindVirtualHost(KSubVirtualHost *svh,kgl_bind_level level) {
-	
-	assert(svh->bind_host);
-	return this->add(svh->bind_host,svh->wide,level,svh);
-}
-#endif
-void *KVirtualHostContainer::find(domain_t name,bool wide)
+void * KDomainMap::find(domain_t name,bool wide)
 {
 	if (!*name) {
 		//@解析了
@@ -269,7 +208,7 @@ void *KVirtualHostContainer::find(domain_t name,bool wide)
 		if (node) {
 			//精确解析
 			name = name + *name + 1;
-			KVirtualHostContainer *rn = (KVirtualHostContainer *)node->data;
+			KDomainMap*rn = (KDomainMap*)node->data;
 			void *ret = rn->find(name,wide);
 			if (ret) {
 				return ret;
@@ -282,7 +221,7 @@ void *KVirtualHostContainer::find(domain_t name,bool wide)
 	}
 	return NULL;
 }
-bool KVirtualHostContainer::add(domain_t name,bool wide,kgl_bind_level level,void *svh)
+bool KDomainMap::add(domain_t name,bool wide,kgl_bind_level level,void *svh)
 {
 	if (!*name) {		
 		KBindVirtualHost *bl = new KBindVirtualHost(svh);
@@ -321,7 +260,7 @@ bool KVirtualHostContainer::add(domain_t name,bool wide,kgl_bind_level level,voi
 		}
 		return true;
 	}
-	KVirtualHostContainer *rn;
+	KDomainMap*rn;
 	int new_flag = 0;
 	if (tree == NULL) {
 		tree = rbtree_create();
@@ -329,16 +268,16 @@ bool KVirtualHostContainer::add(domain_t name,bool wide,kgl_bind_level level,voi
 	krb_node *node = rbtree_insert(tree, name, &new_flag, vh_container_find_cmp);
 	assert(node);
 	if (new_flag) {
-		rn = new KVirtualHostContainer;
+		rn = new KDomainMap;
 		rn->name = (domain_t)malloc(*name + 1);
 		kgl_memcpy(rn->name, name, *name + 1);
 		node->data = rn;
 	} else {
-		rn = (KVirtualHostContainer *)node->data;
+		rn = (KDomainMap*)node->data;
 	}
 	return rn->add(name + *name + 1,wide,level,svh);
 }
-kgl_del_result KVirtualHostContainer::del(domain_t name,bool wide,void *svh)
+kgl_del_result KDomainMap::del(domain_t name,bool wide,void *svh)
 {
 	if (!*name) {
 		KBindVirtualHost **bl;
@@ -357,7 +296,7 @@ kgl_del_result KVirtualHostContainer::del(domain_t name,bool wide,void *svh)
 					*bl = cur->next;
 				}
 				delete cur;
-				if (this->isEmpty()) {
+				if (this->is_empty()) {
 					return kgl_del_empty;
 				}
 				return kgl_del_success;
@@ -374,7 +313,7 @@ kgl_del_result KVirtualHostContainer::del(domain_t name,bool wide,void *svh)
 	if (node == NULL) {
 		return kgl_del_failed;
 	}
-	KVirtualHostContainer *rn = (KVirtualHostContainer *)node->data;
+	KDomainMap*rn = (KDomainMap*)node->data;
 	kgl_del_result ret = rn->del(name + *name + 1, wide,svh);
 	if (ret == kgl_del_empty) {
 		delete rn;
@@ -383,7 +322,7 @@ kgl_del_result KVirtualHostContainer::del(domain_t name,bool wide,void *svh)
 			rbtree_destroy(tree);
 			tree = NULL;
 		}
-		if (!isEmpty()) {
+		if (!is_empty()) {
 			ret = kgl_del_success;
 		}
 	}

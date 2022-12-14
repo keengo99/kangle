@@ -32,7 +32,7 @@ public:
 	void buildXML(std::stringstream &s);
 private:
 	std::string getValList();
-	KVirtualHostContainer vhc;
+	KDomainMap vhc;
 };
 #endif
 

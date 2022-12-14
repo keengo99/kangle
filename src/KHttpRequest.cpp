@@ -236,7 +236,7 @@ int KHttpRequest::EndRequest() {
 	return 0;
 }
 const char *KHttpRequest::getMethod() {
-	return KHttpKeyValue::getMethod(sink->data.meth);
+	return KHttpKeyValue::getMethod(sink->data.meth)->data;
 }
 bool KHttpRequest::isBad() {
 	if (unlikely(sink->data.url==NULL || sink->data.url->IsBad() || sink->data.meth == METH_UNSET)) {

@@ -65,8 +65,15 @@ bool KListenConfigParser::startElement(std::string &context, std::string &qName,
 		m_host->cert_file = attribute["certificate"];
 		m_host->key_file = attribute["certificate_key"];
 #ifdef ENABLE_HTTP2
-		m_host->http2 = attribute["http2"]=="1";
+		if (!attribute["http2"].empty()) {
+			m_host->alpn = attribute["http2"] == "1";
+		}
 #endif
+		if (!attribute["alpn"].empty()) {
+			m_host->alpn = (u_char)atoi(attribute["alpn"].c_str());
+		} else {
+			m_host->alpn = 0;
+		}
 		m_host->early_data = attribute["early_data"] == "1";
 		m_host->cipher = attribute["cipher"];
 		m_host->protocols = attribute["protocols"];

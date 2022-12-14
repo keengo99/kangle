@@ -1444,7 +1444,13 @@ bool KHttpManage::start_listen(bool& hit) {
 			host->protocols = getUrlValue("protocols");
 			host->early_data = getUrlValue("early_data") == "1";
 #ifdef ENABLE_HTTP2
-			host->http2 = getUrlValue("http2") == "1";
+			host->alpn = 0;
+			if (getUrlValue("http2") == "1") {
+				KBIT_SET(host->alpn, KGL_ALPN_HTTP2);
+			}
+			if (getUrlValue("http3") == "1") {
+				KBIT_SET(host->alpn, KGL_ALPN_HTTP3);
+			}			
 #endif
 		}
 #endif
@@ -1557,10 +1563,17 @@ bool KHttpManage::start_listen(bool& hit) {
 		s << "protocols:<input name='protocols' size=32 value='" << (host ? host->protocols : "") << "'><br>";
 #if (ENABLE_HTTP2 && TLSEXT_TYPE_next_proto_neg)
 		s << "<input type='checkbox' name='http2' value='1' ";
-		if (host == NULL || host->http2) {
+		if (host == NULL || KBIT_TEST(host->alpn,KGL_ALPN_HTTP2)) {
 			s << "checked";
 		}
 		s << ">http2";
+#ifdef ENABLE_HTTP3
+		s << "<input type='checkbox' name='http3' value='1' ";
+		if (host &&  KBIT_TEST(host->alpn, KGL_ALPN_HTTP3)) {
+			s << "checked";
+		}
+		s << ">http3";
+#endif
 #endif
 #ifdef SSL_READ_EARLY_DATA_SUCCESS
 		s << "<input type='checkbox' name='early_data' value='1' ";

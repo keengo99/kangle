@@ -170,19 +170,10 @@ inline void string2lower2(char *str) {
 	}
 }
 inline const char *getWorkModelName(int model) {
-#ifdef WORK_MODEL_PROXY
-	KBIT_CLR(model, WORK_MODEL_PROXY|WORK_MODEL_SSL_PROXY);
-#endif
-#ifdef WORK_MODEL_TPROXY
-	KBIT_CLR(model, WORK_MODEL_TPROXY);
-#endif
-	if (model == 0) {
-		return "http";
-	}
-	if (model == (WORK_MODEL_SSL | WORK_MODEL_MANAGE)) {
+	if (KBIT_TEST(model,(WORK_MODEL_SSL | WORK_MODEL_MANAGE))==(WORK_MODEL_SSL | WORK_MODEL_MANAGE)) {
 		return "manages";
 	}
-	if (model == WORK_MODEL_SSL) {
+	if (KBIT_TEST(model, WORK_MODEL_SSL)) {
 		return "https";
 	}
 #ifdef WORK_MODEL_TCP
@@ -195,7 +186,10 @@ inline const char *getWorkModelName(int model) {
 		return "tcp";
 	}
 #endif
-	return "manage";
+	if (KBIT_TEST(model, WORK_MODEL_MANAGE)) {
+		return "manage";
+	}
+	return "http";
 }
 inline bool parseWorkModel(const char *type, int &model) {
 	model = 0;

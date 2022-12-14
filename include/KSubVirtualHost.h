@@ -91,7 +91,7 @@ public:
 	KSubVirtualHost(KVirtualHost *vh);
 	void setDocRoot(const char *doc_root,const char *dir);
 #ifdef ENABLE_SVH_SSL
-	bool SetSslInfo(const char *crt, const char *key);
+	bool set_ssl_info(const char *crt, const char *key);
 #endif
 	void release();
 	bool MatchHost(const char *host);
