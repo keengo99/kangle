@@ -278,7 +278,7 @@ public:
 	bool checkGetParam(KParamFilterHook *hook);
 	KParamPair *gParamHeader;
 	char *gBuffer;
-	bool parseBoundary(char *val);
+	bool parse_boundary(const char *val, size_t len);
 	KHttpRequest *rq;
 	KRawInputFilter *raw_head;
 	KRawInputFilter *raw_end;
@@ -290,6 +290,5 @@ public:
 	KWStream *st;
 private:
 };
-kev_result denyInputFilter(KHttpRequest *rq);
 #endif
 #endif

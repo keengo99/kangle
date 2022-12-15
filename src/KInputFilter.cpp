@@ -138,43 +138,43 @@ KInputFilter* KInputFilterContext::getFilter()
 	}
 	return filter;
 }
-bool KInputFilterContext::parseBoundary(char* val)
+bool KInputFilterContext::parse_boundary(const char* val, size_t len)
 {
 	if (mb) {
 		return false;
 	}
-	char* hot = strstr(val, "boundary");
+	const char* hot = (char *)kgl_memstr(val, len, _KS("boundary"));
 	if (!hot) {
-		char* content_type_lcase = strdup(val);
-		string2lower2(content_type_lcase);
+		char* content_type_lcase = kgl_strndup(val, len);
+		string2lower2(content_type_lcase, len);
 		hot = strstr(content_type_lcase, "boundary");
 		if (hot) {
 			hot = val + (hot - content_type_lcase);
 		}
 		free(content_type_lcase);
 	}
-
-	if (!hot || !(hot = strchr(hot, '='))) {
+	const char* end = val + len;
+	if (!hot || !(hot = (char *)memchr(hot, '=', end-hot))) {
 		//sapi_module.sapi_error(E_WARNING, "Missing boundary in multipart/form-data POST data");
 		return false;
 	}
 	hot++;
-	int boundary_len = (int)strlen(hot);
+	size_t boundary_len = end - hot;
 
-	char* boundary_end;
+	const char* boundary_end;
 	if (hot[0] == '"') {
 		hot++;
-		boundary_end = strchr(hot, '"');
+		boundary_end = (char *)memchr(hot, '"', boundary_len);
 		if (!boundary_end) {
 			//  sapi_module.sapi_error(E_WARNING, "Invalid boundary in multipart/form-data POST data");
 			return false;
 		}
 	} else {
 		/* search for the end of the boundary */
-		boundary_end = strpbrk(hot, ",;");
+		boundary_end = kgl_mempbrk(hot, boundary_len,_KS(",;"));
 	}
 	if (boundary_end) {
-		boundary_len = (int)(boundary_end - hot);
+		boundary_len = boundary_end - hot;
 	}
 	mb = new multipart_buffer;
 	mb->boundary = (char*)malloc(boundary_len + 3);
@@ -184,7 +184,7 @@ bool KInputFilterContext::parseBoundary(char* val)
 	mb->boundary_next = (char*)malloc(boundary_len + 4);
 	mb->boundary_next[0] = '\n';
 	kgl_memcpy(mb->boundary_next + 1, mb->boundary, boundary_len + 2);
-	mb->boundary_next_len = boundary_len + 3;
+	mb->boundary_next_len = (int)(boundary_len + 3);
 	mb->boundary_next[mb->boundary_next_len] = '\0';
 	return true;
 }

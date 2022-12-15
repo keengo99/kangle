@@ -299,7 +299,7 @@ public:
 	{
 		return sink->push_flow_info(fi);
 	}
-	uint8_t GetWorkModel()
+	uint32_t GetWorkModel()
 	{
 		return sink->get_server_model();
 	}

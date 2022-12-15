@@ -146,13 +146,15 @@ KHttpHeaderIteratorResult handle_http_header(void* arg, KHttpHeader* header)
 	KHttpRequest* rq = (KHttpRequest*)arg;
 	if (
 #ifdef HTTP_PROXY
-		KBIT_TEST(GetWorkModel(), WORK_MODEL_MANAGE) && attr_casecmp(attr, "Authorization")) ||
+		(KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_MANAGE) && kgl_mem_case_same(header->attr,header->attr_len,_KS("Authorization"))) ||
 #endif
-		0 == attr_casecmp(header->attr, AUTH_REQUEST_HEADER)) {
+		kgl_mem_case_same(header->attr,header->attr_len,_KS(AUTH_REQUEST_HEADER))) {
 		KBIT_SET(rq->sink->data.flags, AUTH_HAS_FLAG);
 #ifdef ENABLE_TPROXY
 		if (!KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_TPROXY)) {
 #endif
+			char* end = header->val + header->val_len;
+
 			char* p = header->val;
 			while (*p && !IS_SPACE(*p)) {
 				p++;
@@ -188,16 +190,16 @@ KHttpHeaderIteratorResult handle_http_header(void* arg, KHttpHeader* header)
 #endif
 			return KHttpHeaderIteratorResult::Continue;
 		}
-		if (0 == attr_casecmp(header->attr, "Content-Type")) {
+		if (kgl_mem_case_same(header->attr,header->attr_len,_KS("Content-Type"))) {
 #ifdef ENABLE_INPUT_FILTER
 			if (rq->if_ctx == NULL) {
 				rq->if_ctx = new KInputFilterContext(rq);
 			}
 #endif
-			if (strncasecmp(header->val, "multipart/form-data", 19) == 0) {
+			if (kgl_ncasecmp(header->val, header->val_len, _KS("multipart/form-data")) == 0) {
 				KBIT_SET(rq->sink->data.flags, RQ_POST_UPLOAD);
 #ifdef ENABLE_INPUT_FILTER
-				rq->if_ctx->parseBoundary(header->val + 19);
+				rq->if_ctx->parse_boundary(header->val + 19, header->val_len - 19);
 #endif
 			}
 		}

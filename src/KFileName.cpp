@@ -34,7 +34,7 @@ char *my_strtok(char *msg, char split, char **ptrptr) {
 		str = *ptrptr;
 	if (str == NULL)
 		return NULL;
-	int len = strlen(str);
+	int len = (int)strlen(str);
 	if (len <= 0) {
 		return NULL;
 	}
@@ -64,10 +64,10 @@ wchar_t *FileNametoUnicode(const char *str,int len)
 	//wprintf(L"s=[%s],len=[%d]\n",s,len2);
 	return s;
 }
-wchar_t *toUnicode(const char *str,int len,int cp_code)
+static wchar_t *toUnicode(const char *str,int len,int cp_code)
 {
 	if(len==0){
-		len=strlen(str);
+		len=(int)strlen(str);
 	}
 	wchar_t *s = (wchar_t *)xmalloc(2*(len+1));
 	len = MultiByteToWideChar(cp_code,0,str,len,(LPWSTR)s,len);

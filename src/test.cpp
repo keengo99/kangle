@@ -178,7 +178,7 @@ void test_multipart_filter()
 {
 	const char *str = "--AaB03x\r\nContent-Disposition: form-data; name=\"name\"\r\n\r\nLy\r\n--AaB03x\r\nContent-Disposition: form-data; name=\"files\"; filename=\"file1.txt\"\r\nContent-Type: text/plain\r\n\r\n... contents of file1.txt ...\r\n--AaB03x--";
 	KInputFilterContext ctx(NULL);
-	ctx.parseBoundary(strdup("multipart/form-data; boundary=AaB03x"));
+	ctx.parse_boundary(_KS("multipart/form-data; boundary=AaB03x"));
 	ctx.filter = new KMultiPartInputFilter;
 	int len = strlen(str);
 	for (int i=0;i<len;i++) {
@@ -354,10 +354,19 @@ void test_http_parser()
 	kassert(kgl_parse_continue == khttp_parse(&parser, &hot, &len, &rs));
 	kassert(kgl_parse_continue == khttp_parse(&parser, &hot, &len, &rs));	
 }
+void test_mem_function()
+{
+	assert(kgl_ncasecmp(_KS("AABB"), _KS("aA")) == 0);
+	assert(kgl_ncasecmp( _KS("aA"), _KS("AABB")) != 0);
+	assert(kgl_ncmp(_KS("AABB"), _KS("AA")) == 0);
+	assert(kgl_ncmp(_KS("AA"), _KS("AABB")) != 0);
+	assert(kgl_casecmp("aaa", _KS("aAA")) == 0);
+}
 bool test() {
 	printf("sizeof(size_t)=[%d],sizeof(int)=[%d]\n", sizeof(size_t),sizeof(int));
 	
 	printf("sizeof(url)=[%d]\n", sizeof(KUrl));
+	test_mem_function();
 	//printf("offsetof st_flags=[%d] %d %d %d\n", offsetof(kselectable, st_flags), offsetof(kselectable, tmo_left), offsetof(kselectable, tmo), offsetof(kselectable, fd));
 	//printf("size=[%d]\n", kgl_align(1, 1024));
 	//test_freed_memory();

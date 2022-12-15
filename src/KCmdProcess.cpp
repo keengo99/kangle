@@ -35,7 +35,7 @@ KUpstream *KSPCmdProcess::PowerResult(KHttpRequest *rq, KPipeStream* st2)
 	}
 #endif
 	stLock.Unlock();
-	kconnection* cn = TryConnect(&addr);
+	kconnection* cn = try_connect(&addr);
 	if (cn != NULL) {
 		return new_upstream(cn);
 	}
@@ -120,7 +120,7 @@ KUpstream *KMPCmdProcess::PowerResult(KHttpRequest *rq, KPipeStream* st2)
 #ifdef KSOCKET_UNIX
 	}
 #endif
-	kconnection *cn = TryConnect(&st->addr);
+	kconnection *cn = try_connect(&st->addr);
 	if (cn != NULL) {
 		KUpstream *us = new_upstream(cn);
 		st->bind(us);

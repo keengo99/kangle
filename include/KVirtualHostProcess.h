@@ -75,7 +75,7 @@ public:
 		//reset the error_count
 		error_count = 0;
 	}
-	kconnection* TryConnect(sockaddr_i* addr);
+	kconnection* try_connect(sockaddr_i* addr);
 	virtual KUpstream* GetUpstream(KHttpRequest* rq, KExtendProgram* rd);
 	KUpstream* Connect(KHttpRequest* rq)
 	{

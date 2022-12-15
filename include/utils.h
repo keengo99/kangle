@@ -163,11 +163,9 @@ inline const char *buildCryptType(int type) {
 	return "unknow";
 }
 bool checkPassword(const char *toCheck, const char *password, int cryptType);
-inline void string2lower2(char *str) {
-	while (*str) {
-		*str = tolower(*str);
-		str++;
-	}
+inline void string2lower2(char *str,size_t n) {
+	kgl_strlow((u_char *)str, (u_char *)str, n);
+	return;
 }
 inline const char *getWorkModelName(int model) {
 	if (KBIT_TEST(model,(WORK_MODEL_SSL | WORK_MODEL_MANAGE))==(WORK_MODEL_SSL | WORK_MODEL_MANAGE)) {

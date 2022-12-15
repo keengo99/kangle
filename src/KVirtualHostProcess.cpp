@@ -65,7 +65,7 @@ KPipeStream* KVirtualHostProcess::Power(KHttpRequest* rq, KExtendProgram* rd)
 	kfiber_wait(param.process);
 	return param.st;
 }
-kconnection * KVirtualHostProcess::TryConnect(sockaddr_i* addr)
+kconnection * KVirtualHostProcess::try_connect(sockaddr_i* addr)
 {
 	for (int i = 0; i < 10; i++) {
 		kconnection* cn = kfiber_net_open(addr);

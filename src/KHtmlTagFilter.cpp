@@ -16,19 +16,7 @@ html_tag_t url_tag[] = {
 	{NULL,0,NULL}
 };
 //static const char *css_url = "[\\s:]url\\s*(\\()";
-/*
-跳过空,或非空(space指定)
-*/
-static const char *skipSpace(const char *start,const char *end,bool space=true)
-{
-	while(start<end){
-		if((isspace((unsigned char)*start)!=0) != space){
-			return start;
-		}
-		start++;
-	}
-	return NULL;
-}
+
 KHtmlTagFilter::KHtmlTagFilter()
 {
 	prevData = NULL;
@@ -152,7 +140,7 @@ bool KHtmlTagFilter::dealTag(void*rq, const char *str,const char *end)
 bool KHtmlTagFilter::getTag(const char *start,const char *end,const char **tag,int &tag_len)
 {
 	const char *p = start;
-	*tag = skipSpace(start,end);
+	*tag = kgl_skip_space(start,end);
 	if(*tag==NULL){
 		return false;
 	}
@@ -174,14 +162,14 @@ bool KHtmlTagFilter::getTag(const char *start,const char *end,const char **tag,i
 //-1=失败，0=tag，成功返回charEnd('或")或1表示没有charEnd
 int KHtmlTagFilter::getTagValue(const char *start,const char *end,const char **tag,int &len)
 {
-	const char *p = skipSpace(start,end);
+	const char *p = kgl_skip_space(start,end);
 	if(p==NULL){
 		return -1;
 	}
 	if(*p!='='){
 		return 0;
 	}
-	const char *attr = skipSpace(p+1,end);
+	const char *attr = kgl_skip_space(p+1,end);
 	if(attr==NULL){
 		return -1;
 	}
@@ -193,11 +181,11 @@ int KHtmlTagFilter::getTagValue(const char *start,const char *end,const char **t
 		attrEnd = (const char *)memchr(attr,endChar,end-attr);
 	}else{
 		//值没有引号,找第一个空格
-		const char *p = skipSpace(attr,end);
+		const char *p = kgl_skip_space(attr,end);
 		if(p==NULL){
 			return -1;
 		}
-		attrEnd = skipSpace(attr,end,false);
+		attrEnd = kgl_skip_space(attr,end,false);
 
 	}	
 	if(attrEnd==NULL){
