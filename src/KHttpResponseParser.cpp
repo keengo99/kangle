@@ -29,12 +29,12 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 		return kgl_header_success;
 	}
 	if (!strcasecmp(attr, "Date")) {
-		serverDate = parse1123time(val);
+		serverDate = kgl_parse_http_time((u_char *)val, *val_len);
 		//KBIT_SET(obj->index.flags,OBJ_HAS_DATE);
 		return kgl_header_success;
 	}
 	if (!strcasecmp(attr, "Last-Modified")) {
-		obj->index.last_modified = parse1123time(val);
+		obj->index.last_modified = kgl_parse_http_time((u_char*)val, *val_len);
 		if (obj->index.last_modified > 0) {
 			obj->index.flags |= ANSW_LAST_MODIFIED;
 		}
@@ -152,7 +152,7 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 	if (!KBIT_TEST(obj->index.flags, ANSW_HAS_EXPIRES) &&
 		!strcasecmp(attr, "Expires")) {
 		KBIT_SET(obj->index.flags, ANSW_HAS_EXPIRES);
-		expireDate = parse1123time(val);
+		expireDate = kgl_parse_http_time((u_char*)val, *val_len);
 		return kgl_header_success;
 	}
 	//{{ent

@@ -12,15 +12,15 @@ static const char* months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
 #define T(x) L(x)
 wchar_t* utf8toUnicode(const char* str)
 {
-	int len = strlen(str);
+	int len = (int)strlen(str);
 	wchar_t* s = (wchar_t*)xmalloc(2 * (len + 1));
-	len = MultiByteToWideChar(CP_UTF8, 0, str, len, (LPWSTR)s, len);
+	len = MultiByteToWideChar(CP_UTF8, 0, str, len, (LPWSTR)s, (int)len);
 	s[len] = L'\0';
 	return s;
 }
 char* unicodeToUtf8(const wchar_t* str)
 {
-	int len = wcslen(str);
+	int len = (int)wcslen(str);
 	char* s = (char*)xmalloc(3 * len + 1);
 	len = WideCharToMultiByte(CP_UTF8, 0, str, len, s, 3 * len, NULL, NULL);
 	s[len] = '\0';
@@ -109,11 +109,11 @@ int KFSResource::write(const char* buf, int len)
 	if (fp == NULL) {
 		return -1;
 	}
-	return fwrite(buf, 1, len, fp);
+	return (int)fwrite(buf, 1, len, fp);
 }
 int KFSResource::read(char* buf, int len)
 {
-	return fread(buf, 1, len, fp);
+	return (int)fread(buf, 1, len, fp);
 }
 KResource* KFSResourceMaker::makeFile(const char* name, const char* path)
 {

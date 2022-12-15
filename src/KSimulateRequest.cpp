@@ -219,9 +219,8 @@ int WINAPI async_download_header_hook(void *arg, int code, KHttpHeader *header)
 			if (is_attr(header, "Content-Encoding") && is_val(header, kgl_expand_string("gzip"))) {
 				KGzipDecompress *st = new KGzipDecompress(false, dw->st, true);
 				dw->st = st;				
-			} else if (is_attr(header, "Last-Modified")) {				
-				fs->last_modified = parse1123time(header->val);
-				//printf("Last-Modified time=[%x] [%s]\n", (unsigned)fs->last_modified,header->val);
+			} else if (is_attr(header, "Last-Modified")) {	
+				fs->last_modified = kgl_parse_http_time((u_char*)header->val, header->val_len);
 			}
 			header = header->next;
 		}

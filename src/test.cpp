@@ -399,7 +399,7 @@ bool test() {
 	char timeStr[41];
 	mk1123time(nowTime, timeStr, sizeof(timeStr) - 1);
 	//printf("parse1123=%d\n",parse1123time(timeStr));
-	assert(parse1123time(timeStr)==nowTime);
+	assert(kgl_parse_http_time((u_char *)timeStr,40)==nowTime);
 	INT64 t = 123;
 	char buf[INT2STRING_LEN];
 	int2string(t, buf);

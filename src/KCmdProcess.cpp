@@ -122,7 +122,7 @@ KUpstream *KMPCmdProcess::PowerResult(KHttpRequest *rq, KPipeStream* st2)
 #endif
 	kconnection *cn = TryConnect(&st->addr);
 	if (cn != NULL) {
-		KUpstream *us = new KTcpUpstream(cn);
+		KUpstream *us = new_upstream(cn);
 		st->bind(us);
 		return us;
 	}

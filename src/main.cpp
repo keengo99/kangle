@@ -1306,12 +1306,11 @@ void StopAll() {
 }
 
 int main(int argc, char **argv) {
-//{{ent
+
 #ifdef _WIN32
 	CoInitializeEx(NULL, COINIT_MULTITHREADED);
-#endif//}}
-	srand((unsigned) time(NULL));
-	init_time_zone();
+#endif
+	srand((unsigned) time(NULL));	
 	program_rand_value = rand();
 
 	if (!create_path(argv)) {

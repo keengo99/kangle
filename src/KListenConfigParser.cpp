@@ -64,16 +64,16 @@ bool KListenConfigParser::startElement(std::string &context, std::string &qName,
 #ifdef KSOCKET_SSL
 		m_host->cert_file = attribute["certificate"];
 		m_host->key_file = attribute["certificate_key"];
-#ifdef ENABLE_HTTP2
-		if (!attribute["http2"].empty()) {
-			m_host->alpn = attribute["http2"] == "1";
-		}
-#endif
 		if (!attribute["alpn"].empty()) {
 			m_host->alpn = (u_char)atoi(attribute["alpn"].c_str());
 		} else {
 			m_host->alpn = 0;
 		}
+#ifdef ENABLE_HTTP2
+		if (!attribute["http2"].empty()) {
+			m_host->alpn = attribute["http2"] == "1";
+		}
+#endif
 		m_host->early_data = attribute["early_data"] == "1";
 		m_host->cipher = attribute["cipher"];
 		m_host->protocols = attribute["protocols"];

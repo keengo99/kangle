@@ -40,8 +40,9 @@ func (this *Suite) Test(case_name string) {
 		if len(case_name) > 0 && c.Name != case_name {
 			continue
 		}
-		fmt.Printf("\tcase\t%16s\t%s\n", c.Name, c.Desc)
+		fmt.Printf("\tcase\t%16s\t%s\t", c.Name, c.Desc)
 		c.Test()
+		fmt.Printf("ok\n")
 	}
 }
 func (this *Suite) GetName() string {
