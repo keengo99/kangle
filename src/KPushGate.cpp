@@ -20,26 +20,28 @@ static KGL_RESULT forward_write_unknow_header(kgl_output_stream *gate, KREQUEST 
 static KGL_RESULT dechunk_push_body(kgl_output_stream*gate, KREQUEST r, const char *buf, int len)
 {
 	kgl_dechunk_stream *g = (kgl_dechunk_stream *)gate;
-	const char *piece = NULL;
+	const char *piece;
 	int piece_length;
 	while (len > 0) {
-		dechunk_status status = g->engine.dechunk(&buf, len, &piece, piece_length);
-		if (piece) {
+		piece_length = KHTTPD_MAX_CHUNK_SIZE;
+		KDechunkResult status = g->engine.dechunk(&buf, len, &piece, piece_length);
+		switch (status) {
+		case KDechunkResult::Success:
+		{
+			assert(piece && piece_length > 0);
 			KGL_RESULT result = g->down_stream->f->write_body(g->down_stream, r, piece, piece_length);
 			if (result != KGL_OK) {
 				return result;
 			}
-		}
-		switch (status) {
-		case dechunk_failed:
-			return STREAM_WRITE_FAILED;
-		case dechunk_end:
-			return STREAM_WRITE_END;
-		case dechunk_continue:
-			return STREAM_WRITE_SUCCESS;
-		default:
-			//success
 			break;
+		}
+		case KDechunkResult::End:
+			return STREAM_WRITE_END;
+		case KDechunkResult::Continue:
+			assert(len == 0);
+			return STREAM_WRITE_SUCCESS;
+		default:			
+			return STREAM_WRITE_FAILED;
 		}
 	}
 	return STREAM_WRITE_SUCCESS;

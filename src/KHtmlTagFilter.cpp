@@ -60,7 +60,7 @@ StreamState KHtmlTagFilter::write_all(void *rq, const char *str, int len)
 			}
 			break;
 		}
-		int send_len = start - str;
+		int send_len = (int)(start - str);
 		if(send_len>0){
 			//发送<之前的数据
 			if(KHttpStream::write_all(rq, str,send_len)==STREAM_WRITE_FAILED){
@@ -84,7 +84,7 @@ StreamState KHtmlTagFilter::write_all(void *rq, const char *str, int len)
 			break;
 		}
 		str = end+1;
-		len -= (end-start+1);
+		len -= (int)(end-start+1);
 		assert(len>=0);
 		if(len>0){
 			start = (const char *)memchr(str,'<',len);
@@ -102,36 +102,36 @@ bool KHtmlTagFilter::dealTag(void*rq, const char *str,const char *end)
 	const char *tagName;
 	int tag_len;
 	if(!getTag(str+1,end,&tagName,tag_len)){
-			return KHttpStream::write_all(rq, str,end-str) == STREAM_WRITE_SUCCESS;
+			return KHttpStream::write_all(rq, str,(int)(end-str)) == STREAM_WRITE_SUCCESS;
 	}
 	html_tag_t *tag = matchTag(tagName,tag_len);
 	if(tag==NULL){
 		//tag不匹配
-		return KHttpStream::write_all(rq, str,end-str) == STREAM_WRITE_SUCCESS;
+		return KHttpStream::write_all(rq, str,(int)(end-str)) == STREAM_WRITE_SUCCESS;
 	}
 	const char *src_url = NULL;
 	int url_len;
 	int result = findUrl(tagName+tag_len,end,tag,&src_url,url_len);
 	if(result<=0){
-		return KHttpStream::write_all(rq, str,end-str) == STREAM_WRITE_SUCCESS;
+		return KHttpStream::write_all(rq, str,(int)(end-str)) == STREAM_WRITE_SUCCESS;
 	}
 	//检测该URL是否有必要重写
 	char *url = rewriteUrl(param,tag,src_url,url_len);
 	if(url==NULL){
-			return KHttpStream::write_all(rq, str,end-str) == STREAM_WRITE_SUCCESS;
+			return KHttpStream::write_all(rq, str,(int)(end-str)) == STREAM_WRITE_SUCCESS;
 	}
-	if(KHttpStream::write_all(rq, str,src_url-str)!=STREAM_WRITE_SUCCESS){
+	if(KHttpStream::write_all(rq, str,(int)(src_url-str))!=STREAM_WRITE_SUCCESS){
 		xfree(url);
 		return false;
 	}
-	KHttpStream::write_all(rq, url,strlen(url));
+	KHttpStream::write_all(rq, url,(int)strlen(url));
 	str = src_url+url_len;
 	xfree(url);
 	if(result>1){
 		KHttpStream::write_all(rq, (char *)&result,1);
 		str++;
 	}
-	int endLen = end-str;
+	int endLen = (int)(end-str);
 	if(endLen>0){
 		return KHttpStream::write_all(rq, str,endLen) == STREAM_WRITE_SUCCESS;
 	}
@@ -156,7 +156,7 @@ bool KHtmlTagFilter::getTag(const char *start,const char *end,const char **tag,i
 	if(tag_end==NULL){
 		return false;
 	}
-	tag_len = tag_end - (*tag);
+	tag_len = (int)(tag_end - (*tag));
 	return true;
 }
 //-1=失败，0=tag，成功返回charEnd('或")或1表示没有charEnd
@@ -174,24 +174,24 @@ int KHtmlTagFilter::getTagValue(const char *start,const char *end,const char **t
 		return -1;
 	}
 	int endChar = 1;
-	const char *attrEnd;
+	const char *attr_end;
 	if(*attr=='\'' || *attr=='"'){
 		endChar = *attr;
 		attr++;
-		attrEnd = (const char *)memchr(attr,endChar,end-attr);
+		attr_end = (const char *)memchr(attr,endChar,end-attr);
 	}else{
 		//值没有引号,找第一个空格
 		const char *p = kgl_skip_space(attr,end);
 		if(p==NULL){
 			return -1;
 		}
-		attrEnd = kgl_skip_space(attr,end,false);
+		attr_end = kgl_skip_space(attr,end,false);
 
 	}	
-	if(attrEnd==NULL){
-		attrEnd = end;
+	if(attr_end==NULL){
+		attr_end = end;
 	}
-	len = attrEnd - attr;
+	len = (int)(attr_end - attr);
 	*tag = attr;
 	return endChar;
 }

@@ -245,7 +245,7 @@ static KGL_RESULT  set_request_header(
 	hlen_t val_len)
 {
 	KHttpRequest *rq = (KHttpRequest *)r;
-	char *v = strlendup(val, val_len);
+	char *v = kgl_strndup(val, val_len);
 	bool result = rq->sink->parse_header(attr, attr_len, v, val_len, false);
 	xfree(v);
 	if (!result) {

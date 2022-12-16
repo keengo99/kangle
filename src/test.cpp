@@ -180,7 +180,7 @@ void test_multipart_filter()
 	KInputFilterContext ctx(NULL);
 	ctx.parse_boundary(_KS("multipart/form-data; boundary=AaB03x"));
 	ctx.filter = new KMultiPartInputFilter;
-	int len = strlen(str);
+	int len = (int)strlen(str);
 	for (int i=0;i<len;i++) {
 		ctx.check(str+i,1,false);
 	}
@@ -252,7 +252,7 @@ void test_atom()
 void test_xml()
 {
 	char *s = strdup("&&&");
-	int len = strlen(s);
+	int len = (int)strlen(s);
 	char *dst = KXml::htmlEncode(s,len,NULL);
 	printf("len=%d,s=[%s]\n",len,dst);
 	s = strdup("&lt;!-- JiaThis Button BEGIN --&gt;&#13;&#10;&lt;script type=&quot;text/javascript&quot; src=&quot;http://v3.jiathis.com/code/jiathis_r.js?uid=1355687902433269&amp;move=0&quot; charset=&quot;utf-8&quot;&gt;&lt;/script&gt;&#13;&#10;&lt;!-- JiaThis Button END --&gt;&#10;&lt;/html&gt;");
@@ -280,29 +280,69 @@ void test_url_decode() {
     //printf("buf=[%s]\n",buf2);
     assert(buf2[2]=='\0');
 }
+static void test_dechunk2()
+{
+	//printf("sizeof(KDechunkEngine2)=[%d],sizeof(KDechunkEngine)=[%d]\n", sizeof(KDechunkEngine2), sizeof(KDechunkEngine));
+	KDechunkEngine engine;
+	ks_buffer* buffer = ks_buffer_new(512);
+	ks_write_str(buffer, kgl_expand_string("9\n123456789\n0\n\n"));
+	const char* hot = buffer->buf;
+	int len = buffer->used;
+	for (;;) {
+		const char* piece = NULL;
+		int piece_len = 5;
+		if (engine.dechunk(&hot, len, &piece, piece_len) == KDechunkResult::End) {
+			assert(len == 0);
+			break;
+		}
+		printf("piece_len=[%d]\n", piece_len);
+		fwrite(piece, 1, piece_len, stdout);
+		printf("\n");
+	}
+
+}
 #ifdef ENABLE_INPUT_FILTER
 void test_dechunk() {
 	KDechunkEngine *engine = new KDechunkEngine;
 	int buf_len;
 	const char *piece;
-	int piece_length;
+	int piece_length = KHTTPD_MAX_CHUNK_SIZE;
+	/*
+	* 1\r\n
+	* a\r\n
+	* 10\r\n
+	* 0123456789abcdef\r\n
+	* 10\raaa\n
+	* x
+	*/
 	const char *buf = "1\r\na\r\n";
-	buf_len = strlen(buf);
+	buf_len = (int)strlen(buf);
 	assert(engine->dechunk(&buf, buf_len, &piece, piece_length) == dechunk_success);
 	assert(strncmp(piece, "a",piece_length) == 0);
+	piece_length = KHTTPD_MAX_CHUNK_SIZE;
 	assert(engine->dechunk(&buf, buf_len, &piece, piece_length) == dechunk_continue);
 	buf = "1";
 	buf_len = 1;
-	
+	piece_length = KHTTPD_MAX_CHUNK_SIZE;
 	assert(engine->dechunk(&buf, buf_len, &piece, piece_length) == dechunk_continue);
+	assert(buf_len == 0);
 	buf = "0\r\n012345";
-	buf_len = strlen(buf);
-	assert(engine->dechunk(&buf, buf_len, &piece, piece_length) == dechunk_continue);
+	buf_len = (int)strlen(buf);
+	piece_length = KHTTPD_MAX_CHUNK_SIZE;
+	assert(engine->dechunk(&buf, buf_len, &piece, piece_length) == dechunk_success);
 	assert(piece_length==6 && strncmp(piece, "012345", piece_length) == 0);
-	buf = "6789abcdef0\r\n";
-	buf_len = strlen(buf);
+	buf = "6789abcdef";
+	buf_len = (int)strlen(buf);
+	piece_length = KHTTPD_MAX_CHUNK_SIZE;
 	assert(engine->dechunk(&buf, buf_len, &piece, piece_length) == dechunk_success);
 	assert(piece_length==10 && strncmp(piece, "6789abcdef", piece_length) == 0);
+	buf = "\r\na\r";
+	buf_len = (int)strlen(buf);
+	assert(engine->dechunk(&buf, buf_len, &piece, piece_length) == dechunk_continue);
+	buf = "aaa\nx";
+	buf_len = (int)strlen(buf);
+	assert(engine->dechunk(&buf, buf_len, &piece, piece_length) == dechunk_success);
+	assert(piece_length == 1 && strncmp(piece, "x", piece_length) == 0);
 	delete engine;
 }
 #endif
@@ -347,7 +387,7 @@ void test_http_parser()
 {
 	char *buf = strdup("HTTP/1.1 200 OK\r\na: bsssssssssssssddddd\r\n ttt");
 	char *hot = buf;
-	int len = strlen("HTTP/1.1 200 OK\r\na: bsssssssssssssddddd\r\n ttt");
+	int len = (int)strlen("HTTP/1.1 200 OK\r\na: bsssssssssssssddddd\r\n ttt");
 	khttp_parser parser;
 	khttp_parse_result rs;
 	memset(&parser, 0, sizeof(parser));	
@@ -362,10 +402,8 @@ void test_mem_function()
 	assert(kgl_ncmp(_KS("AA"), _KS("AABB")) != 0);
 	assert(kgl_casecmp("aaa", _KS("aAA")) == 0);
 }
-bool test() {
-	printf("sizeof(size_t)=[%d],sizeof(int)=[%d]\n", sizeof(size_t),sizeof(int));
-	
-	printf("sizeof(url)=[%d]\n", sizeof(KUrl));
+bool test() {	
+	printf("sizeof(kconnection)=[%d]\n", (int)sizeof(kconnection));
 	test_mem_function();
 	//printf("offsetof st_flags=[%d] %d %d %d\n", offsetof(kselectable, st_flags), offsetof(kselectable, tmo_left), offsetof(kselectable, tmo), offsetof(kselectable, fd));
 	//printf("size=[%d]\n", kgl_align(1, 1024));
@@ -398,12 +436,13 @@ bool test() {
 #ifdef ENABLE_INPUT_FILTER
 	test_dechunk();
 #endif
+	test_dechunk2();
 	test_white_list();
 	//test_http_parser();
 	//printf("sizeof(KHttpRequest)=%d\n",sizeof(KHttpRequest));
 	//	test_pipe();
-	printf("sizeof(obj)=%d,%d\n",sizeof(KHttpObject),sizeof(HttpObjectIndex));
-	printf("sizeof(selectable)=[%d]\n", sizeof(kselectable));
+	printf("sizeof(obj)=%d,%d\n", (int)sizeof(KHttpObject), (int)sizeof(HttpObjectIndex));
+	printf("sizeof(selectable)=[%d]\n", (int)sizeof(kselectable));
 	time_t nowTime = time(NULL);
 	char timeStr[41];
 	mk1123time(nowTime, timeStr, sizeof(timeStr) - 1);

@@ -560,7 +560,6 @@ bool KHttpRequest::responseContentLength(int64_t content_len)
 bool KHttpRequest::startResponseBody(INT64 body_len)
 {
 	return sink->start_response_body(body_len);
-
 }
 
 void KHttpRequest::InsertFetchObject(KFetchObject *fo)
