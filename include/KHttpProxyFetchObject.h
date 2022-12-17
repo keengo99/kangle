@@ -29,7 +29,8 @@
 #include "KAsyncFetchObject.h"
 #include "KHttpResponseParser.h"
 #include "KHttpEnv.h"
-class KHttpProxyFetchObject: public KAsyncFetchObject {
+class KHttpProxyFetchObject : public KAsyncFetchObject
+{
 public:
 	KHttpProxyFetchObject()
 	{
@@ -37,17 +38,17 @@ public:
 	virtual ~KHttpProxyFetchObject()
 	{
 	}
-	bool NeedTempFile(bool upload, KHttpRequest *rq)
+	bool NeedTempFile(bool upload, KHttpRequest* rq) override
 	{
 		return false;
 	}
 protected:
 	bool build_http_header(KHttpRequest* rq);
-	KGL_RESULT buildHead(KHttpRequest *rq) override;
-	bool checkContinueReadBody(KHttpRequest *rq) override
+	KGL_RESULT buildHead(KHttpRequest* rq) override;
+	bool checkContinueReadBody(KHttpRequest* rq) override
 	{
-		if (rq->ctx->know_length && rq->ctx->left_read<=0) {
-			assert(rq->ctx->left_read==0);
+		if (rq->ctx->know_length && rq->ctx->left_read <= 0) {
+			assert(rq->ctx->left_read == 0);
 			expectDone(rq);
 			return false;
 		}
