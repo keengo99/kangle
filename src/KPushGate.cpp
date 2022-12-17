@@ -21,10 +21,10 @@ static KGL_RESULT dechunk_push_body(kgl_output_stream*gate, KREQUEST r, const ch
 {
 	kgl_dechunk_stream *g = (kgl_dechunk_stream *)gate;
 	const char *piece;
-	int piece_length;
-	while (len > 0) {
-		piece_length = KHTTPD_MAX_CHUNK_SIZE;
-		KDechunkResult status = g->engine.dechunk(&buf, len, &piece, piece_length);
+	const char* end = buf + len;
+	while (buf<end) {
+		int piece_length = KHTTPD_MAX_CHUNK_SIZE;
+		KDechunkResult status = g->engine.dechunk(&buf, end, &piece, &piece_length);
 		switch (status) {
 		case KDechunkResult::Success:
 		{
@@ -38,7 +38,6 @@ static KGL_RESULT dechunk_push_body(kgl_output_stream*gate, KREQUEST r, const ch
 		case KDechunkResult::End:
 			return STREAM_WRITE_END;
 		case KDechunkResult::Continue:
-			assert(len == 0);
 			return STREAM_WRITE_SUCCESS;
 		default:			
 			return STREAM_WRITE_FAILED;

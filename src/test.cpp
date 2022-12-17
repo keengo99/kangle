@@ -291,8 +291,8 @@ static void test_dechunk2()
 	for (;;) {
 		const char* piece = NULL;
 		int piece_len = 5;
-		if (engine.dechunk(&hot, len, &piece, piece_len) == KDechunkResult::End) {
-			assert(len == 0);
+		if (engine.dechunk(&hot, len, &piece, &piece_len) == KDechunkResult::End) {
+			assert(hot == buffer->buf + len);
 			break;
 		}
 		printf("piece_len=[%d]\n", piece_len);
@@ -304,7 +304,6 @@ static void test_dechunk2()
 #ifdef ENABLE_INPUT_FILTER
 void test_dechunk() {
 	KDechunkEngine *engine = new KDechunkEngine;
-	int buf_len;
 	const char *piece;
 	int piece_length = KHTTPD_MAX_CHUNK_SIZE;
 	/*
@@ -316,32 +315,31 @@ void test_dechunk() {
 	* x
 	*/
 	const char *buf = "1\r\na\r\n";
-	buf_len = (int)strlen(buf);
-	assert(engine->dechunk(&buf, buf_len, &piece, piece_length) == dechunk_success);
+	const char* end = buf + strlen(buf);
+	assert(engine->dechunk(&buf, end, &piece, &piece_length) == dechunk_success);
 	assert(strncmp(piece, "a",piece_length) == 0);
 	piece_length = KHTTPD_MAX_CHUNK_SIZE;
-	assert(engine->dechunk(&buf, buf_len, &piece, piece_length) == dechunk_continue);
+	assert(engine->dechunk(&buf, end, &piece, &piece_length) == dechunk_continue);
 	buf = "1";
-	buf_len = 1;
+	end = buf + strlen(buf);
 	piece_length = KHTTPD_MAX_CHUNK_SIZE;
-	assert(engine->dechunk(&buf, buf_len, &piece, piece_length) == dechunk_continue);
-	assert(buf_len == 0);
+	assert(engine->dechunk(&buf, end, &piece, &piece_length) == dechunk_continue);
 	buf = "0\r\n012345";
-	buf_len = (int)strlen(buf);
+	end = buf + strlen(buf);
 	piece_length = KHTTPD_MAX_CHUNK_SIZE;
-	assert(engine->dechunk(&buf, buf_len, &piece, piece_length) == dechunk_success);
+	assert(engine->dechunk(&buf, end, &piece, &piece_length) == dechunk_success);
 	assert(piece_length==6 && strncmp(piece, "012345", piece_length) == 0);
 	buf = "6789abcdef";
-	buf_len = (int)strlen(buf);
+	end = buf + strlen(buf);
 	piece_length = KHTTPD_MAX_CHUNK_SIZE;
-	assert(engine->dechunk(&buf, buf_len, &piece, piece_length) == dechunk_success);
+	assert(engine->dechunk(&buf, end, &piece, &piece_length) == dechunk_success);
 	assert(piece_length==10 && strncmp(piece, "6789abcdef", piece_length) == 0);
 	buf = "\r\na\r";
-	buf_len = (int)strlen(buf);
-	assert(engine->dechunk(&buf, buf_len, &piece, piece_length) == dechunk_continue);
+	end = buf + strlen(buf);
+	assert(engine->dechunk(&buf, end, &piece, &piece_length) == dechunk_continue);
 	buf = "aaa\nx";
-	buf_len = (int)strlen(buf);
-	assert(engine->dechunk(&buf, buf_len, &piece, piece_length) == dechunk_success);
+	end = buf + strlen(buf);
+	assert(engine->dechunk(&buf, end, &piece, &piece_length) == dechunk_success);
 	assert(piece_length == 1 && strncmp(piece, "x", piece_length) == 0);
 	delete engine;
 }
@@ -403,7 +401,6 @@ void test_mem_function()
 	assert(kgl_casecmp("aaa", _KS("aAA")) == 0);
 }
 bool test() {	
-	printf("sizeof(kconnection)=[%d]\n", (int)sizeof(kconnection));
 	test_mem_function();
 	//printf("offsetof st_flags=[%d] %d %d %d\n", offsetof(kselectable, st_flags), offsetof(kselectable, tmo_left), offsetof(kselectable, tmo), offsetof(kselectable, fd));
 	//printf("size=[%d]\n", kgl_align(1, 1024));

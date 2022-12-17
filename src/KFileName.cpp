@@ -142,8 +142,8 @@ char *KFileName::concatDir(const char *docRoot, const char *file) {
 	if (triped_path == NULL) {
 		return NULL;
 	}
-	int doclen = strlen(docRoot);
-	int len = strlen(triped_path);
+	int doclen = (int)strlen(docRoot);
+	int len = (int)strlen(triped_path);
 	int name_len = doclen + len;
 	char *name = (char *) xmalloc(name_len+2);
 	kgl_memcpy(name, docRoot, doclen);
@@ -201,7 +201,7 @@ void KFileName::tripDir3(char *path,const char split_char)
 		while (*p && *p != '/' && *p != '\\')
 			p++;
 		//找到了
-		int copy_len = p - hot;
+		int copy_len = (int)(p - hot);
 		if (*hot == '.') {
 			if (copy_len == 1) {
 				//如果是本目录，则略过
@@ -375,7 +375,7 @@ bool KFileName::setName(const char *path) {
 		wname = NULL;
 	}
 #endif
-	return getFileInfo(strlen(name));
+	return getFileInfo((int)strlen(name));
 }
 /*
 
@@ -385,7 +385,7 @@ CheckLinkState KFileName::checkLink(const char *path, int follow_link) {
 	if(wname){
 		xfree(wname);
 	}
-	wname = FileNametoUnicode(path,strlen(path));
+	wname = FileNametoUnicode(path,(int)strlen(path));
 	if(wname==NULL || _wstati64(wname,&buf) != 0){
 		return CheckLinkFailed;
 	}
@@ -444,8 +444,8 @@ bool KFileName::setName(const char *docRoot, const char *triped_path,
 		if (triped_path == NULL) {
 			return false;
 		}
-		int len = strlen(triped_path);
-		int name_len = doclen + len;
+		int len = (int)strlen(triped_path);
+		int name_len = (int)doclen + len;
 		name = (char *) xmalloc(name_len+2);
 		kgl_memcpy(name, docRoot, doclen);
 		if (docRoot[doclen - 1] != '/' 
@@ -471,7 +471,7 @@ bool KFileName::setName(const char *docRoot, const char *triped_path,
 		return getFileInfo(name_len);
 	}
 	linkChecked = true;
-	int path_len = doclen + strlen(triped_path) + 1;
+	size_t path_len = doclen + strlen(triped_path) + 1;
 	char *path = (char *) xmalloc(path_len+1);
 	kgl_memcpy(path, docRoot, doclen);
 	char *dst = path + doclen;
@@ -491,7 +491,7 @@ bool KFileName::setName(const char *docRoot, const char *triped_path,
 	for (;;) {
 		const char *p = strchr(src, '/');
 		if (p == NULL) {
-			int copy_len = ended - src;
+			size_t copy_len = ended - src;
 			assert(copy_len>=0);
 			if (copy_len <= 0) {
 				*dst = '\0';
@@ -509,7 +509,7 @@ bool KFileName::setName(const char *docRoot, const char *triped_path,
 			result = checkLink(path, follow_link);
 			break;
 		}
-		int copy_len = p - src;
+		size_t copy_len = p - src;
 		*dst = PATH_SPLIT_CHAR;
 		dst++;
 		kgl_memcpy(dst, src, copy_len);
@@ -526,7 +526,7 @@ bool KFileName::setName(const char *docRoot, const char *triped_path,
 	if(result==CheckLinkIsFile){
 		const char *p = strchr(src,'/');
 		if(p){
-			pathInfoLength = p - triped_path;
+			pathInfoLength = (int)(p - triped_path);
 		}
 	}
 	if (result == CheckLinkContinue || result == CheckLinkIsFile) {
@@ -571,7 +571,7 @@ const wchar_t *KFileName::getNameW()
 	if(name==NULL){
 		return NULL;
 	}
-	wname = FileNametoUnicode(name,strlen(name));
+	wname = FileNametoUnicode(name,(int)strlen(name));
 	return wname;
 }
 #endif

@@ -217,7 +217,7 @@ KGL_RESULT KAsyncFetchObject::ParseBody(KHttpRequest* rq)
 	int len = us_buffer.used;
 	KGL_RESULT ret = ParseBody(rq, &data, &len);
 	assert(us_buffer.buf);
-	ks_save_point(&us_buffer, data, len);
+	ks_save_point(&us_buffer, data);
 	return ret;
 }
 
@@ -273,13 +273,13 @@ KGL_RESULT KAsyncFetchObject::ReadHeader(KHttpRequest *rq, kfiber **post_fiber)
 		int len = us_buffer.used;
 		switch (ParseHeader(rq, &data, &len)) {
 		case kgl_parse_finished:
-			ks_save_point(&us_buffer, data, len);
+			ks_save_point(&us_buffer, data);
 			return readHeadSuccess(rq, post_fiber);
 		case kgl_parse_continue:
 			if (parser.header_len > MAX_HTTP_HEAD_SIZE) {
 				return KGL_EDATA_FORMAT;
 			}
-			ks_save_point(&us_buffer, data, len);
+			ks_save_point(&us_buffer, data);
 			break;
 		case kgl_parse_want_read:
 			//ajp协议会发送一个JK_AJP13_GET_BODY_CHUNK过来，此时要发送一个空的数据包过去
@@ -561,6 +561,7 @@ kgl_parse_result KAsyncFetchObject::ParseHeader(KHttpRequest *rq, char **data, i
 KGL_RESULT KAsyncFetchObject::ParseBody(KHttpRequest *rq, char **data, int *len)
 {
 	KGL_RESULT result = PushBody(rq, out, *data, *len);
+	(*data) += (*len);
 	*len = 0;
 	return result;
 }
