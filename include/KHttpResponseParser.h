@@ -17,7 +17,7 @@ public:
 	void EndParse(KHttpRequest *rq);
 	void CommitHeaders(KHttpRequest *rq);
 private:
-	kgl_header_result InternalParseHeader(KHttpRequest *rq,KHttpObject *obj,const char *attr, int attr_len, const char *val, int *val_len, bool request_line);
+	kgl_header_result InternalParseHeader(KHttpRequest *rq,KHttpObject *obj,const char *attr, int attr_len, const char *val, int val_len, bool request_line);
 	time_t serverDate;
 	time_t expireDate;
 	unsigned age;

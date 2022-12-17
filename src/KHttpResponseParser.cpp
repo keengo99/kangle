@@ -4,7 +4,7 @@
 #include "KHttpFieldValue.h"
 #include "time_utils.h"
 #include "kmalloc.h"
-kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHttpObject *obj,const char *attr, int attr_len, const char *val, int *val_len, bool request_line)
+kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHttpObject *obj,const char *attr, int attr_len, const char *val, int val_len, bool request_line)
 {
 
 	if (!strcasecmp(attr, "Etag")) {
@@ -29,12 +29,12 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 		return kgl_header_success;
 	}
 	if (!strcasecmp(attr, "Date")) {
-		serverDate = kgl_parse_http_time((u_char *)val, *val_len);
+		serverDate = kgl_parse_http_time((u_char *)val, val_len);
 		//KBIT_SET(obj->index.flags,OBJ_HAS_DATE);
 		return kgl_header_success;
 	}
 	if (!strcasecmp(attr, "Last-Modified")) {
-		obj->index.last_modified = kgl_parse_http_time((u_char*)val, *val_len);
+		obj->index.last_modified = kgl_parse_http_time((u_char*)val, val_len);
 		if (obj->index.last_modified > 0) {
 			obj->index.flags |= ANSW_LAST_MODIFIED;
 		}
@@ -47,9 +47,9 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 		return kgl_header_success;
 	}
 	if (!strcasecmp(attr, "Pragma")) {
-		KHttpFieldValue field(val);
+		KHttpFieldValue field(val, val + val_len);
 		do {
-			if (field.is("no-cache")) {
+			if (field.is(_KS("no-cache"))) {
 				obj->index.flags |= ANSW_NO_CACHE;
 				break;
 			}
@@ -57,34 +57,34 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 		return kgl_header_success;
 	}
 	if (!strcasecmp(attr, "Cache-Control")) {
-		KHttpFieldValue field(val);
+		KHttpFieldValue field(val, val + val_len);
 		do {
 #ifdef ENABLE_STATIC_ENGINE
 			if (!KBIT_TEST(obj->index.flags, OBJ_IS_STATIC2)) {
 #endif
-				if (field.is("no-store")) {
+				if (field.is(_KS("no-store"))) {
 					obj->index.flags |= ANSW_NO_CACHE;
-				} else if (field.is("no-cache")) {
+				} else if (field.is(_KS("no-cache"))) {
 					obj->index.flags |= ANSW_NO_CACHE;
-				} else if (field.is("private")) {
+				} else if (field.is(_KS("private"))) {
 					obj->index.flags |= ANSW_NO_CACHE;
 				}
 #ifdef ENABLE_STATIC_ENGINE
 			}
 #endif
 #ifdef ENABLE_FORCE_CACHE
-			if (field.is("static")) {
+			if (field.is(_KS("static"))) {
 				//通过http header强制缓存
 				obj->force_cache();
 			} else
 #endif
-				if (field.is("public")) {
+				if (field.is(_KS("public"))) {
 					KBIT_CLR(obj->index.flags, ANSW_NO_CACHE);
-				} else if (field.is("max-age=", (int *)&obj->index.max_age)) {
+				} else if (field.is(_KS("max-age="), (int *)&obj->index.max_age)) {
 					obj->index.flags |= ANSW_HAS_MAX_AGE;
-				} else if (field.is("s-maxage=", (int *)&obj->index.max_age)) {
+				} else if (field.is(_KS("s-maxage="), (int *)&obj->index.max_age)) {
 					obj->index.flags |= ANSW_HAS_MAX_AGE;
-				} else if (field.is("must-revalidate")) {
+				} else if (field.is(_KS("must-revalidate"))) {
 					obj->index.flags |= OBJ_MUST_REVALIDATE;
 				}
 		} while (field.next());
@@ -96,7 +96,7 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 		return kgl_header_success;
 	}
 	if (!strcasecmp(attr, "Vary")) {
-		if (obj->AddVary(rq, val, *val_len)) {
+		if (obj->AddVary(rq, val, val_len)) {
 			return kgl_header_no_insert;
 		}
 		return kgl_header_success;
@@ -152,7 +152,7 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 	if (!KBIT_TEST(obj->index.flags, ANSW_HAS_EXPIRES) &&
 		!strcasecmp(attr, "Expires")) {
 		KBIT_SET(obj->index.flags, ANSW_HAS_EXPIRES);
-		expireDate = kgl_parse_http_time((u_char*)val, *val_len);
+		expireDate = kgl_parse_http_time((u_char*)val, val_len);
 		return kgl_header_success;
 	}
 	//{{ent
@@ -167,7 +167,7 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 bool KHttpResponseParser::ParseHeader(KHttpRequest *rq, const char *attr, int attr_len, const char *val, int val_len, bool request_line)
 {
 	//printf("%s: %s\n", attr, val);
-	switch (InternalParseHeader(rq, rq->ctx->obj, attr, attr_len, val, &val_len, request_line)) {
+	switch (InternalParseHeader(rq, rq->ctx->obj, attr, attr_len, val, val_len, request_line)) {
 		case kgl_header_failed:
 			return false;
 		case kgl_header_insert_begin:

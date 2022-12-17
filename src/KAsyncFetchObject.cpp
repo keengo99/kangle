@@ -487,13 +487,13 @@ KGL_RESULT KAsyncFetchObject::PushHeader(KHttpRequest *rq, const char *attr, int
 		}
 	}
 	if (!strcasecmp(attr, "Connection")) {
-		KHttpFieldValue field(val);
+		KHttpFieldValue field(val,val+val_len);
 		do {
-			if (field.is2("keep-alive", 10)) {
+			if (field.is("keep-alive", 10)) {
 				rq->ctx->upstream_connection_keep_alive = true;
-			} else if (field.is2("close", 5)) {
+			} else if (field.is("close", 5)) {
 				rq->ctx->upstream_connection_keep_alive = false;
-			} else if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE) && field.is2("upgrade", 7)) {
+			} else if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE) && field.is("upgrade", 7)) {
 				KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_UPGRADE);
 				rq->ctx->upstream_connection_keep_alive = false;
 			}
