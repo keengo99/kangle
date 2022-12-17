@@ -4,49 +4,49 @@
 #include "KHttpFieldValue.h"
 #include "time_utils.h"
 #include "kmalloc.h"
-kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHttpObject *obj,const char *attr, int attr_len, const char *val, int val_len, bool request_line)
+kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest* rq, KHttpObject* obj, const char* attr, int attr_len, const char* val, int val_len, bool request_line)
 {
 
-	if (!strcasecmp(attr, "Etag")) {
+	if (kgl_mem_case_same(attr, attr_len, _KS("Etag"))) {
 		KBIT_SET(obj->index.flags, OBJ_HAS_ETAG);
 		return kgl_header_insert_begin;
 	}
-	if (!strcasecmp(attr, "Content-Range")) {
-		const char *p = strchr(val, '/');
+	if (kgl_mem_case_same(attr, attr_len, _KS("Content-Range"))) {
+		const char* p = strchr(val, '/');
 		if (p) {
 			rq->ctx->content_range_length = string2int(p + 1);
 			KBIT_SET(obj->index.flags, ANSW_HAS_CONTENT_RANGE);
 		}
 		return kgl_header_success;
 	}
-	if (!strcasecmp(attr, "Content-length")) {
-		obj->index.content_length = string2int(val);
+	if (kgl_mem_case_same(attr, attr_len, _KS("Content-length"))) {
+		obj->index.content_length = kgl_atol((u_char*)val, val_len);
 		KBIT_SET(obj->index.flags, ANSW_HAS_CONTENT_LENGTH);
 		//KBIT_CLR(obj->index.flags, ANSW_CHUNKED);
 		return kgl_header_no_insert;
 	}
-	if (!strcasecmp(attr, "Content-Type")) {
+	if (kgl_mem_case_same(attr, attr_len, _KS("Content-Type"))) {
 		return kgl_header_success;
 	}
-	if (!strcasecmp(attr, "Date")) {
-		serverDate = kgl_parse_http_time((u_char *)val, val_len);
+	if (kgl_mem_case_same(attr, attr_len, _KS("Date"))) {
+		serverDate = kgl_parse_http_time((u_char*)val, val_len);
 		//KBIT_SET(obj->index.flags,OBJ_HAS_DATE);
 		return kgl_header_success;
 	}
-	if (!strcasecmp(attr, "Last-Modified")) {
+	if (kgl_mem_case_same(attr, attr_len, _KS("Last-Modified"))) {
 		obj->index.last_modified = kgl_parse_http_time((u_char*)val, val_len);
 		if (obj->index.last_modified > 0) {
 			obj->index.flags |= ANSW_LAST_MODIFIED;
 		}
 		return kgl_header_success;
 	}
-	if (strncasecmp(attr, "Set-Cookie", sizeof("Set-Cookie") - 1) == 0) {
+	if (kgl_mem_case_same(attr, attr_len, _KS("Set-Cookie"))) {
 		if (!KBIT_TEST(obj->index.flags, OBJ_IS_STATIC2)) {
 			obj->index.flags |= ANSW_NO_CACHE;
 		}
 		return kgl_header_success;
 	}
-	if (!strcasecmp(attr, "Pragma")) {
+	if (kgl_mem_case_same(attr, attr_len, _KS("Pragma"))) {
 		KHttpFieldValue field(val, val + val_len);
 		do {
 			if (field.is(_KS("no-cache"))) {
@@ -56,7 +56,7 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 		} while (field.next());
 		return kgl_header_success;
 	}
-	if (!strcasecmp(attr, "Cache-Control")) {
+	if (kgl_mem_case_same(attr, attr_len, _KS("Cache-Control"))) {
 		KHttpFieldValue field(val, val + val_len);
 		do {
 #ifdef ENABLE_STATIC_ENGINE
@@ -80,9 +80,9 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 #endif
 				if (field.is(_KS("public"))) {
 					KBIT_CLR(obj->index.flags, ANSW_NO_CACHE);
-				} else if (field.is(_KS("max-age="), (int *)&obj->index.max_age)) {
+				} else if (field.is(_KS("max-age="), (int*)&obj->index.max_age)) {
 					obj->index.flags |= ANSW_HAS_MAX_AGE;
-				} else if (field.is(_KS("s-maxage="), (int *)&obj->index.max_age)) {
+				} else if (field.is(_KS("s-maxage="), (int*)&obj->index.max_age)) {
 					obj->index.flags |= ANSW_HAS_MAX_AGE;
 				} else if (field.is(_KS("must-revalidate"))) {
 					obj->index.flags |= OBJ_MUST_REVALIDATE;
@@ -95,54 +95,46 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 #endif
 		return kgl_header_success;
 	}
-	if (!strcasecmp(attr, "Vary")) {
+	if (kgl_mem_case_same(attr, attr_len, _KS("Vary"))) {
 		if (obj->AddVary(rq, val, val_len)) {
 			return kgl_header_no_insert;
 		}
 		return kgl_header_success;
 	}
-	if (!strcasecmp(attr, "Age")) {
-		age = atoi(val);
+	if (kgl_mem_case_same(attr, attr_len, _KS("Age"))) {
+		age = kgl_atoi((u_char*)val, val_len);
 		return kgl_header_no_insert;
 	}
 	if (*attr == 'x' || *attr == 'X') {
 		if (!KBIT_TEST(rq->filter_flags, RF_NO_X_SENDFILE) &&
-			(strcasecmp(attr, "X-Accel-Redirect") == 0 || strcasecmp(attr, "X-Proxy-Redirect") == 0)) {
+			(kgl_mem_case_same(attr, attr_len, _KS("X-Accel-Redirect")) || kgl_mem_case_same(attr, attr_len, _KS("X-Proxy-Redirect")))) {
 			KBIT_SET(obj->index.flags, ANSW_XSENDFILE);
 			return kgl_header_insert_begin;
-		}		
-		if (strcasecmp(attr, "X-Gzip") == 0) {
+		}
+		if (kgl_mem_case_same(attr, attr_len, _KS("X-Gzip"))) {
 			obj->need_compress = 1;
 			return kgl_header_no_insert;
 		}
 	}
-	if (strcasecmp(attr, "Transfer-Encoding") == 0) {
-		/*
-		if (strcasecmp(val, "chunked") == 0) {
-			if (!KBIT_TEST(obj->index.flags, ANSW_HAS_CONTENT_LENGTH)) {
-				obj->index.flags |= ANSW_CHUNKED;
-			}
-			return kgl_header_no_insert;
-		}
-		*/
+	if (kgl_mem_case_same(attr, attr_len, _KS("Transfer-Encoding"))) {
 		kassert(false);
 		return kgl_header_no_insert;
 	}
-	if (strcasecmp(attr, "Content-Encoding") == 0) {
-		if (strcasecmp(val, "none") == 0) {
+	if (kgl_mem_case_same(attr, attr_len, _KS("Content-Encoding"))) {
+		if (kgl_mem_case_same(val, val_len, _KS("none"))) {
 			return kgl_header_no_insert;
 		}
-		if (strcasecmp(val, "gzip") == 0) {
+		if (kgl_mem_case_same(val, val_len, _KS("gzip"))) {
 			obj->uk.url->set_content_encoding(KGL_ENCODING_GZIP);
-		} else	if (strcasecmp(val, "deflate") == 0) {
+		} else	if (kgl_mem_case_same(val, val_len, _KS("deflate"))) {
 			obj->uk.url->set_content_encoding(KGL_ENCODING_DEFLATE);
-		} else if (strcasecmp(val, "compress") == 0) {
+		} else if (kgl_mem_case_same(val, val_len, _KS("compress"))) {
 			obj->uk.url->set_content_encoding(KGL_ENCODING_COMPRESS);
-		} else if (strcasecmp(val, "br") == 0) {
+		} else if (kgl_mem_case_same(val, val_len, _KS("br"))) {
 			obj->uk.url->set_content_encoding(KGL_ENCODING_BR);
-		} else if (strcasecmp(val, "identity") == 0) {
+		} else if (kgl_mem_case_same(val, val_len, _KS("identity"))) {
 			obj->uk.url->accept_encoding = (u_char)~0;
-		} else if (*val) {
+		} else if (val_len > 0) {
 			//不明content-encoding不能缓存
 			KBIT_SET(obj->index.flags, FLAG_DEAD);
 			obj->uk.url->set_content_encoding(KGL_ENCODING_UNKNOW);
@@ -150,35 +142,33 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest *rq, KHt
 		return kgl_header_success;
 	}
 	if (!KBIT_TEST(obj->index.flags, ANSW_HAS_EXPIRES) &&
-		!strcasecmp(attr, "Expires")) {
+		!kgl_mem_case_same(attr, attr_len, _KS("Expires"))) {
 		KBIT_SET(obj->index.flags, ANSW_HAS_EXPIRES);
 		expireDate = kgl_parse_http_time((u_char*)val, val_len);
 		return kgl_header_success;
 	}
-	//{{ent
 #ifdef HTTP_PROXY
-	if (strcasecmp(attr, "Proxy-Authenticate") == 0) {
+	if (kgl_mem_case_same(attr, attr_len, _KS("Proxy-Authenticate"))) {
 		return kgl_header_no_insert;
 	}
 #endif
-	//}}
 	return kgl_header_success;
 }
-bool KHttpResponseParser::ParseHeader(KHttpRequest *rq, const char *attr, int attr_len, const char *val, int val_len, bool request_line)
+bool KHttpResponseParser::ParseHeader(KHttpRequest* rq, const char* attr, int attr_len, const char* val, int val_len, bool request_line)
 {
 	//printf("%s: %s\n", attr, val);
 	switch (InternalParseHeader(rq, rq->ctx->obj, attr, attr_len, val, val_len, request_line)) {
-		case kgl_header_failed:
-			return false;
-		case kgl_header_insert_begin:
-			return AddHeader(attr, attr_len, val, val_len, false);
-		case kgl_header_success:
-			return AddHeader(attr, attr_len, val, val_len, true);
-		default:
-			return true;
-	}
+	case kgl_header_failed:
+		return false;
+	case kgl_header_insert_begin:
+		return AddHeader(attr, attr_len, val, val_len, false);
+	case kgl_header_success:
+		return AddHeader(attr, attr_len, val, val_len, true);
+	default:
+		return true;
 }
-void KHttpResponseParser::EndParse(KHttpRequest *rq)
+}
+void KHttpResponseParser::EndParse(KHttpRequest* rq)
 {
 	/*
  * see rfc2616
@@ -205,7 +195,7 @@ void KHttpResponseParser::EndParse(KHttpRequest *rq)
 		unsigned corrected_received_age = MAX(apparent_age, age);
 
 		unsigned response_delay = (unsigned)(responseTime - rq->sink->data.begin_time_msec / 1000);
-		unsigned corrected_initial_age = corrected_received_age	+ response_delay;
+		unsigned corrected_initial_age = corrected_received_age + response_delay;
 		unsigned resident_time = (unsigned)(kgl_current_sec - responseTime);
 		age = corrected_initial_age + resident_time;
 		if (!KBIT_TEST(rq->ctx->obj->index.flags, ANSW_HAS_MAX_AGE)
@@ -216,7 +206,7 @@ void KHttpResponseParser::EndParse(KHttpRequest *rq)
 	CommitHeaders(rq);
 	//first_body_time = kgl_current_sec;
 }
-void KHttpResponseParser::CommitHeaders(KHttpRequest *rq)
+void KHttpResponseParser::CommitHeaders(KHttpRequest* rq)
 {
 	if (last) {
 		last->next = rq->ctx->obj->data->headers;
