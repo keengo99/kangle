@@ -27,7 +27,7 @@
 #include "KHttpLib.h"
 #include "lang.h"
 #include "KHttpResponseParser.h"
-//#include "KHttpTransfer.h"
+ //#include "KHttpTransfer.h"
 #include "KHttpBasicAuth.h"
 #include "KApiRedirect.h"
 #include "kmalloc.h"
@@ -43,13 +43,13 @@ KFastcgiFetchObject::~KFastcgiFetchObject() {
 		xfree(pad_buf);
 	}
 }
-KGL_RESULT KFastcgiFetchObject::buildHead(KHttpRequest *rq)
+KGL_RESULT KFastcgiFetchObject::buildHead(KHttpRequest* rq)
 {
 	parser.first_same = 1;
 	pop_header.proto = Proto_fcgi;
 	buffer = new KSocketBuffer(NBUFF_SIZE);
-	KHttpObject *obj = rq->ctx->obj;
-	KBIT_SET(obj->index.flags,ANSW_LOCAL_SERVER);
+	KHttpObject* obj = rq->ctx->obj;
+	KBIT_SET(obj->index.flags, ANSW_LOCAL_SERVER);
 	KFastcgiStream<KSocketBuffer> fbuf;
 	fbuf.setStream(buffer);
 	fbuf.extend = isExtend();
@@ -58,22 +58,22 @@ KGL_RESULT KFastcgiFetchObject::buildHead(KHttpRequest *rq)
 		memset(&package, 0, sizeof(package));
 		package.header.type = FCGI_BEGIN_REQUEST;
 		package.header.contentLength = htons(sizeof(FCGI_BeginRequestBody));
-		KApiRedirect *ard = static_cast<KApiRedirect *>(brd->rd);
+		KApiRedirect* ard = static_cast<KApiRedirect*>(brd->rd);
 		package.body.id = ard->id;
-		buffer->write_all((char *)&package,sizeof(FCGI_BeginRequestRecord));
-	}else{
-		fbuf.beginRequest(client->GetLifeTime()>0);
+		buffer->write_all((char*)&package, sizeof(FCGI_BeginRequestRecord));
+	} else {
+		fbuf.beginRequest(client->GetLifeTime() > 0);
 	}
 	if (isExtend() && rq->auth) {
-		const char *auth_type = KHttpAuth::buildType(rq->auth->getType());
-		const char *user = rq->auth->getUser();
+		const char* auth_type = KHttpAuth::buildType(rq->auth->getType());
+		const char* user = rq->auth->getUser();
 		if (user) {
 			fbuf.addEnv("AUTH_USER", user);
 		}
 		fbuf.addEnv("AUTH_TYPE", auth_type);
 		if (rq->auth->getType() == AUTH_BASIC) {
-			KHttpBasicAuth *auth = (KHttpBasicAuth *) rq->auth;
-			const char *password = auth->getPassword();
+			KHttpBasicAuth* auth = (KHttpBasicAuth*)rq->auth;
+			const char* password = auth->getPassword();
 			if (password) {
 				fbuf.addEnv("AUTH_PASSWORD", password);
 			}
@@ -88,17 +88,17 @@ KGL_RESULT KFastcgiFetchObject::buildHead(KHttpRequest *rq)
 		buffer->destroy();
 		return KGL_EUNKNOW;
 	}
-	
+
 	if (!rq->has_post_data(in)) {
 		appendPostEnd();
 	}
 	return KGL_OK;
 }
-kgl_parse_result KFastcgiFetchObject::ParseHeader(KHttpRequest *rq, char **data, int *len)
+kgl_parse_result KFastcgiFetchObject::ParseHeader(KHttpRequest* rq, char** data, char* end)
 {
-	while (*len > 0) {
-		int packet_len = *len;
-		char *packet = parse(rq, data, len,&packet_len);
+	while (*data < end) {
+		int packet_len;
+		char* packet = parse(rq, data, end, &packet_len);
 		if (packet && packet_len > 0) {
 			RestorePacket(&packet, &packet_len);
 			switch (this->buf.type) {
@@ -111,7 +111,7 @@ kgl_parse_result KFastcgiFetchObject::ParseHeader(KHttpRequest *rq, char **data,
 				char* url = (char*)malloc(packet_len + 1);
 				kgl_memcpy(url, packet, packet_len);
 				url[packet_len] = '\0';
-				char *filename = rq->map_url_path(url, this->brd);
+				char* filename = rq->map_url_path(url, this->brd);
 				int len = 0;
 				if (filename) {
 					len = (int)strlen(filename);
@@ -126,8 +126,10 @@ kgl_parse_result KFastcgiFetchObject::ParseHeader(KHttpRequest *rq, char **data,
 				}
 				break;
 			}
-			default:		
-				kgl_parse_result ret = KAsyncFetchObject::ParseHeader(rq, &packet, &packet_len);
+			default:
+				char* packet_end = packet + packet_len;
+				kgl_parse_result ret = KAsyncFetchObject::ParseHeader(rq, &packet, packet_end);
+				packet_len = (int)(packet_end - packet);
 				switch (ret) {
 				case kgl_parse_finished:
 					if (pad_buf) {
@@ -135,7 +137,6 @@ kgl_parse_result KFastcgiFetchObject::ParseHeader(KHttpRequest *rq, char **data,
 						pad_buf = NULL;
 					}
 					body_len += packet_len;
-					*len += packet_len;
 					*data -= packet_len;
 					return kgl_parse_finished;
 				case kgl_parse_error:
@@ -152,16 +153,16 @@ kgl_parse_result KFastcgiFetchObject::ParseHeader(KHttpRequest *rq, char **data,
 	}
 	return kgl_parse_continue;
 }
-KGL_RESULT KFastcgiFetchObject::ParseBody(KHttpRequest *rq, char **data, int *len)
+KGL_RESULT KFastcgiFetchObject::ParseBody(KHttpRequest* rq, char** data, char* end)
 {
 	int packet_len;
-	while (*len > 0) {
-		char *packet = parse(rq, data, len,&packet_len);
+	while (*data < end) {
+		char* packet = parse(rq, data, end, &packet_len);
 		if (packet == NULL) {
-			readBodyEnd(rq, data, len);
+			readBodyEnd(rq, data, end);
 			break;
 		}
-		KGL_RESULT result = KAsyncFetchObject::ParseBody(rq, &packet, &packet_len);
+		KGL_RESULT result = KAsyncFetchObject::ParseBody(rq, &packet, packet + packet_len);
 		if (KGL_OK != result) {
 			return result;
 		}
@@ -170,15 +171,15 @@ KGL_RESULT KFastcgiFetchObject::ParseBody(KHttpRequest *rq, char **data, int *le
 }
 void KFastcgiFetchObject::appendPostEnd()
 {
-	if(isExtend()){
+	if (isExtend()) {
 		//api使用不用发结束post标记
 		return;
 	}
 	//最后的post数据
-	kbuf *fcgibuff = (kbuf *)malloc(sizeof(kbuf));
-	fcgibuff->data = (char *)malloc(sizeof(FCGI_Header));
+	kbuf* fcgibuff = (kbuf*)malloc(sizeof(kbuf));
+	fcgibuff->data = (char*)malloc(sizeof(FCGI_Header));
 	fcgibuff->used = sizeof(FCGI_Header);
-	FCGI_Header *fcgiheader = (FCGI_Header *)fcgibuff->data;
+	FCGI_Header* fcgiheader = (FCGI_Header*)fcgibuff->data;
 	memset(fcgiheader, 0, sizeof(FCGI_Header));
 	fcgiheader->version = 1;
 	fcgiheader->type = FCGI_STDIN;
@@ -186,48 +187,47 @@ void KFastcgiFetchObject::appendPostEnd()
 	fcgiheader->requestIdB0 = 1;
 	buffer->Append(fcgibuff);
 }
-void KFastcgiFetchObject::buildPost(KHttpRequest *rq)
+void KFastcgiFetchObject::buildPost(KHttpRequest* rq)
 {
 	unsigned postLen = buffer->getLen();
-	assert(postLen>0);
-	kbuf *fcgibuff = (kbuf *)malloc(sizeof(kbuf));
-	fcgibuff->data = (char *)malloc(sizeof(FCGI_Header));
+	assert(postLen > 0);
+	kbuf* fcgibuff = (kbuf*)malloc(sizeof(kbuf));
+	fcgibuff->data = (char*)malloc(sizeof(FCGI_Header));
 	//nbuff *fcgibuff = (nbuff *)malloc(sizeof(nbuff) + sizeof(FCGI_Header));
 	fcgibuff->used = sizeof(FCGI_Header);
-	FCGI_Header *fcgiheader = (FCGI_Header *)fcgibuff->data;
+	FCGI_Header* fcgiheader = (FCGI_Header*)fcgibuff->data;
 	memset(fcgiheader, 0, sizeof(FCGI_Header));
 	fcgiheader->version = 1;
 	fcgiheader->type = FCGI_STDIN;
 	fcgiheader->contentLength = htons(postLen);
 	fcgiheader->requestIdB0 = 1;
 	buffer->insertBuffer(fcgibuff);
-	if(!rq->has_post_data(in)){
+	if (!rq->has_post_data(in)) {
 		appendPostEnd();
 	}
 }
-char *KFastcgiFetchObject::parse(KHttpRequest *rq,char **str,int *len,int *packet_len)
+char* KFastcgiFetchObject::parse(KHttpRequest* rq, char** str, char* end, int* packet_len)
 {
-	if (body_len==0) {
-		if (buf.paddingLength>0) {
+	if (body_len == 0) {
+		if (buf.paddingLength > 0) {
 			//skip padding
-			int padlen = MIN(*len,(int)buf.paddingLength);
+			size_t len = end - *str;
+			int padlen = MIN((int)len, (int)buf.paddingLength);
 			buf.paddingLength -= padlen;
 			*str += padlen;
-			*len -= padlen;
-			if(buf.paddingLength>0){
+			if (buf.paddingLength > 0) {
 				return NULL;
 			}
 		}
 		body_len = -1;
 	}
-	if (body_len==-1) {
+	if (body_len == -1) {
 		//head
-		if (*len < (int)sizeof(FCGI_Header)) {
+		if (end - *str < sizeof(FCGI_Header)) {
 			return NULL;
-		}		
-		kgl_memcpy(((char *)&buf),*str,sizeof(FCGI_Header));
+		}
+		kgl_memcpy(((char*)&buf), *str, sizeof(FCGI_Header));
 		(*str) += sizeof(FCGI_Header);
-		(*len) -= sizeof(FCGI_Header);		
 		body_len = ntohs(buf.contentLength);
 	}
 	//printf("type=%d,body_len=%d,len=%d\n",buf.type,body_len,len);
@@ -240,12 +240,12 @@ char *KFastcgiFetchObject::parse(KHttpRequest *rq,char **str,int *len,int *packe
 		bodyEnd = true;
 		return NULL;
 	}
-	*packet_len = MIN(*len,body_len);
+	size_t len = end - *str;
+	*packet_len = MIN((int)len, body_len);
 	body_len -= *packet_len;
-	char *body = *str;
+	char* body = *str;
 	*str += *packet_len;
-	*len -= *packet_len;	
-	if (*packet_len ==0) {
+	if (*packet_len == 0) {
 		return NULL;
 	}
 	return body;

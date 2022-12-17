@@ -2,26 +2,26 @@
 #include "http.h"
 #include "KUrlParser.h"
 #ifdef ENABLE_INPUT_FILTER
-char *my_strndup(const char *s, int length)
+char* my_strndup(const char* s, int length)
 {
-        char *p = (char *) malloc(length+1 );
-        if (p == NULL) {
-                return p;
-        }
-        kgl_memcpy(p, s, length);
-        p[length] = 0;
-        return p;
+	char* p = (char*)malloc(length + 1);
+	if (p == NULL) {
+		return p;
+	}
+	kgl_memcpy(p, s, length);
+	p[length] = 0;
+	return p;
 }
-void *kgl_memstr(char *haystack, int haystacklen, char *needle, int needlen)
+void* kgl_memstr(char* haystack, int haystacklen, char* needle, int needlen)
 {
 	int len = haystacklen;
-	char *ptr = haystack;
+	char* ptr = haystack;
 
 	/* iterate through first character matches */
-	while( (ptr = (char *)memchr(ptr, needle[0], len)) ) {
+	while ((ptr = (char*)memchr(ptr, needle[0], len))) {
 
 		/* calculate length after match */
-		len = haystacklen - (int)(ptr - (char *)haystack);
+		len = haystacklen - (int)(ptr - (char*)haystack);
 
 		/* done if matches up to capacity of buffer */
 		if (memcmp(needle, ptr, needlen < len ? needlen : len) == 0) {
@@ -45,17 +45,17 @@ void *kgl_memstr(char *haystack, int haystacklen, char *needle, int needlen)
  * boundaries that are only LF terminated when you use an image submit
  * button in a multipart/form-data form.
  */
-static char *next_line(multipart_buffer *self)
+static char* next_line(multipart_buffer* self)
 {
 	/* look for LF in the data */
 	char* line = self->buf_begin;
-	char* ptr = (char *)memchr(self->buf_begin, '\n', self->bytes_in_buffer);
+	char* ptr = (char*)memchr(self->buf_begin, '\n', self->bytes_in_buffer);
 
 	if (ptr) {	/* LF found */
 
 		/* terminate the string, remove CRLF */
-		if ((ptr - line) > 0 && *(ptr-1) == '\r') {
-			*(ptr-1) = 0;
+		if ((ptr - line) > 0 && *(ptr - 1) == '\r') {
+			*(ptr - 1) = 0;
 		} else {
 			*ptr = 0;
 		}
@@ -79,13 +79,12 @@ static char *next_line(multipart_buffer *self)
 	return line;
 }
 /* finds a boundary */
-static bool find_boundary(multipart_buffer *self)
+static bool find_boundary(multipart_buffer* self)
 {
-	char *line;
+	char* line;
 
 	/* loop thru lines */
-	while( (line = next_line(self )) )
-	{
+	while ((line = next_line(self))) {
 		/* finished if we found the boundary */
 		if (!strcmp(line, self->boundary)) {
 			return true;
@@ -95,10 +94,10 @@ static bool find_boundary(multipart_buffer *self)
 	/* didn't find the boundary */
 	return false;
 }
-static char *substring_conf(char *start, int len, char quote )
+static char* substring_conf(char* start, int len, char quote)
 {
-	char *result = (char *)malloc(len + 2);
-	char *resp = result;
+	char* result = (char*)malloc(len + 2);
+	char* resp = result;
 	int i;
 
 	for (i = 0; i < len; ++i) {
@@ -112,9 +111,9 @@ static char *substring_conf(char *start, int len, char quote )
 	*resp = '\0';
 	return result;
 }
-static char *php_ap_getword_conf(char **line )
+static char* php_ap_getword_conf(char** line)
 {
-	char *str = *line, *strend, *res, quote;
+	char* str = *line, * strend, * res, quote;
 
 
 	while (*str && isspace(*str)) {
@@ -128,7 +127,7 @@ static char *php_ap_getword_conf(char **line )
 
 	if ((quote = *str) == '"' || quote == '\'') {
 		strend = str + 1;
-look_for_quote:
+	look_for_quote:
 		while (*strend && *strend != quote) {
 			if (*strend == '\\' && strend[1] && strend[1] == quote) {
 				strend += 2;
@@ -144,7 +143,7 @@ look_for_quote:
 			}
 		}
 
-		res = substring_conf(str + 1, (int)(strend - str - 1), quote );
+		res = substring_conf(str + 1, (int)(strend - str - 1), quote);
 
 		if (*strend == quote) {
 			++strend;
@@ -156,7 +155,7 @@ look_for_quote:
 		while (*strend && !isspace(*strend)) {
 			++strend;
 		}
-		res = substring_conf(str, (int)(strend - str), 0 );
+		res = substring_conf(str, (int)(strend - str), 0);
 	}
 
 	while (*strend && isspace(*strend)) {
@@ -166,10 +165,10 @@ look_for_quote:
 	*line = strend;
 	return res;
 }
-static char *php_ap_getword(char **line, char stop)
+static char* php_ap_getword(char** line, char stop)
 {
-	char *pos = *line, quote;
-	char *res;
+	char* pos = *line, quote;
+	char* res;
 
 	while (*pos && *pos != stop) {
 		if ((quote = *pos) == '"' || quote == '\'') {
@@ -201,17 +200,17 @@ static char *php_ap_getword(char **line, char stop)
 	*line = pos;
 	return res;
 }
-bool multipart_eof(multipart_buffer *mb,bool isLast)
+bool multipart_eof(multipart_buffer* mb, bool isLast)
 {
 	if (isLast) {
-		return mb->bytes_in_buffer<=0;
+		return mb->bytes_in_buffer <= 0;
 	}
-	return  mb->bytes_in_buffer <= mb->boundary_next_len+1;
+	return  mb->bytes_in_buffer <= mb->boundary_next_len + 1;
 }
-char *get_hdr_value(KHttpHeader *header,const char *attr)
+char* get_hdr_value(KHttpHeader* header, const char* attr)
 {
 	while (header) {
-		if (strcasecmp(header->attr,attr)==0) {
+		if (strcasecmp(header->attr, attr) == 0) {
 			return header->val;
 		}
 		header = header->next;
@@ -219,23 +218,23 @@ char *get_hdr_value(KHttpHeader *header,const char *attr)
 	return NULL;
 }
 
-int KMultiPartInputFilter::check(KInputFilterContext *rq, const char *str, int len, bool isLast)
+int KMultiPartInputFilter::check(KInputFilterContext* rq, const char* str, int len, bool isLast)
 {
 	int ret = InternalCheck(rq, str, len, isLast);
 	return ret;
 }
-int KMultiPartInputFilter::InternalCheck(KInputFilterContext *rq, const char *str, int len, bool isLast)
+int KMultiPartInputFilter::InternalCheck(KInputFilterContext* rq, const char* str, int len, bool isLast)
 {
-	if (rq->mb==NULL) {
+	if (rq->mb == NULL) {
 		return JUMP_ALLOW;
 	}
 	if (str) {
-		rq->mb->add(str,len);
+		rq->mb->add(str, len);
 	}
-	while (!multipart_eof(rq->mb,isLast)) {	
-		if (rq->mb->model==MULTIPART_BODY_MODEL) {
+	while (!multipart_eof(rq->mb, isLast)) {
+		if (rq->mb->model == MULTIPART_BODY_MODEL) {
 			bool success;
-			if (JUMP_DENY==handleBody(rq,success)) {
+			if (JUMP_DENY == handleBody(rq, success)) {
 				return JUMP_DENY;
 			}
 			if (!success) {
@@ -243,15 +242,15 @@ int KMultiPartInputFilter::InternalCheck(KInputFilterContext *rq, const char *st
 			}
 			continue;
 		}
-		if (rq->mb->model==MULTIPART_BOUNDARY_MODEL) {
+		if (rq->mb->model == MULTIPART_BOUNDARY_MODEL) {
 			if (!find_boundary(rq->mb)) {
 				return JUMP_ALLOW;
 			}
 			rq->mb->model = MULTIPART_HEAD_MODEL;
 			continue;
-		}	
+		}
 
-		char *cd = NULL;
+		char* cd = NULL;
 		if (param) {
 			free(param);
 			param = NULL;
@@ -260,23 +259,23 @@ int KMultiPartInputFilter::InternalCheck(KInputFilterContext *rq, const char *st
 			free(filename);
 			filename = NULL;
 		}
-		switch(parseHeader(rq)) {
-			case kgl_parse_finished:
-				break;
-			case kgl_parse_error:
-				delete rq->mb;
-				rq->mb = NULL;
-				return JUMP_ALLOW;
-			default:
-				return JUMP_ALLOW;
+		switch (parseHeader(rq)) {
+		case kgl_parse_finished:
+			break;
+		case kgl_parse_error:
+			delete rq->mb;
+			rq->mb = NULL;
+			return JUMP_ALLOW;
+		default:
+			return JUMP_ALLOW;
 		}
 		if ((cd = get_hdr_value(hm.header, "Content-Disposition"))) {
-			char *pair = NULL;
+			char* pair = NULL;
 			while (isspace(*cd)) {
 				++cd;
 			}
 			while (*cd && (pair = php_ap_getword(&cd, ';'))) {
-				char *key = NULL, *word = pair;
+				char* key = NULL, * word = pair;
 				while (isspace(*cd)) {
 					++cd;
 				}
@@ -286,17 +285,17 @@ int KMultiPartInputFilter::InternalCheck(KInputFilterContext *rq, const char *st
 						if (param) {
 							free(param);
 						}
-						param = php_ap_getword_conf(&pair );
+						param = php_ap_getword_conf(&pair);
 						if (param) {
-							param_len = url_decode(param,0,NULL,true);
+							param_len = url_decode(param, 0, NULL, true);
 						}
 					} else if (!strcasecmp(key, "filename")) {
 						if (filename) {
 							free(filename);
 						}
-						filename = php_ap_getword_conf(&pair );
+						filename = php_ap_getword_conf(&pair);
 						if (filename) {
-							filename_len = url_decode(filename,0,NULL,true);
+							filename_len = url_decode(filename, 0, NULL, true);
 						}
 					}
 				}
@@ -306,13 +305,13 @@ int KMultiPartInputFilter::InternalCheck(KInputFilterContext *rq, const char *st
 				free(word);
 			}
 			if (filename) {
-				KInputFilterHelper<KFileFilterHook> *file = file_head;
+				KInputFilterHelper<KFileFilterHook>* file = file_head;
 				while (file) {
-					if (JUMP_DENY==file->t->matchFilter(rq,param,param_len,filename,filename_len,hm.header)) {
+					if (JUMP_DENY == file->t->matchFilter(rq, param, param_len, filename, filename_len, hm.header)) {
 						return JUMP_DENY;
 					}
 					file = file->next;
-				}	
+				}
 			}
 			if (hm.header) {
 				free_header_list(hm.header);
@@ -323,15 +322,17 @@ int KMultiPartInputFilter::InternalCheck(KInputFilterContext *rq, const char *st
 	}
 	return JUMP_ALLOW;
 }
-kgl_parse_result KMultiPartInputFilter::parseHeader(KInputFilterContext *rq)
+kgl_parse_result KMultiPartInputFilter::parseHeader(KInputFilterContext* rq)
 {
 	khttp_parser parser;
 	khttp_parse_result rs;
 	memset(&parser, 0, sizeof(parser));
 	parser.first_same = 1;
-	while (rq->mb->bytes_in_buffer > 0) {
+	char* end = rq->mb->buf_begin + rq->mb->bytes_in_buffer;
+	while (rq->mb->buf_begin < end) {
 		memset(&rs, 0, sizeof(rs));
-		kgl_parse_result ret = khttp_parse(&parser, &rq->mb->buf_begin, &rq->mb->bytes_in_buffer, &rs);
+		kgl_parse_result ret = khttp_parse(&parser, &rq->mb->buf_begin, end, &rs);
+		rq->mb->bytes_in_buffer = (int)(end - rq->mb->buf_begin);
 		switch (ret) {
 		case kgl_parse_continue:
 		case kgl_parse_error:
@@ -348,41 +349,41 @@ kgl_parse_result KMultiPartInputFilter::parseHeader(KInputFilterContext *rq)
 	}
 	return kgl_parse_continue;
 }
-int KMultiPartInputFilter::hookFileContent(KInputFilterContext *fc,const char *buf,int len)
+int KMultiPartInputFilter::hookFileContent(KInputFilterContext* fc, const char* buf, int len)
 {
-	KFileContentFilterHelper *hook = file_content_head;
-	while(hook){
-		if(JUMP_DENY==hook->matchContent(fc,buf,len)){
+	KFileContentFilterHelper* hook = file_content_head;
+	while (hook) {
+		if (JUMP_DENY == hook->matchContent(fc, buf, len)) {
 			return JUMP_DENY;
 		}
 		hook = hook->next;
 	}
 	return JUMP_ALLOW;
 }
-int KMultiPartInputFilter::handleBody(KInputFilterContext *fc,bool &success)
+int KMultiPartInputFilter::handleBody(KInputFilterContext* fc, bool& success)
 {
 	fc->mb->model = MULTIPART_BODY_MODEL;
 	int len;
 	bool all = !filename;
-	char *buf = parseBody(fc,&len,all);
+	char* buf = parseBody(fc, &len, all);
 	if (buf) {
 		success = true;
 		if (all) {
 			fc->mb->model = MULTIPART_BOUNDARY_MODEL;
 		}
 		if (filename) {
-			if (JUMP_DENY==hookFileContent(fc,buf,len)) {
+			if (JUMP_DENY == hookFileContent(fc, buf, len)) {
 				return JUMP_DENY;
 			}
 			if (all) {
-				if (JUMP_DENY==hookFileContent(fc,buf,len)) {
+				if (JUMP_DENY == hookFileContent(fc, buf, len)) {
 					return JUMP_DENY;
 				}
 				cleanFileContentHook();
 			}
-		} else if(param) {
-			len = url_decode(buf,len,NULL,true);
-			if (JUMP_DENY==hookParamFilter(fc,param,param_len,buf,len)) {
+		} else if (param) {
+			len = url_decode(buf, len, NULL, true);
+			if (JUMP_DENY == hookParamFilter(fc, param, param_len, buf, len)) {
 				return JUMP_DENY;
 			}
 		}
@@ -392,15 +393,15 @@ int KMultiPartInputFilter::handleBody(KInputFilterContext *fc,bool &success)
 	}
 	return JUMP_ALLOW;
 }
-char *KMultiPartInputFilter::parseBody(KInputFilterContext *fc,int *len,bool &all)
+char* KMultiPartInputFilter::parseBody(KInputFilterContext* fc, int* len, bool& all)
 {
 	int max;
-	char *bound;
-	if (fc->mb->bytes_in_buffer<=0) {
+	char* bound;
+	if (fc->mb->bytes_in_buffer <= 0) {
 		return NULL;
 	}
 
-	if ((bound = (char *)kgl_memstr(fc->mb->buf_begin, fc->mb->bytes_in_buffer, fc->mb->boundary_next, fc->mb->boundary_next_len))) {
+	if ((bound = (char*)kgl_memstr(fc->mb->buf_begin, fc->mb->bytes_in_buffer, fc->mb->boundary_next, fc->mb->boundary_next_len))) {
 		max = (int)(bound - fc->mb->buf_begin);
 		all = true;
 	} else {
@@ -411,10 +412,10 @@ char *KMultiPartInputFilter::parseBody(KInputFilterContext *fc,int *len,bool &al
 	}
 	*len = max;
 	if (*len > 0) {
-		char *buf = (char *)malloc(*len+1);
-		kgl_memcpy(buf,fc->mb->buf_begin,*len);
+		char* buf = (char*)malloc(*len + 1);
+		kgl_memcpy(buf, fc->mb->buf_begin, *len);
 		buf[*len] = '\0';
-		if (bound && buf[*len-1] == '\r') {
+		if (bound && buf[*len - 1] == '\r') {
 			buf[--(*len)] = 0;
 		}
 		fc->mb->bytes_in_buffer -= *len;

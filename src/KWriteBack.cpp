@@ -8,11 +8,11 @@ std::string KWriteBack::getMsg()
 {
 	std::stringstream s;
 	kgl_str_t ret;
-	kgl_pool_t *pool = kgl_create_pool(128);
-	getRequestLine(pool, status_code,&ret);
+	kgl_pool_t* pool = kgl_create_pool(128);
+	getRequestLine(pool, status_code, &ret);
 	s.write(ret.data, ret.len);
 	kgl_destroy_pool(pool);
-	KHttpHeader *h = header;
+	KHttpHeader* h = header;
 	while (h) {
 		s << h->attr << ": " << h->val << "\r\n";
 		h = h->next;
@@ -36,35 +36,36 @@ void KWriteBack::setMsg(std::string msg)
 	if (msg.empty()) {
 		return;
 	}
-	char *buf = strdup(msg.c_str());
+	char* buf = strdup(msg.c_str());
 	KWriteBackParser parser;
-	int len = (int)msg.size();
-	char *data = buf;
-	parser.Parse(&data,&len);
+	char* data = buf;
+	char* end = data + msg.size();
+	parser.Parse(&data, end);
 	status_code = parser.status_code;
 	keep_alive = parser.keep_alive;
 	header = parser.StealHeader();
-	if (len>0) {
-		body.write_all(data,len);
+	size_t len = end - data;
+	if (len > 0) {
+		body.write_all(data, len);
 	}
 	xfree(buf);
 }
-void KWriteBack::buildRequest(KHttpRequest *rq)
+void KWriteBack::buildRequest(KHttpRequest* rq)
 {
 	rq->responseStatus(status_code);
-	KHttpHeader *h = header;
+	KHttpHeader* h = header;
 	while (h) {
-		rq->responseHeader(h->attr,h->attr_len,h->val,h->val_len);
+		rq->responseHeader(h->attr, h->attr_len, h->val, h->val_len);
 		h = h->next;
 	}
-	rq->responseHeader(kgl_expand_string("Content-Length"),body.getSize());
+	rq->responseHeader(kgl_expand_string("Content-Length"), body.getSize());
 	if (!keep_alive) {
-		KBIT_SET(rq->sink->data.flags,RQ_CONNECTION_CLOSE);
+		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 	}
 	rq->responseConnection();
-	if (rq->sink->data.meth!=METH_HEAD) {
+	if (rq->sink->data.meth != METH_HEAD) {
 		KAutoBuffer buffer(rq->sink->pool);
-		buffer.write_all(body.getBuf(),body.getSize());		
+		buffer.write_all(body.getBuf(), body.getSize());
 		rq->AppendFetchObject(new KBufferFetchObject(buffer.getHead(), 0, buffer.getLen(), NULL));
 	}
 }

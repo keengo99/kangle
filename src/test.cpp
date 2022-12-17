@@ -389,8 +389,9 @@ void test_http_parser()
 	khttp_parser parser;
 	khttp_parse_result rs;
 	memset(&parser, 0, sizeof(parser));	
-	kassert(kgl_parse_continue == khttp_parse(&parser, &hot, &len, &rs));
-	kassert(kgl_parse_continue == khttp_parse(&parser, &hot, &len, &rs));	
+	char* end = hot + len;
+	kassert(kgl_parse_continue == khttp_parse(&parser, &hot, end, &rs));
+	kassert(kgl_parse_continue == khttp_parse(&parser, &hot, end, &rs));
 }
 void test_mem_function()
 {

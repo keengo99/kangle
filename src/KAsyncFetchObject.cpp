@@ -215,7 +215,7 @@ KGL_RESULT KAsyncFetchObject::ParseBody(KHttpRequest* rq)
 {
 	char* data = us_buffer.buf;
 	int len = us_buffer.used;
-	KGL_RESULT ret = ParseBody(rq, &data, &len);
+	KGL_RESULT ret = ParseBody(rq, &data, data + us_buffer.used);
 	assert(us_buffer.buf);
 	ks_save_point(&us_buffer, data);
 	return ret;
@@ -270,8 +270,8 @@ KGL_RESULT KAsyncFetchObject::ReadHeader(KHttpRequest *rq, kfiber **post_fiber)
 		}
 		ks_write_success(&us_buffer, got);
 		char *data = us_buffer.buf;
-		int len = us_buffer.used;
-		switch (ParseHeader(rq, &data, &len)) {
+		char* end = data + us_buffer.used;
+		switch (ParseHeader(rq, &data, end)) {
 		case kgl_parse_finished:
 			ks_save_point(&us_buffer, data);
 			return readHeadSuccess(rq, post_fiber);
@@ -536,12 +536,12 @@ KGL_RESULT KAsyncFetchObject::PushHeader(KHttpRequest *rq, const char *attr, int
 	return out->f->write_unknow_header(out, rq, attr, attr_len, val, val_len);
 }
 
-kgl_parse_result KAsyncFetchObject::ParseHeader(KHttpRequest *rq, char **data, int *len)
+kgl_parse_result KAsyncFetchObject::ParseHeader(KHttpRequest *rq, char **data, char *end)
 {
 	khttp_parse_result rs;
 	for (;;) {
 		memset(&rs, 0, sizeof(rs));
-		kgl_parse_result result = khttp_parse(&parser, data, len, &rs);
+		kgl_parse_result result = khttp_parse(&parser, data, end, &rs);
 		switch (result) {
 		case kgl_parse_continue:
 			return kgl_parse_continue;
@@ -558,11 +558,11 @@ kgl_parse_result KAsyncFetchObject::ParseHeader(KHttpRequest *rq, char **data, i
 		}
 	}
 }
-KGL_RESULT KAsyncFetchObject::ParseBody(KHttpRequest *rq, char **data, int *len)
+KGL_RESULT KAsyncFetchObject::ParseBody(KHttpRequest *rq, char **data, char *end)
 {
-	KGL_RESULT result = PushBody(rq, out, *data, *len);
-	(*data) += (*len);
-	*len = 0;
+	size_t len = end - *data;
+	KGL_RESULT result = PushBody(rq, out, *data, (int)len);
+	(*data) += len;
 	return result;
 }
 KGL_RESULT KAsyncFetchObject::handleUpstreamError(KHttpRequest *rq,int error,const char *msg,int last_got)

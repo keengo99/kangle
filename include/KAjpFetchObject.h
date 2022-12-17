@@ -13,31 +13,32 @@
 #include "KFileName.h"
 #include "KAjpMessage.h"
 
-class KAjpFetchObject: public KAsyncFetchObject {
+class KAjpFetchObject : public KAsyncFetchObject
+{
 public:
 	KAjpFetchObject();
 	virtual ~KAjpFetchObject();
 protected:
 	//创建发送头到buffer中。
-	KGL_RESULT buildHead(KHttpRequest *rq);
+	KGL_RESULT buildHead(KHttpRequest* rq) override;
 	//解析head
-	kgl_parse_result ParseHeader(KHttpRequest *rq, char **data, int *len);
+	kgl_parse_result ParseHeader(KHttpRequest* rq, char** data, char* end) override;
 	//创建post数据到buffer中。
-	void buildPost(KHttpRequest *rq);
+	void buildPost(KHttpRequest* rq) override;
 	//解析body
-	KGL_RESULT ParseBody(KHttpRequest *rq,  char **data, int *len);
+	KGL_RESULT ParseBody(KHttpRequest* rq, char** data, char* end) override;
 	void BuildPostEnd();
-	bool checkContinueReadBody(KHttpRequest *rq)
+	bool checkContinueReadBody(KHttpRequest* rq) override
 	{
 		return !bodyEnd;
 	}
 private:
-	void ReadBodyEnd(KHttpRequest *rq) {
+	void ReadBodyEnd(KHttpRequest* rq) {
 		bodyEnd = true;
 		expectDone(rq);
 	}
-	bool parse(char **str,int *len, KAjpMessageParser *msg);
-	unsigned char parseMessage(KHttpRequest *rq, KHttpObject *obj, KAjpMessageParser *msg);
+	bool parse(char** str, char *end, KAjpMessageParser* msg);
+	unsigned char parseMessage(KHttpRequest* rq, KHttpObject* obj, KAjpMessageParser* msg);
 	int body_len;
 	bool bodyEnd;
 };

@@ -15,13 +15,11 @@ class KHttpPushParser {
 public:
 	KHttpPushParser()
 	{
-		memset(this, 0, sizeof(*this));
+		ks_buffer_init(&buf, 8192);
 	}
 	~KHttpPushParser()
 	{
-		if (buf) {
-			xfree(buf);
-		}
+		ks_buffer_clean(&buf);
 	}
 	kgl_parse_result Parse(KHttpRequest *rq,const char *str, int len)
 	{
@@ -30,8 +28,8 @@ public:
 	}
 	const char *GetBody(int *len)
 	{
-		*len = this->len;
-		return hot;
+		*len = buf.used;
+		return buf.buf;
 	}
 	khttp_parser parser;
 	KHttpResponseParser parser_ctx;
@@ -39,22 +37,19 @@ private:
 	kgl_parse_result InternalParse(KHttpRequest *rq)
 	{
 		khttp_parse_result rs;
+		char* hot = buf.buf;
+		char* end = buf.buf + buf.used;
 		for (;;) {
 			memset(&rs, 0, sizeof(rs));
-			kgl_parse_result result = khttp_parse(&parser, &hot, &len, &rs);
+			kgl_parse_result result = khttp_parse(&parser, &hot, end, &rs);
 			switch (result) {
 			case kgl_parse_want_read:
 			case kgl_parse_error:
 				return kgl_parse_error;
 			case kgl_parse_continue:
-				SavePoint();
+				ks_save_point(&buf, hot);
 				return kgl_parse_continue;
 			case kgl_parse_success:
-#if 0
-				if (rs.is_first) {
-					parser_ctx.StartParse(rq);
-				}
-#endif
 				if (!parser_ctx.ParseHeader(rq, rs.attr, rs.attr_len, rs.val, rs.val_len, rs.request_line)) {
 					return kgl_parse_error;
 				}
@@ -66,37 +61,10 @@ private:
 			}
 		}
 	}
-	void SavePoint()
-	{
-		if (buf) {
-			xfree(buf);
-			buf = NULL;
-			buf_len = 0;
-		}
-		if (len > 0) {
-			buf = (char *)xmalloc(len);
-			kgl_memcpy(buf, hot, len);
-			buf_len = len;
-		}
-	}
 	void Push(const char *str, int len)
 	{
-		if (buf != NULL) {
-			char *nb = (char *)malloc(buf_len + len);
-			kgl_memcpy(nb, buf, buf_len);
-			kgl_memcpy(nb + buf_len, str, len);
-			xfree(buf);
-			buf = nb;
-			this->len = buf_len + len;
-			hot = buf;
-		} else {
-			hot = (char *)str;
-			this->len = len;
-		}
+		ks_write_str(&buf, str, len);
 	}
-	char *hot;
-	int len;
-	char *buf;
-	int buf_len;
+	ks_buffer buf;
 };
 #endif /* KHTTPHEADPULL_H_ */

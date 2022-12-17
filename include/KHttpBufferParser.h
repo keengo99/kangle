@@ -21,14 +21,14 @@ public:
 			free_header_list(header);
 		}
 	}
-	void Parse(char **str, int *len)
+	void Parse(char **str, char *end)
 	{
 		khttp_parser parser;
 		memset(&parser, 0, sizeof(parser));
-		while (*len > 0) {
+		while (*str < end) {
 			khttp_parse_result rs;
 			memset(&rs, 0, sizeof(rs));
-			switch (khttp_parse(&parser, str, len, &rs)) {
+			switch (khttp_parse(&parser, str, end, &rs)) {
 			case kgl_parse_finished:
 			case kgl_parse_error:
 			case kgl_parse_continue:
