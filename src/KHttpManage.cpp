@@ -92,7 +92,8 @@ bool getConnectionTr(KSink* rq, KConnectionInfoContext* ctx)
 		ctx->s << rq->get_state();
 	}
 	ctx->s << "','";
-	ctx->s << KHttpKeyValue::getMethod(rq->data.meth);
+	auto meths = KHttpKeyValue::get_method(rq->data.meth);
+	ctx->s.write(meths->data, meths->len);
 	ctx->s << "','";
 	KStringBuf url;
 	get_url_info(rq, url);

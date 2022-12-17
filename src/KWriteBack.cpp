@@ -9,7 +9,7 @@ std::string KWriteBack::getMsg()
 	std::stringstream s;
 	kgl_str_t ret;
 	kgl_pool_t* pool = kgl_create_pool(128);
-	getRequestLine(pool, status_code, &ret);
+	KHttpKeyValue::get_request_line(pool, status_code, &ret);
 	s.write(ret.data, ret.len);
 	kgl_destroy_pool(pool);
 	KHttpHeader* h = header;
@@ -46,7 +46,7 @@ void KWriteBack::setMsg(std::string msg)
 	header = parser.StealHeader();
 	size_t len = end - data;
 	if (len > 0) {
-		body.write_all(data, len);
+		body.write_all(data, (int)len);
 	}
 	xfree(buf);
 }

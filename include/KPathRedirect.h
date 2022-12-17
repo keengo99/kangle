@@ -54,7 +54,7 @@ public:
 				if (!s.str().empty()) {
 					s << ",";
 				}
-				s << KHttpKeyValue::getMethod(i);
+				s << KHttpKeyValue::get_method(i)->data;
 			}
 		}
 		return s.str();
