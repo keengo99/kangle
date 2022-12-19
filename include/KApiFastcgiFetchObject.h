@@ -18,7 +18,7 @@ public:
 
 	};
 protected:
-	bool isExtend() override {
+	bool is_extend() override {
 		return true;
 	}
 };

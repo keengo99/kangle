@@ -233,7 +233,7 @@ int tempfile_write_fiber(void* arg, int got)
 		KGL_RESULT ret = out->down_stream->f->write_body(out->down_stream, out->rq, buf, len);
 		if (ret != KGL_OK) {
 			out->tmp_file.Close();
-			result = KGL_EIO;
+			result = ret;
 			break;
 		}
 	}

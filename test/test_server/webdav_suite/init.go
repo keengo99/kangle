@@ -35,5 +35,6 @@ func init() {
 	s.CasesMap = make(map[string]*suite.Case)
 	s.Name = "webdav"
 	s.AddCase("options", "测试OPTIONS", check_options)
+	s.AddCase("client", "使用webdav client测试", check_client)
 	suite.Register(s)
 }

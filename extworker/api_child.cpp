@@ -10,7 +10,7 @@
 #include <map>
 #include <sstream>
 #include <string.h>
-//#include "KApiRedirect.h"
+ //#include "KApiRedirect.h"
 #include "KStream.h"
 #include "KFastcgiUtils.h"
 #include "KApiFetchObject.h"
@@ -24,8 +24,8 @@
 #include "api_child.h"
 #include "KListenPipeStream.h"
 #include "extworker.h"
-std::map<pid_t,time_t> processes;
-std::map<u_short, KApiDso *> apis;
+std::map<pid_t, time_t> processes;
+std::map<u_short, KApiDso*> apis;
 int api_child_key;
 KListenPipeStream ls;
 #ifdef _WIN32
@@ -33,15 +33,15 @@ HANDLE api_child_token = NULL;
 #endif
 KMutex processLock;
 using namespace std;
-KChildListen *cl = NULL;
+KChildListen* cl = NULL;
 u_short cur_api_id = 1;
 static KMutex kgl_api_lock;
 void restart_child_process(pid_t pid)
 {
 	bool process_is_too_short = false;
 	processLock.Lock();
-	std::map<pid_t,time_t>::iterator it = processes.find(pid);
-	if (it!=processes.end()) {
+	std::map<pid_t, time_t>::iterator it = processes.find(pid);
+	if (it != processes.end()) {
 		if (time(NULL) - (*it).second < 5) {
 			process_is_too_short = true;
 		}
@@ -54,29 +54,29 @@ void restart_child_process(pid_t pid)
 	if (process_is_too_short) {
 		sleep(1);
 	}
-	if(program_quit){
+	if (program_quit) {
 		return;
 	}
-	if(!::createProcess(&ls, NULL, argv, NULL, RDSTD_INPUT)){
-                debug("cann't create process\n");
-                return ;
-        }
-        pid = ls.process.stealPid();
+	if (!::createProcess(&ls, NULL, argv, NULL, RDSTD_INPUT)) {
+		debug("cann't create process\n");
+		return;
+	}
+	pid = ls.process.stealPid();
 	processLock.Lock();
-        processes.insert(pair<pid_t,time_t>(pid,time(NULL)));
+	processes.insert(pair<pid_t, time_t>(pid, time(NULL)));
 	processLock.Unlock();
-	return;	
+	return;
 }
 //{{ent
 #ifdef _WIN32
-bool watch_group_process(HANDLE *ev,int watch_count)
+bool watch_group_process(HANDLE* ev, int watch_count)
 {
-	DWORD ret = WaitForMultipleObjects(watch_count,ev,FALSE,1000);
-	if(ret==WAIT_TIMEOUT || ret==WAIT_FAILED){
+	DWORD ret = WaitForMultipleObjects(watch_count, ev, FALSE, 1000);
+	if (ret == WAIT_TIMEOUT || ret == WAIT_FAILED) {
 		return false;
 	}
 	int index = ret - WAIT_OBJECT_0;
-	debug("index=%d,handle=%p exsit,now restart it\n",index,ev[index]);
+	debug("index=%d,handle=%p exsit,now restart it\n", index, ev[index]);
 	restart_child_process(ev[index]);
 	return true;
 }
@@ -84,24 +84,24 @@ void step_watch_process()
 {
 	int watch_count = MAXIMUM_WAIT_OBJECTS;
 	HANDLE ev[MAXIMUM_WAIT_OBJECTS];
-	int i=0;
-	std::map<pid_t,time_t>::iterator it;
-	for(it=processes.begin();it!=processes.end();it++){
+	int i = 0;
+	std::map<pid_t, time_t>::iterator it;
+	for (it = processes.begin(); it != processes.end(); it++) {
 		ev[i++] = (*it).first;
-		if (i>=watch_count) {		
-			if(watch_group_process(ev,i)){
+		if (i >= watch_count) {
+			if (watch_group_process(ev, i)) {
 				return;
 			}
-			i=0;		
+			i = 0;
 		}
 	}
-	if (i>0) {
-		watch_group_process(ev,i);
+	if (i > 0) {
+		watch_group_process(ev, i);
 	}
 }
-KTHREAD_FUNCTION watch_process(void *param) 
+KTHREAD_FUNCTION watch_process(void* param)
 {
-	for(;;){
+	for (;;) {
 		if (program_quit) {
 			break;
 		}
@@ -111,8 +111,8 @@ KTHREAD_FUNCTION watch_process(void *param)
 }
 #endif
 //}}
-KTHREAD_FUNCTION api_listen_thread(void *param) {
-	KChildListen *cl = (KChildListen *) param;
+KTHREAD_FUNCTION api_listen_thread(void* param) {
+	KChildListen* cl = (KChildListen*)param;
 	for (;;) {
 		cl->canRead();
 		if (!ksocket_opened(cl->sockfd)) {
@@ -121,9 +121,9 @@ KTHREAD_FUNCTION api_listen_thread(void *param) {
 	}
 	KTHREAD_RETURN;
 }
-static KApiDso *getApiRedirect(u_short id) {
-	KApiDso *rd = NULL;
-	std::map<u_short, KApiDso *>::iterator it;
+static KApiDso* getApiRedirect(u_short id) {
+	KApiDso* rd = NULL;
+	std::map<u_short, KApiDso*>::iterator it;
 	kgl_api_lock.Lock();
 	it = apis.find(id);
 	if (it != apis.end()) {
@@ -133,9 +133,9 @@ static KApiDso *getApiRedirect(u_short id) {
 	kgl_api_lock.Unlock();
 	return rd;
 }
-static bool loadApiRedirect(const char *path,u_short id) {
-	
-	KApiDso *rd = new KApiDso;
+static bool loadApiRedirect(const char* path, u_short id) {
+
+	KApiDso* rd = new KApiDso;
 	rd->path = path;
 	if (!rd->load()) {
 		delete rd;
@@ -146,97 +146,97 @@ static bool loadApiRedirect(const char *path,u_short id) {
 	kgl_api_lock.Unlock();
 	return true;
 }
-static bool api_child_load(KStream *st, char *msg,u_short id, u_short content_len) {
+static bool api_child_load(KStream* st, char* msg, u_short id, u_short content_len) {
 
 	FCGI_Header header;
 	memset(&header, 0, sizeof(header));
-	if(loadApiRedirect(msg,id)){
+	if (loadApiRedirect(msg, id)) {
 		header.id = 0;
 	} else {
 		header.id = 1;
 	}
 	header.type = API_CHILD_LOAD_RESULT;
-	return st->write_all((char *) &header, sizeof(header))
-			== STREAM_WRITE_SUCCESS;
+	return st->write_all((char*)&header, sizeof(header))
+		== STREAM_WRITE_SUCCESS;
 }
 #ifndef _WIN32
-static bool api_child_setuid(KStream *st, char *msg,
-		u_short content_len) {
+static bool api_child_setuid(KStream* st, char* msg,
+	u_short content_len) {
 	if (content_len != sizeof(api_child_t_uidgid)) {
 		return false;
 	}
 	FCGI_Header header;
 	memset(&header, 0, sizeof(header));
-	api_child_t_uidgid *body = (api_child_t_uidgid *) msg;
+	api_child_t_uidgid* body = (api_child_t_uidgid*)msg;
 	//	bool result = true;
-	if (body->gid>0 && setgid(body->gid) != 0) {
+	if (body->gid > 0 && setgid(body->gid) != 0) {
 		header.id |= 2;
 	}
-	if (body->uid>0 && setuid(body->uid) != 0) {
+	if (body->uid > 0 && setuid(body->uid) != 0) {
 		header.id |= 1;
 	}
 	header.type = API_CHILD_SETUID_RESULT;
-	if (st->write_all((char *) &header, sizeof(header)) != STREAM_WRITE_SUCCESS) {
+	if (st->write_all((char*)&header, sizeof(header)) != STREAM_WRITE_SUCCESS) {
 		return false;
 	}
 	return header.id == 0;
 }
-static bool api_child_chroot(KStream *st, char *msg,
-		u_short content_len) {
+static bool api_child_chroot(KStream* st, char* msg,
+	u_short content_len) {
 	FCGI_Header header;
 	memset(&header, 0, sizeof(header));
 	header.id = chroot(msg);
 	header.type = API_CHILD_CHROOT_RESULT;
-	return st->write_all((char *) &header, sizeof(header))
-			== STREAM_WRITE_SUCCESS;
+	return st->write_all((char*)&header, sizeof(header))
+		== STREAM_WRITE_SUCCESS;
 }
 //{{ent
 #else
-static char *get_string(char **msg,u_short &content_len)
+static char* get_string(char** msg, u_short& content_len)
 {
 	int len = 0;
 	int string_len = sizeof(len);
 	//char *hot = msg;
-	if(content_len<=string_len){
+	if (content_len <= string_len) {
 		//printf("content_len < string_len\n");
 		return NULL;
 	}
 	content_len -= string_len;
-	kgl_memcpy((char *)&len,*msg,string_len);
+	kgl_memcpy((char*)&len, *msg, string_len);
 	//printf("len=%d,content_len =%d\n",len,content_len);
 
-	content_len-=len;
+	content_len -= len;
 	*msg += string_len;
 
-	if(content_len<0){
+	if (content_len < 0) {
 		return NULL;
 	}
-	char *buf = (char *)xmalloc(len+1);
-	kgl_memcpy(buf,*msg,len);
+	char* buf = (char*)xmalloc(len + 1);
+	kgl_memcpy(buf, *msg, len);
 	*msg += len;
 	buf[len] = '\0';
 	//printf("buf=%s\n",buf);
 	return buf;
 }
-static bool api_child_logon(KWStream *st, char *msg,u_short content_len) {
+static bool api_child_logon(KWStream* st, char* msg, u_short content_len) {
 	FCGI_Header header;
 	memset(&header, 0, sizeof(header));
-	char *user = get_string(&msg,content_len);
-	char *password = get_string(&msg,content_len);
-	if(content_len!=0){
+	char* user = get_string(&msg, content_len);
+	char* password = get_string(&msg, content_len);
+	if (content_len != 0) {
 		//printf("api_child_logon failed\n");
-		if(user){
+		if (user) {
 			xfree(user);
 			user = NULL;
 		}
-		if(password){
+		if (password) {
 			xfree(password);
 			password = NULL;
 		}
 	}
 
 	BOOL result = FALSE;
-	if(user && password){
+	if (user && password) {
 		result = LogonUser(user,
 			".",
 			password,
@@ -244,60 +244,62 @@ static bool api_child_logon(KWStream *st, char *msg,u_short content_len) {
 			LOGON32_PROVIDER_DEFAULT,
 			&api_child_token);
 	}
-	if(result && api_child_token){
+	if (result && api_child_token) {
 		result = ImpersonateLoggedOnUser(api_child_token);
 		//if(result){
 		//	printf("ImpersonateLoggedOnUser success\n");
 		//}
 	}
-	if(user){
+	if (user) {
 		xfree(user);
 	}
-	if(password){
+	if (password) {
 		xfree(password);
 	}
 	//CloseHandle(token);
 	header.id = result;
 	header.type = API_CHILD_LOGON_RESULT;
-	return st->write_all((char *) &header, sizeof(header))	== STREAM_WRITE_SUCCESS;
+	return st->write_all((char*)&header, sizeof(header)) == STREAM_WRITE_SUCCESS;
 }
 //}}
 #endif
-static bool api_child_shutdown(KStream *st) {
+static bool api_child_shutdown(KStream* st) {
 
-	return true; 
+	return true;
 }
-bool api_child_begin_request(KSocketStream *st, char *msg,u_short content_len) {
-	debug("begin_request\n");
+bool api_child_begin_request(KSocketStream* st, char* msg, u_short content_len) {
+	//debug("begin_request\n");
 	st->set_delay();
-	FCGI_BeginRequestBody *body = (FCGI_BeginRequestBody *) msg;
+	FCGI_BeginRequestBody* body = (FCGI_BeginRequestBody*)msg;
 	if (content_len != sizeof(FCGI_BeginRequestBody)) {
 		debug("recv wrong data\n");
 		return false;
 	}
 
 	if (body->id == 0) {
-		debug("body id = %d is wrong\n",body->id);
+		debug("body id = %d is wrong\n", body->id);
 		//todo:default fs fetchobject
 		return false;
 	}
-	KApiDso *rd = getApiRedirect(body->id);
+	KApiDso* rd = getApiRedirect(body->id);
 	if (rd == NULL) {
-		debug("cann't get dso id=%d\n",body->id);
+		debug("cann't get dso id=%d\n", body->id);
 		return false;
 	}
-	KFastcgiStream<KSocketStream> client;
+	KFastcgiStream<KSocketStream> client(FCGI_STDOUT);
 	client.extend = true;
 	client.setStream(st);
-	KChildApiService *fo = new KChildApiService(rd);
+	KChildApiService* fo = new KChildApiService(rd);
 	//releaseApiRedirect(rd);
 	if (fo == NULL) {
 		debug("cann't make KChildApiService\n");
 		return false;
 	}
 	//fo->st = &client;
-	if (KGL_OK != fo->start(&client)) {
-		debug("sendHead failed\n");
+	KGL_RESULT result = fo->start(&client);
+
+	if (result != KGL_OK && result != KGL_NO_BODY) {
+		debug("sendHead failed result=[%d]\n",result);
 		delete fo;
 		return false;
 	}
@@ -311,60 +313,60 @@ void seperate_usage()
 }
 void seperate_work_model()
 {
-	char *listen = argv[2];
+	char* listen = argv[2];
 	bool result;
 	int port;
 #ifdef KSOCKET_UNIX
-	if (strncasecmp(listen,"unix:",5)==0) {
+	if (strncasecmp(listen, "unix:", 5) == 0) {
 		port = 0;
 		listen += 5;
 		result = ls.listen(listen);
-		if(!result){
-			fprintf(stderr,"cann't listen unix socket [%s]\n",listen);
+		if (!result) {
+			fprintf(stderr, "cann't listen unix socket [%s]\n", listen);
 			exit(1);
 		}
-		printf("success listen to unix socket [%s]\n",listen);
-	} else  {
+		printf("success listen to unix socket [%s]\n", listen);
+} else {
 #endif
-		if(*listen==':'){
-			port = atoi(listen+1);
-			result = ls.listen(port,NULL);
+		if (*listen == ':') {
+			port = atoi(listen + 1);
+			result = ls.listen(port, NULL);
 		} else {
-			char *p = strchr(listen,':');
-			if (p==NULL) {
+			char* p = strchr(listen, ':');
+			if (p == NULL) {
 				seperate_usage();
 				exit(1);
 			}
 			*p = '\0';
-			port = atoi(p+1);
-			result = ls.listen(port,listen);
+			port = atoi(p + 1);
+			result = ls.listen(port, listen);
 		}
-		if(!result){
-			fprintf(stderr,"cann't listen to port [%d]\n",port);
+		if (!result) {
+			fprintf(stderr, "cann't listen to port [%d]\n", port);
 			exit(1);
 		}
-		printf("success listen to port [%d]\n",port);
+		printf("success listen to port [%d]\n", port);
 #ifdef KSOCKET_UNIX
-	}
+		}
 #endif
 	int childs = atoi(argv[3]);
-	if (childs<=0) {
+	if (childs <= 0) {
 		seperate_usage();
 		exit(1);
 	}
 	int total_successed = 0;
-	argv+=4;
-	for(int i=0;i<childs;i++){
-		if(!::createProcess(&ls, NULL, argv, NULL, RDSTD_INPUT)){
-			fprintf(stderr,"cann't create process\n");
+	argv += 4;
+	for (int i = 0; i < childs; i++) {
+		if (!::createProcess(&ls, NULL, argv, NULL, RDSTD_INPUT)) {
+			fprintf(stderr, "cann't create process\n");
 			break;
 		}
-		total_successed ++;
+		total_successed++;
 		pid_t pid = ls.process.stealPid();
 		//printf("succss create child pid=%d\n",pid);
-		processes.insert(pair<pid_t,bool>(pid,true));
+		processes.insert(pair<pid_t, bool>(pid, true));
 	}
-	if (total_successed==0) {
+	if (total_successed == 0) {
 		return;
 	}
 #ifdef _WIN32
@@ -378,23 +380,23 @@ void seperate_work_model()
 	}
 #endif
 }
-bool cmd_create_process(KWStream *st,FCGI_Header *header,bool unix_socket)
+bool cmd_create_process(KWStream* st, FCGI_Header* header, bool unix_socket)
 {
 	FCGI_Header rh;
-	memset(&rh,0,sizeof(FCGI_Header));
+	memset(&rh, 0, sizeof(FCGI_Header));
 	bool result = false;
-	if (header->id==0 || argc<=1) {
+	if (header->id == 0 || argc <= 1) {
 		goto done;
 	}
 #ifdef KSOCKET_UNIX	
-	if(unix_socket){
+	if (unix_socket) {
 		std::stringstream s;
 		rh.id = getpid();
 		s << "/tmp/extworker." << rh.id << ".sock";
 		if (!ls.listen(s.str().c_str())) {
 			goto done;
-		}
-	} else {
+	}
+} else {
 #endif
 		if (!ls.listen()) {
 			goto done;
@@ -405,12 +407,12 @@ bool cmd_create_process(KWStream *st,FCGI_Header *header,bool unix_socket)
 	}
 #endif
 	argv++;
-	for(int i=0;i<header->id;i++){
-		if(!::createProcess(&ls, NULL, argv, NULL, RDSTD_INPUT)){
+	for (int i = 0; i < header->id; i++) {
+		if (!::createProcess(&ls, NULL, argv, NULL, RDSTD_INPUT)) {
 			goto done;
 		}
 		pid_t pid = ls.process.stealPid();
-		processes.insert(pair<pid_t,bool>(pid,true));
+		processes.insert(pair<pid_t, bool>(pid, true));
 	}
 	result = true;
 #ifdef _WIN32
@@ -419,21 +421,21 @@ bool cmd_create_process(KWStream *st,FCGI_Header *header,bool unix_socket)
 #endif
 done:
 	rh.type = CMD_CREATE_PROCESS_RESULT;
-	st->write_all((char *)&rh,sizeof(FCGI_Header));
+	st->write_all((char*)&rh, sizeof(FCGI_Header));
 	return result;
 }
-bool api_child_request(KSocketStream *st) {
+bool api_child_request(KSocketStream* st) {
 	FCGI_Header header;
 	bool result = true;
-	char *msg = NULL;
-	if (!st->read_all((char *) &header, sizeof(header))) {
-		fprintf(stderr, "cann't read from parent process,errno=%d\n",errno);
+	char* msg = NULL;
+	if (!st->read_all((char*)&header, sizeof(header))) {
+		fprintf(stderr, "cann't read from parent process,errno=%d\n", errno);
 		return false;
 	}
 	unsigned short content_len = ntohs(header.contentLength);
 	//debug("************api_child_request recv a cmd=[%d] content_len=[%d]\n", header.type,content_len);
 	if (content_len > 0) {
-		msg = (char *) xmalloc(content_len);
+		msg = (char*)xmalloc(content_len);
 		if (msg == NULL) {
 			return false;
 		}
@@ -442,7 +444,7 @@ bool api_child_request(KSocketStream *st) {
 			xfree(msg);
 			return false;
 		}
-	}	
+	}
 	switch (header.type) {
 	case FCGI_STDIN:
 		//the stdin end
@@ -462,22 +464,22 @@ bool api_child_request(KSocketStream *st) {
 	}
 	return result;
 }
-bool api_child_process(KStream *st) {
+bool api_child_process(KStream* st) {
 	FCGI_Header header;
 	bool result = true;
-	char *msg = NULL;
-	if (!st->read_all((char *) &header, sizeof(header))) {
+	char* msg = NULL;
+	if (!st->read_all((char*)&header, sizeof(header))) {
 #ifndef _WIN32
-		if(errno==EINTR){
+		if (errno == EINTR) {
 			return true;
-		}
+}
 #endif
-		fprintf(stderr, "read from parent process errno=%d\n",errno);
+		fprintf(stderr, "read from parent process errno=%d\n", errno);
 		return false;
 	}
 	unsigned short content_len = ntohs(header.contentLength);
 	if (content_len > 0) {
-		msg = (char *) xmalloc(content_len);
+		msg = (char*)xmalloc(content_len);
 		if (msg == NULL) {
 			return false;
 		}
@@ -496,13 +498,13 @@ bool api_child_process(KStream *st) {
 		}
 		break;
 	case API_CHILD_LISTEN:
-		result = api_child_listen(header.id, static_cast<KPipeStream *> (st),false);
+		result = api_child_listen(header.id, static_cast<KPipeStream*> (st), false);
 		break;
 	case API_CHILD_LISTEN_UNIX:
-		result = api_child_listen(header.id, static_cast<KPipeStream *> (st),true);
+		result = api_child_listen(header.id, static_cast<KPipeStream*> (st), true);
 		break;
 	case API_CHILD_LOAD:
-		result = api_child_load(st, msg, header.id,content_len);
+		result = api_child_load(st, msg, header.id, content_len);
 		break;
 #ifndef _WIN32
 	case API_CHILD_CHROOT:
@@ -514,7 +516,7 @@ bool api_child_process(KStream *st) {
 		//{{ent
 #else
 	case API_CHILD_LOGON:
-		result = api_child_logon(st,msg,content_len);
+		result = api_child_logon(st, msg, content_len);
 		break;
 		//}}
 #endif
@@ -523,10 +525,10 @@ bool api_child_process(KStream *st) {
 		result = false;
 		break;
 	case CMD_CREATE_PROCESS:
-		result = cmd_create_process(st,&header,false);
+		result = cmd_create_process(st, &header, false);
 		break;
 	case CMD_CREATE_PROCESS_UNIX:
-		result = cmd_create_process(st,&header,true);
+		result = cmd_create_process(st, &header, true);
 		break;
 	default:
 		debug("recv a unknow cmd[%d]\n", header.type);
@@ -537,9 +539,9 @@ bool api_child_process(KStream *st) {
 	}
 	return result;
 }
-bool api_child_listen(u_short port, KPipeStream *st,bool unix_socket) {
+bool api_child_listen(u_short port, KPipeStream* st, bool unix_socket) {
 	//printf("enter api_child_listen\n");
-	assert(cl==NULL);
+	assert(cl == NULL);
 	cl = new KChildListen;
 	//conf.keep_alive = -1;
 	cl->st = st;
@@ -556,16 +558,16 @@ bool api_child_listen(u_short port, KPipeStream *st,bool unix_socket) {
 		pi.port = getpid();
 		s << "/tmp/extworker." << pi.port << ".sock";
 		s.str().swap(cl->unix_path);
-		ksocket_unix_addr(cl->unix_path.c_str(),&addr);
-		cl->sockfd = ksocket_listen((sockaddr_i *)&addr, KSOCKET_BLOCK);
+		ksocket_unix_addr(cl->unix_path.c_str(), &addr);
+		cl->sockfd = ksocket_listen((sockaddr_i*)&addr, KSOCKET_BLOCK);
 		if (!ksocket_opened(cl->sockfd)) {
 			pi.result = 1;
-		}
+}
 	} else {
 #endif
 		sockaddr_i addr;
 		ksocket_getaddr("127.0.0.1", 0, PF_UNSPEC, AI_NUMERICHOST, &addr);
-		cl->sockfd = ksocket_listen(&addr,KSOCKET_BLOCK);
+		cl->sockfd = ksocket_listen(&addr, KSOCKET_BLOCK);
 		if (!ksocket_opened(cl->sockfd)) {
 			ksocket_getaddr("::1", 0, PF_UNSPEC, AI_NUMERICHOST, &addr);
 			cl->sockfd = ksocket_listen(&addr, KSOCKET_BLOCK);
@@ -573,21 +575,21 @@ bool api_child_listen(u_short port, KPipeStream *st,bool unix_socket) {
 		if (ksocket_opened(cl->sockfd)) {
 			pi.result = 0;
 			socklen_t addr_len = sizeof(sockaddr_i);
-			getsockname(cl->sockfd, (struct sockaddr *)&addr, &addr_len);
+			getsockname(cl->sockfd, (struct sockaddr*)&addr, &addr_len);
 			pi.port = ksocket_addr_port(&addr);
 		} else {
 			pi.result = 1;
 		}
 #ifdef KSOCKET_UNIX	
-	}
+		}
 #endif
 	FCGI_Header header;
 	memset(&header, 0, sizeof(header));
 	header.type = API_CHILD_LISTEN_RESULT;
 	header.contentLength = htons(sizeof(sp_info));
-	st->write_all((char *) &header, sizeof(header));
-	debug("child listen result=[%d],port=[%d]\n", pi.result,pi.port);
-	if (st->write_all((char *) &pi, sizeof(pi)) != STREAM_WRITE_SUCCESS) {
+	st->write_all((char*)&header, sizeof(header));
+	debug("child listen result=[%d],port=[%d]\n", pi.result, pi.port);
+	if (st->write_all((char*)&pi, sizeof(pi)) != STREAM_WRITE_SUCCESS) {
 		delete cl;
 		debug("cann't write pi msg to parent.\n");
 		return false;
@@ -596,11 +598,11 @@ bool api_child_listen(u_short port, KPipeStream *st,bool unix_socket) {
 		return false;
 	}
 	return kthread_start(api_listen_thread, cl);
-}
-KTHREAD_FUNCTION api_child_thread(void *param) {
-	KSocketStream *client = (KSocketStream *) param;
-	for(;;){
-		if(!api_child_request(client)){
+	}
+KTHREAD_FUNCTION api_child_thread(void* param) {
+	KSocketStream* client = (KSocketStream*)param;
+	for (;;) {
+		if (!api_child_request(client)) {
 			break;
 		}
 	}

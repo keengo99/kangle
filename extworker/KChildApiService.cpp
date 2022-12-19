@@ -19,9 +19,16 @@ KGL_RESULT KChildApiService::start(KFastcgiStream<KSocketStream>* st)
 	KGL_RESULT result = KApiService::start();
 	assert(st);
 	if (!headSended) {
-		st->write_data("Status: 200\r\n\r\n", 15);
+		st->write_data(_KS("Status: 200\r\n\r\n"));
+	}
+	if (!st->has_data_empty_arrived()) {
+		//still have data to read
+		//debug("now wait stdin empty body package\n");
+		char buf[512];
+		while (st->read(buf, sizeof(buf)) > 0);
 	}
 	if (!st->write_end()) {
+		debug("child cann't write_end\n");
 		return KGL_ESOCKET_BROKEN;
 	}
 	return result;
@@ -47,17 +54,19 @@ KGL_RESULT KChildApiService::map_url_path(const char* url, LPVOID file, LPDWORD 
 	}
 	FCGI_Header header;
 	char* buf = NULL;
-	if (!st->read_package(&header, &buf, len)) {
-		return KGL_ESOCKET_BROKEN;
-	}
-	//printf("package type=[%d] len=[%d]\n", header.type, len);
-	if (header.type != API_CHILD_MAP_PATH_RESULT) {
+	for (;;) {
+		if (!st->read_package(&header, &buf, len)) {
+			return KGL_ESOCKET_BROKEN;
+		}
+		//debug("package type=[%d] len=[%d]\n", header.type, len);
+		if (header.type == API_CHILD_MAP_PATH_RESULT) {
+			break;
+		}
 		if (buf) {
 			xfree(buf);
 		}
-		return KGL_ESOCKET_BROKEN;
-	}	
-	KGL_RESULT result =  set_variable(file, file_len, buf);
+	}
+	KGL_RESULT result = set_variable(file, file_len, buf);
 	//printf("buf=[%s] file=[%s]\n", buf, (char *)file);
 	if (buf) {
 		xfree(buf);

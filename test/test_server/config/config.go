@@ -15,6 +15,7 @@ type Config struct {
 	UpstreamHttp2 bool
 	Force         bool
 	BasePath      string
+	Kangle        string
 }
 
 var ports = []int{9999, 9943, 9943}

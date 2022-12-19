@@ -36,19 +36,21 @@ template<typename T>
 class KFastcgiStream : public KEnvInterface
 {
 public:
-	KFastcgiStream(T* client, bool extend = false)
+	KFastcgiStream(T* client,uint8_t data_type, bool extend = false)
 	{
 		setStream(client);
 		this->extend = extend;
 		readBuf = NULL;
 		readHot = NULL;
+		this->data_type = data_type;
 	}
-	KFastcgiStream()
+	KFastcgiStream(uint8_t data_type)
 	{
 		client = NULL;
 		extend = false;
 		readBuf = NULL;
 		readHot = NULL;
+		this->data_type = data_type;
 	}
 	bool beginRequest(bool keepAlive = false)
 	{
@@ -112,7 +114,7 @@ public:
 	}
 	bool write_data(const char* buf, int len)
 	{
-		return write_data(FCGI_STDIN, buf, len);
+		return write_data(data_type, buf, len);
 	}
 	bool write_end(bool close = false)
 	{
@@ -140,6 +142,8 @@ public:
 				goto failed;
 			}
 			(*buffer)[len] = '\0';
+		} else if (header->type == FCGI_STDOUT || header->type == FCGI_STDIN) {
+			data_empty_length = 1;
 		}
 		if (recvPaddingData(header)) {
 			return true;
@@ -153,6 +157,10 @@ public:
 	}
 	bool read(char** buffer, int& len)
 	{
+		if (data_empty_length) {
+			len = 0;
+			return true;
+		}
 		char* b = NULL;
 		*buffer = NULL;
 		FCGI_Header header;
@@ -162,13 +170,12 @@ public:
 		return false;
 	}
 	len = ntohs(header.contentLength);
-	//printf("type=%d,len=%d\n",header.type,len);
 	if (header.type == FCGI_STDOUT || header.type == FCGI_STDIN) {
 		assert(b == NULL);
 		if (len == 0) {
-			//STDOUT end now wait request_end
+			data_empty_length = 1;
 			recvPaddingData(&header);
-			goto reread;
+			return true;
 		}
 		b = (char*)xmalloc(len);
 		if (b == NULL) {
@@ -177,8 +184,6 @@ public:
 		if (client->read_all(b, len)) {
 			recvPaddingData(&header);
 			*buffer = b;
-			//	b[len]='\0';
-			//	printf("buf=[%s]\n",b);
 			return true;
 		}
 		xfree(b);
@@ -378,8 +383,22 @@ public:
 		xfree(dst);
 		return result;
 	}
+	bool has_data_empty_arrived()
+	{
+		return data_empty_length;
+	}
 	friend class KFastcgiFetchObject;
+
 private:
+	union
+	{
+		struct
+		{
+			uint8_t data_type;
+			uint8_t data_empty_length : 1;
+		};
+		uint16_t flags = 0;
+	};
 	void addLen(unsigned len)
 	{
 		//printf("addLen len=%d\n",len);
@@ -410,6 +429,7 @@ private:
 		content_len--;
 		return len[0];
 	}
+
 	int readLeft;
 	char* readBuf;
 	char* readHot;

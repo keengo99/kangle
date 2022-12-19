@@ -49,9 +49,9 @@ KGL_RESULT KFastcgiFetchObject::buildHead(KHttpRequest* rq)
 	buffer = new KSocketBuffer(NBUFF_SIZE);
 	KHttpObject* obj = rq->ctx->obj;
 	KBIT_SET(obj->index.flags, ANSW_LOCAL_SERVER);
-	KFastcgiStream<KSocketBuffer> fbuf;
+	KFastcgiStream<KSocketBuffer> fbuf(FCGI_STDIN);
 	fbuf.setStream(buffer);
-	fbuf.extend = isExtend();
+	fbuf.extend = is_extend();
 	if (fbuf.extend) {
 		FCGI_BeginRequestRecord package;
 		memset(&package, 0, sizeof(package));
@@ -63,7 +63,7 @@ KGL_RESULT KFastcgiFetchObject::buildHead(KHttpRequest* rq)
 	} else {
 		fbuf.beginRequest(client->GetLifeTime() > 0);
 	}
-	if (isExtend() && rq->auth) {
+	if (is_extend() && rq->auth) {
 		const char* auth_type = KHttpAuth::buildType(rq->auth->getType());
 		const char* user = rq->auth->getUser();
 		if (user) {
@@ -119,7 +119,7 @@ kgl_parse_result KFastcgiFetchObject::ParseHeader(KHttpRequest* rq, char** pos, 
 				len = (int)strlen(filename);
 			}
 			//printf("try write map_path_result filename=[%s].\n",filename?filename:"");
-			KFastcgiStream<KUpstream> fbuf(client);
+			KFastcgiStream<KUpstream> fbuf(client,FCGI_STDIN);
 			if (!fbuf.write_data(API_CHILD_MAP_PATH_RESULT, filename, len)) {
 				klog(KLOG_ERR, "write map_path_result failed.\n");
 			}
@@ -188,7 +188,7 @@ KGL_RESULT KFastcgiFetchObject::ParseBody(KHttpRequest* rq, char** pos, char* en
 		char* piece = parse_fcgi_header(pos, end, false);
 		if (piece == NULL) {
 			return KGL_OK;
-		}
+		}		
 		switch (fcgi_header_type) {
 		case FCGI_END_REQUEST:
 			expectDone(rq);
@@ -206,6 +206,7 @@ KGL_RESULT KFastcgiFetchObject::ParseBody(KHttpRequest* rq, char** pos, char* en
 			assert(piece == *pos);
 			break;
 		default:
+			klog(KLOG_ERR, "recv unknow fastcgi type=[%d]\n", fcgi_header_type);
 			break;
 		}
 	}
@@ -213,10 +214,6 @@ KGL_RESULT KFastcgiFetchObject::ParseBody(KHttpRequest* rq, char** pos, char* en
 }
 void KFastcgiFetchObject::appendPostEnd()
 {
-	if (isExtend()) {
-		//api使用不用发结束post标记
-		return;
-	}
 	//最后的post数据
 	kbuf* fcgibuff = (kbuf*)malloc(sizeof(kbuf));
 	fcgibuff->data = (char*)malloc(sizeof(FCGI_Header));

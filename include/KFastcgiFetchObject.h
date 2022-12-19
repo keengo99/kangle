@@ -15,7 +15,7 @@ public:
 protected:
 	KGL_RESULT buildHead(KHttpRequest* rq) override;
 	void buildPost(KHttpRequest* rq) override;
-	virtual bool isExtend()
+	virtual bool is_extend()
 	{
 		return false;
 	}
