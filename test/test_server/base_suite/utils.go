@@ -72,7 +72,6 @@ func check_range(from int, length int, gzip bool, sc rangeCallBackCheck, cc comm
 		map[string]string{"Accept-Encoding": "gzip"},
 		sc,
 		cc)
-	return
 }
 func check_range_with_header(gzip bool, from int, length int, header map[string]string, sc rangeCallBackCheck, cc common.ClientCheckBack) {
 	request_count = 0
@@ -124,7 +123,7 @@ func check_range_with_header(gzip bool, from int, length int, header map[string]
 	})
 }
 func checkRespRange(resp *http.Response, from int, to int) {
-	fmt.Printf("from=[%d],to=[%d]\n", from, to)
+	//fmt.Printf("from=[%d],to=[%d]\n", from, to)
 	buf, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Printf("read resp error[%s]\n", err.Error())
@@ -186,19 +185,20 @@ func md5Response(resp *http.Response, decode bool) string {
 	if decode && content_encoding == "gzip" {
 		reader, _ = gzip.NewReader(resp.Body)
 	}
+	//fmt.Printf("\n")
 	for {
 		n, err := reader.Read(buf)
 		if n <= 0 {
 			break
 		}
 		total_read += n
-		//fmt.Printf("md5Response=[%s]\n", string(buf[0:n]))
+		//fmt.Printf("%s", string(buf[0:n]))
 		hash.Write(buf[0:n])
 		if err != nil {
 			break
 		}
 	}
-	//fmt.Printf("total_read=[%d]\n", total_read)
+	//fmt.Printf("\ntotal_read=[%d]\n", total_read)
 	//common.AssertSame(total_read, int(resp.ContentLength))
 	result := fmt.Sprintf("%x", hash.Sum(nil))
 	//fmt.Printf("md5Respons=[%s]\n", result)

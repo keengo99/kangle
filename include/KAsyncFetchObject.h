@@ -29,7 +29,6 @@ public:
 	KAsyncFetchObject()
 	{
 		client = NULL;
-		badStage = BadStage_Connect;
 		buffer = NULL;
 		memset(&parser, 0, sizeof(parser));
 		memset(&us_buffer, 0, sizeof(us_buffer));
@@ -45,8 +44,8 @@ public:
 			}
 			client->gc(pop_header.keep_alive_time_out);
 			client = NULL;
-		}		
-		ResetBuffer();		
+		}
+		ResetBuffer();
 	}
 	virtual ~KAsyncFetchObject()
 	{
@@ -106,14 +105,13 @@ public:
 	{
 		return client;
 	}
-	KGL_RESULT handleUpstreamError(KHttpRequest *rq,int error,const char *msg,int last_got);
+	KGL_RESULT upstream_is_error(KHttpRequest *rq,int error,const char *msg);
 	KGL_RESULT PushHeader(KHttpRequest *rq,const char *attr, int attr_len, const char *val, int val_len, bool request_line);
 	ks_buffer us_buffer;
 	KSocketBuffer *buffer;
 	KUpstream *client;
 	kgl_input_stream *in;
 	kgl_output_stream *out;
-	BadStage badStage;
 	friend class KHttp2;
 protected:
 	KGL_RESULT readHeadSuccess(KHttpRequest *rq,kfiber **post_fiber);

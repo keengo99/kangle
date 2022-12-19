@@ -47,8 +47,8 @@ static kgl_str_t ajp_response_headers[MAX_AJP_RESPONSE_HEADERS] = {
 	kgl_string("WWW-Authenticate")
 };
 KAjpFetchObject::KAjpFetchObject() {
-	body_len = -1;
-	bodyEnd = false;
+	body_len = 0;
+	end_request_recved = false;
 }
 
 KAjpFetchObject::~KAjpFetchObject() {
@@ -179,8 +179,13 @@ KGL_RESULT KAjpFetchObject::ParseBody(KHttpRequest* rq, char** data, char* end)
 	unsigned char type;
 	while (*data < end) {
 		KAjpMessageParser msg;
-		if (!parse(data, end, &msg)) {
+		switch (parse(data, end, &msg)) {
+		case kgl_parse_continue:
+			return KGL_OK;
+		case kgl_parse_success:
 			break;
+		default:
+			return KGL_EDATA_FORMAT;
 		}
 		if (!msg.getByte(&type)) {
 			return KGL_EDATA_FORMAT;
@@ -210,8 +215,13 @@ kgl_parse_result KAjpFetchObject::ParseHeader(KHttpRequest* rq, char** data, cha
 	while (*data < end) {
 		//printf("parse header len=[%d] ",*len);
 		KAjpMessageParser msg;
-		if (!parse(data, end, &msg)) {
+		switch (parse(data, end, &msg)) {
+		case kgl_parse_continue:
+			return kgl_parse_continue;
+		case kgl_parse_success:
 			break;
+		default:
+			return kgl_parse_error;
 		}
 		unsigned char type = parseMessage(rq, rq->ctx->obj, &msg);
 		//printf("type=[%d]\n",type);
@@ -323,31 +333,31 @@ void KAjpFetchObject::buildPost(KHttpRequest* rq)
 	}
 	//*/
 }
-bool KAjpFetchObject::parse(char** str, char* end, KAjpMessageParser* msg)
+kgl_parse_result KAjpFetchObject::parse(char** str, char* end, KAjpMessageParser* msg)
 {
 	//printf("parse len = %d\n",len);
-	if (body_len == -1) {
+	if (body_len == 0) {
 		//head
 		if (end - *str < 4) {
-			return false;
+			return kgl_parse_continue;
 		}
 		unsigned char* ajp_header = (unsigned char*)*str;
-		*str += 4;
 		if (!((ajp_header[0] == 0x41 && ajp_header[1] == 0x42) || (ajp_header[0] == 0x12 && ajp_header[1] == 0x34))) {
 			klog(KLOG_ERR, "recv wrong package.\n");
-			return false;
+			return kgl_parse_error;
 		}
 		body_len = ajp_header[2] << 8 | ajp_header[3];
 		if (body_len > AJP_PACKAGE) {
 			klog(KLOG_ERR, "recv wrong package length %d.\n", body_len);
-			return false;
+			return kgl_parse_error;
 		}
+		*str += 4;
 	}
 	if (end - *str < body_len) {
-		return false;
+		return kgl_parse_continue;
 	}
 	msg->init(*str, body_len);
 	*str += body_len;
-	body_len = -1;
-	return true;
+	body_len = 0;
+	return kgl_parse_success;
 }

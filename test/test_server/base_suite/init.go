@@ -117,6 +117,7 @@ func (this *base) Clean() {
 func init() {
 
 	s := &base{}
+	s.CasesMap = make(map[string]*suite.Case)
 	s.Name = "base"
 	suite.Register(s)
 	s.AddCase("http2https", "发送http到https端口", check_http2https)
@@ -150,4 +151,5 @@ func init() {
 	s.AddCase("head", "head method", test_head_method)
 	s.AddCase("broken_no_cache", "连接中断不能缓存", check_broken_no_cache)
 	s.AddCase("upstream_http_protocol", "测试上游http协议解析", check_upstream_http_protocol)
+	//s.AddCase("h3_method", "h3 method", test_h3_method)
 }

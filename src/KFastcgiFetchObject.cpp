@@ -34,13 +34,12 @@
 #define PTR_LEN(end,start) ((u_char *)end - (u_char *)start)
 KFastcgiFetchObject::KFastcgiFetchObject()
 {
-	body_len = -1;
-	bodyEnd = false;
-	pad_buf = NULL;
+	flags = 0;
+	split_header = nullptr;
 }
 KFastcgiFetchObject::~KFastcgiFetchObject() {
-	if (pad_buf) {
-		xfree(pad_buf);
+	if (split_header) {
+		ks_buffer_destroy(split_header);
 	}
 }
 KGL_RESULT KFastcgiFetchObject::buildHead(KHttpRequest* rq)
@@ -94,77 +93,120 @@ KGL_RESULT KFastcgiFetchObject::buildHead(KHttpRequest* rq)
 	}
 	return KGL_OK;
 }
-kgl_parse_result KFastcgiFetchObject::ParseHeader(KHttpRequest* rq, char** data, char* end)
+kgl_parse_result KFastcgiFetchObject::ParseHeader(KHttpRequest* rq, char** pos, char* end)
 {
-	while (*data < end) {
-		int packet_len;
-		char* packet = parse(rq, data, end, &packet_len);
-		if (packet && packet_len > 0) {
-			RestorePacket(&packet, &packet_len);
-			switch (this->buf.type) {
-			case FCGI_STDERR:
-				fwrite(packet, packet_len, 1, stderr);
-				fwrite("\n", 1, 1, stderr);
-				break;
-			case API_CHILD_MAP_PATH:
-			{
-				char* url = (char*)malloc(packet_len + 1);
-				kgl_memcpy(url, packet, packet_len);
-				url[packet_len] = '\0';
-				char* filename = rq->map_url_path(url, this->brd);
-				int len = 0;
-				if (filename) {
-					len = (int)strlen(filename);
-				}
-				//printf("try write map_path_result filename=[%s].\n",filename?filename:"");
-				KFastcgiStream<KUpstream> fbuf(client);
-				if (!fbuf.write_data(API_CHILD_MAP_PATH_RESULT, filename, len)) {
-					klog(KLOG_ERR, "write map_path_result failed.\n");
-				}
-				if (filename) {
-					xfree(filename);
-				}
-				break;
+	
+	while (*pos < end) {
+		char* piece = parse_fcgi_header(pos, end, true);
+		if (piece == NULL) {
+			return kgl_parse_continue;
+		}
+		int packet_length = *pos - piece;
+		switch (fcgi_header_type) {
+		case FCGI_STDERR:
+			fwrite(piece, packet_length, 1, stderr);
+			fwrite("\n", 1, 1, stderr);
+			break;
+		case API_CHILD_MAP_PATH:
+		{
+
+			char* url = (char*)malloc(packet_length + 1);
+			kgl_memcpy(url, piece, packet_length);
+			url[packet_length] = '\0';
+			char* filename = rq->map_url_path(url, this->brd);
+			int len = 0;
+			if (filename) {
+				len = (int)strlen(filename);
 			}
-			default:
-				char* packet_end = packet + packet_len;
-				kgl_parse_result ret = KAsyncFetchObject::ParseHeader(rq, &packet, packet_end);
-				packet_len = (int)(packet_end - packet);
-				switch (ret) {
-				case kgl_parse_finished:
-					if (pad_buf) {
-						xfree(pad_buf);
-						pad_buf = NULL;
-					}
-					body_len += packet_len;
-					*data -= packet_len;
-					return kgl_parse_finished;
-				case kgl_parse_error:
-					return kgl_parse_error;
-				default:
-					SavePacket(packet, packet_len);
-					break;
+			//printf("try write map_path_result filename=[%s].\n",filename?filename:"");
+			KFastcgiStream<KUpstream> fbuf(client);
+			if (!fbuf.write_data(API_CHILD_MAP_PATH_RESULT, filename, len)) {
+				klog(KLOG_ERR, "write map_path_result failed.\n");
+			}
+			if (filename) {
+				xfree(filename);
+			}
+			break;
+		}
+		case FCGI_ABORT_REQUEST:
+		case FCGI_END_REQUEST:
+			return kgl_parse_error;
+		default:
+		{
+			char* piece_end = *pos;
+			//fwrite(piece, 1, *data - piece, stdout);
+			if (split_header != NULL) {
+				ks_write_str(split_header, piece, packet_length);
+				piece = split_header->buf;
+				piece_end = piece + split_header->used;
+			}
+			//fwrite(piece, 1, piece_end - piece, stdout);
+			kgl_parse_result ret = KAsyncFetchObject::ParseHeader(rq, &piece, piece_end);
+			if (split_header != NULL) {
+				if (piece == piece_end) {
+					ks_buffer_destroy(split_header);
+					split_header = NULL;
+				} else {
+					ks_save_point(split_header, piece);
 				}
+			} else if (piece < piece_end) {
+				//still have data, save to split_header
+				split_header = ks_buffer_new(NBUFF_SIZE);
+				ks_write_str(split_header, piece, piece_end - piece);
+			}
+			//printf("parse header result=[%d]\n", ret);
+			switch (ret) {
+			case kgl_parse_finished:
+				assert(*pos <= end);
+				return kgl_parse_finished;
+			case kgl_parse_continue:
+				break;
+			default:
+				return kgl_parse_error;
 			}
 		}
-		if (bodyEnd) {
-			return kgl_parse_error;
 		}
 	}
 	return kgl_parse_continue;
 }
-KGL_RESULT KFastcgiFetchObject::ParseBody(KHttpRequest* rq, char** data, char* end)
+KGL_RESULT KFastcgiFetchObject::ParseBody(KHttpRequest* rq, char** pos, char* end)
 {
-	int packet_len;
-	while (*data < end) {
-		char* packet = parse(rq, data, end, &packet_len);
-		if (packet == NULL) {
-			readBodyEnd(rq, data, end);
-			break;
-		}
-		KGL_RESULT result = KAsyncFetchObject::ParseBody(rq, &packet, packet + packet_len);
-		if (KGL_OK != result) {
+	KGL_RESULT result;
+	if (split_header) {
+		char* hot = split_header->buf;
+		result = KAsyncFetchObject::ParseBody(rq, &hot, hot + split_header->used);
+		//assert all data are drained
+		assert(hot == split_header->buf + split_header->used);
+		ks_buffer_destroy(split_header);
+		split_header = nullptr;
+		if (result != KGL_OK) {
 			return result;
+		}
+	}
+	assert(end_request_recved == false);
+	while (*pos < end) {
+		char* piece = parse_fcgi_header(pos, end, false);
+		if (piece == NULL) {
+			return KGL_OK;
+		}
+		switch (fcgi_header_type) {
+		case FCGI_END_REQUEST:
+			expectDone(rq);
+			end_request_recved = true;
+			return KGL_OK;
+		case FCGI_ABORT_REQUEST:
+			end_request_recved = true;
+			return KGL_EABORT;
+		case FCGI_STDOUT:
+			result = KAsyncFetchObject::ParseBody(rq, &piece, *pos);
+			if (result != KGL_OK) {
+				return result;
+			}
+			//assert all data are drained
+			assert(piece == *pos);
+			break;
+		default:
+			break;
 		}
 	}
 	return KGL_OK;
@@ -206,48 +248,40 @@ void KFastcgiFetchObject::buildPost(KHttpRequest* rq)
 		appendPostEnd();
 	}
 }
-char* KFastcgiFetchObject::parse(KHttpRequest* rq, char** str, char* end, int* packet_len)
+char* KFastcgiFetchObject::parse_fcgi_header(char** str, char* end, bool full)
 {
 	if (body_len == 0) {
-		if (buf.paddingLength > 0) {
-			//skip padding
-			size_t len = end - *str;
-			int padlen = MIN((int)len, (int)buf.paddingLength);
-			buf.paddingLength -= padlen;
-			*str += padlen;
-			if (buf.paddingLength > 0) {
-				return NULL;
-			}
-		}
-		body_len = -1;
-	}
-	if (body_len == -1) {
-		//head
-		if (end - *str < sizeof(FCGI_Header)) {
+		size_t packet_length = end - *str;
+		if (packet_length < sizeof(FCGI_Header)) {
 			return NULL;
 		}
-		kgl_memcpy(((char*)&buf), *str, sizeof(FCGI_Header));
+		packet_length -= sizeof(FCGI_Header);
+		FCGI_Header* header = (FCGI_Header*)(*str);
+		uint16_t content_length = ntohs(header->contentLength);
+		if (packet_length < header->paddingLength) {
+			return NULL;
+		}
+		packet_length -= header->paddingLength;
+		if (header->type == FCGI_END_REQUEST) {
+			full = true;
+		}
+		if (full &&  packet_length < content_length) {
+			//need full
+			return NULL;
+		}
+		fcgi_header_type = header->type;
+		//save fcgi_header;
+		//kgl_memcpy(((char*)&fcgi_header), header, sizeof(FCGI_Header));
+		body_len = content_length;
+		//printf("buf type=[%d] body_length=[%d],packet_length=[%d]\n", buf->type,body_len,packet_length);
 		(*str) += sizeof(FCGI_Header);
-		body_len = ntohs(buf.contentLength);
-	}
-	//printf("type=%d,body_len=%d,len=%d\n",buf.type,body_len,len);
-	if (buf.type == FCGI_END_REQUEST) {
-		expectDone(rq);
-		bodyEnd = true;
-		return NULL;
-	}
-	if (buf.type == FCGI_ABORT_REQUEST) {
-		bodyEnd = true;
-		return NULL;
+		(*str) += header->paddingLength;
 	}
 	size_t len = end - *str;
-	*packet_len = MIN((int)len, body_len);
-	body_len -= *packet_len;
-	char* body = *str;
-	*str += *packet_len;
-	if (*packet_len == 0) {
-		return NULL;
-	}
+	int packet_length = MIN((int)len, body_len);
+	body_len -= packet_length;
+	char* body = (*str);
+	(*str) += packet_length;
 	return body;
 }
 

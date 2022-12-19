@@ -52,6 +52,58 @@ static void krequest_start(KSink* sink, int header_len)
 	sink->write_all(buf, len);
 	sink->end_request();
 }
+FCGI_Header* new_fastcgi_header(u_char type, u_char pad_length)
+{
+	FCGI_Header* header = (FCGI_Header*)malloc(sizeof(FCGI_Header) + pad_length);
+	memset(header, 0, sizeof(FCGI_Header));
+	header->version = 1;
+	header->type = type;
+	header->requestId = 1;
+	header->paddingLength = pad_length;
+	return header;
+}
+bool fastcgi_end_request(kconnection* cn)
+{
+	bool result = false;
+	FCGI_Header* resp_header = new_fastcgi_header(FCGI_END_REQUEST, rand());	
+	resp_header->contentLength = htons(sizeof(FCGI_EndRequestBody));
+	int header_len = sizeof(FCGI_Header) + resp_header->paddingLength;
+	if (!kfiber_net_write_full(cn, (char*)resp_header, &header_len)) {
+		goto out;
+	}
+	if (rand() % 2 == 0) {
+		kfiber_msleep(50);
+	}
+	FCGI_EndRequestBody end_body;
+	memset(&end_body, 0, sizeof(end_body));
+	header_len = sizeof(end_body);
+	if (!kfiber_net_write_full(cn, (char*)&resp_header, &header_len)) {
+		goto out;
+	}
+	result = true;
+out:
+	free(resp_header);
+	return result;
+}
+bool fastcgi_stdout(kconnection* cn, const char* buf, int len)
+{
+	bool result = false;
+	FCGI_Header* resp_header = new_fastcgi_header(FCGI_STDOUT, rand());
+	resp_header->contentLength = htons((uint16_t)len);
+	int header_len = sizeof(resp_header) + resp_header->paddingLength;
+	if (!kfiber_net_write_full(cn, (char*)resp_header, &header_len)) {
+		goto out;
+	}
+	if (len > 0) {
+		if (kfiber_net_write_full(cn, buf, &len)) {
+			goto out;
+		}
+	}
+	result = true;
+out:
+	free(resp_header);
+	return result;
+}
 bool fastcgi_connect(kconnection* cn) {	
 	FCGI_BeginRequestRecord record;
 	int len = sizeof(record);
@@ -61,6 +113,7 @@ bool fastcgi_connect(kconnection* cn) {
 	}
 	bool keep_conn = KBIT_TEST(record.body.flags, FCGI_KEEP_CONN);
 	klog(KLOG_NOTICE, "success read beginrequest\n");
+
 	char resp_buf[512];
 	int resp_len = snprintf(resp_buf, sizeof(resp_buf), "Status: 200 OK\r\nCache-Control: no-cache\r\n\r\nhello %d %d", getpid(), (int)time(NULL));
 	char pad_buf[512];
@@ -95,31 +148,11 @@ bool fastcgi_connect(kconnection* cn) {
 				resp_header.version = 1;
 				resp_header.requestId = header.requestId;
 				resp_header.type = FCGI_STDOUT;
-				resp_header.contentLength = htons((uint16_t)resp_len);
-				int header_len = sizeof(resp_header);
-				if (!kfiber_net_write_full(cn, (char*)&resp_header, &header_len)) {
-					goto err;
-				}
-				if (!kfiber_net_write_full(cn, resp_buf, &resp_len)) {
-					goto err;
-				}
-				resp_header.contentLength = 0;
-				header_len = sizeof(resp_header);
-				if (!kfiber_net_write_full(cn, (char*)&resp_header, &header_len)) {
-					goto err;
-				}
-				resp_header.type = FCGI_END_REQUEST;
-				resp_header.contentLength = htons(sizeof(FCGI_EndRequestBody));
-				header_len = sizeof(resp_header);
-				if (!kfiber_net_write_full(cn, (char*)&resp_header, &header_len)) {
-					goto err;
-				}
-				FCGI_EndRequestBody end_body;
-				memset(&end_body, 0, sizeof(end_body));
-				header_len = sizeof(end_body);
-				if (!kfiber_net_write_full(cn, (char*)&resp_header, &header_len)) {
-					goto err;
-				}
+				int pos = sizeof("Status: 200 OK\r\nCache-");
+				fastcgi_stdout(cn, resp_buf, pos);
+				fastcgi_stdout(cn, resp_buf + pos, resp_len - pos);
+				fastcgi_stdout(cn, NULL, 0);
+				fastcgi_end_request(cn);				
 				goto done;
 			}
 		}

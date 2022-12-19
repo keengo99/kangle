@@ -212,7 +212,7 @@ void KMPCmdProcess::gcProcess(KSingleListenPipeStream *st)
 	}
 	release();
 }
-//{{ent
+
 #ifdef ENABLE_ADPP
 void KMPCmdProcess::flushCpuUsage(const std::string &user,const std::string &name,ULONG64 cpuTime)
 {
@@ -227,7 +227,6 @@ void KMPCmdProcess::flushCpuUsage(const std::string &user,const std::string &nam
 	stLock.Unlock();
 }
 #endif
-//}}
 void KMPCmdProcess::getProcessInfo(const USER_T &user, const std::string &name,std::stringstream &s,int &count)
 {
 	KSingleListenPipeStream *st;

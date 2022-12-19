@@ -21,7 +21,7 @@ func check_chunk_post() {
 	cn.SetReadDeadline(time.Now().Add(2 * time.Second))
 	buf, _ := ioutil.ReadAll(cn)
 	str = string(buf)
-	fmt.Printf("resp=[%v]\n", str)
+	//fmt.Printf("resp=[%v]\n", str)
 	common.Assert("chunk_post", strings.Index(str, "\ntest") > 0)
 }
 func check_http2_post_form() {

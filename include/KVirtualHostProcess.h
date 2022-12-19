@@ -54,9 +54,10 @@ public:
 		assert(queue == NULL);
 		killProcess(0);
 	}
-	void isBad(KUpstream* st, BadStage stage)
+	void health(KUpstream* st, HealthStatus health_status) override
 	{
-		if (stage == BadStage_Connect || stage == BadStage_TrySend) {
+		switch (health_status) {
+		case HealthStatus::Err:
 			error_count++;
 			if (kgl_current_sec - lastCheckTime > 5) {
 				lastCheckTime = kgl_current_sec;
@@ -68,12 +69,13 @@ public:
 					klog(KLOG_ERR, "restart the virtual process error_count=%d\n", error_count);
 				}
 			}
+			break;
+		case HealthStatus::Success:
+			error_count = 0;
+			break;
+		default:
+			break;
 		}
-	}
-	void isGood(KUpstream* st)
-	{
-		//reset the error_count
-		error_count = 0;
 	}
 	kconnection* try_connect(sockaddr_i* addr);
 	virtual KUpstream* GetUpstream(KHttpRequest* rq, KExtendProgram* rd);

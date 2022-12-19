@@ -187,7 +187,6 @@ public:
 		}
 #ifdef ENABLE_HTTP3
 		if (h3_server) {
-			assert(h3_server->is_shutdown());
 			h3_server->release();
 		}
 #endif

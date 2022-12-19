@@ -26,6 +26,8 @@ var (
 	malloc_debug *bool   = flag.Bool("m", false, "malloc debug")
 	upstream     *string = flag.String("u", "", "upstream config(s,h2)")
 	force        *bool   = flag.Bool("f", false, "continue when error happened")
+	test_count   *int    = flag.Int("c", 1, "test count")
+	alpn         *int    = flag.Int("a", -1, "set alpn")
 )
 
 func ProcessSuites(suites []string) {
@@ -58,17 +60,19 @@ func ProcessSuites(suites []string) {
 	} else {
 		kangle.ReloadConfig()
 	}
-
-	//url_prefixs := []string{"https://127.0.0.1:9943", "http://127.0.0.1:9999"}
-	url_prefixs := []string{"http://127.0.0.1:9999", "https://127.0.0.1:9943"}
-	//url_prefixs := []string{"http://127.0.0.1:9999"}
-	//url_prefixs := []string{"https://127.0.0.1:9943"}
-	for _, url_prefix := range url_prefixs {
-		config.Cfg.UrlPrefix = url_prefix
-		config.Cfg.Http2 = true
-		fmt.Printf("test use url prefix=[%s]\n", config.Cfg.UrlPrefix)
-		kangle.CleanAllCache()
-		suite.Process(suites)
+	kangle.CleanAllCache()
+	for i := 0; i < *test_count; i++ {
+		if *alpn >= 0 {
+			config.UseHttpClient(*alpn)
+			fmt.Printf("test use url prefix=[%s] alpn=[%v]\n", config.Cfg.UrlPrefix, config.Cfg.Alpn)
+			suite.Process(suites)
+		} else {
+			for alpn := config.HTTP1; alpn <= config.HTTP3; alpn++ {
+				config.UseHttpClient(alpn)
+				fmt.Printf("test use url prefix=[%s] alpn=[%v]\n", config.Cfg.UrlPrefix, config.Cfg.Alpn)
+				suite.Process(suites)
+			}
+		}
 	}
 	common.Report()
 	suite.Clean(suites)

@@ -24,7 +24,6 @@ func check_gzip() {
 		common.Assert("gzip-content-encoding3", resp.Header.Get("Content-Encoding") == "gzip")
 		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
 	})
-	return
 }
 func check_br() {
 	common.Get("/static/index.html", map[string]string{"Accept-Encoding": "br,gzip,deflate"}, func(resp *http.Response, err error) {
@@ -56,7 +55,7 @@ func check_id() {
 	})
 }
 
-//测试本地带range的gzip压缩
+// 测试本地带range的gzip压缩
 func check_local_gzip_range() {
 
 	common.Get("/static/index.html", map[string]string{"Accept-Encoding": "gzip"}, func(resp *http.Response, err error) {
@@ -78,7 +77,7 @@ func check_local_gzip_range() {
 	})
 }
 
-//测试代理range的gzip压缩
+// 测试代理range的gzip压缩
 func check_proxy_gzip_range() {
 
 	check_ranges([]RequestRange{
@@ -110,7 +109,6 @@ func check_proxy_gzip_range() {
 	}, true)
 }
 func check_compress() {
-
 	kangle.CleanAllCache()
 	check_gzip()
 	check_br()

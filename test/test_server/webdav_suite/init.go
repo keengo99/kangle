@@ -32,6 +32,7 @@ func (this *webdav) Clean() {
 }
 func init() {
 	s := &webdav{}
+	s.CasesMap = make(map[string]*suite.Case)
 	s.Name = "webdav"
 	s.AddCase("options", "测试OPTIONS", check_options)
 	suite.Register(s)

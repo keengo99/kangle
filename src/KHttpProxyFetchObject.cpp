@@ -132,9 +132,9 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 	}
 	KHttpHeader* av = rq->sink->data.GetHeader();
 	while (av) {
-		if (attr_casecmp(av->attr, "Connection") == 0 ||
-			attr_casecmp(av->attr, "Keep-Alive") == 0 ||
-			attr_casecmp(av->attr, "Proxy-Connection") == 0 ||
+		if (kgl_is_attr(av, _KS("Connection")) ||
+			kgl_is_attr(av, _KS("Keep-Alive")) ||
+			kgl_is_attr(av, _KS("Proxy-Connection")) ||
 			*av->attr == ':' ||
 			attr_casecmp(av->attr, "Transfer-Encoding") == 0) {
 			goto do_not_insert;

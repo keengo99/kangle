@@ -18,7 +18,7 @@ func check_ssl_pending_readhup() {
 	config.Push()
 	defer config.Pop()
 	config.Cfg.UrlPrefix = config.HttpsUrlPrefix
-	config.Cfg.Http2 = false
+	config.Cfg.Alpn = 0
 	buf := make([]byte, 163840)
 	buf[0] = 'a'
 	buf[1] = '='

@@ -4,13 +4,9 @@ import (
 	"net/http"
 	"strings"
 	"test_server/common"
-	"test_server/config"
 )
 
 func test_head_method() {
-	config.Push()
-	defer config.Pop()
-	config.UseHttp2Client()
 	common.Get("/static/index.html", map[string]string{"Accept-Encoding": "identity"}, nil)
 	common.Head("/static/index.html", map[string]string{"Accept-Encoding": "identity"}, nil)
 	common.Get("/static/index.html", map[string]string{"Accept-Encoding": "identity"}, func(resp *http.Response, err error) {

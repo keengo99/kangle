@@ -35,6 +35,7 @@ func Init(names []string) {
 		suite, ok := suites[s]
 		if !ok {
 			fmt.Printf("cann't findd suite [%s]\n", name)
+			panic("")
 		}
 		common.AssertSame(ok, true)
 		fmt.Printf("init suite [%s]\n", name)

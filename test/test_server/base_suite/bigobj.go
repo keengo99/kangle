@@ -122,6 +122,7 @@ func check_sbo_not_enough_bug() {
 
 func check_nochange_middle_hit() {
 	request_count = 0
+
 	check_ranges([]RequestRange{
 		{262044, 102400, nil, func(resp *http.Response, err error) {
 			common.Assert("x-big-object-miss1", strings.Contains(resp.Header.Get("X-Cache"), "MISS"))

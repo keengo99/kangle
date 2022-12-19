@@ -86,10 +86,9 @@ public:
 		return true;
 	}
 	void set_tcp(bool tcp) override;
-	//{{ent
 #ifdef ENABLE_ADPP
 	void flushCpuUsage(const std::string &user,const std::string &name,ULONG64 cpuTime) override;
-#endif//}}
+#endif
 	bool canDestroy(time_t nowTime) override;
 private:
 	KUpstream* get_connection(KHttpRequest *rq, KSingleListenPipeStream* sp);
@@ -134,9 +133,15 @@ public:
 		kassert(vprocess!=NULL);
 		vprocess->gcProcess(this);
 	}
-	void isBad(KUpstream *st,BadStage stage) override
+	void health(KUpstream *st,HealthStatus stage) override
 	{
-		process.kill();
+		switch (stage) {
+		case HealthStatus::Err:
+			process.kill();
+			break;
+		default:
+			break;
+		}
 	}
 	friend class KMPCmdProcess;
 private:

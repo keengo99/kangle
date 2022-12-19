@@ -40,6 +40,7 @@ func (this *cmd) Clean() {
 }
 func init() {
 	s := &cmd{}
+	s.CasesMap = make(map[string]*suite.Case)
 	s.Name = "cmd"
 	s.AddCase("fastcgi_mp", "多进程fastcgi", check_mp_fastcgi)
 	s.AddCase("fastcgi_sp", "单进程fastcgi", check_sp_fastcgi)

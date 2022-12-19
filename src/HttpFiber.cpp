@@ -16,7 +16,6 @@
 
 int stage_end_request(KHttpRequest* rq, KGL_RESULT result)
 {	
-	//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
 	if (rq->bo_ctx) {
 		if (rq->bo_ctx->net_fiber != NULL) {
@@ -25,7 +24,7 @@ int stage_end_request(KHttpRequest* rq, KGL_RESULT result)
 		delete rq->bo_ctx;
 		rq->bo_ctx = NULL;
 	}
-#endif//}}
+#endif
 	return rq->EndRequest();
 }
 
@@ -148,8 +147,9 @@ KGL_RESULT process_request(KHttpRequest* rq, KFetchObject* fo)
 KGL_RESULT open_fetchobj(KHttpRequest* rq, KFetchObject* fo, kgl_input_stream* in, kgl_output_stream* out)
 {
 	KGL_RESULT result = fo->Open(rq, in, out);
-	//printf("open fetchobj result=[%d]\n", result);
 	switch (result) {
+	case KGL_END:
+		return KGL_END;
 	case KGL_NO_BODY:
 		return process_upstream_no_body(rq,in,out);
 	case KGL_EDENIED:
@@ -767,7 +767,6 @@ KGL_RESULT process_cache_request(KHttpRequest *rq) {
 }
 KGL_RESULT fiber_http_start(KHttpRequest *rq)
 {
-	//printf("async_http_start. [%p].\n",rq);
 	KContext *context = rq->ctx;
 	//{{ent
 #ifdef ENABLE_BIG_OBJECT_206

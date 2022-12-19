@@ -21,7 +21,7 @@ static char *ssl_var_lookup_ssl_cert_serial(X509 *xs) {
 	if ((bio = BIO_new(BIO_s_mem())) == NULL)
 		return NULL;
 	i2a_ASN1_INTEGER(bio, X509_get_serialNumber(xs));
-	n = BIO_pending(bio);
+	n = (int)BIO_pending(bio);
 	result = (char *) OPENSSL_malloc(n+1);
 	n = BIO_read(bio, result, n);
 	result[n] = '\0';

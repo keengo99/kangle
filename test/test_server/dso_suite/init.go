@@ -36,6 +36,7 @@ func (this *dso) Clean() {
 }
 func init() {
 	s := &dso{}
+	s.CasesMap = make(map[string]*suite.Case)
 	s.Name = "dso"
 	s.AddCase("upstream", "dso的upstream", check_upstream)
 	s.AddCase("filter", "dso的filter", check_filter)

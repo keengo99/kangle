@@ -30,17 +30,17 @@ protected:
 	void BuildPostEnd();
 	bool checkContinueReadBody(KHttpRequest* rq) override
 	{
-		return !bodyEnd;
+		return !end_request_recved;
 	}
 private:
 	void ReadBodyEnd(KHttpRequest* rq) {
-		bodyEnd = true;
+		end_request_recved = true;
 		expectDone(rq);
 	}
-	bool parse(char** str, char *end, KAjpMessageParser* msg);
+	kgl_parse_result parse(char** str, char *end, KAjpMessageParser* msg);
 	unsigned char parseMessage(KHttpRequest* rq, KHttpObject* obj, KAjpMessageParser* msg);
 	int body_len;
-	bool bodyEnd;
+	bool end_request_recved;
 };
 
 #endif /* KAJPFETCHOBJECT_H_ */

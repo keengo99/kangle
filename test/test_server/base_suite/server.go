@@ -109,13 +109,11 @@ func HandleDynamic(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Server", TEST_SERVER_NAME)
 	w.Write([]byte(last_dynamic_content))
 	request_count++
-	return
 }
 func HandleNoCache(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Cache-Control", "no-cache,no-store")
 	w.Header().Add("Server", TEST_SERVER_NAME)
 	w.Write([]byte("OK"))
-	return
 }
 func HandleEtag(w http.ResponseWriter, r *http.Request) {
 	if_none_match := r.Header.Get("If-None-Match")
@@ -130,7 +128,6 @@ func HandleEtag(w http.ResponseWriter, r *http.Request) {
 	request_count++
 	w.WriteHeader(304)
 	w.Header().Add("Server", TEST_SERVER_NAME)
-	return
 }
 func HandleChunkPost(w http.ResponseWriter, r *http.Request) {
 	buf := make([]byte, 512)
@@ -142,7 +139,6 @@ func HandleChunkPost(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	return
 }
 func HandleHole(w http.ResponseWriter, r *http.Request) {
 	hj, _ := w.(http.Hijacker)
@@ -337,6 +333,7 @@ func createRange(size int) {
 	gz_stream := gzip.NewWriter(gz_fp)
 
 	rand.Seed(time.Now().UTC().UnixNano())
+	//rand.Seed(111)
 	hash := md5.New()
 	for i := 0; i < size; i++ {
 		temp := RandStringBytes(1024)

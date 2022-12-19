@@ -11,12 +11,15 @@ import (
 	"test_server/config"
 	"time"
 
+	"github.com/lucas-clemente/quic-go"
+	"github.com/lucas-clemente/quic-go/http3"
 	"golang.org/x/net/http2"
 )
 
-var ERROR_NO_REDIRECT = errors.New("no redirect")
+var ErrNoRedirect = errors.New("no redirect")
 var Http1Client *http.Client
 var Http2Client *http.Client
+var Http3Client *http.Client
 var HttpAutoClient *http.Client
 
 const (
@@ -56,14 +59,22 @@ func InitClient() {
 		ExpectContinueTimeout: HTTP_TIME_OUT * time.Second,
 		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
 	}
+	var qconf quic.Config
+	http3_pr := &http3.RoundTripper{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+		QuicConfig: &qconf,
+	}
 	http2.ConfigureTransport(http_auto_tr)
 
 	Http1Client.Transport = http_tr
 	Http2Client = &http.Client{Transport: http2_tr}
+	Http3Client = &http.Client{Transport: http3_pr}
 	HttpAutoClient.Transport = http_auto_tr
 }
 func detectorCheckRedirect(req *http.Request, via []*http.Request) error {
-	return ERROR_NO_REDIRECT
+	return ErrNoRedirect
 }
 
 type ClientCheckBack func(resp *http.Response, err error)
@@ -90,25 +101,27 @@ func Post(path string, header map[string]string, body string, cb ClientCheckBack
 		}
 		return
 	}
-	if header != nil {
-		for k, v := range header {
-			if strings.EqualFold(k, "Content-Length") {
-				length, err := strconv.Atoi(v)
-				if err != nil {
-					req.ContentLength = int64(length)
-				}
-				continue
+
+	for k, v := range header {
+		if strings.EqualFold(k, "Content-Length") {
+			length, err := strconv.Atoi(v)
+			if err != nil {
+				req.ContentLength = int64(length)
 			}
-			if strings.EqualFold(k, "Transfer-Encoding") {
-				req.TransferEncoding = append(req.TransferEncoding, v)
-				continue
-			}
-			req.Header.Set(k, v)
+			continue
 		}
+		if strings.EqualFold(k, "Transfer-Encoding") {
+			req.TransferEncoding = append(req.TransferEncoding, v)
+			continue
+		}
+		req.Header.Set(k, v)
 	}
+
 	var client *http.Client
-	if strings.HasPrefix(config.Cfg.UrlPrefix, "https://") && config.Cfg.Http2 {
+	if strings.HasPrefix(url, "https://") && config.Cfg.Alpn == config.HTTP2 {
 		client = Http2Client
+	} else if strings.HasPrefix(url, "https://") && config.Cfg.Alpn == config.HTTP3 {
+		client = Http3Client
 	} else {
 		client = Http1Client
 	}
@@ -132,7 +145,6 @@ func Request(method string, path string, host string, header map[string]string, 
 	} else {
 		url = fmt.Sprintf("%s%s", config.Cfg.UrlPrefix, path)
 	}
-	//fmt.Printf("new request url=[%s]\n", url)
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		if cb != nil {
@@ -140,14 +152,16 @@ func Request(method string, path string, host string, header map[string]string, 
 		}
 		return
 	}
-	if header != nil {
-		for k, v := range header {
-			req.Header.Add(k, v)
-		}
+
+	for k, v := range header {
+		req.Header.Add(k, v)
 	}
+
 	var client *http.Client
-	if strings.HasPrefix(url, "https://") && config.Cfg.Http2 {
+	if strings.HasPrefix(url, "https://") && config.Cfg.Alpn == config.HTTP2 {
 		client = Http2Client
+	} else if strings.HasPrefix(url, "https://") && config.Cfg.Alpn == config.HTTP3 {
+		client = Http3Client
 	} else {
 		client = Http1Client
 	}

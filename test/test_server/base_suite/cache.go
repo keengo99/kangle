@@ -28,7 +28,6 @@ func HandleBrokenCache(w http.ResponseWriter, r *http.Request) {
 	request_count++
 	w.WriteHeader(304)
 	w.Header().Add("Server", TEST_SERVER_NAME)
-	return
 }
 func check_broken_no_cache() {
 	if config.Cfg.UpstreamHttp2 {
@@ -37,16 +36,16 @@ func check_broken_no_cache() {
 	}
 	//带content-length
 	common.Get("/broken_cache", nil, func(resp *http.Response, err error) {
-		common.Assert("x-cache-miss", strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
+		common.Assert("x-cache-miss", resp == nil || strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
 	})
 	common.Get("/broken_cache", nil, func(resp *http.Response, err error) {
-		common.Assert("x-cache-miss", strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
+		common.Assert("x-cache-miss", resp == nil || strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
 	})
 	//分块
 	common.Get("/broken_cache?chunk=1", nil, func(resp *http.Response, err error) {
-		common.Assert("x-cache-miss", strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
+		common.Assert("x-cache-miss", resp == nil || strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
 	})
 	common.Get("/broken_cache?chunk=1", nil, func(resp *http.Response, err error) {
-		common.Assert("x-cache-miss", strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
+		common.Assert("x-cache-miss", resp == nil || strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
 	})
 }
