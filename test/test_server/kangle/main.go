@@ -65,7 +65,7 @@ func CreateMainConfig(malloc_debug int) (err error) {
 	return
 }
 
-func Prepare(kangle_path string) {
+func Prepare(kangle_path string, only_prepare bool) {
 	os.Mkdir(config.Cfg.BasePath+"/etc", 0755)
 	os.Mkdir(config.Cfg.BasePath+"/var", 0755)
 	os.Mkdir(config.Cfg.BasePath+"/ext", 0755)
@@ -76,7 +76,7 @@ func Prepare(kangle_path string) {
 	common.CopyFile(kangle_path+"/test_child"+common.ExeExtendFile(), config.Cfg.BasePath+"/bin/test_child"+common.ExeExtendFile())
 	common.CopyFile(kangle_path+"/testdso"+common.DllExtendFile(), config.Cfg.BasePath+"/bin/testdso"+common.DllExtendFile())
 	common.CopyFile(kangle_path+"/webdav"+common.DllExtendFile(), config.Cfg.BasePath+"/bin/webdav"+common.DllExtendFile())
-	Start()
+	Start(only_prepare)
 	time.Sleep(time.Second)
 }
 func Close() {
@@ -86,11 +86,14 @@ func Close() {
 func Stop() {
 	exec.Command(kangleCommand, "-q").Run()
 }
-func Start() {
+func Start(only_prepare bool) {
 	_, err := os.Stat(config.Cfg.BasePath + "/cache/f/d")
 	if err != nil {
 		fmt.Printf("create cache dir\n")
 		exec.Command(kangleCommand, "-z", config.Cfg.BasePath+"/cache").Run()
+	}
+	if only_prepare {
+		return
 	}
 	kangle_cmd = exec.Command(kangleCommand, "-n", "-g")
 	kangle_cmd.Stdout = os.Stdout

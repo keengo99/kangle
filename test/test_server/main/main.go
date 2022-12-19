@@ -18,16 +18,17 @@ import (
 )
 
 var (
-	kangle_base  *string = flag.String("o", "", "kangle test base path")
-	kangle_exe   *string = flag.String("e", "", "kangle build output path")
-	test_case    *string = flag.String("t", "", "test suite[.case][,suite[.case]])")
-	list_case    *bool   = flag.Bool("l", false, "list all test case")
-	server_model *bool   = flag.Bool("s", false, "only run server")
-	malloc_debug *bool   = flag.Bool("m", false, "malloc debug")
-	upstream     *string = flag.String("u", "", "upstream config(s,h2)")
-	force        *bool   = flag.Bool("f", false, "continue when error happened")
-	test_count   *int    = flag.Int("c", 1, "test count")
-	alpn         *int    = flag.Int("a", -1, "set alpn")
+	kangle_base    *string = flag.String("o", "", "kangle test base path")
+	kangle_exe     *string = flag.String("e", "", "kangle build output path")
+	test_case      *string = flag.String("t", "", "test suite[.case][,suite[.case]])")
+	list_case      *bool   = flag.Bool("l", false, "list all test case")
+	server_model   *bool   = flag.Bool("s", false, "only run server")
+	malloc_debug   *bool   = flag.Bool("m", false, "malloc debug")
+	upstream       *string = flag.String("u", "", "upstream config(s,h2)")
+	force          *bool   = flag.Bool("f", false, "continue when error happened")
+	test_count     *int    = flag.Int("c", 1, "test count")
+	alpn           *int    = flag.Int("a", -1, "set alpn")
+	prepare_config *bool   = flag.Bool("p", false, "only prepare config")
 )
 
 func ProcessSuites(suites []string) {
@@ -38,7 +39,7 @@ func ProcessSuites(suites []string) {
 			runtime.Stack(buf, false)
 			fmt.Printf("--%s\n", buf)
 		}
-		if len(*kangle_exe) > 0 {
+		if len(*kangle_exe) > 0 && !*prepare_config {
 			kangle.Close()
 		}
 	}()
@@ -56,9 +57,12 @@ func ProcessSuites(suites []string) {
 	}
 	config.Cfg.Force = *force
 	if len(*kangle_exe) > 0 {
-		kangle.Prepare(*kangle_exe)
+		kangle.Prepare(*kangle_exe, *prepare_config)
 	} else {
 		kangle.ReloadConfig()
+	}
+	if *prepare_config {
+		return
 	}
 	kangle.CleanAllCache()
 	for i := 0; i < *test_count; i++ {
@@ -112,7 +116,9 @@ func main() {
 		config.Cfg.UpstreamSsl,
 		config.Cfg.UpstreamHttp2)
 	kangle.CheckExtDir()
-	server.Start()
+	if !*prepare_config {
+		server.Start()
+	}
 	//server.StartFcgiServer()
 	var suites []string
 	if len(*test_case) == 0 {
