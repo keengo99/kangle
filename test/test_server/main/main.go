@@ -64,14 +64,15 @@ func ProcessSuites(suites []string) {
 	if *prepare_config {
 		return
 	}
-	kangle.CleanAllCache()
 	for i := 0; i < *test_count; i++ {
 		if *alpn >= 0 {
+			kangle.CleanAllCache()
 			config.UseHttpClient(*alpn)
 			fmt.Printf("test use url prefix=[%s] alpn=[%v]\n", config.Cfg.UrlPrefix, config.Cfg.Alpn)
 			suite.Process(suites)
 		} else {
 			for alpn := config.HTTP1; alpn <= config.HTTP3; alpn++ {
+				kangle.CleanAllCache()
 				config.UseHttpClient(alpn)
 				fmt.Printf("test use url prefix=[%s] alpn=[%v]\n", config.Cfg.UrlPrefix, config.Cfg.Alpn)
 				suite.Process(suites)
@@ -97,7 +98,7 @@ func main() {
 		suite.List()
 		return
 	}
-	common.InitClient()
+	common.InitClient(true)
 
 	if len(*kangle_base) > 0 {
 		config.Cfg.BasePath = *kangle_base

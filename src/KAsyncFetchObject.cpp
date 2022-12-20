@@ -177,7 +177,8 @@ KGL_RESULT KAsyncFetchObject::InternalProcess(KHttpRequest* rq, kfiber** post_fi
 	}
 	ret = ReadHeader(rq, post_fiber);
 	if (ret == KGL_NO_BODY) {
-		return ret;
+		//fastcgi must meet END_REQUEST
+		return read_body_end(rq, ret);
 	}
 	if (ret != KGL_OK) {
 		return upstream_is_error(rq,STATUS_GATEWAY_TIMEOUT,"cann't read protocol header");

@@ -32,11 +32,57 @@
 #include "log.h"
 void initFastcgiData();
 extern FCGI_BeginRequestRecord fastRequestStart, fastRequestStartKeepAlive;
+class KFastcgiParser
+{
+public:
+	bool parse_param(KEnvInterface* env, u_char* pos, u_char* end)
+	{
+		while (pos < end) {
+			unsigned name_len, value_len;
+			pos = parse_len(pos, end, &name_len);
+			if (pos == NULL) {
+				return false;
+			}
+			pos = parse_len(pos, end, &value_len);
+			if (pos == NULL) {
+				return false;
+			}
+			if (end - pos < name_len + value_len) {
+				return false;
+			}
+			char* name = (char*)pos;
+			pos += name_len;
+			char* value = (char*)pos;
+			pos += value_len;
+			if (!env->add_env(name, name_len, value, value_len)) {
+				return false;
+			}
+		}
+		return true;
+	}
+private:
+	u_char* parse_len(u_char* pos, u_char* end, unsigned* len)
+	{
+		if (end - pos < 1) {
+			return NULL;
+		}
+		if (KBIT_TEST(*pos, 0x80)) {
+			if (end - pos < 4) {
+				return NULL;
+			}
+			KBIT_CLR(*pos, 0x80);
+			*len = ntohl(*(unsigned*)pos);
+			return pos + 4;
+		}
+		*len = *pos;
+		return pos + 1;
+	}
+};
 template<typename T>
 class KFastcgiStream : public KEnvInterface
 {
 public:
-	KFastcgiStream(T* client,uint8_t data_type, bool extend = false)
+	KFastcgiStream(T* client, uint8_t data_type, bool extend = false)
 	{
 		setStream(client);
 		this->extend = extend;
@@ -71,12 +117,10 @@ public:
 			xfree(readBuf);
 		}
 	}
-	bool addEnv(const char* name, const char* value)
+	bool add_env(const char* attr, size_t attr_len, const char* val, size_t val_len) override
 	{
-		unsigned name_len = (unsigned)strlen(name);
-		unsigned value_len = (unsigned)strlen(value);
 		for (int i = 0; i < 2; i++) {
-			if (buff.getLen() + name_len + value_len + 8 >= FCGI_MAX_PACKET_SIZE) {
+			if (buff.getLen() + attr_len + val_len + 8 >= FCGI_MAX_PACKET_SIZE) {
 				if (i == 1) {
 					return false;
 				}
@@ -85,13 +129,19 @@ public:
 				break;
 			}
 		}
-		assert(name_len > 0);
-		addLen(name_len);
-		addLen(value_len);
+		assert(attr_len > 0);
+		addLen(attr_len);
+		addLen(val_len);
 		//printf("add env name=[%s:%d] value=[%s:%d]\n",name,name_len,value,value_len);
-		buff.write_all(name, name_len);
-		buff.write_all(value, value_len);
+		buff.write_all(attr, attr_len);
+		buff.write_all(val, val_len);
 		return true;
+	}
+	bool addEnv(const char* name, const char* value) override
+	{
+		unsigned name_len = (unsigned)strlen(name);
+		unsigned value_len = (unsigned)strlen(value);
+		return add_env(name, strlen(name), value, strlen(value));
 	}
 	bool write_data(unsigned char type, const char* buf, int len)
 	{

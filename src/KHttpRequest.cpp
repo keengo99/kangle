@@ -246,19 +246,6 @@ bool KHttpRequest::isBad() {
 	}
 	return false;
 }
-KGL_RESULT KHttpRequest::HandleResult(KGL_RESULT result)
-{
-	if (result != KGL_OK) {
-		KHttpObject* obj = ctx->obj;
-		if (obj && obj->data->type == MEMORY_OBJECT) {
-			obj->Dead();
-		}
-		KBIT_SET(sink->data.flags, RQ_CONNECTION_CLOSE|RQ_BODY_NOT_COMPLETE);
-		//如果是http2的情况下，此处要向下游传递错误，调用terminal stream
-		//避免下游会误缓存
-	}
-	return result;
-}
 bool KHttpRequest::rewriteUrl(const char *newUrl, int errorCode, const char *prefix) {
 	KAutoUrl url2;
 	if (!parse_url(newUrl, url2.u)) {

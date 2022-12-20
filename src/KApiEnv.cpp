@@ -70,6 +70,18 @@ bool KApiEnv::addEnv(const char *attr, const char *val, std::map<char *,
 	vars.insert(pair<char *, char *> (xstrdup(attr), xstrdup(val)));
 	return true;
 }
+bool KApiEnv::add_env(const char* attr, size_t attr_len, const char* val, size_t val_len)
+{
+	char* attr2 = kgl_strndup(attr, attr_len);
+	std::map<char*, char*, lessp_icase >::iterator it;
+	it = serverVars.find(attr2);
+	if (it != serverVars.end()) {
+		xfree(attr2);
+		return false;
+	}
+	serverVars.insert(pair<char*, char*>(attr2, kgl_strndup(val,val_len)));
+	return true;
+}
 bool KApiEnv::addEnv(const char *attr, const char *val) {
 	return addEnv(attr, val, serverVars);
 

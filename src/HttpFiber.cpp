@@ -80,7 +80,7 @@ KGL_RESULT handleXSendfile(KHttpRequest* rq, kgl_input_stream* in, kgl_output_st
 	}
 	auto fo = new KDefaultFetchObject();
 	rq->AppendFetchObject(fo);
-	return rq->HandleResult(fo->Open(rq,in,out));
+	return fo->Open(rq,in,out);
 }
 KGL_RESULT process_upstream_no_body(KHttpRequest *rq, kgl_input_stream* in, kgl_output_stream* out)
 {
@@ -155,7 +155,7 @@ KGL_RESULT open_fetchobj(KHttpRequest* rq, KFetchObject* fo, kgl_input_stream* i
 	case KGL_EDENIED:
 		return send_error2(rq, STATUS_FORBIDEN, "access denied by response control");
 	default:
-		return rq->HandleResult(result);
+		return result;
 	}
 }
 KGL_RESULT open_queued_fetchobj(KHttpRequest* rq, KFetchObject* fo, kgl_input_stream* in, kgl_output_stream* out, KRequestQueue* queue)
@@ -615,15 +615,13 @@ KGL_RESULT send_memory_object(KHttpRequest *rq)
 #endif//}}
 
 	//rq->CloseFetchObject();
-
-	//{{ent
 #ifdef ENABLE_BIG_OBJECT
 	if (rq->ctx->obj->data->type == BIG_OBJECT) {
 		KFetchObject* fo = new KFetchBigObject();
 		rq->AppendFetchObject(fo);
-		return rq->HandleResult(fo->Open(rq,NULL,NULL));
+		return fo->Open(rq,NULL,NULL);
 	}
-#endif//}}
+#endif
 	INT64 send_len;
 	INT64 start;
 	kbuf *send_buffer = build_memory_obj_header(rq, rq->ctx->obj, start, send_len);

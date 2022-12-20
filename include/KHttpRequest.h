@@ -143,7 +143,6 @@ public:
 		return follow_link;
 	}
 	void CloseFetchObject();
-	KGL_RESULT HandleResult(KGL_RESULT result);
 	bool rewriteUrl(const char *newUrl, int errorCode = 0,const char *prefix = NULL);
 	void EnterRequestQueue();
 	void LeaveRequestQueue();

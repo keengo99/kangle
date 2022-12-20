@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <map>
 #include "KHttpServer.h"
 #include "kselector_manager.h"
 #include "kfiber.h"
@@ -6,6 +7,52 @@
 #include "klog.h"
 #include "kforwin32.h"
 #include "fastcgi.h"
+#include "KHttpLib.h"
+#include "utils.h"
+#include "KEnvInterface.h"
+#include "KFastcgiUtils.h"
+/*
+struct lessp_icase
+{
+	bool operator()(const char* __x, const char* __y) const {
+		return strcasecmp(__x, __y) < 0;
+	}
+};
+*/
+class KMapEnv : public KEnvInterface
+{
+public:
+	~KMapEnv()
+	{
+		std::map<char*, char*, lessp_icase >::iterator it;
+		for (it = envs.begin(); it != envs.end(); it++) {
+			xfree((*it).first);
+			xfree((*it).second);
+		}
+	}
+	const char* get_env(const char* attr)
+	{
+		std::map<char*, char*, lessp_icase >::iterator it;
+		it = envs.find((char*)attr);
+		if (it != envs.end()) {
+			return (*it).second;
+		}
+		return NULL;
+	}
+	bool add_env(const char* attr, size_t attr_len, const char* val, size_t val_len) override
+	{
+		char* attr2 = kgl_strndup(attr, attr_len);
+		std::map<char*, char*, lessp_icase >::iterator it;
+		it = envs.find(attr2);
+		if (it != envs.end()) {
+			xfree(attr2);
+			return false;
+		}
+		envs.insert(std::pair<char*, char*>(attr2, kgl_strndup(val, val_len)));
+		return true;
+	}
+	std::map<char*, char*, lessp_icase > envs;	
+};
 
 #ifdef _WIN32
 HANDLE hEventSource = INVALID_HANDLE_VALUE;
@@ -104,7 +151,39 @@ out:
 	free(resp_header);
 	return result;
 }
-bool fastcgi_connect(kconnection* cn) {	
+bool fastcgi_test_304_keep_conn(kconnection* cn, int request_count, KMapEnv* env)
+{
+	auto if_none_match = env->get_env("HTTP_IF_NONE_MATCH");
+	if (if_none_match == NULL || strcmp(if_none_match, "fcgi_etag") != 0) {
+		return fastcgi_stdout(cn, _KS("Status: 200 OK\r\nEtag: fcgi_etag\r\nContent-Length: 5\r\n\r\nhello"));	
+	}
+	return fastcgi_stdout(cn, _KS("Status: 304 Not Modified\r\n\r\n"));
+}
+bool handle_fastcgi(kconnection* cn, int request_count, KMapEnv* env)
+{
+	char resp_buf[512];
+	int resp_len = snprintf(resp_buf, sizeof(resp_buf), "Status: 200 OK\r\nCache-Control: no-cache\r\n\r\nhello %d %d", getpid(), (int)time(NULL));
+	int pos = sizeof("Status: 200 OK\r\nCache-");
+	const char* request_uri = env->get_env("REQUEST_URI");
+	klog(KLOG_ERR, "REQUEST_URI=[%s] keep_alive_count=[%d]\n", request_uri,request_count);
+#if 0
+	for (auto it = env->envs.begin(); it != env->envs.end(); it++) {
+		klog(KLOG_ERR, "%s: %s\n", (*it).first, (*it).second);
+	}
+#endif
+	if (strncmp(request_uri, _KS("/fastcgi/304")) == 0) {
+		fastcgi_test_304_keep_conn(cn, request_count, env);
+		//msleep cause end_request packet send delay for test.
+		my_msleep(100);	
+		goto done;
+	}
+	fastcgi_stdout(cn, resp_buf, pos);
+	fastcgi_stdout(cn, resp_buf + pos, resp_len - pos);
+done:
+	fastcgi_stdout(cn, NULL, 0);
+	return fastcgi_end_request(cn);
+}
+bool fastcgi_connect(kconnection* cn,int request_count) {	
 	FCGI_BeginRequestRecord record;
 	int len = sizeof(record);
 	if (!kfiber_net_read_full(cn, (char*)&record, &len)) {
@@ -113,11 +192,9 @@ bool fastcgi_connect(kconnection* cn) {
 	}
 	bool keep_conn = KBIT_TEST(record.body.flags, FCGI_KEEP_CONN);
 	klog(KLOG_NOTICE, "success read beginrequest\n");
-
-	char resp_buf[512];
-	int resp_len = snprintf(resp_buf, sizeof(resp_buf), "Status: 200 OK\r\nCache-Control: no-cache\r\n\r\nhello %d %d", getpid(), (int)time(NULL));
 	char pad_buf[512];
 	char* body = NULL;
+	ks_buffer* param_buffer = nullptr;
 	for (;;) {
 		FCGI_Header header;
 		len = sizeof(header);
@@ -139,20 +216,28 @@ bool fastcgi_connect(kconnection* cn) {
 				goto err;
 			}
 		}
-		if (header.type == FCGI_STDIN) {
-			//TODO: parse
+		klog(KLOG_ERR, "fastcgi type=[%d] length=[%d]\n", header.type,header.contentLength);
+		if (header.type == FCGI_PARAMS) {
+			if (param_buffer == nullptr) {
+				param_buffer = ks_buffer_new(4096);
+			}
+			ks_write_str(param_buffer, body, header.contentLength);
+		}
+		if (header.type == FCGI_STDIN) {	
 			if (header.contentLength == 0) {
-				//TODO: stdin end
-				FCGI_Header resp_header;
-				memset(&resp_header, 0, sizeof(resp_header));
-				resp_header.version = 1;
-				resp_header.requestId = header.requestId;
-				resp_header.type = FCGI_STDOUT;
-				int pos = sizeof("Status: 200 OK\r\nCache-");
-				fastcgi_stdout(cn, resp_buf, pos);
-				fastcgi_stdout(cn, resp_buf + pos, resp_len - pos);
-				fastcgi_stdout(cn, NULL, 0);
-				fastcgi_end_request(cn);				
+				KMapEnv env;
+				KFastcgiParser parser;
+				if (param_buffer) {
+					char* data = param_buffer->buf;
+					parser.parse_param(&env, (u_char*)data, (u_char*)data + param_buffer->used);					
+				} else {
+					klog(KLOG_ERR, "param_buffer is NULL\n");
+				}
+				const char* x_time = env.get_env("HTTP_X_TIME");
+				if (x_time != nullptr) {
+					assert(atoi(x_time) == request_count);					
+				}
+				handle_fastcgi(cn, request_count, &env);
 				goto done;
 			}
 		}
@@ -164,6 +249,10 @@ bool fastcgi_connect(kconnection* cn) {
 err:
 	keep_conn = false;
 done:
+	if (param_buffer) {
+		ks_buffer_destroy(param_buffer);
+		param_buffer = nullptr;
+	}
 	if (body) {
 		free(body);
 	}
@@ -172,8 +261,8 @@ done:
 int fastcgi_fiber(void* arg, int len) {
 	klog(KLOG_NOTICE, "fastcgi_handle...\n");
 	kconnection* cn = (kconnection*)arg;
-	for (;;) {
-		if (!fastcgi_connect(cn)) {
+	for (int n=0;;n++) {
+		if (!fastcgi_connect(cn, n)) {
 			klog(KLOG_NOTICE, "not keep connection\n");
 			break;
 		}

@@ -23,16 +23,22 @@ KCgiEnv::~KCgiEnv() {
 		xfree(env);
 	}
 }
-bool KCgiEnv::addEnv(const char *attr, const char *val) {
-	int len = (int)(strlen(attr) + strlen(val) + 1);
-	char *str = (char *) xmalloc(len + 1);
+bool KCgiEnv::add_env(const char* attr, size_t attr_len, const char* val, size_t val_len)
+{
+	int len = (int)(attr_len + val_len + 1);
+	char* str = (char*)xmalloc(len + 1);
 	if (str == NULL) {
 		return false;
-	}
+	}	
+	kgl_memcpy(str, attr, attr_len);
+	kgl_memcpy(str + attr_len, _KS("="));
+	kgl_memcpy(str + attr_len + 1, val, val_len);
 	str[len] = '\0';
-	snprintf(str, len + 1, "%s=%s", attr, val);
 	m_env.push_back(str);
 	return true;
+}
+bool KCgiEnv::addEnv(const char *attr, const char *val) {
+	return add_env(attr, strlen(attr), val, strlen(val));
 }
 bool KCgiEnv::addEnv(const char *env) {
 	m_env.push_back(xstrdup(env));

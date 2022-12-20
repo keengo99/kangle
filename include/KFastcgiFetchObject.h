@@ -27,6 +27,7 @@ protected:
 	{
 		return !end_request_recved;
 	}
+	KGL_RESULT read_body_end(KHttpRequest* rq, KGL_RESULT result) override;
 	kgl_parse_result ParseHeader(KHttpRequest* rq, char** data, char* end) override;
 	KGL_RESULT ParseBody(KHttpRequest* rq, char** data, char* end) override;
 private:

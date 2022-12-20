@@ -21,11 +21,11 @@ if (NOT FOUND_KSAPI_HEADER)
 endif()
 #list(APPEND KWEBDAV_SOURCE_FILES ${KANGLE_DIR}/kasync/src/ksocket.c)
 
-add_executable(test_child  ${KWEBDAV_SOURCE_FILES})
+add_executable(test_child  ${KWEBDAV_SOURCE_FILES} ${KANGLE_DIR}/src/KEnvInterface.cpp)
 target_link_directories(test_child PUBLIC ${KANGLE_LIBS_DIR})
-target_link_libraries(test_child ${KHTTPD_LIBS} khttpd)
+target_link_libraries(test_child ${KHTTPD_LIBS} khttpd davlib)
 
-target_include_directories(test_child PUBLIC ${CMAKE_REQUIRED_INCLUDES} ${TEST_CHILD_INCLUDE_DIRS} ${KHTTPD_INCLUDE_DIR} ${KANGLE_DIR}/include)
+target_include_directories(test_child PUBLIC ${CMAKE_REQUIRED_INCLUDES} ${TEST_CHILD_INCLUDE_DIRS} ${KHTTPD_INCLUDE_DIR} ${KANGLE_INCLUDE_DIR})
 
 set(CMAKE_INSTALL_PREFIX ${KANGLE_DIR})
 install(TARGETS test_child LIBRARY DESTINATION bin)

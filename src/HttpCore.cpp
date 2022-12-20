@@ -64,41 +64,6 @@
 #include "KFetchBigObject.h"
 #include "KBigObjectContext.h"
 using namespace std;
-#if 0
-//compress kbuf
-kbuf* deflate_buff(kbuf* in_buf, int level, INT64& len, bool fast) {
-	KReadWriteBuffer buffer;
-	KGzipCompress gzip(conf.gzip_level);
-	gzip.connect(&buffer, false);
-	gzip.setFast(fast);
-	while (in_buf && in_buf->used > 0) {
-		if (gzip.write_all(NULL, in_buf->data, in_buf->used) != STREAM_WRITE_SUCCESS) {
-			return NULL;
-		}
-		in_buf = in_buf->next;
-	}
-	if (gzip.write_end(NULL, KGL_OK) != STREAM_WRITE_SUCCESS) {
-		return NULL;
-	}
-	len = buffer.getLen();
-	return buffer.stealBuff();
-}
-#endif
-char* skip_next_line(char* str, int& str_len) {
-	int line_pos;
-	if (str_len == 0) {
-		return NULL;
-	}
-	char* next_line = (char*)memchr(str, '\n', str_len);
-	if (next_line == NULL) {
-		//	printf("next line is NULL\n");
-		return NULL;
-	}
-	line_pos = (int)(next_line - str) + 1;
-	str += line_pos;
-	str_len -= line_pos;
-	return str;
-}
 
 KGL_RESULT send_auth2(KHttpRequest* rq, KAutoBuffer* body)
 {
@@ -191,7 +156,7 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 	rq->startResponseBody(send_len);
 	if (body) {
 		if (!rq->WriteBuff(body->getHead())) {
-			return rq->HandleResult(KGL_ESOCKET_BROKEN);
+			return KGL_ESOCKET_BROKEN;
 		}
 	}
 	return KGL_OK;

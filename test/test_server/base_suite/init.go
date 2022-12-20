@@ -2,6 +2,7 @@ package base_suite
 
 import (
 	"runtime"
+	"test_server/common"
 	"test_server/config"
 	"test_server/kangle"
 	"test_server/server"
@@ -65,7 +66,9 @@ func (this *base) Init() error {
 		<env PHP_FCGI_MAX_REQUESTS="0" />
 	</cmd>`
 	}
-	str += `	
+	str += "<cmd name='fastcgi' proto='fastcgi' file='bin/test_child" + common.ExeExtendFile() + " f 9005' port='9005' type='sp' param='' life_time='60' idle_time='120'>"
+	str += `
+	</cmd>
 	<server name='localhost_proxy' proto='proxy' host='127.0.0.1' port='9998' life_time='5' />
 	<server name='localhost' proto='http' host='127.0.0.1' port='9999' life_time='5' />
 	<server name='localhost_https' proto='http' host='127.0.0.1' port='9943sp' life_time='2' />
@@ -98,6 +101,7 @@ func (this *base) Init() error {
 	<!--vh start-->
 	<vh name='base' doc_root='www'  inherit='on' app='1'>		
 		<map path='/static' extend='default' confirm_file='0' allow_method='*'/>
+		<map path='/fastcgi' extend='cmd:fastcgi' confirm_file='0' allow_method='*'/>
 		<map path='/' extend='server:`
 	if config.Cfg.UpstreamSsl {
 		str += "upstream_ssl"
@@ -151,5 +155,6 @@ func init() {
 	s.AddCase("head", "head method", test_head_method)
 	s.AddCase("broken_no_cache", "连接中断不能缓存", check_broken_no_cache)
 	s.AddCase("upstream_http_protocol", "测试上游http协议解析", check_upstream_http_protocol)
+	s.AddCase("fastcgi", "fastcgi协议测试", check_fastcgi)
 	//s.AddCase("h3_method", "h3 method", test_h3_method)
 }

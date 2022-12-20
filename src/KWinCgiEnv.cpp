@@ -20,6 +20,15 @@ KWinCgiEnv::KWinCgiEnv(void) {
 KWinCgiEnv::~KWinCgiEnv(void) {
 	delete s;
 }
+bool KWinCgiEnv::add_env(const char* attr, size_t attr_len, const char* val, size_t val_len)
+{
+	s->write_all(attr, attr_len);
+	s->write_all(_KS("="));
+	s->write_all(val, val_len);
+	s->write_all(_KS("\0"));
+	return true;
+}
+
 bool KWinCgiEnv::addEnv(const char *attr, const char *val) {
 	*s << attr << "=" << val;
 	return s->write_all("\0", 1) == STREAM_WRITE_SUCCESS;

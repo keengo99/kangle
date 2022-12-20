@@ -16,7 +16,11 @@ class KEnvInterface {
 public:
 	KEnvInterface();
 	virtual ~KEnvInterface();
-	virtual bool addEnv(const char *attr, const char *val) = 0;
+	virtual bool addEnv(const char* attr, const char* val)
+	{
+		return add_env(attr, strlen(attr), val, strlen(val));
+	}
+	virtual bool add_env(const char* attr, size_t attr_len, const char* val, size_t val_len) = 0;
 	virtual bool addEnvEnd() {
 		return true;
 	}

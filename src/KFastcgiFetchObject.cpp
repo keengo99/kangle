@@ -169,6 +169,14 @@ kgl_parse_result KFastcgiFetchObject::ParseHeader(KHttpRequest* rq, char** pos, 
 	}
 	return kgl_parse_continue;
 }
+KGL_RESULT KFastcgiFetchObject::read_body_end(KHttpRequest* rq, KGL_RESULT result)
+{
+	if (!checkContinueReadBody(rq)) {
+		return result;
+	}
+	KAsyncFetchObject::ReadBody(rq);
+	return result;
+}
 KGL_RESULT KFastcgiFetchObject::ParseBody(KHttpRequest* rq, char** pos, char* end)
 {
 	KGL_RESULT result;

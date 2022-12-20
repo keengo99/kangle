@@ -79,6 +79,10 @@ public:
 		int retval;
 		kfiber_join(post_fiber, &retval);
 	}
+	virtual KGL_RESULT read_body_end(KHttpRequest* rq, KGL_RESULT result)
+	{
+		return result;
+	}
 	KGL_RESULT ReadBody(KHttpRequest* rq);
 	KGL_RESULT ReadHeader(KHttpRequest* rq, kfiber **post_fiber);
 	KGL_RESULT SendHeader(KHttpRequest* rq);
@@ -132,12 +136,13 @@ protected:
 	virtual bool checkContinueReadBody(KHttpRequest *rq)
 	{
 		return true;
-	}
+	}	
+	KGL_RESULT ParseBody(KHttpRequest* rq);
 	khttp_parser parser;
 	kgl_pop_header pop_header;
 private:
 	void ResetBuffer();
-	KGL_RESULT ParseBody(KHttpRequest* rq);
+
 	KGL_RESULT SendPost(KHttpRequest *rq);
 	void CreatePostFiber(KHttpRequest* rq, kfiber** post_fiber);
 	void InitUpstreamBuffer()

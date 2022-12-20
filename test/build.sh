@@ -10,3 +10,4 @@ fi
 cd $PROJECT_PATH/test_server
 echo "building main ..."
 go build -o ../bin/main.exe test_server/main
+go build -o ../bin/benchmark.exe test_server/benchmark

@@ -26,7 +26,8 @@ const (
 	HTTP_TIME_OUT = 5
 )
 
-func InitClient() {
+func InitClient(keepAlive bool) {
+
 	Http1Client = &http.Client{}
 	Http1Client.Timeout = time.Second * HTTP_TIME_OUT
 	Http1Client.CheckRedirect = detectorCheckRedirect
@@ -49,6 +50,7 @@ func InitClient() {
 		TLSHandshakeTimeout:   HTTP_TIME_OUT * time.Second,
 		ExpectContinueTimeout: HTTP_TIME_OUT * time.Second,
 		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
+		DisableKeepAlives:     !keepAlive,
 	}
 	http_auto_tr := &http.Transport{
 		Dial: (&net.Dialer{
@@ -58,6 +60,7 @@ func InitClient() {
 		TLSHandshakeTimeout:   HTTP_TIME_OUT * time.Second,
 		ExpectContinueTimeout: HTTP_TIME_OUT * time.Second,
 		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
+		DisableKeepAlives:     !keepAlive,
 	}
 	var qconf quic.Config
 	http3_pr := &http3.RoundTripper{
@@ -79,10 +82,20 @@ func detectorCheckRedirect(req *http.Request, via []*http.Request) error {
 
 type ClientCheckBack func(resp *http.Response, err error)
 
+func skipBody(resp *http.Response) (total_read int64) {
+	buf := make([]byte, 4096)
+	for {
+		n, _ := resp.Body.Read(buf)
+		if n <= 0 {
+			return
+		}
+		total_read += (int64)(n)
+	}
+}
 func Read(resp *http.Response) string {
 	var content string
+	buf := make([]byte, 4096)
 	for {
-		buf := make([]byte, 4096)
 		n, _ := resp.Body.Read(buf)
 		if n <= 0 {
 			return content
@@ -196,4 +209,36 @@ func Get(path string, header map[string]string, cb ClientCheckBack) {
 }
 func Head(path string, header map[string]string, cb ClientCheckBack) {
 	Request("HEAD", path, "", header, cb)
+}
+func Bench(method string, url string, header map[string]string, count int) (total_read int64, success_count int) {
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return 0, 0
+	}
+	for k, v := range header {
+		req.Header.Add(k, v)
+	}
+
+	var client *http.Client
+	if strings.HasPrefix(url, "https://") && config.Cfg.Alpn == config.HTTP2 {
+		client = Http2Client
+	} else if strings.HasPrefix(url, "https://") && config.Cfg.Alpn == config.HTTP3 {
+		client = Http3Client
+	} else {
+		client = Http1Client
+	}
+	for n := 0; n < count; n++ {
+		resp, _ := client.Do(req)
+		if resp != nil {
+			body_read := skipBody(resp)
+			total_read += body_read
+			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+				if body_read == resp.ContentLength {
+					success_count++
+				}
+			}
+			resp.Body.Close()
+		}
+	}
+	return
 }

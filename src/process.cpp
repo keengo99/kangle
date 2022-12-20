@@ -632,6 +632,7 @@ BOOL StartInteractiveClientProcess2 (
 	BOOL bResult = FALSE;
 	int errorcode = 0;
 	ZeroMemory(&si, sizeof(STARTUPINFO));
+	GetStartupInfo(&si);
 	si.cb= sizeof(STARTUPINFO);
 	si.lpDesktop = TEXT("winsta0\\default");
 	BOOL inheritHandle = FALSE;
@@ -732,6 +733,7 @@ BOOL StartInteractiveClientProcess (
 	BOOL bResult = FALSE;
 	int errorcode = 0;
 	ZeroMemory(&si, sizeof(STARTUPINFO));
+	GetStartupInfo(&si);
 	si.cb= sizeof(STARTUPINFO);
 	si.lpDesktop = TEXT("winsta0\\default");
 	// bool execlocked = false;
