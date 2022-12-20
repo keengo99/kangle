@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/bin/sh
 if [ ! -d ext ] ; then
 	mkdir ext
 fi
-cp ../webadmin . -a
+cp -a ../webadmin .
 if [ ! -f ./bin/main.exe ] ; then
 	echo "please call ./build.sh first"
 	exit 1

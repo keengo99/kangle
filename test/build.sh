@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 BIN_FILE=$(readlink -f $0)
 PROJECT_PATH=$(dirname $BIN_FILE)
 export PATH=$PATH:$GOROOT/bin
