@@ -11,7 +11,7 @@ public:
 	bool add_env(const char* attr, size_t attr_len, const char* val, size_t val_len) override;
 	bool addEnv(const char *env);
 	char *dump_env();
-	bool addEnvEnd();
+	bool addEnvEnd() override;
 	void dump();
 private:
 	KStringBuf *s;

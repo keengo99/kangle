@@ -397,7 +397,7 @@ public:
 		}
 		return true;
 	}
-	bool addEnvEnd()
+	bool addEnvEnd() override
 	{
 		sendParams();
 		if (!sendRecordHeader(FCGI_PARAMS, 0)) {
@@ -417,7 +417,7 @@ public:
 	}
 
 	bool extend;
-	bool addHttpHeader(char* attr, char* val)
+	bool addHttpHeader(char* attr, char* val) override
 	{
 		if (!extend) {
 			return KEnvInterface::addHttpHeader(attr, val);
