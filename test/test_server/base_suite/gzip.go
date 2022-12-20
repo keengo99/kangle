@@ -2,6 +2,7 @@ package base_suite
 
 import (
 	"test_server/common"
+	"test_server/config"
 
 	//"fmt"
 	"net/http"
@@ -111,7 +112,9 @@ func check_proxy_gzip_range() {
 func check_compress() {
 	kangle.CleanAllCache()
 	check_gzip()
-	check_br()
+	if !config.Kangle.DisableBrotli {
+		check_br()
+	}
 	check_id()
 
 	check_proxy_gzip_range()

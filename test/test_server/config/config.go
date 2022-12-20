@@ -17,6 +17,10 @@ type Config struct {
 	BasePath      string
 	Kangle        string
 }
+type KangleCompileOptions struct {
+	DisableHttp3  bool
+	DisableBrotli bool
+}
 
 var ports = []int{9999, 9943, 9943}
 var schemas = []string{"http://", "https://", "https://"}
@@ -25,7 +29,7 @@ var HttpsUrlPrefix string
 var HttpUrlPrefix string
 var Http3UrlPrefix string
 var Cfg Config
-
+var Kangle KangleCompileOptions
 var saved_config Config
 
 func Push() {

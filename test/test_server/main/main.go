@@ -58,6 +58,11 @@ func ProcessSuites(suites []string) {
 	config.Cfg.Force = *force
 	if len(*kangle_exe) > 0 {
 		kangle.Prepare(*kangle_exe, *prepare_config)
+		err := kangle.GetCompileOptions(&config.Kangle)
+		if err != nil {
+			fmt.Printf("get compile options error=[%v]\n", err)
+			panic("")
+		}
 	} else {
 		kangle.ReloadConfig()
 	}
@@ -72,6 +77,10 @@ func ProcessSuites(suites []string) {
 			suite.Process(suites)
 		} else {
 			for alpn := config.HTTP1; alpn <= config.HTTP3; alpn++ {
+				if alpn == config.HTTP3 && config.Kangle.DisableHttp3 {
+					//skip http3 test
+					continue
+				}
 				kangle.CleanAllCache()
 				config.UseHttpClient(alpn)
 				fmt.Printf("test use url prefix=[%s] alpn=[%v]\n", config.Cfg.UrlPrefix, config.Cfg.Alpn)

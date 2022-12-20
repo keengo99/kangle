@@ -1,10 +1,13 @@
 package kangle
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 	"test_server/common"
 	"test_server/config"
 	"time"
@@ -40,6 +43,7 @@ func CleanExtConfig(name string) error {
 	fmt.Printf("remove ext file [%s]\n", file)
 	return os.Remove(file)
 }
+
 func CreateMainConfig(malloc_debug int) (err error) {
 	str := `
 <config>
@@ -87,6 +91,34 @@ func Close() {
 }
 func Stop() {
 	exec.Command(kangleCommand, "-q").Run()
+}
+func GetCompileOptions(cfg *config.KangleCompileOptions) error {
+	//fmt.Printf("kangle command=[%v]\n", kangleCommand)
+	cmd := exec.Command(kangleCommand, "-v")
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	defer cmd.Wait()
+
+	buf := bufio.NewReader(stdout)
+	feature, err := buf.ReadString('\n')
+	if err != nil && err != io.EOF {
+		return err
+	}
+	fmt.Printf("kangle feature is [%s]\n", feature)
+	if !strings.Contains(feature, " brotli") {
+		cfg.DisableBrotli = true
+		fmt.Printf("not found brotli support. now disable brotli test.\n")
+	}
+	if !strings.Contains(feature, " h3") {
+		cfg.DisableHttp3 = true
+		fmt.Printf("not found http3 support. now disable http3 test.\n")
+	}
+	return nil
 }
 func Start(only_prepare bool) {
 	_, err := os.Stat(config.Cfg.BasePath + "/cache/f/d")

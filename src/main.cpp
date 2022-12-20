@@ -797,6 +797,7 @@ static int Usage(bool only_version = false) {
 	printf("jemalloc version: [%s]\n",j);
 #endif
 	//checkMemoryLeak();
+	fflush(stdout);
 	my_exit(0);
 	return 0;
 }
