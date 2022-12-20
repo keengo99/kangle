@@ -9,8 +9,9 @@
 
 #ifndef KENVINTERFACE_H_
 #define KENVINTERFACE_H_
-#include <stdlib.h>
 #include "kforwin32.h"
+#include <stdlib.h>
+#include <string.h>
 
 class KEnvInterface {
 public:
