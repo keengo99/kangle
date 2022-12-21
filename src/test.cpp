@@ -295,9 +295,6 @@ static void test_dechunk2()
 			assert(hot == buffer->buf + len);
 			break;
 		}
-		printf("piece_len=[%d]\n", piece_len);
-		fwrite(piece, 1, piece_len, stdout);
-		printf("\n");
 	}
 
 }
@@ -439,8 +436,8 @@ bool test() {
 	//test_http_parser();
 	//printf("sizeof(KHttpRequest)=%d\n",sizeof(KHttpRequest));
 	//	test_pipe();
-	printf("sizeof(obj)=%d,%d\n", (int)sizeof(KHttpObject), (int)sizeof(HttpObjectIndex));
-	printf("sizeof(selectable)=[%d]\n", (int)sizeof(kselectable));
+	//printf("sizeof(obj)=%d,%d\n", (int)sizeof(KHttpObject), (int)sizeof(HttpObjectIndex));
+	//printf("sizeof(selectable)=[%d]\n", (int)sizeof(kselectable));
 	time_t nowTime = time(NULL);
 	char timeStr[41];
 	mk1123time(nowTime, timeStr, sizeof(timeStr) - 1);

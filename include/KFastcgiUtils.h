@@ -214,53 +214,51 @@ public:
 		char* b = NULL;
 		*buffer = NULL;
 		FCGI_Header header;
-	reread: if (!client->read_all((char*)&header, sizeof(header))) {
-		//		printf("cann't recv fastcgi header\n");
-			//client->setLastError(1);
-		return false;
-	}
-	len = ntohs(header.contentLength);
-	if (header.type == FCGI_STDOUT || header.type == FCGI_STDIN) {
-		assert(b == NULL);
-		if (len == 0) {
-			data_empty_length = 1;
-			recvPaddingData(&header);
-			return true;
-		}
-		b = (char*)xmalloc(len);
-		if (b == NULL) {
+	read_header:
+		if (!client->read_all((char*)&header, sizeof(header))) {
 			return false;
 		}
-		if (client->read_all(b, len)) {
-			recvPaddingData(&header);
-			*buffer = b;
-			return true;
+		len = ntohs(header.contentLength);
+		if (header.type == FCGI_STDOUT || header.type == FCGI_STDIN) {
+			assert(b == NULL);
+			if (len == 0) {
+				data_empty_length = 1;
+				recvPaddingData(&header);
+				return true;
+			}
+			b = (char*)xmalloc(len);
+			if (b == NULL) {
+				return false;
+			}
+			if (client->read_all(b, len)) {
+				recvPaddingData(&header);
+				*buffer = b;
+				return true;
+			}
+			xfree(b);
+			return false;
 		}
-		xfree(b);
-		return false;
-	}
-	//	unsigned contentLength = ntohs(header.contentLength);
-	if (len > 0) {
-		char* buf = (char*)malloc(len + 1);
-		if (!client->read_all(buf, len)) {
+		//	unsigned contentLength = ntohs(header.contentLength);
+		if (len > 0) {
+			char* buf = (char*)malloc(len + 1);
+			if (!client->read_all(buf, len)) {
+				xfree(buf);
+				return false;
+			}
+			if (header.type == FCGI_STDERR) {
+				buf[len] = 0;
+				fprintf(stderr, "[fastcgi] %s\n", buf);
+			}
 			xfree(buf);
+		}
+		recvPaddingData(&header);
+		if (header.type == FCGI_END_REQUEST) {
+			return true;
+		}
+		if (header.type == FCGI_ABORT_REQUEST) {
 			return false;
 		}
-		if (header.type == FCGI_STDERR) {
-			buf[len] = 0;
-			fprintf(stderr, "[fastcgi] %s\n", buf);
-		}
-		xfree(buf);
-	}
-	recvPaddingData(&header);
-	if (header.type == FCGI_END_REQUEST) {
-		return true;
-	}
-	if (header.type == FCGI_ABORT_REQUEST) {
-		return false;
-	}
-	//	printf("unknow fastcgi type=%d\n", header.type);
-	goto reread;
+		goto read_header;
 	}
 	int read(char* buf, int len)
 	{

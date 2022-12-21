@@ -191,19 +191,20 @@ KGL_RESULT KFastcgiFetchObject::ParseBody(KHttpRequest* rq, char** pos, char* en
 			return result;
 		}
 	}
-	assert(end_request_recved == false);
+	assert(pop_header.recved_end_request == 0);
 	while (*pos < end) {
 		char* piece = parse_fcgi_header(pos, end, false);
 		if (piece == NULL) {
 			return KGL_OK;
-		}		
+		}
+		//printf("fcgi_header_type=[%d]\n", fcgi_header_type);
 		switch (fcgi_header_type) {
 		case FCGI_END_REQUEST:
 			expectDone(rq);
-			end_request_recved = true;
-			return KGL_OK;
+			pop_header.recved_end_request = 1;
+			break;
 		case FCGI_ABORT_REQUEST:
-			end_request_recved = true;
+			pop_header.recved_end_request = 1;
 			return KGL_EABORT;
 		case FCGI_STDOUT:
 			result = KAsyncFetchObject::ParseBody(rq, &piece, *pos);
@@ -257,30 +258,35 @@ char* KFastcgiFetchObject::parse_fcgi_header(char** str, char* end, bool full)
 {
 	if (body_len == 0) {
 		size_t packet_length = end - *str;
+		if (fcgi_pad_length > 0) {
+			if (packet_length < fcgi_pad_length) {
+				return NULL;
+			}
+			packet_length -= fcgi_pad_length;
+			*str += fcgi_pad_length;
+			fcgi_pad_length = 0;
+		}
 		if (packet_length < sizeof(FCGI_Header)) {
 			return NULL;
 		}
 		packet_length -= sizeof(FCGI_Header);
 		FCGI_Header* header = (FCGI_Header*)(*str);
 		uint16_t content_length = ntohs(header->contentLength);
-		if (packet_length < header->paddingLength) {
-			return NULL;
-		}
-		packet_length -= header->paddingLength;
 		if (header->type == FCGI_END_REQUEST) {
 			full = true;
 		}
-		if (full &&  packet_length < content_length) {
+		if (full &&  packet_length < content_length + header->paddingLength) {
 			//need full
 			return NULL;
 		}
 		fcgi_header_type = header->type;
+		fcgi_pad_length = header->paddingLength;
 		//save fcgi_header;
 		//kgl_memcpy(((char*)&fcgi_header), header, sizeof(FCGI_Header));
 		body_len = content_length;
-		//printf("buf type=[%d] body_length=[%d],packet_length=[%d]\n", buf->type,body_len,packet_length);
+		//printf("fastcgi type=[%d] body_length=[%d] pad=[%d]\n", fcgi_header_type,body_len, header->paddingLength);
 		(*str) += sizeof(FCGI_Header);
-		(*str) += header->paddingLength;
+		//(*str) += header->paddingLength;
 	}
 	size_t len = end - *str;
 	int packet_length = MIN((int)len, body_len);

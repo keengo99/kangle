@@ -99,24 +99,25 @@ static void krequest_start(KSink* sink, int header_len)
 	sink->write_all(buf, len);
 	sink->end_request();
 }
-FCGI_Header* new_fastcgi_header(u_char type, u_char pad_length)
+void init_fastcgi_header(u_char type, u_char pad_length, FCGI_Header*header)
 {
-	FCGI_Header* header = (FCGI_Header*)malloc(sizeof(FCGI_Header) + pad_length);
+	//FCGI_Header* header = (FCGI_Header*)malloc(sizeof(FCGI_Header) + pad_length);
 	memset(header, 0, sizeof(FCGI_Header));
 	header->version = 1;
 	header->type = type;
 	header->requestId = 1;
 	header->paddingLength = pad_length;
-	return header;
+	//return header;
 }
 bool fastcgi_end_request(kconnection* cn)
 {
-	bool result = false;
-	FCGI_Header* resp_header = new_fastcgi_header(FCGI_END_REQUEST, rand());	
-	resp_header->contentLength = htons(sizeof(FCGI_EndRequestBody));
-	int header_len = sizeof(FCGI_Header) + resp_header->paddingLength;
-	if (!kfiber_net_write_full(cn, (char*)resp_header, &header_len)) {
-		goto out;
+	FCGI_Header resp_header;
+	char padbuf[256];
+	init_fastcgi_header(FCGI_END_REQUEST, rand(), &resp_header);
+	resp_header.contentLength = htons(sizeof(FCGI_EndRequestBody));
+	int header_len = sizeof(FCGI_Header);
+	if (!kfiber_net_write_full(cn, (char*)&resp_header, &header_len)) {
+		return false;
 	}
 	if (rand() % 2 == 0) {
 		kfiber_msleep(50);
@@ -124,32 +125,33 @@ bool fastcgi_end_request(kconnection* cn)
 	FCGI_EndRequestBody end_body;
 	memset(&end_body, 0, sizeof(end_body));
 	header_len = sizeof(end_body);
-	if (!kfiber_net_write_full(cn, (char*)&resp_header, &header_len)) {
-		goto out;
+	if (!kfiber_net_write_full(cn, (char*)&end_body, &header_len)) {
+		return false;
 	}
-	result = true;
-out:
-	free(resp_header);
-	return result;
+	if (resp_header.paddingLength > 0) {
+		header_len = resp_header.paddingLength;
+		return kfiber_net_write_full(cn, (char*)padbuf, &header_len);
+	}
+	return true;
 }
 bool fastcgi_stdout(kconnection* cn, const char* buf, int len)
 {
-	bool result = false;
-	FCGI_Header* resp_header = new_fastcgi_header(FCGI_STDOUT, rand());
-	resp_header->contentLength = htons((uint16_t)len);
-	int header_len = sizeof(resp_header) + resp_header->paddingLength;
-	if (!kfiber_net_write_full(cn, (char*)resp_header, &header_len)) {
-		goto out;
+	FCGI_Header resp_header;
+	char padbuf[256];
+	init_fastcgi_header(FCGI_STDOUT, rand(), &resp_header);
+	resp_header.contentLength = htons((uint16_t)len);
+	int header_len = sizeof(resp_header);
+	if (!kfiber_net_write_full(cn, (char*)&resp_header, &header_len)) {
+		return false;
 	}
-	if (len > 0) {
-		if (kfiber_net_write_full(cn, buf, &len)) {
-			goto out;
-		}
+	if (len > 0 && !kfiber_net_write_full(cn, buf, &len)) {
+		return false;
 	}
-	result = true;
-out:
-	free(resp_header);
-	return result;
+	if (resp_header.paddingLength > 0) {
+		len = resp_header.paddingLength;
+		return kfiber_net_write_full(cn, (char*)padbuf, &len);
+	}
+	return true;
 }
 bool fastcgi_test_304_keep_conn(kconnection* cn, int request_count, KMapEnv* env)
 {
@@ -165,7 +167,7 @@ bool handle_fastcgi(kconnection* cn, int request_count, KMapEnv* env)
 	int resp_len = snprintf(resp_buf, sizeof(resp_buf), "Status: 200 OK\r\nCache-Control: no-cache\r\n\r\nhello %d %d", getpid(), (int)time(NULL));
 	int pos = sizeof("Status: 200 OK\r\nCache-");
 	const char* request_uri = env->get_env("REQUEST_URI");
-	klog(KLOG_ERR, "REQUEST_URI=[%s] keep_alive_count=[%d]\n", request_uri,request_count);
+	klog(KLOG_ERR, "REQUEST_URI=[%s] keep_alive_count=[%d] cn=[%p]\n", request_uri,request_count,cn);
 #if 0
 	for (auto it = env->envs.begin(); it != env->envs.end(); it++) {
 		klog(KLOG_ERR, "%s: %s\n", (*it).first, (*it).second);
@@ -187,11 +189,11 @@ bool fastcgi_connect(kconnection* cn,int request_count) {
 	FCGI_BeginRequestRecord record;
 	int len = sizeof(record);
 	if (!kfiber_net_read_full(cn, (char*)&record, &len)) {
-		klog(KLOG_ERR, "cann't read begin record len=[%d]\n", len);
+		klog(KLOG_ERR, "cann't read begin record len=[%d] cn=[%p]\n", len, cn);
 		return false;
 	}
 	bool keep_conn = KBIT_TEST(record.body.flags, FCGI_KEEP_CONN);
-	klog(KLOG_NOTICE, "success read beginrequest\n");
+	//klog(KLOG_NOTICE, "success read beginrequest\n");
 	char pad_buf[512];
 	char* body = NULL;
 	ks_buffer* param_buffer = nullptr;
@@ -216,7 +218,7 @@ bool fastcgi_connect(kconnection* cn,int request_count) {
 				goto err;
 			}
 		}
-		klog(KLOG_ERR, "fastcgi type=[%d] length=[%d]\n", header.type,header.contentLength);
+		//klog(KLOG_ERR, "fastcgi type=[%d] length=[%d] cn=[%p]\n", header.type,header.contentLength,cn);
 		if (header.type == FCGI_PARAMS) {
 			if (param_buffer == nullptr) {
 				param_buffer = ks_buffer_new(4096);
@@ -259,16 +261,16 @@ done:
 	return keep_conn;
 }
 int fastcgi_fiber(void* arg, int len) {
-	klog(KLOG_NOTICE, "fastcgi_handle...\n");
 	kconnection* cn = (kconnection*)arg;
+	klog(KLOG_NOTICE, "new fastcgi connection [%p]...\n",cn);
 	for (int n=0;;n++) {
 		if (!fastcgi_connect(cn, n)) {
-			klog(KLOG_NOTICE, "not keep connection\n");
+			klog(KLOG_NOTICE, "not keep connection cn=[%p]\n",cn);
 			break;
 		}
-		klog(KLOG_NOTICE, "keep connection\n");
+		klog(KLOG_NOTICE, "keep connection cn=[%p]\n",cn);
 	}
-	klog(KLOG_NOTICE, "destroy connection...\n");
+	klog(KLOG_NOTICE, "destroy connection cn=[%p]...\n",cn);
 	kconnection_destroy(cn);
 	return 0;
 }
@@ -331,8 +333,8 @@ int main(int argc, char** argv)
 		port = (uint16_t)atoi(argv[2]);
 	}
 	init_http_server_callback(NULL, krequest_start);
-	http_config.time_out = 60;
-	selector_manager_set_timeout(60, 60);
+	http_config.time_out = 300;
+	selector_manager_set_timeout(300, 300);
 	kfiber_create2(get_perfect_selector(), fiber_main, (void*)argv, argc, 0, NULL);
 	selector_manager_start(NULL, false);
 	return 0;

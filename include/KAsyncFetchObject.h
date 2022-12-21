@@ -18,6 +18,7 @@ struct kgl_pop_header {
 	Proto_t proto;
 	uint16_t status_send : 1;
 	uint16_t no_body:1;
+	uint16_t recved_end_request : 1;
 	int keep_alive_time_out;
 };
 /**

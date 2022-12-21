@@ -25,7 +25,7 @@ protected:
 	}
 	bool checkContinueReadBody(KHttpRequest* rq) override
 	{
-		return !end_request_recved;
+		return !pop_header.recved_end_request;
 	}
 	KGL_RESULT read_body_end(KHttpRequest* rq, KGL_RESULT result) override;
 	kgl_parse_result ParseHeader(KHttpRequest* rq, char** data, char* end) override;
@@ -41,7 +41,7 @@ private:
 		{
 			uint16_t body_len;
 			uint8_t fcgi_header_type;
-			uint8_t end_request_recved;
+			uint8_t fcgi_pad_length;
 		};
 		uint32_t flags;
 	};

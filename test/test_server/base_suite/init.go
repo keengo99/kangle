@@ -1,7 +1,6 @@
 package base_suite
 
 import (
-	"runtime"
 	"test_server/common"
 	"test_server/config"
 	"test_server/kangle"
@@ -49,24 +48,7 @@ func (this *base) Init() error {
 	<gzip only_gzip_cache='0' min_gzip_length='1' gzip_level='5' br_level='5'/>
 	<cache default='1' max_cache_size='256k' max_bigobj_size='1g' memory='1G' disk='1g' cache_part='1' refresh_time='30'/>
 	`
-	if runtime.GOOS == "windows" {
-		str += `
-	<cmd name='php' proto='fastcgi' file='php\\php-cgi.exe' type='mp' life_time='0' idle_time='120'>
-		<env PHP_FCGI_MAX_REQUESTS="0" />
-	</cmd>
-	<cmd name='php2' proto='fastcgi' file='php\\php-cgi.exe' type='mp' worker='2' life_time='0' idle_time='120'>
-		<env PHP_FCGI_MAX_REQUESTS="0" />
-	</cmd>`
-	} else {
-		str += `
-	<cmd name='php' proto='fastcgi' file='/usr/bin/php-cgi' type='mp' life_time='0' idle_time='120'>
-		<env PHP_FCGI_MAX_REQUESTS="0" />
-	</cmd>
-	<cmd name='php2' proto='fastcgi' file='/usr/bin/php-cgi' type='mp' worker='2' life_time='0' idle_time='120'>
-		<env PHP_FCGI_MAX_REQUESTS="0" />
-	</cmd>`
-	}
-	str += "<cmd name='fastcgi' proto='fastcgi' file='bin/test_child" + common.ExeExtendFile() + " f 9005' port='9005' type='sp' param='' life_time='60' idle_time='120'>"
+	str += "<cmd name='fastcgi' proto='fastcgi' file='bin/test_child" + common.ExeExtendFile() + " f 9005' port='9005' type='sp' param='' life_time='280' idle_time='280'>"
 	str += `
 	</cmd>
 	<server name='localhost_proxy' proto='proxy' host='127.0.0.1' port='9998' life_time='5' />

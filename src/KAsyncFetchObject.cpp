@@ -140,7 +140,6 @@ KGL_RESULT KAsyncFetchObject::InternalProcess(KHttpRequest* rq, kfiber** post_fi
 {
 	rq->ctx->know_length = 0;
 	rq->ctx->left_read = -1;
-	pop_header.keep_alive_time_out = 0;
 	rq->ctx->upstream_connection_keep_alive = 1;
 	rq->ctx->upstream_expected_done = 0;
 	if (brd == NULL) {
@@ -199,7 +198,7 @@ KGL_RESULT KAsyncFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_o
 	}
 	if (result == KGL_ECAN_RETRY_SOCKET_BROKEN) {
 		result = upstream_is_error(rq, STATUS_GATEWAY_TIMEOUT, "cann't send protocol header");
-	} else if (result == KGL_OK) {
+	} else if (result == KGL_OK && client) {
 		client->health(HealthStatus::Success);
 	}
 	if (post_fiber == NULL) {
@@ -571,6 +570,9 @@ KGL_RESULT KAsyncFetchObject::ParseBody(KHttpRequest* rq, char** data, char* end
 	if (len == 0) {
 		return KGL_OK;
 	}
+	//printf("ParseBody len=[%d]\n", len);
+	//fwrite(*data, 1, len, stdout);
+	//printf("\n");
 	KGL_RESULT result = PushBody(rq, out, *data, (int)len);
 	(*data) += len;
 	return result;
