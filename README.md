@@ -1,4 +1,5 @@
 # kangle
+<img src="webadmin/logo.gif" alt="kangle logo"/>
 
 kangle is a light, high-performance web server/reverse proxy.include a http manage console. Full support access control. memory/disk cache. and more kangle web server features
 * fastcgi/http/http2 protocol upstream
@@ -10,17 +11,49 @@ kangle is a light, high-performance web server/reverse proxy.include a http mana
 * xml config file
 * on the fly gzip/br2
 * dso extend.
+* http3 support.
 
 ## build from source code
 kangle use cmake to build.
 ```
 git clone https://gitee.com/keengo/kangle
 cd kangle
-git submodule init
-git submodule update
+git submodule init && git submodule update
 mkdir build
 cd build
 cmake ..
 make
 ```
-## build for windows.
+## build with http3 support
+```
+
+git clone https://github.com/litespeedtech/lsquic
+cd lsquic && git submodule init && git submodule update
+cd ..
+git clone https://github.com/google/boringssl
+
+git clone https://gitee.com/keengo/kangle
+cd kangle
+git submodule init && git submodule update
+mkdir build
+cd build
+cmake .. -DBORINGSSL_DIR=../../boringssl -DLSQUIC_DIR=../../lsquic
+make
+```
+## full stack test
+note kangle test need golang support
+### build test 
+```
+cd test
+./build.sh
+```
+### run test
+./test.sh
+
+## cmake options
+### brotli support.
+`cmake .. -DENABLE_BROTLI=ON`
+### build release
+`cmake .. -DCMAKE_BUILD_TYPE=Release`
+### use boringssl
+`cmake .. -DBORINGSSL_DIR=boringssl_dir`
