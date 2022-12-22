@@ -23,7 +23,7 @@ var Http3Client *http.Client
 var HttpAutoClient *http.Client
 
 const (
-	HTTP_TIME_OUT = 5
+	HTTP_TIME_OUT = 30
 )
 
 func InitClient(keepAlive bool) {
@@ -82,14 +82,16 @@ func detectorCheckRedirect(req *http.Request, via []*http.Request) error {
 
 type ClientCheckBack func(resp *http.Response, err error)
 
-func skipBody(resp *http.Response) (total_read int64) {
-	buf := make([]byte, 4096)
+func skipBody(resp *http.Response, report chan int) (total_read int64) {
+	buf := make([]byte, 16384)
 	for {
-		n, _ := resp.Body.Read(buf)
+		n, err := resp.Body.Read(buf)
 		if n <= 0 {
+			fmt.Printf("read length=[%d] err=[%v]\n", n, err)
 			return
 		}
-		total_read += (int64)(n)
+		total_read += int64(n)
+		report <- n
 	}
 }
 func Read(resp *http.Response) string {
@@ -210,10 +212,11 @@ func Get(path string, header map[string]string, cb ClientCheckBack) {
 func Head(path string, header map[string]string, cb ClientCheckBack) {
 	Request("HEAD", path, "", header, cb)
 }
-func Bench(method string, url string, header map[string]string, count int) (total_read int64, success_count int) {
+func Bench(method string, url string, header map[string]string, count int, report chan int) (success_count int) {
 	req, err := http.NewRequest(method, url, nil)
+
 	if err != nil {
-		return 0, 0
+		return 0
 	}
 	for k, v := range header {
 		req.Header.Add(k, v)
@@ -230,8 +233,7 @@ func Bench(method string, url string, header map[string]string, count int) (tota
 	for n := 0; n < count; n++ {
 		resp, _ := client.Do(req)
 		if resp != nil {
-			body_read := skipBody(resp)
-			total_read += body_read
+			body_read := skipBody(resp, report)
 			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 				if body_read == resp.ContentLength {
 					success_count++
