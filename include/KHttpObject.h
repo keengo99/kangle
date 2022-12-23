@@ -38,6 +38,11 @@ class KHttpObjectHash;
 #define BIG_OBJECT_PROGRESS 2
 #endif
 #define SWAPING_OBJECT      3
+inline void kgl_safe_copy_body_data(KHttpObjectBodyData* dst, KHttpObjectBodyData* src)
+{
+	//must not override dst->type
+	memcpy(dst, src, offsetof(KHttpObjectBodyData, type));
+}
 /**
  * httpobject的信息主体
  */
@@ -51,7 +56,7 @@ public:
 		if (headers) {
 			free_header_list(headers);
 		}
-		switch(type){
+		switch(i.type){
 		case MEMORY_OBJECT:
 			if (bodys) {
 				destroy_kbuf(bodys);
@@ -64,14 +69,13 @@ public:
 			}
 			break;
 #endif
-		//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
 		case BIG_OBJECT_PROGRESS:
 			if (sbo) {
 				delete sbo;
 			}
 			break;
-#endif//}}
+#endif
 		case BIG_OBJECT:
 			assert(bodys == NULL);
 			break;
@@ -84,18 +88,16 @@ public:
 	bool restore_header(KHttpObject *obj,char *buf, int len);
 	void create_type(HttpObjectIndex *index);
 #endif
-	unsigned short status_code;
-	unsigned short type;
+	KHttpObjectBodyData i;
 	KHttpHeader *headers; /* headers */
 	union {
 		kbuf *bodys;
 #ifdef ENABLE_DISK_CACHE
 		KHttpObjectSwaping *os;
 #endif
-		//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
 		KSharedBigObject *sbo;
-#endif//}}
+#endif
 	};
 };
 
@@ -154,6 +156,7 @@ public:
 		if (!KBIT_TEST(index.flags, ANSW_HAS_CONTENT_RANGE)) {
 			return false;
 		}
+		assert(data);
 		return rq->ctx->content_range_length==index.content_length;
 	}
 	inline char *getCharset()
@@ -246,16 +249,16 @@ public:
 	//强制缓存
 	bool force_cache(bool insertLastModified=true)
 	{
-		if (!status_code_can_cache(data->status_code)) {
+		if (!status_code_can_cache(data->i.status_code)) {
 			return false;
 		}
 		KBIT_CLR(index.flags,ANSW_NO_CACHE|OBJ_MUST_REVALIDATE);
 		if (!KBIT_TEST(index.flags,ANSW_LAST_MODIFIED|OBJ_HAS_ETAG)) {
-			index.last_modified = kgl_current_sec;
+			data->i.last_modified = kgl_current_sec;
 			if (insertLastModified) {
 				char *tmp_buf = (char *)malloc(41);
 				memset(tmp_buf, 0, 41);
-				mk1123time(index.last_modified, tmp_buf, 41);
+				mk1123time(data->i.last_modified, tmp_buf, 41);
 				insertHttpHeader2(strdup("Last-Modified"),sizeof("Last-Modified")-1,tmp_buf,29);
 			}
 			KBIT_SET(index.flags,ANSW_LAST_MODIFIED);
@@ -271,7 +274,7 @@ public:
 		return rq->sink->data.meth == METH_HEAD;
 	}
 	bool checkNobody() {
-		if (is_status_code_no_body(data->status_code)) {
+		if (is_status_code_no_body(data->i.status_code)) {
 			KBIT_SET(index.flags,FLAG_NO_BODY);
 			return true;
 		}
@@ -295,7 +298,7 @@ public:
 	inline INT64 GetMemorySize()
 	{
 		INT64 size = GetHeaderSize();
-		if (data && data->type == MEMORY_OBJECT) {
+		if (data && data->i.type == MEMORY_OBJECT) {
 			size += index.content_length;
 		}
 		return size;

@@ -24,7 +24,7 @@ static KMutex indexLock;
 KHttpObjectBody::KHttpObjectBody(KHttpObjectBody *data)
 {
 	memset(this, 0, sizeof(KHttpObjectBody));
-	status_code = data->status_code;	
+	kgl_safe_copy_body_data(&i, &data->i);
 	KHttpHeader *hot = headers;
 	KHttpHeader *tmp = data->headers;
 	while (tmp) {
@@ -109,8 +109,6 @@ KHttpObject::KHttpObject(KHttpRequest *rq,KHttpObject *obj)
 	KBIT_CLR(index.flags,FLAG_IN_DISK|OBJ_IS_READY|OBJ_IS_STATIC2|FLAG_NO_BODY|ANSW_HAS_CONTENT_LENGTH|ANSW_HAS_CONTENT_RANGE);
 	KBIT_SET(index.flags,FLAG_IN_MEM);
 	index.last_verified = obj->index.last_verified;
-	index.last_modified = obj->index.last_modified;
-	index.max_age = obj->index.max_age;
 	data = new KHttpObjectBody(obj->data);
 }
 KHttpObject::~KHttpObject() {
@@ -171,17 +169,17 @@ void KHttpObjectBody::create_type(HttpObjectIndex *index)
 	//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
 	if (KBIT_TEST(index->flags, FLAG_BIG_OBJECT_PROGRESS)) {
-		this->type = BIG_OBJECT_PROGRESS;
+		this->i.type = BIG_OBJECT_PROGRESS;
 		this->sbo = new KSharedBigObject;
 		//this->sbo->setBodyStart(index->head_size);
 		return;
 	}
 #endif//}}
 	if (index->content_length >= conf.max_cache_size) {
-		this->type = BIG_OBJECT;
+		this->i.type = BIG_OBJECT;
 		return;
 	}
-	this->type = MEMORY_OBJECT;
+	this->i.type = MEMORY_OBJECT;
 }
 bool KHttpObjectBody::restore_header(KHttpObject *obj, char *buffer, int len)
 {
@@ -189,7 +187,7 @@ bool KHttpObjectBody::restore_header(KHttpObject *obj, char *buffer, int len)
 	if (!is_valide_dc_sign(fileHeader)) {
 		return false;
 	}
-	if (len != (int)fileHeader->index.head_size) {
+	if (len != (int)fileHeader->dbi.index.head_size) {
 		//head_size不对
 		return false;
 	}
@@ -197,9 +195,9 @@ bool KHttpObjectBody::restore_header(KHttpObject *obj, char *buffer, int len)
 	char *hot = (char *)(fileHeader + 1);
 	//skip url
 	skipString(&hot, hotlen);
-	this->status_code = fileHeader->status_code;
-	if (this->status_code == 0) {
-		this->status_code = STATUS_OK;
+	kgl_safe_copy_body_data(&this->i, &fileHeader->body);	
+	if (this->i.status_code == 0) {
+		this->i.status_code = STATUS_OK;
 	}
 	return read_obj_head(this, &hot, hotlen);
 }
@@ -216,17 +214,15 @@ void KHttpObject::unlinkDiskFile()
 		char *url = this->uk.url->getUrl();
 		assert(url);
 		if (url) {
-			klog(KLOG_INFO, "unlink disk cache obj=[%p %x " INT64_FORMAT_HEX "] url=[%s] file=[%s] ret=[%d] errno=[%d]\n",
+			klog(KLOG_INFO, "unlink disk cache obj=[%p %x] url=[%s] file=[%s] ret=[%d] errno=[%d]\n",
 				this,
 				this->index.flags,
-				index.last_modified,
 				url,
 				name,
 				ret,
 				errno);
 			free(url);
 		}
-		//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
 		if (KBIT_TEST(index.flags,FLAG_BIG_OBJECT_PROGRESS)) {
 			KStringBuf partfile;
@@ -235,7 +231,7 @@ void KHttpObject::unlinkDiskFile()
 				klog(KLOG_ERR,"cann't unlink file[%s] errno=%d\n",partfile.getString(),errno);
 			}
 		}
-#endif//}}
+#endif
 		free(name);
 	}
 }
@@ -259,119 +255,29 @@ char *KHttpObject::getFileName(bool part)
 	}
 	return s.stealString();
 }
-#if 0
-bool KHttpObject::swapinBody(KFile *fp, KHttpObjectBody *data)
+void KHttpObject::write_file_header(KHttpObjectFileHeader *dci_header)
 {
-	assert(data->bodys == NULL && data->type == MEMORY_OBJECT);
-	INT64 left_read = index.content_length;
-	kbuf *last = NULL;
-	while (left_read>0) {
-		int this_read = (int)MIN(left_read, 16384);
-		char *buf = (char *)xmalloc(this_read);
-		if (buf == NULL) {
-			return false;
-		}
-		if (fp->read(buf, this_read) != this_read) {
-			free(buf);
-			return false;
-		}
-		kbuf *tmp = (kbuf *)malloc(sizeof(kbuf));
-		tmp->used = this_read;
-		tmp->data = buf;
-		tmp->flags = 0;
-		tmp->next = NULL;
-		if (last == NULL) {
-			data->bodys = tmp;
-		}
-		else {
-			last->next = tmp;
-		}
-		last = tmp;
-		left_read -= this_read;
-	}
-	return true;
-}
-bool KHttpObject::swapin(KHttpObjectBody *data)
-{
-	bool result = false;
-	assert(0 == KBIT_TEST(index.flags, FLAG_IN_MEM));
-	assert(data->bodys == NULL);
-	if (!is_valide_dc_head_size(index.head_size)) {
-		return false;
-	}
-	char *filename = getFileName();
-	if (filename == NULL) {
-		return false;
-	}
-	KFile fp;
-	if (!fp.open(filename, fileRead, 0)) {
-		free(filename);
-		return false;
-	}
-	char *buffer = (char *)malloc(index.head_size);
-	if (fp.read(buffer, index.head_size) != (int)index.head_size) {
-		goto failed;
-	}
-	data->create_type(&index);
-	if (!data->restore_header(this, buffer, index.head_size)) {
-		goto failed;
-	}
-	switch (data->type) {
-	case MEMORY_OBJECT:
-		if (!swapinBody(&fp, data)) {
-			goto failed;
-		}
-		break;
-		//{{ent
-#ifdef ENABLE_BIG_OBJECT_206
-	case BIG_OBJECT_PROGRESS:
-		if (!data->sbo->loadProgress(this)) {
-			goto failed;
-		}
-#endif//}}
-	default:
-		break;
-	}
-	result = true;
-	goto success;
-failed:
-	fp.close();
-	if (unlink(filename) != 0) {
-		klog(KLOG_WARNING, "cann't unlink corrupt object file [%s]\n", filename);
-	}
-	if (data->headers) {
-		free_header(data->headers);
-		data->headers = NULL;
-	}
-success:
-	if (buffer) {
-		free(buffer);
-	}
-	free(filename);
-	return result;
-}
-#endif
-void KHttpObject::write_file_header(KHttpObjectFileHeader *fileHeader)
-{
-	memset(fileHeader, 0, sizeof(KHttpObjectFileHeader));
-	kgl_memcpy(fileHeader->fix_str, CACHE_FIX_STR, sizeof(CACHE_FIX_STR));
-	kgl_memcpy(&fileHeader->index, &index, sizeof(HttpObjectIndex));
-	fileHeader->version = CACHE_DISK_VERSION;
-	fileHeader->url_flag_encoding = uk.url->flag_encoding;
-	fileHeader->status_code = data->status_code;
-	fileHeader->body_complete = 1;
-	//{{ent
+	memset(dci_header, 0, sizeof(KHttpObjectFileHeader));
+	kgl_memcpy(dci_header->fix_str, CACHE_FIX_STR, sizeof(CACHE_FIX_STR));
+
+	kgl_memcpy(&dci_header->dbi.index, &index, sizeof(HttpObjectIndex));
+	dci_header->dbi.url_flag_encoding = uk.url->flag_encoding;	
+	
+	kgl_safe_copy_body_data(&dci_header->body, &data->i);
+
+	dci_header->version = CACHE_DISK_VERSION;
+	dci_header->body_complete = 1;
 #ifdef ENABLE_BIG_OBJECT_206
 	if (KBIT_TEST(index.flags, FLAG_BIG_OBJECT_PROGRESS)) {
-		fileHeader->body_complete = 0;
+		dci_header->body_complete = 0;
 	}
-#endif//}}
+#endif
 }
 bool KHttpObject::save_dci_header(KBufferFile *fp)
 {
-	KHttpObjectFileHeader fileHeader;
-	write_file_header(&fileHeader);
-	return fp->write((char *)&fileHeader, sizeof(KHttpObjectFileHeader)) == sizeof(KHttpObjectFileHeader);
+	KHttpObjectFileHeader dci_header;
+	write_file_header(&dci_header);
+	return fp->write((char *)&dci_header, sizeof(KHttpObjectFileHeader)) == sizeof(KHttpObjectFileHeader);
 }
 char *KHttpObject::build_aio_header(int &len)
 {
@@ -449,10 +355,9 @@ bool KHttpObject::swapout(KBufferFile *file,bool fast_model)
 		buffer_size = KGL_MAX_BUFFER_FILE_SIZE;
 	}
 	filename = getFileName();
-	klog(KLOG_INFO, "swap out obj=[%p %x %x] url=[%s] to file [%s]\n",
+	klog(KLOG_INFO, "swap out obj=[%p %x] url=[%s] to file [%s]\n",
 		this,
 		index.flags,
-		index.last_modified,
 		url,
 		filename);
 	kassert(!file->opened());
@@ -465,9 +370,8 @@ bool KHttpObject::swapout(KBufferFile *file,bool fast_model)
 	if (!save_header(file, url, url_len)) {
 		goto swap_out_failed;
 	}
-	//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
-	if (data->type == BIG_OBJECT_PROGRESS) {
+	if (data->i.type == BIG_OBJECT_PROGRESS) {
 		/*
 		if (!data->sbo->saveProgress(this)) {
 			klog(KLOG_ERR, "save obj progress failed file=[%s].\n", filename);
@@ -476,13 +380,13 @@ bool KHttpObject::swapout(KBufferFile *file,bool fast_model)
 		goto swap_out_success;
 		*/
 	}
-#endif//}}
+#endif
 	if (KBIT_TEST(index.flags, FLAG_IN_DISK)) {
 		//内容已经有，无需
 		goto swap_out_success;
 	}
-	if (data->type != MEMORY_OBJECT) {
-		klog(KLOG_ERR, "swapout failed obj type=[%d],file=[%s].\n", data->type,filename);
+	if (data->i.type != MEMORY_OBJECT) {
+		klog(KLOG_ERR, "swapout failed obj type=[%d],file=[%s].\n", data->i.type,filename);
 		goto swap_out_failed;
 	}
 	tmp = data->bodys;

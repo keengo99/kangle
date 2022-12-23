@@ -34,8 +34,8 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest* rq, KHt
 		return kgl_header_success;
 	}
 	if (kgl_mem_case_same(attr, attr_len, _KS("Last-Modified"))) {
-		obj->index.last_modified = kgl_parse_http_time((u_char*)val, val_len);
-		if (obj->index.last_modified > 0) {
+		obj->data->i.last_modified = kgl_parse_http_time((u_char*)val, val_len);
+		if (obj->data->i.last_modified > 0) {
 			obj->index.flags |= ANSW_LAST_MODIFIED;
 		}
 		return kgl_header_success;
@@ -80,9 +80,9 @@ kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest* rq, KHt
 #endif
 				if (field.is(_KS("public"))) {
 					KBIT_CLR(obj->index.flags, ANSW_NO_CACHE);
-				} else if (field.is(_KS("max-age="), (int*)&obj->index.max_age)) {
+				} else if (field.is(_KS("max-age="), (int*)&obj->data->i.max_age)) {
 					obj->index.flags |= ANSW_HAS_MAX_AGE;
-				} else if (field.is(_KS("s-maxage="), (int*)&obj->index.max_age)) {
+				} else if (field.is(_KS("s-maxage="), (int*)&obj->data->i.max_age)) {
 					obj->index.flags |= ANSW_HAS_MAX_AGE;
 				} else if (field.is(_KS("must-revalidate"))) {
 					obj->index.flags |= OBJ_MUST_REVALIDATE;
@@ -200,7 +200,7 @@ void KHttpResponseParser::EndParse(KHttpRequest* rq)
 		age = corrected_initial_age + resident_time;
 		if (!KBIT_TEST(rq->ctx->obj->index.flags, ANSW_HAS_MAX_AGE)
 			&& KBIT_TEST(rq->ctx->obj->index.flags, ANSW_HAS_EXPIRES)) {
-			rq->ctx->obj->index.max_age = (unsigned)(expireDate - serverDate) - age;
+			rq->ctx->obj->data->i.max_age = (unsigned)(expireDate - serverDate) - age;
 		}
 	}
 	CommitHeaders(rq);

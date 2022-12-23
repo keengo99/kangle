@@ -142,7 +142,7 @@ struct kgl_default_output_stream : public kgl_output_stream {
 
 void st_write_status(kgl_output_stream*st, KREQUEST r, int status_code)
 {
-	((KHttpRequest *)r)->ctx->obj->data->status_code = status_code;
+	((KHttpRequest *)r)->ctx->obj->data->i.status_code = status_code;
 }
 KGL_RESULT st_write_header(kgl_output_stream*st, KREQUEST r, kgl_header_type attr, const char *val, hlen_t val_len)
 {
@@ -161,9 +161,9 @@ KGL_RESULT st_write_header(kgl_output_stream*st, KREQUEST r, kgl_header_type att
 		}
 		case kgl_header_last_modified:
 		{
-			obj->index.last_modified = *(time_t *)val;
+			obj->data->i.last_modified = *(time_t *)val;
 			char tmp_buf[42];
-			mk1123time(obj->index.last_modified, tmp_buf, 41);
+			mk1123time(obj->data->i.last_modified, tmp_buf, 41);
 			KBIT_SET(obj->index.flags, ANSW_LAST_MODIFIED);
 			g->parser_ctx.AddHeader(kgl_header_type_string[attr].data, (hlen_t)kgl_header_type_string[attr].len, tmp_buf, 29);
 			return KGL_OK;

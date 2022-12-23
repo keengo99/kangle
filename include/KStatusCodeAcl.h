@@ -26,11 +26,11 @@ public:
 		if (obj && obj->data) {
 			switch (op) {
 			case ACL_OP_EQ:
-				return obj->data->status_code==code;
+				return obj->data->i.status_code==code;
 			case ACL_OP_LT:
-				return obj->data->status_code<code;
+				return obj->data->i.status_code<code;
 			case ACL_OP_GT:
-				return obj->data->status_code>code;
+				return obj->data->i.status_code>code;
 			}
 		}
 		return false;

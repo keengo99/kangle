@@ -416,8 +416,8 @@ int create_file_index(const char* file, void* param)
 		fprintf(stderr, "cann't read head size [%s]\n", file_name);
 		goto failed;
 	}
-	if (!is_valide_dc_head_size(header.index.head_size)) {
-		klog(KLOG_ERR, "disk cache [%s] head_size=[%d] is not valide\n", file_name, header.index.head_size);
+	if (!is_valide_dc_head_size(header.dbi.index.head_size)) {
+		klog(KLOG_ERR, "disk cache [%s] head_size=[%d] is not valide\n", file_name, header.dbi.index.head_size);
 		goto failed;
 	}
 	if (!is_valide_dc_sign(&header)) {
@@ -431,16 +431,15 @@ int create_file_index(const char* file, void* param)
 	}
 	*/
 	obj = new KHttpObject;
-	kgl_memcpy(&obj->index, &header.index, sizeof(obj->index));
+	kgl_memcpy(&obj->index, &header.dbi.index, sizeof(obj->index));
 	obj->dk.filename1 = f1;
 	obj->dk.filename2 = f2;
-	//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
 	if (KBIT_TEST(obj->index.flags, FLAG_BIG_OBJECT_PROGRESS)) {
 		partobjs[file] = true;
 	}
-#endif//}}
-	result = create_http_object(&fp, obj, header.url_flag_encoding, file_name);
+#endif
+	result = create_http_object(&fp, obj, header.dbi.url_flag_encoding, file_name);
 	if (result == cor_success) {
 #ifdef ENABLE_DB_DISK_INDEX
 		if (dci) {

@@ -101,12 +101,13 @@ inline bool check_object_expiration(KHttpRequest *rq,KHttpObject *obj) {
 		//有must-revalidate,则每次都要从源上验证
 		return true;
 	}
+	assert(obj->data);
 	if (obj->index.last_verified == 0) {
 		return true;
 	}
 	unsigned freshness_lifetime;
 	if (KBIT_TEST(obj->index.flags ,ANSW_HAS_MAX_AGE|ANSW_HAS_EXPIRES)){
-		freshness_lifetime = obj->index.max_age;
+		freshness_lifetime = obj->data->i.max_age;
 	} else {
 		freshness_lifetime = conf.refresh_time;
 	}

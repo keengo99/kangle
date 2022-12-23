@@ -431,7 +431,7 @@ KGL_RESULT handle_error(KHttpRequest *rq, int code, const char *msg) {
 		return send_error2(rq, code, msg);
 	}
 	KHttpObject *obj = rq->ctx->obj;
-	obj->data->status_code = code;
+	obj->data->i.status_code = code;
 	if (KBIT_TEST(rq->sink->data.flags, RQ_IS_ERROR_PAGE)) {
 		//如果本身是错误页面，又产生错误
 		return send_error2(rq, code, msg);
@@ -448,7 +448,7 @@ KGL_RESULT handle_error(KHttpRequest *rq, int code, const char *msg) {
 	const char *errorPage = errorPage2.c_str();
 	if (strncasecmp(errorPage, "http://", 7) == 0 || strncasecmp(errorPage, "https://", 8) == 0) {
 		std::stringstream s;
-		s << errorPage << "?" << obj->data->status_code << "," << rq->getInfo();
+		s << errorPage << "?" << obj->data->i.status_code << "," << rq->getInfo();
 		push_redirect_header(rq, s.str().c_str(), (int)s.str().size(), STATUS_FOUND);
 		rq->startResponseBody(0);
 		return KGL_OK;
@@ -580,9 +580,9 @@ KGL_RESULT load_object(KHttpRequest *rq)
 		if (KBIT_TEST(rq->sink->data.flags, RQ_IF_RANGE_ETAG)) {
 			context->mt = modified_if_range_etag;
 		}
-	} else if (context->old_obj && !KBIT_TEST(context->old_obj->index.flags, OBJ_NOT_OK)) {
-		if (context->old_obj->index.last_modified > 0) {
-			rq->sink->data.if_modified_since = context->old_obj->index.last_modified;
+	} else if (context->old_obj && context->old_obj->data && !KBIT_TEST(context->old_obj->index.flags, OBJ_NOT_OK)) {
+		if (context->old_obj->data->i.last_modified > 0) {
+			rq->sink->data.if_modified_since = context->old_obj->data->i.last_modified;
 		} else if (KBIT_TEST(context->old_obj->index.flags, OBJ_HAS_ETAG)) {
 			KHttpHeader *h = context->old_obj->findHeader("Etag", sizeof("Etag") - 1);
 			if (h) {
@@ -602,9 +602,8 @@ KGL_RESULT load_object(KHttpRequest *rq)
 KGL_RESULT send_memory_object(KHttpRequest *rq)
 {
 	//printf("send memory object obj=[%p]\n", rq->ctx->obj);
-	//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
-	if (rq->ctx->obj->data->type == BIG_OBJECT_PROGRESS) {
+	if (rq->ctx->obj->data->i.type == BIG_OBJECT_PROGRESS) {
 		if (rq->bo_ctx == NULL) {
 			rq->bo_ctx = new KBigObjectContext(rq->ctx->obj);
 			return rq->bo_ctx->Open(rq, false);
@@ -612,11 +611,9 @@ KGL_RESULT send_memory_object(KHttpRequest *rq)
 		assert(false);
 		//return rq->bo_ctx->send(rq);
 	}
-#endif//}}
-
-	//rq->CloseFetchObject();
+#endif
 #ifdef ENABLE_BIG_OBJECT
-	if (rq->ctx->obj->data->type == BIG_OBJECT) {
+	if (rq->ctx->obj->data->i.type == BIG_OBJECT) {
 		KFetchObject* fo = new KFetchBigObject();
 		rq->AppendFetchObject(fo);
 		return fo->Open(rq,NULL,NULL);
@@ -651,7 +648,7 @@ KGL_RESULT send_cache_object(KHttpRequest *rq, KHttpObject *obj)
 	//rq->sink->data.status_code = STATUS_OK;
 	bool not_modifed = false;
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_IF_MOD_SINCE | RQ_IF_RANGE_DATE)) {
-		time_t useTime = obj->index.last_modified;
+		time_t useTime = obj->data->i.last_modified;
 		if (useTime <= 0) {
 			useTime = obj->index.last_verified;
 		}
@@ -703,11 +700,11 @@ swap_in_result swap_in_object(KHttpRequest *rq, KHttpObject *obj)
 #ifdef ENABLE_DISK_CACHE
 			KHttpObjectSwaping *obj_swap = new KHttpObjectSwaping;
 			obj->data = new KHttpObjectBody();
-			obj->data->type = SWAPING_OBJECT;
+			obj->data->i.type = SWAPING_OBJECT;
 			obj->data->os = obj_swap;
 			//obj->data->os->addTask(rq, processCacheReadyRequest);
 			lock->Unlock();
-			return obj_swap->SwapIn(rq, obj);
+			return obj_swap->swapin(rq, obj);
 #else
 			lock->Unlock();
 			KBIT_SET(obj->index.flags, FLAG_DEAD);
@@ -716,11 +713,11 @@ swap_in_result swap_in_object(KHttpRequest *rq, KHttpObject *obj)
 			return swap_in_failed_other;
 #endif
 #ifdef ENABLE_DISK_CACHE
-		} else if (obj->data->type == SWAPING_OBJECT) {
+		} else if (obj->data->i.type == SWAPING_OBJECT) {
 			//已经有其它线程在swap
 			KHttpObjectSwaping *os = obj->data->os;
 			assert(os);
-			return os->Wait(lock);
+			return os->wait(lock);
 #endif
 		}
 		lock->Unlock();
@@ -836,29 +833,15 @@ KGL_RESULT on_upstream_finished_header(KHttpRequest *rq)
 	KContext *context = rq->ctx;
 	//KHttpRequest *rq = context->rq;
 	KHttpObject *obj = rq->ctx->obj;
-	if (obj->data->status_code == 0) {
+	if (obj->data->i.status_code == 0) {
 		//如果status没有设置，设置为200
-		obj->data->status_code = STATUS_OK;
+		obj->data->i.status_code = STATUS_OK;
 	}
-	int status_code = obj->data->status_code;
+	uint16_t status_code = obj->data->i.status_code;
 	if (status_code != STATUS_OK && status_code != STATUS_CONTENT_PARTIAL) {
 		KBIT_SET(obj->index.flags, ANSW_NO_CACHE | OBJ_NOT_OK);
 	}
 	if (checkResponse(rq, obj) == JUMP_DENY) {
-#if 0
-		if (rq->sink->HasHeaderDataToSend()) {
-			//{{ent
-#ifdef ENABLE_BIG_OBJECT_206
-			if (rq->bo_ctx) {
-				return rq->bo_ctx->handleError(rq, rq->sink->data.status_code, "");
-			}
-#endif//}}
-			rq->closeFetchObject();
-			rq->startResponseBody(-1);
-			return stageEndRequest(rq);
-		}
-		return	stageError(rq, STATUS_FORBIDEN, "access denied by response control");
-#endif
 		return KGL_EDENIED;
 	}
 	obj->checkNobody();
@@ -887,7 +870,6 @@ KGL_RESULT on_upstream_finished_header(KHttpRequest *rq)
 			rq->ctx->no_body = true;
 			return KGL_NO_BODY;
 		}
-		//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
 		if (rq->bo_ctx) {
 			bool big_obj_dead;
@@ -896,7 +878,7 @@ KGL_RESULT on_upstream_finished_header(KHttpRequest *rq)
 				return result;
 			}
 		}
-		assert(obj->data->type == MEMORY_OBJECT);
+		assert(obj->data->i.type == MEMORY_OBJECT);
 		//普通请求
 		if (rq->sink->data.meth == METH_GET
 			&& conf.cache_part
@@ -909,7 +891,7 @@ KGL_RESULT on_upstream_finished_header(KHttpRequest *rq)
 				}
 			}
 		}
-#endif//}}
+#endif
 		rq->ctx->DeadOldObject();
 		if (status_code == STATUS_CONTENT_PARTIAL && !obj->IsContentRangeComplete(rq)) {
 			//强行设置206不缓存

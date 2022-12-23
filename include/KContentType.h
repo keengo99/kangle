@@ -66,8 +66,8 @@ struct mime_type
 		default:
 			break;
 		}
-		if (max_age>0) {
-			obj->index.max_age = max_age;
+		if (max_age>0 && obj->data) {
+			obj->data->i.max_age = max_age;
 			KBIT_SET(obj->index.flags,ANSW_HAS_MAX_AGE);
 		}
 		return strdup(type);

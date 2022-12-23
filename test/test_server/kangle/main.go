@@ -27,6 +27,10 @@ func ReloadConfig() {
 	resp, _ := common.Http1Client.Get("http://127.0.0.1:9911/reload_config")
 	common.Assert("reload_config", resp.StatusCode == 200)
 }
+func FlushDiskCache() {
+	resp, _ := common.Http1Client.Get("http://127.0.0.1:9911/flush_disk_cache.km")
+	common.Assert("reload_config", resp.StatusCode == 200)
+}
 func CreateExtConfig(name string, content string) error {
 	file := config.Cfg.BasePath + "/ext/" + name + ".xml"
 	fmt.Printf("create ext file [%s]\n", file)

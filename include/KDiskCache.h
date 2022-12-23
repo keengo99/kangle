@@ -7,28 +7,9 @@
 #include <stdio.h>
 #include "kasync_file.h"
 #include <list>
-//#define INDEX_STATE_UNCLEAN 0
-//#define INDEX_STATE_CLEAN   1
-#define CACHE_DISK_VERSION  3
+#define CACHE_DISK_VERSION  4
 #define CACHE_FIX_STR      "HXJW"
-#if 0
-struct HttpObjectIndexHeader
-{
-	int head_size;
-	int version;
-	int object_count;
-	int state;
-	int block_size;
-	union {
-		char reserv[8];
-		struct {
-			short cache_dir_mask1;
-			short cache_dir_mask2;
-			char reserv2[4];
-		};
-	};
-};
-#endif
+#pragma pack(push,4)
 struct KHttpObjectKey
 {
 	unsigned filename1;//从kgl_current_sec得到
@@ -36,27 +17,33 @@ struct KHttpObjectKey
 };
 struct HttpObjectIndex
 {
-	unsigned head_size;
-	unsigned flags;
-	INT64 content_length; //obj的总长度
-	time_t last_modified;
-	time_t last_verified;	
-	unsigned max_age;
-};
-struct KHttpObjectFileHeader
-{
-	char fix_str[4];
-	uint8_t version;
-	uint8_t body_complete;
-	uint16_t status_code;
-	uint32_t url_flag_encoding;
-	HttpObjectIndex index;
+	uint32_t head_size;
+	uint32_t flags;
+	int64_t  content_length; /* obj content_length */
+	time_t last_verified;
 };
 struct KHttpObjectDbIndex
 {
+	uint32_t url_flag_encoding;	
 	HttpObjectIndex index;
-	uint32_t url_flag_encoding;
 };
+struct KHttpObjectBodyData
+{
+	time_t last_modified;	
+	uint32_t max_age;
+	uint16_t status_code;
+	uint16_t type;
+};
+struct KHttpObjectFileHeader
+{
+	u_char fix_str[4];	
+	uint8_t version;
+	uint8_t body_complete;
+	u_char reverv[2];
+	KHttpObjectDbIndex dbi;
+	KHttpObjectBodyData body;
+};
+#pragma pack(pop)
 struct index_scan_state_t
 {
 	int first_index;

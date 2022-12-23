@@ -436,7 +436,7 @@ bool test() {
 	//test_http_parser();
 	//printf("sizeof(KHttpRequest)=%d\n",sizeof(KHttpRequest));
 	//	test_pipe();
-	//printf("sizeof(obj)=%d,%d\n", (int)sizeof(KHttpObject), (int)sizeof(HttpObjectIndex));
+	printf("sizeof(KHttpObjectFileHeader)=%d,sizeof(KHttpObjectBody)=[%d]\n", (int)sizeof(KHttpObjectFileHeader),sizeof(KHttpObjectBody));
 	//printf("sizeof(selectable)=[%d]\n", (int)sizeof(kselectable));
 	time_t nowTime = time(NULL);
 	char timeStr[41];

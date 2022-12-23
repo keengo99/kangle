@@ -17,7 +17,7 @@ KGL_RESULT handle_bigobject_progress(KHttpRequest* rq, KHttpObject* obj)
 KGL_RESULT turn_on_bigobject(KHttpRequest *rq,KHttpObject *obj)
 {
 	rq->ctx->DeadOldObject();
-	kassert(obj->data->type == MEMORY_OBJECT);
+	kassert(obj->data->i.type == MEMORY_OBJECT);
 	kassert(rq->ctx->new_object);
 	kassert(obj->refs==1);
 	kassert(obj->data->bodys == NULL);
@@ -25,9 +25,9 @@ KGL_RESULT turn_on_bigobject(KHttpRequest *rq,KHttpObject *obj)
 	É¾³ıhttpobject->data->bodys
 	*/
 	//kbuf *bodys = obj->data->bodys;
-	obj->data->type = BIG_OBJECT_PROGRESS;
+	obj->data->i.type = BIG_OBJECT_PROGRESS;
 	obj->data->sbo = new KSharedBigObject;
-	if (obj->data->status_code == STATUS_OK) {
+	if (obj->data->i.status_code == STATUS_OK) {
 		KBIT_CLR(rq->sink->data.flags,RQ_HAVE_RANGE);
 		rq->sink->data.range_from = 0;
 		rq->sink->data.range_to = -1;

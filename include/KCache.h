@@ -234,7 +234,7 @@ public:
 			while (obj) {
 				if (KBIT_TEST(obj->index.flags,FLAG_IN_DISK) && obj->dc_index_update) {
 					obj->dc_index_update = 0;
-					if (dci) {
+					if (dci && obj->data) {
 						dci->start(ci_update,obj);
 					}
 				}

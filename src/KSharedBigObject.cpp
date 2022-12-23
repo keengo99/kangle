@@ -313,7 +313,7 @@ void KSharedBigObject::CloseWrite(KHttpObject* obj, INT64 range_from)
 		KBIT_CLR(nobj->index.flags, FLAG_BIG_OBJECT_PROGRESS);
 		assert(nobj->data == NULL);
 		nobj->data = new KHttpObjectBody(obj->data);
-		nobj->data->type = BIG_OBJECT;
+		nobj->data->i.type = BIG_OBJECT;
 		nobj->dc_index_update = 1;
 		bool cache_result = cache.add(nobj, LIST_IN_MEM);
 		char*aio_buffer = NULL;
@@ -347,7 +347,7 @@ void KSharedBigObject::CloseWrite(KHttpObject* obj, INT64 range_from)
 }
 bool KSharedBigObject::Open(KHttpRequest* rq, KHttpObject* obj, bool create_flag)
 {
-	assert(obj->data->type == BIG_OBJECT_PROGRESS);
+	assert(obj->data->i.type == BIG_OBJECT_PROGRESS);
 	char *filename = obj->getFileName();
 	if (filename == NULL) {
 		return false;
@@ -369,7 +369,7 @@ bool KSharedBigObject::Open(KHttpRequest* rq, KHttpObject* obj, bool create_flag
 			obj->removeHttpHeader("Content-Range");
 			obj->index.content_length = rq->ctx->content_range_length;
 		}
-		obj->data->status_code = STATUS_OK;
+		obj->data->i.status_code = STATUS_OK;
 		KBIT_CLR(obj->index.flags, OBJ_NOT_OK);
 		KBIT_SET(obj->index.flags, OBJ_IS_READY | FLAG_IN_DISK | FLAG_BIG_OBJECT_PROGRESS);
 		int size;

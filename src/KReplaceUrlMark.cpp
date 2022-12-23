@@ -54,7 +54,7 @@ bool KReplaceUrlMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJu
 	param->rq = rq;
 	filter->setHook(replaceUrlCallBack,replaceUrlEndCallBack,param,url_tag);
 	rq->getOutputFilterContext()->registerFilterStream(filter,true);
-	if (location && obj->data->status_code>=300 && obj->data->status_code<400) {
+	if (location && obj->data->i.status_code>=300 && obj->data->i.status_code<400) {
 		//rewrite location
 		KHttpHeader *header = obj->data->headers;
 		while (header) {

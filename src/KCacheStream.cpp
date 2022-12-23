@@ -38,9 +38,9 @@ StreamState KCacheStream::write_end(void *arg, KGL_RESULT result)
 		have_cache = true;
 	}
 #endif
-	if (have_cache && obj->data->status_code == STATUS_CONTENT_PARTIAL) {
+	if (have_cache && obj->data->i.status_code == STATUS_CONTENT_PARTIAL) {
 		kassert(obj->IsContentRangeComplete(rq));
-		obj->data->status_code = STATUS_OK;
+		obj->data->i.status_code = STATUS_OK;
 		obj->removeHttpHeader("Content-Range");
 		KBIT_CLR(obj->index.flags, ANSW_HAS_CONTENT_RANGE);
 	}
@@ -53,7 +53,7 @@ StreamState KCacheStream::write_end(void *arg, KGL_RESULT result)
 		if (disk_cache->Close(obj)) {
 			kassert(obj->data->bodys == NULL);
 			KBIT_SET(obj->index.flags, OBJ_IS_READY | FLAG_IN_DISK);
-			obj->data->type = BIG_OBJECT;
+			obj->data->i.type = BIG_OBJECT;
 		}
 	}
 #endif

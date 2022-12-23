@@ -136,6 +136,7 @@ func init() {
 	s.AddCase("websocket_h2", "websocket和h2", test_upstream_h2_websocket)
 	s.AddCase("head", "head method", test_head_method)
 	s.AddCase("broken_no_cache", "连接中断不能缓存", check_broken_no_cache)
+	s.AddCase("disk_cache", "磁盘缓存swap out/in", check_disk_cache)
 	s.AddCase("upstream_http_protocol", "测试上游http协议解析", check_upstream_http_protocol)
 	s.AddCase("fastcgi", "fastcgi协议测试", check_fastcgi)
 	//s.AddCase("h3_method", "h3 method", test_h3_method)

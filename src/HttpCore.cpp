@@ -300,13 +300,13 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 	send_len = content_len;
 	assert(!KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER));
 	//KBIT_SET(rq->sink->data.flags,RQ_HAS_SEND_HEADER);
-	if (obj->data->status_code == 0) {
-		obj->data->status_code = STATUS_OK;
+	if (obj->data->i.status_code == 0) {
+		obj->data->i.status_code = STATUS_OK;
 	}
 	bool build_first = true;
 	bool send_obj_header = true;
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAVE_RANGE)
-		&& obj->data->status_code == STATUS_OK
+		&& obj->data->i.status_code == STATUS_OK
 		&& content_len > 0) {
 		send_len = content_len;
 		if (!rq->sink->adjust_range(&send_len)) {
@@ -335,7 +335,7 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 		}
 	}
 	if (build_first) {
-		uint16_t status_code = obj->data->status_code;
+		uint16_t status_code = obj->data->i.status_code;
 		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED) && rq->sink->data.status_code == STATUS_CONTENT_PARTIAL) {
 			//如果请求是url模拟range，则强制转换206的回应为200
 			status_code = STATUS_OK;
@@ -523,7 +523,7 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KAccess** h
 	}
 done:
 	if (!result) {
-		if (rq->ctx->obj->data->status_code == 0) {
+		if (rq->ctx->obj->data->i.status_code == 0) {
 			error->set(STATUS_NOT_FOUND, "No such file or directory.");
 		}
 		return NULL;

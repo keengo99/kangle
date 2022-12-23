@@ -26,7 +26,7 @@ KCompressStream *create_compress_stream(KHttpRequest *rq, KHttpObject *obj, int6
 	}
 	//status_code是206，表示是部分内容时也不压缩,或者是200回应，但用了url ranged技术
 	//注：这种情况没有经过详细考证
-	if (obj->data->status_code == STATUS_CONTENT_PARTIAL
+	if (obj->data->i.status_code == STATUS_CONTENT_PARTIAL
 		|| KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED)) {
 		return NULL;
 	}

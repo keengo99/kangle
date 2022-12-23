@@ -77,7 +77,7 @@ swap_in_result KHttpObjectSwaping::swapin_head(kfiber_file* fp, KHttpObject* obj
 		goto clean;
 	}
 #ifdef ENABLE_BIG_OBJECT_206
-	if (data->type == BIG_OBJECT_PROGRESS) {
+	if (data->i.type == BIG_OBJECT_PROGRESS) {
 		result = swapin_proress(obj, data);
 	}
 #endif
@@ -105,7 +105,8 @@ swap_in_result KHttpObjectSwaping::swapin_head_body(kfiber_file* fp, KHttpObject
 		}
 		hot += got;
 		buf_left -= got;
-		if (data->status_code == 0) {
+		left_read -= got;
+		if (data->i.status_code == 0) {
 			int buf_size = (int)(hot - buf);
 			if (buf_size < (int)obj->index.head_size) {
 				continue;
@@ -125,7 +126,7 @@ clean:
 	aio_free_buffer(buf);
 	return result;
 }
-swap_in_result KHttpObjectSwaping::SwapIn(KHttpRequest* rq, KHttpObject* obj)
+swap_in_result KHttpObjectSwaping::swapin(KHttpRequest* rq, KHttpObject* obj)
 {
 	KHttpObjectBody* data = NULL;
 	char* filename = obj->getFileName();
@@ -141,23 +142,22 @@ swap_in_result KHttpObjectSwaping::SwapIn(KHttpRequest* rq, KHttpObject* obj)
 	}
 	data = new KHttpObjectBody();
 	data->create_type(&obj->index);
-	//{{ent
 #ifdef ENABLE_BIG_OBJECT
-	if (data->type != MEMORY_OBJECT) {
+	if (data->i.type != MEMORY_OBJECT) {
 		result = swapin_head(file, obj, data);
 		goto clean;
 	}
-#endif//}}
+#endif
 	result = swapin_head_body(file, obj, data);
 clean:
 	if (file) {
 		kfiber_file_close(file);
 	}
 	free(filename);
-	this->Notice(obj, data, result);
+	this->notice(obj, data, result);
 	return result;
 }
-swap_in_result KHttpObjectSwaping::Wait(KMutex* lock)
+swap_in_result KHttpObjectSwaping::wait(KMutex* lock)
 {
 	kfiber* fiber = kfiber_self();
 	KHttpObjectSwapWaiter* waiter = new KHttpObjectSwapWaiter;
@@ -169,9 +169,9 @@ swap_in_result KHttpObjectSwaping::Wait(KMutex* lock)
 	lock->Unlock();
 	return (swap_in_result)__kfiber_wait(fiber, this);
 }
-void KHttpObjectSwaping::Notice(KHttpObject* obj, KHttpObjectBody* data, swap_in_result result)
+void KHttpObjectSwaping::notice(KHttpObject* obj, KHttpObjectBody* data, swap_in_result result)
 {
-	assert(obj->data->type == SWAPING_OBJECT);
+	assert(obj->data->i.type == SWAPING_OBJECT);
 	KHttpObjectBody* osData = obj->data;
 	assert(osData && osData->os == this);
 	KMutex* lock = obj->getLock();
@@ -184,7 +184,7 @@ void KHttpObjectSwaping::Notice(KHttpObject* obj, KHttpObjectBody* data, swap_in
 	}
 	lock->Unlock();
 	if (result == swap_in_success) {
-		kassert(obj->data->status_code > 0);
+		kassert(obj->data->i.status_code > 0);
 		cache.getHash(obj->h)->IncMemObjectSize(obj);
 	}
 	KHttpObjectSwapWaiter* next;
