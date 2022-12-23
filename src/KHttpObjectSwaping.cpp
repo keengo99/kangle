@@ -105,6 +105,7 @@ swap_in_result KHttpObjectSwaping::swapin_head_body(kfiber_file* fp, KHttpObject
 		}
 		hot += got;
 		buf_left -= got;
+		left_read -= got;
 		if (data->status_code == 0) {
 			int buf_size = (int)(hot - buf);
 			if (buf_size < (int)obj->index.head_size) {
