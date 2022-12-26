@@ -61,7 +61,7 @@ uint32_t KFetchObject::CheckResult(KHttpRequest* rq, uint32_t result)
 KGL_RESULT KFetchObject::PushBody(KHttpRequest *rq, kgl_output_stream *out, const char *buf, int len)
 {
 	if (!KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE) && rq->ctx->know_length) {
-		len = (int)MIN(rq->ctx->left_read, (INT64)len);
+		len = (int)KGL_MIN(rq->ctx->left_read, (INT64)len);
 		rq->ctx->left_read -= len;
 	}
 	return out->f->write_body(out, rq, buf, len);

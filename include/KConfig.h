@@ -45,6 +45,8 @@
 #include "extern.h"
 #include "kasync_worker.h"
 #include "kgl_ssl.h"
+#include "khttp.h"
+
 #define AUTOUPDATE_OFF    0
 #define AUTOUPDATE_ON   1
 #define AUTOUPDATE_DOWN   2

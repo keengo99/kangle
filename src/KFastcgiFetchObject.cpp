@@ -289,7 +289,7 @@ char* KFastcgiFetchObject::parse_fcgi_header(char** str, char* end, bool full)
 		//(*str) += header->paddingLength;
 	}
 	size_t len = end - *str;
-	int packet_length = MIN((int)len, body_len);
+	int packet_length = KGL_MIN((int)len, body_len);
 	body_len -= packet_length;
 	char* body = (*str);
 	(*str) += packet_length;

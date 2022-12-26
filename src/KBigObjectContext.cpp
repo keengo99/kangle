@@ -49,7 +49,7 @@ KGL_RESULT KBigObjectContext::ReadBody(KHttpRequest* rq)
 	char* buf = (char*)malloc(block_length);
 	int retried = 0;
 	while (left_read > 0) {
-		int got = sbo->Read(rq, gobj, buf, range_from, (int)MIN((INT64)block_length,left_read));
+		int got = sbo->Read(rq, gobj, buf, range_from, (int)KGL_MIN((INT64)block_length,left_read));
 		//printf("left_read=[" INT64_FORMAT "],range_from=[" INT64_FORMAT "] got=[%d]\n", left_read, range_from, got);
 		if (got == -2) {
 			//ашвЊжиЪд

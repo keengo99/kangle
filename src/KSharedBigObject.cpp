@@ -216,7 +216,7 @@ retry:
 		//有数据
 		have_data = true;
 		INT64 block_length = block->file_block.to - from;
-		length = (int)MIN((INT64)length, block_length);
+		length = (int)KGL_MIN((INT64)length, block_length);
 	} else {
 		//没有数据,加入到等待队列中。
 		/*
@@ -459,7 +459,7 @@ KGL_RESULT KSharedBigObject::Write(KHttpObject *obj, INT64 range_from, const cha
 		INT64 buf_start = (*it)->from - range_from;
 		assert(buf_start >= 0);
 		INT64 block_length = (INT64)length - buf_start;
-		block_length = MIN((INT64)(*it)->length, block_length);
+		block_length = KGL_MIN((INT64)(*it)->length, block_length);
 		memcpy((*it)->buf, buf + (int)buf_start, (int)block_length);
 		kfiber_wakeup2((*it)->selector, (*it)->rq, (*it)->buf, (int)block_length);
 		delete (*it);

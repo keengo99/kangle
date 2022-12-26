@@ -121,7 +121,7 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_output_stre
 		return KGL_ENO_MEMORY;
 	}
 	while (rq->ctx->left_read > 0) {
-		int len = (int)MIN(rq->ctx->left_read, (INT64)buf_size);
+		int len = (int)KGL_MIN(rq->ctx->left_read, (INT64)buf_size);
 		int read_len = kfiber_file_read(fp, buf, len);
 		if (read_len <= 0) {
 			result = KGL_EIO;

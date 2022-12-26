@@ -27,7 +27,7 @@ bool KDiskCacheStream::Write(KHttpRequest *rq, KHttpObject *obj, const char *buf
 			buffer = (char *)aio_alloc_buffer(buffer_left);
 			hot = buffer;
 		}
-		int this_len = MIN(buffer_left, len);
+		int this_len = KGL_MIN(buffer_left, len);
 		memcpy(hot, buf, this_len);
 		hot += this_len;
 		buf += this_len;

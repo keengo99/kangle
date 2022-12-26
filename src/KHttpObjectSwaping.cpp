@@ -17,7 +17,7 @@ swap_in_result KHttpObjectSwaping::swapin_proress(KHttpObject* obj, KHttpObjectB
 	}
 	free(filename);
 	int size = (int)kfiber_file_size(file);
-	size = (int)(MIN(16384, size));
+	size = (int)(KGL_MIN(16384, size));
 	char* buf = (char*)aio_alloc_buffer(size);
 	char* hot = buf;
 	int left = size;
@@ -88,8 +88,8 @@ clean:
 swap_in_result KHttpObjectSwaping::swapin_head_body(kfiber_file* fp, KHttpObject* obj, KHttpObjectBody* data)
 {
 	INT64 left_read = obj->index.content_length + obj->index.head_size;
-	INT64 alloc_size = MIN((INT64)conf.io_buffer, left_read);
-	alloc_size = MAX(alloc_size, obj->index.head_size);
+	INT64 alloc_size = KGL_MIN((INT64)conf.io_buffer, left_read);
+	alloc_size = KGL_MAX(alloc_size, obj->index.head_size);
 	alloc_size = kgl_align(alloc_size, kgl_aio_align_size);
 	char* buf = (char*)aio_alloc_buffer((int)alloc_size);
 	swap_in_result result = swap_in_success;
@@ -97,7 +97,7 @@ swap_in_result KHttpObjectSwaping::swapin_head_body(kfiber_file* fp, KHttpObject
 	int buf_left = (int)alloc_size;
 	kbuf* last = NULL;
 	while (left_read > 0) {
-		int read_len = (int)MIN(left_read, (INT64)buf_left);
+		int read_len = (int)KGL_MIN(left_read, (INT64)buf_left);
 		int got = kfiber_file_read(fp, hot, read_len);
 		if (got <= 0) {
 			result = swap_in_failed_read;

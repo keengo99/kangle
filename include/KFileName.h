@@ -272,7 +272,7 @@ public:
 	{
 		int orig_len = len;
 		while (len > 0) {
-			int write_len = MIN(len, buffer_left);
+			int write_len = KGL_MIN(len, buffer_left);
 			if (write_len <= 0) {
 				if (!flush()) {
 					return -1;

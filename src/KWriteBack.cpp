@@ -16,13 +16,13 @@ std::string KWriteBack::getMsg()
 	while (h) {
 		kgl_str_t attr;
 		kgl_get_header_name(h, &attr);
-		s << attr.data << ": " << (h->buf + h->val_offset) << "\r\n";
+		s << "\r\n" << attr.data << ": " << (h->buf + h->val_offset);
 		h = h->next;
 	}
 	if (keep_alive) {
-		s << "Connection: keep-alive\r\n";
+		s << "\r\nConnection: keep-alive";
 	}
-	s << "\r\n";
+	s << "\r\n\r\n";
 	if (body.getSize()) {
 		s << body.getString();
 	}
@@ -57,7 +57,7 @@ void KWriteBack::buildRequest(KHttpRequest* rq)
 	rq->responseStatus(status_code);
 	KHttpHeader* h = header;
 	while (h) {
-		rq->response_header(h);
+		rq->response_header(h, false);
 		h = h->next;
 	}
 	rq->responseHeader(kgl_expand_string("Content-Length"), body.getSize());

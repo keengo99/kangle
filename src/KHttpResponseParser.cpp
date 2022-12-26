@@ -183,7 +183,7 @@ void KHttpResponseParser::end_parse(KHttpRequest* rq)
 		if (responseTime > serverDate) {
 			apparent_age = (unsigned)(responseTime - serverDate);
 		}
-		unsigned corrected_received_age = MAX(apparent_age, age);
+		unsigned corrected_received_age = KGL_MAX(apparent_age, age);
 
 		unsigned response_delay = (unsigned)(responseTime - rq->sink->data.begin_time_msec / 1000);
 		unsigned corrected_initial_age = corrected_received_age + response_delay;

@@ -32,7 +32,7 @@ static kev_result upload_read(void *async_http_arg, KOPAQUE data, void *arg, res
 	}
 restart:
 	if (file_ctx->state==0 || file_ctx->state==2) {
-		int got = MIN(file_ctx->data_left, (int)buf.iov_len);
+		int got = KGL_MIN(file_ctx->data_left, (int)buf.iov_len);
 		memcpy(buf.iov_base, file_ctx->data, got);
 		file_ctx->data += got;
 		file_ctx->data_left -= got;

@@ -180,7 +180,7 @@ BOOL WINAPI ReadClient(HCONN hConn, LPVOID lpvBuffer, LPDWORD lpdwSize) {
 	}
 	//	debug("try to readClient size=%d\n",*lpdwSize);
 	//int len = fo->tr.rq->sink->read((char *) lpvBuffer, *lpdwSize);
-	INT64 read_len = MIN((INT64)*lpdwSize, fo->ecb.cbLeft);
+	INT64 read_len = KGL_MIN((INT64)*lpdwSize, fo->ecb.cbLeft);
 	int len = fo->readClient((char *)lpvBuffer, (int)read_len);
 	//	debug("success readClient size=%d\n",*lpdwSize);
 	if (len <= 0) {

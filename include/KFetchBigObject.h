@@ -61,7 +61,7 @@ public:
 		int buf_size = conf.io_buffer;
 		char *buffer = (char*)aio_alloc_buffer(buf_size);
 		while (rq->ctx->left_read > 0) {
-			int got = kfiber_file_read(file, buffer, (int)(MIN(rq->ctx->left_read, (INT64)buf_size)));
+			int got = kfiber_file_read(file, buffer, (int)(KGL_MIN(rq->ctx->left_read, (INT64)buf_size)));
 			if (got <= 0) {
 				result = KGL_EIO;
 				break;

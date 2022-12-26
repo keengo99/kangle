@@ -10,7 +10,7 @@ public:
 	}
 	int buffer(LPWSABUF buf, int bc)
 	{
-		int copy_bc = MIN(bc, this->bc);
+		int copy_bc = KGL_MIN(bc, this->bc);
 		kgl_memcpy(buf, this->buf, copy_bc * sizeof(WSABUF));
 		return copy_bc;
 	}
@@ -18,7 +18,7 @@ public:
 	{		
 		while (got > 0) {
 			assert(bc > 0);
-			int this_got = MIN(got, (int)buf->iov_len);
+			int this_got = KGL_MIN(got, (int)buf->iov_len);
 			buf->iov_len -= this_got;
 			got -= this_got;
 			if (buf->iov_len == 0) {

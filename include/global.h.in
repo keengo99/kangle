@@ -42,13 +42,6 @@
 #define VERSION KANGLE_VERSION
 #define VER_ID   VERSION
 
-#ifndef MAX
-	#define MAX(a,b)  ((a)>(b)?(a):(b))
-#endif
-
-#ifndef MIN
-	#define MIN(a,b)  ((a)>(b)?(b):(a))
-#endif
 #ifdef ENABLE_DISK_CACHE
 	#define ENABLE_BIG_OBJECT_206      1
 	#define ENABLE_BIG_OBJECT          1
@@ -132,15 +125,6 @@
 #define ENABLE_VH_FLOW             1
 #define ENABLE_ATOM                1
 
-
-#ifdef KSOCKET_SSL
-	#define ENABLE_HTTP2               1
-	#define ENABLE_SVH_SSL             1
-	#define ENABLE_UPSTREAM_SSL        1
-	#ifdef ENABLE_HTTP2
-		#define ENABLE_UPSTREAM_HTTP2       1
-	#endif
-#endif
 
 
 #ifndef HTTP_PROXY
@@ -311,14 +295,6 @@ enum Proto_t {
 	//#define ENABLE_SENDFILE      1
 #endif
 
-//define likely and unlikely
-#if defined(__GNUC__) && (__GNUC__ > 2)
-	# define likely(x)   __builtin_expect((x),1)
-	# define unlikely(x) __builtin_expect((x),0)
-#else
-	# define likely(x)   (x)
-	# define unlikely(x) (x)
-#endif
 //end define likely and unlikely
 #ifndef DISABLE_KSAPI_FILTER
 	//enable ksapi filter

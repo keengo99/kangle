@@ -150,7 +150,7 @@ public:
 		}
 		//printf("write data len=%d\n",len);
 		while (len > 0) {
-			int this_send = MIN(len, 32767);
+			int this_send = KGL_MIN(len, 32767);
 			if (!sendRecordHeader(type, this_send)) {
 				return false;
 			}

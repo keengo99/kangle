@@ -46,7 +46,7 @@ KGL_RESULT handleXSendfile(KHttpRequest* rq, kgl_input_stream* in, kgl_output_st
 			x_proxy_redirect = true;
 #endif
 		} else {
-			rq->response_header(header);
+			rq->response_header(header, false);
 		}
 		header = header->next;
 	}

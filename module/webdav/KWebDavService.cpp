@@ -212,7 +212,7 @@ bool KWebDavService::doPut() {
 	bool result = true;
 	while (content_length > 0) {
 		char buf[512];
-		int this_read_len = (int)(MIN(content_length, sizeof(buf)));
+		int this_read_len = (int)(KGL_MIN(content_length, sizeof(buf)));
 		int actual_read_len = in->read(buf, this_read_len);
 		if (actual_read_len <= 0) {
 			result = false;

@@ -128,7 +128,7 @@ public:
 		}
 		if (action != JUMP_DENY && havePartial) {
 			//alloc the filterPrevData
-			filterPrevDataLen = MIN(len,PARTIALMATCH_BACKLEN);
+			filterPrevDataLen = KGL_MIN(len,PARTIALMATCH_BACKLEN);
 			if (filterPrevData) {
 				xfree(filterPrevData);
 			}

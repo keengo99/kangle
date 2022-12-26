@@ -125,7 +125,7 @@ int KTempFile::Read(char* buf, int len)
 			continue;
 		}
 		assert(wait_read == NULL);
-		len = (int)MIN((int64_t)len, have_data);
+		len = (int)KGL_MIN((int64_t)len, have_data);
 		kfiber_mutex_lock(lock);
 		kfiber_file_seek(fp, seekBegin, read_offset);
 		int got = kfiber_file_read(fp, buf, len);

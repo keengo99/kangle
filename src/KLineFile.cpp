@@ -62,7 +62,7 @@ OpenState KLineFile::open(const char *file, time_t &lastModified) {
 	if (sbuf.st_mtime == lastModified) {
 		return OPEN_NOT_MODIFIED;
 	}
-	int len = (int)MIN(sbuf.st_size,MAX_OPEN_FILE_SIZE);
+	int len = (int)KGL_MIN(sbuf.st_size,MAX_OPEN_FILE_SIZE);
 	if (buf) {
 		free(buf);
 	}

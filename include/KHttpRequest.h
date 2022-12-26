@@ -233,7 +233,10 @@ public:
 	inline bool responseConnection() {
 		return sink->response_connection();
 	}
-	bool response_header(KHttpHeader* header);
+	/**
+	* if lock_header true the header param will locked by sink until startResponseBody be called.
+	*/
+	bool response_header(KHttpHeader* header,bool lock_header);
 	bool responseHeader(const char *name,hlen_t name_len,const char *val,hlen_t val_len);
 	//发送完header开始发送body时调用
 	bool startResponseBody(INT64 body_len);

@@ -138,7 +138,7 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 					kgl_is_attr(header, _KS("Last-Modified")) ||
 					kgl_is_attr(header, _KS("Cache-Control")) ||
 					kgl_is_attr(header, _KS("Vary"))) {
-					rq->response_header(header);
+					rq->response_header(header, true);
 				}
 				header = header->next;
 			}
@@ -203,7 +203,7 @@ KGL_RESULT send_error2(KHttpRequest* rq, int code, const char* reason)
 		KFile fp;
 		if (fp.open(errorPage.c_str(), fileRead)) {
 			INT64 len = fp.getFileSize();
-			len = MIN(len, 32768);
+			len = KGL_MIN(len, 32768);
 			kbuf* buf = new_pool_kbuf(rq->sink->pool, int(len));
 			int used = fp.read(buf->data, (int)len);
 			buf->used = used;
@@ -354,7 +354,7 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 	if (likely(send_obj_header)) {
 		KHttpHeader* header = obj->data->headers;
 		while (header) {
-			rq->response_header(header);
+			rq->response_header(header, true);
 			header = header->next;
 		}
 		//·¢ËÍAgeÍ·

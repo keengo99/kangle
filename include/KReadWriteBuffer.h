@@ -121,7 +121,7 @@ protected:
 		int wlen;
 		char *t = getWriteBuffer(&wlen);
 		assert(t);
-		wlen = MIN(len, wlen);
+		wlen = KGL_MIN(len, wlen);
 		kgl_memcpy(t, buf, wlen);
 		writeSuccess(wlen);
 		return wlen;

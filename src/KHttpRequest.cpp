@@ -535,9 +535,14 @@ char* KHttpRequest::BuildVary(const char* vary)
 	}
 	return s.stealString();
 }
-bool KHttpRequest::response_header(KHttpHeader* header)
+bool KHttpRequest::response_header(KHttpHeader* header,bool lock_header)
 {
-	return sink->response_header(header);
+	if (header->name_is_know) {
+		assert(header->know_header < kgl_header_unknow);
+		//use KGL_HEADER_VALUE_CONST will lock the header until startResponseBody called
+		return sink->response_header((kgl_header_type)header->know_header, header->buf+ header->val_offset, header->val_len, lock_header);
+	}
+	return sink->response_header(header->buf, header->name_len, header->buf+header->val_offset, header->val_len);	
 }
 bool KHttpRequest::responseHeader(const char* name, hlen_t name_len, const char* val, hlen_t val_len)
 {

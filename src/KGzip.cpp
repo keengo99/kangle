@@ -190,7 +190,7 @@ StreamState KGzipDecompress::write_end(void*rq, KGL_RESULT result)
 }
 StreamState KGzipDecompress::write_all(void*rq, const char *str,int len)
 {
-	int skip_len = MIN(in_skip,len);
+	int skip_len = KGL_MIN(in_skip,len);
 	in_skip -= skip_len;
 	strm.avail_in = len - skip_len;
 	strm.next_in = (unsigned char *) str + skip_len;

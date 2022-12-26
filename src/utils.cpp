@@ -69,7 +69,7 @@ int split_host_port(char *host, char separator, size_t host_len) {
 	if (host_len == 0) {
 		size = (int)strlen(host);
 	} else {
-		size = MIN((int)strlen(host),(int)host_len);
+		size = KGL_MIN((int)strlen(host),(int)host_len);
 	}
 	for (point = size - 1; point > 0; point--) {
 		if (host[point] == separator)
@@ -139,104 +139,6 @@ std::string string2lower(std::string str) {
 	}
 	return s.str();
 }
-#if 0
-int create_select_pipe(KHttpRequest *rq, KClientSocket *client, int tmo,
-		int max_server_len, int max_client_len) {
-	char *buf;
-	int len;
-	assert(rq && client);
-	int s1 = rq->c->sd, s2 = client->get_socket();
-	int server_recv_len = 0, client_recv_len = 0;
-	if (s1 <= 0 || s2 <= 0)
-		return 0;
-#ifdef HAVE_POLL
-	struct pollfd poll_list[2];
-	poll_list[0].fd = s1;
-	poll_list[1].fd = s2;
-	poll_list[0].events = poll_list[1].events = POLLIN | POLLPRI;
-#else
-	struct timeval tm;
-	fd_set readfds;
-	memset(&tm, 0, sizeof(tm));
-	int maxfd = MAX(s2,s1);
-#endif
-	int ret = 0;
-	int max_recv_len = 0;
-#define PACKAGE_SIZE 4096
-	buf = (char *) xmalloc(PACKAGE_SIZE);
-	if (buf == NULL)
-		return 0;
-	//	printf("max_server_len=%d,max_client_len=%d\n",max_server_len,max_client_len);
-	for (;;) {
-#ifdef HAVE_POLL
-		ret = poll(poll_list, 2, tmo * 1000);
-#else
-		FD_ZERO(&readfds);
-		FD_SET(s1,&readfds);
-		FD_SET(s2,&readfds);
-		tm.tv_sec = tmo;
-		ret = select(maxfd + 1, &readfds, NULL, NULL, (tmo == 0) ? NULL : &tm);
-#endif
-		if (ret <= 0)
-			break;
-		max_recv_len = PACKAGE_SIZE;
-#ifdef HAVE_POLL
-		if (KBIT_TEST(poll_list[0].revents,POLLIN | POLLPRI)) {
-#else
-			if (FD_ISSET(s1,&readfds)) {
-#endif
-			if (max_server_len >= 0) {
-				if (server_recv_len >= max_server_len) {
-					ret = -2;
-					break;
-				}
-				max_recv_len = MIN(max_server_len-server_recv_len,max_recv_len);
-
-			}
-			if ((len = read(rq->sink->read(buf, max_recv_len)) <= 0) {
-				ret = s1;
-				break;
-			}
-			//			buf[len] = 0;
-			//			printf("***************recv server:\n%s\n",buf);
-			server_recv_len += len;
-
-			if (!client->write_all(buf, len)) {
-				ret = s2;
-				break;
-			}
-#ifdef HAVE_POLL
-		} else if (KBIT_TEST(poll_list[1].revents,POLLIN | POLLPRI)) {
-#else
-		} else if (FD_ISSET(s2,&readfds)) {
-#endif
-			if (max_client_len >= 0) {
-				if (client_recv_len >= max_client_len) {
-					ret = -2;
-					break;
-				}
-				max_recv_len = MIN(max_client_len-client_recv_len,max_recv_len);
-			}
-			if ((len = client->read(buf, max_recv_len)) <= 0) {
-				ret = s2;
-				break;
-			}
-			//			buf[len] = 0;
-			client_recv_len += len;
-			if (!rq->write_all(buf, len)) {
-				ret = s1;
-				break;
-			}
-		} else {
-			klog(KLOG_ERR, "bug!! in %s:%d,errno=%d.\n", __FILE__, __LINE__,
-					errno);
-			break;
-		}
-	}
-	xfree(buf);
-	return ret;
-}
-#endif
 void explode(const char *str, const char split,
 		map<char *, bool, lessp> *result, int limit) {
 	char *tmp;

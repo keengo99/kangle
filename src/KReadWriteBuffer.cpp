@@ -67,7 +67,7 @@ bool KReadWriteBuffer::readSuccess(int got)
 	assert(read_hot && head);
 	while (got>0) {
 		int hot_left = head->used - (read_hot - head->data);
-		int this_len = MIN(got,hot_left);
+		int this_len = KGL_MIN(got,hot_left);
 		read_hot += this_len;
 		got -= this_len;
 		totalLen -= this_len;
@@ -91,7 +91,7 @@ int KReadWriteBuffer::write(const char *buf, int len)
 	int wlen;
 	char *t = getWriteBuffer(wlen);
 	assert(t);
-	wlen = MIN(len,wlen);
+	wlen = KGL_MIN(len,wlen);
 	kgl_memcpy(t,buf,wlen);
 	writeSuccess(wlen);	
 	return wlen;
@@ -106,7 +106,7 @@ int KReadWriteBuffer::read(char *buf,int len)
 		if (read_data==NULL) {
 			return 0;
 		}
-		length = MIN(length,len);
+		length = KGL_MIN(length,len);
 		if (length<=0) {
 			break;
 		}

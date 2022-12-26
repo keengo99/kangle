@@ -97,7 +97,7 @@ bool KSocketBuffer::readSuccess(int got)
 	assert(hot && hot_buf);
 	while (got>0) {
 		int hot_left = hot_buf->used - (hot - hot_buf->data);
-		int this_len = MIN(got,hot_left);
+		int this_len = KGL_MIN(got,hot_left);
 		hot += this_len;
 		got -= this_len;
 		if(hot_buf->used == hot-hot_buf->data){
@@ -116,7 +116,7 @@ StreamState KSocketBuffer::write_all(const char *buf, int len)
 		int wlen;
 		char *t = getWriteBuffer(wlen);
 		assert(t);
-		wlen = MIN(len,wlen);
+		wlen = KGL_MIN(len,wlen);
 		kgl_memcpy(t,buf,wlen);
 		buf += wlen;
 		len -= wlen;
@@ -134,7 +134,7 @@ int KSocketBuffer::read(char *buf,int len)
 		if (read_data==NULL) {
 			return 0;
 		}
-		length = MIN(length,len);
+		length = KGL_MIN(length,len);
 		if (length<=0) {
 			break;
 		}

@@ -41,7 +41,7 @@ kev_result KSboFile::read(KHttpRequest *rq, char *buffer,INT64 offset, int *leng
 		block_length = (INT64)write_buffer_used - offset_diff;
 		//printf("write_align_buffer=[%p] write_hot=[%p] block_length=[%d]\n", write_align_buffer, write_hot,(int)block_length);
 		if (block_length>0) {
-			block_length = MIN(block_length, (INT64)*length);
+			block_length = KGL_MIN(block_length, (INT64)*length);
 			memmove(buffer, write_align_buffer + offset_diff, (int)block_length);
 			*length = (int)block_length;
 			return cb(aio_file, rq, buffer,(int)block_length);
@@ -56,7 +56,7 @@ kev_result KSboFile::read(KHttpRequest *rq, char *buffer,INT64 offset, int *leng
 		*length = 0;
 		return kev_err;
 	}
-	block_length = MIN(block_length, (INT64)*length);
+	block_length = KGL_MIN(block_length, (INT64)*length);
 	*length = (int)block_length;
 	//printf("read from disk buffer=[%p]\n",buffer);
 	if (!kgl_selector_module.aio_read(rq->sink->get_selector(), aio_file, buffer, offset + rq->bo_ctx->gobj->index.head_size, (int)block_length, cb, rq)) {
