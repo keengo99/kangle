@@ -168,6 +168,11 @@ bool read_obj_head(KHttpObjectBody* data, char** hot, int& hotlen)
 		if (!header->name_is_know) {
 			header->val_len = buf_len - header->name_len - 2;
 			header->val_offset = header->name_len + 1;
+			if (header->know_header>=kgl_header_unknow) {
+				klog(KLOG_ERR,"invalid know_header value=[%d]\n",header->know_header);
+				xfree_header2(header);
+				return false;
+			}
 		} else {
 			header->val_len = buf_len - 1;
 			header->val_offset = 0;
@@ -180,51 +185,6 @@ bool read_obj_head(KHttpObjectBody* data, char** hot, int& hotlen)
 		last = header;
 	}
 }
-#if 0
-bool read_obj_head(KHttpObjectBody* data, KFile* fp)
-{
-	assert(data->headers == NULL);
-	KHttpHeader* hot = NULL;
-	for (;;) {
-		int attr_len, val_len;
-		char* attr = kgl_dc_read_string(fp, attr_len);
-		if (attr_len == -1) {
-			return false;
-		}
-		if (attr == NULL) {
-			return true;
-		}
-		if (*attr == '\0') {
-			free(attr);
-			return true;
-		}
-		char* val = kgl_dc_read_string(fp, val_len);
-		if (val_len == -1) {
-			xfree(attr);
-			return false;
-		}
-		KHttpHeader* header = (KHttpHeader*)xmalloc(sizeof(KHttpHeader));
-		if (header == NULL) {
-			xfree(attr);
-			if (val) {
-				xfree(val);
-			}
-			return false;
-		}
-		header->attr = attr;
-		header->val = val;
-		header->attr_len = attr_len;
-		header->val_len = val_len;
-		header->next = NULL;
-		if (hot == NULL) {
-			data->headers = header;
-		} else {
-			hot->next = header;
-		}
-		hot = header;
-	}
-}
-#endif
 char* getCacheIndexFile()
 {
 	KStringBuf s;

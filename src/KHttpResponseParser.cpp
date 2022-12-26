@@ -4,160 +4,9 @@
 #include "KHttpFieldValue.h"
 #include "time_utils.h"
 #include "kmalloc.h"
-#if 0
-kgl_header_result KHttpResponseParser::InternalParseHeader(KHttpRequest* rq, KHttpObject* obj, const char* attr, int attr_len, const char* val, int val_len, bool request_line)
-{
-
-	if (kgl_mem_case_same(attr, attr_len, _KS("Etag"))) {
-		KBIT_SET(obj->index.flags, OBJ_HAS_ETAG);
-		return kgl_header_insert_begin;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Content-Range"))) {
-		const char* p = strchr(val, '/');
-		if (p) {
-			rq->ctx->content_range_length = string2int(p + 1);
-			KBIT_SET(obj->index.flags, ANSW_HAS_CONTENT_RANGE);
-		}
-		return kgl_header_success;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Content-length"))) {
-		obj->index.content_length = kgl_atol((u_char*)val, val_len);
-		KBIT_SET(obj->index.flags, ANSW_HAS_CONTENT_LENGTH);
-		//KBIT_CLR(obj->index.flags, ANSW_CHUNKED);
-		return kgl_header_no_insert;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Content-Type"))) {
-		return kgl_header_success;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Date"))) {
-		serverDate = kgl_parse_http_time((u_char*)val, val_len);
-		//KBIT_SET(obj->index.flags,OBJ_HAS_DATE);
-		return kgl_header_success;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Last-Modified"))) {
-		obj->data->i.last_modified = kgl_parse_http_time((u_char*)val, val_len);
-		if (obj->data->i.last_modified > 0) {
-			obj->index.flags |= ANSW_LAST_MODIFIED;
-		}
-		return kgl_header_success;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Set-Cookie"))) {
-		if (!KBIT_TEST(obj->index.flags, OBJ_IS_STATIC2)) {
-			obj->index.flags |= ANSW_NO_CACHE;
-		}
-		return kgl_header_success;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Pragma"))) {
-		KHttpFieldValue field(val, val + val_len);
-		do {
-			if (field.is(_KS("no-cache"))) {
-				obj->index.flags |= ANSW_NO_CACHE;
-				break;
-			}
-		} while (field.next());
-		return kgl_header_success;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Cache-Control"))) {
-		KHttpFieldValue field(val, val + val_len);
-		do {
-#ifdef ENABLE_STATIC_ENGINE
-			if (!KBIT_TEST(obj->index.flags, OBJ_IS_STATIC2)) {
-#endif
-				if (field.is(_KS("no-store"))) {
-					obj->index.flags |= ANSW_NO_CACHE;
-				} else if (field.is(_KS("no-cache"))) {
-					obj->index.flags |= ANSW_NO_CACHE;
-				} else if (field.is(_KS("private"))) {
-					obj->index.flags |= ANSW_NO_CACHE;
-				}
-#ifdef ENABLE_STATIC_ENGINE
-			}
-#endif
-#ifdef ENABLE_FORCE_CACHE
-			if (field.is(_KS("static"))) {
-				//通过http header强制缓存
-				obj->force_cache();
-			} else
-#endif
-				if (field.is(_KS("public"))) {
-					KBIT_CLR(obj->index.flags, ANSW_NO_CACHE);
-				} else if (field.is(_KS("max-age="), (int*)&obj->data->i.max_age)) {
-					obj->index.flags |= ANSW_HAS_MAX_AGE;
-				} else if (field.is(_KS("s-maxage="), (int*)&obj->data->i.max_age)) {
-					obj->index.flags |= ANSW_HAS_MAX_AGE;
-				} else if (field.is(_KS("must-revalidate"))) {
-					obj->index.flags |= OBJ_MUST_REVALIDATE;
-				}
-		} while (field.next());
-#ifdef ENABLE_FORCE_CACHE
-		if (KBIT_TEST(obj->index.flags, OBJ_IS_STATIC2)) {
-			return kgl_header_no_insert;
-		}
-#endif
-		return kgl_header_success;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Vary"))) {
-		if (obj->AddVary(rq, val, val_len)) {
-			return kgl_header_no_insert;
-		}
-		return kgl_header_success;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Age"))) {
-		age = kgl_atoi((u_char*)val, val_len);
-		return kgl_header_no_insert;
-	}
-	if (*attr == 'x' || *attr == 'X') {
-		if (!KBIT_TEST(rq->filter_flags, RF_NO_X_SENDFILE) &&
-			(kgl_mem_case_same(attr, attr_len, _KS("X-Accel-Redirect")) || kgl_mem_case_same(attr, attr_len, _KS("X-Proxy-Redirect")))) {
-			KBIT_SET(obj->index.flags, ANSW_XSENDFILE);
-			return kgl_header_insert_begin;
-		}
-		if (kgl_mem_case_same(attr, attr_len, _KS("X-Gzip"))) {
-			obj->need_compress = 1;
-			return kgl_header_no_insert;
-		}
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Transfer-Encoding"))) {
-		kassert(false);
-		return kgl_header_no_insert;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Content-Encoding"))) {
-		if (kgl_mem_case_same(val, val_len, _KS("none"))) {
-			return kgl_header_no_insert;
-		}
-		if (kgl_mem_case_same(val, val_len, _KS("gzip"))) {
-			obj->uk.url->set_content_encoding(KGL_ENCODING_GZIP);
-		} else	if (kgl_mem_case_same(val, val_len, _KS("deflate"))) {
-			obj->uk.url->set_content_encoding(KGL_ENCODING_DEFLATE);
-		} else if (kgl_mem_case_same(val, val_len, _KS("compress"))) {
-			obj->uk.url->set_content_encoding(KGL_ENCODING_COMPRESS);
-		} else if (kgl_mem_case_same(val, val_len, _KS("br"))) {
-			obj->uk.url->set_content_encoding(KGL_ENCODING_BR);
-		} else if (kgl_mem_case_same(val, val_len, _KS("identity"))) {
-			obj->uk.url->accept_encoding = (u_char)~0;
-		} else if (val_len > 0) {
-			//不明content-encoding不能缓存
-			KBIT_SET(obj->index.flags, FLAG_DEAD);
-			obj->uk.url->set_content_encoding(KGL_ENCODING_UNKNOW);
-		}
-		return kgl_header_success;
-	}
-	if (!KBIT_TEST(obj->index.flags, ANSW_HAS_EXPIRES) &&
-		!kgl_mem_case_same(attr, attr_len, _KS("Expires"))) {
-		KBIT_SET(obj->index.flags, ANSW_HAS_EXPIRES);
-		expireDate = kgl_parse_http_time((u_char*)val, val_len);
-		return kgl_header_success;
-	}
-#ifdef HTTP_PROXY
-	if (kgl_mem_case_same(attr, attr_len, _KS("Proxy-Authenticate"))) {
-		return kgl_header_no_insert;
-	}
-#endif
-	return kgl_header_success;
-}
-#endif
 bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, const char* val, int val_len)
 {
+	//printf("parse header attr=[%d] val=[%s]\n",attr,val);
 	const char* end = val + val_len;
 	KHttpObject* obj = rq->ctx->obj;
 	switch (attr) {
@@ -295,6 +144,7 @@ bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, c
 }
 bool KHttpResponseParser::parse_unknow_header(KHttpRequest* rq, const char* attr, int attr_len, const char* val, int val_len, bool request_line)
 {
+	//printf("parse unknow header attr=[%s] val=[%s]\n",attr,val);
 	KHttpObject* obj = rq->ctx->obj;
 	if (*attr == 'x' || *attr == 'X') {
 		if (!KBIT_TEST(rq->filter_flags, RF_NO_X_SENDFILE) &&
