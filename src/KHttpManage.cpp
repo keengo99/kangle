@@ -109,9 +109,9 @@ bool getConnectionTr(KSink* rq, KConnectionInfoContext* ctx)
 		ctx->s << ips << ":" << ksocket_addr_port(&self_addr);
 	}
 	ctx->s << "','";
-	KHttpHeader* referer = rq->data.FindHeader(kgl_expand_string("Referer"));
+	KHttpHeader* referer = rq->data.find(kgl_expand_string("Referer"));
 	if (referer) {
-		ctx->s << KXml::encode(referer->val);
+		ctx->s << KXml::encode(referer->buf + referer->val_offset);
 	}
 	ctx->s << "','";
 	ctx->s << (int)rq->data.http_major;
@@ -1241,14 +1241,14 @@ bool matchManageIP(const char* ip, std::vector<std::string>& ips, std::string& m
 	return false;
 }
 char* KHttpManage::parsePostFile(int& len, std::string& fileName) {
-	KHttpHeader* header = rq->sink->data.GetHeader();
+	KHttpHeader* header = rq->sink->data.get_header();
 	char* boundary = NULL;
 	if (postData == NULL) {
 		return NULL;
 	}
 	while (header) {
-		if (strcasecmp(header->attr, "Content-Type") == 0) {
-			boundary = strstr(header->val, "boundary=");
+		if (kgl_is_attr(header, _KS("Content-Type"))) {
+			boundary = strstr(header->buf + header->val_offset, "boundary=");
 			if (boundary) {
 				boundary += 9;
 				break;
@@ -1359,8 +1359,8 @@ void KHttpManage::parsePostData() {
 	postData = buffer;
 }
 bool checkManageLogin(KHttpRequest* rq) {
-	const char* x_real_ip = rq->GetHttpValue(X_REAL_IP_HEADER);
-	if (x_real_ip != NULL) {
+	kgl_str_t result;
+	if (rq->get_http_value(_KS(X_REAL_IP_HEADER),&result)) {
 		rq->sink->shutdown();
 		return false;
 	}

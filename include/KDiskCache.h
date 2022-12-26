@@ -60,11 +60,11 @@ inline bool is_valide_dc_sign(KHttpObjectFileHeader *header)
 	return memcmp(header->fix_str, CACHE_FIX_STR, sizeof(header->fix_str)) == 0 &&
 		header->version == CACHE_DISK_VERSION;
 }
-bool skipString(char **hot,int &hotlen);
-char *readString(char **hot,int &hotlen,int &len);
-bool skipString(KFile *file);
-int writeString(KBufferFile *fp,const char *str,int len=0);
-int write_string(char *hot, const char *str, int len);
+bool kgl_dc_skip_string(char **hot,int &hotlen);
+char *kgl_dc_read_string(char **hot,int &hotlen,int &len);
+bool kgl_dc_skip_string(KFile *file);
+int kgl_dc_write_string(KBufferFile *fp,const char *str,int len=0);
+int kgl_dc_write_string(char *hot, const char *str, int len);
 char *getCacheIndexFile();
 class KHttpObjectBody;
 bool read_obj_head(KHttpObjectBody *data,KFile *fp);

@@ -278,7 +278,7 @@ KGL_RESULT KAsyncFetchObject::ReadHeader(KHttpRequest* rq, kfiber** post_fiber)
 		ks_write_success(&us_buffer, got);
 		char* data = us_buffer.buf;
 		char* end = data + us_buffer.used;
-		switch (ParseHeader(rq, &data, end)) {
+		switch (parse_unknow_header(rq, &data, end)) {
 		case kgl_parse_finished:
 			ks_save_point(&us_buffer, data);
 			return readHeadSuccess(rq, post_fiber);
@@ -458,7 +458,7 @@ void KAsyncFetchObject::PushStatus(KHttpRequest* rq, int status_code)
 }
 KGL_RESULT KAsyncFetchObject::PushHeader(KHttpRequest* rq, const char* attr, int attr_len, const char* val, int val_len, bool request_line)
 {
-	//printf("attr=[%s] val=[%s] request_line=[%d]\n", attr,val, request_line);
+	//printf("attr=[%s] val=[%s] request_line=[%d]\n", attr,val, request_line);	
 	if (request_line && pop_header.proto == Proto_http) {
 		if (strncasecmp(attr, "HTTP/", 5) == 0) {
 			const char* dot = strchr(attr + 5, '.');
@@ -476,51 +476,12 @@ KGL_RESULT KAsyncFetchObject::PushHeader(KHttpRequest* rq, const char* attr, int
 			return KGL_OK;
 		}
 	}
-
-	if (!strcasecmp(attr, "Keep-Alive")) {
-		const char* data = strstr(val, "timeout=");
-		if (data) {
-			//确保有效，减掉2秒生存时间
-			pop_header.keep_alive_time_out = atoi(data + 8) - 2;
-		}
-		return KGL_OK;
-	}
-	if (strcasecmp(attr, "Transfer-Encoding") == 0) {
-		if (strcasecmp(val, "chunked") == 0) {
-			out = new_dechunk_stream(out);
-			rq->registerRequestCleanHook((kgl_cleanup_f)out->f->release, out);
-			return KGL_OK;
-		}
-	}
-	if (!strcasecmp(attr, "Connection")) {
-		KHttpFieldValue field(val, val + val_len);
-		do {
-			if (field.is("keep-alive", 10)) {
-				rq->ctx->upstream_connection_keep_alive = true;
-			} else if (field.is("close", 5)) {
-				rq->ctx->upstream_connection_keep_alive = false;
-			} else if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE) && field.is("upgrade", 7)) {
-				KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_UPGRADE);
-				rq->ctx->upstream_connection_keep_alive = false;
-			}
-		} while (field.next());
-		return KGL_OK;
-	}
-
 	if (pop_header.proto == Proto_spdy && *attr == ':') {
 		attr++;
 		attr_len--;
 		if (strcasecmp(attr, "version") == 0) {
 			return KGL_OK;
 		}
-	}
-	if (!strcasecmp(attr, "Alt-Svc")) {
-		//TODO: handle alt-svc
-		return KGL_OK;
-	}
-	if (!strcasecmp(attr, "Content-length")) {
-		rq->ctx->know_length = 1;
-		rq->ctx->left_read = string2int(val);
 	}
 	if (pop_header.proto != Proto_http) {
 		if (!strcasecmp(attr, "Status")) {
@@ -539,10 +500,58 @@ KGL_RESULT KAsyncFetchObject::PushHeader(KHttpRequest* rq, const char* attr, int
 			}
 		}
 	}
-	return out->f->write_unknow_header(out, rq, attr, attr_len, val, val_len);
+	auto header = kgl_parse_response_header(attr, attr_len);
+	switch (header) {
+	case kgl_header_alt_svc:
+		return KGL_OK;
+	case kgl_header_transfer_encoding:
+	{
+		if (kgl_mem_case_same(val,val_len,_KS("chunked"))) {
+			out = new_dechunk_stream(out);
+			rq->registerRequestCleanHook((kgl_cleanup_f)out->f->release, out);
+			return KGL_OK;
+		}
+		break;
+	}
+	case kgl_header_keep_alive:
+	{
+		const char* end = val + val_len;
+		const char* data = kgl_memstr(val,val_len, _KS("timeout="));
+		if (data) {
+			data += 8;			
+			//确保有效，减掉2秒生存时间
+			pop_header.keep_alive_time_out = kgl_atoi((u_char*)data, end - data) - 2;
+		}
+		return KGL_OK;
+	}
+	case kgl_header_connection:
+	{
+		KHttpFieldValue field(val, val + val_len);
+		do {
+			if (field.is("keep-alive", 10)) {
+				rq->ctx->upstream_connection_keep_alive = true;
+			} else if (field.is("close", 5)) {
+				rq->ctx->upstream_connection_keep_alive = false;
+			} else if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE) && field.is("upgrade", 7)) {
+				KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_UPGRADE);
+				rq->ctx->upstream_connection_keep_alive = false;
+			}
+		} while (field.next());
+		return KGL_OK;
+	}
+	case kgl_header_content_length:
+		rq->ctx->know_length = 1;
+		rq->ctx->left_read = kgl_atol((u_char*)val, val_len);
+		return out->f->write_header(out, rq, header, (char*)&rq->ctx->left_read, 0);
+	case kgl_header_unknow:
+		return out->f->write_unknow_header(out, rq, attr, attr_len, val, val_len);
+	default:
+		break;
+	}
+	return out->f->write_header(out, rq, header, val, val_len);
 }
 
-kgl_parse_result KAsyncFetchObject::ParseHeader(KHttpRequest* rq, char** data, char* end)
+kgl_parse_result KAsyncFetchObject::parse_unknow_header(KHttpRequest* rq, char** data, char* end)
 {
 	khttp_parse_result rs;
 	for (;;) {

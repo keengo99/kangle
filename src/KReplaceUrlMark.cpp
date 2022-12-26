@@ -1,35 +1,35 @@
 #include "KReplaceUrlMark.h"
 #include "KRewriteMarkEx.h"
-char *replaceUrlCallBack(void *param,html_tag_t *hit_tag,const char *src_url,int url_len)
+char* replaceUrlCallBack(void* param, html_tag_t* hit_tag, const char* src_url, int url_len)
 {
-	KReplaceUrlParam *rp = (KReplaceUrlParam *)param;
-	return rp->mark->replaceUrl(hit_tag,src_url,url_len);
+	KReplaceUrlParam* rp = (KReplaceUrlParam*)param;
+	return rp->mark->replaceUrl(hit_tag, src_url, url_len);
 }
 
-void replaceUrlEndCallBack(void *param)
+void replaceUrlEndCallBack(void* param)
 {
-	KReplaceUrlParam *p = (KReplaceUrlParam *)param;
+	KReplaceUrlParam* p = (KReplaceUrlParam*)param;
 	p->mark->release();
 	delete p;
 }
-char *KReplaceUrlMark::replaceUrl(html_tag_t *hit_tag,const char *src_url,int url_len)
+char* KReplaceUrlMark::replaceUrl(html_tag_t* hit_tag, const char* src_url, int url_len)
 {
-	if (dst==NULL) {
+	if (dst == NULL) {
 		return NULL;
 	}
-	KRegSubString *ss = src.matchSubString(src_url,url_len,0);
-	if (ss==NULL) {
+	KRegSubString* ss = src.matchSubString(src_url, url_len, 0);
+	if (ss == NULL) {
 		return NULL;
 	}
 	KStringBuf s;
-	KRewriteMarkEx::getString(NULL,dst,NULL,NULL,ss,&s);
+	KRewriteMarkEx::getString(NULL, dst, NULL, NULL, ss, &s);
 	delete ss;
 	return s.stealString();
 }
-std::string KReplaceUrlMark::getHtml(KModel *model) {
+std::string KReplaceUrlMark::getHtml(KModel* model) {
 	std::stringstream s;
 	s << "src:<input name='src' value='";
-	KReplaceUrlMark *mark = static_cast<KReplaceUrlMark *>(model);
+	KReplaceUrlMark* mark = static_cast<KReplaceUrlMark*>(model);
 	if (mark) {
 		s << mark->src.getModel();
 	}
@@ -45,24 +45,25 @@ std::string KReplaceUrlMark::getHtml(KModel *model) {
 	s << "'>";
 	return s.str();
 }
-bool KReplaceUrlMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,int &jumpType) 
+bool KReplaceUrlMark::mark(KHttpRequest* rq, KHttpObject* obj, const int chainJumpType, int& jumpType)
 {
-	KHtmlTagFilter *filter = new KHtmlTagFilter;
+	KHtmlTagFilter* filter = new KHtmlTagFilter;
 	addRef();
-	KReplaceUrlParam *param = new KReplaceUrlParam;
+	KReplaceUrlParam* param = new KReplaceUrlParam;
 	param->mark = this;
 	param->rq = rq;
-	filter->setHook(replaceUrlCallBack,replaceUrlEndCallBack,param,url_tag);
-	rq->getOutputFilterContext()->registerFilterStream(filter,true);
-	if (location && obj->data->i.status_code>=300 && obj->data->i.status_code<400) {
+	filter->setHook(replaceUrlCallBack, replaceUrlEndCallBack, param, url_tag);
+	rq->getOutputFilterContext()->registerFilterStream(filter, true);
+	if (location && obj->data->i.status_code >= 300 && obj->data->i.status_code < 400) {
 		//rewrite location
-		KHttpHeader *header = obj->data->headers;
+		KHttpHeader* header = obj->data->headers;
 		while (header) {
-			if (strcasecmp(header->attr,"Location")==0) {
-				char *url = replaceUrlCallBack((void *)param,NULL,header->val,(int)strlen(header->val));
+			if (header->name_is_know && header->know_header == kgl_header_location) {
+				char* url = replaceUrlCallBack((void*)param, NULL, header->buf, header->val_len);
 				if (url) {
-					free(header->val);
-					header->val = url;
+					free(header->buf);
+					header->buf = url;
+					header->val_len = (hlen_t)strlen(url);
 				}
 			}
 			header = header->next;

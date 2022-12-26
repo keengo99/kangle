@@ -322,7 +322,7 @@ void KSharedBigObject::CloseWrite(KHttpObject* obj, INT64 range_from)
 			//把文件传给新物件
 			KBIT_SET(nobj->index.flags, FLAG_IN_DISK);
 			dci->start(ci_update, nobj);
-			aio_buffer = nobj->build_aio_header(aio_buffer_size);
+			aio_buffer = nobj->build_aio_header(aio_buffer_size,nullptr,0);
 		} else {
 			KBIT_SET(obj->index.flags, FLAG_IN_DISK);
 		}
@@ -366,14 +366,14 @@ bool KSharedBigObject::Open(KHttpRequest* rq, KHttpObject* obj, bool create_flag
 	}
 	if (create_flag) {
 		if (KBIT_TEST(obj->index.flags, ANSW_HAS_CONTENT_RANGE)) {
-			obj->removeHttpHeader("Content-Range");
+			obj->removeHttpHeader(_KS("Content-Range"));
 			obj->index.content_length = rq->ctx->content_range_length;
 		}
 		obj->data->i.status_code = STATUS_OK;
 		KBIT_CLR(obj->index.flags, OBJ_NOT_OK);
 		KBIT_SET(obj->index.flags, OBJ_IS_READY | FLAG_IN_DISK | FLAG_BIG_OBJECT_PROGRESS);
 		int size;
-		char* buf = obj->build_aio_header(size);
+		char* buf = obj->build_aio_header(size, nullptr, 0);
 		if (buf) {
 			kfiber_file_write(fp, buf, size);
 			aio_free_buffer(buf);

@@ -41,7 +41,7 @@ StreamState KCacheStream::write_end(void *arg, KGL_RESULT result)
 	if (have_cache && obj->data->i.status_code == STATUS_CONTENT_PARTIAL) {
 		kassert(obj->IsContentRangeComplete(rq));
 		obj->data->i.status_code = STATUS_OK;
-		obj->removeHttpHeader("Content-Range");
+		obj->removeHttpHeader(_KS("Content-Range"));
 		KBIT_CLR(obj->index.flags, ANSW_HAS_CONTENT_RANGE);
 	}
 	if (buffer) {

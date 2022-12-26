@@ -17,7 +17,7 @@ KGL_RESULT obj_get_header(KHTTPOBJECT o, LPSTR  name, LPVOID value, LPDWORD size
 		lock->Unlock();
 		return ret;
 	}
-	return add_header_var(value, size, obj->data->headers, name);
+	return add_header_var(value, size, obj->data->headers, name, strlen(name));
 }
 KHTTPOBJECT get_old_obj(KREQUEST r)
 {

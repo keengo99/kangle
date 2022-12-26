@@ -45,14 +45,12 @@
 #include "KHttpSink.h"
 #include "kselector_manager.h"
 #include "KHttpParser.h"
-//{{ent
 #include "KIpMap.h"
 #include "KSimulateRequest.h"
 #ifdef ENABLE_ATOM
 #include "KAtomLock.h"
 #endif
 #include "KWhiteList.h"
-//}}
 #ifdef ENABLE_INPUT_FILTER
 #include "KMultiPartInputFilter.h"
 #endif
@@ -436,7 +434,7 @@ bool test() {
 	//test_http_parser();
 	//printf("sizeof(KHttpRequest)=%d\n",sizeof(KHttpRequest));
 	//	test_pipe();
-	printf("sizeof(KHttpObjectFileHeader)=%d,sizeof(KHttpObjectBody)=[%d]\n", (int)sizeof(KHttpObjectFileHeader),sizeof(KHttpObjectBody));
+	//printf("sizeof(KHttpHeader)=%d,sizeof(KHttpHeader2)=[%d]\n", (int)sizeof(KHttpHeader),sizeof(KHttpHeader2));
 	//printf("sizeof(selectable)=[%d]\n", (int)sizeof(kselectable));
 	time_t nowTime = time(NULL);
 	char timeStr[41];

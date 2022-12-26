@@ -83,7 +83,7 @@ KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest* rq)
 	//is secure
 	b.putByte(KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL) ? 1 : 0);
 	int64_t content_length = in->f->get_read_left(in, rq);
-	KHttpHeader* header = rq->sink->data.GetHeader();
+	KHttpHeader* header = rq->sink->data.get_header();
 	int count = 0;
 	while (header) {
 		if (!is_internal_header(header)) {
@@ -99,7 +99,7 @@ KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest* rq)
 	}
 	b.putShort(count);
 	//printf("head count=%d\n",count);
-	header = rq->sink->data.GetHeader();
+	header = rq->sink->data.get_header();
 	bool founded;
 	while (header) {
 		if (is_internal_header(header)) {
@@ -118,9 +118,11 @@ KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest* rq)
 		}
 		//*/
 		if (!founded) {
-			b.putString(header->attr);
+			kgl_str_t name;
+			kgl_get_header_name(header, &name);
+			b.putString(name.data, (int)name.len);
 		}
-		b.putString(header->val);
+		b.putString(header->buf+header->val_offset,header->val_len);
 	do_not_insert:header = header->next;
 	}
 	if (content_length > 0) {
@@ -131,16 +133,16 @@ KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest* rq)
 		char tmpbuff[50];
 		mk1123time(rq->sink->data.if_modified_since, tmpbuff, sizeof(tmpbuff));
 		if (rq->ctx->mt == modified_if_range_date) {
-			b.putString("If-Range");
+			b.putString(_KS("If-Range"));
 		} else {
-			b.putString("If-Modified-Since");
+			b.putString(_KS("If-Modified-Since"));
 		}
 		b.putString(tmpbuff);
 	} else if (rq->sink->data.if_none_match != NULL) {
 		if (rq->ctx->mt == modified_if_range_etag) {
-			b.putString("If-Range");
+			b.putString(_KS("If-Range"));
 		} else {
-			b.putString("If-None-Match");
+			b.putString(_KS("If-None-Match"));
 		}
 		b.putString(rq->sink->data.if_none_match->data, (int)rq->sink->data.if_none_match->len);
 	}
@@ -210,7 +212,7 @@ KGL_RESULT KAjpFetchObject::ParseBody(KHttpRequest* rq, char** data, char* end)
 	}
 	return KGL_OK;
 }
-kgl_parse_result KAjpFetchObject::ParseHeader(KHttpRequest* rq, char** data, char* end)
+kgl_parse_result KAjpFetchObject::parse_unknow_header(KHttpRequest* rq, char** data, char* end)
 {
 	while (*data < end) {
 		//printf("parse header len=[%d] ",*len);

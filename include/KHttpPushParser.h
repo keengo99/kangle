@@ -50,13 +50,13 @@ private:
 				ks_save_point(&buf, hot);
 				return kgl_parse_continue;
 			case kgl_parse_success:
-				if (!parser_ctx.ParseHeader(rq, rs.attr, rs.attr_len, rs.val, rs.val_len, rs.request_line)) {
+				if (!parser_ctx.parse_unknow_header(rq, rs.attr, rs.attr_len, rs.val, rs.val_len, rs.request_line)) {
 					return kgl_parse_error;
 				}
 				//printf("attr=[%s] val=[%s]\n", rs.attr, rs.val);
 				break;
 			case kgl_parse_finished:
-				parser_ctx.EndParse(rq);
+				parser_ctx.end_parse(rq);
 				return kgl_parse_finished;
 			}
 		}

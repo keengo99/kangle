@@ -33,12 +33,12 @@ KGL_RESULT handleXSendfile(KHttpRequest* rq, kgl_input_stream* in, kgl_output_st
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER)) {
 		return send_error2(rq, STATUS_SERVER_ERROR, "X-Accel-Redirect cann't send body");
 	}
-	char* xurl = NULL;
+	char* xurl = nullptr;
 	bool x_proxy_redirect = false;
 	KHttpHeader* header = rq->ctx->obj->data->headers;
 	while (header) {
-		if (strcasecmp(header->attr, "X-Accel-Redirect") == 0) {
-			xurl = header->val;
+		if (xurl==nullptr && kgl_is_attr(header,_KS("X-Accel-Redirect"))) {
+			xurl = kgl_strndup(header->buf+header->val_offset,header->val_len);
 			x_proxy_redirect = false;
 #if 0
 		} else if (strcasecmp(header->attr, "X-Proxy-Redirect") == 0) {
@@ -46,7 +46,7 @@ KGL_RESULT handleXSendfile(KHttpRequest* rq, kgl_input_stream* in, kgl_output_st
 			x_proxy_redirect = true;
 #endif
 		} else {
-			rq->responseHeader(header->attr, header->attr_len, header->val, header->val_len);
+			rq->response_header(header);
 		}
 		header = header->next;
 	}
@@ -66,8 +66,11 @@ KGL_RESULT handleXSendfile(KHttpRequest* rq, kgl_input_stream* in, kgl_output_st
 		rq->file = NULL;
 	}
 	char* filename = rq->map_url_path(xurl, nullptr);
+	xfree(xurl);
 	rq->ctx->clean_obj(rq);
 	rq->ctx->obj = new KHttpObject(rq);
+	//handleXSendfile no cache
+	KBIT_SET(rq->ctx->obj->index.flags, FLAG_DEAD);
 	rq->ctx->new_object = 1;
 	if (filename == nullptr) {
 		return send_error2(rq, STATUS_SERVER_ERROR, "X-Accel-Redirect cann't map url");
@@ -584,10 +587,10 @@ KGL_RESULT load_object(KHttpRequest *rq)
 		if (context->old_obj->data->i.last_modified > 0) {
 			rq->sink->data.if_modified_since = context->old_obj->data->i.last_modified;
 		} else if (KBIT_TEST(context->old_obj->index.flags, OBJ_HAS_ETAG)) {
-			KHttpHeader *h = context->old_obj->findHeader("Etag", sizeof("Etag") - 1);
+			KHttpHeader* h = context->old_obj->findHeader(_KS("Etag"));
 			if (h) {
 				context->mt = modified_if_none_match;
-				rq->sink->set_if_none_match(h->val, h->val_len);
+				rq->sink->set_if_none_match(h->buf, h->val_len);
 			}
 		} else {
 			rq->sink->data.if_modified_since = context->obj->index.last_verified;

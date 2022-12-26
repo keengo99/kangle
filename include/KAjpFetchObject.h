@@ -22,7 +22,7 @@ protected:
 	//创建发送头到buffer中。
 	KGL_RESULT buildHead(KHttpRequest* rq) override;
 	//解析head
-	kgl_parse_result ParseHeader(KHttpRequest* rq, char** data, char* end) override;
+	kgl_parse_result parse_unknow_header(KHttpRequest* rq, char** data, char* end) override;
 	//创建post数据到buffer中。
 	void buildPost(KHttpRequest* rq) override;
 	//解析body

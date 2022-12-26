@@ -27,19 +27,27 @@
 #include "kmalloc.h"
 
 using namespace std;
-char *httpstrdup(const char *val)
+char *kgl_http_strdup(const char *val,size_t val_len)
 {
-	char *buf = xstrdup(val);
-	char *v = buf;
-	while(*v){
-		if(*v=='_'){
-			*v = '-';
-		}else{
-			*v = toupper(*v);
+	size_t len;
+	char* copy;
+	len = strnlen(val, val_len);
+	copy = (char*)malloc(len + 1);
+	if (copy) {
+		char* end = copy + len;
+		char* dst = copy;
+		while (dst < end) {
+			if (*val == '_') {
+				*dst = '-';
+			} else {
+				*dst = kgl_toupper(*val);
+			}
+			val++;
+			dst++;
 		}
-		v++;
+		*dst = '\0';
 	}
-	return buf;
+	return copy;
 }
 KApiEnv::KApiEnv(void) {
 	contentType = NULL;
@@ -60,7 +68,7 @@ KApiEnv::~KApiEnv(void) {
 		xfree(contentType);
 	}
 }
-bool KApiEnv::addEnv(const char *attr, const char *val, std::map<char *,
+bool KApiEnv::add_env_vars(const char *attr, const char *val, std::map<char *,
 		char *, lessp_icase > &vars) {
 	std::map<char *, char *, lessp_icase >::iterator it;
 	it = vars.find((char *) attr);
@@ -82,33 +90,37 @@ bool KApiEnv::add_env(const char* attr, size_t attr_len, const char* val, size_t
 	serverVars.insert(pair<char*, char*>(attr2, kgl_strndup(val,val_len)));
 	return true;
 }
-bool KApiEnv::addEnv(const char *attr, const char *val) {
-	return addEnv(attr, val, serverVars);
-
-}
-bool KApiEnv::addContentType(const char *contentType) {
+bool KApiEnv::add_content_type(const char *contentType,size_t len) {
 	if (this->contentType) {
 		return false;
 	}
-	this->contentType = xstrdup(contentType);
-	return addEnv("CONTENT_TYPE", contentType);
+	this->contentType = kgl_strndup(contentType,len);
+	return KEnvInterface::add_content_type(contentType,len);
 }
-bool KApiEnv::addContentLength(const char *contentLength) {
-	this->contentLength = atoi(contentLength);
-	return KEnvInterface::addContentLength(contentLength);
+bool KApiEnv::add_content_length(const char *contentLength,size_t len) {
+	this->contentLength = kgl_atol((u_char *)contentLength,len);
+	return KEnvInterface::add_content_length(contentLength,len);
 }
-bool KApiEnv::addHttpEnv(const char *attr, const char *val) {
+bool KApiEnv::add_http_env(const char *attr,size_t attr_len, const char *val,size_t val_len) {
 
 	std::map<char *, char *, lessp_icase >::iterator it;
-	it = httpVars.find((char *) attr);
+	char* http_attr = kgl_upstrndup(attr, attr_len);
+	it = httpVars.find(http_attr);
 	if (it != httpVars.end()) {
+		xfree(http_attr);
 		return false;
 	}
-	httpVars.insert(pair<char *, char *> (upstrdup(attr), xstrdup(val)));
+	httpVars.insert(pair<char *, char *> (http_attr, kgl_strndup(val,val_len)));
 	return true;
 }
 const char *KApiEnv::getHttpEnv(const char *attr) {
-	char *buf = httpstrdup(attr);
+	char *buf = kgl_http_strdup(attr,strlen(attr));
+#if 0
+	printf("try found http env=[%s]\n", buf);
+	for (auto it = httpVars.begin(); it != httpVars.end(); it++) {
+		fprintf(stderr, "%s: %s\n", (*it).first, (*it).second);
+	}
+#endif
 	const char * val = getHeaderEnv(buf);
 	xfree(buf);
 	return val;

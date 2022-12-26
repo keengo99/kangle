@@ -93,7 +93,7 @@ KGL_RESULT KFastcgiFetchObject::buildHead(KHttpRequest* rq)
 	}
 	return KGL_OK;
 }
-kgl_parse_result KFastcgiFetchObject::ParseHeader(KHttpRequest* rq, char** pos, char* end)
+kgl_parse_result KFastcgiFetchObject::parse_unknow_header(KHttpRequest* rq, char** pos, char* end)
 {
 	
 	while (*pos < end) {
@@ -141,7 +141,7 @@ kgl_parse_result KFastcgiFetchObject::ParseHeader(KHttpRequest* rq, char** pos, 
 				piece_end = piece + split_header->used;
 			}
 			//fwrite(piece, 1, piece_end - piece, stdout);
-			kgl_parse_result ret = KAsyncFetchObject::ParseHeader(rq, &piece, piece_end);
+			kgl_parse_result ret = KAsyncFetchObject::parse_unknow_header(rq, &piece, piece_end);
 			if (split_header != NULL) {
 				if (piece == piece_end) {
 					ks_buffer_destroy(split_header);

@@ -183,7 +183,7 @@ void KBigObjectContext::build_if_range(KHttpRequest* rq)
 		context->mt = modified_if_range_etag;
 		KHttpHeader* h = gobj->findHeader("Etag", sizeof("Etag") - 1);
 		if (h) {
-			rq->sink->set_if_none_match(h->val, h->val_len);
+			rq->sink->set_if_none_match(h->buf, h->val_len);
 		}
 	} else {
 		rq->sink->data.if_modified_since = gobj->index.last_verified;

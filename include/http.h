@@ -49,14 +49,12 @@ enum {
 	LOAD_HEAD_SUCCESS, LOAD_HEAD_FAILED, LOAD_HEAD_RETRY
 };
 inline bool is_internal_header(KHttpHeader *av) {
-	return av->type == kgl_header_internal;
+	return av->name_is_internal;
+	//return av->type == kgl_header_internal;
 }
 class KHttpEnv;
 void log_access(KHttpRequest *rq);
 void upstream_sign_request(KHttpRequest *rq, KHttpEnv *s);
-bool is_val(KHttpHeader *av, const char *val, int val_len);
-bool is_attr(KHttpHeader *av, const char *attr);
-int attr_casecmp(const char *s1,const char *s2);
 
 char *url_encode(const char *s, size_t len, size_t *new_length);
 std::string url_encode(const char *s, size_t len = 0);
@@ -71,7 +69,7 @@ KGL_RESULT send_auth2(KHttpRequest *rq, KAutoBuffer *body = NULL);
 char *find_content_type(KHttpRequest *rq,KHttpObject *obj);
 bool build_obj_header(KHttpRequest *rq, KHttpObject *obj,INT64 content_len, INT64 &start, INT64 &send_len);
 bool push_redirect_header(KHttpRequest *rq,const char *url,int url_len,int code);
-void insert_via(KHttpRequest *rq, KWStream &s, char *old_via = NULL);
+void insert_via(KHttpRequest *rq, KWStream &s, char *old_via = NULL,size_t len = 0);
 bool make_http_env(KHttpRequest *rq,kgl_input_stream *gate, KBaseRedirect *rd,time_t lastModified,KFileName *file,KEnvInterface *env, bool chrooted=false);
 kbuf *build_memory_obj_header(KHttpRequest *rq, KHttpObject *obj, INT64 &start, INT64 &send_len);
 bool stored_obj(KHttpObject *obj,int list_state);

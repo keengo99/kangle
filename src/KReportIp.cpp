@@ -27,7 +27,7 @@ public:
 			free(post);
 		}
 		if (header) {
-			free_header_list(header);
+			free_header_list2(header);
 		}
 	}
 	void set_post(char *post,int post_len)
@@ -86,7 +86,7 @@ void start_report_worker(std::list<char *> &items) {
 	ctx.post_len = (int64_t)post.getSize();
 	report_ip_context *arg = new report_ip_context;
 	arg->set_post(post.stealString(),post.getSize());
-	arg->header = new_http_header(kgl_expand_string("Content-Type"),kgl_expand_string("application/x-www-form-urlencoded"));
+	arg->header = new_http_header2(kgl_expand_string("Content-Type"),kgl_expand_string("application/x-www-form-urlencoded"));
 	ctx.arg = arg;
 	ctx.post = report_http_post_hook;
 	ctx.body = report_http_body_hook;

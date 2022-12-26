@@ -59,8 +59,8 @@ public:
 	uint32_t queue_handled : 1;
 	//lastModified类型
 	modified_type mt;
-	INT64 content_range_length;
-	INT64 left_read;	//final fetchobj 使用
+	int64_t content_range_length;
+	int64_t left_read;	//final fetchobj 使用
 	void DeadOldObject();
 	void clean();
 	void clean_obj(KHttpRequest *rq,bool store_flag = true);

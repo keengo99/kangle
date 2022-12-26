@@ -132,13 +132,13 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 			*/
 			KHttpHeader* header = obj->data->headers;
 			while (header) {
-				if (is_attr(header, "Expires") ||
-					is_attr(header, "Content-Location") ||
-					is_attr(header, "Etag") ||
-					is_attr(header, "Last-Modified") ||
-					is_attr(header, "Cache-Control") ||
-					is_attr(header, "Vary")) {
-					rq->responseHeader(header->attr, header->attr_len, header->val, header->val_len);
+				if (kgl_is_attr(header, _KS("Expires")) ||
+					kgl_is_attr(header, _KS("Content-Location")) ||
+					kgl_is_attr(header, _KS("Etag")) ||
+					kgl_is_attr(header, _KS("Last-Modified")) ||
+					kgl_is_attr(header, _KS("Cache-Control")) ||
+					kgl_is_attr(header, _KS("Vary"))) {
+					rq->response_header(header);
 				}
 				header = header->next;
 			}
@@ -274,9 +274,10 @@ KGL_RESULT send_error2(KHttpRequest* rq, int code, const char* reason)
 /**
 * 插入via头
 */
-void insert_via(KHttpRequest* rq, KWStream& s, char* old_via) {
+void insert_via(KHttpRequest* rq, KWStream& s, char* old_via,size_t len) {
 	if (old_via) {
-		s << old_via << ",";
+		s.write_all(old_via, len);
+		s.write_all(_KS(","));
 	}
 	s << (int)rq->sink->data.http_major << "." << (int)rq->sink->data.http_minor << " ";
 	if (*conf.hostname) {
@@ -353,7 +354,7 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 	if (likely(send_obj_header)) {
 		KHttpHeader* header = obj->data->headers;
 		while (header) {
-			rq->responseHeader(header->attr, header->attr_len, header->val, header->val_len);
+			rq->response_header(header);
 			header = header->next;
 		}
 		//发送Age头
@@ -554,28 +555,33 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* gate, KBaseRedirect* brd,
 	if (chrooted && svh) {
 		skip_length = svh->vh->doc_root.size() - 1;
 	}
-	KHttpHeader* av = rq->sink->data.GetHeader();
+	KHttpHeader* av = rq->sink->data.get_header();
 	while (av) {
 #ifdef HTTP_PROXY
 		if (strncasecmp(av->attr, "Proxy-", 6) == 0) {
 			goto do_not_insert;
 		}
 #endif
-		if (KBIT_TEST(rq->sink->data.flags, RQ_HAVE_EXPECT) && is_attr(av, "Expect")) {
+		if (KBIT_TEST(rq->sink->data.flags, RQ_HAVE_EXPECT) && kgl_is_attr(av, _KS("Expect"))) {
 			goto do_not_insert;
 		}
-		if (is_attr(av, "SCHEME")) {
+		if (kgl_is_attr(av, _KS("SCHEME"))) {
 			goto do_not_insert;
 		}
 		if (is_internal_header(av)) {
 			goto do_not_insert;
 		}
-		env->addHttpHeader(av->attr, av->val);
+		if (av->name_is_know) {
+			assert(av->val_offset == 0);
+			env->add_http_header(kgl_header_type_string[av->know_header].value.data, kgl_header_type_string[av->know_header].value.len, av->buf+av->val_offset, av->val_len);
+		} else {
+			env->add_http_header(av->buf, av->name_len, av->buf+av->val_offset, av->val_len);
+		}
 	do_not_insert: av = av->next;
 	}
 	KStringBuf host;
 	rq->sink->data.url->GetHost(host);
-	env->addHttpHeader((char*)"Host", host.getString());
+	env->add_http_header(_KS("Host"), host.getString(), host.getSize());
 	int64_t content_length;
 	if (gate) {
 		content_length = gate->f->get_read_left(gate, rq);
@@ -583,20 +589,21 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* gate, KBaseRedirect* brd,
 		content_length = rq->sink->data.content_length;
 	}
 	if (rq_has_content_length(rq, content_length)) {
-		env->addHttpHeader((char*)"Content-Length", (char*)int2string(content_length, tmpbuff));
+		int val_len = int2string2(content_length, tmpbuff);
+		env->add_http_header(_KS("Content-Length"), tmpbuff, val_len);
 	}
 	if (lastModified != 0) {
-		mk1123time(lastModified, tmpbuff, sizeof(tmpbuff));
+		char* end = make_http_time(lastModified, tmpbuff, sizeof(tmpbuff));
 		if (rq->ctx->mt == modified_if_range_date) {
-			env->addHttpHeader((char*)"If-Range", (char*)tmpbuff);
+			env->add_http_header(_KS("If-Range"), (char*)tmpbuff, end - tmpbuff);
 		} else {
-			env->addHttpHeader((char*)"If-Modified-Since", (char*)tmpbuff);
+			env->add_http_header(_KS("If-Modified-Since"), (char*)tmpbuff, end - tmpbuff);
 		}
 	} else if (rq->sink->data.if_none_match) {
 		if (rq->ctx->mt == modified_if_range_etag) {
-			env->addHttpHeader((char*)"If-Range", rq->sink->data.if_none_match->data);
+			env->add_http_header(_KS("If-Range"), rq->sink->data.if_none_match->data, rq->sink->data.if_none_match->len);
 		} else {
-			env->addHttpHeader((char*)"If-None-Match", rq->sink->data.if_none_match->data);
+			env->add_http_header(_KS("If-None-Match"), rq->sink->data.if_none_match->data, rq->sink->data.if_none_match->len);
 		}
 	}
 	timeLock.Lock();
@@ -664,7 +671,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* gate, KBaseRedirect* brd,
 				env->addEnv("PATH_INFO", rq->sink->data.url->path);
 			}
 		}
-		if (skip_length==0 || skip_length < strlen(file->getName())) {
+		if (skip_length == 0 || skip_length < strlen(file->getName())) {
 			if (pathInfoLength > 0) {
 				KStringBuf s;
 				s << file->getName() + skip_length << rq->sink->data.url->path + pathInfoLength;
@@ -694,10 +701,10 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* gate, KBaseRedirect* brd,
 #ifdef SSL_READ_EARLY_DATA_SUCCESS
 			if (ssl->in_early) {
 				env->addEnv("SSL_EARLY_DATA", "1");
-			}
+	}
 #endif
 			make_ssl_env(env, ssl->ssl);
-		}
+}
 	}
 #endif
 #ifdef ENABLE_UPSTREAM_PARAM
@@ -706,7 +713,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* gate, KBaseRedirect* brd,
 		for (it = brd->params.begin(); it != brd->params.end(); it++) {
 			KStringBuf* s = KRewriteMarkEx::getString(NULL, (*it).value.c_str(), rq, NULL, NULL);
 			if (s) {
-				env->addEnv((*it).name.c_str(), (const char*)s->getString());
+				env->add_env((*it).name.c_str(), (*it).name.size(), (const char*)s->getString(), s->getSize());
 				delete s;
 			}
 		}

@@ -243,6 +243,20 @@ public:
 		buffer = (char *)aio_alloc_buffer(KGL_MAX_BUFFER_FILE_SIZE);
 		init();
 	}
+	char* get_buffer(int *len)
+	{
+		*len = buffer_left;
+		return hot;
+	}
+	void write_success(int got)
+	{
+		hot += got;
+		buffer_left -= got;
+		total_write += got;
+		if (buffer_left <= 0) {
+			flush();
+		}
+	}
 	void init()
 	{
 		total_write = 0;

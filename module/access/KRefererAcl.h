@@ -2,14 +2,14 @@
 #define KREFERERACL_H
 #include "KAcl.h"
 #include "KVirtualHostContainer.h"
-inline void referer_domain_iterator(void *arg, const char *domain, void *vh)
+inline void referer_domain_iterator(void* arg, const char* domain, void* vh)
 {
-	std::stringstream *s = (std::stringstream *)arg;
+	std::stringstream* s = (std::stringstream*)arg;
 	*s << domain << "|";
 }
-inline void count_domain_iterator(void *arg, const char *domain, void *vh)
+inline void count_domain_iterator(void* arg, const char* domain, void* vh)
 {
-	int *s = (int *)arg;
+	int* s = (int*)arg;
 	(*s) += 1;
 }
 class KRefererAcl : public KAcl
@@ -24,26 +24,22 @@ public:
 			delete vhc;
 		}
 	}
-	KAcl *newInstance() {
+	KAcl* newInstance() {
 		return new KRefererAcl();
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
-		KHttpHeader *tmp = rq->sink->data.GetHeader();
-		while (tmp) {
-			if (is_attr(tmp, kgl_expand_string("Referer"))) {
-				KAutoUrl referer;
-				if (!parse_url(tmp->val, referer.u)) {
-					return false;
-				}
-				bool matched = false;
-				if (vhc) {
-					matched = (vhc->find(referer.u->host) != NULL);
-				}
-				return matched;
-			}
-			tmp = tmp->next;
+	bool match(KHttpRequest* rq, KHttpObject* obj) {
+		kgl_str_t value;
+		if (!rq->get_http_value(_KS("Referer"), &value)) {
+			return this->host_null;
 		}
-		return this->host_null;
+		if (!vhc) {
+			return false;
+		}
+		KAutoUrl referer;
+		if (!parse_url(value.data, value.len, referer.u)) {
+			return false;
+		}
+		return  (vhc->find(referer.u->host) != NULL);
 	}
 	std::string getDisplay() {
 		int count = 0;
@@ -58,17 +54,17 @@ public:
 		s << count;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
+	void editHtml(std::map<std::string, std::string>& attribute, bool html)
 	{
 		if (vhc) {
 			delete vhc;
 			vhc = NULL;
 		}
 		this->host_null = false;
-		char *buf = strdup(attribute["host"].c_str());
-		char *hot = buf;
+		char* buf = strdup(attribute["host"].c_str());
+		char* hot = buf;
 		for (;;) {
-			char *p = strchr(hot, '|');
+			char* p = strchr(hot, '|');
 			if (p) {
 				*p = '\0';
 				p++;
@@ -88,10 +84,10 @@ public:
 		}
 		free(buf);
 	}
-	const char *getName() {
+	const char* getName() {
 		return "referer";
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel* model) {
 		std::stringstream s;
 		s << "<input type='text' name='host' value='";
 		if (this->host_null) {
@@ -103,7 +99,7 @@ public:
 		s << "' placeHolder='-|abc.com|*.abc.com'>";
 		return s.str();
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream& s) {
 		s << " host='";
 		if (this->host_null) {
 			s << "-|";
@@ -114,7 +110,7 @@ public:
 		s << "'>";
 	}
 private:
-	KDomainMap *vhc;
+	KDomainMap* vhc;
 	bool host_null;
 };
 #endif

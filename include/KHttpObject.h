@@ -12,12 +12,13 @@
 #include "KHttpRequest.h"
 #include "KHttpObjectSwaping.h"
 #include "KVary.h"
-//{{ent
+
 #ifdef ENABLE_BIG_OBJECT_206
 #include "KSharedBigObject.h"
 #endif
-//}}
+
 #include "KHttpKeyValue.h"
+#include "KHttpLib.h"
 #include "time_utils.h"
 #include "KFileName.h"
 #include "KBuffer.h"
@@ -54,7 +55,7 @@ public:
 	KHttpObjectBody(KHttpObjectBody *data);
 	~KHttpObjectBody() {
 		if (headers) {
-			free_header_list(headers);
+			free_header_list2(headers);
 		}
 		switch(i.type){
 		case MEMORY_OBJECT:
@@ -149,7 +150,7 @@ public:
 	void AddContentEncoding(u_char encoding,const char *val, hlen_t val_len)
 	{
 		uk.url->set_content_encoding(encoding);
-		insertHttpHeader(kgl_expand_string("Content-Encoding"), val, val_len);
+		insert_http_header(kgl_header_content_encoding, val, val_len);
 	}
 	bool IsContentRangeComplete(KHttpRequest *rq)
 	{
@@ -166,25 +167,25 @@ public:
 		}
 		KHttpHeader *tmp = data->headers;
 		while (tmp){
-			if (strcasecmp(tmp->attr, "Content-Type") != 0) {
+			if (!tmp->name_is_know || tmp->know_header != kgl_header_content_type) {
 				tmp = tmp->next;
 				continue;
 			}
-			const char *p = strstr(tmp->val, "charset=");
+			const char *p = kgl_memstr(tmp->buf + tmp->val_offset,tmp->val_len, _KS("charset="));
 			if (p == NULL) {
 				return NULL;
 			}
+			char* end = tmp->buf + tmp->val_offset + tmp->val_len;
 			p += 8;
-			while (*p && IS_SPACE((unsigned char)*p))
+			while (p < end && IS_SPACE((unsigned char)*p)) {
 				p++;
+			}
 			const char *charsetend = p;
-			while (*charsetend && !IS_SPACE((unsigned char)*charsetend)
-					&& *charsetend != ';')
+			while (charsetend < end && !IS_SPACE((unsigned char)*charsetend) && *charsetend != ';') {
 				charsetend++;
+			}
 			int charset_len = (int)(charsetend - p);
-			char *charset = (char *)malloc(charset_len+1);
-			kgl_memcpy(charset,p,charset_len);
-			charset[charset_len] = '\0';
+			char* charset = kgl_strndup(p, charset_len);
 			return charset;
 		}
 		return NULL;
@@ -203,7 +204,7 @@ public:
 	KHttpHeader *findHeader(const char *attr,int len) {
 		KHttpHeader *h = data->headers;
 		while (h) {
-			if (is_attr(h,attr,len)) {
+			if (kgl_is_attr(h, attr, len)) {
 				return h;
 			}
 			h = h->next;			
@@ -221,7 +222,7 @@ public:
 		if (h==NULL || len!=h->val_len) {
 			return false;
 		}
-		return memcmp(if_none_match,h->val,len)==0;
+		return memcmp(if_none_match,h->buf+h->val_offset,h->val_len)==0;
 	}
 	void addRef() {
 		u_short hh = h;
@@ -255,11 +256,8 @@ public:
 		KBIT_CLR(index.flags,ANSW_NO_CACHE|OBJ_MUST_REVALIDATE);
 		if (!KBIT_TEST(index.flags,ANSW_LAST_MODIFIED|OBJ_HAS_ETAG)) {
 			data->i.last_modified = kgl_current_sec;
-			if (insertLastModified) {
-				char *tmp_buf = (char *)malloc(41);
-				memset(tmp_buf, 0, 41);
-				mk1123time(data->i.last_modified, tmp_buf, 41);
-				insertHttpHeader2(strdup("Last-Modified"),sizeof("Last-Modified")-1,tmp_buf,29);
+			if (insertLastModified) {			
+				insert_http_header(kgl_header_last_modified, (char *)&data->i.last_modified, KGL_HEADER_VALUE_TIME);				
 			}
 			KBIT_SET(index.flags,ANSW_LAST_MODIFIED);
 		}
@@ -310,31 +308,27 @@ public:
 	int GetHeaderSize(int url_len=0);
 #ifdef ENABLE_DISK_CACHE
 	bool swapout(KBufferFile *file,bool fast_model);
-	//bool swapin(KHttpObjectBody *data);
-	//bool swapinBody(KFile *fp, KHttpObjectBody *data);
 	void unlinkDiskFile();
 	char *getFileName(bool part=false);
 	void write_file_header(KHttpObjectFileHeader *fileHeader);
 	bool save_header(KBufferFile *fp,const char *url, int url_len);
-	char *build_aio_header(int &len);
-	bool save_dci_header(KBufferFile *fp);
+	char *build_aio_header(int &len, const char* url, int url_len);
+	int build_header(char* pos,char *end, const char* url, int url_len);
 #endif
-	bool removeHttpHeader(const char *attr)
+	bool removeHttpHeader(const char *attr,int attr_len)
 	{
 		bool result = false;
 		KHttpHeader *h = data->headers;
 		KHttpHeader *last = NULL;
 		while (h) {
 			KHttpHeader *next = h->next;
-			if (strcasecmp(h->attr,attr)==0) {
+			if (kgl_is_attr(h,attr,attr_len)) {
 				if (last) {
 					last->next = next;
 				} else {
 					data->headers = next;
 				}
-				free(h->attr);
-				free(h->val);
-				free(h);
+				xfree_header2(h);
 				h = next;
 				result = true;
 				continue;
@@ -344,18 +338,16 @@ public:
 		}
 		return result;
 	}
-	void insertHttpHeader2(char *attr,int attr_len,char *val,int val_len)
+	void insert_http_header(kgl_header_type type, const char* val, int val_len)
 	{
-		KHttpHeader *new_h = (KHttpHeader *) xmalloc(sizeof(KHttpHeader));
-		new_h->attr = attr;
-		new_h->attr_len = attr_len;
-		new_h->val = val;
-		new_h->val_len = val_len;
+		KHttpHeader* new_h = new_http_know_header(type, val, val_len);
 		new_h->next = data->headers;
 		data->headers = new_h;
 	}
-	void insertHttpHeader(const char *attr,int attr_len, const char *val,int val_len) {
-		insertHttpHeader2(xstrdup(attr),attr_len,xstrdup(val),val_len);
+	void insert_http_header(const char *attr,int attr_len, const char *val,int val_len) {
+		KHttpHeader* new_h = new_http_header2(attr, attr_len, val, val_len);
+		new_h->next = data->headers;
+		data->headers = new_h;
 	}
 	void ResponseVaryHeader(KHttpRequest *rq);
 	bool AddVary(KHttpRequest *rq,const char *val,int val_len);

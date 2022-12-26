@@ -169,8 +169,8 @@ public:
 			return false;
 		}
 		if (skip_set_cookie) {
-			obj->removeHttpHeader("Set-Cookie");
-			obj->removeHttpHeader("Set-Cookie2");
+			obj->removeHttpHeader(_KS("Set-Cookie"));
+			obj->removeHttpHeader(_KS("Set-Cookie2"));
 		}
 		if (max_age>0) {
 			obj->data->i.max_age = max_age;

@@ -57,16 +57,13 @@ void clean_static_obj_header(KHttpObject *obj) {
 	KHttpHeader *last = NULL;
 	while (h) {
 		KHttpHeader *next = h->next;
-		if (strcasecmp(h->attr,"Set-Cookie")==0
-			|| strcasecmp(h->attr,"Set-Cookie2")==0 ) {
+		if (kgl_is_attr(h,_KS("Set-Cookie")) || kgl_is_attr(h,_KS("Set-Cookie2"))) {
 			if (last) {
 				last->next = next;
 			} else {
 				obj->data->headers = next;
 			}
-			free(h->attr);
-			free(h->val);
-			free(h);
+			xfree_header2(h);
 			h = next;
 			continue;
 		}
@@ -142,7 +139,12 @@ bool cache_prefetch(const char *url)
 	ctx.meth = "GET";
 	ctx.url = (char *)url;
 	ctx.flags = KF_SIMULATE_LOCAL|KF_SIMULATE_CACHE;
-	KHttpHeader head = {(char *)"Accept-Encoding",(char *)"gzip",sizeof("Accept-Encoding")-1,sizeof("gzip")-1,kgl_header_unknow,NULL};
+	KHttpHeader head;
+	memset(&head, 0, sizeof(head));
+	head.name_is_know = 1;
+	head.know_header = kgl_header_accept_encoding;
+	head.buf = (char *)"gzip";
+	head.val_len = sizeof("gzip") - 1;
 	ctx.rh = &head;
 	return kgl_simuate_http_request(&ctx)==0;
 }

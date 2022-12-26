@@ -126,7 +126,7 @@ protected:
 	//创建发送头到buffer中。
 	virtual KGL_RESULT buildHead(KHttpRequest *rq) = 0;
 	//解析head
-	virtual kgl_parse_result ParseHeader(KHttpRequest *rq,char **data, char *end);
+	virtual kgl_parse_result parse_unknow_header(KHttpRequest *rq,char **data, char *end);
 	virtual KGL_RESULT ParseBody(KHttpRequest *rq, char **data, char* end);
 	//创建post数据到buffer中。
 	virtual void buildPost(KHttpRequest *rq)

@@ -6,45 +6,44 @@
 class KHttpOnlyCookieMark : public KMark
 {
 public:
-	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType)
+	bool mark(KHttpRequest* rq, KHttpObject* obj, const int chainJumpType, int& jumpType)
 	{
 		bool result = false;
 		if (obj && obj->data) {
-			KHttpHeader *h = obj->data->headers;
+			KHttpHeader* h = obj->data->headers;
 			while (h) {
-				if (strcasecmp(h->attr,"Set-Cookie")==0 || strcasecmp(h->attr,"Set-Cookie2")==0) {
-					if (strstr(h->val,HTTP_ONLY_STRING)==NULL) {
-						int val_len = strlen(h->val);
-						if (cookie.match(h->val,val_len,0)>0) {
-							int new_len = val_len + sizeof(HTTP_ONLY_STRING);
-							char *buf = (char *)malloc(new_len);
-							kgl_memcpy(buf,h->val,val_len);
-							kgl_memcpy(buf+val_len,HTTP_ONLY_STRING,sizeof(HTTP_ONLY_STRING));
-							free(h->val);
-							h->val = buf;
-							h->val_len += sizeof(HTTP_ONLY_STRING)-1;
+				if (h->name_is_know && (h->know_header == kgl_header_set_cookie || h->know_header == kgl_header_set_cookie2)) {
+					if (kgl_memstr(h->buf, h->val_len, _KS(HTTP_ONLY_STRING)) == NULL) {
+						if (cookie.match(h->buf, h->val_len, 0) > 0) {
+							int new_len = h->val_len + sizeof(HTTP_ONLY_STRING) - 1;
+							char* buf = (char*)malloc(new_len);
+							kgl_memcpy(buf, h->buf, h->val_len);
+							kgl_memcpy(buf + h->val_len, _KS(HTTP_ONLY_STRING));
+							free(h->buf);
+							h->buf = buf;
+							h->val_len += sizeof(HTTP_ONLY_STRING) - 1;
 							result = true;
 						}
-					}					
+					}
 				}//if
 				h = h->next;
 			}//while
 		}//if
 		return result;
 	}
-	KMark *newInstance()
+	KMark* newInstance()
 	{
 		return new KHttpOnlyCookieMark;
 	}
-	const char *getName()
+	const char* getName()
 	{
 		return "http_only";
 	}
-	std::string getHtml(KModel *model)
+	std::string getHtml(KModel* model)
 	{
 		std::stringstream s;
 		s << "deprecated use cookie mark.<br>Cookie regex:<input name='cookie' value='";
-		KHttpOnlyCookieMark *m = (KHttpOnlyCookieMark *)model;
+		KHttpOnlyCookieMark* m = (KHttpOnlyCookieMark*)model;
 		if (m) {
 			s << m->cookie.getModel();
 		}
@@ -55,11 +54,11 @@ public:
 	{
 		return cookie.getModel();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
+	void editHtml(std::map<std::string, std::string>& attribute, bool html)
 	{
-		cookie.setModel(attribute["cookie"].c_str(),0);
+		cookie.setModel(attribute["cookie"].c_str(), 0);
 	}
-	void buildXML(std::stringstream &s)
+	void buildXML(std::stringstream& s)
 	{
 		s << " cookie='" << KXml::param(cookie.getModel()) << "'>";
 	}
@@ -70,7 +69,7 @@ private:
 class KCookieMark : public KMark
 {
 public:
-	KCookieMark() 
+	KCookieMark()
 	{
 		cookie = NULL;
 		http_only = false;
@@ -82,55 +81,53 @@ public:
 			delete cookie;
 		}
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType)
+	bool mark(KHttpRequest* rq, KHttpObject* obj, const int chainJumpType, int& jumpType)
 	{
 		bool result = false;
-		if (obj==NULL || obj->data==NULL) {
+		if (obj == NULL || obj->data == NULL) {
 			return false;
 		}
-		KHttpHeader *h = obj->data->headers;
+		KHttpHeader* h = obj->data->headers;
 		while (h) {
-			if ((is_attr(h,kgl_expand_string("Set-Cookie")) || is_attr(h,kgl_expand_string("Set-Cookie2"))) 
-				&& (cookie==NULL || cookie->match(h->val,h->val_len,0)>0)
-				) {						
-				if (http_only && kgl_memstr(h->val,h->val_len,kgl_expand_string(HTTP_ONLY_STRING))==NULL) {										
+			if (h->name_is_know && (h->know_header == kgl_header_set_cookie || h->know_header == kgl_header_set_cookie2) && (cookie == NULL || cookie->match(h->buf, h->val_len, 0) > 0)) {
+				if (http_only && kgl_memstr(h->buf, h->val_len, kgl_expand_string(HTTP_ONLY_STRING)) == NULL) {
 					int new_len = h->val_len + sizeof(HTTP_ONLY_STRING);
-					char *buf = (char *)malloc(new_len);
-					kgl_memcpy(buf,h->val,h->val_len);
-					kgl_memcpy(buf+h->val_len,HTTP_ONLY_STRING,sizeof(HTTP_ONLY_STRING));
-					free(h->val);
-					h->val = buf;
-					h->val_len += sizeof(HTTP_ONLY_STRING)-1;
+					char* buf = (char*)malloc(new_len);
+					kgl_memcpy(buf, h->buf, h->val_len);
+					kgl_memcpy(buf + h->val_len, HTTP_ONLY_STRING, sizeof(HTTP_ONLY_STRING));
+					free(h->buf);
+					h->buf = buf;
+					h->val_len += sizeof(HTTP_ONLY_STRING) - 1;
 					result = true;
 				}
-				if (secure && kgl_memstr(h->val,h->val_len,kgl_expand_string(COOKIE_SECURE_STRING))==NULL) {									
+				if (secure && kgl_memstr(h->buf, h->val_len, kgl_expand_string(COOKIE_SECURE_STRING)) == NULL) {
 					int new_len = h->val_len + sizeof(COOKIE_SECURE_STRING);
-					char *buf = (char *)malloc(new_len);
-					kgl_memcpy(buf,h->val,h->val_len);
-					kgl_memcpy(buf+h->val_len,COOKIE_SECURE_STRING,sizeof(COOKIE_SECURE_STRING));
-					free(h->val);
-					h->val = buf;
-					h->val_len += sizeof(COOKIE_SECURE_STRING)-1;
+					char* buf = (char*)malloc(new_len);
+					kgl_memcpy(buf, h->buf, h->val_len);
+					kgl_memcpy(buf + h->val_len, COOKIE_SECURE_STRING, sizeof(COOKIE_SECURE_STRING));
+					free(h->buf);
+					h->buf = buf;
+					h->val_len += sizeof(COOKIE_SECURE_STRING) - 1;
 					result = true;
-				}							
+				}
 			}//if
 			h = h->next;
 		}//while
 		return result;
 	}
-	KMark *newInstance()
+	KMark* newInstance()
 	{
 		return new KCookieMark;
 	}
-	const char *getName()
+	const char* getName()
 	{
 		return "cookie";
 	}
-	std::string getHtml(KModel *model)
+	std::string getHtml(KModel* model)
 	{
 		std::stringstream s;
 		s << "Cookie regex:<input name='cookie' value='";
-		KCookieMark *m = (KCookieMark *)model;
+		KCookieMark* m = (KCookieMark*)model;
 		if (m && m->cookie) {
 			s << m->cookie->getModel();
 		}
@@ -161,7 +158,7 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
+	void editHtml(std::map<std::string, std::string>& attribute, bool html)
 	{
 		if (cookie) {
 			delete cookie;
@@ -169,12 +166,12 @@ public:
 		}
 		if (!attribute["cookie"].empty()) {
 			cookie = new KReg;
-			cookie->setModel(attribute["cookie"].c_str(),0);
-		}		
-		http_only = (attribute["http_only"]=="1");
-		secure = (attribute["secure"]=="1");
+			cookie->setModel(attribute["cookie"].c_str(), 0);
+		}
+		http_only = (attribute["http_only"] == "1");
+		secure = (attribute["secure"] == "1");
 	}
-	void buildXML(std::stringstream &s)
+	void buildXML(std::stringstream& s)
 	{
 		if (cookie) {
 			s << " cookie='" << KXml::param(cookie->getModel()) << "'";
@@ -188,7 +185,7 @@ public:
 		s << ">";
 	}
 private:
-	KReg *cookie;
+	KReg* cookie;
 	bool http_only;
 	bool secure;
 };

@@ -20,6 +20,7 @@ public:
 				const int chainJumpType, int &jumpType)
 	{
 		bool result = false;
+#if 0
 		KHttpHeader *header;
 		if (obj) {
 			if (obj->in_cache) {
@@ -48,7 +49,8 @@ public:
 				}
 			}
 			header = header->next;
-		}	
+		}
+#endif
 		return result;
 	}
 	KMark *newInstance()

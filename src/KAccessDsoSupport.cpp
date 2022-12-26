@@ -37,17 +37,16 @@ KGL_RESULT var_printf(LPVOID buffer, LPDWORD size, const char *fmt, ...) {
 	*size = len + 1;
 	return KGL_EINSUFFICIENT_BUFFER;
 }
-KGL_RESULT add_header_var(LPVOID buffer, LPDWORD size, KHttpHeader *header, const char *name)
+KGL_RESULT add_header_var(LPVOID buffer, LPDWORD size, KHttpHeader* header, const char* name, size_t len)
 {
 	while (header) {
-		if (attr_casecmp(header->attr, name) == 0) {
-			return add_api_var(buffer, size, header->val, 0);
+		if (kgl_is_attr(header, name, len) == 0) {
+			return add_api_var(buffer, size, header->buf+header->val_offset, header->val_len);
 		}
 		header = header->next;
 	}
 	return KGL_ENO_DATA;
 }
-
 KGL_RESULT get_response_variable(KHttpRequest *rq, KGL_VAR type, LPSTR  name, LPVOID  buffer, LPDWORD size)
 {
 	KHttpObject *obj = rq->ctx->obj;
@@ -56,7 +55,7 @@ KGL_RESULT get_response_variable(KHttpRequest *rq, KGL_VAR type, LPSTR  name, LP
 	}
 	switch (type) {
 	case KGL_VAR_HEADER:
-		return add_header_var(buffer, size, obj->data->headers, name);
+		return add_header_var(buffer, size, obj->data->headers, name, strlen(name));
 	default:
 		return KGL_ENOT_SUPPORT;
 	}
@@ -65,7 +64,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 {
 	switch (type) {
 	case KGL_VAR_HEADER:
-		return add_header_var(buffer, size, rq->sink->data.GetHeader(), name);
+		return add_header_var(buffer, size, rq->sink->data.get_header(), name, strlen(name));
 #ifdef KSOCKET_SSL
 	case KGL_VAR_SSL_VAR:
 	{
@@ -191,7 +190,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 		return KGL_OK;
 	}
 	case KGL_VAR_CONTENT_TYPE:
-		return add_header_var(buffer, size, rq->sink->data.GetHeader(), "Content-Type");
+		return add_header_var(buffer, size, rq->sink->data.get_header(), _KS("Content-Type"));
 	case KGL_VAR_IF_MODIFIED_SINCE:
 	{
 		if (rq->ctx->mt == modified_if_range_date || rq->sink->data.if_modified_since <= 0) {
@@ -263,10 +262,10 @@ static KGL_RESULT  add_obj_unknow_header(KREQUEST r,
 {
 	KHttpRequest *rq = (KHttpRequest *)r;
 	KHttpResponseParser parser;
-	if (!parser.ParseHeader(rq, attr, attr_len, val, val_len, false)) {
+	if (!parser.parse_unknow_header(rq, attr, attr_len, val, val_len, false)) {
 		return KGL_EINVALID_PARAMETER;
 	}
-	parser.CommitHeaders(rq);
+	parser.commit_headers(rq);
 	return KGL_OK;
 }
 
@@ -282,11 +281,11 @@ static KGL_RESULT  response_unknow_header(
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER)) {
 		return KGL_EHAS_SEND_HEADER;
 	}
-	if (strcasecmp(attr, "Status") == 0) {
-		rq->responseStatus(atoi(val));
+	if (kgl_mem_case_same(attr, attr_len,_KS("Status"))) {
+		rq->responseStatus(kgl_atoi((u_char *)val, val_len));
 		return KGL_OK;
 	}
-	rq->responseHeader(attr, attr_len>0?attr_len:(hlen_t)strlen(attr), val, val_len>0?val_len:(hlen_t)strlen(val));
+	rq->responseHeader(attr, attr_len, val, val_len);
 	return KGL_OK;
 }
 #if 0

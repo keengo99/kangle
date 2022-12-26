@@ -26,7 +26,7 @@ class KResponseHeaderAcl : public KHeaderAcl {
 		if(obj->data==NULL){
 			return false;
 		}
-		return matchHeader(obj->data->headers);
+		return match_header(obj->data->headers);
 	}
 };
 #endif /*KRESPONSEHEADERACL_H_*/

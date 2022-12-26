@@ -130,13 +130,15 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 			client->send_header(kgl_expand_string(":scheme"), kgl_expand_string("http"));
 		}
 	}
-	KHttpHeader* av = rq->sink->data.GetHeader();
+	KHttpHeader* av = rq->sink->data.get_header();
+	kgl_str_t attr;
 	while (av) {
+		kgl_get_header_name(av, &attr);
 		if (kgl_is_attr(av, _KS("Connection")) ||
 			kgl_is_attr(av, _KS("Keep-Alive")) ||
 			kgl_is_attr(av, _KS("Proxy-Connection")) ||
-			*av->attr == ':' ||
-			attr_casecmp(av->attr, "Transfer-Encoding") == 0) {
+			(!av->name_is_know && *(av->buf)==':') ||
+			kgl_is_attr(av, _KS("Transfer-Encoding"))) {
 			goto do_not_insert;
 		}
 #ifdef HTTP_PROXY
@@ -145,48 +147,50 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 		}
 #endif
 
-		if (strcasecmp(av->attr, X_REAL_IP_SIGN) == 0) {
+		if (kgl_is_attr(av, _KS(X_REAL_IP_SIGN))) {
 			goto do_not_insert;
 		}
-		if (KBIT_TEST(rq->filter_flags, RF_X_REAL_IP) && (is_attr(av, "X-Real-IP") || is_attr(av, "X-Forwarded-Proto"))) {
+		if (KBIT_TEST(rq->filter_flags, RF_X_REAL_IP) && (kgl_is_attr(av, _KS("X-Real-IP")) || kgl_is_attr(av, _KS("X-Forwarded-Proto")))) {
 			goto do_not_insert;
 		}
-		if (!KBIT_TEST(rq->filter_flags, RF_NO_X_FORWARDED_FOR) && is_attr(av, "X-Forwarded-For")) {
+		if (!KBIT_TEST(rq->filter_flags, RF_NO_X_FORWARDED_FOR) && kgl_is_attr(av, _KS("X-Forwarded-For"))) {
 			if (x_forwarded_for_inserted) {
 				goto do_not_insert;
 			}
 			x_forwarded_for_inserted = true;
 			s.clean();
-			s << av->val << "," << ips;
+			s.write_all(av->buf+av->val_offset, av->val_len);
+			s.write_all(_KS(","));
+			s << ips;
 			if (!client->send_header(kgl_expand_string("X-Forwarded-For"), s.getBuf(), (hlen_t)s.getSize())) {
 				return false;
 			}
 			goto do_not_insert;
 		}
-		if (is_attr(av, "Via") && KBIT_TEST(rq->filter_flags, RF_VIA)) {
+		if (kgl_is_attr(av, _KS("Via")) && KBIT_TEST(rq->filter_flags, RF_VIA)) {
 			if (via_inserted) {
 				goto do_not_insert;
 			}
 			via_inserted = true;
 			s.clean();
-			insert_via(rq, s, av->val);
+			insert_via(rq, s, av->buf+av->val_offset, av->val_len);
 			if (!client->send_header(kgl_expand_string("Via"), s.getBuf(), (hlen_t)s.getSize())) {
 				return false;
 			}
 			goto do_not_insert;
 		}
-		if (KBIT_TEST(rq->sink->data.flags, RQ_HAVE_EXPECT) && is_attr(av, "Expect")) {
+		if (KBIT_TEST(rq->sink->data.flags, RQ_HAVE_EXPECT) && kgl_is_attr(av, _KS("Expect"))) {
 			goto do_not_insert;
 		}
 #ifdef ENABLE_BIG_OBJECT_206
-		if (rq->bo_ctx && is_attr(av, "Range")) {
+		if (rq->bo_ctx && kgl_is_attr(av, _KS("Range"))) {
 			goto do_not_insert;
 		}
 #endif
 		if (is_internal_header(av)) {
 			goto do_not_insert;
 		}
-		if (!client->send_header(av->attr, av->attr_len, av->val, av->val_len)) {
+		if (!client->send_header(attr.data, (hlen_t)attr.len, av->buf+av->val_offset, av->val_len)) {
 			return false;
 		}
 	do_not_insert: 
@@ -202,11 +206,11 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 	client->set_content_length(content_length);
 
 	if (rq->sink->data.if_modified_since != 0) {
-		int len = make_http_time(rq->sink->data.if_modified_since, tmpbuff, sizeof(tmpbuff));
+		char *end = make_http_time(rq->sink->data.if_modified_since, tmpbuff, sizeof(tmpbuff));
 		if (rq->ctx->mt == modified_if_range_date) {
-			client->send_header(kgl_expand_string("If-Range"), tmpbuff, len);
+			client->send_header(kgl_expand_string("If-Range"), tmpbuff, (hlen_t)(end - tmpbuff));
 		} else {
-			client->send_header(kgl_expand_string("If-Modified-Since"), tmpbuff, len);
+			client->send_header(kgl_expand_string("If-Modified-Since"), tmpbuff, (hlen_t)(end - tmpbuff));
 		}		
 	} else if (rq->sink->data.if_none_match != NULL) {
 		if (rq->ctx->mt == modified_if_range_etag) {

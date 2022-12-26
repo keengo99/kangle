@@ -23,6 +23,7 @@ public:
 				const int chainJumpType, int &jumpType)
 	{	
 		bool result = false;
+#if 0
 		if (attr) {
 			KHttpHeader *h;
 			KHttpObjectBody *data = NULL;
@@ -68,6 +69,7 @@ public:
 				h = next;
 			}
 		}
+#endif
 		return result;
 	}
 	KMark *newInstance()
