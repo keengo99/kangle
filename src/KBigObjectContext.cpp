@@ -177,13 +177,13 @@ void KBigObjectContext::build_if_range(KHttpRequest* rq)
 	//last_net_from = getSharedBigObject()->OpenWrite(rq->sink->data.range_from);
 	KContext* context = rq->ctx;
 	context->mt = modified_if_range_date;
-	if (gobj->index.last_modified) {
-		rq->sink->data.if_modified_since = gobj->index.last_modified;
+	if (gobj->data->i.last_modified) {
+		rq->sink->data.if_modified_since = gobj->data->i.last_modified;
 	} else if (KBIT_TEST(gobj->index.flags, OBJ_HAS_ETAG)) {
 		context->mt = modified_if_range_etag;
 		KHttpHeader* h = gobj->findHeader("Etag", sizeof("Etag") - 1);
 		if (h) {
-			rq->sink->set_if_none_match(h->val, h->val_len);
+			rq->sink->set_if_none_match(h->buf, h->val_len);
 		}
 	} else {
 		rq->sink->data.if_modified_since = gobj->index.last_verified;
@@ -206,12 +206,12 @@ void KBigObjectContext::StartNetRequest(KHttpRequest* rq, kfiber* fiber)
 }
 KGL_RESULT KBigObjectContext::upstream_recv_headed(KHttpRequest* rq, KHttpObject* obj, bool &bigobj_dead)
 {
-	assert(obj->data->type == MEMORY_OBJECT);
+	assert(obj->data->i.type == MEMORY_OBJECT);
 	bigobj_dead = false;
-	if (obj->data->status_code != STATUS_CONTENT_PARTIAL) {
+	if (obj->data->i.status_code != STATUS_CONTENT_PARTIAL) {
 		//status_code not 206
 		bigobj_dead = true;
-		klog(KLOG_INFO, "bigobj_dead status_code=%d not expect 206\n", obj->data->status_code);
+		klog(KLOG_INFO, "bigobj_dead status_code=%d not expect 206\n", obj->data->i.status_code);
 	} else if (!KBIT_TEST(obj->index.flags, ANSW_HAS_CONTENT_RANGE)) {
 		//Ã»ÓÐContent-Range
 		klog(KLOG_INFO, "bigobj_dead have no content_range\n");

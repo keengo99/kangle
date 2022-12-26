@@ -132,7 +132,7 @@ public:
 		assert(attr_len > 0);
 		addLen(attr_len);
 		addLen(val_len);
-		//printf("add env name=[%s:%d] value=[%s:%d]\n",name,name_len,value,value_len);
+		//printf("add env name=[%s] value=[%s]\n", attr, val);
 		buff.write_all(attr, attr_len);
 		buff.write_all(val, val_len);
 		return true;
@@ -352,11 +352,11 @@ public:
 			result = true;
 			name[name_len] = '\0';
 			value[value_len] = '\0';
-			//printf("success read name=[%s] value=[%s]\n",name,value);
-			if (strncmp(name, "HTTP_", 5) == 0) {
-				env->addHttpHeader(name + 5, value);
+			//fprintf(stderr, "success read name=[%s] value=[%s]\n",name,value);
+			if (strncmp(name, _KS("HTTP_")) == 0) {
+				env->add_http_header(name + 5, name_len - 5, value, value_len);
 			} else {
-				env->addEnv(name, value);
+				env->add_env(name, name_len, value,value_len);
 			}
 		error: xfree(name);
 			xfree(value);
@@ -415,19 +415,18 @@ public:
 	}
 
 	bool extend;
-	bool addHttpHeader(char* attr, char* val) override
+	bool add_http_header(const char* attr, size_t attr_len, const char* val, size_t val_len) override
 	{
 		if (!extend) {
-			return KEnvInterface::addHttpHeader(attr, val);
+			return KEnvInterface::add_http_header(attr, attr_len, val, val_len);
 		}
-		int len = (int)strlen(attr);
-		char* dst = (char*)xmalloc(len + 6);
+		char* dst = (char*)xmalloc(attr_len + 6);
 		char* hot = dst;
 		strncpy(hot, "HTTP_", 5);
 		hot += 5;
-		strncpy(hot, attr, len);
-		hot[len] = '\0';
-		bool result = addEnv(dst, val);
+		strncpy(hot, attr, attr_len);
+		hot[attr_len] = '\0';
+		bool result = add_env(dst, attr_len+5, val, val_len);
 		xfree(dst);
 		return result;
 	}

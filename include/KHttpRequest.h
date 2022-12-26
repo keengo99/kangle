@@ -47,6 +47,7 @@
 #include "kmalloc.h"
 #include "kconnection.h"
 #include "KHttpParser.h"
+#include "KHttpLib.h"
 #include "KFetchObject.h"
 #include "KSink.h"
 #define KGL_REQUEST_POOL_SIZE 4096
@@ -211,11 +212,7 @@ public:
 	}
 	inline bool responseHeader(kgl_header_type name,const char *val,hlen_t val_len)
 	{
-		return this->responseHeader(kgl_header_type_string[name].data, (hlen_t)kgl_header_type_string[name].len,val,val_len);
-	}
-	inline bool responseHeader(KHttpHeader *header)
-	{
-		return responseHeader(header->attr,header->attr_len,header->val,header->val_len);
+		return this->responseHeader(kgl_header_type_string[name].value.data, (hlen_t)kgl_header_type_string[name].value.len,val,val_len);
 	}
 	inline bool responseHeader(kgl_str_t *name,kgl_str_t *val)
 	{
@@ -236,6 +233,7 @@ public:
 	inline bool responseConnection() {
 		return sink->response_connection();
 	}
+	bool response_header(KHttpHeader* header);
 	bool responseHeader(const char *name,hlen_t name_len,const char *val,hlen_t val_len);
 	//发送完header开始发送body时调用
 	bool startResponseBody(INT64 body_len);
@@ -323,17 +321,29 @@ public:
 	{
 		return kgl_pnalloc(sink->pool, size);
 	}
+	bool get_http_value(const char* attr, size_t attr_len, kgl_str_t* result)
+	{
+		auto header = sink->data.find(attr, (int)attr_len);
+		if (header == nullptr) {
+			return false;
+		}
+		result->data = header->buf+header->val_offset;
+		result->len = header->val_len;
+		return true;
+	}
+#if 0
 	const char *GetHttpValue(const char *attr)
 	{
-		KHttpHeader *next = sink->data.header;
+		KHttpHeader2 *next = sink->data.header;
 		while (next) {
-			if (!strcasecmp(attr, next->attr)) {
+			if ((attr, next->attr)) {
 				return next->val;
 			}
 			next = next->next;
 		}
 		return NULL;
 	}
+#endif
 	int Read(char *buf, int len);
 #ifdef ENABLE_REQUEST_QUEUE
 	bool NeedQueue();

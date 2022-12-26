@@ -27,7 +27,7 @@ public:
 			s << "]";
 		}
 		s << ":" << ksocket_addr_port(addr);
-		rq->sink->data.AddHeader(kgl_expand_string("Referer"), s.getString(),s.getSize());
+		rq->sink->data.add_header(kgl_expand_string("Referer"), s.getString(),s.getSize());
 		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_UPGRADE);
 #ifdef ENABLE_PROXY_PROTOCOL
 		if (proxy_protocol) {

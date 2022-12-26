@@ -23,7 +23,7 @@ class KRequestHeaderAcl : public KHeaderAcl {
 		return new KRequestHeaderAcl();
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) {
-		return matchHeader(rq->sink->data.GetHeader());
+		return match_header(rq->sink->data.get_header());
 	}
 };
 #endif /*KREQUESTHEADERACL_H_*/

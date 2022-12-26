@@ -151,7 +151,7 @@ bool KApiFetchObject::initECB(EXTENSION_CONTROL_BLOCK* ecb) {
 }
 bool KApiFetchObject::setStatusCode(const char* status, int len) {
 	//printf("status: %s\n",status);
-	rq->ctx->obj->data->status_code = atoi(status);
+	rq->ctx->obj->data->i.status_code = atoi(status);
 	return true;
 }
 KGL_RESULT KApiFetchObject::map_url_path(const char* url, LPVOID file, LPDWORD file_len)

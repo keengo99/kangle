@@ -6,6 +6,7 @@ import (
 	"strings"
 	"test_server/common"
 	"test_server/config"
+	"test_server/kangle"
 )
 
 func HandleBrokenCache(w http.ResponseWriter, r *http.Request) {
@@ -47,5 +48,17 @@ func check_broken_no_cache() {
 	})
 	common.Get("/broken_cache?chunk=1", nil, func(resp *http.Response, err error) {
 		common.Assert("x-cache-miss", resp == nil || strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
+	})
+}
+func check_disk_cache() {
+	common.Get("/static/index.id?dc=1", nil, func(resp *http.Response, err error) {
+		common.Assert("x-cache-miss", resp == nil || strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
+	})
+	common.Get("/static/index.id?dc=1", nil, func(resp *http.Response, err error) {
+		common.Assert("x-cache-hit", resp == nil || strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	})
+	kangle.FlushDiskCache()
+	common.Get("/static/index.id?dc=1", nil, func(resp *http.Response, err error) {
+		common.Assert("x-cache-hit", resp == nil || strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
 	})
 }

@@ -36,7 +36,7 @@ public:
 	{
 		KHttpHeader *header = new_pool_http_header(c->pool, name, name_len, val, val_len);
 		if (header) {
-			header_manager.Append(header);
+			header_manager.append(header);
 		}
 		return true;
 	}

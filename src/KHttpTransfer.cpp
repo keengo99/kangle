@@ -86,7 +86,7 @@ StreamState KHttpTransfer::sendHead(KHttpRequest *rq, bool isEnd) {
 	StreamState result = STREAM_WRITE_SUCCESS;
 	INT64 content_len = (isEnd?0:-1);
 	cache_model cache_layer = cache_memory;
-	kassert(!KBIT_TEST(rq->sink->data.flags, RQ_HAVE_RANGE) || rq->ctx->obj->data->status_code==STATUS_CONTENT_PARTIAL);
+	kassert(!KBIT_TEST(rq->sink->data.flags, RQ_HAVE_RANGE) || rq->ctx->obj->data->i.status_code==STATUS_CONTENT_PARTIAL);
 	if (KBIT_TEST(obj->index.flags,ANSW_HAS_CONTENT_LENGTH)) {
 		content_len = obj->index.content_length;
 #ifdef ENABLE_DISK_CACHE

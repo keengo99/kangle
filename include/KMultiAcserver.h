@@ -48,10 +48,9 @@ public:
 	{
 		return "mserver";
 	}
-	//{{ent
 #ifdef ENABLE_MSERVER_ICP
 	void setIcp(const char *icp_name);
-#endif//}}
+#endif
 	void setErrorTryTime(int max_error_count,int errorTryTime);
 	static std::string nodeForm(std::string name,KMultiAcserver *as,unsigned nodeIndex);
 	bool delNode(int nodeIndex);
@@ -71,7 +70,7 @@ private:
 	bool addNode(std::map<std::string, std::string> &attr, char *self_ip);
 	void addNode(KSockPoolHelper *sockHelper);
 	uint16_t getNodeIndex(KHttpRequest *rq,int *set_cookie_stick);
-	int getCookieStick(const char *attr,const char *cookie_stick_name);
+	int getCookieStick(const char *attr, size_t len, const char *cookie_stick_name);
 	KSockPoolHelper *getIndexNode(int index);
 	KSockPoolHelper *nextActiveNode(KSockPoolHelper *node,unsigned short &index);
 	void enableAllServer();	

@@ -207,11 +207,11 @@ bool multipart_eof(multipart_buffer* mb, bool isLast)
 	}
 	return  mb->bytes_in_buffer <= mb->boundary_next_len + 1;
 }
-char* get_hdr_value(KHttpHeader* header, const char* attr)
+char* get_hdr_value(KHttpHeader* header, const char* attr,size_t attr_len)
 {
 	while (header) {
-		if (strcasecmp(header->attr, attr) == 0) {
-			return header->val;
+		if (kgl_is_attr(header,attr,attr_len)) {
+			return header->buf + header->val_offset;
 		}
 		header = header->next;
 	}
@@ -269,7 +269,7 @@ int KMultiPartInputFilter::InternalCheck(KInputFilterContext* rq, const char* st
 		default:
 			return JUMP_ALLOW;
 		}
-		if ((cd = get_hdr_value(hm.header, "Content-Disposition"))) {
+		if ((cd = get_hdr_value(hm.header, _KS("Content-Disposition")))) {
 			char* pair = NULL;
 			while (isspace(*cd)) {
 				++cd;
@@ -314,7 +314,7 @@ int KMultiPartInputFilter::InternalCheck(KInputFilterContext* rq, const char* st
 				}
 			}
 			if (hm.header) {
-				free_header_list(hm.header);
+				free_header_list2(hm.header);
 				memset(&hm, 0, sizeof(hm));
 			}
 
@@ -338,7 +338,7 @@ kgl_parse_result KMultiPartInputFilter::parseHeader(KInputFilterContext* rq)
 		case kgl_parse_error:
 			return ret;
 		case kgl_parse_success:
-			hm.AddHeader(rs.attr, rs.attr_len, rs.val, rs.val_len);
+			hm.add_header(rs.attr, rs.attr_len, rs.val, rs.val_len);
 			continue;
 		case kgl_parse_finished:
 			rq->mb->model = MULTIPART_BODY_MODEL;

@@ -19,7 +19,7 @@ public:
 	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType) {
 		if (obj && obj->data) {
-			obj->data->status_code = code;
+			obj->data->i.status_code = code;
 		}
 		return true;
 	}

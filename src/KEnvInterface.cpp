@@ -10,52 +10,55 @@
 #include <stdio.h>
 #include "KEnvInterface.h"
 #include "kmalloc.h"
+#include "KHttpLib.h"
+
 
 KEnvInterface::KEnvInterface() {
 }
 
 KEnvInterface::~KEnvInterface() {
 }
-bool KEnvInterface::addHttpEnv(const char *attr,const char *val)
+bool KEnvInterface::add_http_env(const char* attr, size_t attr_len, const char* val, size_t val_len)
 {
-	int len = (int)strlen(attr);
-	char *dst = (char *) xmalloc(len + 6);
-	char *hot = dst;
-	strncpy(hot, "HTTP_", 5);
+	size_t dst_len = attr_len + 5;
+	char* dst = (char*)xmalloc(dst_len + 1);
+	dst[dst_len] = '\0';
+	char* hot = dst;
+	memcpy(hot, _KS("HTTP_"));
 	hot += 5;
-	while (*attr) {
+	while (attr_len > 0) {
 		if (*attr == '-') {
 			*hot = '_';
 		} else {
-			*hot = toupper(*attr);
+			*hot = kgl_toupper(*attr);
 		}
 		attr++;
 		hot++;
+		attr_len--;
 	}
-	*hot = '\0';
-	bool result = addEnv(dst, val);
+	bool result = add_env(dst, dst_len, val, val_len);
 	xfree(dst);
 	return result;
 }
-bool KEnvInterface::addHttpHeader(char *attr, char *val) {
-	if(strcasecmp(attr,"Content-Type")==0){
-		return addContentType(val);
+bool KEnvInterface::add_http_header(const char* attr, size_t attr_len, const char* val, size_t val_len) {
+	if (kgl_is_attr(attr, attr_len, _KS("Content-Type"))) {
+		return add_content_type(val, val_len);
 	}
-	if(strcasecmp(attr,"Content-Length")==0){
-		return addContentLength(val);
+	if (kgl_is_attr(attr, attr_len, _KS("Content-Length"))) {
+		return add_content_length(val, val_len);
 	}
-	return addHttpEnv(attr,val);
+	return add_http_env(attr, attr_len, val, val_len);
 }
-bool KEnvInterface::addEnv(const char *attr, int val) {
+bool KEnvInterface::addEnv(const char* attr, int val) {
 	char buf[16];
 	snprintf(buf, 15, "%d", val);
 	return addEnv(attr, buf);
 }
-bool KEnvInterface::addContentType(const char *contentType)
+bool KEnvInterface::add_content_type(const char* contentType, size_t len)
 {
-	return addEnv("CONTENT_TYPE",contentType);
+	return add_env(_KS("CONTENT_TYPE"), contentType, len);
 }
-bool KEnvInterface::addContentLength(const char *contentLength)
+bool KEnvInterface::add_content_length(const char* contentLength, size_t len)
 {
-	return addEnv("CONTENT_LENGTH",contentLength);
+	return add_env(_KS("CONTENT_LENGTH"), contentLength, len);
 }

@@ -12,7 +12,9 @@ public:
 	}
 	inline bool add(KHttpHeader *header)
 	{
-		return add(header->attr, header->attr_len, header->val, header->val_len);
+		kgl_str_t attr;
+		kgl_get_header_name(header, &attr);
+		return add(attr.data, (hlen_t)attr.len, header->buf+header->val_offset, header->val_len);
 	}
 	inline bool add(kgl_str_t *name, kgl_str_t *val)
 	{

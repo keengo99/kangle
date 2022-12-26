@@ -42,7 +42,7 @@ public:
 #endif
 		if (!KBIT_TEST(obj->index.flags,ANSW_NO_CACHE)) {			
 			if (max_age>0) {
-				obj->index.max_age = max_age;
+				obj->data->i.max_age = max_age;
 				//soft指标是否发送max-age头给客户
 				KBIT_SET(obj->index.flags,(soft?ANSW_HAS_EXPIRES:ANSW_HAS_MAX_AGE));
 			}
@@ -169,11 +169,11 @@ public:
 			return false;
 		}
 		if (skip_set_cookie) {
-			obj->removeHttpHeader("Set-Cookie");
-			obj->removeHttpHeader("Set-Cookie2");
+			obj->removeHttpHeader(_KS("Set-Cookie"));
+			obj->removeHttpHeader(_KS("Set-Cookie2"));
 		}
 		if (max_age>0) {
-			obj->index.max_age = max_age;
+			obj->data->i.max_age = max_age;
 			//soft指标是否发送max-age头给客户
 			KBIT_SET(obj->index.flags, (soft ? ANSW_HAS_EXPIRES : ANSW_HAS_MAX_AGE));
 		}

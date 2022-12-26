@@ -32,13 +32,13 @@ public:
 #endif
 			return false;
 		}
-		KHttpHeader *h = rq->sink->data.GetHeader();
+		KHttpHeader *h = rq->sink->data.get_header();
 		KHttpHeader *prev = NULL;
 		while (h) {
-			if (strcasecmp(h->attr, header.c_str()) == 0) {
+			if (kgl_is_attr(h,header.c_str(),header.size())) {
 				KRegSubString *sub = NULL;
 				if (val) {
-					sub = val->matchSubString(h->val, strlen(h->val), 0);
+					sub = val->matchSubString(h->buf+h->val_offset, h->val_len, 0);
 				}
 				if (val == NULL || sub) {
 					if (prev) {
@@ -51,16 +51,14 @@ public:
 						rq->sink->data.client_ip = NULL;
 					}
 					if (val == NULL) {
-						rq->sink->data.client_ip = h->val;
+						rq->sink->data.client_ip = kgl_strndup(h->buf+h->val_offset,h->val_len);
 					} else {
-						free(h->val);
 						char *ip = sub->getString(1);
 						if (ip) {
 							rq->sink->data.client_ip = strdup(ip);
 						}
 					}
-					free(h->attr);
-					free(h);
+					xfree_header2(h);
 					if (KBIT_TEST(rq->sink->data.raw_url->flags,KGL_URL_ORIG_SSL)) {
 						KBIT_SET(rq->sink->data.raw_url->flags,KGL_URL_SSL);
 						if (rq->sink->data.raw_url->port == 80) {
@@ -157,15 +155,13 @@ public:
 	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType)
 	{
-		KHttpHeader *h = rq->sink->data.RemoveHeader("x-real-ip-sign");
+		KHttpHeader *h = rq->sink->data.remove(_KS("x-real-ip-sign"));
 		if (h == NULL) {
 			return false;
 		}
-		char *sign = strchr(h->val, '|');
+		char *sign = (char *)memchr(h->buf+h->val_offset, '|', h->val_len);
 		if (sign == NULL) {
-			free(h->attr);
-			free(h->val);
-			free(h);
+			xfree_header2(h);
 			return false;
 		}
 		*sign = '\0';		
@@ -174,7 +170,7 @@ public:
 		unsigned char digest[17];
 		char buf[33];
 		KMD5Init(&context);
-		KMD5Update(&context, (unsigned char *)h->val, sign - h->val);
+		KMD5Update(&context, (unsigned char *)h->buf+h->val_offset, sign - (h->buf+h->val_offset));
 		for (int i = 0; i < 2; i++) {
 			if (upstream_sign[i].data == NULL) {
 				continue;
@@ -190,13 +186,13 @@ public:
 		}
 		if (matched) {
 			rq->ctx->parent_signed = true;
-			char *hot = h->val;
+			char* hot = h->buf+h->val_offset;
 			for (;;) {
-				char *p = strchr(hot, ',');
+				char* p = strchr(hot, ',');
 				if (p) {
 					*p = '\0';
 				}
-				char *val = strchr(hot, '=');
+				char* val = strchr(hot, '=');
 				if (val) {
 					*val = '\0';
 					val++;
@@ -214,9 +210,7 @@ public:
 				hot = p + 1;
 			}
 		}
-		free(h->attr);
-		free(h->val);
-		free(h);
+		xfree_header2(h);
 		return matched;
 	}
 	KMark *newInstance()

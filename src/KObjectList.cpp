@@ -194,7 +194,7 @@ int KObjectList::move(KBufferFile *bf, int64_t begin_msec,INT64 m_size,bool swap
 		}
 		KTempHttpObject *to = new KTempHttpObject;
 		to->decSize = obj->index.head_size;
-		if (!swapout_flag || (obj->data && obj->data->type == MEMORY_OBJECT)) {
+		if (!swapout_flag || (obj->data && obj->data->i.type == MEMORY_OBJECT)) {
 			//磁盘缓存清理或者是内存交换大物件
 			to->decSize += obj->index.content_length;
 		}

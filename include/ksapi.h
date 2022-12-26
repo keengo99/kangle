@@ -572,13 +572,15 @@ typedef struct _kgl_dso_function
 		KF_ALLOC_MEMORY_TYPE type);
 	KGL_RESULT (*register_clean_callback)(KREQUEST rq, kgl_cleanup_f cb, void *arg, KF_ALLOC_MEMORY_TYPE type);	
 	void(*log)(int level, const char *fmt, ...);
+	kgl_header_type (*parse_response_header)(const char* attr, hlen_t attr_len);
+	kgl_header_type (*parse_request_header)(const char* attr, hlen_t attr_len);
 } kgl_dso_function;
 
 
 typedef struct _kgl_dso_version
 {
 	int32_t  size;
-	int32_t  api_version; //双方交换api版本
+	int32_t  api_version; /* 双方交换api版本 */
 	int32_t  module_version;
 	int32_t  flags;
 	KCONN    cn;

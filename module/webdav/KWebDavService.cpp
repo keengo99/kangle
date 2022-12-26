@@ -12,6 +12,7 @@
 #include "KUrl.h"
 #include "KHttpLib.h"
 #include "KDefer.h"
+#include "klog.h"
 
 #define MAX_DEPTH 1
 #define MAX_DOCUMENT_SIZE   1048576
@@ -97,6 +98,7 @@ bool KWebDavService::send(int status_code) {
 bool KWebDavService::doGet(bool head) {
 	KResource* rs = rsMaker->bindResource(provider->getFileName(), provider->getRequestUri());		
 	if (rs == NULL) {
+		//fprintf(stderr, "cann't bind resource filename=[%s] uri=[%s]\n", provider->getFileName(), provider->getRequestUri());
 		return send(STATUS_NOT_FOUND);
 	}
 	delete rs;
@@ -374,8 +376,10 @@ bool KWebDavService::doUnlock() {
 	char token_header[512];
 	int len = sizeof(token_header);
 	if (!provider->getEnv("HTTP_LOCK_TOKEN", token_header, &len)) {
+		fprintf(stderr, "cann't found HTTP_LOCK_TOKEN\n");
 		return send(STATUS_BAD_REQUEST);
 	}
+	fprintf(stderr, "token_header=[%s]\n", token_header);
 	char* token = strchr(token_header, '<');
 	if (token == nullptr) {
 		return send(STATUS_BAD_REQUEST);

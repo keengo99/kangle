@@ -28,13 +28,13 @@ public:
 	virtual const char *getEnv(const char *attr) {
 		return NULL;
 	}
-	virtual bool addContentType(const char *contentType);
-	virtual bool addContentLength(const char *contentLength);
+	virtual bool add_content_type(const char *contentType, size_t len);
+	virtual bool add_content_length(const char *contentLength, size_t len);
 public:
-	virtual bool addHttpHeader(char *attr, char *val);
+	virtual bool add_http_header(const char *attr, size_t attr_len, const char *val, size_t val_len);
 	bool addEnv(const char *attr, int val);
 protected:
-	virtual bool addHttpEnv(const char *attr,const char *val);
+	virtual bool add_http_env(const char *attr, size_t attr_len, const char *val, size_t val_len);
 
 };
 

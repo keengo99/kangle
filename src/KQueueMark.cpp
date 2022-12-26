@@ -86,10 +86,10 @@ bool KPerQueueMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJump
 			}
 			ss = matcher->reg.matchSubString(url->getString(), url->getSize(), 0);
 		} else {
-			KHttpHeader *av = rq->sink->data.GetHeader();
+			KHttpHeader *av = rq->sink->data.get_header();
 			while (av) {
-				if (attr_casecmp(av->attr, matcher->header) == 0 && av->val) {
-					ss = matcher->reg.matchSubString(av->val, av->val_len, 0);
+				if (kgl_is_attr(av, matcher->header,strlen(matcher->header))) {
+					ss = matcher->reg.matchSubString(av->buf+av->val_offset, av->val_len, 0);
 					break;
 				}
 				av = av->next;

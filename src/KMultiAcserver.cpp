@@ -98,9 +98,9 @@ void KMultiAcserver::enableAllServer()
 		helper = n;
 	}
 }
-int KMultiAcserver::getCookieStick(const char *attr,const char *cookie_stick_name)
+int KMultiAcserver::getCookieStick(const char *attr, size_t len, const char *cookie_stick_name)
 {
-	char *buf = strdup(attr);
+	char *buf = kgl_strndup(attr, len);
 	if (buf==NULL) {
 		return -1;
 	}
@@ -137,10 +137,10 @@ uint16_t KMultiAcserver::getNodeIndex(KHttpRequest *rq, int *set_cookie_stick)
 		if (*cookie_stick_name=='\0') {
 			cookie_stick_name = DEFAULT_COOKIE_STICK_NAME;
 		}
-		KHttpHeader *av = rq->sink->data.GetHeader();
+		KHttpHeader *av = rq->sink->data.get_header();
 		while (av) {
-			if (strcasecmp(av->attr,"Cookie")==0) {
-				int cookie_stick_value = getCookieStick(av->val,cookie_stick_name);
+			if (kgl_is_attr(av,_KS("Cookie"))) {
+				int cookie_stick_value = getCookieStick(av->buf+av->val_offset, av->val_len, cookie_stick_name);
 				if (cookie_stick_value>=0) {
 					if (cookie_stick_value < (int)vnodes.size()) {
 						return (unsigned short)cookie_stick_value;

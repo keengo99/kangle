@@ -71,10 +71,12 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 	KHttpHeader *head = ctx->rh;
 	bool user_agent = false;
 	while (head) {
-		if (strcasecmp(head->attr, "User-Agent") == 0) {
+		if (kgl_is_attr(head,_KS("User-Agent"))) {
 			user_agent = true;
 		}
-		rq->sink->parse_header(head->attr, head->attr_len, head->val, head->val_len, false);
+		kgl_str_t attr;
+		kgl_get_header_name(head, &attr);
+		rq->sink->parse_header(attr.data, attr.len, head->buf + head->val_offset, head->val_len, false);
 		head = head->next;
 	}
 	if (!user_agent) {
@@ -216,11 +218,11 @@ int WINAPI async_download_header_hook(void *arg, int code, KHttpHeader *header)
 		}
 		dw->st = fs;
 		while (header) {
-			if (is_attr(header, "Content-Encoding") && is_val(header, kgl_expand_string("gzip"))) {
+			if (kgl_is_attr(header, _KS("Content-Encoding")) && kgl_mem_case_same(header->buf + header->val_offset, header->val_len, kgl_expand_string("gzip"))) {
 				KGzipDecompress *st = new KGzipDecompress(false, dw->st, true);
 				dw->st = st;				
-			} else if (is_attr(header, "Last-Modified")) {	
-				fs->last_modified = kgl_parse_http_time((u_char*)header->val, header->val_len);
+			} else if (kgl_is_attr(header, _KS("Last-Modified"))) {
+				fs->last_modified = kgl_parse_http_time((u_char*)header->buf + header->val_offset, header->val_len);
 			}
 			header = header->next;
 		}
@@ -269,16 +271,12 @@ int kgl_async_download(const char *url, const char *file, int *status)
 	struct stat buf;
 	int ret = stat(file, &buf);
 	char tmp_buf[42];
-	KHttpHeader header;
-	memset(&header, 0, sizeof(header));
+	KHttpHeader *header = nullptr;
+	
 	if (ret == 0) {
 		mk1123time(buf.st_mtime, tmp_buf, 41);
-		header.attr = (char *)"If-Modified-Since";
-		header.attr_len = (hlen_t)strlen(header.attr);
-		header.val = tmp_buf;
-		header.val_len = 41;
-		//printf("if-modified-since time=[%x] [%s]\n", (unsigned)buf.st_mtime,tmp_buf);
-		ctx.rh = &header;
+		header = new_http_header2(_KS("If-Modified-Since"), tmp_buf, 41);
+		ctx.rh = header;
 	}
 	ctx.arg = &download_ctx;
 	ctx.url = (char *)url;
@@ -297,6 +295,9 @@ int kgl_async_download(const char *url, const char *file, int *status)
 	kfiber_join(fiber, &ret);
 	*status = download_ctx.code;
 clean:
+	if (header) {
+		xfree_header2(header);
+	}
 	xfree(download_ctx.save_file);
 	return ret;
 }

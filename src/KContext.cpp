@@ -32,7 +32,7 @@ void KContext::store_obj(KHttpRequest *rq)
 		//send from cache
 		assert(obj);
 		KBIT_CLR(rq->filter_flags,RQ_SWAP_OLD_OBJ);
-		if (obj->data->status_code == STATUS_NOT_MODIFIED) {
+		if (obj->data->i.status_code == STATUS_NOT_MODIFIED) {
 			//¸üÐÂobj
 			//É¾³ýÐÂobj
 			assert(old_obj->in_cache);

@@ -14,10 +14,10 @@ KGL_RESULT KStaticFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_
 	}
 	return  out->f->write_end(out, rq, result);
 }
-KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stream* out)
+KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_output_stream* out)
 {
 	kassert(!rq->file->isDirectory());
-	KHttpObject *obj = rq->ctx->obj;
+	KHttpObject* obj = rq->ctx->obj;
 	KBIT_SET(obj->index.flags, ANSW_LOCAL_SERVER);
 	if (rq->sink->data.if_modified_since > 0 && rq->sink->data.if_modified_since == rq->file->getLastModified()) {
 		if (rq->ctx->mt == modified_if_modified) {
@@ -40,7 +40,7 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 		return out->f->write_message(out, rq, KGL_MSG_ERROR, "file not found", STATUS_NOT_FOUND);
 	}
 	//处理content-type
-	char *content_type = find_content_type(rq, obj);
+	char* content_type = find_content_type(rq, obj);
 	if (content_type == NULL) {
 		return out->f->write_message(out, rq, KGL_MSG_ERROR, "cann't find such content-type", STATUS_FORBIDEN);
 	}
@@ -65,11 +65,11 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 		rq->ctx->content_range_length = rq->file->get_file_size();
 		if (!rq->sink->adjust_range(&left_send)) {
 			xfree(content_type);
-			return out->f->write_message(out, rq, KGL_MSG_ERROR, "range error",416);
+			return out->f->write_message(out, rq, KGL_MSG_ERROR, "range error", 416);
 		}
 		if (kfiber_file_seek(fp, seekBegin, rq->sink->data.range_from)) {
 			xfree(content_type);
-			return out->f->write_message(out, rq, KGL_MSG_ERROR, "cann't seek to right position",500);
+			return out->f->write_message(out, rq, KGL_MSG_ERROR, "cann't seek to right position", 500);
 		}
 		if (!KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED)) {
 			KStringBuf b;
@@ -78,7 +78,7 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 			b << int2string(rq->sink->data.range_from, buf) << "-";
 			b << int2string(rq->sink->data.range_to, buf) << "/";
 			b << int2string(rq->file->get_file_size(), buf);
-			out->f->write_unknow_header(out, rq, kgl_expand_string("Content-Range"), b.getString(), b.getSize());
+			out->f->write_header(out, rq, kgl_header_content_range, b.getString(), b.getSize());
 			status_code = STATUS_CONTENT_PARTIAL;
 		} else {
 			//url range的本地不缓存
@@ -91,7 +91,7 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 			b << int2string(rq->sink->data.range_from, buf) << "-";
 			b << int2string(rq->sink->data.range_to, buf) << "/";
 			b << int2string(rq->file->get_file_size(), buf);
-			out->f->write_unknow_header(out, rq, kgl_expand_string("Content-Range"), b.getString(), b.getSize());
+			out->f->write_header(out, rq, kgl_header_content_range, b.getString(), b.getSize());
 			status_code = STATUS_CONTENT_PARTIAL;
 		} else {
 			//url range的本地不缓存
@@ -102,12 +102,12 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 	rq->ctx->know_length = 1;
 	rq->ctx->left_read = left_send;
 	if (obj->never_compress) {
-		out->f->write_unknow_header(out, rq, kgl_expand_string("Content-Encoding"), kgl_expand_string("identity"));
+		out->f->write_header(out, rq, kgl_header_content_encoding, kgl_expand_string("identity"));
 	}
-	out->f->write_header(out, rq, kgl_header_content_length, (const char *)&left_send, 0);
+	out->f->write_header(out, rq, kgl_header_content_length, (const char*)&left_send, 0);
 	time_t last_modified = rq->file->getLastModified();
-	out->f->write_header(out, rq, kgl_header_last_modified, (const char *)&last_modified, 0);
-	out->f->write_unknow_header(out, rq, kgl_expand_string("Content-Type"), content_type, (hlen_t)strlen(content_type));
+	out->f->write_header(out, rq, kgl_header_last_modified, (const char*)&last_modified, 0);
+	out->f->write_header(out, rq, kgl_header_content_type, content_type, (hlen_t)strlen(content_type));
 	xfree(content_type);
 	//rq->buffer << "1234";
 	//通知http头已经处理完成
@@ -116,11 +116,11 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest *rq, kgl_output_stre
 		return result;
 	}
 	int buf_size = conf.io_buffer;
-	char *buf = (char *)aio_alloc_buffer(buf_size);
+	char* buf = (char*)aio_alloc_buffer(buf_size);
 	if (buf == NULL) {
 		return KGL_ENO_MEMORY;
 	}
-	while (rq->ctx->left_read >0) {
+	while (rq->ctx->left_read > 0) {
 		int len = (int)MIN(rq->ctx->left_read, (INT64)buf_size);
 		int read_len = kfiber_file_read(fp, buf, len);
 		if (read_len <= 0) {

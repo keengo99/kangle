@@ -254,8 +254,10 @@ void log_access(KHttpRequest* rq) {
 		) {
 		return;
 	}
-	char* referer = NULL;
-	const char* user_agent = NULL;
+	kgl_str_t referer;
+	kgl_str_t user_agent;
+	//char* referer = NULL;
+	//const char* user_agent = NULL;
 	char tmp[64];
 	int default_port = 80;
 	if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
@@ -287,8 +289,9 @@ void log_access(KHttpRequest* rq) {
 #endif
 		l << (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL) ? "https://" : "http://");
 	KUrl* url = rq->sink->data.raw_url;
-	referer = (char*)rq->GetHttpValue("Referer");
-	user_agent = rq->GetHttpValue("User-Agent");
+
+	//referer = (char*)rq->GetHttpValue("Referer");
+	//user_agent = rq->GetHttpValue("User-Agent");
 	l << url->host;
 	if (url->port != default_port) {
 		l << ":" << url->port;
@@ -320,21 +323,24 @@ void log_access(KHttpRequest* rq) {
 	sprintf(tmp, formatString, sended_length);
 	l << tmp;
 #ifndef NDEBUG
-	const char* range = rq->GetHttpValue("Range");
-	if (range) {
-		l << " \"" << range << "\"";
+	kgl_str_t range;
+	//const char* range = rq->GetHttpValue("Range");
+	if (rq->get_http_value(_KS("Range"),&range)) {
+		l << " \"";
+		l.write_all(range.data, range.len);
+		l << "\"";
 	}
 #endif
 	//s->log(formatString,rq->send_ctx.send_size);
 	l.WSTR(" \"");
-	if (referer) {
-		l << referer;
+	if (rq->get_http_value(_KS("Referer"),&referer)) {
+		l.write_all(referer.data, referer.len);
 	} else {
 		l.WSTR("-");
 	}
 	l.WSTR("\" \"");
-	if (user_agent) {
-		l << user_agent;
+	if (rq->get_http_value(_KS("User-Agent"),&user_agent)) {
+		l.write_all(user_agent.data, user_agent.len);
 	} else {
 		l.WSTR("-");
 	}

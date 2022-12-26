@@ -47,7 +47,7 @@ public:
 				}
 				KBIT_SET(rq->sink->data.flags,RQ_HAVE_RANGE);
 				KBIT_SET(rq->sink->data.raw_url->flags,KGL_URL_RANGED);
-				rq->sink->data.AddHeader(kgl_expand_string("Range"),v.getString(),v.getSize());
+				rq->sink->data.add_header(kgl_expand_string("Range"),v.getString(),v.getSize());
 				result = true;
 			}
 			delete s;

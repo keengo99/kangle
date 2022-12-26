@@ -12,11 +12,6 @@ struct kgl_dechunk_stream : public kgl_forward_stream {
 };
 
 
-static KGL_RESULT forward_write_unknow_header(kgl_output_stream *gate, KREQUEST r, kgl_header_type attr, const char *val, hlen_t val_len)
-{
-	return gate->f->write_unknow_header(gate, r, kgl_header_type_string[attr].data, (hlen_t)kgl_header_type_string[attr].len, val, val_len);
-}
-
 static KGL_RESULT dechunk_push_body(kgl_output_stream*gate, KREQUEST r, const char *buf, int len)
 {
 	kgl_dechunk_stream *g = (kgl_dechunk_stream *)gate;
@@ -142,13 +137,19 @@ struct kgl_default_output_stream : public kgl_output_stream {
 
 void st_write_status(kgl_output_stream*st, KREQUEST r, int status_code)
 {
-	((KHttpRequest *)r)->ctx->obj->data->status_code = status_code;
+	((KHttpRequest *)r)->ctx->obj->data->i.status_code = status_code;
 }
 KGL_RESULT st_write_header(kgl_output_stream*st, KREQUEST r, kgl_header_type attr, const char *val, hlen_t val_len)
 {
 	kgl_default_output_stream *g = (kgl_default_output_stream *)st;
 	KHttpRequest *rq = (KHttpRequest *)r;
+	if (g->parser_ctx.parse_header((KHttpRequest*)rq, attr, val, val_len)) {
+		return KGL_OK;
+	}
+	return KGL_EDATA_FORMAT;
+	/*
 	KHttpObject *obj = rq->ctx->obj;
+
 	if (val_len == 0) {
 		switch (attr) {
 		case  kgl_header_content_length:
@@ -161,11 +162,9 @@ KGL_RESULT st_write_header(kgl_output_stream*st, KREQUEST r, kgl_header_type att
 		}
 		case kgl_header_last_modified:
 		{
-			obj->index.last_modified = *(time_t *)val;
-			char tmp_buf[42];
-			mk1123time(obj->index.last_modified, tmp_buf, 41);
+			obj->data->i.last_modified = *(time_t *)val;
 			KBIT_SET(obj->index.flags, ANSW_LAST_MODIFIED);
-			g->parser_ctx.AddHeader(kgl_header_type_string[attr].data, (hlen_t)kgl_header_type_string[attr].len, tmp_buf, 29);
+			g->parser_ctx.add_header(kgl_header_last_modified, obj->data->i.last_modified);
 			return KGL_OK;
 		}
 		default:
@@ -174,12 +173,18 @@ KGL_RESULT st_write_header(kgl_output_stream*st, KREQUEST r, kgl_header_type att
 		}
 		}
 	}
-	return forward_write_unknow_header(st, r, attr, val, val_len);
+	if (g->parser_ctx.ParseHeader((KHttpRequest*)rq, attr, attr_len, val, val_len, false)) {
+		return KGL_OK;
+	}
+	return KGL_EDATA_FORMAT;
+	//return g->f->write_header(g, r, attr ,val, val_len);
+	//return forward_write_unknow_header(st, r, attr, val, val_len);
+	*/
 }
 KGL_RESULT st_write_unknow_header(kgl_output_stream*st, KREQUEST rq, const char *attr, hlen_t attr_len, const char *val, hlen_t val_len)
 {
 	kgl_default_output_stream *g = (kgl_default_output_stream *)st;
-	if (g->parser_ctx.ParseHeader((KHttpRequest *)rq, attr, attr_len, val, val_len, false)) {
+	if (g->parser_ctx.parse_unknow_header((KHttpRequest *)rq, attr, attr_len, val, val_len, false)) {
 		return KGL_OK;
 	}
 	return KGL_EDATA_FORMAT;
@@ -188,7 +193,7 @@ KGL_RESULT st_write_header_finish(kgl_output_stream*st, KREQUEST r)
 {
 	kgl_default_output_stream *g = (kgl_default_output_stream *)st;
 	KHttpRequest *rq = (KHttpRequest *)r;
-	g->parser_ctx.EndParse(rq);
+	g->parser_ctx.end_parse(rq);
 	return on_upstream_finished_header(rq);
 }
 

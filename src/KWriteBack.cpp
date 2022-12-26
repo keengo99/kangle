@@ -14,7 +14,9 @@ std::string KWriteBack::getMsg()
 	kgl_destroy_pool(pool);
 	KHttpHeader* h = header;
 	while (h) {
-		s << h->attr << ": " << h->val << "\r\n";
+		kgl_str_t attr;
+		kgl_get_header_name(h, &attr);
+		s << attr.data << ": " << (h->buf + h->val_offset) << "\r\n";
 		h = h->next;
 	}
 	if (keep_alive) {
@@ -29,7 +31,7 @@ std::string KWriteBack::getMsg()
 void KWriteBack::setMsg(std::string msg)
 {
 	if (header) {
-		free_header_list(header);
+		free_header_list2(header);
 		header = NULL;
 	}
 	body.clean();
@@ -43,7 +45,7 @@ void KWriteBack::setMsg(std::string msg)
 	parser.Parse(&data, end);
 	status_code = parser.status_code;
 	keep_alive = parser.keep_alive;
-	header = parser.StealHeader();
+	header = parser.steal_header();
 	size_t len = end - data;
 	if (len > 0) {
 		body.write_all(data, (int)len);
@@ -55,7 +57,7 @@ void KWriteBack::buildRequest(KHttpRequest* rq)
 	rq->responseStatus(status_code);
 	KHttpHeader* h = header;
 	while (h) {
-		rq->responseHeader(h->attr, h->attr_len, h->val, h->val_len);
+		rq->response_header(h);
 		h = h->next;
 	}
 	rq->responseHeader(kgl_expand_string("Content-Length"), body.getSize());
