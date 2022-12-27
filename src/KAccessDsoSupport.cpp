@@ -40,7 +40,7 @@ KGL_RESULT var_printf(LPVOID buffer, LPDWORD size, const char *fmt, ...) {
 KGL_RESULT add_header_var(LPVOID buffer, LPDWORD size, KHttpHeader* header, const char* name, size_t len)
 {
 	while (header) {
-		if (kgl_is_attr(header, name, len) == 0) {
+		if (kgl_is_attr(header, name, len)) {
 			return add_api_var(buffer, size, header->buf+header->val_offset, header->val_len);
 		}
 		header = header->next;
