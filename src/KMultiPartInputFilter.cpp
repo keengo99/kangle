@@ -314,7 +314,7 @@ int KMultiPartInputFilter::InternalCheck(KInputFilterContext* rq, const char* st
 				}
 			}
 			if (hm.header) {
-				free_header_list2(hm.header);
+				free_header_list(hm.header);
 				memset(&hm, 0, sizeof(hm));
 			}
 

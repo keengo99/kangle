@@ -55,7 +55,7 @@ public:
 	KHttpObjectBody(KHttpObjectBody *data);
 	~KHttpObjectBody() {
 		if (headers) {
-			free_header_list2(headers);
+			free_header_list(headers);
 		}
 		switch(i.type){
 		case MEMORY_OBJECT:
@@ -328,7 +328,7 @@ public:
 				} else {
 					data->headers = next;
 				}
-				xfree_header2(h);
+				xfree_header(h);
 				h = next;
 				result = true;
 				continue;
@@ -345,7 +345,7 @@ public:
 		data->headers = new_h;
 	}
 	void insert_http_header(const char *attr,int attr_len, const char *val,int val_len) {
-		KHttpHeader* new_h = new_http_header2(attr, attr_len, val, val_len);
+		KHttpHeader* new_h = new_http_header(attr, attr_len, val, val_len);
 		new_h->next = data->headers;
 		data->headers = new_h;
 	}

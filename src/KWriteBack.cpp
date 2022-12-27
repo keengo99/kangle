@@ -31,7 +31,7 @@ std::string KWriteBack::getMsg()
 void KWriteBack::setMsg(std::string msg)
 {
 	if (header) {
-		free_header_list2(header);
+		free_header_list(header);
 		header = NULL;
 	}
 	body.clean();

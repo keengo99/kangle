@@ -63,7 +63,7 @@ void clean_static_obj_header(KHttpObject *obj) {
 			} else {
 				obj->data->headers = next;
 			}
-			xfree_header2(h);
+			xfree_header(h);
 			h = next;
 			continue;
 		}

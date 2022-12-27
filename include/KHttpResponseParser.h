@@ -10,7 +10,7 @@ public:
 	~KHttpResponseParser()
 	{
 		if (header) {
-			free_header_list2(header);
+			free_header_list(header);
 		}
 	}
 	bool parse_header(KHttpRequest* rq, kgl_header_type attr, const char* val, int val_len);

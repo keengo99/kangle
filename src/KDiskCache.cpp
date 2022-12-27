@@ -170,7 +170,7 @@ bool read_obj_head(KHttpObjectBody* data, char** hot, int& hotlen)
 			header->val_offset = header->name_len + 1;
 			if (header->know_header>=kgl_header_unknow) {
 				klog(KLOG_ERR,"invalid know_header value=[%d]\n",header->know_header);
-				xfree_header2(header);
+				xfree_header(header);
 				return false;
 			}
 		} else {

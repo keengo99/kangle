@@ -275,7 +275,7 @@ int kgl_async_download(const char *url, const char *file, int *status)
 	
 	if (ret == 0) {
 		mk1123time(buf.st_mtime, tmp_buf, 41);
-		header = new_http_header2(_KS("If-Modified-Since"), tmp_buf, 41);
+		header = new_http_header(_KS("If-Modified-Since"), tmp_buf, 41);
 		ctx.rh = header;
 	}
 	ctx.arg = &download_ctx;
@@ -296,7 +296,7 @@ int kgl_async_download(const char *url, const char *file, int *status)
 	*status = download_ctx.code;
 clean:
 	if (header) {
-		xfree_header2(header);
+		xfree_header(header);
 	}
 	xfree(download_ctx.save_file);
 	return ret;

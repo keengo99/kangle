@@ -18,7 +18,7 @@ public:
 	~KHttpBufferParser()
 	{
 		if (header) {
-			free_header_list2(header);
+			free_header_list(header);
 		}
 	}
 	void Parse(char **str, char *end)
@@ -58,7 +58,7 @@ public:
 			|| strcasecmp(attr, "Transfer-Encoding") == 0) {
 			return;
 		}
-		KHttpHeader *header = new_http_header2(attr, attr_len, val, val_len);
+		KHttpHeader *header = new_http_header(attr, attr_len, val, val_len);
 		append(header);
 		return;
 	}
