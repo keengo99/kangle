@@ -3,7 +3,7 @@
 #include "KCache.h"
 #include "KContext.h"
 #include <assert.h>
-void KContext::DeadOldObject()
+void KContext::dead_old_obj()
 {
 	if (old_obj == NULL) {
 		return;
@@ -83,7 +83,7 @@ void KContext::clean_obj(KHttpRequest *rq,bool store_flag)
 	}
 	haveStored = false;
 }
-void KContext::pushObj(KHttpObject *obj)
+void KContext::push_obj(KHttpObject *obj)
 {
 	assert(old_obj==NULL);
 	if (this->obj==NULL) {
@@ -93,7 +93,7 @@ void KContext::pushObj(KHttpObject *obj)
 	this->old_obj = this->obj;
 	this->obj = obj;
 }
-void KContext::popObj()
+void KContext::pop_obj()
 {
 	if (old_obj) {
 		assert(obj);

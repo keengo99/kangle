@@ -54,17 +54,17 @@ void KWriteBack::setMsg(std::string msg)
 }
 void KWriteBack::buildRequest(KHttpRequest* rq)
 {
-	rq->responseStatus(status_code);
+	rq->response_status(status_code);
 	KHttpHeader* h = header;
 	while (h) {
 		rq->response_header(h, false);
 		h = h->next;
 	}
-	rq->responseHeader(kgl_expand_string("Content-Length"), body.getSize());
+	rq->response_header(kgl_expand_string("Content-Length"), body.getSize());
 	if (!keep_alive) {
 		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 	}
-	rq->responseConnection();
+	rq->response_connection();
 	if (rq->sink->data.meth != METH_HEAD) {
 		KAutoBuffer buffer(rq->sink->pool);
 		buffer.write_all(body.getBuf(), body.getSize());

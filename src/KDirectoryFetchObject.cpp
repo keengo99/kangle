@@ -12,7 +12,7 @@ KGL_RESULT KPrevDirectoryFetchObject::Open(KHttpRequest* rq, kgl_input_stream* i
 		new_path2 << "?" << rq->sink->data.raw_url->param;
 	}
 	push_redirect_header(rq, new_path2.getString(), new_path2.getSize(), STATUS_FOUND);
-	rq->startResponseBody(0);
+	rq->start_response_body(0);
 	return KGL_OK;
 }
 KDirectoryFetchObject::KDirectoryFetchObject()

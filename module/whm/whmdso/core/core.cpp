@@ -699,7 +699,7 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 			cn_ctx.debug = 0;
 			cn_ctx.vh = uv->getx("vh");
 			cn_ctx.translate = false;
-			selector_manager_iterator((void *)&cn_ctx, kconnection_info_iterator);
+			kgl_iterator_sink(kgl_connection_iterator, (void*)&cn_ctx);
 			ctx->add("count", cn_ctx.total_count);
 			ctx->add("connection",cn_ctx.s.str().c_str(),true);
 			return WHM_OK;

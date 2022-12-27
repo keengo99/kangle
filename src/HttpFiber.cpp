@@ -104,7 +104,7 @@ KGL_RESULT process_upstream_no_body(KHttpRequest *rq, kgl_input_stream* in, kgl_
 		return handleXSendfile(rq,in,out);
 	}
 	if (KBIT_TEST(rq->filter_flags, RQ_SWAP_OLD_OBJ)) {
-		rq->ctx->popObj();
+		rq->ctx->pop_obj();
 		KBIT_CLR(rq->filter_flags, RQ_SWAP_OLD_OBJ);
 	}
 	return send_memory_object(rq);
@@ -211,7 +211,7 @@ KGL_RESULT handle_denied_request(KHttpRequest *rq)
 		//return rq->GetFetchObject()->Open(rq, new_default_push_gate());
 	}
 	if (rq->sink->data.status_code > 0) {
-		rq->startResponseBody(0);
+		rq->start_response_body(0);
 		return KGL_OK;
 	}
 	if (KBIT_TEST(rq->filter_flags, RQ_SEND_AUTH)) {
@@ -418,7 +418,7 @@ KGL_RESULT handle_error(KHttpRequest *rq, int code, const char *msg) {
 		if (rq->ctx->old_obj) {
 			//have cache
 			rq->ctx->always_on_model = true;
-			rq->ctx->popObj();
+			rq->ctx->pop_obj();
 			if (JUMP_DENY == checkResponse(rq, rq->ctx->obj)) {
 				return send_error2(rq, STATUS_FORBIDEN, "denied by response access");
 			}
@@ -453,7 +453,7 @@ KGL_RESULT handle_error(KHttpRequest *rq, int code, const char *msg) {
 		std::stringstream s;
 		s << errorPage << "?" << obj->data->i.status_code << "," << rq->getInfo();
 		push_redirect_header(rq, s.str().c_str(), (int)s.str().size(), STATUS_FOUND);
-		rq->startResponseBody(0);
+		rq->start_response_body(0);
 		return KGL_OK;
 		//return stageWriteRequest(rq, NULL);
 	}
@@ -895,7 +895,7 @@ KGL_RESULT on_upstream_finished_header(KHttpRequest *rq)
 			}
 		}
 #endif
-		rq->ctx->DeadOldObject();
+		rq->ctx->dead_old_obj();
 		if (status_code == STATUS_CONTENT_PARTIAL && !obj->IsContentRangeComplete(rq)) {
 			//强行设置206不缓存
 			KBIT_SET(obj->index.flags, ANSW_NO_CACHE | OBJ_NOT_OK);

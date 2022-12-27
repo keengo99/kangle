@@ -128,7 +128,7 @@ bool KHttpFilterManage::check_request(KHttpRequest *rq)
 				rq->tf = NULL;
 			}
 #endif
-			rq->startResponseBody(-1);
+			rq->start_response_body(-1);
 			stageWriteRequest(rq);
 			return false;
 		}

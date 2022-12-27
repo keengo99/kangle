@@ -64,8 +64,9 @@ void get_url_info(KSink* rq, KStringBuf& s) {
 	return;
 }
 
-bool getConnectionTr(KSink* rq, KConnectionInfoContext* ctx)
+bool kgl_connection_iterator(void *arg,KSink* rq)
 {
+	KConnectionInfoContext* ctx = (KConnectionInfoContext*)arg;
 	if (conf.max_connect_info > 0 && ctx->total_count > (int)conf.max_connect_info) {
 		return false;
 	}
@@ -118,42 +119,6 @@ bool getConnectionTr(KSink* rq, KConnectionInfoContext* ctx)
 	ctx->s << "',";
 	ctx->s << rq->data.mark;
 	ctx->s << ")); \n";
-	return true;
-}
-bool kconnection_info_iterator(void* ctx, kselector* selector, kselectable* st)
-{
-	KConnectionInfoContext* cn_ctx = (KConnectionInfoContext*)ctx;
-	if (st->data == NULL || !KBIT_TEST(st->st_flags, STF_OPAQUE_SERVER)) {
-		return true;
-	}
-	if (!KBIT_TEST(st->st_flags, STF_OPAQUE_HTTP2)) {
-		return getConnectionTr((KSink*)st->data, cn_ctx);
-	}
-#ifdef ENABLE_HTTP2
-	KHttp2* http2 = (KHttp2*)st->data;
-	//{{ent
-#ifdef ENABLE_UPSTREAM_HTTP2
-	kassert(!http2->IsClientModel());
-	if (http2->IsClientModel()) {
-		return true;
-	}
-#endif//}}
-	KHttp2Node** nodes = http2->GetAllStream();
-	for (int k = 0; k < kgl_http_v2_index_size(); k++) {
-		KHttp2Node* node = nodes[k];
-		while (node) {
-			if (node->stream == NULL || node->stream->request == NULL) {
-				node = node->index;
-				continue;
-			}
-			KSink* rq = node->stream->request;
-			node = node->index;
-			if (!getConnectionTr(rq, cn_ctx)) {
-				return false;
-			}
-		}
-	}
-#endif
 	return true;
 }
 string endTag() {
@@ -956,25 +921,25 @@ bool KHttpManage::parseUrl(char* url) {
 }
 bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* content_type, const char* add_header, int max_age) {
 	KStringBuf s;
-	rq->responseStatus(STATUS_OK);
+	rq->response_status(STATUS_OK);
 
 	timeLock.Lock();
-	rq->responseHeader(kgl_header_server, conf.serverName, conf.serverNameLength);
-	rq->responseHeader(kgl_header_date, (char*)cachedDateTime, 29);
+	rq->response_header(kgl_header_server, conf.serverName, conf.serverNameLength);
+	rq->response_header(kgl_header_date, (char*)cachedDateTime, 29);
 	timeLock.Unlock();
 	if (content_type) {
-		rq->responseHeader(kgl_expand_string("Content-Type"), content_type, (hlen_t)strlen(content_type));
+		rq->response_header(kgl_expand_string("Content-Type"), content_type, (hlen_t)strlen(content_type));
 	} else {
-		rq->responseHeader(kgl_expand_string("Content-Type"), kgl_expand_string("text/html; charset=utf-8"));
+		rq->response_header(kgl_expand_string("Content-Type"), kgl_expand_string("text/html; charset=utf-8"));
 	}
 	if (max_age == 0) {
-		rq->responseHeader(kgl_expand_string("Cache-control"), kgl_expand_string("no-cache,no-store"));
+		rq->response_header(kgl_expand_string("Cache-control"), kgl_expand_string("no-cache,no-store"));
 	} else {
 		s << "public,max_age=" << max_age;
-		rq->responseHeader(kgl_expand_string("Cache-control"), s.getBuf(), s.getSize());
+		rq->response_header(kgl_expand_string("Cache-control"), s.getBuf(), s.getSize());
 	}
 	kbuf* gzipOut = NULL;
-	rq->responseConnection();
+	rq->response_connection();
 #if 0
 	if (content_length > conf.min_compress_length && msg && KBIT_TEST(rq->sink->data.raw_url->accept_encoding, KGL_ENCODING_GZIP)) {
 		kbuf in;
@@ -983,13 +948,13 @@ bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* co
 		in.used = (int)content_length;
 		gzipOut = deflate_buff(&in, conf.gzip_level, content_length, true);
 		KBIT_SET(rq->sink->data.flags, RQ_TE_COMPRESS);
-		rq->responseHeader(kgl_expand_string("Content-Encoding"), kgl_expand_string("gzip"));
+		rq->response_header(kgl_expand_string("Content-Encoding"), kgl_expand_string("gzip"));
 	}
 #endif
 	if (content_length >= 0) {
-		rq->responseHeader(kgl_expand_string("Content-length"), (int)content_length);
+		rq->response_header(kgl_expand_string("Content-length"), (int)content_length);
 	}
-	rq->startResponseBody(-1);
+	rq->start_response_body(-1);
 	if (gzipOut) {
 		bool result = rq->WriteBuff(gzipOut);
 		destroy_kbuf(gzipOut);
@@ -1217,11 +1182,11 @@ bool KHttpManage::sendMainPage() {
 	return sendHttp(s.str());
 }
 bool KHttpManage::sendRedirect(const char* newUrl) {
-	rq->responseStatus(STATUS_FOUND);
-	rq->responseHeader(kgl_expand_string("Content-Length"), 0);
-	rq->responseConnection();
-	rq->responseHeader(kgl_expand_string("Location"), newUrl, (hlen_t)strlen(newUrl));
-	return rq->startResponseBody(0);
+	rq->response_status(STATUS_FOUND);
+	rq->response_header(kgl_expand_string("Content-Length"), 0);
+	rq->response_connection();
+	rq->response_header(kgl_expand_string("Location"), newUrl, (hlen_t)strlen(newUrl));
+	return rq->start_response_body(0);
 }
 bool matchManageIP(const char* ip, std::vector<std::string>& ips, std::string& matched_ip)
 {
@@ -2088,8 +2053,7 @@ bool KHttpManage::start(bool& hit) {
 		ctx.debug = atoi(getUrlValue("debug").c_str());
 		ctx.vh = NULL;
 		ctx.translate = true;
-
-		selector_manager_iterator((void*)&ctx, kconnection_info_iterator);
+		kgl_iterator_sink(kgl_connection_iterator, (void*)&ctx);
 
 		s << "<html><head><LINK href=/main.css type='text/css' rel=stylesheet></head><body>\n";
 		s << "<!-- total_connect=" << total_connect << " -->\n<h3>";

@@ -275,7 +275,7 @@ bool KHttpDigestAuth::verify(KHttpRequest* rq, const char* password,
 		ha1[32] = '\0';
 	}
 	KStringBuf a2;
-	a2 << rq->getMethod() << ":" << uri;
+	a2 << rq->get_method() << ":" << uri;
 	//	printf("a2=[%s]\n", a2.getString());
 	char ha2[33];
 	KMD5(a2.getString(), a2.getSize(), ha2);
@@ -303,7 +303,7 @@ void KHttpDigestAuth::insertHeader(KHttpRequest* rq)
 	s << ", qop=\"auth\"";
 	s << ", nonce=\"" << nonce << "\"";
 	const char* auth_header = this->get_auth_header();
-	rq->responseHeader(auth_header, (hlen_t)strlen(auth_header), s.getBuf(), s.getSize());
+	rq->response_header(auth_header, (hlen_t)strlen(auth_header), s.getBuf(), s.getSize());
 }
 void KHttpDigestAuth::insertHeader(KWStream& s) {
 	if (realm == NULL || nonce == NULL) {

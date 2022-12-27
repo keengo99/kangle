@@ -75,9 +75,6 @@ class KHttpTransfer;
 #define		REQUEST_READY	1
 #define 	MIN_SLEEP_TIME	4
 
-//{{ent
-class KAntiRefreshContext;
-//}}
 
 class KManageIP {
 public:
@@ -89,31 +86,13 @@ class KContext;
 class KOutputFilterContext;
 class KHttpFilterContext;
 class KHttpRequest;
-typedef kev_result(*KHttpRequestWriteHook)(KHttpRequest *rq);
-typedef kev_result(*request_callback)(KHttpRequest *rq, void *arg, int got);
-
-struct kgl_write_hook {
-	void *arg;
-	KHttpRequestWriteHook call;
-	kgl_write_hook *next;
-};
-
-typedef struct {
-	void *arg;
-	int got;
-	result_callback result;
-	kgl_write_hook *hook_head;
-	kgl_write_hook *hook_last;
-} kgl_request_stack;
-
-kev_result kgl_call_write_hook(KOPAQUE data, void *arg, int got);
 
 class KHttpRequest {
 public:
 	inline KHttpRequest(KSink *sink)
 	{
 		memset(this, 0, sizeof(*this));
-		klist_init(&fo);
+		klist_init(&fo);	
 		ctx = new KContext;
 		this->sink = sink;
 	}
@@ -122,7 +101,7 @@ public:
 	void set_url_param(char *param);
 	//判断是否还有post数据可读
 	bool has_post_data(kgl_input_stream* in);
-
+	bool NeedTempFile(bool upload);
 	std::string getInfo();
 	char *getUrl();
 	void beginRequest();
@@ -147,7 +126,6 @@ public:
 	bool rewriteUrl(const char *newUrl, int errorCode = 0,const char *prefix = NULL);
 	void EnterRequestQueue();
 	void LeaveRequestQueue();
-	bool NeedTempFile(bool upload);
 	char *map_url_path(const char* url, KBaseRedirect *caller);
 	uint32_t filter_flags;
 	KSink *sink;
@@ -206,46 +184,41 @@ public:
 	KOutputFilterContext *of_ctx;
 	KOutputFilterContext *getOutputFilterContext();
 	void addFilter(KFilterHelper *chain);
-	inline bool responseStatus(uint16_t status_code)
+	inline bool response_status(uint16_t status_code)
 	{
 		return sink->response_status(status_code);
 	}
-	inline bool responseHeader(kgl_header_type name,const char *val,hlen_t val_len)
+	inline bool response_header(kgl_header_type name,const char *val,hlen_t val_len, bool lock_value=false)
 	{
-		return this->responseHeader(kgl_header_type_string[name].value.data, (hlen_t)kgl_header_type_string[name].value.len,val,val_len);
+		return sink->response_header(name,val,val_len,lock_value);
 	}
-	inline bool responseHeader(kgl_str_t *name,kgl_str_t *val)
-	{
-		return responseHeader(name->data, hlen_t(name->len),val->data,hlen_t(val->len));
-	}
-	inline bool responseHeader(kgl_str_t *name,const char *val,hlen_t val_len)
-	{
-		return responseHeader(name->data, hlen_t(name->len),val, hlen_t(val_len));
-	}
-	inline bool responseHeader(const char *name,hlen_t name_len,int val)
+	inline bool response_header(const char *name,hlen_t name_len,int val)
 	{
 		char buf[16];
 		int len = snprintf(buf,sizeof(buf)-1,"%d",val);
-		return responseHeader(name,name_len,buf,len);
+		return response_header(name,name_len,buf,len);
 	}
-	bool responseContentLength(int64_t content_length);
+	bool response_content_length(int64_t content_length)
+	{
+		return sink->response_content_length(content_length);
+	}
 	//返回true，一定需要回应content-length或chunk
-	inline bool responseConnection() {
+	inline bool response_connection() {
 		return sink->response_connection();
 	}
 	/**
 	* if lock_header true the header param will locked by sink until startResponseBody be called.
 	*/
 	bool response_header(KHttpHeader* header,bool lock_header);
-	bool responseHeader(const char *name,hlen_t name_len,const char *val,hlen_t val_len);
+	bool response_header(const char *name,hlen_t name_len,const char *val,hlen_t val_len);
 	//发送完header开始发送body时调用
-	bool startResponseBody(INT64 body_len);
+	bool start_response_body(INT64 body_len);
 	inline bool needFilter() {
 		return of_ctx!=NULL;
 	}
 	void ResponseVary(const char *vary);
 	char *BuildVary(const char *vary);
-	const char *getMethod();
+	const char *get_method();
 	int Write(WSABUF *buf, int bc);
 	int Write(const char *buf, int len);
 	bool WriteAll(const char *buf, int len);
@@ -334,19 +307,6 @@ public:
 		result->len = header->val_len;
 		return true;
 	}
-#if 0
-	const char *GetHttpValue(const char *attr)
-	{
-		KHttpHeader2 *next = sink->data.header;
-		while (next) {
-			if ((attr, next->attr)) {
-				return next->val;
-			}
-			next = next->next;
-		}
-		return NULL;
-	}
-#endif
 	int Read(char *buf, int len);
 #ifdef ENABLE_REQUEST_QUEUE
 	bool NeedQueue();

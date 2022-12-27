@@ -82,7 +82,7 @@ static void log_request_error(KHttpRequest* rq, int code, const char* reason)
 	char* url = rq->sink->data.raw_url->getUrl();
 	klog(KLOG_WARNING, "request error %s %s %s %d %s\n",
 		rq->getClientIp(),
-		rq->getMethod(),
+		rq->get_method(),
 		url ? url : "BAD_URL",
 		code,
 		reason);
@@ -97,16 +97,16 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER)) {
 		return KGL_EHAS_SEND_HEADER;
 	}
-	rq->responseStatus(status_code);
+	rq->response_status(status_code);
 	if (rq->auth) {
 		rq->auth->insertHeader(rq);
 	}
 	timeLock.Lock();
-	rq->responseHeader(kgl_header_server, conf.serverName, conf.serverNameLength);
-	rq->responseHeader(kgl_header_date, (char*)cachedDateTime, 29);
+	rq->response_header(kgl_header_server, conf.serverName, conf.serverNameLength);
+	rq->response_header(kgl_header_date, (char*)cachedDateTime, 29);
 	timeLock.Unlock();
 	if (body) {
-		rq->responseHeader(kgl_expand_string("Content-Type"), kgl_expand_string("text/html; charset=utf-8"));
+		rq->response_header(kgl_expand_string("Content-Type"), kgl_expand_string("text/html; charset=utf-8"));
 	}
 	if (KBIT_TEST(rq->filter_flags, RF_X_CACHE)) {
 		KStringBuf b;
@@ -118,12 +118,12 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 			b.WSTR("MISS from ");
 		}
 		b << conf.hostname;
-		rq->responseHeader(kgl_expand_string("X-Cache"), b.getBuf(), b.getSize());
+		rq->response_header(kgl_expand_string("X-Cache"), b.getBuf(), b.getSize());
 	}
 	INT64 send_len = 0;
 	if (!is_status_code_no_body(status_code)) {
 		send_len = (body ? body->getLen() : 0);
-		rq->responseHeader(kgl_expand_string("Content-Length"), (int)send_len);
+		rq->response_header(kgl_expand_string("Content-Length"), (int)send_len);
 	}
 	if (obj) {
 		if (obj->data) {
@@ -147,13 +147,13 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 		if (KBIT_TEST(rq->filter_flags, RF_AGE) && !KBIT_TEST(obj->index.flags, FLAG_DEAD | ANSW_NO_CACHE)) {
 			int current_age = (int)obj->getCurrentAge(kgl_current_sec);
 			if (current_age > 0) {
-				rq->responseHeader(kgl_expand_string("Age"), current_age);
+				rq->response_header(kgl_expand_string("Age"), current_age);
 			}
 		}
 		obj->ResponseVaryHeader(rq);
 	}
-	rq->responseConnection();
-	rq->startResponseBody(send_len);
+	rq->response_connection();
+	rq->start_response_body(send_len);
 	if (body) {
 		if (!rq->WriteBuff(body->getHead())) {
 			return KGL_ESOCKET_BROKEN;
@@ -313,15 +313,15 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 		if (!rq->sink->adjust_range(&send_len)) {
 			build_first = false;
 			send_obj_header = false;
-			rq->responseStatus(416);
-			rq->responseHeader(kgl_expand_string("Content-Length"), kgl_expand_string("0"));
+			rq->response_status(416);
+			rq->response_header(kgl_expand_string("Content-Length"), kgl_expand_string("0"));
 			rq->sink->data.range_from = -1;
 			start = -1;
 			send_len = 0;
 		} else {
 			if (!KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED)) {
 				build_first = false;
-				rq->responseStatus(STATUS_CONTENT_PARTIAL);
+				rq->response_status(STATUS_CONTENT_PARTIAL);
 				KStringBuf s;
 				s.WSTR("bytes ");
 				s.add(rq->sink->data.range_from, INT64_FORMAT);
@@ -329,7 +329,7 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 				s.add(rq->sink->data.range_to, INT64_FORMAT);
 				s.WSTR("/");
 				s.add(content_len, INT64_FORMAT);
-				rq->responseHeader(kgl_expand_string("Content-Range"), s.getBuf(), s.getSize());
+				rq->response_header(kgl_expand_string("Content-Range"), s.getBuf(), s.getSize());
 			}
 			start = rq->sink->data.range_from;
 			content_len = send_len;
@@ -341,12 +341,12 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 			//如果请求是url模拟range，则强制转换206的回应为200
 			status_code = STATUS_OK;
 		}
-		rq->responseStatus(status_code);
+		rq->response_status(status_code);
 	}
 	if (KBIT_TEST(obj->index.flags, ANSW_LOCAL_SERVER)) {
 		timeLock.Lock();
-		rq->responseHeader(kgl_header_server, conf.serverName, conf.serverNameLength);
-		rq->responseHeader(kgl_header_date, (char*)cachedDateTime, 29);
+		rq->response_header(kgl_header_server, conf.serverName, conf.serverNameLength);
+		rq->response_header(kgl_header_date, (char*)cachedDateTime, 29);
 		timeLock.Unlock();
 	}
 	//bool via_inserted = false;
@@ -361,7 +361,7 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 		if (KBIT_TEST(rq->filter_flags, RF_AGE) && !KBIT_TEST(obj->index.flags, FLAG_DEAD | ANSW_NO_CACHE)) {
 			int current_age = (int)obj->getCurrentAge(kgl_current_sec);
 			if (current_age > 0) {
-				rq->responseHeader(kgl_expand_string("Age"), current_age);
+				rq->response_header(kgl_expand_string("Age"), current_age);
 			}
 		}
 		if (KBIT_TEST(rq->filter_flags, RF_X_CACHE)) {
@@ -374,19 +374,19 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 				b.WSTR("MISS from ");
 			}
 			b << conf.hostname;
-			rq->responseHeader(kgl_expand_string("X-Cache"), b.getBuf(), b.getSize());
+			rq->response_header(kgl_expand_string("X-Cache"), b.getBuf(), b.getSize());
 		}
 		if (!KBIT_TEST(obj->index.flags, FLAG_NO_BODY)) {
 			/*
 			* no body的不发送content-length
 			* head method要发送content-length,但不发送内容
 			*/
-			rq->responseContentLength(content_len);
+			rq->response_content_length(content_len);
 		}
 		obj->ResponseVaryHeader(rq);
 	}
-	rq->responseConnection();
-	rq->startResponseBody(send_len);
+	rq->response_connection();
+	rq->start_response_body(send_len);
 	return true;
 }
 
@@ -406,14 +406,14 @@ bool push_redirect_header(KHttpRequest* rq, const char* url, int url_len, int co
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER)) {
 		return false;
 	}
-	rq->responseStatus(code);
+	rq->response_status(code);
 	timeLock.Lock();
-	rq->responseHeader(kgl_header_server, conf.serverName, conf.serverNameLength);
-	rq->responseHeader(kgl_header_date, (char*)cachedDateTime, 29);
+	rq->response_header(kgl_header_server, conf.serverName, conf.serverNameLength);
+	rq->response_header(kgl_header_date, (char*)cachedDateTime, 29);
 	timeLock.Unlock();
-	rq->responseHeader(kgl_expand_string("Location"), url, url_len);
-	rq->responseHeader(kgl_expand_string("Content-Length"), 0);
-	rq->responseConnection();
+	rq->response_header(kgl_expand_string("Location"), url, url_len);
+	rq->response_header(kgl_expand_string("Content-Length"), 0);
+	rq->response_connection();
 	return true;
 }
 
@@ -612,7 +612,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* gate, KBaseRedirect* brd,
 	env->addEnv("GATEWAY_INTERFACE", "CGI/1.1");
 	env->addEnv("SERVER_NAME", rq->sink->data.url->host);
 	env->addEnv("SERVER_PROTOCOL", "HTTP/1.1");
-	env->addEnv("REQUEST_METHOD", rq->getMethod());
+	env->addEnv("REQUEST_METHOD", rq->get_method());
 	const char* param = rq->sink->data.raw_url->param;
 	if (param == NULL) {
 		env->addEnv("REQUEST_URI", rq->sink->data.raw_url->path);

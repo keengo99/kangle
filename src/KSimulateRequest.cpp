@@ -38,7 +38,7 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 	ss->data.raw_url = new KUrl;
 	KHttpRequest* rq = new KHttpRequest(ss);
 	selectable_bind(&ss->c->st, selector);	
-	selectable_bind_opaque(&ss->c->st, rq, kgl_opaque_server);
+	selectable_bind_opaque(&ss->c->st, rq);
 	if (!parse_url(ctx->url, ss->data.raw_url)) {
 		ss->data.raw_url->relase();
 		ss->data.raw_url = new KUrl;

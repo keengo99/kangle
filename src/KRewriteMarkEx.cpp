@@ -432,7 +432,7 @@ void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KStringBuf &s) {
 		return;
 	}
 	if (strcasecmp(env, "REQUEST_METHOD") == 0) {
-		s << rq->getMethod();
+		s << rq->get_method();
 		return;
 	}
 	if (strcasecmp(env, "PATH_INFO") == 0 || strcasecmp(env, "REQUEST_URI")
@@ -448,7 +448,7 @@ void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KStringBuf &s) {
 		return;
 	}
 	if (strcasecmp(env, "THE_REQUEST") == 0) {
-		s << rq->getMethod() << " " << rq->sink->data.url->path;
+		s << rq->get_method() << " " << rq->sink->data.url->path;
 		if (rq->sink->data.url->param) {
 			s << "?" << rq->sink->data.url->param;
 		}

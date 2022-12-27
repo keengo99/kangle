@@ -79,11 +79,11 @@ public:
 			if (cn.buffer) {
 				kassert(KBIT_TEST(ad->notify_type, KF_NOTIFY_RESPONSE_MARK | KF_NOTIFY_RESPONSE_ACL) == 0);
 				rq->CloseFetchObject();
-				rq->responseConnection();
-				rq->responseHeader(kgl_expand_string("Content-Length"), cn.buffer->getLen());
+				rq->response_connection();
+				rq->response_header(kgl_expand_string("Content-Length"), cn.buffer->getLen());
 				rq->AppendFetchObject(new KBufferFetchObject(cn.buffer));
 				if (rq->sink->data.status_code == 0) {
-					rq->responseStatus(STATUS_OK);
+					rq->response_status(STATUS_OK);
 				}
 			}
 			jumpType = JUMP_FINISHED;

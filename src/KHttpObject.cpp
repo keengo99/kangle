@@ -68,7 +68,7 @@ void KHttpObject::ResponseVaryHeader(KHttpRequest* rq)
 		hot++;
 	}
 	if (key_len > 0) {
-		rq->responseHeader(kgl_expand_string("Vary"), uk.vary->key, (hlen_t)key_len);
+		rq->response_header(kgl_expand_string("Vary"), uk.vary->key, (hlen_t)key_len);
 	}
 #endif
 	lock->Unlock();

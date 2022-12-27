@@ -30,8 +30,8 @@ public:
 	{
 		assert(obj==NULL && old_obj==NULL);
 	}
-	void pushObj(KHttpObject *obj);
-	void popObj();
+	void push_obj(KHttpObject *obj);
+	void pop_obj();
 	KWriteStream *st;
 	KHttpObject *obj;
 	KHttpObject *old_obj;
@@ -61,7 +61,7 @@ public:
 	modified_type mt;
 	int64_t content_range_length;
 	int64_t left_read;	//final fetchobj สนำร
-	void DeadOldObject();
+	void dead_old_obj();
 	void clean();
 	void clean_obj(KHttpRequest *rq,bool store_flag = true);
 	void store_obj(KHttpRequest *rq);

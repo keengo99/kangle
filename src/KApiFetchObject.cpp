@@ -127,7 +127,7 @@ bool KApiFetchObject::initECB(EXTENSION_CONTROL_BLOCK* ecb) {
 	ecb->cbSize = sizeof(EXTENSION_CONTROL_BLOCK);
 	ecb->ConnID = (HCONN) static_cast<KApiService*>(this);
 	ecb->dwVersion = MAKELONG(0, 6);
-	ecb->lpszMethod = (LPSTR)(rq->getMethod());
+	ecb->lpszMethod = (LPSTR)(rq->get_method());
 	ecb->lpszLogData[0] = '\0';
 	ecb->lpszPathInfo = (char*)env.getEnv("PATH_INFO");
 	ecb->lpszPathTranslated = (char*)env.getEnv("PATH_TRANSLATED");

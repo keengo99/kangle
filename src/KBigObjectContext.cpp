@@ -167,7 +167,7 @@ KGL_RESULT KBigObjectContext::OpenCache(KHttpRequest* rq)
 		assert(rq->sink->data.range_to >= rq->sink->data.range_from);
 	}
 #endif
-	rq->ctx->pushObj(new KHttpObject(rq));
+	rq->ctx->push_obj(new KHttpObject(rq));
 	rq->ctx->new_object = true;
 	this->build_if_range(rq);
 	return prepare_request_fetchobj(rq);
@@ -233,7 +233,7 @@ KGL_RESULT KBigObjectContext::upstream_recv_headed(KHttpRequest* rq, KHttpObject
 		}
 	}
 	if (!bigobj_dead) {
-		rq->ctx->popObj();
+		rq->ctx->pop_obj();
 		if (rq->ctx->st == NULL) {
 			rq->ctx->st = new KBigObjectStream(rq);
 		}

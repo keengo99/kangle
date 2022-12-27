@@ -130,7 +130,7 @@ public:
 			if (s == NULL) {
 				return true;
 			}
-			rq->responseHeader((const char *)attr, attr_len, s->getString(), s->getSize());
+			rq->response_header((const char *)attr, attr_len, s->getString(), s->getSize());
 		}
 		return true;
 	}

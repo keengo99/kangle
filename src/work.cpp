@@ -282,7 +282,7 @@ void log_access(KHttpRequest* rq) {
 	l.write_all((char*)cachedLogTime, 28);
 	timeLock.Unlock();
 	l.WSTR(" \"");
-	l << rq->getMethod();
+	l << rq->get_method();
 	l.WSTR(" ");
 #ifdef HTTP_PROXY
 	if (rq->sink->data.meth != METH_CONNECT)

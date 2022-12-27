@@ -117,7 +117,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 	case KGL_VAR_SERVER_NAME:
 		return add_api_var(buffer, size, rq->sink->data.url->host);
 	case KGL_VAR_REQUEST_METHOD:
-		return add_api_var(buffer, size, rq->getMethod());
+		return add_api_var(buffer, size, rq->get_method());
 	case KGL_VAR_PATH_INFO:
 		return add_api_var(buffer, size, rq->sink->data.url->path);
 	case KGL_VAR_URL:
@@ -282,10 +282,10 @@ static KGL_RESULT  response_unknow_header(
 		return KGL_EHAS_SEND_HEADER;
 	}
 	if (kgl_mem_case_same(attr, attr_len,_KS("Status"))) {
-		rq->responseStatus(kgl_atoi((u_char *)val, val_len));
+		rq->response_status(kgl_atoi((u_char *)val, val_len));
 		return KGL_OK;
 	}
-	rq->responseHeader(attr, attr_len, val, val_len);
+	rq->response_header(attr, attr_len, val, val_len);
 	return KGL_OK;
 }
 #if 0

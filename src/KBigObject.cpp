@@ -16,7 +16,7 @@ KGL_RESULT handle_bigobject_progress(KHttpRequest* rq, KHttpObject* obj)
 //由内存物件转入大物件
 KGL_RESULT turn_on_bigobject(KHttpRequest *rq,KHttpObject *obj)
 {
-	rq->ctx->DeadOldObject();
+	rq->ctx->dead_old_obj();
 	kassert(obj->data->i.type == MEMORY_OBJECT);
 	kassert(rq->ctx->new_object);
 	kassert(obj->refs==1);
@@ -38,8 +38,8 @@ KGL_RESULT turn_on_bigobject(KHttpRequest *rq,KHttpObject *obj)
 	INT64 last_net_from = obj->data->sbo->OpenWrite(rq->sink->data.range_from);
 	obj->dc_index_update = 1;
 	rq->ctx->store_obj(rq);
-	assert(obj->list_state != KGL_LIST_NONE);
-	if (obj->list_state != KGL_LIST_NONE) {
+	assert(obj->list_state != LIST_IN_NONE);
+	if (obj->list_state != LIST_IN_NONE) {
 		dci->start(ci_add, obj);
 	}
 	if (rq->bo_ctx==NULL) {

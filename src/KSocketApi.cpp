@@ -7,7 +7,7 @@
 static KSOCKET_CLIENT tcp_create(KOPAQUE data)
 {
 	kconnection *c = kconnection_new(NULL);
-	selectable_bind_opaque(&c->st, data, kgl_opaque_other);
+	selectable_bind_opaque(&c->st, data);
 	return (KSOCKET_CLIENT)c;
 }
 static SOCKET get_system_socket(KSOCKET_CLIENT s)
@@ -23,7 +23,7 @@ KSELECTOR tcp_get_selector(KSOCKET_CLIENT s)
 void tcp_set_opaque(KSOCKET_CLIENT s, KOPAQUE data)
 {
 	kconnection *c = (kconnection *)s;
-	selectable_bind_opaque(&c->st, data, kgl_opaque_other);
+	selectable_bind_opaque(&c->st, data);
 }
 
 kgl_socket_client_function tcp_socket_provider = {

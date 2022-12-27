@@ -51,7 +51,7 @@ public:
 		envs.insert(std::pair<char*, char*>(attr2, kgl_strndup(val, val_len)));
 		return true;
 	}
-	std::map<char*, char*, lessp_icase > envs;	
+	std::map<char*, char*, lessp_icase > envs;
 };
 
 #ifdef _WIN32
@@ -99,7 +99,7 @@ static void krequest_start(KSink* sink, int header_len)
 	sink->write_all(buf, len);
 	sink->end_request();
 }
-void init_fastcgi_header(u_char type, u_char pad_length, FCGI_Header*header)
+void init_fastcgi_header(u_char type, u_char pad_length, FCGI_Header* header)
 {
 	//FCGI_Header* header = (FCGI_Header*)malloc(sizeof(FCGI_Header) + pad_length);
 	memset(header, 0, sizeof(FCGI_Header));
@@ -157,7 +157,7 @@ bool fastcgi_test_304_keep_conn(kconnection* cn, int request_count, KMapEnv* env
 {
 	auto if_none_match = env->get_env("HTTP_IF_NONE_MATCH");
 	if (if_none_match == NULL || strcmp(if_none_match, "fcgi_etag") != 0) {
-		return fastcgi_stdout(cn, _KS("Status: 200 OK\r\nEtag: fcgi_etag\r\nContent-Length: 5\r\n\r\nhello"));	
+		return fastcgi_stdout(cn, _KS("Status: 200 OK\r\nEtag: fcgi_etag\r\nContent-Length: 5\r\n\r\nhello"));
 	}
 	return fastcgi_stdout(cn, _KS("Status: 304 Not Modified\r\n\r\n"));
 }
@@ -167,7 +167,7 @@ bool handle_fastcgi(kconnection* cn, int request_count, KMapEnv* env)
 	int resp_len = snprintf(resp_buf, sizeof(resp_buf), "Status: 200 OK\r\nCache-Control: no-cache\r\n\r\nhello %d %d", getpid(), (int)time(NULL));
 	int pos = sizeof("Status: 200 OK\r\nCache-");
 	const char* request_uri = env->get_env("REQUEST_URI");
-	klog(KLOG_ERR, "REQUEST_URI=[%s] keep_alive_count=[%d] cn=[%p]\n", request_uri,request_count,cn);
+	klog(KLOG_ERR, "REQUEST_URI=[%s] keep_alive_count=[%d] cn=[%p]\n", request_uri, request_count, cn);
 #if 0
 	for (auto it = env->envs.begin(); it != env->envs.end(); it++) {
 		klog(KLOG_ERR, "%s: %s\n", (*it).first, (*it).second);
@@ -176,7 +176,7 @@ bool handle_fastcgi(kconnection* cn, int request_count, KMapEnv* env)
 	if (strncmp(request_uri, _KS("/fastcgi/304")) == 0) {
 		fastcgi_test_304_keep_conn(cn, request_count, env);
 		//msleep cause end_request packet send delay for test.
-		my_msleep(100);	
+		my_msleep(100);
 		goto done;
 	}
 	fastcgi_stdout(cn, resp_buf, pos);
@@ -185,7 +185,7 @@ done:
 	fastcgi_stdout(cn, NULL, 0);
 	return fastcgi_end_request(cn);
 }
-bool fastcgi_connect(kconnection* cn,int request_count) {	
+bool fastcgi_connect(kconnection* cn, int request_count) {
 	FCGI_BeginRequestRecord record;
 	int len = sizeof(record);
 	if (!kfiber_net_read_full(cn, (char*)&record, &len)) {
@@ -225,19 +225,19 @@ bool fastcgi_connect(kconnection* cn,int request_count) {
 			}
 			ks_write_str(param_buffer, body, header.contentLength);
 		}
-		if (header.type == FCGI_STDIN) {	
+		if (header.type == FCGI_STDIN) {
 			if (header.contentLength == 0) {
 				KMapEnv env;
 				KFastcgiParser parser;
 				if (param_buffer) {
 					char* data = param_buffer->buf;
-					parser.parse_param(&env, (u_char*)data, (u_char*)data + param_buffer->used);					
+					parser.parse_param(&env, (u_char*)data, (u_char*)data + param_buffer->used);
 				} else {
 					klog(KLOG_ERR, "param_buffer is NULL\n");
 				}
 				const char* x_time = env.get_env("HTTP_X_TIME");
 				if (x_time != nullptr) {
-					assert(atoi(x_time) == request_count);					
+					assert(atoi(x_time) == request_count);
 				}
 				handle_fastcgi(cn, request_count, &env);
 				goto done;
@@ -262,15 +262,15 @@ done:
 }
 int fastcgi_fiber(void* arg, int len) {
 	kconnection* cn = (kconnection*)arg;
-	klog(KLOG_NOTICE, "new fastcgi connection [%p]...\n",cn);
-	for (int n=0;;n++) {
+	klog(KLOG_NOTICE, "new fastcgi connection [%p]...\n", cn);
+	for (int n = 0;; n++) {
 		if (!fastcgi_connect(cn, n)) {
-			klog(KLOG_NOTICE, "not keep connection cn=[%p]\n",cn);
+			klog(KLOG_NOTICE, "not keep connection cn=[%p]\n", cn);
 			break;
 		}
-		klog(KLOG_NOTICE, "keep connection cn=[%p]\n",cn);
+		klog(KLOG_NOTICE, "keep connection cn=[%p]\n", cn);
 	}
-	klog(KLOG_NOTICE, "destroy connection cn=[%p]...\n",cn);
+	klog(KLOG_NOTICE, "destroy connection cn=[%p]...\n", cn);
 	kconnection_destroy(cn);
 	return 0;
 }
@@ -323,6 +323,7 @@ int main(int argc, char** argv)
 {
 	klog_init(LogEvent);
 	kasync_init();
+	init_http_server_callback(NULL, krequest_start);
 	selector_manager_init(1, true);
 	if (argc > 1) {
 		if (strchr(argv[1], 'f') != NULL) {
@@ -332,7 +333,6 @@ int main(int argc, char** argv)
 	if (argc > 2) {
 		port = (uint16_t)atoi(argv[2]);
 	}
-	init_http_server_callback(NULL, krequest_start);
 	http_config.time_out = 300;
 	selector_manager_set_timeout(300, 300);
 	kfiber_create2(get_perfect_selector(), fiber_main, (void*)argv, argc, 0, NULL);

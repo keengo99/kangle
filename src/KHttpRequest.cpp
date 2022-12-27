@@ -55,6 +55,7 @@
 #include "KSockPoolHelper.h"
 
 using namespace std;
+
 void WINAPI free_auto_memory(void* arg)
 {
 	xfree(arg);
@@ -237,7 +238,7 @@ int KHttpRequest::EndRequest() {
 	delete this;
 	return 0;
 }
-const char* KHttpRequest::getMethod() {
+const char* KHttpRequest::get_method() {
 	return KHttpKeyValue::get_method(sink->data.meth)->data;
 }
 bool KHttpRequest::isBad() {
@@ -322,7 +323,6 @@ char* KHttpRequest::getUrl() {
 }
 std::string KHttpRequest::getInfo() {
 	KStringBuf s;
-	//{{ent
 #ifdef HTTP_PROXY
 	if (meth == METH_CONNECT) {
 		s << "CONNECT ";
@@ -331,7 +331,7 @@ std::string KHttpRequest::getInfo() {
 		}
 		return s.getString();
 	}
-#endif//}}
+#endif
 	sink->data.raw_url->GetUrl(s, true);
 	return s.getString();
 }
@@ -496,7 +496,7 @@ void KHttpRequest::ResponseVary(const char* vary)
 	}
 	int len = s.getSize();
 	if (len > 0) {
-		responseHeader(kgl_expand_string("Vary"), s.getString(), len);
+		response_header(kgl_expand_string("Vary"), s.getString(), len);
 	}
 }
 char* KHttpRequest::BuildVary(const char* vary)
@@ -544,15 +544,11 @@ bool KHttpRequest::response_header(KHttpHeader* header,bool lock_header)
 	}
 	return sink->response_header(header->buf, header->name_len, header->buf+header->val_offset, header->val_len);	
 }
-bool KHttpRequest::responseHeader(const char* name, hlen_t name_len, const char* val, hlen_t val_len)
+bool KHttpRequest::response_header(const char* name, hlen_t name_len, const char* val, hlen_t val_len)
 {
 	return sink->response_header(name, name_len, val, val_len);
 }
-bool KHttpRequest::responseContentLength(int64_t content_len)
-{
-	return sink->response_content_length(content_len);
-}
-bool KHttpRequest::startResponseBody(INT64 body_len)
+bool KHttpRequest::start_response_body(INT64 body_len)
 {
 	return sink->start_response_body(body_len);
 }

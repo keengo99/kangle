@@ -27,8 +27,7 @@ public:
 	bool translate;
 	std::stringstream s;
 };
-bool kconnection_info_iterator(void *ctx, kselector *selector, kselectable *st);
-
+bool kgl_connection_iterator(void* arg, KSink* rq);
 class KHttpManage : public KFetchObject {
 public:
 	bool sendHttpContent();

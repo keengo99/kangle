@@ -602,7 +602,7 @@ KGL_RESULT KAsyncFetchObject::upstream_is_error(KHttpRequest* rq, int error, con
 	ksocket_sockaddr_ip(upstream_addr, ips, MAXIPLEN);
 	klog(KLOG_WARNING, "rq=[%p] request=[%s %s] upstream=[%s:%d] self_port=[%d] error code=[%d],msg=[%s] errno=[%d %s],socket is %s.\n",
 		rq,
-		rq->getMethod(),
+		rq->get_method(),
 		url,
 		ips,
 		ksocket_addr_port(upstream_addr),

@@ -235,11 +235,11 @@ KGL_RESULT st_write_message(kgl_output_stream*st, KREQUEST r, KGL_MSG_TYPE msg_t
 		return KGL_EINVALID_PARAMETER;
 	}
 	if (rq->sink->data.status_code == 0) {
-		rq->responseStatus(200);
+		rq->response_status(200);
 	}
-	rq->responseContentLength(len);
-	rq->responseConnection();
-	rq->startResponseBody(len);
+	rq->response_content_length(len);
+	rq->response_connection();
+	rq->start_response_body(len);
 	bool result = true;
 	switch (msg_type) {
 	case KGL_MSG_RAW:
@@ -327,7 +327,7 @@ void check_release(kgl_output_stream* out)
 }
 void check_write_status(kgl_output_stream* st, KREQUEST r, int status_code)
 {
-	((KHttpRequest*)r)->responseStatus(status_code);
+	((KHttpRequest*)r)->response_status(status_code);
 }
 KGL_RESULT check_write_header(kgl_output_stream* st, KREQUEST r, kgl_header_type attr, const char* val, hlen_t val_len)
 {
@@ -339,7 +339,7 @@ KGL_RESULT check_write_header(kgl_output_stream* st, KREQUEST r, kgl_header_type
 			INT64* content_length = (INT64*)val;
 			rq->ctx->know_length = 1;
 			rq->ctx->left_read = *content_length;
-			return rq->responseContentLength(*content_length) ? KGL_OK : KGL_EINVALID_PARAMETER;
+			return rq->response_content_length(*content_length) ? KGL_OK : KGL_EINVALID_PARAMETER;
 		}
 		default:
 			//NOT SUPPORT
@@ -347,19 +347,19 @@ KGL_RESULT check_write_header(kgl_output_stream* st, KREQUEST r, kgl_header_type
 			return KGL_ENOT_SUPPORT;
 		}
 	}
-	return rq->responseHeader(attr, val, val_len) ? KGL_OK : KGL_EINVALID_PARAMETER;
+	return rq->response_header(attr, val, val_len) ? KGL_OK : KGL_EINVALID_PARAMETER;
 }
 KGL_RESULT check_write_unknow_header(kgl_output_stream* st, KREQUEST r, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len)
 {
-	return ((KHttpRequest*)r)->responseHeader(attr, attr_len, val, val_len) ? KGL_OK : KGL_EINVALID_PARAMETER;
+	return ((KHttpRequest*)r)->response_header(attr, attr_len, val, val_len) ? KGL_OK : KGL_EINVALID_PARAMETER;
 }
 KGL_RESULT check_write_header_finish(kgl_output_stream* st, KREQUEST r)
 {
 	KHttpRequest* rq = (KHttpRequest*)r;
 	if (rq->ctx->know_length) {
-		return rq->startResponseBody(rq->ctx->left_read) ? KGL_OK : KGL_EINVALID_PARAMETER;
+		return rq->start_response_body(rq->ctx->left_read) ? KGL_OK : KGL_EINVALID_PARAMETER;
 	}
-	return rq->startResponseBody(-1) ? KGL_OK : KGL_EINVALID_PARAMETER;
+	return rq->start_response_body(-1) ? KGL_OK : KGL_EINVALID_PARAMETER;
 }
 KGL_RESULT check_write_body(kgl_output_stream* st, KREQUEST r, const char* buf, int len)
 {
