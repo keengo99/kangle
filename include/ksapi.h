@@ -69,8 +69,9 @@ void SetLastError(DWORD errorCode);
 #define ClosePipe	::close
 #define INVALIDE_PIPE	-1
 #endif
-typedef struct _kgl_async_upstream kgl_async_upstream;
+typedef struct _kgl_upstream kgl_upstream;
 typedef struct _kgl_filter kgl_filter;
+#define   kgl_async_upstream   kgl_upstream
 
 #define   KGL_REQ_RESERV_COMMAND                    100000
 #define   KGL_REQ_COMMAND                          (KGL_REQ_RESERV_COMMAND+1)
@@ -82,7 +83,7 @@ typedef struct _kgl_filter kgl_filter;
 #define   KGL_REQ_ASYNC_HTTP                       (KGL_REQ_RESERV_COMMAND+7)
 #define   KGL_REQ_ASYNC_HTTP_UPSTREAM              (KGL_REQ_RESERV_COMMAND+8)
 #define   KGL_REQ_REGISTER_ACCESS                  (KGL_REQ_RESERV_COMMAND+9)
-#define   KGL_REQ_REGISTER_ASYNC_UPSTREAM          (KGL_REQ_RESERV_COMMAND+11)
+#define   KGL_REQ_REGISTER_UPSTREAM                (KGL_REQ_RESERV_COMMAND+11)
 #define   KGL_REQ_REGISTER_VARY                    (KGL_REQ_RESERV_COMMAND+12)
 #define   KGL_REQ_MODULE_SHUTDOWN                  (KGL_REQ_RESERV_COMMAND+13)
 
@@ -446,7 +447,7 @@ typedef struct _kgl_access
 	void (*init_shutdown)(void *ctx,bool is_shutdown);
 } kgl_access;
 
-struct _kgl_async_upstream
+struct _kgl_upstream
 {
 	int32_t size;
 	int32_t flags;
@@ -459,7 +460,7 @@ struct _kgl_async_upstream
 
 typedef struct _kgl_async_http_upstream
 {
-	kgl_async_upstream *us;
+	kgl_upstream *us;
 	void *us_ctx;
 	kgl_async_http http_ctx;
 } kgl_async_http_upstream;
@@ -575,9 +576,9 @@ typedef struct _kgl_dso_version
 } kgl_dso_version;
 
 #define KGL_REGISTER_ACCESS(dso_version,access) dso_version->f->global_support_function(dso_version->cn,KGL_REQ_REGISTER_ACCESS,access,NULL)
-#define KGL_REGISTER_SYNC_UPSTREAM(dso_version,us) dso_version->f->global_support_function(dso_version->cn,KGL_REQ_REGISTER_SYNC_UPSTREAM,us,NULL)
-#define KGL_REGISTER_ASYNC_UPSTREAM(dso_version,us) dso_version->f->global_support_function(dso_version->cn,KGL_REQ_REGISTER_ASYNC_UPSTREAM,us,NULL)
+#define KGL_REGISTER_UPSTREAM(dso_version,us) dso_version->f->global_support_function(dso_version->cn,KGL_REQ_REGISTER_UPSTREAM,us,NULL)
 #define KGL_REGISTER_VARY(dso_version,vary) dso_version->f->global_support_function(dso_version->cn,KGL_REQ_REGISTER_VARY,vary,NULL)
+#define KGL_REGISTER_ASYNC_UPSTREAM KGL_REGISTER_UPSTREAM
 
 DLL_PUBLIC BOOL kgl_dso_init(kgl_dso_version * ver);
 DLL_PUBLIC BOOL kgl_dso_finit(DWORD flag);

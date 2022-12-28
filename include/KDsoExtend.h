@@ -29,7 +29,7 @@ public:
 	{
 		return orign_filename;
 	}
-	bool RegisterUpstream(kgl_async_upstream *us);
+	bool RegisterUpstream(kgl_upstream *us);
 	void ListUpstream(std::stringstream &s);
 	void ListTarget(std::vector<std::string> &target);
 	KRedirect *RefsRedirect(std::string &name);

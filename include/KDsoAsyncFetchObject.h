@@ -18,10 +18,10 @@ public:
 		ctx.module = model_ctx;
 		this->need_check = need_check;
 	}
-	kgl_async_upstream *GetAsyncUpstream()
+	kgl_upstream *GetAsyncUpstream()
 	{
 		KDsoRedirect *dr = static_cast<KDsoRedirect *>(brd->rd);
-		return (kgl_async_upstream *)dr->us;
+		return (kgl_upstream *)dr->us;
 	}
 	bool NeedTempFile(bool upload, KHttpRequest *rq)
 	{

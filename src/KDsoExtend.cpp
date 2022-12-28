@@ -59,7 +59,7 @@ KDsoExtend::~KDsoExtend()
 		xfree(orign_filename);
 	}
 }
-bool KDsoExtend::RegisterUpstream(kgl_async_upstream*us)
+bool KDsoExtend::RegisterUpstream(kgl_upstream*us)
 {
 	std::map<const char *, KDsoRedirect *, lessp>::iterator it;
 	it = upstream.find(us->name);

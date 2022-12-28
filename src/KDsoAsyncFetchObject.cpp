@@ -64,7 +64,7 @@ uint32_t KDsoAsyncFetchObject::Check(KHttpRequest *rq)
 	if (ctx.f == NULL) {
 		init();
 	}	
-	kgl_async_upstream *async_us = GetAsyncUpstream();
+	kgl_upstream *async_us = GetAsyncUpstream();
 	if (async_us->check) {
 		ctx.in = NULL;
 		ctx.out = get_check_output_stream();

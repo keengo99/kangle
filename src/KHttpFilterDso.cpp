@@ -76,9 +76,9 @@ KGL_RESULT global_support_function(
 			}
 			return KGL_OK;
 	}
-	case KGL_REQ_REGISTER_ASYNC_UPSTREAM:
+	case KGL_REQ_REGISTER_UPSTREAM:
 	{
-		kgl_async_upstream*us = (kgl_async_upstream*)data;
+		kgl_upstream*us = (kgl_upstream*)data;
 		KDsoExtend *de = (KDsoExtend *)ctx;
 		if (de->RegisterUpstream(us)) {
 			return KGL_OK;

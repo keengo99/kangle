@@ -7,7 +7,7 @@
 class KDsoRedirect : public KRedirect
 {
 public:
-	KDsoRedirect(const char *dso_name, kgl_async_upstream*us)
+	KDsoRedirect(const char *dso_name, kgl_upstream*us)
 	{
 		name = dso_name;
 		name += ":";
@@ -31,6 +31,6 @@ public:
 	friend class KDsoExtend;
 	friend class KDsoAsyncFetchObject;
 private:
-	kgl_async_upstream *us;
+	kgl_upstream *us;
 };
 #endif

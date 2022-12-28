@@ -381,7 +381,7 @@ static KGL_RESULT support_function(
 			//回应控制不允许注册upstream
 			return KGL_EINVALID_PARAMETER;
 		}
-		kgl_async_upstream* us = (kgl_async_upstream*)data;
+		kgl_upstream* us = (kgl_upstream*)data;
 		//目前还不支持同步模式	
 		KDsoRedirect* rd = new KDsoRedirect("", us);
 		KFetchObject* fo = rd->makeFetchObject(rq, *ret);

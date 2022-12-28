@@ -32,8 +32,8 @@ static KGL_RESULT open(KREQUEST r, kgl_async_context *ctx)
 	return result;
 }
 
-static kgl_async_upstream async_upstream = {
-	sizeof(kgl_async_upstream),0,
+static kgl_upstream async_upstream = {
+	sizeof(kgl_upstream),0,
 	"async_test",
 	create_ctx,
 	free_ctx,
