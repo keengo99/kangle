@@ -18,7 +18,7 @@ kangle use cmake to build.
 ```
 git clone https://gitee.com/keengo/kangle
 cd kangle
-git submodule init && git submodule update
+git submodule update --init --recursive
 mkdir build
 cd build
 cmake ..
@@ -28,13 +28,12 @@ make
 ```
 
 git clone https://github.com/litespeedtech/lsquic
-cd lsquic && git submodule init && git submodule update
+cd lsquic && git submodule update --init --recursive
 cd ..
 git clone https://github.com/google/boringssl
-
 git clone https://gitee.com/keengo/kangle
 cd kangle
-git submodule init && git submodule update
+git submodule update --init --recursive
 mkdir build
 cd build
 cmake .. -DBORINGSSL_DIR=../../boringssl -DLSQUIC_DIR=../../lsquic
