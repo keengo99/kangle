@@ -57,3 +57,7 @@ cd test
 `cmake .. -DCMAKE_BUILD_TYPE=Release`
 ### use boringssl
 `cmake .. -DBORINGSSL_DIR=boringssl_dir`
+
+## Documentation
+
+* For develop dso, see the [DSO docs](./docs/dso.md).
