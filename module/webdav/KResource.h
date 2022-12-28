@@ -1,6 +1,7 @@
 #ifndef KRESOURCE_H
 #define KRESOURCE_H
 #include <list>
+#include <time.h>
 #include "KAttribute.h"
 
 class KResource
