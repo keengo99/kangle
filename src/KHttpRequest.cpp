@@ -407,6 +407,30 @@ int KHttpRequest::Write(WSABUF* buf, int bc)
 	}
 	return got;
 }
+bool KHttpRequest::write_all(WSABUF* buf, int *vc)
+{
+	while (*vc > 0) {
+		int got = sink->write(buf, slh?1:*vc);
+		if (got <= 0) {
+			return false;
+		}
+		int sleep_msec = getSleepTime(got);
+		if (sleep_msec > 0) {
+			kfiber_msleep(sleep_msec);
+		}
+		while (got > 0) {
+			if ((int)buf->iov_len > got) {
+				buf->iov_len += got;
+				buf->iov_base = (char*)buf->iov_base + got;
+				break;
+			}
+			got -= (int)buf->iov_len;
+			buf += 1;
+			*vc -= 1;
+		}
+	}
+	return true;
+}
 int KHttpRequest::Write(const char* buf, int len)
 {
 	WSABUF bufs;

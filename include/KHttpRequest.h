@@ -219,6 +219,7 @@ public:
 	void ResponseVary(const char *vary);
 	char *BuildVary(const char *vary);
 	const char *get_method();
+	bool write_all(WSABUF* buf, int *vc);
 	int Write(WSABUF *buf, int bc);
 	int Write(const char *buf, int len);
 	bool WriteAll(const char *buf, int len);

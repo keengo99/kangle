@@ -54,7 +54,7 @@ bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, c
 		return add_header(attr, val, val_len);
 	case kgl_header_pragma:
 	{
-		KHttpFieldValue field(val, val + val_len);
+		KHttpFieldValue field(val, end);
 		do {
 			if (field.is(_KS("no-cache"))) {
 				obj->index.flags |= ANSW_NO_CACHE;
@@ -65,7 +65,7 @@ bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, c
 	}
 	case kgl_header_cache_control:
 	{
-		KHttpFieldValue field(val, val + val_len);
+		KHttpFieldValue field(val, end);
 		do {
 #ifdef ENABLE_STATIC_ENGINE
 			if (!KBIT_TEST(obj->index.flags, OBJ_IS_STATIC2)) {
@@ -134,7 +134,12 @@ bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, c
 	case kgl_header_expires:
 		if (!KBIT_TEST(obj->index.flags, ANSW_HAS_EXPIRES)) {
 			KBIT_SET(obj->index.flags, ANSW_HAS_EXPIRES);
-			expireDate = kgl_parse_http_time((u_char*)val, val_len);		
+			if (val_len == 0) {
+				expireDate = *(time_t*)val;
+				val_len = kgl_value_type(KGL_HEADER_VALUE_TIME);
+			} else {
+				expireDate = kgl_parse_http_time((u_char*)val, val_len);
+			}
 		}
 		return add_header(attr, val, val_len);
 	default:

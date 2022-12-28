@@ -82,7 +82,6 @@ typedef struct _kgl_filter kgl_filter;
 #define   KGL_REQ_ASYNC_HTTP                       (KGL_REQ_RESERV_COMMAND+7)
 #define   KGL_REQ_ASYNC_HTTP_UPSTREAM              (KGL_REQ_RESERV_COMMAND+8)
 #define   KGL_REQ_REGISTER_ACCESS                  (KGL_REQ_RESERV_COMMAND+9)
-#define   KGL_REQ_REGISTER_SYNC_UPSTREAM           (KGL_REQ_RESERV_COMMAND+10)
 #define   KGL_REQ_REGISTER_ASYNC_UPSTREAM          (KGL_REQ_RESERV_COMMAND+11)
 #define   KGL_REQ_REGISTER_VARY                    (KGL_REQ_RESERV_COMMAND+12)
 #define   KGL_REQ_MODULE_SHUTDOWN                  (KGL_REQ_RESERV_COMMAND+13)
@@ -438,7 +437,7 @@ typedef struct _kgl_access
 {
 	int32_t size;
 	int32_t flags;
-	const char *name;	
+	const char *name;
 	void *(*create_ctx)();
 	void (*free_ctx)(void *ctx);
 	KGL_RESULT (*build)(kgl_access_build *build_ctx,KF_ACCESS_BUILD_TYPE build_type);
@@ -446,24 +445,6 @@ typedef struct _kgl_access
 	uint32_t (*process)(KREQUEST rq, kgl_access_context *ctx,DWORD notify);
 	void (*init_shutdown)(void *ctx,bool is_shutdown);
 } kgl_access;
-
-#define KF_UPSTREAM_SYNC         1
-
-typedef struct {
-	int32_t size;
-	int32_t flags;
-	const char *name;	
-} kgl_upstream;
-
-typedef struct _kgl_sync_upstream
-{
-	int32_t size;
-	int32_t flags;
-	const char *name;
-	void *(*create_ctx)();
-	void (*free_ctx)(void *ctx);
-	KGL_RESULT (*process)(kgl_access_context *ctx);
-} kgl_sync_upstream;
 
 struct _kgl_async_upstream
 {
@@ -475,12 +456,14 @@ struct _kgl_async_upstream
 	uint32_t (*check)(KREQUEST rq, kgl_async_context *ctx);
 	KGL_RESULT (*open)(KREQUEST rq, kgl_async_context *ctx);
 };
+
 typedef struct _kgl_async_http_upstream
 {
-	kgl_upstream *us;
+	kgl_async_upstream *us;
 	void *us_ctx;
 	kgl_async_http http_ctx;
 } kgl_async_http_upstream;
+
 
 typedef struct _kgl_vary
 {

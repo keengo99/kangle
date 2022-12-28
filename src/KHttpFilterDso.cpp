@@ -78,17 +78,12 @@ KGL_RESULT global_support_function(
 	}
 	case KGL_REQ_REGISTER_ASYNC_UPSTREAM:
 	{
-		kgl_upstream *us = (kgl_upstream *)data;
-		KBIT_CLR(us->flags, KF_UPSTREAM_SYNC);
+		kgl_async_upstream*us = (kgl_async_upstream*)data;
 		KDsoExtend *de = (KDsoExtend *)ctx;
 		if (de->RegisterUpstream(us)) {
 			return KGL_OK;
 		}
 		return KGL_EUNKNOW;
-	}
-	case KGL_REQ_REGISTER_SYNC_UPSTREAM:
-	{
-		return KGL_ENOT_SUPPORT;
 	}
 	case KGL_REQ_SERVER_VAR: {
 			const char *name = (const char *)data;
@@ -116,14 +111,12 @@ KGL_RESULT global_support_function(
 		if (rq == NULL) {
 			return KGL_EINVALID_PARAMETER;
 		}
-		//目前还不支持同步模式
-		KBIT_CLR(ctx->us->flags, KF_UPSTREAM_SYNC);
-		KDsoRedirect *rd = new KDsoRedirect("", (kgl_upstream *)ctx->us);
+		KDsoRedirect *rd = new KDsoRedirect("", ctx->us);
 		KFetchObject *fo = rd->makeFetchObject(rq, ctx->us_ctx);
 		fo->bindRedirect(rd, KGL_CONFIRM_FILE_NEVER);
 		fo->filter = 0;
 		rq->InsertFetchObject(fo);
-		kgl_start_simulate_request(rq);		
+		kgl_start_simulate_request(rq);
 		return KGL_OK;
 	}
 	case KGL_REQ_ASYNC_HTTP:

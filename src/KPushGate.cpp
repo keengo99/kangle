@@ -229,6 +229,7 @@ KGL_RESULT st_write_message(kgl_output_stream*st, KREQUEST r, KGL_MSG_TYPE msg_t
 		break;
 	}
 	default:
+		len = -1;
 		break;
 	}
 	if (len < 0) {
@@ -246,12 +247,7 @@ KGL_RESULT st_write_message(kgl_output_stream*st, KREQUEST r, KGL_MSG_TYPE msg_t
 		result = rq->WriteAll((char *)msg, (int)len);
 		break;
 	case KGL_MSG_VECTOR:
-		for (int i = 0; i < msg_flag; i++) {
-			if (!rq->WriteAll((char *)buf[0].iov_base, (int)buf[0].iov_len)) {
-				result = false;
-				break;
-			}
-		}
+		result = rq->write_all(buf, &msg_flag);
 		break;
 	default:
 		break;

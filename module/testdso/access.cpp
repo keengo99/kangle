@@ -28,8 +28,17 @@ static uint32_t process(KREQUEST rq, kgl_access_context *ctx, DWORD notify)
 {
 	kassert(notify == test_notify_type);
 	char buf[512];
-	DWORD len = sizeof(buf) - 1;
+	buf[0] = '\0';
+	DWORD len = sizeof(buf);
 	if (ctx->f->get_variable(rq, KGL_VAR_PATH_INFO, NULL, buf, &len) == KGL_OK) {
+		if (strcmp(buf, "/dso/accept_header") == 0) {
+			//test response accept header as x-accept
+			len = sizeof(buf);
+			if (KGL_OK == ctx->f->get_variable(rq, KGL_VAR_HEADER, "Accept", buf, &len)) {
+				ctx->f->response_header(rq, ctx->cn, _KS("x-accept"), buf, (hlen_t)len);
+			}
+			return KF_STATUS_REQ_FINISHED;
+		}
 		if (strcmp(buf, "/test_access_deny") == 0) {
 			return KF_STATUS_REQ_FINISHED;
 		}

@@ -9,10 +9,10 @@
 #include "KWhiteList.h"
 #endif
 static KMutex queue_lock;
-static std::map<char *, KRequestQueue *, lessp> queues;
+static std::map<char*, KRequestQueue*, lessp> queues;
 
 #define ADD_VAR(x,y,z) add_api_var(x,y,z,sizeof(z)-1)
-KGL_RESULT add_api_var(LPVOID buffer, LPDWORD size, const char *val, int len)
+KGL_RESULT add_api_var(LPVOID buffer, LPDWORD size, const char* val, int len)
 {
 	if (len == 0) {
 		len = (int)strlen(val);
@@ -25,10 +25,10 @@ KGL_RESULT add_api_var(LPVOID buffer, LPDWORD size, const char *val, int len)
 	*size = len;
 	return KGL_OK;
 }
-KGL_RESULT var_printf(LPVOID buffer, LPDWORD size, const char *fmt, ...) {
+KGL_RESULT var_printf(LPVOID buffer, LPDWORD size, const char* fmt, ...) {
 	va_list ap;
 	va_start(ap, fmt);
-	int len = vsnprintf((char *)buffer, *size, fmt, ap);
+	int len = vsnprintf((char*)buffer, *size, fmt, ap);
 	va_end(ap);
 	if (len < (int)*size) {
 		*size = len;
@@ -41,15 +41,15 @@ KGL_RESULT add_header_var(LPVOID buffer, LPDWORD size, KHttpHeader* header, cons
 {
 	while (header) {
 		if (kgl_is_attr(header, name, len)) {
-			return add_api_var(buffer, size, header->buf+header->val_offset, header->val_len);
+			return add_api_var(buffer, size, header->buf + header->val_offset, header->val_len);
 		}
 		header = header->next;
 	}
 	return KGL_ENO_DATA;
 }
-KGL_RESULT get_response_variable(KHttpRequest *rq, KGL_VAR type, LPSTR  name, LPVOID  buffer, LPDWORD size)
+KGL_RESULT get_response_variable(KHttpRequest* rq, KGL_VAR type, LPSTR  name, LPVOID  buffer, LPDWORD size)
 {
-	KHttpObject *obj = rq->ctx->obj;
+	KHttpObject* obj = rq->ctx->obj;
 	if (obj == NULL) {
 		return KGL_ENO_DATA;
 	}
@@ -60,7 +60,7 @@ KGL_RESULT get_response_variable(KHttpRequest *rq, KGL_VAR type, LPSTR  name, LP
 		return KGL_ENOT_SUPPORT;
 	}
 }
-KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVOID  buffer, LPDWORD size)
+KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, LPSTR  name, LPVOID  buffer, LPDWORD size)
 {
 	switch (type) {
 	case KGL_VAR_HEADER:
@@ -68,9 +68,9 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 #ifdef KSOCKET_SSL
 	case KGL_VAR_SSL_VAR:
 	{
-		kssl_session *ssl = rq->sink->get_ssl();
+		kssl_session* ssl = rq->sink->get_ssl();
 		if (ssl) {
-			char *result = ssl_var_lookup(ssl->ssl, name);
+			char* result = ssl_var_lookup(ssl->ssl, name);
 			if (result) {
 				KGL_RESULT ret = add_api_var(buffer, size, result);
 				OPENSSL_free(result);
@@ -82,7 +82,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 #endif
 	case KGL_VAR_HTTPS:
 	{
-		int *v = (int *)buffer;
+		int* v = (int*)buffer;
 		if (KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL)) {
 			*v = 1;
 		} else {
@@ -92,7 +92,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 	}
 	case KGL_VAR_CACHE_TYPE:
 	{
-		int32_t *v = (int32_t *)buffer;
+		int32_t* v = (int32_t*)buffer;
 		if (rq->ctx->obj) {
 			if (rq->ctx->obj->in_cache) {
 				*v = 1;
@@ -135,7 +135,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 		return add_api_var(buffer, size, rq->sink->data.url->path);
 	case KGL_VAR_QUERY_STRING:
 	{
-		const char *param = rq->sink->data.url->param;
+		const char* param = rq->sink->data.url->param;
 		KGL_RESULT ret = KGL_ENO_DATA;
 		if (param) {
 			ret = add_api_var(buffer, size, param);
@@ -144,7 +144,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 	}
 	case KGL_VAR_SERVER_ADDR:
 	{
-		if (rq->sink->get_self_ip((char *)buffer, *size - 1) == 0) {
+		if (rq->sink->get_self_ip((char*)buffer, *size - 1) == 0) {
 			*size = MAXIPLEN;
 			return KGL_EINSUFFICIENT_BUFFER;
 		}
@@ -152,7 +152,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 	}
 	case KGL_VAR_SERVER_PORT:
 	{
-		uint16_t *v = (uint16_t *)buffer;
+		uint16_t* v = (uint16_t*)buffer;
 		*v = rq->sink->data.raw_url->port;
 		return KGL_OK;
 	}
@@ -162,13 +162,13 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 	}
 	case KGL_VAR_REMOTE_PORT:
 	{
-		uint16_t *v = (uint16_t *)buffer;
+		uint16_t* v = (uint16_t*)buffer;
 		*v = ksocket_addr_port(rq->sink->get_peer_addr());
 		return KGL_OK;
 	}
 	case KGL_VAR_PEER_ADDR:
 	{
-		if (rq->sink->get_peer_ip((char *)buffer, *size-1)) {
+		if (rq->sink->get_peer_ip((char*)buffer, *size - 1)) {
 			*size = (int)strlen((char*)buffer);
 			return KGL_OK;
 		}
@@ -178,14 +178,14 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 	case KGL_VAR_DOCUMENT_ROOT:
 	{
 		auto svh = rq->get_virtual_host();
-		if (svh==NULL) {
+		if (svh == NULL) {
 			return KGL_ENO_DATA;
 		}
 		return add_api_var(buffer, size, svh->doc_root);
 	}
 	case KGL_VAR_HAS_CONTENT_LENGTH:
 	{
-		bool *v = (bool *)buffer;
+		bool* v = (bool*)buffer;
 		*v = KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONTENT_LEN) > 0;
 		return KGL_OK;
 	}
@@ -196,7 +196,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 		if (rq->ctx->mt == modified_if_range_date || rq->sink->data.if_modified_since <= 0) {
 			return KGL_ENO_DATA;
 		}
-		time_t *v = (time_t *)buffer;
+		time_t* v = (time_t*)buffer;
 		*v = rq->sink->data.if_modified_since;
 		return KGL_OK;
 	}
@@ -205,7 +205,7 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 		if (rq->ctx->mt != modified_if_range_date || rq->sink->data.if_modified_since <= 0) {
 			return KGL_ENO_DATA;
 		}
-		time_t *v = (time_t *)buffer;
+		time_t* v = (time_t*)buffer;
 		*v = rq->sink->data.if_modified_since;
 		return KGL_OK;
 	}
@@ -238,15 +238,13 @@ KGL_RESULT get_request_variable(KHttpRequest *rq,KGL_VAR type, LPSTR  name, LPVO
 static KGL_RESULT  set_request_header(
 	KREQUEST r,
 	KCONN cn,
-	const char *  attr,
+	const char* attr,
 	hlen_t attr_len,
-	const char * val,
+	const char* val,
 	hlen_t val_len)
 {
-	KHttpRequest *rq = (KHttpRequest *)r;
-	char *v = kgl_strndup(val, val_len);
-	bool result = rq->sink->parse_header(attr, attr_len, v, val_len, false);
-	xfree(v);
+	KHttpRequest* rq = (KHttpRequest*)r;
+	bool result = rq->sink->parse_header(attr, attr_len, val, val_len, false);
 	if (!result) {
 		return KGL_EINVALID_PARAMETER;
 	}
@@ -255,12 +253,12 @@ static KGL_RESULT  set_request_header(
 
 static KGL_RESULT  add_obj_unknow_header(KREQUEST r,
 	KCONN cn,
-	const char *             attr,
+	const char* attr,
 	hlen_t attr_len,
-	const char *             val,
+	const char* val,
 	hlen_t val_len)
 {
-	KHttpRequest *rq = (KHttpRequest *)r;
+	KHttpRequest* rq = (KHttpRequest*)r;
 	KHttpResponseParser parser;
 	if (!parser.parse_unknow_header(rq, attr, attr_len, val, val_len, false)) {
 		return KGL_EINVALID_PARAMETER;
@@ -272,33 +270,33 @@ static KGL_RESULT  add_obj_unknow_header(KREQUEST r,
 static KGL_RESULT  response_unknow_header(
 	KREQUEST r,
 	KCONN cn,
-	const char *             attr,
+	const char* attr,
 	hlen_t attr_len,
-	const char *             val,
+	const char* val,
 	hlen_t val_len)
 {
-	KHttpRequest *rq = (KHttpRequest *)r;
+	KHttpRequest* rq = (KHttpRequest*)r;
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER)) {
 		return KGL_EHAS_SEND_HEADER;
 	}
-	if (kgl_mem_case_same(attr, attr_len,_KS("Status"))) {
-		rq->response_status(kgl_atoi((u_char *)val, val_len));
+	if (kgl_mem_case_same(attr, attr_len, _KS("Status"))) {
+		rq->response_status(kgl_atoi((u_char*)val, val_len));
 		return KGL_OK;
 	}
 	rq->response_header(attr, attr_len, val, val_len);
 	return KGL_OK;
 }
 #if 0
-static KGL_RESULT  request_write_client (
+static KGL_RESULT  request_write_client(
 	KREQUEST r,
 	KCONN cn,
 	LPVOID                        Buffer,
 	LPDWORD                       lpdwBytes
 )
 {
-	KHttpRequest *rq = (KHttpRequest *)r;
-	KAccessContext *ar = (KAccessContext *)cn;
-	int len = ar->GetBuffer(rq)->write(rq, (char *)Buffer, *lpdwBytes);
+	KHttpRequest* rq = (KHttpRequest*)r;
+	KAccessContext* ar = (KAccessContext*)cn;
+	int len = ar->GetBuffer(rq)->write(rq, (char*)Buffer, *lpdwBytes);
 	if (len <= 0) {
 		return KGL_EUNKNOW;
 	}
@@ -313,12 +311,12 @@ static KGL_RESULT  response_write_client(
 	return KGL_ENOT_SUPPORT;
 }
 #endif
-KGL_RESULT base_support_function(KHttpRequest *rq, KF_REQ_TYPE req, PVOID data, PVOID *ret)
+KGL_RESULT base_support_function(KHttpRequest* rq, KF_REQ_TYPE req, PVOID data, PVOID* ret)
 {
 	switch (req) {
 	case KD_REQ_REWRITE_PARAM:
 	{
-		const char *param = (const char *)data;
+		const char* param = (const char*)data;
 		if (rq->sink->data.url->param) {
 			xfree(rq->sink->data.url->param);
 			rq->sink->data.url->param = NULL;
@@ -331,7 +329,7 @@ KGL_RESULT base_support_function(KHttpRequest *rq, KF_REQ_TYPE req, PVOID data, 
 	}
 	case KD_REQ_REWRITE_URL:
 	{
-		if (rq->rewriteUrl((const char *)data)) {
+		if (rq->rewriteUrl((const char*)data)) {
 			return KGL_OK;
 		}
 		return KGL_EINVALID_PARAMETER;
@@ -339,15 +337,15 @@ KGL_RESULT base_support_function(KHttpRequest *rq, KF_REQ_TYPE req, PVOID data, 
 #ifdef ENABLE_BLACK_LIST
 	case KD_REQ_CHECK_WHITE_LIST:
 	{
-		bool *flush = (bool *)ret;
-		if (wlm.find(rq->sink->data.url->host, (char *)data, flush ? *flush : false)) {
+		bool* flush = (bool*)ret;
+		if (wlm.find(rq->sink->data.url->host, (char*)data, flush ? *flush : false)) {
 			return KGL_OK;
 		}
 		return KGL_ENO_DATA;
 	}
 	case KD_REQ_ADD_WHITE_LIST:
 	{
-		wlm.add(rq->sink->data.url->host, NULL, (char *)data);
+		wlm.add(rq->sink->data.url->host, NULL, (char*)data);
 		return KGL_OK;
 	}
 #endif
@@ -372,10 +370,10 @@ static KGL_RESULT support_function(
 	KCONN                        cn,
 	KF_REQ_TYPE                  req,
 	PVOID                        data,
-	PVOID                        *ret
+	PVOID* ret
 )
 {
-	KHttpRequest *rq = (KHttpRequest *)r;
+	KHttpRequest* rq = (KHttpRequest*)r;
 	switch (req) {
 	case KF_REQ_UPSTREAM:
 	{
@@ -383,25 +381,24 @@ static KGL_RESULT support_function(
 			//回应控制不允许注册upstream
 			return KGL_EINVALID_PARAMETER;
 		}
-		kgl_upstream *us = (kgl_upstream *)data;
-		//目前还不支持同步模式
-		KBIT_CLR(us->flags, KF_UPSTREAM_SYNC);
-		KDsoRedirect *rd = new KDsoRedirect("", us);
-		KFetchObject *fo = rd->makeFetchObject(rq, *ret);
-		fo->bindRedirect(rd,KGL_CONFIRM_FILE_NEVER);
+		kgl_async_upstream* us = (kgl_async_upstream*)data;
+		//目前还不支持同步模式	
+		KDsoRedirect* rd = new KDsoRedirect("", us);
+		KFetchObject* fo = rd->makeFetchObject(rq, *ret);
+		fo->bindRedirect(rd, KGL_CONFIRM_FILE_NEVER);
 		fo->filter = 1;
 		rq->InsertFetchObject(fo);
 		return KGL_OK;
 	}
 	case KF_REQ_FILTER:
 	{
-		kgl_filter *filter = (kgl_filter *)data;
-		void *dso_ctx = (void *)*ret;
-		KDsoFilter *dso_filter = new KDsoFilter(filter, dso_ctx);
+		kgl_filter* filter = (kgl_filter*)data;
+		void* dso_ctx = (void*)*ret;
+		KDsoFilter* dso_filter = new KDsoFilter(filter, dso_ctx);
 		rq->getOutputFilterContext()->registerFilterStream(dso_filter, true);
 	}
 	default:
-		return base_support_function(rq,req,data,ret);
+		return base_support_function(rq, req, data, ret);
 	}
 }
 static kgl_access_function request_access_function = {
@@ -417,7 +414,7 @@ static kgl_access_function response_access_function = {
 	add_obj_unknow_header,
 	NULL
 };
-void init_access_dso_support(kgl_access_context *ctx, int notify)
+void init_access_dso_support(kgl_access_context* ctx, int notify)
 {
 	memset(ctx, 0, sizeof(kgl_access_context));
 	if (KBIT_TEST(notify, KF_NOTIFY_REQUEST_ACL | KF_NOTIFY_REQUEST_MARK)) {
@@ -428,10 +425,10 @@ void init_access_dso_support(kgl_access_context *ctx, int notify)
 	ctx->f = &response_access_function;
 }
 
-static void request_queue_clean_call_back(void *data)
+static void request_queue_clean_call_back(void* data)
 {
-	char *key = (char *)data;
-	std::map<char *, KRequestQueue *, lessp>::iterator it;
+	char* key = (char*)data;
+	std::map<char*, KRequestQueue*, lessp>::iterator it;
 	queue_lock.Lock();
 	it = queues.find(key);
 	if (it != queues.end() && (*it).second->getRef() == 1) {
@@ -443,14 +440,14 @@ static void request_queue_clean_call_back(void *data)
 	queue_lock.Unlock();
 	free(key);
 }
-KRequestQueue *get_request_queue(KHttpRequest *rq, const char *queue_name, int max_worker, int max_queue)
+KRequestQueue* get_request_queue(KHttpRequest* rq, const char* queue_name, int max_worker, int max_queue)
 {
-	KRequestQueue *queue = NULL;
+	KRequestQueue* queue = NULL;
 	queue_lock.Lock();
-	std::map<char *, KRequestQueue *, lessp>::iterator it = queues.find((char *)queue_name);
+	std::map<char*, KRequestQueue*, lessp>::iterator it = queues.find((char*)queue_name);
 	if (it == queues.end()) {
 		queue = new KRequestQueue;
-		queues.insert(std::pair<char *, KRequestQueue *>(strdup(queue_name), queue));
+		queues.insert(std::pair<char*, KRequestQueue*>(strdup(queue_name), queue));
 	} else {
 		queue = (*it).second;
 	}
@@ -460,11 +457,11 @@ KRequestQueue *get_request_queue(KHttpRequest *rq, const char *queue_name, int m
 	rq->registerRequestCleanHook(request_queue_clean_call_back, strdup(queue_name));
 	return queue;
 }
-KRequestQueue *get_request_queue(KHttpRequest *rq, const char *queue_name)
+KRequestQueue* get_request_queue(KHttpRequest* rq, const char* queue_name)
 {
 	int max_worker = 1;
 	int max_queue = 0;
-	const char *hot = strchr(queue_name, '_');
+	const char* hot = strchr(queue_name, '_');
 	if (hot) {
 		hot++;
 		max_worker = atoi(hot);
