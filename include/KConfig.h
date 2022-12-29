@@ -87,9 +87,9 @@ public:
 		return new_ssl_ctx(get_cert_file().c_str(), get_key_file().c_str());
 	}
 #ifdef ENABLE_HTTP2
-	u_char alpn;
+	u_char alpn = 0;
 #endif
-	bool early_data;
+	bool early_data =  false;
 	std::string cipher;
 	std::string protocols;
 #endif
@@ -103,7 +103,7 @@ public:
 	}
 	std::string ip;
 	std::string port;
-	int model;
+	int model = 0;
 	bool listened;
 	bool ext;
 };

@@ -247,7 +247,7 @@ typedef enum _KF_ALLOC_MEMORY_TYPE
 typedef struct _kgl_filter_conext_function
 {
 	kgl_get_variable_f get_variable;
-	KGL_RESULT (*write_all)(KREQUEST rq, KCONN cn, const char *buf, DWORD size);
+	KGL_RESULT (*write_all)(KREQUEST rq, KCONN cn, const char *buf, int size);
 	KGL_RESULT (*flush)(KREQUEST rq, KCONN cn);
 	KGL_RESULT (*write_end)(KREQUEST rq, KCONN cn, KGL_RESULT result);
 } kgl_filter_conext_function;
@@ -262,7 +262,7 @@ typedef struct _kgl_filter_context
 struct _kgl_filter
 {
 	const char *name;
-	KGL_RESULT (*write_all)(KREQUEST rq, kgl_filter_context *ctx, const char *buf,DWORD size);
+	KGL_RESULT (*write_all)(KREQUEST rq, kgl_filter_context *ctx, const char *buf,int size);
 	KGL_RESULT (*flush)(KREQUEST rq,kgl_filter_context *ctx);
 	KGL_RESULT (*write_end)(KREQUEST rq, kgl_filter_context *ctx, KGL_RESULT result);
 	void (*release)(void *model_ctx);
@@ -320,7 +320,7 @@ typedef struct _kgl_input_stream_function {
 
 typedef struct _kgl_output_stream_function {
 	//out header
-	void(*write_status)(kgl_output_stream *out, KREQUEST rq, int status_code);
+	void(*write_status)(kgl_output_stream *out, KREQUEST rq, uint16_t status_code);
 	KGL_RESULT(*write_header)(kgl_output_stream* out, KREQUEST rq, kgl_header_type attr, const char *val, hlen_t val_len);
 	KGL_RESULT(*write_unknow_header)(kgl_output_stream* out, KREQUEST rq, const char *attr, hlen_t attr_len, const char *val, hlen_t val_len);
 	KGL_RESULT(*write_header_finish)(kgl_output_stream* out, KREQUEST rq);
@@ -458,12 +458,12 @@ struct _kgl_upstream
 	KGL_RESULT (*open)(KREQUEST rq, kgl_async_context *ctx);
 };
 
-typedef struct _kgl_async_http_upstream
+typedef struct _kgl_http_upstream
 {
 	kgl_upstream *us;
 	void *us_ctx;
 	kgl_async_http http_ctx;
-} kgl_async_http_upstream;
+} kgl_http_upstream;
 
 
 typedef struct _kgl_vary
@@ -550,10 +550,7 @@ typedef struct _kgl_dso_function
 	bool(*is_same_thread)(KSELECTOR selector);
 	void(*next)(KSELECTOR selector, KOPAQUE data, result_callback result, void *arg, int got);
 	kgl_async_context *(*get_async_context)(KCONN cn);	
-	void * (*alloc_memory) (
-		KREQUEST rq,
-		DWORD  cbSize,
-		KF_ALLOC_MEMORY_TYPE type);
+	void * (*alloc_memory) (KREQUEST rq,int  size,KF_ALLOC_MEMORY_TYPE type);
 	KGL_RESULT (*register_clean_callback)(KREQUEST rq, kgl_cleanup_f cb, void *arg, KF_ALLOC_MEMORY_TYPE type);	
 	void(*log)(int level, const char *fmt, ...);
 	kgl_header_type (*parse_response_header)(const char* attr, hlen_t attr_len);
@@ -581,7 +578,7 @@ typedef struct _kgl_dso_version
 #define KGL_REGISTER_ASYNC_UPSTREAM KGL_REGISTER_UPSTREAM
 
 DLL_PUBLIC BOOL kgl_dso_init(kgl_dso_version * ver);
-DLL_PUBLIC BOOL kgl_dso_finit(DWORD flag);
+DLL_PUBLIC BOOL kgl_dso_finit(int32_t flag);
 
 static INLINE bool is_absolute_path(const char *str) {
 	if (str[0] == '/') {

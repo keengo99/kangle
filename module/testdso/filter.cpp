@@ -2,7 +2,7 @@
 /**
 测试用例，把小写的e换成*
 */
-static KGL_RESULT write_all(KREQUEST rq, kgl_filter_context *ctx, const char *buf, DWORD size)
+static KGL_RESULT write_all(KREQUEST rq, kgl_filter_context *ctx, const char *buf, int size)
 {
 	KGL_RESULT result = KGL_OK;
 	while (size>0) {

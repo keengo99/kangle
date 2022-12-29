@@ -37,7 +37,7 @@ static kev_result read_post(kgl_output_stream *gate, KREQUEST rq)
 	return ctx->gate->f->read_post(ctx->gate, rq);
 }
 #endif
-static void push_status(kgl_output_stream *gate, KREQUEST rq, int status_code)
+static void push_status(kgl_output_stream *gate, KREQUEST rq, uint16_t status_code)
 {
 	kgl_async_context *ctx = get_async_context(gate);
 	return ctx->out->f->write_status(ctx->out, rq, status_code);

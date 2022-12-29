@@ -5,10 +5,10 @@ static KGL_RESULT next_flush(KREQUEST rq, KCONN cn)
 	KDsoFilter *dso_filter = (KDsoFilter *)cn;
 	return dso_filter->st->flush((KHttpRequest *)rq);
 }
-static KGL_RESULT next_write_all(KREQUEST rq, KCONN cn, const char *buf, DWORD size)
+static KGL_RESULT next_write_all(KREQUEST rq, KCONN cn, const char *buf, int size)
 {
 	KDsoFilter *dso_filter = (KDsoFilter *)cn;
-	return dso_filter->st->write_all((KHttpRequest *)rq,buf,(int)size);
+	return dso_filter->st->write_all((KHttpRequest *)rq, buf, size);
 }
 static KGL_RESULT next_write_end(KREQUEST rq, KCONN cn, KGL_RESULT result)
 {

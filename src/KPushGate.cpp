@@ -50,7 +50,7 @@ KGL_RESULT forward_write_unknow_header(kgl_output_stream*gate, KREQUEST r, const
 	kgl_forward_stream *g = (kgl_forward_stream *)gate;
 	return g->down_stream->f->write_unknow_header(g->down_stream, r, attr, attr_len, val, val_len);
 }
-void forward_write_status(kgl_output_stream*gate, KREQUEST r, int status_code)
+void forward_write_status(kgl_output_stream*gate, KREQUEST r, uint16_t status_code)
 {
 	kgl_forward_stream *g = (kgl_forward_stream *)gate;
 	return g->down_stream->f->write_status(g->down_stream, r, status_code);
@@ -135,7 +135,7 @@ struct kgl_default_output_stream : public kgl_output_stream {
 };
 
 
-void st_write_status(kgl_output_stream*st, KREQUEST r, int status_code)
+void st_write_status(kgl_output_stream*st, KREQUEST r, uint16_t status_code)
 {
 	((KHttpRequest *)r)->ctx->obj->data->i.status_code = status_code;
 }
@@ -321,7 +321,7 @@ void check_release(kgl_output_stream* out)
 {
 
 }
-void check_write_status(kgl_output_stream* st, KREQUEST r, int status_code)
+void check_write_status(kgl_output_stream* st, KREQUEST r, uint16_t status_code)
 {
 	((KHttpRequest*)r)->response_status(status_code);
 }

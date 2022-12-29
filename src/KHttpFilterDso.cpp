@@ -106,7 +106,7 @@ KGL_RESULT global_support_function(
 #ifdef ENABLE_SIMULATE_HTTP
 	case KGL_REQ_ASYNC_HTTP_UPSTREAM:
 	{
-		kgl_async_http_upstream *ctx = (kgl_async_http_upstream *)data;
+		kgl_http_upstream *ctx = (kgl_http_upstream *)data;
 		KHttpRequest *rq = kgl_create_simulate_request(&ctx->http_ctx);
 		if (rq == NULL) {
 			return KGL_EINVALID_PARAMETER;

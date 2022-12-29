@@ -7,9 +7,9 @@
 KGL_RESULT global_support_function(PVOID ctx, DWORD req, PVOID data, PVOID *ret);
 KGL_RESULT global_get_variable(PVOID ctx, KGL_GVAR type, LPSTR lpszVariableName, LPVOID lpvBuffer, LPDWORD lpdwSize);
 
-typedef BOOL(*kgl_dso_init_f)(kgl_dso_version *pVer);
+typedef BOOL(*kgl_dso_init_f)(kgl_dso_version *ver);
 
-typedef BOOL(*kgl_dso_finit_f)(DWORD dwFlags);
+typedef BOOL(*kgl_dso_finit_f)(int32_t flags);
 
 class KDsoExtend
 {

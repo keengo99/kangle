@@ -15,13 +15,13 @@ static void next_call(KSELECTOR selector, KOPAQUE data, result_callback result, 
 {
 	kgl_selector_module.next((kselector *)selector, data, result, arg, got);
 }
-static void *alloc_memory(KREQUEST r, DWORD  cbSize, KF_ALLOC_MEMORY_TYPE memory_type)
+static void *alloc_memory(KREQUEST r, int  size, KF_ALLOC_MEMORY_TYPE memory_type)
 {
 	KHttpRequest *rq = (KHttpRequest *)r;
 	if (memory_type == KF_ALLOC_REQUEST) {
-		return rq->alloc_request_memory(cbSize);
+		return rq->alloc_request_memory(size);
 	}
-	return rq->alloc_connect_memory(cbSize);
+	return rq->alloc_connect_memory(size);
 }
 static KGL_RESULT register_clean_callback(KREQUEST r, kgl_cleanup_f cb, void *arg, KF_ALLOC_MEMORY_TYPE type)
 {
