@@ -39,22 +39,22 @@ static kev_result read_post(kgl_output_stream *gate, KREQUEST rq)
 #endif
 static void push_status(kgl_output_stream *gate, KREQUEST rq, uint16_t status_code)
 {
-	kgl_async_context *ctx = get_async_context(gate);
+	kgl_async_context *ctx = kgl_get_out_async_context(gate);
 	return ctx->out->f->write_status(ctx->out, rq, status_code);
 }
 static KGL_RESULT push_header(kgl_output_stream *gate, KREQUEST rq, kgl_header_type attr, const char *val, hlen_t val_len)
 {
-	kgl_async_context *ctx = get_async_context(gate);
+	kgl_async_context *ctx = kgl_get_out_async_context(gate);
 	return ctx->out->f->write_header(ctx->out, rq, attr, val, val_len);
 }
 static KGL_RESULT push_unknow_header(kgl_output_stream *gate, KREQUEST rq, const char *attr, hlen_t attr_len, const char *val, hlen_t val_len)
 {
-	kgl_async_context *ctx = get_async_context(gate);
+	kgl_async_context *ctx = kgl_get_out_async_context(gate);
 	return ctx->out->f->write_unknow_header(ctx->out, rq, attr, attr_len, val, val_len);
 }
 static KGL_RESULT push_header_finish(kgl_output_stream *gate, KREQUEST rq)
 {
-	kgl_async_context *ctx = get_async_context(gate);
+	kgl_async_context *ctx = kgl_get_out_async_context(gate);
 	test_context *t = (test_context *)ctx->module;
 	if (t->read_post) {
 		ctx->out->f->write_unknow_header(ctx->out, rq, kgl_expand_string("x-testdso"), kgl_expand_string("forward-sleep"));
@@ -63,17 +63,17 @@ static KGL_RESULT push_header_finish(kgl_output_stream *gate, KREQUEST rq)
 }
 static KGL_RESULT push_body(kgl_output_stream *gate, KREQUEST rq, const char *str, int len)
 {
-	kgl_async_context *ctx = get_async_context(gate);
+	kgl_async_context *ctx = kgl_get_out_async_context(gate);
 	return ctx->out->f->write_body(ctx->out, rq, str, len);
 }
 static KGL_RESULT push_body_finish(kgl_output_stream *gate, KREQUEST rq, KGL_RESULT result)
 {
-	kgl_async_context *ctx = get_async_context(gate);
+	kgl_async_context *ctx = kgl_get_out_async_context(gate);
 	return ctx->out->f->write_end(ctx->out, rq, result);
 }
 static KGL_RESULT handle_error(kgl_output_stream *gate, KREQUEST rq, KGL_MSG_TYPE type,const void *msg, int msg_flag)
 {
-	kgl_async_context *ctx = get_async_context(gate);
+	kgl_async_context *ctx = kgl_get_out_async_context(gate);
 	return ctx->out->f->write_message(ctx->out, rq, type,  msg,msg_flag);
 }
 static kgl_output_stream_function push_gate_function = {

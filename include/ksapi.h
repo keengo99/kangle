@@ -372,7 +372,6 @@ typedef struct _kgl_dso_output_stream {
 	kgl_async_context *ctx;
 } kgl_dso_output_stream;
 
-#define get_async_context kgl_get_out_async_context
 #define kgl_get_in_async_context(gate)  (((kgl_dso_input_stream *)gate)->ctx)
 #define kgl_get_out_async_context(gate)  (((kgl_dso_output_stream *)gate)->ctx)
 
