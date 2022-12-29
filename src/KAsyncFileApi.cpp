@@ -24,5 +24,7 @@ kgl_file_function async_file_provider = {
 	(int64_t(*)(KASYNC_FILE))kfiber_file_size,
 	(int (*)(KASYNC_FILE , char* , int))kfiber_file_read,
 	(int (*)(KASYNC_FILE , const char* , int))kfiber_file_write,
-	adjust_read_buffer
+	adjust_read_buffer,
+	aio_alloc_buffer,
+	aio_free_buffer
 };

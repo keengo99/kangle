@@ -492,10 +492,12 @@ typedef struct _kgl_file_function
 	void(*close)(KASYNC_FILE fp);
 	int (*seek)(KASYNC_FILE fp,seekPosion pos, int64_t offset);
 	int64_t (*tell)(KASYNC_FILE fp);
-	int64_t (*get_size)(KASYNC_FILE fp);	
+	int64_t (*get_size)(KASYNC_FILE fp);
 	int (*read)(KASYNC_FILE fp, char* buf, int length);
 	int (*write)(KASYNC_FILE fp, const char* buf, int length);
 	const char* (*adjust_read_buffer)(KASYNC_FILE fp, char* buf);
+	void* (*alloc_aio_buffer)(size_t size);
+	void (*free_aio_buffer)(void* ptr);
 } kgl_file_function;
 
 

@@ -71,7 +71,7 @@ public:
 	{
 		ad->Init();
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType)
+	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType) override
 	{
 		KAccessContext cn;
 		uint32_t result = ad->process(rq, &cn, obj ? KF_NOTIFY_RESPONSE_MARK : KF_NOTIFY_REQUEST_MARK);
@@ -91,35 +91,32 @@ public:
 		}
 		return KBIT_TEST(result, KF_STATUS_REQ_TRUE);
 	}
-	KMark *newInstance()
+	KMark *newInstance() override
 	{
 		return new KAccessDsoMark(ad->newInstance());
 	}
-	const char *getName()
+	const char *getName() override
 	{
 		return ad->getName();
 	}
-	std::string getHtml(KModel *model)
+	std::string getHtml(KModel *model) override
 	{
 		return ad->getHtml(model);
 	}
-	std::string getDisplay()
+	std::string getDisplay() override
 	{
 		return ad->getDisplay();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html);
-	void buildXML(std::stringstream &s)
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override;
+	void buildXML(std::stringstream &s) override
 	{
 		ad->buildXML(s);
 	}
-	bool startCharacter(KXmlContext *context, char *character, int len)
+	bool startCharacter(KXmlContext *context, char *character, int len) override
 	{
 		return ad->startCharacter(context, character, len);
 	}
-	bool endElement(KXmlContext *context)
-	{
-		return ad->endElement(context);
-	}
+	bool endElement(KXmlContext* context) override;
 private:
 	KAccessDso *ad;
 };
