@@ -11,6 +11,15 @@
 #include "kfiber.h"
 #include "kfiber_sync.h"
 extern kgl_http_object_function http_object_provider;
+static const char* get_header_name(KHttpHeader* header, int* len)
+{
+	if (header->name_is_know) {
+		*len = (int)kgl_header_type_string[header->know_header].value.len;
+		return kgl_header_type_string[header->know_header].value.data;
+	}
+	*len = header->name_len;
+	return header->buf;
+}
 static void next_call(KSELECTOR selector, KOPAQUE data, result_callback result, void *arg, int got)
 {
 	kgl_selector_module.next((kselector *)selector, data, result, arg, got);
@@ -108,7 +117,10 @@ static kgl_dso_function dso_function = {
 	kgl_get_async_context,
 	alloc_memory,
 	register_clean_callback,
-	klog
+	klog,
+	get_header_name,
+	NULL,
+	kgl_parse_response_header
 };
 static kgl_kfiber_function fiber_function = {
 	(int (*) (kgl_fiber_start_func , void* , int , int , KFIBER*))kfiber_create,
