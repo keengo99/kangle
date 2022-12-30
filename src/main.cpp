@@ -266,16 +266,15 @@ void shutdown() {
 	my_exit(0);
 #endif
 }
-kev_result next_shutdown_signal(KOPAQUE data, void *arg, int sig)
-{
+int shutdown_fiber(void *arg,int got) {
 	if (quit_program_flag) {
 		klog(KLOG_DEBUG, "have another thread set quit flags\n");
-		return kev_err;
+		return -1;
 	}
 	mark_module_shutdown = 0;
 	KAccess::ShutdownMarkModule();
 	quit_program_flag = PROGRAM_QUIT_IMMEDIATE;
-	return kev_ok;
+	return 0;
 }
 void shutdown_signal(int sig)
 {
@@ -289,9 +288,9 @@ void shutdown_signal(int sig)
 	}
 #endif
 	kselector *selector = get_selector_by_index(0);
-	kgl_selector_module.next(selector, NULL, next_shutdown_signal, NULL, sig);
+	kfiber_create2(selector, shutdown_fiber, NULL, 0, 0, NULL);
 }
-//{{ent
+
 #ifdef _WIN32
 char *get_signal_pipe_name(int pid)
 {
@@ -419,7 +418,7 @@ KTHREAD_FUNCTION signal_thread(void* arg)
 	KTHREAD_RETURN;
 }
 #endif
-//}}
+
 #ifdef ENABLE_DISK_CACHE
 bool create_dir(const char *dir) {
 	mkdir(dir,448);

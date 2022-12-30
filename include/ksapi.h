@@ -353,7 +353,7 @@ typedef struct _kgl_async_context_function
 		KCONN       cn,
 		KF_REQ_TYPE req,
 		PVOID       buffer,
-		PVOID*      ret);
+		PVOID* ret);
 } kgl_async_context_function;
 
 typedef struct _kgl_async_context
@@ -408,11 +408,13 @@ typedef struct _kgl_access_build
 {
 	KCONN cn;
 	void* module;
+	int (*write_int)(KCONN cn, int value);
 	int (*write_string) (
 		KCONN cn,
 		const char* str,
 		int len,
 		int build_flags);
+
 } kgl_access_build;
 
 typedef struct _kgl_access_parse

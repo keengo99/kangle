@@ -62,9 +62,15 @@ kev_result next_dso_init(KOPAQUE data, void* arg, int got)
 	mark->release();
 	return kev_ok;
 }
-static int write_string(void* serverCtx, const char* str, int len, int build_flags)
+static int write_int(void* server_ctx, int value)
 {
-	std::stringstream* s = (std::stringstream*)serverCtx;
+	std::stringstream* s = (std::stringstream*)server_ctx;
+	*s << value;
+	return 0;
+}
+static int write_string(void* server_ctx, const char* str, int len, int build_flags)
+{
+	std::stringstream* s = (std::stringstream*)server_ctx;
 	if (KBIT_TEST(build_flags, KGL_BUILD_HTML_ENCODE)) {
 		char* buf = KXml::htmlEncode(str, len, NULL);
 		s->write(buf, len);
@@ -176,6 +182,7 @@ std::string KAccessDso::build(KF_ACCESS_BUILD_TYPE type)
 	builder.cn = &s;
 	builder.module = ctx.module;
 	builder.write_string = write_string;
+	builder.write_int = write_int;
 	access->build(&builder, type);
 	return s.str();
 }

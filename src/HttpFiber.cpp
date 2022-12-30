@@ -114,7 +114,7 @@ KGL_RESULT process_request(KHttpRequest* rq)
 	kgl_input_stream* in = new_default_input_stream();
 	kgl_output_stream* out = new_default_output_stream();
 	KFetchObject* fo = rq->get_source();
-	if (!fo || fo->before_cache) {
+	if (!fo) {
 		assert(false);
 		return send_error2(rq, STATUS_SERVER_ERROR, "source error!");
 	}

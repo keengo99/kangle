@@ -164,7 +164,7 @@ int KHttpObject::GetHeaderSize(int url_len)
 		header = header->next;
 	}
 	len += sizeof(int);
-	index.head_size = kgl_align(len, kgl_aio_align_size);
+	index.head_size = (uint32_t)kgl_align(len, kgl_aio_align_size);
 	return index.head_size;
 }
 #ifdef ENABLE_DISK_CACHE
