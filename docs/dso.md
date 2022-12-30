@@ -24,11 +24,13 @@ typedef struct _kgl_dso_version
 	int32_t  module_version;
 	int32_t  flags;
 	KCONN    cn;
-	kgl_dso_function *f;
-	kgl_socket_client_function *socket_client;
-	kgl_file_function *file;
-	kgl_http_object_function *obj;
+	kgl_dso_function* f;
+	kgl_socket_client_function* socket_client;
+	kgl_file_function* file;
+	kgl_http_object_function* obj;
 	kgl_kfiber_function* fiber;
+	kgl_mutex_function* mutex;
+	kgl_cond_function* cond;
 } kgl_dso_version;
 ```
 * `size`指示 `kgl_dso_version`结构体大小.
