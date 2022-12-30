@@ -23,19 +23,19 @@ public:
 		KDsoRedirect *dr = static_cast<KDsoRedirect *>(brd->rd);
 		return (kgl_upstream *)dr->us;
 	}
-	bool NeedTempFile(bool upload, KHttpRequest *rq)
+	bool NeedTempFile(bool upload, KHttpRequest *rq) override
 	{
 		return false;
 	}
 #ifdef ENABLE_REQUEST_QUEUE
-	bool needQueue(KHttpRequest *rq)
+	bool needQueue(KHttpRequest *rq) override
 	{
 		return false;
 	}
 #endif
 	~KDsoAsyncFetchObject();
-	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out);
-	uint32_t Check(KHttpRequest* rq);
+	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) override;
+	uint32_t Check(KHttpRequest* rq) override;
 	kgl_async_context ctx;
 private:
 	void init();

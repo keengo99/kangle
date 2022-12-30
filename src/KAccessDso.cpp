@@ -182,16 +182,23 @@ std::string KAccessDso::build(KF_ACCESS_BUILD_TYPE type)
 void KAccessDsoMark::editHtml(std::map<std::string, std::string>& attribute, bool html)
 {
 	ad->editHtml(attribute, html);
+	if (html) {
+		init_event();
+	}
 }
 bool KAccessDsoMark::endElement(KXmlContext* context)
 {
 	bool result = ad->endElement(context);
 	if (result) {
-		if (ad->access->init_shutdown) {
-			kgl_selector_module.next(get_selector_by_index(0), NULL, next_dso_init, this, 0);
-			this->addRef();
-		}
+		init_event();
 	}
 	return result;
+}
+void KAccessDsoMark::init_event()
+{
+	if (ad->access->init_shutdown) {
+		kgl_selector_module.next(get_selector_by_index(0), NULL, next_dso_init, this, 0);
+		this->addRef();
+	}
 }
 #endif

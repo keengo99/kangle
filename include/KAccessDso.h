@@ -119,6 +119,7 @@ public:
 	bool endElement(KXmlContext* context) override;
 private:
 	KAccessDso *ad;
+	void init_event();
 };
 class KAccessDsoAcl : public KAcl
 {
