@@ -40,7 +40,7 @@ bool KHostRewriteMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJ
 		}
 		KFetchObject *fo = server_container->get(NULL,(rewrite?rq->sink->data.url->host:cdn_host->getString()),(port>0?port:rq->sink->data.url->port),ssl,life_time);
 		if (fo) {
-			rq->AppendFetchObject(fo);
+			rq->append_source(fo);
 		}
 		jumpType = JUMP_ALLOW;
 	}
@@ -144,7 +144,7 @@ bool KHostMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType
 	if (proxy) {		
 		KFetchObject * fo = server_container->get(NULL,(rewrite?rq->sink->data.url->host:host.c_str()),(port>0?port:rq->sink->data.url->port),(ssl?"s":NULL),life_time);
 		if (fo) {
-			rq->AppendFetchObject(fo);
+			rq->append_source(fo);
 		}
 		jumpType = JUMP_ALLOW;
 	}

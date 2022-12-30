@@ -458,12 +458,12 @@ int KAccess::check(KHttpRequest *rq, KHttpObject *obj) {
 	switch (jumpType) {
 	case JUMP_SERVER:
 	{
-		assert(!rq->HasFinalFetchObject());
+		assert(!rq->has_final_source());
 		as = (KPoolableRedirect *)jump;
 		KFetchObject *fo = as->makeFetchObject(rq, NULL);
 		as->addRef();
 		fo->bindRedirect(as, KGL_CONFIRM_FILE_NEVER);
-		rq->AppendFetchObject(fo);
+		rq->append_source(fo);
 		jumpType = JUMP_ALLOW;
 		break;
 	}
@@ -477,7 +477,7 @@ int KAccess::check(KHttpRequest *rq, KHttpObject *obj) {
 		break;
 #endif
 	case JUMP_PROXY:
-		assert(!rq->HasFinalFetchObject());
+		assert(!rq->has_final_source());
 #ifdef HTTP_PROXY
 		if (rq->sink->data.meth == METH_CONNECT) {
 			rq->AppendFetchObject(new KConnectProxyFetchObject());
@@ -486,11 +486,11 @@ int KAccess::check(KHttpRequest *rq, KHttpObject *obj) {
 #endif
 #ifdef ENABLE_PROXY_PROTOCOL
 		if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_PROXY|WORK_MODEL_SSL_PROXY)) {
-			rq->AppendFetchObject(new KTcpFetchObject(false));
+			rq->append_source(new KTcpFetchObject(false));
 			break;
 		}
 #endif
-		rq->AppendFetchObject(new KHttpProxyFetchObject());
+		rq->append_source(new KHttpProxyFetchObject());
 		break;
 	}
 	kfiber_rwlock_runlock(rwlock);

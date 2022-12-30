@@ -110,17 +110,15 @@ void KHttpRequest::SetSelfPort(uint16_t port, bool ssl)
 {
 	sink->set_self_port(port, ssl);
 }
-void KHttpRequest::CloseFetchObject()
+void KHttpRequest::close_source()
 {
-	for (;;) {
-		kgl_list* pos = fo.next;
-		if (pos == &fo) {
-			break;
-		}
-		KFetchObject* fo = kgl_list_data(pos, KFetchObject, queue);
-		klist_remove(pos);
-		delete fo;
+	
+	while (fo_head) {
+		KFetchObject* fo_next = fo_head->next;
+		delete fo_head;
+		fo_head = fo_next;
 	}
+	fo_last = nullptr;
 #ifdef ENABLE_REQUEST_QUEUE
 	ReleaseQueue();
 #endif
@@ -247,7 +245,7 @@ bool KHttpRequest::isBad() {
 	}
 	return false;
 }
-bool KHttpRequest::rewriteUrl(const char* newUrl, int errorCode, const char* prefix) {
+bool KHttpRequest::rewrite_url(const char* newUrl, int errorCode, const char* prefix) {
 	KAutoUrl url2;
 	if (!parse_url(newUrl, url2.u)) {
 		KStringBuf nu;
@@ -338,7 +336,7 @@ std::string KHttpRequest::getInfo() {
 
 KHttpRequest::~KHttpRequest()
 {
-	CloseFetchObject();
+	close_source();
 	assert(ctx->queue_handled == 0);
 	if (file) {
 		delete file;
@@ -577,82 +575,97 @@ bool KHttpRequest::start_response_body(INT64 body_len)
 	return sink->start_response_body(body_len);
 }
 
-void KHttpRequest::InsertFetchObject(KFetchObject* fo)
+void KHttpRequest::insert_source(KFetchObject* fo)
 {
-	if (fo->need_check) {
-		ctx->fo_need_check = 1;
+	fo->next = fo_head;
+	if (!fo_last) {
+		fo_last = fo;
 	}
-	klist_append(this->fo.prev, &fo->queue);
+	fo_head = fo;
 }
-void KHttpRequest::AppendFetchObject(KFetchObject* fo)
+void KHttpRequest::append_source(KFetchObject* fo)
 {
 	if (fo->filter == 0 && KBIT_TEST(filter_flags, RQ_NO_EXTEND) && !KBIT_TEST(sink->data.flags, RQ_IS_ERROR_PAGE)) {
 		//无扩展处理
 		if (fo->needQueue(this)) {
 			delete fo;
 			fo = new KStaticFetchObject();
-		}
-		if (fo->need_check) {
-			ctx->fo_need_check = 1;
-		}
+		}		
 	}
-	klist_append(&this->fo, &fo->queue);
+	if (fo_last) {
+		fo_last->next = fo;
+	} else {
+		assert(fo_head == nullptr);
+		fo_head = fo;
+	}
+	fo_last = fo;
 }
 bool KHttpRequest::NeedQueue()
 {
-	kgl_list* pos;
-	klist_foreach(pos, &fo) {
-		KFetchObject* fo = kgl_list_data(pos, KFetchObject, queue);
+	KFetchObject* fo = fo_head;
+	while (fo) {
 		if (fo->needQueue(this)) {
 			return true;
 		}
+		fo = fo->next;
 	}
 	return false;
 }
 bool KHttpRequest::NeedTempFile(bool upload)
 {
-	kgl_list* pos;
-	klist_foreach(pos, &fo) {
-		KFetchObject* fo = kgl_list_data(pos, KFetchObject, queue);
+	KFetchObject* fo = fo_head;
+	while (fo) {
 		if (fo->NeedTempFile(upload, this)) {
 			return true;
 		}
+		fo = fo->next;
 	}
 	return false;
 }
-bool KHttpRequest::NeedCheck()
+bool KHttpRequest::has_before_cache()
 {
-	if (!ctx->fo_need_check) {
+	if (fo_head == nullptr) {
 		return false;
 	}
-	kgl_list* pos = this->fo.prev;
-	if (pos == &this->fo) {
-		return false;
-	}
-	return true;
+	return fo_head->before_cache;
 }
-bool KHttpRequest::HasFinalFetchObject()
+bool KHttpRequest::has_final_source()
 {
-	kgl_list* pos = this->fo.prev;
-	if (pos == &this->fo) {
+	if (!fo_last) {
 		return false;
 	}
-	KFetchObject* fo = kgl_list_data(pos, KFetchObject, queue);
-	return !fo->filter;
+	return !fo_last->filter;	
 }
 
-KGL_RESULT KHttpRequest::OpenNextFetchObject(KFetchObject* fo, kgl_input_stream* in, kgl_output_stream* out, const char* queue)
+KGL_RESULT KHttpRequest::open_next(KFetchObject* fo, kgl_input_stream* in, kgl_output_stream* out, const char* queue)
 {
-	KFetchObject* next = this->GetNextFetchObject(fo);
-	if (next == NULL) {
-		return KGL_ENOT_READY;
-	}
+	KBIT_SET(sink->data.flags, RQ_NEXT_CALLED);
+	KGL_RESULT result;
+	for (;;) {
+		KFetchObject* next = fo->next;
+		if (next == NULL) {
+			return KGL_ENOT_READY;
+		}
+
 #ifdef ENABLE_REQUEST_QUEUE
-	if (queue) {
-		ReleaseQueue();
-		this->queue = get_request_queue(this, queue);
-		return open_queued_fetchobj(this, next, in, out, this->queue);
-	}
+		if (queue) {
+			ReleaseQueue();
+			this->queue = get_request_queue(this, queue);
+			result = open_queued_fetchobj(this, next, in, out, this->queue);
+		} else 
 #endif
-	return open_fetchobj(this, next, in, out);
+		result = open_fetchobj(this, next, in, out);
+		if (KBIT_TEST(sink->data.flags, RQ_HAS_SEND_HEADER | RQ_HAS_READ_POST)) {
+			return result;
+		}
+		if (result != KGL_NEXT) {
+			return result;
+		}
+		fo->next = next->next;		
+		assert(fo_last->next == nullptr);
+		if (fo_last == next) {
+			fo_last = fo;
+		}
+		delete next;
+	}
 }

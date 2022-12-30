@@ -11,7 +11,7 @@ kgl_output_stream *new_default_output_stream();
 kgl_output_stream *new_dechunk_stream(kgl_output_stream *down_gate);
 kgl_forward_stream*new_forward_stream(kgl_output_stream*down_gate);
 kgl_output_stream *get_check_output_stream();
-
+kgl_input_stream* get_check_input_stream();
 
 void forward_write_status(kgl_output_stream* gate, KREQUEST r, uint16_t status_code);
 KGL_RESULT forward_write_body(kgl_output_stream* gate, KREQUEST r, const char* buf, int len);

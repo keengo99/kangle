@@ -34,7 +34,7 @@ public:
 				push_redirect_header(rq, nu->getString(),nu->getSize(),code);
 				jumpType = JUMP_DENY;
 			} else {
-				rq->rewriteUrl(nu->getString(),0,NULL);
+				rq->rewrite_url(nu->getString(),0,NULL);
 				delete nu;
 			}
 			return true;

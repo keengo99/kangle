@@ -160,7 +160,7 @@ KGL_RESULT KBigObjectContext::OpenCache(KHttpRequest* rq)
 		klog(KLOG_DEBUG, "st=%p can satisfy,from=" INT64_FORMAT ",to=" INT64_FORMAT "\n", rq, rq->sink->data.range_from, rq->sink->data.range_to);
 #endif
 		kfiber_next(bigobj_read_body_fiber, rq, (int)SendHeader(rq));
-		return KGL_NEXT;
+		return KGL_OK;
 	}
 #ifndef NDEBUG
 	if (rq->sink->data.range_to >= 0) {

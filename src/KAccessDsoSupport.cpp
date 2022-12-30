@@ -329,7 +329,7 @@ KGL_RESULT base_support_function(KHttpRequest* rq, KF_REQ_TYPE req, PVOID data, 
 	}
 	case KD_REQ_REWRITE_URL:
 	{
-		if (rq->rewriteUrl((const char*)data)) {
+		if (rq->rewrite_url((const char*)data)) {
 			return KGL_OK;
 		}
 		return KGL_EINVALID_PARAMETER;
@@ -387,7 +387,7 @@ static KGL_RESULT support_function(
 		KFetchObject* fo = rd->makeFetchObject(rq, *ret);
 		fo->bindRedirect(rd, KGL_CONFIRM_FILE_NEVER);
 		fo->filter = 1;
-		rq->InsertFetchObject(fo);
+		rq->insert_source(fo);
 		return KGL_OK;
 	}
 	case KF_REQ_FILTER:

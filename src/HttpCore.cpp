@@ -200,12 +200,12 @@ KGL_RESULT send_error2(KHttpRequest* rq, int code, const char* reason)
 		if (!isAbsolutePath(errorPage.c_str())) {
 			errorPage = conf.path + errorPage;
 		}
-		KFile fp;
-		if (fp.open(errorPage.c_str(), fileRead)) {
-			INT64 len = fp.getFileSize();
+		kfiber_file* fp = kfiber_file_open(errorPage.c_str(), fileRead, 0);
+		if (fp) {
+			INT64 len = kfiber_file_size(fp);
 			len = KGL_MIN(len, 32768);
-			kbuf* buf = new_pool_kbuf(rq->sink->pool, int(len));
-			int used = fp.read(buf->data, (int)len);
+			kbuf* buf = new_pool_kbuf_align(rq->sink->pool, int(len));
+			int used = kfiber_file_read(fp, buf->data, (int)len);
 			buf->used = used;
 			if (used > 2) {
 				char* p = (char*)memchr(buf->data, '~', used - 2);
@@ -216,6 +216,7 @@ KGL_RESULT send_error2(KHttpRequest* rq, int code, const char* reason)
 				}
 			}
 			s.Append(buf);
+			kfiber_file_close(fp);
 			return send_http2(rq, NULL, code, &s);
 		}
 	}
@@ -396,7 +397,7 @@ void prepare_write_stream(KHttpRequest* rq)
 	kassert(rq->ctx->st == NULL);
 	rq->tr = new KHttpTransfer(rq, rq->ctx->obj);
 	rq->ctx->st = rq->tr;// makeWriteStream(rq, rq->ctx->obj, rq->tr, autoDelete);
-	kassert(!rq->IsFetchObjectEmpty());
+	kassert(!rq->is_source_empty());
 }
 
 bool push_redirect_header(KHttpRequest* rq, const char* url, int url_len, int code) {
@@ -439,7 +440,7 @@ kbuf* build_memory_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64& start, 
 KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KAccess** htresponse, bool& handled) {
 	assert(rq->file == NULL);
 	//file = new KFileName;
-	assert(!rq->HasFinalFetchObject());
+	assert(!rq->has_final_source());
 	KFetchObject* redirect = NULL;
 	bool result = false;
 	bool redirect_result = false;
@@ -456,7 +457,7 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KAccess** h
 		error->set(STATUS_SERVER_ERROR, "cann't bind file.");
 		return NULL;
 	}
-	if (handled || rq->HasFinalFetchObject()) {
+	if (handled || rq->has_final_source()) {
 		//请求已经处理,或者数据源已确定.
 		return NULL;
 	}

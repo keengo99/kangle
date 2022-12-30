@@ -158,7 +158,6 @@ typedef struct _kgl_async_http
 } kgl_async_http;
 
 
-/*******************************http filter ****************************************/
 
 #define KF_MAX_USERNAME         (256+1)
 #define KF_MAX_PASSWORD         (256+1)
@@ -168,7 +167,6 @@ typedef struct _kgl_async_http
 
 
 #define KF_STATUS_REQ_FINISHED  (1<<31)
-#define KF_STATUS_REQ_SKIP_OPEN (1<<30)
 #define KF_STATUS_REQ_TRUE		1 /* check result true */
 #define KF_STATUS_REQ_FALSE     0 /* check result false*/
 
@@ -350,13 +348,12 @@ typedef struct _kgl_async_context_function
 
 	kgl_get_variable_f get_variable;
 	KGL_RESULT(*open_next)(KREQUEST rq, KCONN cn, kgl_input_stream* in, kgl_output_stream* out, const char* queue);
-	KGL_RESULT(*redirect)(KREQUEST rq, KCONN cn, kgl_input_stream* in, kgl_output_stream* out, const char* target, const char* queue);
 	KGL_RESULT(*support_function) (
-		KREQUEST   rq,
-		KCONN      cn,
+		KREQUEST    rq,
+		KCONN       cn,
 		KF_REQ_TYPE req,
-		PVOID     lpvBuffer,
-		PVOID* ret);
+		PVOID       buffer,
+		PVOID*      ret);
 } kgl_async_context_function;
 
 typedef struct _kgl_async_context
@@ -457,11 +454,11 @@ typedef struct _kgl_access
 struct _kgl_upstream
 {
 	int32_t size;
+#define KGL_UPSTREAM_BEFORE_CACHE  1
 	int32_t flags;
 	const char* name;
 	void* (*create_ctx)();
 	void (*free_ctx)(void* ctx);
-	uint32_t(*check)(KREQUEST rq, kgl_async_context* ctx);
 	KGL_RESULT(*open)(KREQUEST rq, kgl_async_context* ctx);
 };
 

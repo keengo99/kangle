@@ -129,11 +129,9 @@ kgl_forward_stream* new_forward_stream(kgl_output_stream*down_stream)
 	return gate;
 }
 
-
 struct kgl_default_output_stream : public kgl_output_stream {
 	KHttpResponseParser parser_ctx;
 };
-
 
 void st_write_status(kgl_output_stream*st, KREQUEST r, uint16_t status_code)
 {
@@ -147,39 +145,6 @@ KGL_RESULT st_write_header(kgl_output_stream*st, KREQUEST r, kgl_header_type att
 		return KGL_OK;
 	}
 	return KGL_EDATA_FORMAT;
-	/*
-	KHttpObject *obj = rq->ctx->obj;
-
-	if (val_len == 0) {
-		switch (attr) {
-		case  kgl_header_content_length:
-		{
-			INT64 *content_length = (INT64*)val;
-			kassert(*content_length >= 0);
-			obj->index.content_length = *content_length;
-			KBIT_SET(obj->index.flags, ANSW_HAS_CONTENT_LENGTH);
-			return KGL_OK;
-		}
-		case kgl_header_last_modified:
-		{
-			obj->data->i.last_modified = *(time_t *)val;
-			KBIT_SET(obj->index.flags, ANSW_LAST_MODIFIED);
-			g->parser_ctx.add_header(kgl_header_last_modified, obj->data->i.last_modified);
-			return KGL_OK;
-		}
-		default:
-		{
-			return KGL_ENOT_SUPPORT;
-		}
-		}
-	}
-	if (g->parser_ctx.ParseHeader((KHttpRequest*)rq, attr, attr_len, val, val_len, false)) {
-		return KGL_OK;
-	}
-	return KGL_EDATA_FORMAT;
-	//return g->f->write_header(g, r, attr ,val, val_len);
-	//return forward_write_unknow_header(st, r, attr, val, val_len);
-	*/
 }
 KGL_RESULT st_write_unknow_header(kgl_output_stream*st, KREQUEST rq, const char *attr, hlen_t attr_len, const char *val, hlen_t val_len)
 {
@@ -390,4 +355,8 @@ static kgl_output_stream check_output_stream = {
 kgl_output_stream* get_check_output_stream()
 {
 	return &check_output_stream;
+}
+kgl_input_stream* get_check_input_stream()
+{
+	return &default_input_stream;
 }

@@ -27,8 +27,8 @@ public:
 		rq->response_header(kgl_expand_string("Content-Length"),s.getLen());
 		rq->response_connection();
 		jumpType = JUMP_DENY;
-		rq->CloseFetchObject();
-		rq->AppendFetchObject(new KBufferFetchObject(&s));
+		rq->close_source();
+		rq->append_source(new KBufferFetchObject(&s));
 		return true;
 	}
 	KMark *newInstance()

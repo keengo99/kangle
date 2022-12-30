@@ -57,7 +57,6 @@ public:
 	virtual ~KFetchObject();
 	
 	virtual KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) = 0;
-	virtual uint32_t Check(KHttpRequest* rq);
 	void bindRedirect(KRedirect *rd,uint8_t confirmFile)
 	{
 		kassert(this->brd == NULL);
@@ -84,7 +83,7 @@ public:
 		struct {
 			uint32_t chunk_post : 1;
 			uint32_t filter : 1;
-			uint32_t need_check : 1;
+			uint32_t before_cache : 1;
 		};
 		uint32_t flags;
 	};
@@ -97,12 +96,14 @@ public:
 	}
 #endif
 	KGL_RESULT PushBody(KHttpRequest *rq, kgl_output_stream *out, const char *buf, int len);
-	kgl_list queue;
+	KFetchObject* next = nullptr;
 protected:
-	uint32_t CheckResult(KHttpRequest* rq, uint32_t result);
+	//uint32_t CheckResult(KHttpRequest* rq, uint32_t result);
 	KBaseRedirect *brd;	
 };
+#if 0
 //引用数据源，表示数据源还不确定
+
 class KRefFetchObject : public KFetchObject
 {
 public:
@@ -126,4 +127,5 @@ public:
 	uint32_t Check(KHttpRequest* rq);
 	KFetchObject *fo;
 };
+#endif
 #endif /* KFETCHOBJECT_H_ */

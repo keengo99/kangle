@@ -10,13 +10,13 @@ public:
 	KDsoAsyncFetchObject(bool need_check)
 	{
 		memset(&ctx, 0, sizeof(ctx));
-		this->need_check = need_check;
+		this->before_cache = need_check;
 	}
 	KDsoAsyncFetchObject(void *model_ctx,bool need_check)
 	{
 		memset(&ctx, 0, sizeof(ctx));
 		ctx.module = model_ctx;
-		this->need_check = need_check;
+		this->before_cache = need_check;
 	}
 	kgl_upstream *GetAsyncUpstream()
 	{
@@ -35,7 +35,6 @@ public:
 #endif
 	~KDsoAsyncFetchObject();
 	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) override;
-	uint32_t Check(KHttpRequest* rq) override;
 	kgl_async_context ctx;
 private:
 	void init();

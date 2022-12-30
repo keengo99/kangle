@@ -92,7 +92,6 @@ public:
 	inline KHttpRequest(KSink *sink)
 	{
 		memset(this, 0, sizeof(*this));
-		klist_init(&fo);	
 		ctx = new KContext;
 		this->sink = sink;
 	}
@@ -107,6 +106,30 @@ public:
 	void beginRequest();
 	int EndRequest();
 	uint32_t get_upstream_flags();
+	KFetchObject* get_next_source(KFetchObject *fo)
+	{
+		if (fo != fo_head) {
+			delete fo;
+			assert(false);
+			return fo_head;
+		}
+		auto next = fo_head->next;
+		delete fo_head;
+		fo_head = next;
+		if (!fo_head) {
+			fo_last = nullptr;
+		}
+		return fo_head;
+	}
+	bool continue_next_source(KGL_RESULT result)
+	{
+		if (KBIT_TEST(sink->data.flags, RQ_HAS_SEND_HEADER | RQ_HAS_READ_POST | RQ_NEXT_CALLED)) {
+			//has touched input/output stream.
+			//or open_next called.
+			return false;
+		}
+		return result == KGL_NEXT;
+	}
 	int getFollowLink()
 	{
 		int follow_link = 0;
@@ -122,34 +145,25 @@ public:
 		}
 		return follow_link;
 	}
-	void CloseFetchObject();
-	bool rewriteUrl(const char *newUrl, int errorCode = 0,const char *prefix = NULL);
+	void close_source();
+	bool rewrite_url(const char *newUrl, int errorCode = 0,const char *prefix = NULL);
 	void EnterRequestQueue();
 	void LeaveRequestQueue();
 	char *map_url_path(const char* url, KBaseRedirect *caller);
 	uint32_t filter_flags;
 	KSink *sink;
 	//数据源
-	bool IsFetchObjectEmpty()
+	bool is_source_empty()
 	{
-		return klist_empty(&fo);
+		return fo_head == nullptr;
 	}
-	KFetchObject *GetFetchObject()
+	KFetchObject *get_source()
 	{
-		if (klist_empty(&fo)) {
-			return NULL;
-		}
-		return kgl_list_data(fo.next, KFetchObject, queue);
-	}
-	KFetchObject *GetNextFetchObject(KFetchObject *fo)
-	{
-		if (fo->queue.next == &this->fo) {
-			return NULL;
-		}
-		return kgl_list_data(fo->queue.next, KFetchObject, queue);
+		return fo_head;
 	}
 	KSubVirtualHost* get_virtual_host();
-	kgl_list fo;
+	KFetchObject* fo_head;
+	KFetchObject* fo_last;
 	//物理文件映射
 	KFileName *file;
 	KHttpTransfer *tr;
@@ -277,10 +291,10 @@ public:
 	{
 		return sink->get_server_model();
 	}
-	void InsertFetchObject(KFetchObject *fo);
-	void AppendFetchObject(KFetchObject *fo);
-	bool HasFinalFetchObject();
-	bool NeedCheck();
+	void insert_source(KFetchObject *fo);
+	void append_source(KFetchObject *fo);
+	bool has_final_source();
+	bool has_before_cache();
 #ifdef ENABLE_BIG_OBJECT_206
 	//大物件上下文
 	KBigObjectContext *bo_ctx;
@@ -313,7 +327,7 @@ public:
 	bool NeedQueue();
 	void ReleaseQueue();
 #endif
-	KGL_RESULT OpenNextFetchObject(KFetchObject* fo, kgl_input_stream* in, kgl_output_stream* out, const char* queue);
+	KGL_RESULT open_next(KFetchObject* fo, kgl_input_stream* in, kgl_output_stream* out, const char* queue);
 };
 struct RequestError
 {

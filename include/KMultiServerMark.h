@@ -21,7 +21,7 @@ public:
 		if (brd) {
 			KFetchObject *fo = brd->rd->makeFetchObject(rq,rq->file);
 			fo->bindBaseRedirect(brd);
-			rq->AppendFetchObject(fo);
+			rq->append_source(fo);
 			jumpType = JUMP_ALLOW;
 		}
 		return true;

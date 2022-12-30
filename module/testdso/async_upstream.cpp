@@ -16,6 +16,9 @@ static void free_ctx(void *ctx)
 static KGL_RESULT open(KREQUEST r, kgl_async_context *ctx)
 {
 	test_context *t = (test_context *)ctx->module;
+	if (t->model == test_next) {
+		return KGL_NEXT;
+	}
 	if (t->model == test_upstream) {
 		ctx->out->f->write_status(ctx->out, r, 200);
 		ctx->out->f->write_header(ctx->out, r, kgl_header_content_type, _KS("text/plain"));
@@ -37,7 +40,6 @@ static kgl_upstream async_upstream = {
 	"async_test",
 	create_ctx,
 	free_ctx,
-	NULL,
 	open
 };
 void register_global_async_upstream(kgl_dso_version *ver)

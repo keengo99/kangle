@@ -4,6 +4,7 @@
 enum test_model {
 	test_upstream,
 	test_forward,
+	test_next,
 	test_upload_sleep_forward,
 };
 class test_context {

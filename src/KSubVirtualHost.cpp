@@ -358,7 +358,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 		}
 		return bindFile(rq, exsit, false, true);
 	}//end subdir_local
-	if (rq->HasFinalFetchObject()) {
+	if (rq->has_final_source()) {
 		return true;
 	}
 	if (type == subdir_http) {		
@@ -366,7 +366,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 			return false;
 		}
 		if (*(http->dst->host) == '-') {
-			rq->AppendFetchObject(new KHttpProxyFetchObject());
+			rq->append_source(new KHttpProxyFetchObject());
 			return true;
 		}
 		const char *tssl = NULL;
@@ -385,7 +385,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 			}
 #endif//}}
 		}
-		rq->AppendFetchObject(server_container->get(http->ip, http->dst->host, tport, tssl, http->lifeTime));
+		rq->append_source(server_container->get(http->ip, http->dst->host, tport, tssl, http->lifeTime));
 		return true;
 	}//end subdir_http
 
@@ -418,7 +418,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 	KBaseRedirect *brd = new KBaseRedirect(rd, false);
 	fo->bindBaseRedirect(brd);
 	brd->release();
-	rq->AppendFetchObject(fo);
+	rq->append_source(fo);
 	return true;	
 }
 bool KSubVirtualHost::bindFile(KHttpRequest *rq,bool &exsit,bool searchDefaultFile,bool searchAlias)

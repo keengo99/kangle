@@ -49,7 +49,6 @@ public:
 	uint32_t always_on_model : 1;
 	//uint32_t upstream_chunked : 1;
 	uint32_t response_checked : 1;
-	uint32_t fo_need_check : 1;
 	uint32_t no_body : 1;
 	uint32_t upstream_sign : 1;
 	uint32_t parent_signed : 1;

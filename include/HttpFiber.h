@@ -23,8 +23,6 @@ KGL_RESULT handle_error(KHttpRequest *rq, int code, const char *msg);
 KGL_RESULT stageHttpManage(KHttpRequest *rq);
 KGL_RESULT on_upstream_finished_header(KHttpRequest *rq);
 KGL_RESULT handle_denied_request(KHttpRequest* rq);
-//KGL_RESULT open_fetchobj(KHttpRequest* rq, KFetchObject* fo);
-KGL_RESULT process_request(KHttpRequest* rq, KFetchObject* fo);
 KGL_RESULT open_fetchobj(KHttpRequest* rq, KFetchObject* fo, kgl_input_stream* in, kgl_output_stream* out);
 KGL_RESULT open_queued_fetchobj(KHttpRequest* rq, KFetchObject* fo, kgl_input_stream* in, kgl_output_stream* out, KRequestQueue* queue);
 KGL_RESULT send_memory_object(KHttpRequest* rq);

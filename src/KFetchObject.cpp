@@ -39,25 +39,6 @@ bool KFetchObject::NeedTempFile(bool upload, KHttpRequest *rq)
 	}
 	return rq->sink->data.content_length == -1;
 }
-uint32_t KFetchObject::Check(KHttpRequest* rq)
-{
-	return CheckResult(rq, KF_STATUS_REQ_TRUE);
-}
-uint32_t KFetchObject::CheckResult(KHttpRequest* rq, uint32_t result)
-{
-	KFetchObject* next = NULL;
-	if (KBIT_TEST(result, KF_STATUS_REQ_TRUE|KF_STATUS_REQ_FINISHED) == KF_STATUS_REQ_TRUE) {
-		next = rq->GetNextFetchObject(this);
-	}
-	if (KBIT_TEST(result, KF_STATUS_REQ_SKIP_OPEN)) {
-		klist_remove(&this->queue);
-		delete this;
-	}
-	if (next) {
-		return next->Check(rq);
-	}
-	return result;
-}
 KGL_RESULT KFetchObject::PushBody(KHttpRequest *rq, kgl_output_stream *out, const char *buf, int len)
 {
 	if (!KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE) && rq->ctx->know_length) {
@@ -66,6 +47,7 @@ KGL_RESULT KFetchObject::PushBody(KHttpRequest *rq, kgl_output_stream *out, cons
 	}
 	return out->f->write_body(out, rq, buf, len);
 }
+#if 0
 uint32_t KRefFetchObject::Check(KHttpRequest *rq)
 {
 	assert(rq->GetNextFetchObject(this) == NULL);
@@ -82,3 +64,5 @@ uint32_t KRefFetchObject::Check(KHttpRequest *rq)
 	return ret;
 	*/
 }
+
+#endif

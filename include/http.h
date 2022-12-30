@@ -172,5 +172,5 @@ inline bool in_stop_cache(KHttpRequest *rq) {
 	}
 	return true;
 }
-KGL_RESULT process_request(KHttpRequest* rq, KFetchObject* fo);
+KGL_RESULT process_request(KHttpRequest* rq);
 #endif

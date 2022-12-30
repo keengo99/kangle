@@ -497,7 +497,7 @@ KGL_RESULT stageHttpManage(KHttpRequest* rq)
 		|| strcmp(rq->sink->data.url->path, "/logo.gif") == 0
 		|| strcmp(rq->sink->data.url->path, "/main.css") == 0) {
 		KBIT_CLR(rq->sink->data.flags, RQ_HAS_AUTHORIZATION);
-		assert(rq->IsFetchObjectEmpty());
+		assert(rq->is_source_empty());
 		auto svh = conf.sysHost->getFirstSubVirtualHost();
 		rq->sink->data.bind_opaque(svh);
 		if (svh) {
@@ -506,6 +506,6 @@ KGL_RESULT stageHttpManage(KHttpRequest* rq)
 		}
 		assert(false);
 	}
-	rq->AppendFetchObject(new KHttpManage);
-	return process_request(rq, rq->GetFetchObject());
+	rq->append_source(new KHttpManage);
+	return process_request(rq);
 }

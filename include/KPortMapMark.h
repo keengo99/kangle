@@ -23,10 +23,10 @@ public:
 	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,int &jumpType)
 	{
-		if (!KBIT_TEST(rq->sink->get_server_model(),WORK_MODEL_TCP) || rq->IsFetchObjectEmpty()) {
+		if (!KBIT_TEST(rq->sink->get_server_model(),WORK_MODEL_TCP) || rq->is_source_empty()) {
 			return false;
 		}
-		rq->AppendFetchObject(new KTcpFetchObject(false));
+		rq->append_source(new KTcpFetchObject(false));
 		free(rq->sink->data.url->host);
 		free(rq->sink->data.raw_url->host);
 		if (rq->sink->data.url->param) {

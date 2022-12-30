@@ -175,12 +175,12 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 			}
 		}
 		if (proxy && *proxy=='-') {
-			rq->rewriteUrl(url->getString(),0,(rewriteBase?rewriteBase:prefix.c_str()));
+			rq->rewrite_url(url->getString(),0,(rewriteBase?rewriteBase:prefix.c_str()));
 			const char *ssl = NULL;
 			if (KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL)) {
 				ssl = "s";
 			}
-			rq->AppendFetchObject(server_container->get(NULL, rq->sink->data.url->host, rq->sink->data.url->port, ssl, 0));
+			rq->append_source(server_container->get(NULL, rq->sink->data.url->host, rq->sink->data.url->port, ssl, 0));
 			jumpType = JUMP_ALLOW;
 		} else {
 			bool internal_flag = internal;
@@ -194,7 +194,7 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 				}
 			}
 			if (internal_flag) {
-				rq->rewriteUrl(u,0,(rewriteBase?rewriteBase:prefix.c_str()));
+				rq->rewrite_url(u,0,(rewriteBase?rewriteBase:prefix.c_str()));
 				if (proxy) {
 					KStringBuf *proxy_host = KRewriteMarkEx::getString(
 						NULL,
@@ -204,7 +204,7 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 						subString
 						);
 					if (proxy_host) {
-						rq->AppendFetchObject(server_container->get(proxy_host->getString()));
+						rq->append_source(server_container->get(proxy_host->getString()));
 						jumpType = JUMP_ALLOW;
 						delete proxy_host;
 					}

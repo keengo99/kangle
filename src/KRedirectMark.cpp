@@ -51,7 +51,7 @@ bool KRedirectMark::mark(KHttpRequest* rq, KHttpObject* obj,
 	assert(rq->sink->data.url->path);
 	//std::stringstream ss;
 	if (internalRedirect) {
-		rq->rewriteUrl(dst);
+		rq->rewrite_url(dst);
 	} else {
 		int status_code = code;
 		push_redirect_header(rq, dst, (int)strlen(dst), status_code);
