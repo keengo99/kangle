@@ -89,6 +89,8 @@ KDsoExtend::~KDsoExtend()
 }
 bool KDsoExtend::RegisterUpstream(kgl_upstream* us)
 {
+	//global upstream always open after cache handle.
+	KBIT_CLR(us->flags, KGL_UPSTREAM_BEFORE_CACHE);
 	std::map<const char*, KDsoRedirect*, lessp>::iterator it;
 	it = upstream.find(us->name);
 	if (it != upstream.end()) {

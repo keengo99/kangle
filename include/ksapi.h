@@ -454,6 +454,7 @@ typedef struct _kgl_access
 struct _kgl_upstream
 {
 	int32_t size;
+	/* open upstream before cache handle */
 #define KGL_UPSTREAM_BEFORE_CACHE  1
 	int32_t flags;
 	const char* name;

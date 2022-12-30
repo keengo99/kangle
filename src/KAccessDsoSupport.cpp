@@ -387,7 +387,16 @@ static KGL_RESULT support_function(
 		KFetchObject* fo = rd->makeFetchObject(rq, *ret);
 		fo->bindRedirect(rd, KGL_CONFIRM_FILE_NEVER);
 		fo->filter = 1;
-		rq->insert_source(fo);
+		if (KBIT_TEST(us->flags, KGL_UPSTREAM_BEFORE_CACHE)) {
+			rq->insert_source(fo);
+		} else {
+			if (rq->fo_last && !rq->fo_last->filter) {
+				delete fo;
+				//EXSIT final source.
+				return KGL_EEXSIT;
+			}
+			rq->append_source(fo);
+		}
 		return KGL_OK;
 	}
 	case KF_REQ_FILTER:

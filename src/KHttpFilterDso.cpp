@@ -115,7 +115,7 @@ KGL_RESULT global_support_function(
 		KFetchObject *fo = rd->makeFetchObject(rq, ctx->us_ctx);
 		fo->bindRedirect(rd, KGL_CONFIRM_FILE_NEVER);
 		fo->filter = 0;
-		rq->insert_source(fo);
+		rq->append_source(fo);
 		kgl_start_simulate_request(rq);
 		return KGL_OK;
 	}
