@@ -434,7 +434,9 @@ KGL_RESULT handle_error(KHttpRequest *rq, int code, const char *msg) {
 		return send_error2(rq, code, msg);
 	}
 	KHttpObject *obj = rq->ctx->obj;
-	obj->data->i.status_code = code;
+	if (obj) {
+		obj->data->i.status_code = code;
+	}
 	if (KBIT_TEST(rq->sink->data.flags, RQ_IS_ERROR_PAGE)) {
 		//如果本身是错误页面，又产生错误
 		return send_error2(rq, code, msg);
