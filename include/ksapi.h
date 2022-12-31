@@ -505,7 +505,7 @@ typedef struct _kgl_file_function
 {
 	KASYNC_FILE(*open)(const char* filename, fileModel model, int kf_flags);
 	KSELECTOR(*get_selector)(KASYNC_FILE fp);
-	HANDLE(*get_handle)(KASYNC_FILE fp);
+	FILE_HANDLE(*get_handle)(KASYNC_FILE fp);
 	void(*close)(KASYNC_FILE fp);
 	int (*seek)(KASYNC_FILE fp, seekPosion pos, int64_t offset);
 	int64_t(*tell)(KASYNC_FILE fp);
