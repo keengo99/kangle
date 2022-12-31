@@ -13,7 +13,7 @@
 #include "extern.h"
 
 #ifdef ENABLE_KSAPI_FILTER
-KGL_RESULT global_get_variable(PVOID ctx, KGL_GVAR type, LPSTR  name, LPVOID value, LPDWORD size)
+KGL_RESULT global_get_variable(PVOID ctx, KGL_GVAR type, const char *name, LPVOID value, LPDWORD size)
 {
 	KDsoExtend* dso = (KDsoExtend*)ctx;
 	switch (type) {

@@ -243,7 +243,7 @@ typedef LPVOID KFIBER_MUTEX;
 typedef LPVOID KFIBER_COND;
 typedef LPVOID KFIBER_RWLOCK;
 
-typedef KGL_RESULT(*kgl_get_variable_f) (KREQUEST r, KGL_VAR type, LPSTR  name, LPVOID value, LPDWORD size);
+typedef KGL_RESULT(*kgl_get_variable_f) (KREQUEST r, KGL_VAR type, const char *name, LPVOID value, LPDWORD size);
 
 typedef enum _KF_ALLOC_MEMORY_TYPE
 {
@@ -567,7 +567,7 @@ typedef struct _kgl_dso_function
 	KGL_RESULT(*get_variable) (
 		KCONN                        cn,
 		KGL_GVAR                     type,
-		LPSTR                        name,
+		const char *                 name,
 		LPVOID                       value,
 		LPDWORD                      size
 		);

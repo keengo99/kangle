@@ -72,7 +72,7 @@ static void vary_write(KCONN cn, const char *str, int len)
 	kgl_vary_request *vary_rq = (kgl_vary_request *)cn;
 	vary_rq->s->write_all(str, len);
 }
-static KGL_RESULT vary_get_variable(KCONN cn, KGL_VAR type, LPSTR  name, LPVOID value, LPDWORD size)
+static KGL_RESULT vary_get_variable(KCONN cn, KGL_VAR type, const char *name, LPVOID value, LPDWORD size)
 {
 	kgl_vary_request *vary_rq = (kgl_vary_request *)cn;
 	return get_request_variable(vary_rq->rq, type, name, value, size);

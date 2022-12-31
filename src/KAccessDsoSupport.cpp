@@ -47,7 +47,7 @@ KGL_RESULT add_header_var(LPVOID buffer, LPDWORD size, KHttpHeader* header, cons
 	}
 	return KGL_ENO_DATA;
 }
-KGL_RESULT get_response_variable(KHttpRequest* rq, KGL_VAR type, LPSTR  name, LPVOID  buffer, LPDWORD size)
+KGL_RESULT get_response_variable(KHttpRequest* rq, KGL_VAR type, const char *name, LPVOID  buffer, LPDWORD size)
 {
 	KHttpObject* obj = rq->ctx->obj;
 	if (obj == NULL) {
@@ -60,7 +60,7 @@ KGL_RESULT get_response_variable(KHttpRequest* rq, KGL_VAR type, LPSTR  name, LP
 		return KGL_ENOT_SUPPORT;
 	}
 }
-KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, LPSTR  name, LPVOID  buffer, LPDWORD size)
+KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, const char *name, LPVOID  buffer, LPDWORD size)
 {
 	switch (type) {
 	case KGL_VAR_HEADER:
