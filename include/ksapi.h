@@ -81,6 +81,7 @@ typedef struct _kgl_filter kgl_filter;
 #define   KGL_REQ_ASYNC_HTTP                       (KGL_REQ_RESERV_COMMAND+7)
 #define   KGL_REQ_ASYNC_HTTP_UPSTREAM              (KGL_REQ_RESERV_COMMAND+8)
 #define   KGL_REQ_REGISTER_ACCESS                  (KGL_REQ_RESERV_COMMAND+9)
+#define   KGL_REQ_TIMER_FIBER                      (KGL_REQ_RESERV_COMMAND+10)
 #define   KGL_REQ_REGISTER_UPSTREAM                (KGL_REQ_RESERV_COMMAND+11)
 #define   KGL_REQ_REGISTER_VARY                    (KGL_REQ_RESERV_COMMAND+12)
 #define   KGL_REQ_MODULE_SHUTDOWN                  (KGL_REQ_RESERV_COMMAND+13)
@@ -116,9 +117,16 @@ typedef struct _kgl_thread
 	void* param;
 	void* worker;
 } kgl_thread;
+
+typedef int(*kgl_fiber_start_func)(void* arg, int len);
+
 typedef struct _kgl_timer
 {
-	result_callback cb;
+	union {
+		result_callback cb;
+		kgl_fiber_start_func fiber;
+		KOPAQUE data;
+	};
 	void* arg;
 	int msec;
 
@@ -497,6 +505,7 @@ typedef struct _kgl_file_function
 {
 	KASYNC_FILE(*open)(const char* filename, fileModel model, int kf_flags);
 	KSELECTOR(*get_selector)(KASYNC_FILE fp);
+	HANDLE(*get_handle)(KASYNC_FILE fp);
 	void(*close)(KASYNC_FILE fp);
 	int (*seek)(KASYNC_FILE fp, seekPosion pos, int64_t offset);
 	int64_t(*tell)(KASYNC_FILE fp);
@@ -509,7 +518,7 @@ typedef struct _kgl_file_function
 } kgl_file_function;
 
 
-typedef int(*kgl_fiber_start_func)(void* arg, int len);
+
 
 typedef struct _kgl_mutex_function
 {

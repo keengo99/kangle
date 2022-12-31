@@ -114,10 +114,10 @@ public:
 	bool inherited;
 	bool internal;
 	int hit_count;
-	char *path;
-	char *to;
 	int path_len;
 	int to_len;
+	char* path;
+	char* to;
 private:
 	void set(const char *path, const char *to,const char *doc_root) {
 		orig_path = path;

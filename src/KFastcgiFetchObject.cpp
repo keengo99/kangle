@@ -101,7 +101,7 @@ kgl_parse_result KFastcgiFetchObject::parse_unknow_header(KHttpRequest* rq, char
 		if (piece == NULL) {
 			return kgl_parse_continue;
 		}
-		int packet_length = *pos - piece;
+		int packet_length = (int)(*pos - piece);
 		switch (fcgi_header_type) {
 		case FCGI_STDERR:
 			fwrite(piece, packet_length, 1, stderr);
@@ -152,7 +152,7 @@ kgl_parse_result KFastcgiFetchObject::parse_unknow_header(KHttpRequest* rq, char
 			} else if (piece < piece_end) {
 				//still have data, save to split_header
 				split_header = ks_buffer_new(NBUFF_SIZE);
-				ks_write_str(split_header, piece, piece_end - piece);
+				ks_write_str(split_header, piece, (int)(piece_end - piece));
 			}
 			//printf("parse header result=[%d]\n", ret);
 			switch (ret) {

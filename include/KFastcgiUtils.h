@@ -130,11 +130,11 @@ public:
 			}
 		}
 		assert(attr_len > 0);
-		addLen(attr_len);
-		addLen(val_len);
+		addLen((unsigned)attr_len);
+		addLen((unsigned)val_len);
 		//printf("add env name=[%s] value=[%s]\n", attr, val);
-		buff.write_all(attr, attr_len);
-		buff.write_all(val, val_len);
+		buff.write_all(attr, (int)attr_len);
+		buff.write_all(val, (int)val_len);
 		return true;
 	}
 	bool addEnv(const char* name, const char* value) override

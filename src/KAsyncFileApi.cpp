@@ -10,6 +10,11 @@ static KSELECTOR aio_get_selector(KASYNC_FILE fp)
 	kfiber_file *af = (kfiber_file*)fp;
 	return kasync_file_get_selector(&af->fp);
 }
+static HANDLE aio_get_handle(KASYNC_FILE fp)
+{
+	kfiber_file* af = (kfiber_file*)fp;
+	return kasync_file_get_handle(&af->fp);
+}
 static const char* adjust_read_buffer(KASYNC_FILE fp, char* buf)
 {
 	kfiber_file *af = (kfiber_file *)fp;
@@ -18,6 +23,7 @@ static const char* adjust_read_buffer(KASYNC_FILE fp, char* buf)
 kgl_file_function async_file_provider = {
 	(KASYNC_FILE(*)(const char* , fileModel ,int))kfiber_file_open,
 	aio_get_selector,
+	aio_get_handle,
 	(void(*)(KASYNC_FILE))kfiber_file_close,
 	(int(*)(KASYNC_FILE ,seekPosion , int64_t))kfiber_file_seek,
 	(int64_t(*)(KASYNC_FILE))kfiber_file_tell,
