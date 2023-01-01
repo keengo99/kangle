@@ -273,7 +273,7 @@ KSockPoolHelper *KMultiAcserver::nextActiveNode(KSockPoolHelper *node,unsigned s
 				index --;
 			}
 		}
-		if (helper->tryTime==0) {
+		if (!helper->disable_flag) {
 			return helper;
 		}
 		if (n==node) {
@@ -425,9 +425,9 @@ std::string KMultiAcserver::nodeForm(std::string name, KMultiAcserver *as,
 	}
 	s << "param:<input name='param' value='";
 	if (param) {
-		s.write(param->str.data, param->str.len);
-		release_string(param);
+		s.write(param->data, param->len);
 	}
+	kstring_release(param);
 	s << "'><br>";
 	s << "<input type=checkbox name='sign' value='1' " << (helper && helper->sign ? "checked":"") << ">sign<br>";
 	s << "<input type='submit' value='" << LANG_SUBMIT << "'>";

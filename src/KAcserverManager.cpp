@@ -577,8 +577,8 @@ std::string KAcserverManager::acserverList(std::string name) {
 	}
 	s << "param:<input name='param' value='";
 	if (param) {
-		s.write(param->str.data, param->str.len);
-		release_string(param);
+		s.write(param->data, param->len);
+		kstring_release(param);
 	}
 	s << "'><br>";
 #ifdef HTTP_PROXY

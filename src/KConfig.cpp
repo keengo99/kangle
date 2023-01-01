@@ -48,10 +48,9 @@ KGlobalConfig conf;
 void load_config(KConfig* cconf, bool firstTime);
 void post_load_config(bool firstTime);
 #ifdef KSOCKET_SSL
-kgl_ssl_ctx* KSslConfig::new_ssl_ctx(const char* certfile, const char* keyfile)
-{
+kgl_ssl_ctx* KSslConfig::new_ssl_ctx(const char* certfile, const char* keyfile) {
 	void* ssl_ctx_data = NULL;
-	kgl_ssl_ctx *ssl_ctx = kgl_new_ssl_ctx(NULL);
+	kgl_ssl_ctx* ssl_ctx = kgl_new_ssl_ctx(NULL);
 	ssl_ctx->alpn = alpn;
 #ifdef ENABLE_HTTP2
 	ssl_ctx_data = &ssl_ctx->alpn;
@@ -83,27 +82,23 @@ kgl_ssl_ctx* KSslConfig::new_ssl_ctx(const char* certfile, const char* keyfile)
 	ssl_ctx->ctx = ctx;
 	return ssl_ctx;
 }
-std::string KSslConfig::get_cert_file()
-{
+std::string KSslConfig::get_cert_file() {
 	if (isAbsolutePath(cert_file.c_str())) {
 		return cert_file;
 	}
 	return  conf.path + cert_file;
 }
-std::string KSslConfig::get_key_file()
-{
+std::string KSslConfig::get_key_file() {
 	if (isAbsolutePath(key_file.c_str())) {
 		return key_file;
 	}
 	return  conf.path + key_file;
 }
 #endif
-KConfigBase::KConfigBase()
-{
+KConfigBase::KConfigBase() {
 	memset(this, 0, sizeof(KConfigBase));
 }
-void KConfig::copy(KConfig* c)
-{
+void KConfig::copy(KConfig* c) {
 	//把cconf赋值到conf中
 	KConfigBase* bc = static_cast<KConfigBase*>(this);
 	kgl_memcpy(bc, static_cast<KConfigBase*>(c), sizeof(KConfigBase));
@@ -115,11 +110,10 @@ void KConfig::copy(KConfig* c)
 	conf.admin_lock.Unlock();
 	this->ssl_client_chiper = c->ssl_client_chiper;
 	this->ssl_client_protocols = c->ssl_client_protocols;
+	this->ca_path = c->ca_path;
 	this->run_user = c->run_user;
 	this->run_group = c->run_group;
-	//{{ent
 	this->apache_config_file = c->apache_config_file;
-	//}}
 #if 0
 	ipLock.Lock();
 	//swap per_ip_head
@@ -134,8 +128,7 @@ void KConfig::copy(KConfig* c)
 #endif
 	return;
 }
-KConfig::~KConfig()
-{
+KConfig::~KConfig() {
 	//todo:清除内存
 	std::vector<KListenHost*>::iterator it;
 	for (it = service.begin(); it != service.end(); it++) {
@@ -149,8 +142,7 @@ KConfig::~KConfig()
 	}
 #endif
 }
-KGlobalConfig::KGlobalConfig()
-{
+KGlobalConfig::KGlobalConfig() {
 	gam = new KAcserverManager;
 	gvm = new KVirtualHostManage;
 	sysHost = new KVirtualHost;
@@ -160,19 +152,16 @@ KGlobalConfig::KGlobalConfig()
 class KExtConfigDynamicString : public KDynamicString
 {
 public:
-	KExtConfigDynamicString(const char* file)
-	{
+	KExtConfigDynamicString(const char* file) {
 		this->file = file;
 		path = getPath(file);
 	}
-	~KExtConfigDynamicString()
-	{
+	~KExtConfigDynamicString() {
 		if (path) {
 			xfree(path);
 		}
 	}
-	const char* getValue(const char* name)
-	{
+	const char* getValue(const char* name) {
 		if (strcasecmp(name, "config_dir") == 0) {
 			return path;
 		}
@@ -188,13 +177,11 @@ private:
 class KExtConfig
 {
 public:
-	KExtConfig(char* content)
-	{
+	KExtConfig(char* content) {
 		this->content = content;
 		next = NULL;
 	}
-	~KExtConfig()
-	{
+	~KExtConfig() {
 		if (content) {
 			xfree(content);
 		}
@@ -208,8 +195,7 @@ public:
 	KExtConfig* next;
 };
 static map<int, KExtConfig*> extconfigs;
-bool get_size_radio(INT64 size, int radio, const char radio_char, std::stringstream& s)
-{
+bool get_size_radio(INT64 size, int radio, const char radio_char, std::stringstream& s) {
 	INT64 t;
 	t = size >> radio;
 	if (t > 0) {
@@ -220,8 +206,7 @@ bool get_size_radio(INT64 size, int radio, const char radio_char, std::stringstr
 	}
 	return false;
 }
-char* get_human_size(double size, char* buf, size_t buf_size)
-{
+char* get_human_size(double size, char* buf, size_t buf_size) {
 	memset(buf, 0, buf_size);
 	int i = 0;
 	const char* units[] = { "", "K", "M", "G", "T", "P", "E", "Z", "Y" };
@@ -235,8 +220,7 @@ char* get_human_size(double size, char* buf, size_t buf_size)
 	snprintf(buf, buf_size - 1, "%.*f%s", 2, size, units[i]);
 	return buf;
 }
-std::string get_size(INT64 size)
-{
+std::string get_size(INT64 size) {
 	std::stringstream s;
 	if (get_size_radio(size, 40, 'T', s)) {
 		return s.str();
@@ -296,8 +280,7 @@ INT64 get_size(const char* size) {
 	bool is_radio = false;
 	return get_radio_size(size, is_radio);
 }
-void init_config(KConfig* conf)
-{
+void init_config(KConfig* conf) {
 #ifdef MALLOCDEBUG
 	conf->mallocdebug = true;
 #endif
@@ -358,8 +341,7 @@ void LoadDefaultConfig() {
 	conf.sysHost->hosts.push_back(svh);
 	conf.sysHost->addRef();
 }
-void loadExtConfigFile(int index, KExtConfig* config, KXml& xmlParser)
-{
+void loadExtConfigFile(int index, KExtConfig* config, KXml& xmlParser) {
 	while (config) {
 		if (config->merge) {
 			cur_config_ext = false;
@@ -369,14 +351,14 @@ void loadExtConfigFile(int index, KExtConfig* config, KXml& xmlParser)
 		klog(KLOG_NOTICE, "[%d] load config file [%s]\n", index, config->file.c_str());
 		try {
 			xmlParser.startParse(config->content);
-		} catch (KXmlException& e) {
+		}
+		catch (KXmlException& e) {
 			fprintf(stderr, "%s in file[%s]\n", e.what(), config->file.c_str());
 		}
 		config = config->next;
 	}
 }
-bool load_config_file(KFileName* file, int inclevel, KStringBuf& s, int& id, bool& merge)
-{
+bool load_config_file(KFileName* file, int inclevel, KStringBuf& s, int& id, bool& merge) {
 	if (inclevel > 128) {
 		klog(KLOG_ERR, "include level [%d] is limited.\n", inclevel);
 		return false;
@@ -525,8 +507,7 @@ int handleExtConfigFile(const char* file, void* param) {
 	loadExtConfigFile(&configFile);
 	return 0;
 }
-void loadExtConfigFile()
-{
+void loadExtConfigFile() {
 #ifdef KANGLE_EXT_DIR
 	std::string ext_path = KANGLE_EXT_DIR;
 #else
@@ -539,14 +520,14 @@ void loadExtConfigFile()
 bool saveConfig() {
 	return KConfigBuilder::saveConfig();
 }
-void load_main_config(KConfig* cconf, std::string& configFile, KXml& xmlParser, bool firstload)
-{
+void load_main_config(KConfig* cconf, std::string& configFile, KXml& xmlParser, bool firstload) {
 	klog(KLOG_NOTICE, "load config file [%s]\n", configFile.c_str());
 	for (int i = 0; i < 2; i++) {
 		try {
 			xmlParser.parseFile(configFile);
 			break;
-		} catch (KXmlException& e) {
+		}
+		catch (KXmlException& e) {
 			fprintf(stderr, "%s\n", e.what());
 			if (i > 0) {
 				exit(0);
@@ -565,7 +546,8 @@ void load_main_config(KConfig* cconf, std::string& configFile, KXml& xmlParser, 
 		configFile += "/lang.xml";
 		klog(KLOG_NOTICE, "load config file [%s]\n", configFile.c_str());
 		klang.load(configFile.c_str());
-	} catch (KXmlException& e) {
+	}
+	catch (KXmlException& e) {
 		fprintf(stderr, "%s\n", e.what());
 	}
 }
@@ -583,8 +565,7 @@ void clean_config() {
 #endif
 	//contentType.destroy();
 }
-int do_config_thread(void* first_time, int argc)
-{
+int do_config_thread(void* first_time, int argc) {
 	assert(kfiber_self());
 	cur_config_ext = false;
 	if (first_time != NULL) {
@@ -629,8 +610,7 @@ void wait_load_config_done() {
 		kfiber_msleep(50);
 	}
 }
-int merge_apache_config(const char* filename)
-{
+int merge_apache_config(const char* filename) {
 	KFileName file;
 	if (file.setName(filename)) {
 		KApacheConfig apConfig(false);
@@ -655,8 +635,7 @@ int merge_apache_config(const char* filename)
 		return 1;
 	}
 }
-void load_db_vhost(KVirtualHostManage* vm)
-{
+void load_db_vhost(KVirtualHostManage* vm) {
 #ifndef HTTP_PROXY
 	cur_config_vh_db = false;
 	if (vhd.isLoad()) {
@@ -668,8 +647,7 @@ void load_db_vhost(KVirtualHostManage* vm)
 #endif
 }
 //读取配置文件，可重入
-void load_config(KConfig* cconf, bool firstTime)
-{
+void load_config(KConfig* cconf, bool firstTime) {
 	std::map<int, KExtConfig*>::iterator it;
 	bool main_config_loaded = false;
 #ifdef KANGLE_ETC_DIR
@@ -702,10 +680,9 @@ void load_config(KConfig* cconf, bool firstTime)
 	xmlParser.addEvent(&vhParser);
 #endif
 	if (firstTime) {
-		//{{ent
 #ifdef ENABLE_BLACK_LIST
 		init_run_fw_cmd();
-#endif//}}
+#endif
 		xmlParser.addEvent(conf.gam);
 #ifdef ENABLE_WRITE_BACK
 		xmlParser.addEvent(&writeBackManager);
@@ -751,7 +728,6 @@ void load_config(KConfig* cconf, bool firstTime)
 	if (!main_config_loaded) {
 		load_main_config(cconf, configFile, xmlParser, firstTime);
 	}
-	//{{ent
 #ifndef KANGLE_FREE
 	if (conf.apache_config_file.size() > 0) {
 		KFileName file;
@@ -767,7 +743,7 @@ void load_config(KConfig* cconf, bool firstTime)
 			loadExtConfigFile(999999, &apextconfig, xmlParser);
 		}
 	}
-#endif//}}
+#endif
 	conf.gvm->BindGlobalListens(cconf->service);
 	conf.gvm->UnBindGlobalListens(conf.service);
 	load_db_vhost(cconf->vm);
@@ -793,8 +769,7 @@ void load_config(KConfig* cconf, bool firstTime)
 #endif
 	cur_config_ext = false;
 }
-void parse_server_software()
-{
+void parse_server_software() {
 	//生成serverName
 	timeLock.Lock();
 	if (*conf.server_software) {
@@ -809,8 +784,7 @@ void parse_server_software()
 	timeLock.Unlock();
 }
 
-void post_load_config(bool firstTime)
-{
+void post_load_config(bool firstTime) {
 	klog_start();
 	if (conf.worker_io < 2) {
 		conf.worker_io = 2;
@@ -846,8 +820,8 @@ void post_load_config(bool firstTime)
 	selector_manager_set_timeout(conf.connect_time_out, conf.time_out);
 	http_config.fiber_stack_size = conf.fiber_stack_size;
 	http_config.time_out = conf.time_out;
+	khttp_server_set_ssl_config(conf.ca_path.c_str(), conf.ssl_client_chiper.c_str(), conf.ssl_client_protocols.c_str());
 	cache.init(firstTime);
-	//{{ent
 #ifdef ENABLE_BLACK_LIST
 	if (firstTime && *conf.flush_ip_cmd) {
 		run_fw_cmd(conf.flush_ip_cmd, NULL);
@@ -855,7 +829,6 @@ void post_load_config(bool firstTime)
 	conf.gvm->globalVh.blackList->setRunFwCmd(*conf.block_ip_cmd != '\0');
 	conf.gvm->globalVh.blackList->setReportIp(*conf.report_url != '\0');
 #endif
-	//}}
 	::logHandle.setLogHandle(conf.logHandle);
 	//BOOL result = SetProcessWorkingSetSize(GetCurrentProcess(),-2,-2);
 }

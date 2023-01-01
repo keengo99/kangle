@@ -496,8 +496,10 @@ typedef struct _kgl_socket_client_function
 	KSOCKET_CLIENT(*create)(const struct sockaddr* addr, socklen_t addr_len);
 	KSOCKET_CLIENT(*create2)(struct addrinfo* ai, uint16_t port);
 	int (*connect)(KSOCKET_CLIENT s, const char* local_ip, uint16_t local_port);
-	bool (*write_full)(KSOCKET_CLIENT s, WSABUF* buf, int* bc);
-	int (*readv)(KSOCKET_CLIENT s, WSABUF* buf, int bc);
+	int (*readv)(KSOCKET_CLIENT s, WSABUF* bufs, int bc);
+	int (*writev)(KSOCKET_CLIENT s, WSABUF* bufs, int bc);
+	bool (*read_full)(KSOCKET_CLIENT s, char* buf, int* len);
+	bool (*writev_full)(KSOCKET_CLIENT s, WSABUF* bufs, int* bc);
 	KSELECTOR(*get_selector)(KSOCKET_CLIENT s);
 	void(*set_opaque)(KSOCKET_CLIENT s, KOPAQUE data);
 	KOPAQUE(*get_opaque)(KSOCKET_CLIENT s);

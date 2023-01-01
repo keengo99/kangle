@@ -154,8 +154,8 @@ KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest* rq)
 	kgl_refs_string* param = client->get_param();
 	if (param) {
 		b.putByte(0x0C);
-		b.putString(param->str.data, (int)param->str.len);
-		release_string(param);
+		b.putString(param->data, (int)param->len);
+		kstring_release(param);
 	}
 	b.putByte(0xFF);
 	b.end();
