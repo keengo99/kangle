@@ -122,7 +122,8 @@ typedef int(*kgl_fiber_start_func)(void* arg, int len);
 
 typedef struct _kgl_timer
 {
-	union {
+	union
+	{
 		result_callback cb;
 		kgl_fiber_start_func fiber;
 		KOPAQUE data;
@@ -243,7 +244,7 @@ typedef LPVOID KFIBER_MUTEX;
 typedef LPVOID KFIBER_COND;
 typedef LPVOID KFIBER_RWLOCK;
 
-typedef KGL_RESULT(*kgl_get_variable_f) (KREQUEST r, KGL_VAR type, const char *name, LPVOID value, LPDWORD size);
+typedef KGL_RESULT(*kgl_get_variable_f) (KREQUEST r, KGL_VAR type, const char* name, LPVOID value, LPDWORD size);
 
 typedef enum _KF_ALLOC_MEMORY_TYPE
 {
@@ -492,13 +493,16 @@ typedef struct _kgl_socket_client_function
 	int (*resolv)(const char* host, kgl_addr** addr);
 	void (*free_addr)(kgl_addr* addr);
 	SOCKET(*get_system_socket)(KSOCKET_CLIENT s);
-	KSOCKET_CLIENT(*connect)(const struct sockaddr* addr, socklen_t addr_len);
-	int (*writev)(KSOCKET_CLIENT s, WSABUF* buf, int bc);
+	KSOCKET_CLIENT(*create)(const struct sockaddr* addr, socklen_t addr_len);
+	KSOCKET_CLIENT(*create2)(struct addrinfo* ai, uint16_t port);
+	int (*connect)(KSOCKET_CLIENT s, const char* local_ip, uint16_t local_port);
+	bool (*write_full)(KSOCKET_CLIENT s, WSABUF* buf, int* bc);
 	int (*readv)(KSOCKET_CLIENT s, WSABUF* buf, int bc);
 	KSELECTOR(*get_selector)(KSOCKET_CLIENT s);
 	void(*set_opaque)(KSOCKET_CLIENT s, KOPAQUE data);
-	void(*close)(KSOCKET_CLIENT s);
+	KOPAQUE(*get_opaque)(KSOCKET_CLIENT s);
 	void(*shutdown)(KSOCKET_CLIENT s);
+	void(*close)(KSOCKET_CLIENT s);
 } kgl_socket_client_function;
 
 typedef struct _kgl_file_function
@@ -567,7 +571,7 @@ typedef struct _kgl_dso_function
 	KGL_RESULT(*get_variable) (
 		KCONN                        cn,
 		KGL_GVAR                     type,
-		const char *                 name,
+		const char* name,
 		LPVOID                       value,
 		LPDWORD                      size
 		);
