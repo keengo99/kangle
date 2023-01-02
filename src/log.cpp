@@ -67,14 +67,14 @@ void my_vklog(int level, const char *fmt, va_list ap) {
 void set_logger()
 {
 	if (conf.error_rotate_size > 0) {
-		errorLogger.rotateSize = conf.error_rotate_size;
+		errorLogger.rotate_size = conf.error_rotate_size;
 	} else {
 		errorLogger.setRotateTime(conf.log_rotate);
-		errorLogger.rotateSize = conf.log_rotate_size;
+		errorLogger.rotate_size = conf.log_rotate_size;
 	}
 	errorLogger.log_handle = false;
 	accessLogger.setRotateTime(conf.log_rotate);
-	accessLogger.rotateSize = conf.log_rotate_size;
+	accessLogger.rotate_size = conf.log_rotate_size;
 	accessLogger.logs_day = conf.logs_day;
 	accessLogger.logs_size = conf.logs_size;
 	accessLogger.log_handle = conf.log_handle;
@@ -84,7 +84,7 @@ int klog_start() {
 		accessLogger.place = LOG_PRINT;
 		errorLogger.place = LOG_PRINT;
 	} else {
-		errorLogger.errorLog = true;
+		//errorLogger.errorLog = true;
 		errorLogger.place = LOG_FILE;
 		std::string log_file;
 #ifdef KANGLE_VAR_DIR

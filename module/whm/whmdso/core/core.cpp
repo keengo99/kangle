@@ -466,7 +466,7 @@ static int getVhDetail(WhmContext *ctx)
 	if (vh->logger) {
 		vh->logger->getRotateTime(rotateTime);
 		ctx->add("log_rotate_time",rotateTime);
-		ctx->add("log_rotate_size",vh->logger->rotateSize);
+		ctx->add("log_rotate_size",vh->logger->rotate_size);
 	}
 #endif
 	ctx->add("browse",vh->browse?"1":"0");

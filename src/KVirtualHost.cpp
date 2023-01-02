@@ -361,7 +361,7 @@ bool KVirtualHost::setDocRoot(std::string &docRoot) {
 #ifdef ENABLE_VH_LOG_FILE
 void KVirtualHost::setLogFile(std::string &path, std::map<std::string,
 		std::string>&attribute) {
-	if (path.size() <= 0) {
+	if (path.empty()) {
 		return;
 	}
 	logFile = path;
@@ -391,7 +391,7 @@ void KVirtualHost::setLogFile(std::string &path, std::map<std::string,
 	logger->setRotateTime(attribute["log_rotate_time"].c_str());
 	//}
 	//	if (attribute["log_rotate_size"].size() > 0) {
-	logger->rotateSize = get_size(attribute["log_rotate_size"].c_str());
+	logger->rotate_size = get_size(attribute["log_rotate_size"].c_str());
 	logger->logs_day = atoi(attribute["logs_day"].c_str());
 	logger->logs_size = get_size(attribute["logs_size"].c_str());
 	//}
@@ -400,9 +400,9 @@ void KVirtualHost::setLogFile(std::string &path, std::map<std::string,
 	logger->gid = id[1];
 #endif
 	if (strcasecmp(attribute["log_mkdir"].c_str(), "on") == 0) {
-		logger->mkdirFlag = true;
+		logger->mkdir_flag = true;
 	} else {
-		logger->mkdirFlag = false;
+		logger->mkdir_flag = false;
 	}
 	if (strcasecmp(attribute["log_handle"].c_str(), "off") == 0) {
 		logger->log_handle = false;
@@ -417,7 +417,7 @@ void KVirtualHost::setLogFile(KAttributeHelper *ah, KVirtualHost *tm) {
 	if (!ah->getValue("log_file", path) && tm) {
 		path = tm->logFile;
 	}
-	if (path.size() <= 0) {
+	if (path.empty()) {
 		return;
 	}
 	logFile = path;
@@ -448,9 +448,9 @@ void KVirtualHost::setLogFile(KAttributeHelper *ah, KVirtualHost *tm) {
 	}
 	logger->setRotateTime(value.c_str());
 	if (ah->getValue("log_rotate_size", value)) {
-		logger->rotateSize = get_size(value.c_str());
+		logger->rotate_size = get_size(value.c_str());
 	} else if (tm && tm->logger) {
-		logger->rotateSize = tm->logger->rotateSize;
+		logger->rotate_size = tm->logger->rotate_size;
 	}
 	if(ah->getValue("logs_day",value)){
 		logger->logs_day = atoi(value.c_str());
@@ -473,12 +473,12 @@ void KVirtualHost::setLogFile(KAttributeHelper *ah, KVirtualHost *tm) {
 	}
 	if (ah->getValue("log_mkdir", value)) {
 		if (strcasecmp(value.c_str(), "on") == 0 || value == "1") {
-			logger->mkdirFlag = true;
+			logger->mkdir_flag = true;
 		} else {
-			logger->mkdirFlag = false;
+			logger->mkdir_flag = false;
 		}
 	} else if (tm && tm->logger) {
-		logger->mkdirFlag = tm->logger->mkdirFlag;
+		logger->mkdir_flag = tm->logger->mkdir_flag;
 	}
 #ifdef ENABLE_VH_RUN_AS
 	logger->uid = id[0];

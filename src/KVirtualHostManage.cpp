@@ -898,7 +898,7 @@ void KVirtualHostManage::getVhDetail(std::stringstream& s, KVirtualHost* vh, boo
 	s << "<tr><td>" << klang["log_mkdir"]
 		<< "</td><td><input name='log_mkdir' type='radio' value='on' ";
 	bool mkdirFlag = false;
-	if (vh && vh->logger && vh->logger->mkdirFlag) {
+	if (vh && vh->logger && vh->logger->mkdir_flag) {
 		mkdirFlag = true;
 	}
 	if (mkdirFlag) {
@@ -936,7 +936,7 @@ void KVirtualHostManage::getVhDetail(std::stringstream& s, KVirtualHost* vh, boo
 		<< "'></td></tr>\n";
 	s << "<td>" << klang["log_rotate_size"]
 		<< "</td><td><input name='log_rotate_size' value='" << (vh
-			&& vh->logger ? vh->logger->rotateSize : 0) << "'></td></tr>\n";
+			&& vh->logger ? vh->logger->rotate_size : 0) << "'></td></tr>\n";
 	s << "<td>" << klang["logs_day"]
 		<< "</td><td><input name='logs_day' value='" << (vh
 			&& vh->logger ? vh->logger->logs_day : 0) << "'></td></tr>\n";

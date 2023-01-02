@@ -35,11 +35,16 @@ void KLogManage::destroy(KLogElement *logger)
 {
 	lock.Lock();
 	int refs = logger->release();
-	if(refs<=0){
+	if (refs == 0) {
+		lock.Unlock();
+		return;
+	}
+	if(refs<=1){
 		map<string,KLogElement *>::iterator it=logs.find(logger->path);
-		assert(it!=logs.end());
-		logs.erase(it);
-		delete logger;
+		if (it!=logs.end() && logger == (*it).second) {
+			logs.erase(it);
+			logger->release();
+		}
 	}
 	lock.Unlock();
 }

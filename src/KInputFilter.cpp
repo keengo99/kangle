@@ -171,7 +171,7 @@ bool KInputFilterContext::parse_boundary(const char* val, size_t len)
 		}
 	} else {
 		/* search for the end of the boundary */
-		boundary_end = kgl_mempbrk(hot, boundary_len,_KS(",;"));
+		boundary_end = kgl_mempbrk(hot, (int)boundary_len,_KS(",;"));
 	}
 	if (boundary_end) {
 		boundary_len = boundary_end - hot;

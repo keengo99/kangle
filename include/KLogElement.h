@@ -26,43 +26,44 @@
 #include "KTimeMatch.h"
 #include "KMutex.h"
 #include "KFileName.h"
-enum {
-	LOG_NONE, LOG_PRINT, LOG_FILE
-};
-class KLogElement : public KCountable {
+#define LOG_NONE  0
+#define LOG_PRINT 1
+#define LOG_FILE  2
+
+class KLogElement : public KAtomCountable
+{
 public:
 	KLogElement();
 	virtual ~KLogElement();
-	inline KLogElement &operator <<(const char *str) {
+	inline KLogElement& operator <<(const char* str) {
 		write(str);
 		return *this;
 	}
-	KLogElement &operator <<(int value) {
-		log("%d",value);
+	KLogElement& operator <<(int value) {
+		log("%d", value);
 		return *this;
 	}
-	inline void write(const char *str,int len)
-	{
+	inline void write(const char* str, int len) {
 		if (place == LOG_NONE) {
 			return;
 		}
-	    if (place == LOG_PRINT) {
-		fprintf(stderr, "%s", str);
-		return;
-	    }
-		if (!opened) {
+		if (place == LOG_PRINT) {
+			fprintf(stderr, "%s", str);
+			return;
+		}
+		if (!fp.opened()) {
 			open();
 		}
-		logSize += fp.write(str, len);
+		log_file_size += fp.write(str, len);
 	}
-	inline void write(const char *str) {
-		write(str,(int)strlen(str));
+	inline void write(const char* str) {
+		write(str, (int)strlen(str));
 	}
 
 	inline void write(int value) {
-		log("%d",value);
+		log("%d", value);
 	}
-	inline void vlog(const char *fmt, va_list ap) {
+	inline void vlog(const char* fmt, va_list ap) {
 		if (place == LOG_NONE) {
 			return;
 		}
@@ -70,12 +71,12 @@ public:
 			vfprintf(stderr, fmt, ap);
 			return;
 		}
-		if (!opened) {
+		if (!fp.opened()) {
 			open();
 		}
-		logSize += fp.vfprintf(fmt, ap);
+		log_file_size += fp.vfprintf(fmt, ap);
 	}
-	inline void log(const char *fmt, ...) {
+	inline void log(const char* fmt, ...) {
 		va_list ap;
 		va_start(ap, fmt);
 		vlog(fmt, ap);
@@ -85,63 +86,56 @@ public:
 		lock.Lock();
 	}
 	inline void endLog(bool flush = false) {
-		if(flush){
+		if (flush) {
 			fp.flush();
 		}
-		if (rotateSize > 0 && logSize >= rotateSize) {
+		if (rotate_size > 0 && log_file_size >= rotate_size) {
 			rotateLog();
 		}
 		lock.Unlock();
 	}
 	bool open();
-	inline void checkSizeRotate()
-	{
-		if (rotateSize > 0 && logSize >= rotateSize) {
+	inline void checkSizeRotate() {
+		if (rotate_size > 0 && log_file_size >= rotate_size) {
 			rotateLog();
 		}
 	}
 	bool checkRotate(time_t nowTime);
-	void buildXML(std::stringstream &s);
-	void setRotateTime(const char *str)
-	{
+	void buildXML(std::stringstream& s);
+	void setRotateTime(const char* str) {
 		lock.Lock();
 		rotate_time = str;
 		rotate.set(str);
 		lock.Unlock();
 	}
-	void getRotateTime(std::string &str)
-	{
+	void getRotateTime(std::string& str) {
 		lock.Lock();
 		str = rotate_time;
 		lock.Unlock();
 	}
 	void setPath(std::string path);
+	void close();
 	friend class KVirtualHost;
 	friend class KVirtualHostManage;
 	std::string path;
-	INT64 rotateSize;
-	int place;
-	bool mkdirFlag;
-	unsigned logs_day;
+	INT64 rotate_size;
+	INT64 log_file_size;
 	INT64 logs_size;
-	void close();
-	// «∑Ò «errorLog;
+	unsigned logs_day;
+	//unsigned max;
+	unsigned uid;
+	unsigned gid;
+	u_char place;
+	bool mkdir_flag;
 	bool log_handle;
-	bool errorLog;
 private:
 	void rotateLog();
 	std::string rotate_time;
-	//	bool noLog;
-	bool opened;
-	INT64 logSize;
 	KFile fp;
 	KTimeMatch rotate;
-	unsigned max;
-	unsigned uid;
-	unsigned gid;
 	KMutex lock;
 };
 //system default access loger
 extern KLogElement accessLogger;
 extern KLogElement errorLogger;
-#endif /*KLOGELEMENT_H_*/
+#endif
