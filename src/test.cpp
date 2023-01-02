@@ -361,22 +361,6 @@ void test_line_file()
 		printf("line=[%s]\n", line);
 	}
 }
-void test_suffix_corrupt() {
-        char *str = new char[4];
-        kgl_memcpy(str,"test1",5);
-	delete[] str;
-}
-void test_prefix_corrupt() {
-        char *str = (char *)malloc(4);
-	void *pp = str - 1;
-	kgl_memcpy(pp,"test",4);
-        free(str);
-}
-void test_freed_memory() {
-        char *str = (char *)malloc(4);
-        free(str);
-        kgl_memcpy(str,"test",4);
-}
 void test_http_parser()
 {
 	char *buf = strdup("HTTP/1.1 200 OK\r\na: bsssssssssssssddddd\r\n ttt");
