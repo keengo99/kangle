@@ -190,9 +190,10 @@ std::string KAcserverManager::macserverList(std::string name) {
 		<< "<td>" << klang["lang_life_time"] << "</td>"
 		<< "<td>" << klang["lang_sock_pool_size"] << "</td>"
 		<< "<td>" << klang["weight"] << "</td>"
-		<< "<td>self_ip</td>"
-		<< "<td>" << LANG_HIT_COUNT << "</td>"
-		<< "<td>" << klang["status"] << "</td>"
+		<< "<td>self</td>"
+		<< "<td>up/hit</td>"
+		<< "<td>err/avg</td>"
+		<< "<td>" << klang["status"] << "</td>"	
 		<< "</tr>";
 
 	for (it = mservers.begin(); it != mservers.end(); it++) {

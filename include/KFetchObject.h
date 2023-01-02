@@ -98,34 +98,6 @@ public:
 	KGL_RESULT PushBody(KHttpRequest *rq, kgl_output_stream *out, const char *buf, int len);
 	KFetchObject* next = nullptr;
 protected:
-	//uint32_t CheckResult(KHttpRequest* rq, uint32_t result);
 	KBaseRedirect *brd;	
 };
-#if 0
-//引用数据源，表示数据源还不确定
-
-class KRefFetchObject : public KFetchObject
-{
-public:
-	KRefFetchObject(KFetchObject *fo) : KFetchObject()
-	{
-		this->fo = fo;
-	}
-	~KRefFetchObject()
-	{
-		if (this->fo) {
-			delete this->fo;
-		}
-	}
-	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out)
-	{
-		//不可能调用到这里
-		assert(false);
-		//引用数据源一定是最后的数据源
-		return KGL_EUNKNOW;
-	}
-	uint32_t Check(KHttpRequest* rq);
-	KFetchObject *fo;
-};
-#endif
 #endif /* KFETCHOBJECT_H_ */

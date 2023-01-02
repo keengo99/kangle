@@ -47,6 +47,7 @@
 #include "KHttpParser.h"
 #include "KIpMap.h"
 #include "KSimulateRequest.h"
+#include "KSockPoolHelper.h"
 #ifdef ENABLE_ATOM
 #include "KAtomLock.h"
 #endif

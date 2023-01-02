@@ -47,22 +47,3 @@ KGL_RESULT KFetchObject::PushBody(KHttpRequest *rq, kgl_output_stream *out, cons
 	}
 	return out->f->write_body(out, rq, buf, len);
 }
-#if 0
-uint32_t KRefFetchObject::Check(KHttpRequest *rq)
-{
-	assert(rq->GetNextFetchObject(this) == NULL);
-	klist_remove(&queue);
-	if (this->fo) {
-		rq->AppendFetchObject(this->fo);
-		this->fo = NULL;
-	}
-	delete this;
-	return KF_STATUS_REQ_FALSE;
-	/*
-	KGL_RESULT ret = fiber_http_start(rq);
-	delete this;
-	return ret;
-	*/
-}
-
-#endif

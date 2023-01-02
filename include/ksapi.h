@@ -617,19 +617,5 @@ typedef struct _kgl_dso_version
 DLL_PUBLIC BOOL kgl_dso_init(kgl_dso_version* ver);
 DLL_PUBLIC BOOL kgl_dso_finit(int32_t flag);
 
-static INLINE bool is_absolute_path(const char* str) {
-	if (str[0] == '/') {
-		return true;
-	}
-#ifdef _WIN32
-	if (str[0] == '\\') {
-		return true;
-	}
-	if (strlen(str) > 1 && str[1] == ':') {
-		return true;
-	}
-#endif
-	return false;
-}
 KEND_DECLS
 #endif /* SAPI_H_ */

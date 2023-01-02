@@ -152,10 +152,7 @@ KGL_RESULT KAsyncFetchObject::InternalProcess(KHttpRequest* rq, kfiber** post_fi
 		client = brd->rd->GetUpstream(rq);
 	}
 	if (client == NULL) {
-		if (!rq->ctx->read_huped) {
-			KBIT_SET(rq->sink->data.flags, RQ_UPSTREAM_ERROR);
-		}
-		return out->f->write_message(out, rq, KGL_MSG_ERROR, "Cann't connect to remote host", STATUS_GATEWAY_TIMEOUT);
+		return upstream_is_error(rq, STATUS_GATEWAY_TIMEOUT, "Cann't connect to remote host");
 	}
 	client->BindOpaque(this);
 	client->set_time_out(rq->sink->get_time_out());
@@ -190,7 +187,10 @@ KGL_RESULT KAsyncFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_o
 	this->in = in;
 	this->out = out;
 	KGL_RESULT result = InternalProcess(rq, &post_fiber);
-	if (result == KGL_ECAN_RETRY_SOCKET_BROKEN && !client->IsNew() && !rq->ctx->read_huped) {		
+	if (result == KGL_ECAN_RETRY_SOCKET_BROKEN && !client->IsNew() && !rq->ctx->read_huped) {
+		/** only pooled upstream and can_retry_socket_broken error and not read_huped happen 
+		* then retry use a new upstream(not pool upstream).
+		*/
 		KBIT_SET(rq->sink->data.flags, RQ_UPSTREAM_ERROR);
 		assert(post_fiber == NULL);
 		Close(rq);
@@ -198,7 +198,7 @@ KGL_RESULT KAsyncFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_o
 	}
 	if (result == KGL_ECAN_RETRY_SOCKET_BROKEN) {
 		result = upstream_is_error(rq, STATUS_GATEWAY_TIMEOUT, "cann't send protocol header");
-	} else if (result == KGL_OK && client) {
+	} else if (result > 0 && client) {
 		client->health(HealthStatus::Success);
 	}
 	if (post_fiber == NULL) {
@@ -592,27 +592,35 @@ KGL_RESULT KAsyncFetchObject::upstream_is_error(KHttpRequest* rq, int error, con
 	if (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
 		//return shutdown(rq);
 	}
-	if (rq->ctx->read_huped) {
-		//client broken
-		return out->f->write_message(out, rq, KGL_MSG_ERROR, msg, error);
+	if (!rq->ctx->read_huped) {
+		KBIT_SET(rq->sink->data.flags, RQ_UPSTREAM_ERROR);
+		if (client) {
+			if (client->IsNew()) {
+				//newµÄ²Å¼ÆËã´íÎó.
+				client->health(HealthStatus::Err);
+			}
+			char* url = rq->sink->data.url->getUrl();
+			sockaddr_i* upstream_addr = client->GetAddr();
+			char ips[MAXIPLEN];
+			ksocket_sockaddr_ip(upstream_addr, ips, MAXIPLEN);
+			klog(KLOG_WARNING, "rq=[%p] request=[%s %s] upstream=[%s:%d] self_port=[%d] error code=[%d],msg=[%s] errno=[%d %s],socket is %s.\n",
+				rq,
+				rq->get_method(),
+				url,
+				ips,
+				ksocket_addr_port(upstream_addr),
+				client->GetSelfPort(),
+				error,
+				msg,
+				err,
+				strerror(err),
+				(client->IsNew() ? "new" : "pool")
+			);
+			xfree(url);
+		}
 	}
-	char* url = rq->sink->data.url->getUrl();
-	sockaddr_i* upstream_addr = client->GetAddr();
-	char ips[MAXIPLEN];
-	ksocket_sockaddr_ip(upstream_addr, ips, MAXIPLEN);
-	klog(KLOG_WARNING, "rq=[%p] request=[%s %s] upstream=[%s:%d] self_port=[%d] error code=[%d],msg=[%s] errno=[%d %s],socket is %s.\n",
-		rq,
-		rq->get_method(),
-		url,
-		ips,
-		ksocket_addr_port(upstream_addr),
-		client->GetSelfPort(),
-		error,
-		msg,
-		err,
-		strerror(err),
-		(client->IsNew() ? "new" : "pool")
-	);
-	xfree(url);
+	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER)) {
+		return KGL_ESOCKET_BROKEN;
+	}
 	return out->f->write_message(out, rq, KGL_MSG_ERROR, msg, error);
 }
