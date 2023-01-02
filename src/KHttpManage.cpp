@@ -64,8 +64,7 @@ void get_url_info(KSink* rq, KStringBuf& s) {
 	return;
 }
 
-bool kgl_connection_iterator(void *arg,KSink* rq)
-{
+bool kgl_connection_iterator(void* arg, KSink* rq) {
 	KConnectionInfoContext* ctx = (KConnectionInfoContext*)arg;
 	if (conf.max_connect_info > 0 && ctx->total_count > (int)conf.max_connect_info) {
 		return false;
@@ -138,15 +137,13 @@ string endTag() {
 	}
 	return s.str();
 }
-bool killProcess(KVirtualHost* vh)
-{
+bool killProcess(KVirtualHost* vh) {
 #ifndef HTTP_PROXY
 	conf.gam->killAllProcess(vh);
 #endif
 	return true;
 }
-bool killProcess(std::string process, std::string user, int pid)
-{
+bool killProcess(std::string process, std::string user, int pid) {
 
 	char* name = xstrdup(process.c_str());
 	if (name == NULL) {
@@ -176,8 +173,7 @@ bool killProcess(std::string process, std::string user, int pid)
 	xfree(name);
 	return true;
 }
-bool changeAdminPassword(KUrlValue* url, std::string& errMsg)
-{
+bool changeAdminPassword(KUrlValue* url, std::string& errMsg) {
 	stringstream s;
 	string admin_passwd = url->get("admin_passwd");
 	string admin_user = url->get("admin_user");
@@ -663,7 +659,7 @@ bool KHttpManage::config() {
 			<< ":<input name=admin_passwd autocomplete='off' type=password value=''><br>";
 		s << klang["auth_type"];
 		for (i = 0; i < TOTAL_AUTH_TYPE; i++) {
-			s << "<input type=radio name='auth_type' value='"	<< KHttpAuth::buildType((int)i) << "' ";
+			s << "<input type=radio name='auth_type' value='" << KHttpAuth::buildType((int)i) << "' ";
 			if ((unsigned)conf.auth_type == i) {
 				s << "checked";
 			}
@@ -866,20 +862,18 @@ string KHttpManage::getUrlValue(string name) {
 	return (*it).second;
 
 }
-bool KHttpManage::parseUrlParam(char* param) {
+bool KHttpManage::parseUrlParam(char* param, size_t len) {
 	char* name;
 	char* value;
 	char* tmp;
 	char* msg;
 	char* ptr;
-	for (size_t i = 0; i < strlen(param); i++) {
-		if (param[i] == '\r' || param[i] == '\n') {
-			param[i] = 0;
-			break;
-		}
+
+	char* end = (char*)kgl_mempbrk(param, (int)len, _KS("\r\n"));
+	if (end) {
+		assert(end - param <= len);
+		*end = '\0';
 	}
-	//	url_unencode(param);
-	//printf("param=%s.\n",param);
 	tmp = param;
 	char split = '=';
 	//	strcpy(split,"=");
@@ -888,7 +882,7 @@ bool KHttpManage::parseUrlParam(char* param) {
 		if (split == '=') {
 			name = msg;
 			split = '&';
-		} else {//strtok_r(msg,"=",&ptr2);
+} else {//strtok_r(msg,"=",&ptr2);
 			url_decode(msg, 0, rq->sink->data.url);
 			value = msg;//strtok_r(NULL,"=",&ptr2);
 			/*
@@ -912,7 +906,7 @@ bool KHttpManage::parseUrl(char* url) {
 
 	if (url) {
 		char* buf = xstrdup(url);
-		bool result = parseUrlParam(buf);
+		bool result = parseUrlParam(buf, strlen(buf));
 		xfree(buf);
 		return result;
 	}
@@ -940,7 +934,6 @@ bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* co
 	}
 	kbuf* gzipOut = NULL;
 	rq->response_connection();
-#if 0
 	if (content_length > conf.min_compress_length && msg && KBIT_TEST(rq->sink->data.raw_url->accept_encoding, KGL_ENCODING_GZIP)) {
 		kbuf in;
 		memset(&in, 0, sizeof(in));
@@ -950,9 +943,8 @@ bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* co
 		KBIT_SET(rq->sink->data.flags, RQ_TE_COMPRESS);
 		rq->response_header(kgl_expand_string("Content-Encoding"), kgl_expand_string("gzip"));
 	}
-#endif
 	if (content_length >= 0) {
-		rq->response_header(kgl_expand_string("Content-length"), (int)content_length);
+		rq->response_content_length(content_length);
 	}
 	rq->start_response_body(-1);
 	if (gzipOut) {
@@ -1188,8 +1180,7 @@ bool KHttpManage::sendRedirect(const char* newUrl) {
 	rq->response_header(kgl_expand_string("Location"), newUrl, (hlen_t)strlen(newUrl));
 	return rq->start_response_body(0);
 }
-bool matchManageIP(const char* ip, std::vector<std::string>& ips, std::string& matched_ip)
-{
+bool matchManageIP(const char* ip, std::vector<std::string>& ips, std::string& matched_ip) {
 	for (size_t i = 0; i < ips.size(); i++) {
 		if (ips[i][0] == '~') {
 			if (strcasecmp(ips[i].c_str() + 1, ip) == 0) {
@@ -1325,12 +1316,12 @@ void KHttpManage::parsePostData() {
 }
 bool checkManageLogin(KHttpRequest* rq) {
 	kgl_str_t result;
-	if (rq->get_http_value(_KS(X_REAL_IP_HEADER),&result)) {
+	if (rq->get_http_value(_KS(X_REAL_IP_HEADER), &result)) {
 		rq->sink->shutdown();
 		return false;
 	}
 #ifdef KSOCKET_UNIX
-	if (KBIT_TEST(rq->sink->get_server_model(),WORK_MODEL_UNIX)) {
+	if (KBIT_TEST(rq->sink->get_server_model(), WORK_MODEL_UNIX)) {
 		return true;
 	}
 #endif
@@ -1416,7 +1407,7 @@ bool KHttpManage::start_listen(bool& hit) {
 			}
 			if (getUrlValue("http3") == "1") {
 				KBIT_SET(host->alpn, KGL_ALPN_HTTP3);
-			}			
+			}
 #endif
 		}
 #endif
@@ -1529,13 +1520,13 @@ bool KHttpManage::start_listen(bool& hit) {
 		s << "protocols:<input name='protocols' size=32 value='" << (host ? host->protocols : "") << "'><br>";
 #if (ENABLE_HTTP2 && TLSEXT_TYPE_next_proto_neg)
 		s << "<input type='checkbox' name='http2' value='1' ";
-		if (host == NULL || KBIT_TEST(host->alpn,KGL_ALPN_HTTP2)) {
+		if (host == NULL || KBIT_TEST(host->alpn, KGL_ALPN_HTTP2)) {
 			s << "checked";
 		}
 		s << ">http2";
 #ifdef ENABLE_HTTP3
 		s << "<input type='checkbox' name='http3' value='1' ";
-		if (host &&  KBIT_TEST(host->alpn, KGL_ALPN_HTTP3)) {
+		if (host && KBIT_TEST(host->alpn, KGL_ALPN_HTTP3)) {
 			s << "checked";
 		}
 		s << ">http3";
@@ -1560,14 +1551,13 @@ bool KHttpManage::start_listen(bool& hit) {
 
 	return false;
 }
-bool KHttpManage::save_access(KVirtualHost* vh, std::string redirect_url)
-{
+bool KHttpManage::save_access(KVirtualHost* vh, std::string redirect_url) {
 	if (vh) {
 #ifndef HTTP_PROXY
 		vh->saveAccess();
 #endif
 		vh->destroy();
-	} else {
+} else {
 		if (!saveConfig()) {
 			sendErrorSaveConfig();
 			return false;
@@ -1575,8 +1565,7 @@ bool KHttpManage::save_access(KVirtualHost* vh, std::string redirect_url)
 	}
 	return sendRedirect(redirect_url.c_str());
 }
-bool KHttpManage::start_access(bool& hit)
-{
+bool KHttpManage::start_access(bool& hit) {
 	hit = true;
 	int type = KAccess::getType(atoi(getUrlValue("access_type").c_str()));
 	stringstream accesslist;
@@ -1844,8 +1833,7 @@ bool KHttpManage::sendProcessInfo() {
 	s << endTag();
 	return sendHttp(s.str());
 }
-KGL_RESULT KHttpManage::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out)
-{
+KGL_RESULT KHttpManage::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) {
 	this->rq = rq;
 	bool hit = true;
 	if (!start(hit)) {
@@ -1867,7 +1855,7 @@ bool KHttpManage::start(bool& hit) {
 		return runCommand();
 	}
 	if (postData) {
-		parseUrlParam(postData);
+		parseUrlParam(postData, strlen(postData));
 	}
 	if (strcmp(rq->sink->data.url->path, "/test") == 0) {
 		sendTest();

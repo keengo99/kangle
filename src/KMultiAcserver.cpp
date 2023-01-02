@@ -37,10 +37,9 @@ void KMultiAcserver::init() {
 	cookie_stick = false;
 	errorTryTime = 20;
 	max_error_count = 5;
-	//{{ent
 #ifdef ENABLE_MSERVER_ICP
 	icp = NULL;
-#endif//}}
+#endif
 }
 KMultiAcserver::KMultiAcserver() {
 	init();
@@ -56,12 +55,11 @@ KMultiAcserver::KMultiAcserver(KSockPoolHelper* nodes) {
 }
 KMultiAcserver::~KMultiAcserver() {
 	removeAllNode();
-	//{{ent
 #ifdef ENABLE_MSERVER_ICP
 	if (icp) {
 		icp->release();
 	}
-#endif//}}
+#endif
 }
 void KMultiAcserver::removeAllNode() {
 	KSockPoolHelper* helper = nodes;
@@ -217,7 +215,6 @@ KUpstream* KMultiAcserver::GetUpstream(KHttpRequest* rq) {
 		lock.Unlock();
 		return connect_result(rq, fast_node, 0);
 	}
-	//{{ent
 #ifdef ENABLE_MSERVER_ICP
 	if (icp) {
 		//use icp
@@ -228,7 +225,7 @@ KUpstream* KMultiAcserver::GetUpstream(KHttpRequest* rq) {
 		icp_rd->release();
 		return us;
 	}
-#endif//}}
+#endif
 	//reset all node
 	enableAllServer();
 	if (sockHelper) {
@@ -601,7 +598,6 @@ void KMultiAcserver::setErrorTryTime(int max_error_count, int errorTryTime) {
 	}
 	lock.Unlock();
 }
-//{{ent
 #ifdef ENABLE_MSERVER_ICP
 void KMultiAcserver::setIcp(const char* icp_name) {
 	KPoolableRedirect* new_icp = NULL;
@@ -616,7 +612,7 @@ void KMultiAcserver::setIcp(const char* icp_name) {
 	icp = new_icp;
 	lock.Unlock();
 }
-#endif//}}
+#endif
 void KMultiAcserver::set_proto(Proto_t proto) {
 	this->proto = proto;
 	lock.Lock();
@@ -624,14 +620,16 @@ void KMultiAcserver::set_proto(Proto_t proto) {
 	while (node) {
 		node->set_tcp(kangle::is_upstream_tcp(proto));
 		node = node->next;
+		if (node == nodes) {
+			break;
+		}
 	}
 	lock.Unlock();
 }
 void KMultiAcserver::parse(std::map<std::string, std::string>& attribute) {
-	//{{ent
 #ifdef ENABLE_MSERVER_ICP
 	setIcp(attribute["icp"].c_str());
-#endif//}}
+#endif
 	lock.Lock();
 	if (name.size() == 0) {
 		name = attribute["name"];
@@ -704,12 +702,11 @@ void KMultiAcserver::buildAttribute(std::stringstream& s) {
 	s << "cookie_stick='" << (cookie_stick ? 1 : 0) << "' ";
 	s << "error_try_time='" << errorTryTime << "' ";
 	s << "max_error_count='" << max_error_count << "' ";
-	//{{ent
 #ifdef ENABLE_MSERVER_ICP
 	if (icp) {
 		s << "icp='" << icp->name << "' ";
 	}
-#endif//}}
+#endif
 }
 void KMultiAcserver::buildXML(std::stringstream& s) {
 	s << "\t<server name='" << name << "' ";
@@ -768,10 +765,9 @@ bool KMultiAcserver::isChanged(KPoolableRedirect* rd) {
 			break;
 		}
 	}
-	//{{ent
 #ifdef ENABLE_MSERVER_ICP
 	return icp != ma->icp;
-#endif//}}
+#endif
 	return false;
 }
 #endif

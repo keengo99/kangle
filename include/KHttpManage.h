@@ -56,7 +56,7 @@ private:
 	int userType;
 	bool sendHttp(const std::string &msg);
 	void sendTest();
-	bool parseUrlParam(char *param);
+	bool parseUrlParam(char *param,size_t len);
 	bool parseUrl(char *url);
 	void parsePostData();
 	char *parsePostFile(int &len, std::string &fileName);

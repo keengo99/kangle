@@ -78,10 +78,9 @@ private:
 	std::vector<KSockPoolHelper *> bnodes;
 	std::vector<KSockPoolHelper *> vnodes;
 	KSockPoolHelper *nodes;
-	//{{ent
 #ifdef ENABLE_MSERVER_ICP
 	KPoolableRedirect *icp;
-#endif//}}
+#endif
 	int nodesCount;
 	int errorTryTime;
 	KMutex lock;
