@@ -227,8 +227,8 @@ public:
 	bool write_all(WSABUF* buf, int* vc);
 	int Write(WSABUF* buf, int bc);
 	int Write(const char* buf, int len);
-	bool WriteAll(const char* buf, int len);
-	bool WriteBuff(kbuf* buf);
+	bool write_all(const char* buf, int len);
+	bool write_buff(kbuf* buf);
 	int checkFilter(KHttpObject* obj);
 	//ÏÞËÙ(µþ¼Ó)
 	KSpeedLimitHelper* slh;
@@ -237,17 +237,17 @@ public:
 		helper->next = slh;
 		slh = helper;
 	}
-	int getSleepTime(int len) {
-		int sleepTime = 0;
+	int get_sleep_msec(int len) {
+		int msec = 0;
 		KSpeedLimitHelper* helper = slh;
 		while (helper) {
-			int t = helper->sl->getSleepTime(len);
-			if (t > sleepTime) {
-				sleepTime = t;
+			int t = helper->sl->get_sleep_msec(len);
+			if (t > msec) {
+				msec = t;
 			}
 			helper = helper->next;
 		}
-		return sleepTime;
+		return msec;
 	}
 	uint16_t GetSelfPort() {
 		return sink->get_self_port();

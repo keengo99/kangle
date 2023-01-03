@@ -21,7 +21,7 @@ public:
 	~KTempFile();
 	bool Init();
 	void WriteEnd();
-	bool WriteAll(const char* buf, int len);
+	bool write_all(const char* buf, int len);
 	int Write(const char *buf, int len);
 	int Read(char* buf, int len);
 	void Close();

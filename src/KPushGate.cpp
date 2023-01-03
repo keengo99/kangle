@@ -192,7 +192,7 @@ KGL_RESULT st_write_message(kgl_output_stream* st, KREQUEST r, KGL_MSG_TYPE msg_
 	bool result = true;
 	switch (msg_type) {
 	case KGL_MSG_RAW:
-		result = rq->WriteAll((char*)msg, (int)len);
+		result = rq->write_all((char*)msg, (int)len);
 		break;
 	case KGL_MSG_VECTOR:
 		result = rq->write_all(buf, &msg_flag);
@@ -313,15 +313,15 @@ KGL_RESULT check_write_body(kgl_output_stream* st, KREQUEST r, const char* buf, 
 	if (KBIT_TEST(rq->sink->data.flags, RQ_TE_CHUNKED)) {
 		char header[32];
 		int size_len = sprintf(header, "%x\r\n", len);
-		if (!rq->WriteAll(header, size_len)) {
+		if (!rq->write_all(header, size_len)) {
 			return KGL_ESOCKET_BROKEN;
 		}
-		if (!rq->WriteAll(buf, len)) {
+		if (!rq->write_all(buf, len)) {
 			return KGL_ESOCKET_BROKEN;
 		}
-		return rq->WriteAll(_KS("\r\n")) ? KGL_OK : KGL_ESOCKET_BROKEN;
+		return rq->write_all(_KS("\r\n")) ? KGL_OK : KGL_ESOCKET_BROKEN;
 	}
-	return rq->WriteAll(buf, len) ? KGL_OK : KGL_ESOCKET_BROKEN;
+	return rq->write_all(buf, len) ? KGL_OK : KGL_ESOCKET_BROKEN;
 }
 static KGL_RESULT check_write_end(kgl_output_stream* st, KREQUEST r, KGL_RESULT result) {
 	KHttpRequest* rq = (KHttpRequest*)r;
@@ -331,7 +331,7 @@ static KGL_RESULT check_write_end(kgl_output_stream* st, KREQUEST r, KGL_RESULT 
 			return KGL_ESOCKET_BROKEN;
 		}
 		if (KBIT_TEST(rq->sink->data.flags, RQ_TE_CHUNKED)) {
-			if (!rq->WriteAll(_KS("0\r\n\r\n"))) {
+			if (!rq->write_all(_KS("0\r\n\r\n"))) {
 				return KGL_ESOCKET_BROKEN;
 			}
 		}

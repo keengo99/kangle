@@ -65,7 +65,7 @@ bool KTempFile::Init()
 	fp = kfiber_file_open(file.c_str(), fileWriteRead, KFILE_TEMP_MODEL);
 	return fp != NULL;
 }
-bool KTempFile::WriteAll(const char* buf, int len)
+bool KTempFile::write_all(const char* buf, int len)
 {
 	while (len > 0) {
 		int got = Write(buf, len);
@@ -203,7 +203,7 @@ bool new_tempfile_input_stream(KHttpRequest* rq, kgl_input_stream** in)
 		if (got == 0) {
 			break;
 		}
-		if (!st->tmp_file.WriteAll(buf, got)) {
+		if (!st->tmp_file.write_all(buf, got)) {
 			goto err;
 		}
 	}
@@ -244,7 +244,7 @@ static KGL_RESULT tempfile_write_body(kgl_output_stream* out, KREQUEST r, const 
 {
 	kassert(!kfiber_is_main());
 	kgl_tempfile_output_stream* tmp_out = (kgl_tempfile_output_stream*)out;
-	if (!tmp_out->tmp_file.WriteAll(buf, len)) {
+	if (!tmp_out->tmp_file.write_all(buf, len)) {
 		return KGL_EIO;
 	}
 	if (tmp_out->write_fiber == NULL) {

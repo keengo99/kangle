@@ -18,7 +18,7 @@ public:
 	{
 		return speed_limit;
 	}
-	int getSleepTime(int len)
+	int get_sleep_msec(int len)
 	{
 		refsLock.Lock();
 		if (speed_limit <= 0) {

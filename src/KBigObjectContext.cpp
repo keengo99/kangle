@@ -64,7 +64,7 @@ KGL_RESULT KBigObjectContext::ReadBody(KHttpRequest* rq)
 			result = KGL_EIO;
 			break;
 		}
-		if (!rq->WriteAll(buf, got)) {
+		if (!rq->write_all(buf, got)) {
 			result = KGL_EIO;
 			break;
 		}

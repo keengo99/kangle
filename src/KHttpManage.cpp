@@ -948,7 +948,7 @@ bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* co
 	}
 	rq->start_response_body(-1);
 	if (gzipOut) {
-		bool result = rq->WriteBuff(gzipOut);
+		bool result = rq->write_buff(gzipOut);
 		destroy_kbuf(gzipOut);
 		return result;
 	}
@@ -958,7 +958,7 @@ bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* co
 	if (content_length <= 0) {
 		content_length = strlen(msg);
 	}
-	return rq->WriteAll(msg, (int)content_length);
+	return rq->write_all(msg, (int)content_length);
 }
 bool KHttpManage::sendHttp(const string& msg) {
 	return sendHttp(msg.c_str(), msg.size());

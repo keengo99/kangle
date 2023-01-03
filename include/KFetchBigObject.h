@@ -67,7 +67,7 @@ public:
 				break;
 			}
 			rq->ctx->left_read -= got;
-			if (!rq->WriteAll(kfiber_file_adjust(file,buffer), got)) {
+			if (!rq->write_all(kfiber_file_adjust(file,buffer), got)) {
 				result = KGL_ESOCKET_BROKEN;
 				break;
 			}

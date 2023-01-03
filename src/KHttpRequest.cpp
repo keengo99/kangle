@@ -402,25 +402,31 @@ KHttpRequest::~KHttpRequest()
 		sink->end_request();
 	}
 }
-bool KHttpRequest::WriteBuff(kbuf* buf)
+bool KHttpRequest::write_buff(kbuf* buf)
 {
+#define KGL_RQ_WRITE_BUF_COUNT 16
+	WSABUF bufs[KGL_RQ_WRITE_BUF_COUNT];
 	while (buf) {
-		if (!WriteAll(buf->data, buf->used)) {
+		int bc = 0;
+		while (bc < KGL_RQ_WRITE_BUF_COUNT && buf) {
+			bufs[bc].iov_base = buf->data;
+			bufs[bc].iov_len = buf->used;
+			buf = buf->next;
+			bc++;
+		}
+		assert(bc > 0);
+		if (!write_all(bufs, &bc)) {
 			return false;
 		}
-		buf = buf->next;
 	}
 	return true;
 }
 int KHttpRequest::Write(WSABUF* buf, int bc)
 {
-	if (slh) {
-		bc = 1;
-	}
-	int got = sink->write(buf, bc);
+	int got = sink->write(buf, slh?1:bc);
 	if (got > 0) {
 		assert(!kfiber_is_main());
-		int sleep_msec = getSleepTime(got);
+		int sleep_msec = get_sleep_msec(got);
 		if (sleep_msec > 0) {
 			kfiber_msleep(sleep_msec);
 		}
@@ -434,19 +440,21 @@ bool KHttpRequest::write_all(WSABUF* buf, int *vc)
 		if (got <= 0) {
 			return false;
 		}
-		int sleep_msec = getSleepTime(got);
+		int sleep_msec = get_sleep_msec(got);
 		if (sleep_msec > 0) {
 			kfiber_msleep(sleep_msec);
 		}
 		while (got > 0) {
 			if ((int)buf->iov_len > got) {
-				buf->iov_len += got;
+				buf->iov_len -= got;
 				buf->iov_base = (char*)buf->iov_base + got;
 				break;
 			}
+			assert(*vc > 0);
 			got -= (int)buf->iov_len;
-			buf += 1;
-			*vc -= 1;
+			buf ++;
+			(*vc) --;
+			assert(got >= 0);
 		}
 	}
 	return true;
@@ -458,17 +466,13 @@ int KHttpRequest::Write(const char* buf, int len)
 	bufs.iov_len = len;
 	return Write(&bufs, 1);
 }
-bool KHttpRequest::WriteAll(const char* buf, int len)
+bool KHttpRequest::write_all(const char* buf, int len)
 {
-	while (len > 0) {
-		int this_len = Write(buf, len);
-		if (this_len <= 0) {
-			return false;
-		}
-		len -= this_len;
-		buf += this_len;
-	}
-	return true;
+	WSABUF bufs;
+	bufs.iov_base = (char*)buf;
+	bufs.iov_len = len;
+	int bc = 1;
+	return write_all(&bufs, &bc);
 }
 int KHttpRequest::Read(char* buf, int len)
 {
