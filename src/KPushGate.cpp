@@ -270,12 +270,19 @@ KGL_RESULT check_write_header(kgl_output_stream* st, KREQUEST r, kgl_header_type
 	switch (attr) {
 	case  kgl_header_content_length:
 	{
+		INT64 content_length;
 		if (val_len == 0) {
-			INT64* content_length = (INT64*)val;
-			return rq->response_content_length(*content_length) ? KGL_OK : KGL_EINVALID_PARAMETER;
+			content_length = *(INT64*)val;
 		} else {
-			return rq->response_content_length(kgl_atol((u_char*)val, val_len)) ? KGL_OK : KGL_EINVALID_PARAMETER;
+			content_length = kgl_atol((u_char*)val, val_len);
 		}
+		if (content_length >= 0) {
+			rq->ctx->know_length = 1;
+			if (rq->sink->data.meth != METH_HEAD) {
+				rq->ctx->left_read = content_length;
+			}
+		}
+		return rq->response_content_length(content_length) ? KGL_OK : KGL_EINVALID_PARAMETER;
 	}
 	default:
 		return rq->response_header(attr, val, val_len) ? KGL_OK : KGL_EINVALID_PARAMETER;

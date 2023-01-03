@@ -205,12 +205,6 @@ public:
 		return response_header(name, name_len, buf, len);
 	}
 	bool response_content_length(int64_t content_length) {
-		if (content_length >= 0) {
-			ctx->know_length = 1;
-			if (sink->data.meth != METH_HEAD) {
-				ctx->left_read = content_length;
-			}
-		}
 		return sink->response_content_length(content_length);
 	}
 	//返回true，一定需要回应content-length或chunk
