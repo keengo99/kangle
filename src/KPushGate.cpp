@@ -40,7 +40,7 @@ static KGL_RESULT dechunk_push_body(kgl_output_stream* gate, KREQUEST r, const c
 	}
 	return STREAM_WRITE_SUCCESS;
 }
-KGL_RESULT forward_write_header(kgl_output_stream* gate, KREQUEST r, kgl_header_type attr, const char* val, hlen_t val_len) {
+KGL_RESULT forward_write_header(kgl_output_stream* gate, KREQUEST r, kgl_header_type attr, const char* val, int val_len) {
 	kgl_forward_stream* g = (kgl_forward_stream*)gate;
 	return g->down_stream->f->write_header(g->down_stream, r, attr, val, val_len);
 }
@@ -125,7 +125,7 @@ struct kgl_default_output_stream : public kgl_output_stream
 void st_write_status(kgl_output_stream* st, KREQUEST r, uint16_t status_code) {
 	((KHttpRequest*)r)->ctx->obj->data->i.status_code = status_code;
 }
-KGL_RESULT st_write_header(kgl_output_stream* st, KREQUEST r, kgl_header_type attr, const char* val, hlen_t val_len) {
+KGL_RESULT st_write_header(kgl_output_stream* st, KREQUEST r, kgl_header_type attr, const char* val, int val_len) {
 	kgl_default_output_stream* g = (kgl_default_output_stream*)st;
 	KHttpRequest* rq = (KHttpRequest*)r;
 	if (g->parser_ctx.parse_header((KHttpRequest*)rq, attr, val, val_len)) {
@@ -264,17 +264,15 @@ void check_release(kgl_output_stream* out) {
 void check_write_status(kgl_output_stream* st, KREQUEST r, uint16_t status_code) {
 	((KHttpRequest*)r)->response_status(status_code);
 }
-KGL_RESULT check_write_header(kgl_output_stream* st, KREQUEST r, kgl_header_type attr, const char* val, hlen_t val_len) {
+KGL_RESULT check_write_header(kgl_output_stream* st, KREQUEST r, kgl_header_type attr, const char* val, int val_len) {
 	KHttpRequest* rq = (KHttpRequest*)r;
 
 	switch (attr) {
 	case  kgl_header_content_length:
 	{
 		INT64 content_length;
-		if (val_len == 0) {
-			content_length = *(INT64*)val;
-		} else {
-			content_length = kgl_atol((u_char*)val, val_len);
+		if (0 != kgl_parse_value_int64(val, val_len, &content_length)) {
+			return KGL_ENOT_SUPPORT;
 		}
 		if (content_length >= 0) {
 			rq->ctx->know_length = 1;

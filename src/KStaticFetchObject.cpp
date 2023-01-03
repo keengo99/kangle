@@ -104,9 +104,9 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_output_stre
 	if (obj->never_compress) {
 		out->f->write_header(out, rq, kgl_header_content_encoding, kgl_expand_string("identity"));
 	}
-	out->f->write_header(out, rq, kgl_header_content_length, (const char*)&left_send, 0);
+	out->f->write_header(out, rq, kgl_header_content_length, (const char*)&left_send, KGL_HEADER_VALUE_INT64);
 	time_t last_modified = rq->file->getLastModified();
-	out->f->write_header(out, rq, kgl_header_last_modified, (const char*)&last_modified, 0);
+	out->f->write_header(out, rq, kgl_header_last_modified, (const char*)&last_modified, KGL_HEADER_VALUE_TIME);
 	out->f->write_header(out, rq, kgl_header_content_type, content_type, (hlen_t)strlen(content_type));
 	xfree(content_type);
 	//rq->buffer << "1234";

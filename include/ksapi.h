@@ -331,7 +331,7 @@ typedef struct _kgl_output_stream_function
 {
 	//out header
 	void(*write_status)(kgl_output_stream* out, KREQUEST rq, uint16_t status_code);
-	KGL_RESULT(*write_header)(kgl_output_stream* out, KREQUEST rq, kgl_header_type attr, const char* val, hlen_t val_len);
+	KGL_RESULT(*write_header)(kgl_output_stream* out, KREQUEST rq, kgl_header_type attr, const char* val, int val_len);
 	KGL_RESULT(*write_unknow_header)(kgl_output_stream* out, KREQUEST rq, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len);
 	KGL_RESULT(*write_header_finish)(kgl_output_stream* out, KREQUEST rq);
 	//out body

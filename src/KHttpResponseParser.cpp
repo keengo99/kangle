@@ -4,9 +4,9 @@
 #include "KHttpFieldValue.h"
 #include "time_utils.h"
 #include "kmalloc.h"
-bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, const char* val, int val_len)
-{
+bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, const char* val, int val_len) {
 	//printf("parse header attr=[%d] val=[%s]\n",attr,val);
+	assert(val_len != 0);
 	const char* end = val + val_len;
 	KHttpObject* obj = rq->ctx->obj;
 	switch (attr) {
@@ -14,34 +14,31 @@ bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, c
 		KBIT_SET(obj->index.flags, OBJ_HAS_ETAG);
 		return add_header(attr, val, val_len, false);
 	case kgl_header_content_range:
-	{		
+	{
 		const char* p = (char*)memchr(val, '/', val_len);
 		if (p) {
 			p++;
 			if (end > p) {
-				rq->ctx->content_range_length = kgl_atol((u_char *)p, end - p);
+				rq->ctx->content_range_length = kgl_atol((u_char*)p, end - p);
 				KBIT_SET(obj->index.flags, ANSW_HAS_CONTENT_RANGE);
 			}
 		}
 		return add_header(attr, val, val_len);
 	}
 	case kgl_header_content_length:
-		KBIT_SET(obj->index.flags, ANSW_HAS_CONTENT_LENGTH);
-		if (val_len == 0) {
-			obj->index.content_length = *(int64_t*)val;
-		} else {
-			obj->index.content_length = kgl_atol((u_char*)val, val_len);
+		if (0 != kgl_parse_value_int64(val, val_len, &obj->index.content_length)) {
+			return false;
 		}
+		KBIT_SET(obj->index.flags, ANSW_HAS_CONTENT_LENGTH);
 		return true;
 	case kgl_header_date:
-		serverDate = kgl_parse_http_time((u_char*)val, val_len);
+		if (kgl_parse_value_time(val, val_len, &serverDate) != 0) {
+			return false;
+		}
 		return add_header(attr, val, val_len);
 	case kgl_header_last_modified:
-		if (val_len > 0) {
-			obj->data->i.last_modified = kgl_parse_http_time((u_char*)val, val_len);
-		} else {
-			obj->data->i.last_modified = *(time_t*)val;
-			val_len = kgl_value_type(KGL_HEADER_VALUE_TIME);
+		if (kgl_parse_value_time(val, val_len, &obj->data->i.last_modified) != 0) {
+			return false;
 		}
 		if (obj->data->i.last_modified > 0) {
 			obj->index.flags |= ANSW_LAST_MODIFIED;
@@ -133,13 +130,10 @@ bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, c
 		return add_header(attr, val, val_len);
 	case kgl_header_expires:
 		if (!KBIT_TEST(obj->index.flags, ANSW_HAS_EXPIRES)) {
-			KBIT_SET(obj->index.flags, ANSW_HAS_EXPIRES);
-			if (val_len == 0) {
-				expireDate = *(time_t*)val;
-				val_len = kgl_value_type(KGL_HEADER_VALUE_TIME);
-			} else {
-				expireDate = kgl_parse_http_time((u_char*)val, val_len);
+			if (kgl_parse_value_time(val, val_len, &expireDate) != 0) {
+				return false;
 			}
+			KBIT_SET(obj->index.flags, ANSW_HAS_EXPIRES);
 		}
 		return add_header(attr, val, val_len);
 	default:
@@ -147,8 +141,7 @@ bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, c
 	}
 	return false;
 }
-bool KHttpResponseParser::parse_unknow_header(KHttpRequest* rq, const char* attr, int attr_len, const char* val, int val_len, bool request_line)
-{
+bool KHttpResponseParser::parse_unknow_header(KHttpRequest* rq, const char* attr, int attr_len, const char* val, int val_len, bool request_line) {
 	//printf("parse unknow header attr=[%s] val=[%s]\n",attr,val);
 	KHttpObject* obj = rq->ctx->obj;
 	if (*attr == 'x' || *attr == 'X') {
@@ -164,8 +157,7 @@ bool KHttpResponseParser::parse_unknow_header(KHttpRequest* rq, const char* attr
 	}
 	return add_header(attr, attr_len, val, val_len);
 }
-void KHttpResponseParser::end_parse(KHttpRequest* rq)
-{
+void KHttpResponseParser::end_parse(KHttpRequest* rq) {
 	/*
  * see rfc2616
  * 没有 Last-Modified 我们不缓存.
@@ -201,16 +193,14 @@ void KHttpResponseParser::end_parse(KHttpRequest* rq)
 	}
 	commit_headers(rq);
 }
-void KHttpResponseParser::commit_headers(KHttpRequest* rq)
-{
+void KHttpResponseParser::commit_headers(KHttpRequest* rq) {
 	if (last) {
 		last->next = rq->ctx->obj->data->headers;
 		rq->ctx->obj->data->headers = steal_header();
 	}
 }
 
-kgl_header_type kgl_parse_response_header(const char* attr, hlen_t attr_len)
-{
+kgl_header_type kgl_parse_response_header(const char* attr, hlen_t attr_len) {
 	if (kgl_mem_case_same(attr, attr_len, _KS("Etag"))) {
 		return kgl_header_etag;
 	}
@@ -258,7 +248,7 @@ kgl_header_type kgl_parse_response_header(const char* attr, hlen_t attr_len)
 	}
 	if (kgl_mem_case_same(attr, attr_len, _KS("Content-Encoding"))) {
 		return kgl_header_content_encoding;
-	
+
 	}
 	if (kgl_mem_case_same(attr, attr_len, _KS("Expires"))) {
 		return kgl_header_expires;

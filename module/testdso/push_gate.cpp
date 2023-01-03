@@ -20,29 +20,12 @@ static void my_msleep(int msec) {
 	select(1, NULL, NULL, NULL, &tv);
 #endif
 }
-#if 0
-static int64_t get_post_left(kgl_output_stream *gate, KREQUEST rq)
-{
-	kgl_async_context *ctx = get_async_context(gate);
-	return ctx->gate->f->get_post_left(ctx->gate, rq);
-}
-static kev_result read_post(kgl_output_stream *gate, KREQUEST rq)
-{
-	kgl_async_context *ctx = get_async_context(gate);
-	test_context *t = (test_context *)ctx->module;
-	if (t->model == test_upload_sleep_forward) {
-		t->read_post = true;
-		my_msleep(100);		
-	}
-	return ctx->gate->f->read_post(ctx->gate, rq);
-}
-#endif
 static void push_status(kgl_output_stream *gate, KREQUEST rq, uint16_t status_code)
 {
 	kgl_async_context *ctx = kgl_get_out_async_context(gate);
 	return ctx->out->f->write_status(ctx->out, rq, status_code);
 }
-static KGL_RESULT push_header(kgl_output_stream *gate, KREQUEST rq, kgl_header_type attr, const char *val, hlen_t val_len)
+static KGL_RESULT push_header(kgl_output_stream *gate, KREQUEST rq, kgl_header_type attr, const char *val, int val_len)
 {
 	kgl_async_context *ctx = kgl_get_out_async_context(gate);
 	return ctx->out->f->write_header(ctx->out, rq, attr, val, val_len);

@@ -24,7 +24,7 @@ static KGL_RESULT open(KREQUEST r, kgl_async_context *ctx)
 	{
 		ctx->out->f->write_status(ctx->out, r, 200);
 		int64_t content_length = -1;
-		ctx->out->f->write_header(ctx->out, r, kgl_header_content_length, (char*)&content_length, 0);
+		ctx->out->f->write_header(ctx->out, r, kgl_header_content_length, (char*)&content_length, KGL_HEADER_VALUE_INT64);
 		result = ctx->out->f->write_header_finish(ctx->out, r);
 		if (result != KGL_OK) {
 			return result;

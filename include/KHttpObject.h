@@ -341,6 +341,9 @@ public:
 	void insert_http_header(kgl_header_type type, const char* val, int val_len)
 	{
 		KHttpHeader* new_h = new_http_know_header(type, val, val_len);
+		if (!new_h) {
+			return;
+		}
 		new_h->next = data->headers;
 		data->headers = new_h;
 	}

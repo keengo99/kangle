@@ -530,10 +530,10 @@ KGL_RESULT KAsyncFetchObject::PushHeader(KHttpRequest* rq, const char* attr, int
 		if (rq->sink->data.meth != METH_HEAD) {
 			rq->ctx->left_read = content_length;
 		}
-		return out->f->write_header(out, rq, header, (char*)&content_length, 0);
+		return out->f->write_header(out, rq, header, (char*)&content_length, KGL_HEADER_VALUE_INT64);
 	}
 	case kgl_header_unknow:
-		return out->f->write_unknow_header(out, rq, attr, attr_len, val, val_len);
+		return out->f->write_unknow_header(out, rq, attr, attr_len, val, (hlen_t)val_len);
 	default:
 		break;
 	}

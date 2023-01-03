@@ -18,7 +18,7 @@ KGL_RESULT forward_write_body(kgl_output_stream* gate, KREQUEST r, const char* b
 KGL_RESULT forward_write_header_finish(kgl_output_stream* gate, KREQUEST r);
 KGL_RESULT forward_write_message(kgl_output_stream* gate, KREQUEST rq, KGL_MSG_TYPE type, const void* msg, int32_t msg_flag);
 KGL_RESULT forward_write_end(kgl_output_stream* out, KREQUEST rq, KGL_RESULT result);
-KGL_RESULT forward_write_header(kgl_output_stream* gate, KREQUEST r, kgl_header_type attr, const char* val, hlen_t val_len);
+KGL_RESULT forward_write_header(kgl_output_stream* gate, KREQUEST r, kgl_header_type attr, const char* val, int val_len);
 KGL_RESULT forward_write_unknow_header(kgl_output_stream* gate, KREQUEST r, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len);
 
 class KAutoReleaseStream
