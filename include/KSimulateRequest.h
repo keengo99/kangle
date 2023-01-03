@@ -56,11 +56,11 @@ public:
 	{
 		return false;
 	}
-	bool read_hup(void *arg, result_callback result) override
+	bool readhup(void *arg, result_callback result) override
 	{
 		return false;
 	}
-	void remove_read_hup() override
+	void remove_readhup() override
 	{
 
 	}

@@ -145,6 +145,7 @@ public:
 		}
 		return follow_link;
 	}
+	void readhup();
 	void close_source();
 	bool rewrite_url(const char *newUrl, int errorCode = 0,const char *prefix = NULL);
 	void EnterRequestQueue();

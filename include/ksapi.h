@@ -355,7 +355,7 @@ struct _kgl_output_stream
 typedef struct _kgl_async_context_function
 {
 
-	kgl_get_variable_f get_variable;
+	kgl_get_variable_f get_variable;	
 	KGL_RESULT(*open_next)(KREQUEST rq, KCONN cn, kgl_input_stream* in, kgl_output_stream* out, const char* queue);
 	KGL_RESULT(*support_function) (
 		KREQUEST    rq,
@@ -363,6 +363,7 @@ typedef struct _kgl_async_context_function
 		KF_REQ_TYPE req,
 		PVOID       buffer,
 		PVOID* ret);
+	void (*readhup)(KREQUEST rq);
 } kgl_async_context_function;
 
 typedef struct _kgl_async_context
@@ -472,6 +473,7 @@ struct _kgl_upstream
 	void* (*create_ctx)();
 	void (*free_ctx)(void* ctx);
 	KGL_RESULT(*open)(KREQUEST rq, kgl_async_context* ctx);
+	void (*on_readhup)(KREQUEST rq, kgl_async_context* ctx);
 };
 
 typedef struct _kgl_http_upstream

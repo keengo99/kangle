@@ -55,7 +55,9 @@ public:
 		flags = 0;
 	}
 	virtual ~KFetchObject();
-	
+	virtual void on_readhup(KHttpRequest* rq) {
+
+	}
 	virtual KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) = 0;
 	void bindRedirect(KRedirect *rd,uint8_t confirmFile)
 	{

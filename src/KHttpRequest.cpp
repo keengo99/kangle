@@ -60,6 +60,27 @@ void WINAPI free_auto_memory(void* arg)
 {
 	xfree(arg);
 }
+kev_result on_sink_readhup(KOPAQUE data, void* arg, int got) {
+	/**
+	* on_readhup the KOPAQUE data param is no use.
+	* Http2 on_readhup data param always is NULL.
+	*/
+	KHttpRequest* rq = (KHttpRequest*)arg;
+	rq->ctx->read_huped = true;
+	rq->sink->shutdown();
+	KFetchObject* fo_head = rq->fo_head;
+	while (fo_head) {
+		fo_head->on_readhup(rq);
+		fo_head = fo_head->next;
+	}
+	return kev_ok;
+}
+void KHttpRequest::readhup() {
+	if (!conf.read_hup) {
+		return;
+	}
+	sink->readhup(this, on_sink_readhup);
+}
 char* KHttpRequest::map_url_path(const char* url, KBaseRedirect* caller)
 {
 	KSubVirtualHost* nsvh = NULL;
@@ -231,6 +252,7 @@ int KHttpRequest::EndRequest() {
 #ifdef ENABLE_BIG_OBJECT_206
 	assert(bo_ctx == NULL);
 #endif
+	sink->remove_readhup();
 	ctx->clean_obj(this);
 	log_access(this);
 	delete this;

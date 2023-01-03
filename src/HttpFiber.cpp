@@ -15,7 +15,7 @@
 #include "KDefaultFetchObject.h"
 
 int stage_end_request(KHttpRequest* rq, KGL_RESULT result)
-{	
+{
 #ifdef ENABLE_BIG_OBJECT_206
 	if (rq->bo_ctx) {
 		if (rq->bo_ctx->net_fiber != NULL) {
