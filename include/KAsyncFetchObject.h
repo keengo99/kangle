@@ -67,12 +67,12 @@ public:
 		rq->ctx->upstream_expected_done = 1;
 	}
 #ifdef ENABLE_REQUEST_QUEUE
-	bool needQueue(KHttpRequest *rq)
+	bool needQueue(KHttpRequest *rq) override
 	{
 		return true;
 	}
 #endif
-	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out);
+	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) override;
 public:
 	void WaitPostFiber(KHttpRequest* rq, kfiber *post_fiber)
 	{
@@ -80,6 +80,7 @@ public:
 		int retval;
 		kfiber_join(post_fiber, &retval);
 	}
+	void shutdown(KHttpRequest* rq);
 	virtual KGL_RESULT read_body_end(KHttpRequest* rq, KGL_RESULT result)
 	{
 		return result;
@@ -119,7 +120,7 @@ public:
 	kgl_output_stream *out;
 	friend class KHttp2;
 protected:
-	KGL_RESULT readHeadSuccess(KHttpRequest *rq,kfiber **post_fiber);
+	KGL_RESULT on_read_head_success(KHttpRequest *rq,kfiber **post_fiber);
 	void BuildChunkHeader();
 	void PushStatus(KHttpRequest *rq, int status_code);
 	KGL_RESULT PushHeaderFinished(KHttpRequest *rq);
@@ -143,9 +144,9 @@ protected:
 	kgl_pop_header pop_header;
 private:
 	void ResetBuffer();
-
+	void read_hup(KHttpRequest* rq);
 	KGL_RESULT SendPost(KHttpRequest *rq);
-	void CreatePostFiber(KHttpRequest* rq, kfiber** post_fiber);
+	void create_post_fiber(KHttpRequest* rq, kfiber** post_fiber);
 	void InitUpstreamBuffer()
 	{
 		if (us_buffer.buf) {
