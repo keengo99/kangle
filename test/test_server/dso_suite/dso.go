@@ -6,12 +6,17 @@ import (
 )
 
 func check_upstream() {
-	common.Getx("http://dso.test:9999/test_dso_upstream", "127.0.0.1", nil, func(resp *http.Response, err error) {
+	common.Getx("/test_dso_upstream", "dso.localtest.me", nil, func(resp *http.Response, err error) {
 		common.AssertSame(common.Read(resp), "test_upstream_ok")
 	})
 }
 func check_filter() {
-	common.Getx("http://dso.test:9999/test_dso_filter", "127.0.0.1", nil, func(resp *http.Response, err error) {
+	common.Getx("/test_dso_filter", "dso.localtest.me", nil, func(resp *http.Response, err error) {
 		common.AssertSame(common.Read(resp), "t*st_upstr*am_ok")
+	})
+}
+func check_before_cache_chunk() {
+	common.Getx("/dso/before_cache_chunk", "dso.localtest.me", nil, func(resp *http.Response, err error) {
+		common.AssertSame(common.Read(resp), "hello")
 	})
 }

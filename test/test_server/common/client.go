@@ -157,6 +157,8 @@ func Request(method string, path string, host string, header map[string]string, 
 	var url string
 	if strings.Contains(path, "://") {
 		url = path
+	} else if host != "" {
+		url = config.GetUrl(host, path)
 	} else {
 		url = fmt.Sprintf("%s%s", config.Cfg.UrlPrefix, path)
 	}

@@ -24,7 +24,7 @@ func (this *dso) Init() error {
 	</request>
 <vh name='dso' doc_root='www'  inherit='on' app='1'>
 	<map path='/' extend='dso:testdso:async_test' confirm_file='0' allow_method='*'/>
-	<host>dso.test</host>
+	<host>dso.localtest.me</host>
 </vh>
 </config>
 `
@@ -40,5 +40,6 @@ func init() {
 	s.Name = "dso"
 	s.AddCase("upstream", "dso的upstream", check_upstream)
 	s.AddCase("filter", "dso的filter", check_filter)
+	s.AddCase("bc_chunk", "before cache chunk", check_before_cache_chunk)
 	suite.Register(s)
 }
