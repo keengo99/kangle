@@ -379,7 +379,6 @@ bool KWebDavService::doUnlock() {
 		fprintf(stderr, "cann't found HTTP_LOCK_TOKEN\n");
 		return send(STATUS_BAD_REQUEST);
 	}
-	fprintf(stderr, "token_header=[%s]\n", token_header);
 	char* token = strchr(token_header, '<');
 	if (token == nullptr) {
 		return send(STATUS_BAD_REQUEST);
