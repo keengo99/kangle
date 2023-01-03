@@ -332,7 +332,7 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 			build_first = false;
 			send_obj_header = false;
 			rq->response_status(416);
-			rq->response_header(kgl_expand_string("Content-Length"), kgl_expand_string("0"));
+			rq->response_header(kgl_header_content_length, _KS("0"),true);
 			rq->sink->data.range_from = -1;
 			start = -1;
 			send_len = 0;
@@ -347,7 +347,7 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 				s.add(rq->sink->data.range_to, INT64_FORMAT);
 				s.WSTR("/");
 				s.add(content_len, INT64_FORMAT);
-				rq->response_header(kgl_expand_string("Content-Range"), s.getBuf(), s.getSize());
+				rq->response_header(kgl_header_content_range, s.getBuf(), s.getSize());
 			}
 			start = rq->sink->data.range_from;
 			content_len = send_len;

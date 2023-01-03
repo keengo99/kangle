@@ -62,6 +62,11 @@ static uint32_t process(KREQUEST rq, kgl_access_context *ctx, DWORD notify)
 			register_async_upstream(rq, ctx, model_ctx);
 			return KF_STATUS_REQ_TRUE;
 		}
+		if (strcmp(buf, "/dso/before_cache_chunk") == 0) {
+			test_context* model_ctx = new test_context(test_chunk);
+			register_async_upstream(rq, ctx, model_ctx,true);
+			return KF_STATUS_REQ_TRUE;
+		}
 	}
 	test_context *model_ctx = new test_context(test_forward);
 	register_async_upstream(rq, ctx, model_ctx);

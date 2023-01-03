@@ -6,6 +6,7 @@ enum test_model {
 	test_forward,
 	test_next,
 	test_upload_sleep_forward,
+	test_chunk
 };
 class test_context {
 public:
@@ -17,5 +18,5 @@ public:
 	bool read_post;
 };
 void register_global_async_upstream(kgl_dso_version *ver);
-void register_async_upstream(KREQUEST r, kgl_access_context *ctx, test_context *model_ctx);
+void register_async_upstream(KREQUEST r, kgl_access_context *ctx, test_context *model_ctx,bool before_cache=false);
 #endif
