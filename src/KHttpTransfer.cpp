@@ -179,6 +179,7 @@ bool KHttpTransfer::loadStream(KHttpRequest *rq, KCompressStream *compress_st, c
 #endif
 	st = new KDefaultHttpStream();
 	autoDelete = true;
+#if 0
 	/*
 	 ¼ì²éÊÇ·ñÓÐchunk²ã
 	 */
@@ -192,6 +193,7 @@ bool KHttpTransfer::loadStream(KHttpRequest *rq, KCompressStream *compress_st, c
 			return false;
 		}
 	}
+#endif
 	//¼ì²âÊÇ·ñ¼ÓÔØcache²ã
 	
 	if (KBIT_TEST(obj->index.flags,ANSW_NO_CACHE)==0) {

@@ -155,6 +155,10 @@ bool KHttpResponseParser::parse_unknow_header(KHttpRequest* rq, const char* attr
 			return true;
 		}
 	}
+	if (kgl_mem_case_same(attr, attr_len, _KS("Trailer"))) {
+		//has trailer header will no cache.
+		KBIT_SET(obj->index.flags, FLAG_DEAD);
+	}
 	return add_header(attr, attr_len, val, val_len);
 }
 void KHttpResponseParser::end_parse(KHttpRequest* rq) {

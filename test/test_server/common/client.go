@@ -246,3 +246,12 @@ func Bench(method string, url string, header map[string]string, count int, repor
 	}
 	return
 }
+func GetClient(url string) *http.Client {
+	if strings.HasPrefix(url, "https://") && config.Cfg.Alpn == config.HTTP2 {
+		return Http2Client
+	} else if strings.HasPrefix(url, "https://") && config.Cfg.Alpn == config.HTTP3 {
+		return Http3Client
+	} else {
+		return Http1Client
+	}
+}

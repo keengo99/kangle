@@ -337,6 +337,7 @@ typedef struct _kgl_output_stream_function
 	//out body
 	KGL_RESULT(*write_body)(kgl_output_stream* out, KREQUEST rq, const char* str, int len);
 	KGL_RESULT(*write_message)(kgl_output_stream* out, KREQUEST rq, KGL_MSG_TYPE msg_type, const void* msg, int msg_flag);
+	KGL_RESULT(*write_trailer)(kgl_output_stream *out, KREQUEST rq, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len);
 	KGL_RESULT(*write_end)(kgl_output_stream* out, KREQUEST rq, KGL_RESULT result);
 	//release
 	void(*release)(kgl_output_stream* out);

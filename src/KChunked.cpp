@@ -3,7 +3,7 @@
 #include "KChunked.h"
 #include "kmalloc.h"
 #include "kstring.h"
-
+#if 0
 KChunked::KChunked(KWriteStream *st,bool autoDelete) : KHttpStream(st,autoDelete)
 {
 	firstPackage = true;
@@ -43,3 +43,4 @@ StreamState KChunked::write_end(void*rq, KGL_RESULT result)
 	}
 	return KHttpStream::write_end(rq, result);
 }
+#endif

@@ -14,19 +14,20 @@
 #define tunlink(f)             unlink(f)
 #endif
 
-struct kgl_tempfile_input_stream : public kgl_input_stream {
+struct kgl_tempfile_input_stream : public kgl_input_stream
+{
 	kgl_input_stream* up;
 	KTempFile tmp_file;
 };
 
-struct kgl_tempfile_output_stream : public kgl_forward_stream {
+struct kgl_tempfile_output_stream : public kgl_forward_stream
+{
 	KTempFile tmp_file;
 	KREQUEST rq;
 	kfiber* write_fiber;
 };
 
-KTempFile::KTempFile()
-{
+KTempFile::KTempFile() {
 	write_offset = 0;
 	read_offset = 0;
 	fp = NULL;
@@ -34,8 +35,7 @@ KTempFile::KTempFile()
 	write_is_end = false;
 	lock = kfiber_mutex_init();
 }
-void KTempFile::Close()
-{
+void KTempFile::Close() {
 	kfiber_mutex_lock(lock);
 	if (fp) {
 		kfiber_file_close(fp);
@@ -44,14 +44,12 @@ void KTempFile::Close()
 	}
 	kfiber_mutex_unlock(lock);
 }
-KTempFile::~KTempFile()
-{
+KTempFile::~KTempFile() {
 	Close();
 	kfiber_mutex_destroy(lock);
 	assert(wait_read == NULL);
 }
-bool KTempFile::Init()
-{
+bool KTempFile::Init() {
 	write_offset = 0;
 	read_offset = 0;
 	write_is_end = false;
@@ -65,8 +63,7 @@ bool KTempFile::Init()
 	fp = kfiber_file_open(file.c_str(), fileWriteRead, KFILE_TEMP_MODEL);
 	return fp != NULL;
 }
-bool KTempFile::write_all(const char* buf, int len)
-{
+bool KTempFile::write_all(const char* buf, int len) {
 	while (len > 0) {
 		int got = Write(buf, len);
 		if (got <= 0) {
@@ -77,17 +74,15 @@ bool KTempFile::write_all(const char* buf, int len)
 	}
 	return true;
 }
-void KTempFile::WriteEnd()
-{
+void KTempFile::WriteEnd() {
 	write_is_end = true;
 	kfiber* fiber = wait_read;
 	if (fiber != NULL) {
 		wait_read = NULL;
-		kfiber_wakeup(fiber,this, 0);
+		kfiber_wakeup(fiber, this, 0);
 	}
 }
-int KTempFile::Write(const char *buf, int len)
-{
+int KTempFile::Write(const char* buf, int len) {
 	kfiber_mutex_lock(lock);
 	if (fp == NULL) {
 		kfiber_mutex_unlock(lock);
@@ -100,7 +95,7 @@ int KTempFile::Write(const char *buf, int len)
 	if (got > 0) {
 		write_offset += got;
 		kfiber* fiber = wait_read;
-		if (write_offset > read_offset && fiber != NULL) {			
+		if (write_offset > read_offset && fiber != NULL) {
 			wait_read = NULL;
 			//printf("write wakeup wait_read fiber=[%p]\n", fiber);
 			kfiber_wakeup(fiber, this, 0);
@@ -108,8 +103,7 @@ int KTempFile::Write(const char *buf, int len)
 	}
 	return got;
 }
-int KTempFile::Read(char* buf, int len)
-{
+int KTempFile::Read(char* buf, int len) {
 	if (fp == NULL || wait_read) {
 		return -1;
 	}
@@ -137,41 +131,36 @@ int KTempFile::Read(char* buf, int len)
 	}
 	return -1;
 }
-int listHandleTempFile(const char *file,void *param)
-{
-	if (filencmp(file,"krf",3)!=0) {
+int listHandleTempFile(const char* file, void* param) {
+	if (filencmp(file, "krf", 3) != 0) {
 		return 0;
 	}
-	int pid = atoi(file+3);
+	int pid = atoi(file + 3);
 	if (pid == m_ppid) {
 		return 0;
 	}
 	std::stringstream s;
 	s << conf.tmppath << file;
-	klog(KLOG_NOTICE,"remove uncleaned tmpfile [%s]\n",s.str().c_str());
+	klog(KLOG_NOTICE, "remove uncleaned tmpfile [%s]\n", s.str().c_str());
 	unlink(s.str().c_str());
 	return 0;
 }
-KTHREAD_FUNCTION clean_tempfile_thread(void *param)
-{
-	klog(KLOG_DEBUG,"start to clean tmp file thread...\n");
-	list_dir(conf.tmppath.c_str(),listHandleTempFile,NULL);
-	klog(KLOG_DEBUG,"clean tmp file done.\n");
+KTHREAD_FUNCTION clean_tempfile_thread(void* param) {
+	klog(KLOG_DEBUG, "start to clean tmp file thread...\n");
+	list_dir(conf.tmppath.c_str(), listHandleTempFile, NULL);
+	klog(KLOG_DEBUG, "clean tmp file done.\n");
 	KTHREAD_RETURN;
 }
 
-static int64_t tmpfile_input_get_read_left(kgl_input_stream* st, KREQUEST r)
-{
+static int64_t tmpfile_input_get_read_left(kgl_input_stream* st, KREQUEST r) {
 	kgl_tempfile_input_stream* in = (kgl_tempfile_input_stream*)st;
 	return in->tmp_file.GetLeft();
 }
-static int tmpfile_input_read(kgl_input_stream* st, KREQUEST r, char* buf, int len)
-{
+static int tmpfile_input_read(kgl_input_stream* st, KREQUEST r, char* buf, int len) {
 	kgl_tempfile_input_stream* in = (kgl_tempfile_input_stream*)st;
 	return in->tmp_file.Read(buf, len);
 }
-static void tmpfile_input_release(kgl_input_stream* st)
-{
+static void tmpfile_input_release(kgl_input_stream* st) {
 	kgl_tempfile_input_stream* in = (kgl_tempfile_input_stream*)st;
 	delete in;
 }
@@ -181,8 +170,7 @@ static kgl_input_stream_function tempfile_input_stream_function = {
 	tmpfile_input_release
 };
 
-bool new_tempfile_input_stream(KHttpRequest* rq, kgl_input_stream** in)
-{
+bool new_tempfile_input_stream(KHttpRequest* rq, kgl_input_stream** in) {
 	if ((*in)->f->get_read_left(*in, rq) == 0) {
 		return true;
 	}
@@ -216,8 +204,7 @@ err:
 	free(buf);
 	return false;
 }
-int tempfile_write_fiber(void* arg, int got)
-{
+int tempfile_write_fiber(void* arg, int got) {
 	kgl_tempfile_output_stream* out = (kgl_tempfile_output_stream*)arg;
 	KGL_RESULT result = KGL_OK;
 	char* buf = (char*)malloc(8192);
@@ -240,8 +227,24 @@ int tempfile_write_fiber(void* arg, int got)
 	free(buf);
 	return (int)result;
 }
-static KGL_RESULT tempfile_write_body(kgl_output_stream* out, KREQUEST r, const char* buf, int len)
-{
+
+int tempfile_end(kgl_tempfile_output_stream* tmp_out) {
+	tmp_out->tmp_file.WriteEnd();
+	if (tmp_out->write_fiber) {
+		int ret = -1;
+		kfiber_join(tmp_out->write_fiber, &ret);
+		tmp_out->write_fiber = NULL;
+		return ret;
+	}
+	return 0;
+}
+KGL_RESULT tempfile_write_trailer(kgl_output_stream* out, KREQUEST r, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
+	kgl_tempfile_output_stream* tmp_out = (kgl_tempfile_output_stream*)out;
+	//flush data.
+	tempfile_end(tmp_out);
+	return tmp_out->down_stream->f->write_trailer(tmp_out->down_stream, r, attr, attr_len, val, val_len);
+}
+static KGL_RESULT tempfile_write_body(kgl_output_stream* out, KREQUEST r, const char* buf, int len) {
 	kassert(!kfiber_is_main());
 	kgl_tempfile_output_stream* tmp_out = (kgl_tempfile_output_stream*)out;
 	if (!tmp_out->tmp_file.write_all(buf, len)) {
@@ -254,24 +257,13 @@ static KGL_RESULT tempfile_write_body(kgl_output_stream* out, KREQUEST r, const 
 		}
 	}
 	return KGL_OK;
-	//return g->down_stream->f->write_body(g->down_stream, r, buf, len);
 }
-KGL_RESULT tempfile_write_end(kgl_output_stream* out, KREQUEST rq, KGL_RESULT result)
-{
+KGL_RESULT tempfile_write_end(kgl_output_stream* out, KREQUEST rq, KGL_RESULT result) {
 	kgl_tempfile_output_stream* tmp_out = (kgl_tempfile_output_stream*)out;
-	tmp_out->tmp_file.WriteEnd();
-	if (tmp_out->write_fiber) {
-		int ret = -1;
-		kfiber_join(tmp_out->write_fiber, &ret);
-		tmp_out->write_fiber = NULL;
-		if (result == KGL_OK) {
-			result = (KGL_RESULT)ret;
-		}
-	}
+	tempfile_end(tmp_out);
 	return tmp_out->down_stream->f->write_end(tmp_out->down_stream, rq, result);
 }
-static void tempfile_release(kgl_output_stream* out)
-{
+static void tempfile_release(kgl_output_stream* out) {
 	kgl_tempfile_output_stream* tmp_out = (kgl_tempfile_output_stream*)out;
 	assert(tmp_out->write_fiber == NULL);
 	tmp_out->down_stream->f->release(tmp_out->down_stream);
@@ -284,11 +276,11 @@ static kgl_output_stream_function tempfile_output_function = {
 	forward_write_header_finish,
 	tempfile_write_body,
 	forward_write_message,
+	tempfile_write_trailer,
 	tempfile_write_end,
 	tempfile_release
 };
-bool new_tempfile_output_stream(KHttpRequest* rq, kgl_output_stream** out)
-{
+bool new_tempfile_output_stream(KHttpRequest* rq, kgl_output_stream** out) {
 	kgl_tempfile_output_stream* st = new kgl_tempfile_output_stream;
 	st->f = &tempfile_output_function;
 	st->write_fiber = NULL;

@@ -16,6 +16,11 @@ var CONFIG_FILE_NAME = "base"
 
 func (this *base) Init() error {
 	createRange(1024)
+
+	server.Handle("/upstream/http/post_chunk_trailer", HandlePostChunkTrailer)
+	server.Handle("/upstream/h2/post_chunk_trailer", HandlePostChunkTrailer)
+	server.Handle("/upstream/http/chunk_trailer", HandleChunkUpstreamTrailer)
+	server.Handle("/upstream/http/split_chunk_trailer", HandleChunkUpstreamSplitTrailer)
 	server.Handle("/chunk", HandleChunkUpstream)
 	server.Handle("/split_response", HandleSplitResponse)
 	server.Handle("/chunk_post", HandleChunkPost)
@@ -126,6 +131,7 @@ func init() {
 	s.AddCase("miss_status_string", "上流有status_code但缺失status信息", check_miss_status_string)
 	s.AddCase("http_1_1_pipe_line", "http/1.1的pipe line支持", check_http_1_1_pipe_line)
 	s.AddCase("chunk_post", "form表单chunk方式上传", check_chunk_post)
+	s.AddCase("chunk_trailer", "支持trailer的chunk", check_chunk_trailer)
 	s.AddCase("split_response", "上流分割回应", check_split_response)
 	s.AddCase("chunk_upstream", "上流chunk回应", check_chunk_upstream)
 	s.AddCase("vary", "vary支持", check_vary)

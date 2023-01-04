@@ -22,6 +22,7 @@ xxxx\r\n******buffer data******\r\n
 /*
 本类和KDeChunked类相反，是以块发送
 */
+#if 0
 class KChunked : public KHttpStream
 {
 public:
@@ -32,4 +33,5 @@ public:
 private:
 	bool firstPackage;
 };
+#endif
 #endif
