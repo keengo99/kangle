@@ -26,6 +26,14 @@ func check_gzip() {
 		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
 	})
 }
+func check_accept_encoding_with_q() {
+	common.Get("/static/index.html?q", map[string]string{"Accept-Encoding": "gzip; q=0"}, func(resp *http.Response, err error) {
+		common.Assert("gzip-content-encoding", resp.Header.Get("Content-Encoding") != "gzip")
+	})
+	common.Get("/static/index.html?q2", map[string]string{"Accept-Encoding": "br; q=0, gzip; q=0.5"}, func(resp *http.Response, err error) {
+		common.Assert("gzip-content-encoding", resp.Header.Get("Content-Encoding") == "gzip")
+	})
+}
 func check_br() {
 	common.Get("/static/index.html", map[string]string{"Accept-Encoding": "br,gzip,deflate"}, func(resp *http.Response, err error) {
 		common.AssertSame(resp.Header.Get("Content-Encoding"), "br")
@@ -110,13 +118,12 @@ func check_proxy_gzip_range() {
 	}, true)
 }
 func check_compress() {
-	kangle.CleanAllCache()
 	check_gzip()
+	check_accept_encoding_with_q()
 	if !config.Kangle.DisableBrotli {
 		check_br()
 	}
 	check_id()
-
 	check_proxy_gzip_range()
 	check_local_gzip_range()
 }
