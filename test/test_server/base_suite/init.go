@@ -19,8 +19,11 @@ func (this *base) Init() error {
 
 	server.Handle("/upstream/http/post_chunk_trailer", HandlePostChunkTrailer)
 	server.Handle("/upstream/h2/post_chunk_trailer", HandlePostChunkTrailer)
+
 	server.Handle("/upstream/http/chunk_trailer", HandleChunkUpstreamTrailer)
-	server.Handle("/upstream/http/split_chunk_trailer", HandleChunkUpstreamSplitTrailer)
+	server.Handle("/upstream/h2/chunk_trailer", HandleChunkUpstreamTrailer)
+	server.Handle("/upstream/http/chunk_trailer_1", HandleHttp1ChunkUpstreamTrailer)
+
 	server.Handle("/chunk", HandleChunkUpstream)
 	server.Handle("/split_response", HandleSplitResponse)
 	server.Handle("/chunk_post", HandleChunkPost)
@@ -79,6 +82,9 @@ func (this *base) Init() error {
 			</chain>
 			<chain  action='server:localhost' >
 				<acl_self_port >9902</acl_self_port>
+			</chain>
+			<chain  action='server:upstream_h2' >
+				<acl_path>/upstream/h2/*</acl_path>
 			</chain>
 			<chain  action='server:upstream_h2' >
 				<acl_self_port >9801</acl_self_port>

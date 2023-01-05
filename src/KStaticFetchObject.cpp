@@ -99,7 +99,6 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_output_stre
 		}
 	}
 	out->f->write_status(out, rq, status_code);
-	rq->ctx->know_length = 1;
 	rq->ctx->left_read = left_send;
 	if (obj->never_compress) {
 		out->f->write_header(out, rq, kgl_header_content_encoding, kgl_expand_string("identity"));

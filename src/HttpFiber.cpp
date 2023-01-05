@@ -118,7 +118,7 @@ KGL_RESULT process_request(KHttpRequest* rq)
 		assert(false);
 		return send_error2(rq, STATUS_SERVER_ERROR, "source error!");
 	}
-	KGL_RESULT result;
+	KGL_RESULT result = KGL_OK;
 #ifdef ENABLE_TF_EXCHANGE
 	if (rq->NeedTempFile(true)) {
 		if (!new_tempfile_input_stream(rq, &in)) {
@@ -151,31 +151,25 @@ KGL_RESULT process_request(KHttpRequest* rq)
 	}
 	result = open_queued_fetchobj(rq, fo, in, out, queue);
 	if (!rq->continue_next_source(result)) {
-		return result;
+		goto done;
 	}
 	fo = rq->get_next_source(fo);
 	if (!fo) {
-		return KGL_OK;
+		goto done;
 	}
 #endif
 open:
 	do {
-		result = open_fetchobj(rq, fo, in, out);
+		result = fo->Open(rq, in, out);
 		if (!rq->continue_next_source(result)) {
-			return result;
+			break;
 		}
 		fo = rq->get_next_source(fo);
 	} while (fo);
-	return KGL_OK;
-}
-KGL_RESULT open_fetchobj(KHttpRequest* rq, KFetchObject* fo, kgl_input_stream* in, kgl_output_stream* out)
-{
-	KGL_RESULT result = fo->Open(rq, in, out);
+done:
 	switch (result) {
-	case KGL_END:
-		return KGL_END;
 	case KGL_NO_BODY:
-		return process_upstream_no_body(rq,in,out);
+		return process_upstream_no_body(rq, in, out);
 	case KGL_EDENIED:
 		return send_error2(rq, STATUS_FORBIDEN, "access denied by response control");
 	default:
@@ -194,9 +188,8 @@ KGL_RESULT open_queued_fetchobj(KHttpRequest* rq, KFetchObject* fo, kgl_input_st
 			rq->ReleaseQueue();
 			return out->f->write_message(out, rq, KGL_MSG_ERROR,"Wait in queue time out.", STATUS_SERVICE_UNAVAILABLE);
 		}
-		return open_fetchobj(rq, fo, in, out);
 	}
-	return open_fetchobj(rq, fo, in, out);
+	return fo->Open(rq, in, out);
 }
 query_vh_result query_virtual(KHttpRequest *rq, const char *hostname, int len, int header_length) {
 	query_vh_result vh_result;
@@ -648,7 +641,11 @@ KGL_RESULT send_memory_object(KHttpRequest *rq)
 	INT64 send_len;
 	INT64 start;
 	kbuf *send_buffer = build_memory_obj_header(rq, rq->ctx->obj, start, send_len);
-	if (send_buffer) {
+	if (KBIT_TEST(rq->ctx->obj->index.flags, FLAG_NO_BODY) || rq->sink->data.meth == METH_HEAD) {
+		send_len = 0;
+		return KGL_NO_BODY;
+	}
+	if (send_buffer && send_len>0) {
 		kr_buffer buffer;
 		memset(&buffer, 0, sizeof(buffer));
 		kr_init(&buffer, send_buffer, (int)start, (int)send_len, rq->sink->pool);

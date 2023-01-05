@@ -47,8 +47,7 @@ protected:
 	KGL_RESULT buildHead(KHttpRequest* rq) override;
 	bool checkContinueReadBody(KHttpRequest* rq) override
 	{
-		if (rq->ctx->know_length && rq->ctx->left_read <= 0) {
-			assert(rq->ctx->left_read == 0);
+		if (rq->ctx->left_read==0) {
 			expectDone(rq);
 			return false;
 		}

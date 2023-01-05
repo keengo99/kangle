@@ -61,6 +61,9 @@ func UseHttpClient(alpn int) {
 func GetUrl(host string, path string) string {
 	return fmt.Sprintf("%s%s:%d%s", schemas[Cfg.Alpn], host, ports[Cfg.Alpn], path)
 }
+func GetLocalhost(subdomain string) string {
+	return subdomain + ".localtest.me"
+}
 func init() {
 	HttpUrlPrefix = "http://127.0.0.1:9999"
 	HttpsUrlPrefix = "https://127.0.0.1:9943"

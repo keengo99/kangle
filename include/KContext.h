@@ -42,7 +42,6 @@ public:
 	uint32_t cache_hit_part : 1;
 	uint32_t haveStored : 1;
 	uint32_t new_object : 1;
-	uint32_t know_length : 1;
 	uint32_t upstream_connection_keep_alive : 1;
 	//connect´úÀí
 	uint32_t connection_connect_proxy : 1;

@@ -77,7 +77,7 @@ public:
 		return brd;
 	}
 	virtual bool NeedTempFile(bool upload, KHttpRequest *rq);
-	bool IsChunkPost()
+	bool is_chunk_post()
 	{
 		return chunk_post;
 	}

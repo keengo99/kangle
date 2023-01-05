@@ -7,12 +7,10 @@ import (
 
 	"net/http"
 	"strings"
-	"test_server/kangle"
 )
 
 func check_dynamic_content() {
 	request_count = 0
-	kangle.CleanAllCache()
 	for i := 0; i < 2; i++ {
 		common.Get("/dynamic", map[string]string{"pragma": "no-cache"}, func(resp *http.Response, err error) {
 			common.AssertSame(common.Read(resp), last_dynamic_content)

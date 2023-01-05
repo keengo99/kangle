@@ -56,8 +56,7 @@
 
 using namespace std;
 
-void WINAPI free_auto_memory(void* arg)
-{
+void WINAPI free_auto_memory(void* arg) {
 	xfree(arg);
 }
 kev_result on_sink_readhup(KOPAQUE data, void* arg, int got) {
@@ -81,8 +80,7 @@ void KHttpRequest::readhup() {
 	}
 	sink->readhup(this, on_sink_readhup);
 }
-char* KHttpRequest::map_url_path(const char* url, KBaseRedirect* caller)
-{
+char* KHttpRequest::map_url_path(const char* url, KBaseRedirect* caller) {
 	KSubVirtualHost* nsvh = NULL;
 	auto svh = get_virtual_host();
 	if (svh == NULL) {
@@ -118,22 +116,18 @@ char* KHttpRequest::map_url_path(const char* url, KBaseRedirect* caller)
 	}
 	return filename;
 }
-void KHttpRequest::LeaveRequestQueue()
-{
+void KHttpRequest::LeaveRequestQueue() {
 	sink->set_state(STATE_SEND);
 }
-void KHttpRequest::EnterRequestQueue()
-{
+void KHttpRequest::EnterRequestQueue() {
 	KBIT_SET(sink->data.flags, RQ_QUEUED);
 	sink->set_state(STATE_QUEUE);
 }
-void KHttpRequest::SetSelfPort(uint16_t port, bool ssl)
-{
+void KHttpRequest::SetSelfPort(uint16_t port, bool ssl) {
 	sink->set_self_port(port, ssl);
 }
-void KHttpRequest::close_source()
-{
-	
+void KHttpRequest::close_source() {
+
 	while (fo_head) {
 		KFetchObject* fo_next = fo_head->next;
 		delete fo_head;
@@ -145,8 +139,7 @@ void KHttpRequest::close_source()
 #endif
 }
 #ifdef ENABLE_REQUEST_QUEUE
-void KHttpRequest::ReleaseQueue()
-{
+void KHttpRequest::ReleaseQueue() {
 	if (queue) {
 		if (ctx->queue_handled) {
 			queue->Unlock();
@@ -161,8 +154,7 @@ void KHttpRequest::set_url_param(char* param) {
 	assert(sink->data.url->param == NULL);
 	sink->data.url->param = xstrdup(param);
 }
-KHttpHeaderIteratorResult handle_http_header(void* arg, KHttpHeader* header)
-{
+KHttpHeaderIteratorResult handle_http_header(void* arg, KHttpHeader* header) {
 	KHttpRequest* rq = (KHttpRequest*)arg;
 	if (
 #ifdef HTTP_PROXY
@@ -225,8 +217,7 @@ KHttpHeaderIteratorResult handle_http_header(void* arg, KHttpHeader* header)
 	}
 	return KHttpHeaderIteratorResult::Continue;
 }
-void KHttpRequest::beginRequest()
-{
+void KHttpRequest::beginRequest() {
 	if (sink->data.url->path) {
 		KFileName::tripDir3(sink->data.url->path, '/');
 	}
@@ -237,8 +228,7 @@ void KHttpRequest::beginRequest()
 #endif
 	sink->data.iterator(handle_http_header, this);
 }
-uint32_t KHttpRequest::get_upstream_flags()
-{
+uint32_t KHttpRequest::get_upstream_flags() {
 	uint32_t flags = 0;
 	if (KBIT_TEST(sink->data.flags, RQ_UPSTREAM_ERROR)) {
 		KBIT_SET(flags, KSOCKET_FLAGS_SKIP_POOL);
@@ -356,8 +346,7 @@ std::string KHttpRequest::getInfo() {
 	return s.getString();
 }
 
-KHttpRequest::~KHttpRequest()
-{
+KHttpRequest::~KHttpRequest() {
 	close_source();
 	assert(ctx->queue_handled == 0);
 	if (file) {
@@ -402,8 +391,7 @@ KHttpRequest::~KHttpRequest()
 		sink->end_request();
 	}
 }
-bool KHttpRequest::write_buff(kbuf* buf)
-{
+bool KHttpRequest::write_buff(kbuf* buf) {
 #define KGL_RQ_WRITE_BUF_COUNT 16
 	WSABUF bufs[KGL_RQ_WRITE_BUF_COUNT];
 	while (buf) {
@@ -421,9 +409,8 @@ bool KHttpRequest::write_buff(kbuf* buf)
 	}
 	return true;
 }
-int KHttpRequest::Write(WSABUF* buf, int bc)
-{
-	int got = sink->write(buf, slh?1:bc);
+int KHttpRequest::Write(WSABUF* buf, int bc) {
+	int got = sink->write(buf, slh ? 1 : bc);
 	if (got > 0) {
 		assert(!kfiber_is_main());
 		int sleep_msec = get_sleep_msec(got);
@@ -433,10 +420,9 @@ int KHttpRequest::Write(WSABUF* buf, int bc)
 	}
 	return got;
 }
-bool KHttpRequest::write_all(WSABUF* buf, int *vc)
-{
+bool KHttpRequest::write_all(WSABUF* buf, int* vc) {
 	while (*vc > 0) {
-		int got = sink->write(buf, slh?1:*vc);
+		int got = sink->write(buf, slh ? 1 : *vc);
 		if (got <= 0) {
 			return false;
 		}
@@ -452,34 +438,30 @@ bool KHttpRequest::write_all(WSABUF* buf, int *vc)
 			}
 			assert(*vc > 0);
 			got -= (int)buf->iov_len;
-			buf ++;
-			(*vc) --;
+			buf++;
+			(*vc)--;
 			assert(got >= 0);
 		}
 	}
 	return true;
 }
-int KHttpRequest::Write(const char* buf, int len)
-{
+int KHttpRequest::Write(const char* buf, int len) {
 	WSABUF bufs;
 	bufs.iov_base = (char*)buf;
 	bufs.iov_len = len;
 	return Write(&bufs, 1);
 }
-bool KHttpRequest::write_all(const char* buf, int len)
-{
+bool KHttpRequest::write_all(const char* buf, int len) {
 	WSABUF bufs;
 	bufs.iov_base = (char*)buf;
 	bufs.iov_len = len;
 	int bc = 1;
 	return write_all(&bufs, &bc);
 }
-int KHttpRequest::Read(char* buf, int len)
-{
+int KHttpRequest::Read(char* buf, int len) {
 	return sink->read(buf, len);
 }
-KSubVirtualHost* KHttpRequest::get_virtual_host()
-{
+KSubVirtualHost* KHttpRequest::get_virtual_host() {
 	return static_cast<KSubVirtualHost*>(sink->data.opaque);
 }
 
@@ -511,15 +493,13 @@ int KHttpRequest::checkFilter(KHttpObject* obj) {
 void KHttpRequest::addFilter(KFilterHelper* chain) {
 	getOutputFilterContext()->addFilter(chain);
 }
-KOutputFilterContext* KHttpRequest::getOutputFilterContext()
-{
+KOutputFilterContext* KHttpRequest::getOutputFilterContext() {
 	if (of_ctx == NULL) {
 		of_ctx = new KOutputFilterContext;
 	}
 	return of_ctx;
 }
-void KHttpRequest::ResponseVary(const char* vary)
-{
+void KHttpRequest::ResponseVary(const char* vary) {
 	KHttpField field;
 	field.parse(vary, ',');
 	KStringBuf s;
@@ -547,8 +527,7 @@ void KHttpRequest::ResponseVary(const char* vary)
 		response_header(kgl_expand_string("Vary"), s.getString(), len);
 	}
 }
-char* KHttpRequest::BuildVary(const char* vary)
-{
+char* KHttpRequest::BuildVary(const char* vary) {
 	KHttpField field;
 	field.parse(vary, ',');
 	KStringBuf s;
@@ -583,40 +562,35 @@ char* KHttpRequest::BuildVary(const char* vary)
 	}
 	return s.stealString();
 }
-bool KHttpRequest::response_header(KHttpHeader* header,bool lock_header)
-{
+bool KHttpRequest::response_header(KHttpHeader* header, bool lock_header) {
 	if (header->name_is_know) {
 		assert(header->know_header < kgl_header_unknow);
 		//use KGL_HEADER_VALUE_CONST will lock the header until startResponseBody called
-		return sink->response_header((kgl_header_type)header->know_header, header->buf+ header->val_offset, header->val_len, lock_header);
+		return sink->response_header((kgl_header_type)header->know_header, header->buf + header->val_offset, header->val_len, lock_header);
 	}
-	return sink->response_header(header->buf, header->name_len, header->buf+header->val_offset, header->val_len);	
+	return sink->response_header(header->buf, header->name_len, header->buf + header->val_offset, header->val_len);
 }
-bool KHttpRequest::response_header(const char* name, hlen_t name_len, const char* val, hlen_t val_len)
-{
+bool KHttpRequest::response_header(const char* name, hlen_t name_len, const char* val, hlen_t val_len) {
 	return sink->response_header(name, name_len, val, val_len);
 }
-bool KHttpRequest::start_response_body(INT64 body_len)
-{
-	return sink->start_response_body(body_len)>=0;
+bool KHttpRequest::start_response_body(INT64 body_len) {
+	return sink->start_response_body(body_len) >= 0;
 }
 
-void KHttpRequest::insert_source(KFetchObject* fo)
-{
+void KHttpRequest::insert_source(KFetchObject* fo) {
 	fo->next = fo_head;
 	if (!fo_last) {
 		fo_last = fo;
 	}
 	fo_head = fo;
 }
-void KHttpRequest::append_source(KFetchObject* fo)
-{
+void KHttpRequest::append_source(KFetchObject* fo) {
 	if (fo->filter == 0 && KBIT_TEST(filter_flags, RQ_NO_EXTEND) && !KBIT_TEST(sink->data.flags, RQ_IS_ERROR_PAGE)) {
 		//无扩展处理
 		if (fo->needQueue(this)) {
 			delete fo;
 			fo = new KStaticFetchObject();
-		}		
+		}
 	}
 	if (fo_last) {
 		fo_last->next = fo;
@@ -626,8 +600,7 @@ void KHttpRequest::append_source(KFetchObject* fo)
 	}
 	fo_last = fo;
 }
-bool KHttpRequest::NeedQueue()
-{
+bool KHttpRequest::NeedQueue() {
 	KFetchObject* fo = fo_head;
 	while (fo) {
 		if (fo->needQueue(this)) {
@@ -637,8 +610,7 @@ bool KHttpRequest::NeedQueue()
 	}
 	return false;
 }
-bool KHttpRequest::NeedTempFile(bool upload)
-{
+bool KHttpRequest::NeedTempFile(bool upload) {
 	KFetchObject* fo = fo_head;
 	while (fo) {
 		if (fo->NeedTempFile(upload, this)) {
@@ -648,23 +620,20 @@ bool KHttpRequest::NeedTempFile(bool upload)
 	}
 	return false;
 }
-bool KHttpRequest::has_before_cache()
-{
+bool KHttpRequest::has_before_cache() {
 	if (fo_head == nullptr) {
 		return false;
 	}
 	return fo_head->before_cache;
 }
-bool KHttpRequest::has_final_source()
-{
+bool KHttpRequest::has_final_source() {
 	if (!fo_last) {
 		return false;
 	}
-	return !fo_last->filter;	
+	return !fo_last->filter;
 }
 
-KGL_RESULT KHttpRequest::open_next(KFetchObject* fo, kgl_input_stream* in, kgl_output_stream* out, const char* queue)
-{
+KGL_RESULT KHttpRequest::open_next(KFetchObject* fo, kgl_input_stream* in, kgl_output_stream* out, const char* queue) {
 	KBIT_SET(sink->data.flags, RQ_NEXT_CALLED);
 	KGL_RESULT result;
 	for (;;) {
@@ -678,16 +647,16 @@ KGL_RESULT KHttpRequest::open_next(KFetchObject* fo, kgl_input_stream* in, kgl_o
 			ReleaseQueue();
 			this->queue = get_request_queue(this, queue);
 			result = open_queued_fetchobj(this, next, in, out, this->queue);
-		} else 
+		} else
 #endif
-		result = open_fetchobj(this, next, in, out);
+			result = next->Open(this, in, out);
 		if (KBIT_TEST(sink->data.flags, RQ_HAS_SEND_HEADER | RQ_HAS_READ_POST)) {
 			return result;
 		}
 		if (result != KGL_NEXT) {
 			return result;
 		}
-		fo->next = next->next;		
+		fo->next = next->next;
 		assert(fo_last->next == nullptr);
 		if (fo_last == next) {
 			fo_last = fo;

@@ -1,6 +1,7 @@
 package webdav_suite
 
 import (
+	"test_server/config"
 	"test_server/kangle"
 	"test_server/suite"
 )
@@ -21,6 +22,7 @@ func (this *webdav) Init() error {
 	<vh name='webdav' doc_root='www'  inherit='on' app='1'>
 		<map path='/dav' extend='api:webdav' confirm_file='0' allow_method='*'/>
 		<host>webdav.test</host>
+		<host>` + config.GetLocalhost("webdav") + `</host>
 	</vh>
 </config>
 `

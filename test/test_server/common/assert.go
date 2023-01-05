@@ -24,10 +24,11 @@ func AssertContain(a string, sub string) {
 	}
 }
 func AssertSame(a interface{}, b interface{}) {
-	if !my_assert(a == b) {
-		fmt.Printf("[%v] not eq [%v]\n", a, b)
-		//panic("assert failed.")
+	if a == b {
+		return
 	}
+	fmt.Printf("[%v] not eq [%v]\n", a, b)
+	Assert("", false)
 }
 func my_assert(expression bool) bool {
 	return Assert("", expression)

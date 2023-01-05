@@ -134,7 +134,6 @@ void KAsyncFetchObject::ResetBuffer() {
 	memset(&pop_header, 0, sizeof(pop_header));
 }
 KGL_RESULT KAsyncFetchObject::InternalProcess(KHttpRequest* rq, kfiber** post_fiber) {
-	rq->ctx->know_length = 0;
 	rq->ctx->left_read = -1;
 	rq->ctx->upstream_connection_keep_alive = 1;
 	rq->ctx->upstream_expected_done = 0;
@@ -238,9 +237,22 @@ KGL_RESULT KAsyncFetchObject::ReadBody(KHttpRequest* rq) {
 		rq->readhup();
 		char* buf = (char*)getUpstreamBuffer(&len);
 		int got = client->read(buf, len);
-		if (got <= 0) {
+		if (got == 0) {
+			KHttpHeader* header = client->get_trailer();
+			while (header) {
+				kgl_str_t name;
+				kgl_get_header_name(header, &name);
+				KGL_RESULT result = out->f->write_trailer(out, rq, name.data, (hlen_t)name.len, header->buf + header->val_offset, (hlen_t)header->val_len);
+				if (result != KGL_OK) {
+					return result;
+				}
+				header = header->next;
+			}
+			return KGL_OK;
+		}
+		if (got < 0) {
 			pop_header.keep_alive_time_out = -1;
-			return  got == 0 ? KGL_OK : KGL_ESOCKET_BROKEN;
+			return  KGL_ESOCKET_BROKEN;
 		}
 		ks_write_success(&us_buffer, got);
 	}
@@ -344,12 +356,29 @@ KGL_RESULT KAsyncFetchObject::PostResult(KHttpRequest* rq, int got) {
 	assert(buffer != NULL);
 	//printf("handleReadPost got=[%d] protocol=[%d]\n",got,(int)rq->sink->data.http_major);
 	if (got == 0 && !KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
-		if (chunk_post) {
-			BuildChunkHeader();
-			return KGL_OK;
-		}
 		if (in->f->get_read_left(in, rq) == 0) {
+			KHttpHeader* trailer = rq->sink->get_trailer();
+			if (chunk_post) {
+				buffer->WSTR("0\r\n");
+			}
+			while (trailer) {
+				kgl_str_t name;
+				kgl_get_header_name(trailer, &name);
+				if (chunk_post) {
+					buffer->write_all(name.data, (int)name.len);
+					buffer->WSTR(": ");
+					buffer->write_all(trailer->buf + trailer->val_offset, trailer->val_len);
+					buffer->WSTR("\r\n");
+				} else {
+					client->send_trailer(name.data, (hlen_t)name.len, trailer->buf + trailer->val_offset, trailer->val_len);
+				}
+				trailer = trailer->next;
+			}
 			//如果还有数据要读，而读到0的话，就表示读取失败，而不是读取结束。
+			if (chunk_post) {
+				buffer->WSTR("\r\n");
+				return KGL_OK;
+			}
 			client->write_end();
 			return KGL_END;
 		}
@@ -429,7 +458,6 @@ KGL_RESULT KAsyncFetchObject::PushHeaderFinished(KHttpRequest* rq) {
 	}
 	if (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
 		//如果是websocket，则长度未知
-		rq->ctx->know_length = 0;
 		rq->ctx->left_read = -1;
 	}
 	return out->f->write_header_finish(out, rq);
@@ -525,9 +553,10 @@ KGL_RESULT KAsyncFetchObject::PushHeader(KHttpRequest* rq, const char* attr, int
 	}
 	case kgl_header_content_length:
 	{
-		rq->ctx->know_length = 1;
 		int64_t content_length = kgl_atol((u_char*)val, val_len);
-		if (rq->sink->data.meth != METH_HEAD) {
+		if (rq->sink->data.meth == METH_HEAD) {
+			rq->ctx->left_read = 0;
+		} else {
 			rq->ctx->left_read = content_length;
 		}
 		return out->f->write_header(out, rq, header, (char*)&content_length, KGL_HEADER_VALUE_INT64);

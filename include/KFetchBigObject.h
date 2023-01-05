@@ -49,14 +49,14 @@ public:
 		assert(out == NULL);
 		INT64 start;
 		build_memory_obj_header(rq, rq->ctx->obj, start, rq->ctx->left_read);
-		if (rq->ctx->left_read == -1) {
+		if (KBIT_TEST(rq->ctx->obj->index.flags, FLAG_NO_BODY) || rq->sink->data.meth == METH_HEAD) {
+			rq->ctx->left_read = 0;
 			return KGL_NO_BODY;
 		}
 		kfiber_file* file = InternalOpen(rq, rq->ctx->obj, start);
 		if (file==NULL) {
 			return KGL_EIO;
 		}
-		rq->ctx->know_length = 1;
 		KGL_RESULT result = KGL_OK;
 		int buf_size = conf.io_buffer;
 		char *buffer = (char*)aio_alloc_buffer(buf_size);

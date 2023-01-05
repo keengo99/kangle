@@ -10,12 +10,12 @@ import (
 )
 
 func check_options() {
-	common.Request("OPTIONS", "http://webdav.test:9999/dav", "127.0.0.1", nil, func(resp *http.Response, err error) {
+	common.Request("OPTIONS", "/dav", config.GetLocalhost("webdav"), nil, func(resp *http.Response, err error) {
 		common.AssertContain(resp.Header.Get("DAV"), "1")
 	})
 }
 func check_client() {
-	webdav := exec.Command(config.Cfg.BasePath+"/bin/webdav_client_example"+common.ExeExtendFile(), "http://webdav.test:9999/dav", "127.0.0.1")
+	webdav := exec.Command(config.Cfg.BasePath+"/bin/webdav_client_example"+common.ExeExtendFile(), fmt.Sprintf("http://%s:9999/dav", config.GetLocalhost("webdav")))
 	webdav.Stdout = os.Stdout
 	webdav.Stderr = os.Stderr
 	err := webdav.Start()

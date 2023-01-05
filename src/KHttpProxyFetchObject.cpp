@@ -200,7 +200,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 	if (rq_has_content_length(rq, content_length)) {
 		int len = int2string2(content_length, tmpbuff);
 		client->send_header(kgl_expand_string("Content-Length"), tmpbuff, len);
-	} else if (IsChunkPost() || KBIT_TEST(rq->sink->data.flags, RQ_INPUT_CHUNKED)) {
+	} else if (is_chunk_post() || KBIT_TEST(rq->sink->data.flags, RQ_INPUT_CHUNKED)) {
 		assert(content_length == -1);
 	}
 	client->set_content_length(content_length);

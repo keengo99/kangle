@@ -334,7 +334,7 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 			rq->response_status(416);
 			rq->response_header(kgl_header_content_length, _KS("0"),true);
 			rq->sink->data.range_from = -1;
-			start = -1;
+			start = 0;
 			send_len = 0;
 		} else {
 			if (!KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED)) {
@@ -444,13 +444,6 @@ kbuf* build_memory_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64& start, 
 	send_len = content_len;
 	start = 0;
 	build_obj_header(rq, obj, content_len, start, send_len);
-	if (KBIT_TEST(obj->index.flags, FLAG_NO_BODY) || rq->sink->data.meth == METH_HEAD || start == -1) {
-		send_len = -1;
-		/*
-		 * do not need send body
-		 */
-		return NULL;
-	}
 	return obj->data->bodys;
 }
 

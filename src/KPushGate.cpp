@@ -277,7 +277,7 @@ KGL_RESULT common_write_trailer(kgl_output_stream* st, KREQUEST r, const char* a
 }
 static KGL_RESULT st_write_end(kgl_output_stream* st, KREQUEST r, KGL_RESULT result) {
 	KHttpRequest* rq = (KHttpRequest*)r;
-	if (result == KGL_OK && rq->ctx->know_length && rq->ctx->left_read != 0) {
+	if (result == KGL_OK && rq->ctx->left_read > 0) {
 		//有content-length，又未读完
 		result = KGL_ESOCKET_BROKEN;
 	}
@@ -347,13 +347,12 @@ KGL_RESULT check_write_header(kgl_output_stream* st, KREQUEST r, kgl_header_type
 		INT64 content_length;
 		if (0 != kgl_parse_value_int64(val, val_len, &content_length)) {
 			return KGL_ENOT_SUPPORT;
-		}
-		if (content_length >= 0) {
-			rq->ctx->know_length = 1;
-			if (rq->sink->data.meth != METH_HEAD) {
-				rq->ctx->left_read = content_length;
-			}
-		}
+		}		
+		if (rq->sink->data.meth == METH_HEAD) {
+			rq->ctx->left_read = 0;
+		} else {
+			rq->ctx->left_read = content_length;
+		}		
 		return rq->response_content_length(content_length) ? KGL_OK : KGL_EINVALID_PARAMETER;
 	}
 	default:
@@ -366,15 +365,11 @@ KGL_RESULT check_write_unknow_header(kgl_output_stream* st, KREQUEST r, const ch
 
 KGL_RESULT check_write_header_finish(kgl_output_stream* st, KREQUEST r) {
 	KHttpRequest* rq = (KHttpRequest*)r;
-	if (rq->ctx->know_length) {
-		if (!rq->start_response_body(rq->ctx->left_read)) {
-			return  KGL_EINVALID_PARAMETER;
-		}
-	} else {
-		if (!rq->start_response_body(-1)) {
-			return KGL_EINVALID_PARAMETER;
-		}
+	
+	if (!rq->start_response_body(rq->ctx->left_read)) {
+		return  KGL_EINVALID_PARAMETER;
 	}
+	
 	if (rq->sink->data.meth == METH_HEAD) {
 		return KGL_NO_BODY;
 	}
@@ -382,33 +377,18 @@ KGL_RESULT check_write_header_finish(kgl_output_stream* st, KREQUEST r) {
 }
 KGL_RESULT check_write_body(kgl_output_stream* st, KREQUEST r, const char* buf, int len) {
 	KHttpRequest* rq = (KHttpRequest*)r;
-	if (rq->ctx->know_length) {
+	if (rq->ctx->left_read>=0) {
+		assert(rq->ctx->left_read >= len);
 		rq->ctx->left_read -= len;
-	}
-	if (KBIT_TEST(rq->sink->data.flags, RQ_TE_CHUNKED)) {
-		char header[32];
-		int size_len = sprintf(header, "%x\r\n", len);
-		if (!rq->write_all(header, size_len)) {
-			return KGL_ESOCKET_BROKEN;
-		}
-		if (!rq->write_all(buf, len)) {
-			return KGL_ESOCKET_BROKEN;
-		}
-		return rq->write_all(_KS("\r\n")) ? KGL_OK : KGL_ESOCKET_BROKEN;
 	}
 	return rq->write_all(buf, len) ? KGL_OK : KGL_ESOCKET_BROKEN;
 }
 static KGL_RESULT check_write_end(kgl_output_stream* st, KREQUEST r, KGL_RESULT result) {
 	KHttpRequest* rq = (KHttpRequest*)r;
 	if (result == KGL_OK) {
-		if (rq->ctx->know_length && rq->ctx->left_read != 0) {
+		if (rq->ctx->left_read > 0) {
 			//有content-length，又未读完
 			return KGL_ESOCKET_BROKEN;
-		}
-		if (KBIT_TEST(rq->sink->data.flags, RQ_TE_CHUNKED)) {
-			if (!rq->write_all(_KS("0\r\n\r\n"))) {
-				return KGL_ESOCKET_BROKEN;
-			}
 		}
 	}
 	return result;
