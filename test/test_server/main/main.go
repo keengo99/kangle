@@ -25,6 +25,7 @@ var (
 	server_model   *bool   = flag.Bool("s", false, "only run server")
 	malloc_debug   *bool   = flag.Bool("m", false, "malloc debug")
 	upstream       *string = flag.String("u", "", "upstream config(s,h2)")
+	clean_cache    *bool   = flag.Bool("cc", true, "clean cache")
 	force          *bool   = flag.Bool("f", false, "continue when error happened")
 	test_count     *int    = flag.Int("c", 1, "test count")
 	alpn           *int    = flag.Int("a", -1, "set alpn")
@@ -63,25 +64,27 @@ func ProcessSuites(suites []string) {
 			fmt.Printf("get compile options error=[%v]\n", err)
 			panic("")
 		}
-	} else {
-		kangle.ReloadConfig()
 	}
 	if *prepare_config {
 		return
 	}
 	for i := 0; i < *test_count; i++ {
 		if *alpn >= 0 {
-			kangle.CleanAllCache()
+			if *clean_cache {
+				kangle.CleanAllCache()
+			}
 			config.UseHttpClient(*alpn)
 			fmt.Printf("test use url prefix=[%s] alpn=[%v]\n", config.Cfg.UrlPrefix, config.Cfg.Alpn)
 			suite.Process(suites)
 		} else {
-			for alpn := config.HTTP1; alpn <= config.HTTP3; alpn++ {
+			for alpn := config.HTTP1; alpn <= config.H2C; alpn++ {
 				if alpn == config.HTTP3 && config.Kangle.DisableHttp3 {
 					//skip http3 test
 					continue
 				}
-				kangle.CleanAllCache()
+				if *clean_cache {
+					kangle.CleanAllCache()
+				}
 				config.UseHttpClient(alpn)
 				fmt.Printf("test use url prefix=[%s] alpn=[%v]\n", config.Cfg.UrlPrefix, config.Cfg.Alpn)
 				suite.Process(suites)
@@ -92,8 +95,6 @@ func ProcessSuites(suites []string) {
 	suite.Clean(suites)
 	if len(*kangle_exe) > 0 {
 		kangle.Close()
-	} else {
-		kangle.ReloadConfig()
 	}
 }
 func main() {

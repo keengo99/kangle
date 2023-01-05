@@ -17,7 +17,7 @@
 #include "kselector.h"
 
 KApiProcessManage spProcessManage;
-static const int lifeTime = 60;
+static const int life_time = 60;
 using namespace std;
 
 

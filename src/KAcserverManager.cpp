@@ -469,7 +469,7 @@ std::string KAcserverManager::cmdList(std::string name) {
 	s << ">tcp";
 #endif//}}
 	s << "<br>";
-	s << klang["lang_life_time"] << "<input name='life_time' size=5 value=" << (m_a ? m_a->lifeTime : 0) << ">";
+	s << klang["lang_life_time"] << "<input name='life_time' size=5 value=" << (m_a ? m_a->life_time : 0) << ">";
 	s << klang["lang_life_time_notice"] << "<br>";
 	s << klang["idle_time"] << "<input name='idle_time' size=5 value='" << (m_a ? m_a->idleTime : 120) << "'><br>";
 	s << "<input type='checkbox' name='chuser' value='0' ";
@@ -512,19 +512,7 @@ std::string KAcserverManager::acserverList(std::string name) {
 		s << "</td><td>" << m_a->name << "</td><td>";
 		s << KPoolableRedirect::buildProto(m_a->get_proto());
 		s << "</td><td>" << m_a->getRef() << "</td><td>" << m_a->sockHelper->host << "</td>";
-		s << "<td>";
-		if (m_a->sockHelper->is_unix)
-			s << "-";
-		else
-			s << m_a->sockHelper->port;
-		//{{ent
-#ifdef ENABLE_UPSTREAM_SSL
-		if (m_a->sockHelper->ssl.size() > 0) {
-			s << m_a->sockHelper->ssl;
-		}
-#endif
-		//}}
-		s << "</td>";
+		s << "<td>" << m_a->sockHelper->get_port() << "</td>";
 		s << "<td>" << m_a->sockHelper->getLifeTime() << "</td>";
 		s << "<td>" << m_a->getPoolSize() << "</td>";
 
@@ -549,12 +537,7 @@ std::string KAcserverManager::acserverList(std::string name) {
 	}
 	s << "'>" << LANG_PORT << "<input size=5 name=port value='";
 	if (m_a) {
-		s << m_a->sockHelper->port;
-#ifdef ENABLE_UPSTREAM_SSL
-		if (m_a->sockHelper->ssl.size() > 0) {
-			s << m_a->sockHelper->ssl;
-		}
-#endif
+		s << m_a->sockHelper->get_port();
 	}
 	s << "'" << ">\n";
 	if (m_a) {

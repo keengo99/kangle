@@ -35,6 +35,7 @@ func check_dynamic_content() {
 }
 func check_etag() {
 	request_count = 0
+
 	common.Get("/etag", nil, func(resp *http.Response, err error) {
 		common.AssertSame(common.Read(resp), "hello")
 		common.Assert("x-cache-miss", strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
@@ -50,7 +51,16 @@ func check_etag() {
 		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
 	})
 	common.Assert("cache-no-verify", request_count == 2)
-	//*/
+	//test h2c
+	request_count = 0
+	common.Get("/upstream/h2c/etag", nil, func(resp *http.Response, err error) {
+		common.AssertSame(common.Read(resp), "hello")
+		common.Assert("x-cache-miss", strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
+	})
+	common.Get("/upstream/h2c/etag", map[string]string{"pragma": "no-cache"}, func(resp *http.Response, err error) {
+		common.AssertSame(common.Read(resp), "hello")
+		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	})
 }
 func check_miss_status_string() {
 	if config.Cfg.UpstreamHttp2 {
@@ -67,6 +77,7 @@ func check_http2https() {
 	config.Push()
 	defer config.Pop()
 	config.Cfg.UrlPrefix = "http://127.0.0.1:9943"
+	config.Cfg.Alpn = config.HTTP1
 
 	common.Get("/kangle.status", nil, func(resp *http.Response, err error) {
 		common.AssertSame(err, nil)
@@ -78,6 +89,8 @@ func check_http2https() {
 func check_port_is_ok(port int, ssl bool) {
 	config.Push()
 	defer config.Pop()
+	config.Cfg.Alpn = config.HTTP1
+
 	url := "http"
 	if ssl {
 		url = "https"

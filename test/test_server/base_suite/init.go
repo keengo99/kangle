@@ -17,12 +17,9 @@ var CONFIG_FILE_NAME = "base"
 func (this *base) Init() error {
 	createRange(1024)
 
-	server.Handle("/upstream/http/post_chunk_trailer", HandlePostChunkTrailer)
-	server.Handle("/upstream/h2/post_chunk_trailer", HandlePostChunkTrailer)
-
-	server.Handle("/upstream/http/chunk_trailer", HandleChunkUpstreamTrailer)
-	server.Handle("/upstream/h2/chunk_trailer", HandleChunkUpstreamTrailer)
-	server.Handle("/upstream/http/chunk_trailer_1", HandleHttp1ChunkUpstreamTrailer)
+	server.Handle("/post_chunk_trailer", HandlePostChunkTrailer)
+	server.Handle("/chunk_trailer", HandleChunkUpstreamTrailer)
+	server.Handle("/chunk_trailer_1", HandleHttp1ChunkUpstreamTrailer)
 
 	server.Handle("/chunk", HandleChunkUpstream)
 	server.Handle("/split_response", HandleSplitResponse)
@@ -63,11 +60,8 @@ func (this *base) Init() error {
 	<server name='localhost' proto='http' host='127.0.0.1' port='9999' life_time='5' />
 	<server name='localhost_https' proto='http' host='127.0.0.1' port='9943sp' life_time='2' />
 	<server name='upstream' host='127.0.0.1' port='4411' proto='http' life_time='10'/>
-	<server name='upstream_ssl' host='127.0.0.1' port='4412s`
-	if config.Cfg.UpstreamHttp2 {
-		str += "p"
-	}
-	str += `' proto='http' life_time='10'/>	
+	<server name='upstream_h2c' host='127.0.0.1' port='4411h' proto='http' life_time='10'/>
+	<server name='upstream_ssl' host='127.0.0.1' port='4412s' proto='http' life_time='10'/>	
 	<server name='upstream_h2' host='127.0.0.1' port='4412sp' proto='http' life_time='10'/>	
 	<request>
 		<table name='BEGIN'>
@@ -85,6 +79,9 @@ func (this *base) Init() error {
 			</chain>
 			<chain  action='server:upstream_h2' >
 				<acl_path>/upstream/h2/*</acl_path>
+			</chain>
+			<chain  action='server:upstream_h2c' >
+				<acl_path>/upstream/h2c/*</acl_path>
 			</chain>
 			<chain  action='server:upstream_h2' >
 				<acl_self_port >9801</acl_self_port>

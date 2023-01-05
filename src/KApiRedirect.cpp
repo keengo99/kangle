@@ -158,7 +158,7 @@ static BOOL WINAPI apiServerSupportFunction(HCONN hConn, DWORD dwHSERequest,
 }
 KApiRedirect::KApiRedirect() {
 
-	lifeTime = 60;
+	life_time = 60;
 	max_error_count = 5;
 	type = WORK_TYPE_SP;
 	dso.ConnID = (void *)this;

@@ -189,7 +189,7 @@ KPipeStream *KMPCmdProcess::PowerThread(KVirtualHost* vh, KExtendProgram* erd)
 #endif
 	//we need cmdLock and the stLock
 	cmdLock.Lock();
-	st->setLifeTime(this->lifeTime);
+	st->setLifeTime(this->life_time);
 	bool result = rd->Exec(vh, st, !klist_empty(busyProcessList));
 	if (!result) {
 		cmdLock.Unlock();

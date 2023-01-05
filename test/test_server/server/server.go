@@ -11,17 +11,16 @@ import (
 	"net/http"
 	"test_server/config"
 	"time"
+
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
-var handlers map[string]func(http.ResponseWriter, *http.Request)
-
 func Handle(pattern string, handler func(http.ResponseWriter, *http.Request)) {
-	_, ok := handlers[pattern]
-	if ok {
-		return
-	}
-	handlers[pattern] = handler
 	http.HandleFunc(pattern, handler)
+	http.HandleFunc("/upstream/http"+pattern, handler)
+	http.HandleFunc("/upstream/h2"+pattern, handler)
+	http.HandleFunc("/upstream/h2c"+pattern, handler)
 }
 func WriteAll(conn io.Writer, buf []byte) error {
 
@@ -65,17 +64,24 @@ func HandleTlsClientConnect(conn net.Conn) {
 
 }
 func init() {
-	handlers = make(map[string]func(http.ResponseWriter, *http.Request), 0)
+
+	//handlers = make(map[string]func(http.ResponseWriter, *http.Request), 0)
+
 }
 func Start() {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h, _ := http.DefaultServeMux.Handler(r)
+		h.ServeHTTP(w, r)
+	})
+	h2s := &http2.Server{}
 	go func() {
-		err := http.ListenAndServeTLS("127.0.0.1:4412", fmt.Sprintf("%s/etc/server.crt", config.Cfg.BasePath), fmt.Sprintf("%s/etc/server.key", config.Cfg.BasePath), nil)
+		err := http.ListenAndServeTLS("127.0.0.1:4412", fmt.Sprintf("%s/etc/server.crt", config.Cfg.BasePath), fmt.Sprintf("%s/etc/server.key", config.Cfg.BasePath), handler)
 		if err != nil {
 			panic(err)
 		}
 	}()
 	go func() {
-		err := http.ListenAndServe("127.0.0.1:4411", nil)
+		err := http.ListenAndServe("127.0.0.1:4411", h2c.NewHandler(handler, h2s))
 		if err != nil {
 			panic(err)
 		}

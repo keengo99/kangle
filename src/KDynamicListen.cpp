@@ -416,7 +416,7 @@ void KDynamicListen::Close()
 {
 	rbtree_iterator(&listens, close_server_iterator, NULL);
 }
-void KDynamicListen::parse_port(const char *p, KListenKey *lk,KVirtualHost *vh)
+void KDynamicListen::parse_port(const char *p, KListenKey *lk, KVirtualHost *vh)
 {
 	lk->port = atoi(p);
 	if (strchr(p, 's')) {
@@ -427,6 +427,12 @@ void KDynamicListen::parse_port(const char *p, KListenKey *lk,KVirtualHost *vh)
 		}
 #endif
 	}
+#ifdef ENABLE_HTTP2
+	if (strchr(p, 'h')) {
+		lk->h2 = 1;
+	}
+#endif
+
 #ifdef ENABLE_HTTP3
 	if (strchr(p, 'q')) {
 		lk->ssl = 1;

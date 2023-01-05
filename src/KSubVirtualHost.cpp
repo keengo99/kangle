@@ -211,7 +211,7 @@ void KSubVirtualHost::setDocRoot(const char *doc_root, const char *dir) {
 		if (http->dst->param) {
 			char *t = strstr(http->dst->param,"life_time=");
 			if (t) {
-				http->lifeTime = atoi(t+10);
+				http->life_time = atoi(t+10);
 			}
 			http->ip = strstr(http->dst->param,"ip=");
 		//{{ent
@@ -385,7 +385,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 			}
 #endif//}}
 		}
-		rq->append_source(server_container->get(http->ip, http->dst->host, tport, tssl, http->lifeTime));
+		rq->append_source(server_container->get(http->ip, http->dst->host, tport, tssl, http->life_time));
 		return true;
 	}//end subdir_http
 

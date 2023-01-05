@@ -214,7 +214,7 @@ extern u_short currend_extend_id;
 class KExtendProgram {
 public:
 	KExtendProgram() {
-		lifeTime = EXTENDPROGRAM_DEFAULT_LIFETIME;
+		life_time = EXTENDPROGRAM_DEFAULT_LIFETIME;
 		idleTime = EXTENDPROGRAM_DEFAULT_IDLETIME;
 		maxRequest = EXTENDPROGRAM_DEFAULT_MAXREQUEST;
 		maxConnect = EXTENDPROGRAM_DEFAULT_MAXCONNECT;
@@ -257,7 +257,7 @@ public:
 	unsigned maxRequest;
 	unsigned maxConnect;
 	int max_error_count;
-	int lifeTime;
+	int life_time;
 	u_short id;
 protected:
 	void buildConfig(std::stringstream &s);

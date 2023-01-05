@@ -130,10 +130,10 @@ public:
 		}
 		return st;
 	}
-	void gcSocket(KUpstream* st, int lifeTime) override
+	void gcSocket(KUpstream* st, int life_time) override
 	{
 		//使用了KTsUpstream后，windows下多iocp，也可以使用长连接.
-		KPoolableSocketContainer::gcSocket(st, lifeTime);
+		KPoolableSocketContainer::gcSocket(st, life_time);
 		kassert(vprocess!=NULL);
 		vprocess->gcProcess(this);
 	}

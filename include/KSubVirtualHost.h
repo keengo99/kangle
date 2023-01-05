@@ -38,7 +38,7 @@ public:
 #ifdef ENABLE_UPSTREAM_SSL
 	char *ssl;
 #endif
-	int lifeTime;
+	int life_time;
 };
 class SubdirServer
 {

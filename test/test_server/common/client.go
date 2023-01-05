@@ -21,6 +21,7 @@ var Http1Client *http.Client
 var Http2Client *http.Client
 var Http3Client *http.Client
 var HttpAutoClient *http.Client
+var H2cClient *http.Client
 
 const (
 	HTTP_TIME_OUT = 30
@@ -35,7 +36,12 @@ func InitClient(keepAlive bool) {
 	HttpAutoClient = &http.Client{}
 	HttpAutoClient.Timeout = time.Second * HTTP_TIME_OUT
 	HttpAutoClient.CheckRedirect = detectorCheckRedirect
-
+	h2c_ptr := &http2.Transport{
+		AllowHTTP: true, //充许非加密的链接
+		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
+			return net.Dial(network, addr)
+		},
+	}
 	http2_tr := &http2.Transport{
 		AllowHTTP: true, //充许非加密的链接
 		TLSClientConfig: &tls.Config{
@@ -74,6 +80,7 @@ func InitClient(keepAlive bool) {
 	Http1Client.Transport = http_tr
 	Http2Client = &http.Client{Transport: http2_tr}
 	Http3Client = &http.Client{Transport: http3_pr}
+	H2cClient = &http.Client{Transport: h2c_ptr}
 	HttpAutoClient.Transport = http_auto_tr
 }
 func detectorCheckRedirect(req *http.Request, via []*http.Request) error {
@@ -131,15 +138,7 @@ func Post(path string, header map[string]string, body string, cb ClientCheckBack
 		}
 		req.Header.Set(k, v)
 	}
-
-	var client *http.Client
-	if strings.HasPrefix(url, "https://") && config.Cfg.Alpn == config.HTTP2 {
-		client = Http2Client
-	} else if strings.HasPrefix(url, "https://") && config.Cfg.Alpn == config.HTTP3 {
-		client = Http3Client
-	} else {
-		client = Http1Client
-	}
+	client := GetClient(url)
 	resp, err := client.Do(req)
 	if resp != nil {
 		defer resp.Body.Close()
@@ -174,14 +173,7 @@ func Request(method string, path string, host string, header map[string]string, 
 		req.Header.Add(k, v)
 	}
 
-	var client *http.Client
-	if strings.HasPrefix(url, "https://") && config.Cfg.Alpn == config.HTTP2 {
-		client = Http2Client
-	} else if strings.HasPrefix(url, "https://") && config.Cfg.Alpn == config.HTTP3 {
-		client = Http3Client
-	} else {
-		client = Http1Client
-	}
+	client := GetClient(url)
 	if len(host) > 0 {
 		_, port, _ := net.SplitHostPort(req.URL.Host)
 		if len(port) > 0 {
@@ -251,7 +243,8 @@ func GetClient(url string) *http.Client {
 		return Http2Client
 	} else if strings.HasPrefix(url, "https://") && config.Cfg.Alpn == config.HTTP3 {
 		return Http3Client
-	} else {
-		return Http1Client
+	} else if strings.HasPrefix(url, "http://") && config.Cfg.Alpn == config.H2C {
+		return H2cClient
 	}
+	return Http1Client
 }

@@ -6,6 +6,7 @@ const (
 	HTTP1 = 0
 	HTTP2 = 1
 	HTTP3 = 2
+	H2C   = 3
 )
 
 type Config struct {
@@ -22,8 +23,8 @@ type KangleCompileOptions struct {
 	DisableBrotli bool
 }
 
-var ports = []int{9999, 9943, 9943}
-var schemas = []string{"http://", "https://", "https://"}
+var ports = []int{9999, 9943, 9943, 9999}
+var schemas = []string{"http://", "https://", "https://", "http://"}
 
 var HttpsUrlPrefix string
 var HttpUrlPrefix string
@@ -53,6 +54,8 @@ func UseHttpClient(alpn int) {
 		Cfg.UrlPrefix = HttpsUrlPrefix
 	case HTTP3:
 		Cfg.UrlPrefix = Http3UrlPrefix
+	case H2C:
+		Cfg.UrlPrefix = HttpUrlPrefix
 	default:
 		Cfg.Alpn = HTTP1
 		Cfg.UrlPrefix = HttpUrlPrefix

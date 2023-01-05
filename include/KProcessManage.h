@@ -82,7 +82,7 @@ private:
 			gc = newVirtualProcess(param.c_str());
 			gc->set_tcp(kangle::is_upstream_tcp(proto));
 			assert(gc);
-			gc->setLifeTime(rd->lifeTime);
+			gc->setLifeTime(rd->life_time);
 			//gc->setRefresh(true);
 			gc->idleTime = rd->idleTime;
 			gc->max_error_count = rd->max_error_count;

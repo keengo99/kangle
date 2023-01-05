@@ -62,12 +62,12 @@ KSockPoolHelper *KPoolableRedirect::parse_nodes(const char *node_string)
 			sockHelper->next = NULL;
 			sockHelper->prev = NULL;
 			sockHelper->setHostPort(hot, port);
-			char *lifeTime = strchr(port, ':');
-			if (lifeTime) {
-				*lifeTime = '\0';
-				lifeTime++;
-				sockHelper->setLifeTime(atoi(lifeTime));
-				char *weight = strchr(lifeTime, ':');
+			char *life_time = strchr(port, ':');
+			if (life_time) {
+				*life_time = '\0';
+				life_time++;
+				sockHelper->setLifeTime(atoi(life_time));
+				char *weight = strchr(life_time, ':');
 				if (weight) {
 					*weight = '\0';
 					weight++;

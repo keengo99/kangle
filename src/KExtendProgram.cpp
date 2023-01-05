@@ -439,7 +439,7 @@ bool KExtendProgram::postLoad(KExtendProgramString *ds) {
 }
 void KExtendProgram::buildConfig(std::stringstream &s) {
 	//if (lifeTime != EXTENDPROGRAM_DEFAULT_LIFETIME) {
-	s << " life_time='" << lifeTime << "'";
+	s << " life_time='" << life_time << "'";
 	//}
 	if (idleTime != EXTENDPROGRAM_DEFAULT_IDLETIME) {
 		s << " idle_time='" << idleTime << "'";
@@ -468,7 +468,7 @@ void KExtendProgram::buildConfig(std::stringstream &s) {
 }
 void KExtendProgram::parseConfig(std::map<std::string, std::string> &attribute) {
 	if (attribute["life_time"].size() > 0) {
-		lifeTime = atoi(attribute["life_time"].c_str());
+		life_time = atoi(attribute["life_time"].c_str());
 	}
 	if (attribute["idle_time"].size() > 0) {
 		idleTime = atoi(attribute["idle_time"].c_str());

@@ -168,7 +168,10 @@ func check_split_upstream_chunk_trailer(split int) {
 		common.AssertSame(common.Read(resp), "MozillaDeveloperNetwork")
 		common.AssertSame(resp.Trailer.Get("x-trailer-test"), "hello")
 	})
-
+	common.Getx(fmt.Sprintf("/upstream/h2c/chunk_trailer?s=%v", split), "localhost", nil, func(resp *http.Response, err error) {
+		common.AssertSame(common.Read(resp), "MozillaDeveloperNetwork")
+		common.AssertSame(resp.Trailer.Get("x-trailer-test"), "hello")
+	})
 	common.Getx(fmt.Sprintf("/upstream/http/chunk_trailer?s=%v", split), "localhost", nil, func(resp *http.Response, err error) {
 		common.AssertSame(common.Read(resp), "MozillaDeveloperNetwork")
 		common.AssertSame(resp.Trailer.Get("x-trailer-test"), "hello")
@@ -186,7 +189,10 @@ func check_split_upstream_chunk_trailer(split int) {
 		common.AssertSame(common.Read(resp), "MozillaDeveloperNetwork")
 		common.AssertSame(resp.Trailer.Get("x-trailer-test"), "hello")
 	})
-
+	common.Getx(fmt.Sprintf("/upstream/h2c/chunk_trailer?s=%v", split), "localhost", nil, func(resp *http.Response, err error) {
+		common.AssertSame(common.Read(resp), "MozillaDeveloperNetwork")
+		common.AssertSame(resp.Trailer.Get("x-trailer-test"), "hello")
+	})
 }
 func check_chunk_trailer() {
 	if config.Cfg.Alpn == config.HTTP3 {
@@ -197,4 +203,5 @@ func check_chunk_trailer() {
 	check_split_upstream_chunk_trailer(2)
 	check_post_chunk_trailer_with_path("/upstream/http/post_chunk_trailer")
 	check_post_chunk_trailer_with_path("/upstream/h2/post_chunk_trailer")
+	check_post_chunk_trailer_with_path("/upstream/h2c/post_chunk_trailer")
 }

@@ -60,6 +60,9 @@ public:
 #ifdef WORK_MODEL_TCP
 		this->tcp += a->tcp;
 #endif
+#ifdef ENABLE_HTTP2
+		this->h2 += a->h2;
+#endif
 #ifdef ENABLE_HTTP3
 		this->h3 += a->h3;
 #endif
@@ -87,6 +90,9 @@ public:
 #ifdef WORK_MODEL_TCP
 		this->tcp -= a->tcp;
 		kassert(this->tcp >= 0);
+#endif
+#ifdef ENABLE_HTTP2
+		this->h2 -= a->h2;
 #endif
 #ifdef ENABLE_HTTP3
 		this->h3 -= a->h3;
@@ -129,6 +135,9 @@ public:
 			KBIT_CLR(*flags, WORK_MODEL_TCP);
 		}
 #endif
+#ifdef ENABLE_HTTP2
+		kgl_set_flag(flags, KGL_SERVER_H2, h2 > 0);
+#endif
 #ifdef ENABLE_TPROXY
 		if (tproxy) {
 			KBIT_SET(*flags, WORK_MODEL_TPROXY);
@@ -147,6 +156,7 @@ public:
 		} else {
 			KBIT_CLR(*flags, KGL_SERVER_GLOBAL);
 		}
+
 	}
 	std::string ip;
 	int port;
@@ -158,6 +168,9 @@ public:
 #ifdef ENABLE_PROXY_PROTOCOL
 	int32_t proxy;
 	int32_t ssl_proxy;
+#endif
+#ifdef ENABLE_HTTP2
+	int32_t h2 = 0;
 #endif
 #ifdef ENABLE_HTTP3
 	int32_t h3;

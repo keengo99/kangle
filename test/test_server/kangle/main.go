@@ -53,7 +53,7 @@ func CreateMainConfig(malloc_debug int) (err error) {
 <config>
 	<worker_thread>4</worker_thread>
 	<mallocdebug>%d</mallocdebug>
-	<listen ip='127.0.0.1' port='9999' type='http' />	
+	<listen ip='127.0.0.1' port='9999h' type='http' />	
 	<listen ip='127.0.0.1' port='9943' type='https' certificate='etc/server.crt' certificate_key='etc/server.key' alpn='3' />
 	<listen ip='127.0.0.1' port='9911' type='manage' />
 	<admin user='admin' password='kangle' crypt='plain' auth_type='Basic' admin_ips='~127.0.0.1'/>

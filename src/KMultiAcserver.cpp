@@ -374,26 +374,21 @@ std::string KMultiAcserver::nodeForm(std::string name, KMultiAcserver* as,
 		s << helper->host;
 	}
 	s << "'>";
-	s << LANG_PORT << ": <input name='port' size='5' value='" << (helper ? helper->port : 80);
-	//{{ent
-#ifdef ENABLE_UPSTREAM_SSL
-	if (helper && helper->ssl.size() > 0) {
-		s << helper->ssl;
+	s << LANG_PORT << ": <input name='port' size='5' value='";
+	if (helper) {
+		s << helper->get_port();
 	}
-#endif
-	//}}
 	s << "'><br>";
 	s << klang["lang_life_time"] << ": <input name='life_time' size=6 value='" << (helper ? helper->getLifeTime() : 0) << "'><br>";
-	//{{ent
+
 #ifdef HTTP_PROXY
 	s << LANG_USER << ": <input name='auth_user' value='"
 		<< (helper ? helper->auth_user.c_str() : "") << "'><br>";
 	s << LANG_PASS << ": <input name='auth_passwd' value='"
 		<< (helper ? helper->auth_passwd.c_str() : "") << "'><br>";
 #endif
-	//}}
-	s << klang["weight"] << ": <input name='weight' value='"
-		<< (helper ? helper->weight : 1) << "'><br>";
+
+	s << klang["weight"] << ": <input name='weight' value='" << (helper ? helper->weight : 1) << "'><br>";
 	const char* self_ip = NULL;
 	if (helper) {
 		self_ip = helper->getIp();
@@ -431,7 +426,7 @@ KSockPoolHelper* KMultiAcserver::getIndexNode(int index) {
 	}
 	return NULL;
 }
-void KMultiAcserver::shutdown() 	{
+void KMultiAcserver::shutdown() {
 	lock.Lock();
 	KSockPoolHelper* node = nodes;
 	while (node) {
@@ -501,19 +496,7 @@ void KMultiAcserver::getHtml(std::stringstream& s) {
 		s << "[<a href='/macserver_node_form?name=" << name << "&id=" << i
 			<< "&action=edit'>" << LANG_EDIT << "</a>]"
 			<< node->host << "</td>";
-		s << "<td>";
-		if (node->is_unix)
-			s << "-";
-		else
-			s << node->port;
-		//{{ent
-#ifdef ENABLE_UPSTREAM_SSL
-		if (node->ssl.size() > 0) {
-			s << node->ssl;
-		}
-#endif
-		//}}
-		s << "</td>";
+		s << "<td>" << node->get_port() << "</td>";
 		s << "<td>" << node->getLifeTime() << "</td>";
 		s << "<td>" << node->getSize() << "</td>";
 		s << "<td>" << node->weight << "</td>";
@@ -549,14 +532,13 @@ void KMultiAcserver::baseHtml(KMultiAcserver* mserver, std::stringstream& s) {
 	s << ">" << klang["cookie_stick"] << "<br>";
 	s << klang["error_try_time"] << "<input name='error_try_time' value='" << (mserver ? mserver->errorTryTime : 30) << "' size='4'><br>";
 	s << klang["error_count"] << "<input name='max_error_count' value='" << (mserver ? mserver->max_error_count : 5) << "' size='4'><br>";
-	//{{ent
 #ifdef ENABLE_MSERVER_ICP
 	s << "icp" << "<input name='icp' value='";
 	if (mserver && mserver->icp) {
 		s << mserver->icp->name;
 	}
 	s << "' size='8'><br>";
-#endif//}}
+#endif
 
 }
 std::string KMultiAcserver::form(KMultiAcserver* mserver) {
