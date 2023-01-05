@@ -110,7 +110,7 @@ kgl_parse_result KFastcgiFetchObject::parse_unknow_header(KHttpRequest* rq, char
 		case API_CHILD_MAP_PATH:
 		{
 
-			char* url = (char*)malloc(packet_length + 1);
+			char* url = (char*)rq->alloc_request_memory(packet_length + 1);
 			kgl_memcpy(url, piece, packet_length);
 			url[packet_length] = '\0';
 			char* filename = rq->map_url_path(url, this->brd);
