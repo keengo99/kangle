@@ -35,6 +35,9 @@ public:
 	const char *getName() {
 		return name.c_str();
 	}
+	void shutdown() override {
+		getProcessManage()->killAllProcess();
+	}
 	KUpstream* GetUpstream(KHttpRequest* rq) override;
 	void parseConfig(std::map<std::string, std::string> &attribute) override;
 

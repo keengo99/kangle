@@ -53,14 +53,14 @@ KAcserverManager::~KAcserverManager() {
 #ifdef ENABLE_MULTI_SERVER
 	std::map<std::string, KMultiAcserver*>::iterator it2;
 	for (it2 = mservers.begin(); it2 != mservers.end(); it2++) {
-		(*it2).second->release();
+		(*it2).second->remove();
 	}
 	mservers.clear();
 #endif
 #ifdef ENABLE_VH_RUN_AS
 	std::map<std::string, KCmdPoolableRedirect*>::iterator it3;
 	for (it3 = cmds.begin(); it3 != cmds.end(); it3++) {
-		(*it3).second->release();
+		(*it3).second->remove();
 	}
 	cmds.clear();
 #endif
@@ -70,11 +70,11 @@ KAcserverManager::~KAcserverManager() {
 	}
 	apis.clear();
 	if (cur_mserver) {
-		cur_mserver->release();
+		cur_mserver->remove();
 	}
 #ifdef ENABLE_VH_RUN_AS
 	if (cur_cmd) {
-		cur_cmd->release();
+		cur_cmd->remove();
 	}
 #endif
 }
@@ -95,16 +95,6 @@ void KAcserverManager::refreshCmd(time_t nowTime) {
 void KAcserverManager::killAllProcess(KVirtualHost* vh) {
 
 	spProcessManage.killAllProcess(vh);
-	lock.RLock();
-	std::map<std::string, KCmdPoolableRedirect*>::iterator it;
-	for (it = cmds.begin(); it != cmds.end(); it++) {
-		KProcessManage* pm = (*it).second->getProcessManage();
-		if (pm) {
-			pm->killAllProcess(vh);
-		}
-	}
-	lock.RUnlock();
-
 }
 void KAcserverManager::killCmdProcess(USER_T user) {
 
@@ -838,7 +828,7 @@ bool KAcserverManager::delCmd(std::string name, std::string& err_msg) {
 		err_msg = LANG_TABLE_REFS_ERR;
 		return false;
 	}
-	(*it).second->release();
+	(*it).second->remove();
 	cmds.erase(it);
 	lock.WUnlock();
 	return true;
@@ -858,7 +848,7 @@ bool KAcserverManager::delMAcserver(std::string name, std::string& err_msg) {
 		lock.WUnlock();
 		return false;
 	}
-	(*it).second->release();
+	(*it).second->remove();
 	mservers.erase(it);
 	lock.WUnlock();
 	return true;
@@ -877,7 +867,7 @@ bool KAcserverManager::delAcserver(std::string name, std::string& err_msg) {
 		lock.WUnlock();
 		return false;
 	}
-	(*it).second->release();
+	(*it).second->remove();
 	acservers.erase(it);
 	lock.WUnlock();
 	return true;

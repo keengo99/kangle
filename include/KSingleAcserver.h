@@ -33,6 +33,9 @@ public:
 		return "server";
 	}
 	void set_proto(Proto_t proto) override;
+	void shutdown() override {
+		sockHelper->shutdown();
+	}
 public:
 	void buildXML(std::stringstream &s) override;
 	KSockPoolHelper *sockHelper;

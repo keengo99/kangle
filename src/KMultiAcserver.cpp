@@ -431,6 +431,18 @@ KSockPoolHelper* KMultiAcserver::getIndexNode(int index) {
 	}
 	return NULL;
 }
+void KMultiAcserver::shutdown() 	{
+	lock.Lock();
+	KSockPoolHelper* node = nodes;
+	while (node) {
+		node->shutdown();
+		node = node->next;
+		if (node == nodes) {
+			break;
+		}
+	}
+	lock.Unlock();
+}
 void KMultiAcserver::getNodeInfo(std::stringstream& s) {
 	lock.Lock();
 	KSockPoolHelper* node = nodes;

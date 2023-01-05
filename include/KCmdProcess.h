@@ -108,6 +108,10 @@ public:
 	{
 		unlink_unix();
 	}
+	void shutdown() {
+		refresh(0);
+		vprocess->shutdown();
+	}
 	KUpstream *getConnection(KHttpRequest *rq)
 	{
 		lastActive = kgl_current_sec;

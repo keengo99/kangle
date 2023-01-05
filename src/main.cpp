@@ -182,6 +182,7 @@ int clean_memory_leak_fiber(void *arg,int argc)
 	delete conf.sysHost;
 	conf.sysHost = NULL;
 	packageManage.clean();
+	shutdown_http_server();
 #ifndef HTTP_PROXY
 	delete conf.gvm;
 	delete conf.gam;

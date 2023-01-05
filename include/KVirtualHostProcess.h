@@ -54,6 +54,9 @@ public:
 		assert(queue == NULL);
 		killProcess(0);
 	}
+	void shutdown() override {
+		killProcess(0);
+	}
 	void health(KUpstream* st, HealthStatus health_status) override
 	{
 		switch (health_status) {

@@ -32,6 +32,7 @@ public:
 	KMultiAcserver(KSockPoolHelper *nodes);
 	virtual ~KMultiAcserver();
 public:
+	void shutdown() override;
 	KUpstream* GetUpstream(KHttpRequest* rq) override;
 	unsigned getPoolSize();
 	bool editNode(std::map<std::string,std::string> &attr);

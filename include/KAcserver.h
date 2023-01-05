@@ -38,6 +38,11 @@ public:
 	{
 		return this->proto != rd->proto;
 	}
+	virtual void shutdown() = 0;
+	void remove() {
+		shutdown();
+		release();
+	}
 	static void build_xml(std::map<std::string, std::string> &param, std::stringstream& s);
 	static void build_proto_html(KPoolableRedirect *m_a, std::stringstream &s);
 	static KSockPoolHelper *parse_nodes(const char *node_string);
