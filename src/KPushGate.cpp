@@ -347,13 +347,22 @@ KGL_RESULT check_write_header(kgl_output_stream* st, KREQUEST r, kgl_header_type
 		INT64 content_length;
 		if (0 != kgl_parse_value_int64(val, val_len, &content_length)) {
 			return KGL_ENOT_SUPPORT;
-		}		
+		}
 		if (rq->sink->data.meth == METH_HEAD) {
 			rq->ctx->left_read = 0;
 		} else {
 			rq->ctx->left_read = content_length;
-		}		
+		}
 		return rq->response_content_length(content_length) ? KGL_OK : KGL_EINVALID_PARAMETER;
+	}
+	case kgl_header_connection:
+	{
+		rq->parse_connection(val, val + val_len);
+		if (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
+			rq->ctx->left_read = -1;
+		}
+		rq->response_connection();
+		return KGL_OK;
 	}
 	default:
 		return rq->response_header(attr, val, val_len) ? KGL_OK : KGL_EINVALID_PARAMETER;
@@ -365,11 +374,11 @@ KGL_RESULT check_write_unknow_header(kgl_output_stream* st, KREQUEST r, const ch
 
 KGL_RESULT check_write_header_finish(kgl_output_stream* st, KREQUEST r) {
 	KHttpRequest* rq = (KHttpRequest*)r;
-	
+
 	if (!rq->start_response_body(rq->ctx->left_read)) {
 		return  KGL_EINVALID_PARAMETER;
 	}
-	
+
 	if (rq->sink->data.meth == METH_HEAD) {
 		return KGL_NO_BODY;
 	}
@@ -377,7 +386,7 @@ KGL_RESULT check_write_header_finish(kgl_output_stream* st, KREQUEST r) {
 }
 KGL_RESULT check_write_body(kgl_output_stream* st, KREQUEST r, const char* buf, int len) {
 	KHttpRequest* rq = (KHttpRequest*)r;
-	if (rq->ctx->left_read>=0) {
+	if (rq->ctx->left_read > 0) {
 		assert(rq->ctx->left_read >= len);
 		rq->ctx->left_read -= len;
 	}

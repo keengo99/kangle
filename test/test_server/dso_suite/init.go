@@ -10,7 +10,7 @@ type dso struct {
 	suite.Suite
 }
 
-func (this *dso) Init() error {
+func (d *dso) Init() error {
 	fmt.Printf("dso init\n")
 	content := "<!--#start 300-->\r\n<config>\r\n"
 	content += "<dso_extend name='testdso' filename='bin/testdso.${dso}'/>"
@@ -31,7 +31,7 @@ func (this *dso) Init() error {
 	kangle.CreateExtConfig("dso", content)
 	return nil
 }
-func (this *dso) Clean() {
+func (d *dso) Clean() {
 	kangle.CleanExtConfig("dso")
 }
 func init() {
@@ -41,5 +41,6 @@ func init() {
 	s.AddCase("upstream", "dso的upstream", check_upstream)
 	s.AddCase("filter", "dso的filter", check_filter)
 	s.AddCase("bc_chunk", "before cache chunk", check_before_cache_chunk)
+	s.AddCase("websocket", "dso websocket", test_dso_websocket)
 	suite.Register(s)
 }

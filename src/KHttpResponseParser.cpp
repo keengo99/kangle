@@ -108,6 +108,11 @@ bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, c
 	case kgl_header_age:
 		age = kgl_atoi((u_char*)val, val_len);
 		return true;
+	case kgl_header_connection:
+	{
+		rq->parse_connection(val, end);
+		return true;
+	}
 	case kgl_header_content_encoding:
 		if (kgl_mem_case_same(val, val_len, _KS("none"))) {
 			return true;

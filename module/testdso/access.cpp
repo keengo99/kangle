@@ -67,6 +67,16 @@ static uint32_t process(KREQUEST rq, kgl_access_context *ctx, DWORD notify)
 			register_async_upstream(rq, ctx, model_ctx,true);
 			return KF_STATUS_REQ_TRUE;
 		}
+		if (strcmp(buf, "/dso/bc_websocket") == 0) {
+			test_context* model_ctx = new test_context(test_websocket);
+			register_async_upstream(rq, ctx, model_ctx, true);
+			return KF_STATUS_REQ_TRUE;
+		}
+		if (strcmp(buf, "/dso/websocket") == 0) {
+			test_context* model_ctx = new test_context(test_websocket);
+			register_async_upstream(rq, ctx, model_ctx, false);
+			return KF_STATUS_REQ_TRUE;
+		}
 	}
 	test_context *model_ctx = new test_context(test_forward);
 	register_async_upstream(rq, ctx, model_ctx);

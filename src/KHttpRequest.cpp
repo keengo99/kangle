@@ -74,6 +74,20 @@ kev_result on_sink_readhup(KOPAQUE data, void* arg, int got) {
 	}
 	return kev_ok;
 }
+void KHttpRequest::parse_connection(const char* val, const char* end) {
+	KHttpFieldValue field(val, end);
+	do {
+		if (field.is("keep-alive", 10)) {
+			ctx->upstream_connection_keep_alive = true;
+		} else if (field.is("close", 5)) {
+			ctx->upstream_connection_keep_alive = false;
+		} else if (KBIT_TEST(sink->data.flags, RQ_HAS_CONNECTION_UPGRADE) && field.is(_KS("upgrade"))) {
+			KBIT_SET(sink->data.flags, RQ_CONNECTION_UPGRADE);
+			sink->data.left_read = -1;
+			ctx->upstream_connection_keep_alive = false;
+		}
+	} while (field.next());
+}
 void KHttpRequest::readhup() {
 	if (!conf.read_hup) {
 		return;

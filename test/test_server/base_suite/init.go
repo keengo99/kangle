@@ -14,7 +14,7 @@ type base struct {
 
 var CONFIG_FILE_NAME = "base"
 
-func (this *base) Init() error {
+func (b *base) Init() error {
 	createRange(1024)
 
 	server.Handle("/post_chunk_trailer", HandlePostChunkTrailer)
@@ -105,7 +105,7 @@ func (this *base) Init() error {
 	</config>`
 	return kangle.CreateExtConfig(CONFIG_FILE_NAME, str)
 }
-func (this *base) Clean() {
+func (b *base) Clean() {
 	kangle.CleanExtConfig(CONFIG_FILE_NAME)
 }
 func init() {

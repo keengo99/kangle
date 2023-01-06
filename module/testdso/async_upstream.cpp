@@ -20,6 +20,27 @@ static KGL_RESULT open(KREQUEST r, kgl_async_context *ctx)
 	switch (t->model) {
 	case test_next:
 		return KGL_NEXT;
+	case test_websocket:
+	{
+		ctx->out->f->write_status(ctx->out, r, 200);
+		ctx->out->f->write_header(ctx->out, r, kgl_header_connection, _KS("Upgrade"));
+		ctx->out->f->write_header(ctx->out, r, kgl_header_cache_control, _KS("no-cache, no-store"));
+		result = ctx->out->f->write_header_finish(ctx->out, r);
+		if (result != KGL_OK) {
+			return result;
+		}
+		int left_read = (int)ctx->in->f->get_read_left(ctx->in, r);
+		assert(-1 == left_read);
+		for (;;) {
+			char buf[8];
+			int len = ctx->in->f->read_body(ctx->in, r, buf, sizeof(buf));
+			if (len <= 0) {
+				break;
+			}
+			ctx->out->f->write_body(ctx->out, r, buf, len);
+		}
+		return ctx->out->f->write_end(ctx->out, r, KGL_OK);
+	}
 	case test_chunk:
 	{
 		ctx->out->f->write_status(ctx->out, r, 200);

@@ -54,7 +54,7 @@ func check_http_1_1_split_chunk_post_pipe_line() {
 	//check_split_post(str, 81)
 }
 func check_http_1_1_chunk_post_pipe_line() {
-	str := fmt.Sprintf("POST /kangle.status HTTP/1.1\r\nTransfer-Encoding: chunked\r\nHost: localhost\r\n\r\n4\r\nabcd\r\n0\r\n\r\nGET /kangle.status HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+	str := "POST /kangle.status HTTP/1.1\r\nTransfer-Encoding: chunked\r\nHost: localhost\r\n\r\n4\r\nabcd\r\n0\r\n\r\nGET /kangle.status HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"
 	cn, err := net.Dial("tcp", "127.0.0.1:9999")
 	common.Assert("err", err == nil)
 	defer cn.Close()
@@ -91,7 +91,7 @@ func check_http_1_1_skip_post_pipe_line() {
 	common.Assert("skip_post_pipe_line", strings.Index(str, "\nOK") > 0 && strings.Index(str, "\nOK") != strings.LastIndex(str, "\nOK"))
 }
 func check_http_1_1_post_pipe_line() {
-	str := fmt.Sprintf("POST /no-cache HTTP/1.1\r\nContent-Length: 4\r\nHost: localhost\r\n\r\nabcdGET /no-cache HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+	str := "POST /no-cache HTTP/1.1\r\nContent-Length: 4\r\nHost: localhost\r\n\r\nabcdGET /no-cache HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"
 	cn, err := net.Dial("tcp", "127.0.0.1:9999")
 	common.Assert("err", err == nil)
 	defer cn.Close()
@@ -102,7 +102,7 @@ func check_http_1_1_post_pipe_line() {
 	common.Assert("post_pipe_line", strings.Index(str, "\nOK") > 0 && strings.Index(str, "\nOK") != strings.LastIndex(str, "\nOK"))
 }
 func check_http_1_1_get_pipe_line() {
-	str := fmt.Sprintf("GET /kangle.status HTTP/1.1\r\nHost: localhost\r\n\r\nGET /kangle.status HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+	str := "GET /kangle.status HTTP/1.1\r\nHost: localhost\r\n\r\nGET /kangle.status HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"
 	cn, err := net.Dial("tcp", "127.0.0.1:9999")
 	common.Assert("err", err == nil)
 	defer cn.Close()

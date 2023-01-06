@@ -29,7 +29,7 @@ func HandleWebsocket(w http.ResponseWriter, r *http.Request) {
 		buf := make([]byte, 8)
 		n, err := wb.Read(buf)
 		common.AssertSame(err, nil)
-		common.Assert("websocket", string(buf[0:n]) == "ok")
+		common.AssertSame(string(buf[0:n]), "ok")
 	}
 	cn.Close()
 }
@@ -41,7 +41,7 @@ func check_client_first_websocket(host string) {
 	buf := make([]byte, 512)
 	cn.Read(buf)
 	cn.Write([]byte("hello"))
-	n, err := cn.Read(buf)
+	n, _ := cn.Read(buf)
 	common.AssertSame(string(buf[0:n]), "hello")
 }
 func check_server_first_websocket(host string) {
@@ -51,17 +51,12 @@ func check_server_first_websocket(host string) {
 	cn.Write([]byte("GET /websocket?first=server HTTP/1.1\r\nHost: localhost\r\nConnection: upgrade\r\n\r\n"))
 	buf := make([]byte, 512)
 	cn.Read(buf)
-	n, err := cn.Read(buf)
+	n, _ := cn.Read(buf)
 	cn.Write(buf[0:n])
 }
 func test_websocket() {
 	check_client_first_websocket("127.0.0.1:9999")
 	check_server_first_websocket("127.0.0.1:9999")
-}
-func Check() {
-	//check_client_first_websocket()
-	//check_server_first_websocket()
-	println("check done...")
 }
 func test_upstream_h2_websocket() {
 	check_client_first_websocket("127.0.0.1:9801")

@@ -183,6 +183,12 @@ KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, const char *name
 		}
 		return add_api_var(buffer, size, svh->doc_root);
 	}
+	case KGL_VAR_HAS_CONNECTION_UPGRADE:
+	{
+		bool* v = (bool*)buffer;
+		*v = KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE) > 0;
+		return KGL_OK;
+	}
 	case KGL_VAR_HAS_CONTENT_LENGTH:
 	{
 		bool* v = (bool*)buffer;

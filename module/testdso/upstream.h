@@ -6,6 +6,7 @@ enum test_model {
 	test_forward,
 	test_next,
 	test_upload_sleep_forward,
+	test_websocket,
 	test_chunk
 };
 class test_context {
