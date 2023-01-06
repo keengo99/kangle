@@ -311,7 +311,11 @@ void log_access(KHttpRequest* rq) {
 		l.WSTR(" HTTP/3\" ");
 		break;
 	default:
-		l.WSTR(" HTTP/1.1\" ");
+		if likely((rq->sink->data.http_minor > 0)) {
+			l.WSTR(" HTTP/1.1\" ");
+		} else {
+			l.WSTR(" HTTP/1.0\" ");
+		}
 		break;
 	}
 	l << rq->sink->data.status_code << " ";
@@ -327,20 +331,20 @@ void log_access(KHttpRequest* rq) {
 	//const char* range = rq->GetHttpValue("Range");
 	if (rq->get_http_value(_KS("Range"),&range)) {
 		l << " \"";
-		l.write_all(range.data, range.len);
+		l.write_all(range.data, (int)range.len);
 		l << "\"";
 	}
 #endif
 	//s->log(formatString,rq->send_ctx.send_size);
 	l.WSTR(" \"");
 	if (rq->get_http_value(_KS("Referer"),&referer)) {
-		l.write_all(referer.data, referer.len);
+		l.write_all(referer.data, (int)referer.len);
 	} else {
 		l.WSTR("-");
 	}
 	l.WSTR("\" \"");
 	if (rq->get_http_value(_KS("User-Agent"),&user_agent)) {
-		l.write_all(user_agent.data, user_agent.len);
+		l.write_all(user_agent.data, (int)user_agent.len);
 	} else {
 		l.WSTR("-");
 	}
