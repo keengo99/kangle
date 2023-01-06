@@ -871,7 +871,7 @@ bool KHttpManage::parseUrlParam(char* param, size_t len) {
 
 	char* end = (char*)kgl_mempbrk(param, (int)len, _KS("\r\n"));
 	if (end) {
-		assert(end - param <= len);
+		assert((int)(end - param) <= len);
 		*end = '\0';
 	}
 	tmp = param;

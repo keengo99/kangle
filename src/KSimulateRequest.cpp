@@ -76,7 +76,7 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 		}
 		kgl_str_t attr;
 		kgl_get_header_name(head, &attr);
-		rq->sink->parse_header(attr.data, attr.len, head->buf + head->val_offset, head->val_len, false);
+		rq->sink->parse_header(attr.data, (int)attr.len, head->buf + head->val_offset, (int)head->val_len, false);
 		head = head->next;
 	}
 	if (!user_agent) {

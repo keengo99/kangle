@@ -588,7 +588,7 @@ bool KHttpRequest::response_header(const char* name, hlen_t name_len, const char
 	return sink->response_header(name, name_len, val, val_len);
 }
 bool KHttpRequest::start_response_body(INT64 body_len) {
-	return sink->start_response_body(body_len) >= 0;
+	return sink->start_response_body(body_len);
 }
 
 void KHttpRequest::insert_source(KFetchObject* fo) {

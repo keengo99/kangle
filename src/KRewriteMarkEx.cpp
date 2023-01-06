@@ -481,7 +481,7 @@ void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KStringBuf &s) {
 			env += 5;
 		}
 		KHttpHeader *av = rq->sink->data.get_header();
-		int env_len = strlen(env);
+		size_t env_len = strlen(env);
 		while (av) {
 			if (kgl_is_attr(av,env,env_len)) {
 				s.write_all(av->buf+av->val_offset, av->val_len);
