@@ -57,6 +57,9 @@ cd test
 ### use boringssl
 `cmake .. -DBORINGSSL_DIR=boringssl_dir`
 
+### build as proxy server
+`cmake .. -DHTTP_PROXY=ON`
+
 ## Documentation
 
 * For develop dso, see the [DSO docs](./docs/dso.md).
