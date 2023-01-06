@@ -110,10 +110,16 @@ KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, const char *name
 		if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_TCP)) {
 			return ADD_VAR(buffer, size, "TCP");
 		}
-		if (rq->sink->data.http_major > 1) {
+		switch (rq->sink->data.http_version) {
+		case 0x200:
 			return ADD_VAR(buffer, size, "HTTP/2");
+		case 0x300:
+			return ADD_VAR(buffer, size, "HTTP/3");
+		case 0x100:
+			return ADD_VAR(buffer, size, "HTTP/1.0");
+		default:
+			return ADD_VAR(buffer, size, "HTTP/1.1");
 		}
-		return ADD_VAR(buffer, size, "HTTP/1.1");
 	case KGL_VAR_SERVER_NAME:
 		return add_api_var(buffer, size, rq->sink->data.url->host);
 	case KGL_VAR_REQUEST_METHOD:

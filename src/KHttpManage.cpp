@@ -114,7 +114,7 @@ bool kgl_connection_iterator(void* arg, KSink* rq) {
 		ctx->s << KXml::encode(referer->buf + referer->val_offset);
 	}
 	ctx->s << "','";
-	ctx->s << (int)rq->data.http_major;
+	ctx->s << (int)rq->data.http_version;
 	ctx->s << "',";
 	ctx->s << rq->data.mark;
 	ctx->s << ")); \n";

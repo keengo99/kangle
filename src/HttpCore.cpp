@@ -297,7 +297,7 @@ void insert_via(KHttpRequest* rq, KWStream& s, char* old_via,size_t len) {
 		s.write_all(old_via, len);
 		s.write_all(_KS(","));
 	}
-	s << (int)rq->sink->data.http_major << "." << (int)rq->sink->data.http_minor << " ";
+	s << (int)rq->sink->data.get_http_version_major() << "." << (int)rq->sink->data.get_http_version_minor() << " ";
 	if (*conf.hostname) {
 		s << conf.hostname;
 	} else {

@@ -92,8 +92,7 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 	}
 	rq->sink->data.meth = KHttpKeyValue::get_method(ctx->meth, (int)strlen(ctx->meth));
 	rq->sink->data.content_length = ctx->post_len;
-	rq->sink->data.http_major = 1;
-	rq->sink->data.http_minor = 1;
+	rq->sink->data.set_http_version(1, 1);
 	KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 	if (!KBIT_TEST(ctx->flags, KF_SIMULATE_CACHE)) {
 		KBIT_SET(rq->sink->data.flags, RQ_HAS_NO_CACHE);

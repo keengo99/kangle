@@ -303,19 +303,18 @@ void log_access(KHttpRequest* rq) {
 	if (url->param) {
 		l << "?" << url->param;
 	}
-	switch (rq->sink->data.http_major) {
-	case 2:
+	switch (rq->sink->data.http_version) {
+	case 0x200:
 		l.WSTR(" HTTP/2\" ");
 		break;
-	case 3:
+	case 0x300:
 		l.WSTR(" HTTP/3\" ");
 		break;
+	case 0x100:
+		l.WSTR(" HTTP/1.0\" ");
+		break;
 	default:
-		if likely((rq->sink->data.http_minor > 0)) {
-			l.WSTR(" HTTP/1.1\" ");
-		} else {
-			l.WSTR(" HTTP/1.0\" ");
-		}
+		l.WSTR(" HTTP/1.1\" ");
 		break;
 	}
 	l << rq->sink->data.status_code << " ";

@@ -3,6 +3,7 @@
 #include "KMark.h"
 #include "global.h"
 #include "KHttpRequest.h"
+#if 0
 class KHttp10Mark: public KMark {
 public:
 	KHttp10Mark()
@@ -42,5 +43,5 @@ public:
 		s << ">";
 	}
 };
-
+#endif
 #endif

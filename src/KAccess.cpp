@@ -297,7 +297,6 @@ void KAccess::loadModel() {
 	addMarkModel(REQUEST,new KRewriteMark());
 	addMarkModel(REQUEST,new KRedirectMark());
 	addMarkModel(REQUEST, new KMapRedirectMark());
-	addMarkModel(REQUEST_RESPONSE,new KHttp10Mark());
 	addMarkModel(REQUEST_RESPONSE,new KCounterMark());
 	addMarkModel(REQUEST_RESPONSE,new KAuthMark());
 	addMarkModel(REQUEST,new KExtendFlagMark());
