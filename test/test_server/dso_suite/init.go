@@ -41,6 +41,7 @@ func init() {
 	s.AddCase("upstream", "dso的upstream", check_upstream)
 	s.AddCase("filter", "dso的filter", check_filter)
 	s.AddCase("bc_chunk", "before cache chunk", check_before_cache_chunk)
+	s.AddCase("http_10_chunk", "http/1.0 meet chunked", check_http10_chunk)
 	s.AddCase("websocket", "dso websocket", test_dso_websocket)
 	suite.Register(s)
 }
