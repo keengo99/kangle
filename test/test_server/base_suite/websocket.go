@@ -5,9 +5,31 @@ import (
 	"net/http"
 	"test_server/common"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
-func HandleWebsocket(w http.ResponseWriter, r *http.Request) {
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
+
+func HandleWebsocket(res http.ResponseWriter, req *http.Request) {
+	ws, err := upgrader.Upgrade(res, req, nil)
+	if err != nil {
+		panic(err.Error())
+	}
+	for {
+		messageType, messageContent, err := ws.ReadMessage()
+		if err != nil {
+			return
+		}
+		if err := ws.WriteMessage(messageType, []byte(messageContent)); err != nil {
+			panic(err.Error())
+		}
+	}
+}
+func HandleWebsocketHijack(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	hj, _ := w.(http.Hijacker)
 	cn, wb, _ := hj.Hijack()
@@ -58,7 +80,7 @@ func test_websocket() {
 	check_client_first_websocket("127.0.0.1:9999")
 	check_server_first_websocket("127.0.0.1:9999")
 }
-func test_upstream_h2_websocket() {
+func test_upstream_disable_h2_websocket() {
 	check_client_first_websocket("127.0.0.1:9801")
 	check_server_first_websocket("127.0.0.1:9801")
 }

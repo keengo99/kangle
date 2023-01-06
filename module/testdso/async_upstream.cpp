@@ -22,8 +22,9 @@ static KGL_RESULT open(KREQUEST r, kgl_async_context *ctx)
 		return KGL_NEXT;
 	case test_websocket:
 	{
-		ctx->out->f->write_status(ctx->out, r, 200);
+		ctx->out->f->write_status(ctx->out, r, 101);
 		ctx->out->f->write_header(ctx->out, r, kgl_header_connection, _KS("Upgrade"));
+		ctx->out->f->write_header(ctx->out, r, kgl_header_upgrade, _KS("test"));
 		ctx->out->f->write_header(ctx->out, r, kgl_header_cache_control, _KS("no-cache, no-store"));
 		result = ctx->out->f->write_header_finish(ctx->out, r);
 		if (result != KGL_OK) {

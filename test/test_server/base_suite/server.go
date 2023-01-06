@@ -22,7 +22,6 @@ const (
 var request_count int
 var range_size, gz_range_size int
 var range_md5 string
-var gz_range_md5 string
 var last_dynamic_content string
 
 type rangeCallBackCheck func(from, to, request_count int, r *http.Request)

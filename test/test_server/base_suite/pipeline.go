@@ -14,19 +14,6 @@ import (
 
 type check_string_callback func(string)
 
-func check_split_post2(str string, pos int, pos2 int, fn check_string_callback) {
-	cn, err := net.Dial("tcp", "127.0.0.1:9999")
-	common.AssertSame(err, nil)
-	defer cn.Close()
-	cn.Write([]byte(str[0:pos]))
-	time.Sleep(10 * time.Millisecond)
-	cn.Write([]byte(str[pos:pos2]))
-	time.Sleep(10 * time.Millisecond)
-	cn.Write([]byte(str[pos2:]))
-	cn.SetReadDeadline(time.Now().Add(2 * time.Second))
-	buf, _ := ioutil.ReadAll(cn)
-	fn(string(buf))
-}
 func check_split_post(str string, start int, fn check_string_callback) {
 	cn, err := net.Dial("tcp", "127.0.0.1:9900")
 	common.AssertSame(err, nil)
