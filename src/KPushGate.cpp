@@ -374,12 +374,10 @@ KGL_RESULT check_write_unknow_header(kgl_output_stream* st, KREQUEST r, const ch
 
 KGL_RESULT check_write_header_finish(kgl_output_stream* st, KREQUEST r) {
 	KHttpRequest* rq = (KHttpRequest*)r;
-
 	if (!rq->start_response_body(rq->ctx->left_read)) {
 		return  KGL_EINVALID_PARAMETER;
 	}
-
-	if (rq->sink->data.meth == METH_HEAD) {
+	if (rq->sink->data.meth == METH_HEAD || is_status_code_no_body(rq->sink->data.status_code)) {
 		return KGL_NO_BODY;
 	}
 	return KGL_OK;
