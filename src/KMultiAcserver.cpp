@@ -27,6 +27,7 @@
 #include "KAsyncFetchObject.h"
 #include "KAcserverManager.h"
 #include "KConfig.h"
+#include "HttpFiber.h"
 using namespace std;
 #ifdef ENABLE_MULTI_SERVER
 void KMultiAcserver::init() {

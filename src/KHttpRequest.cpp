@@ -348,7 +348,7 @@ char* KHttpRequest::getUrl() {
 std::string KHttpRequest::getInfo() {
 	KStringBuf s;
 #ifdef HTTP_PROXY
-	if (meth == METH_CONNECT) {
+	if (sink->data.meth == METH_CONNECT) {
 		s << "CONNECT ";
 		if (sink->data.raw_url->host) {
 			s << sink->data.raw_url->host << ":" << sink->data.raw_url->port;

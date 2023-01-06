@@ -274,7 +274,6 @@ bool check_virtual_host_access_request(KHttpRequest *rq, int header_length) {
 
 KGL_RESULT handle_connect_method(KHttpRequest* rq)
 {
-	//{{ent
 #ifdef HTTP_PROXY	
 	if (rq->sink->data.url->host == NULL) {
 		return KGL_EDATA_FORMAT;
@@ -294,14 +293,14 @@ KGL_RESULT handle_connect_method(KHttpRequest* rq)
 	default:
 		break;
 	}
-	if (!rq->HasFinalFetchObject()) {
+	if (!rq->has_final_source()) {
 		return send_error2(rq, STATUS_METH_NOT_ALLOWED, "CONNECT Not allowed.");
 	}
 	rq->sink->data.http_minor = 0;
 	rq->ctx->obj = new KHttpObject(rq);
 	rq->ctx->new_object = 1;
 	return load_object(rq);
-#endif//}}
+#endif
 	return send_error2(rq, STATUS_METH_NOT_ALLOWED, "The requested method CONNECT is not allowed");
 }
 void start_request_fiber(KSink *sink, int header_length)

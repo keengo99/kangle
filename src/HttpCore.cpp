@@ -568,11 +568,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* gate, KBaseRedirect* brd,
 	}
 	KHttpHeader* av = rq->sink->data.get_header();
 	while (av) {
-#ifdef HTTP_PROXY
-		if (strncasecmp(av->attr, "Proxy-", 6) == 0) {
-			goto do_not_insert;
-		}
-#endif
+
 		if (KBIT_TEST(rq->sink->data.flags, RQ_HAVE_EXPECT) && kgl_is_attr(av, _KS("Expect"))) {
 			goto do_not_insert;
 		}
@@ -586,6 +582,11 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* gate, KBaseRedirect* brd,
 			assert(av->val_offset == 0);
 			env->add_http_header(kgl_header_type_string[av->know_header].value.data, kgl_header_type_string[av->know_header].value.len, av->buf+av->val_offset, av->val_len);
 		} else {
+#ifdef HTTP_PROXY
+			if (kgl_ncasecmp(av->buf, av->name_len, _KS("Proxy-")) == 0) {
+				goto do_not_insert;
+			}
+#endif
 			env->add_http_header(av->buf, av->name_len, av->buf+av->val_offset, av->val_len);
 		}
 	do_not_insert: av = av->next;

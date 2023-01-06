@@ -480,7 +480,7 @@ int KAccess::check(KHttpRequest *rq, KHttpObject *obj) {
 		assert(!rq->has_final_source());
 #ifdef HTTP_PROXY
 		if (rq->sink->data.meth == METH_CONNECT) {
-			rq->AppendFetchObject(new KConnectProxyFetchObject());
+			rq->append_source(new KConnectProxyFetchObject());
 			break;
 		}
 #endif

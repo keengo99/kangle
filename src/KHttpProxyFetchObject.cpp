@@ -142,11 +142,10 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 			goto do_not_insert;
 		}
 #ifdef HTTP_PROXY
-		if (strncasecmp(av->attr, "Proxy-", 6) == 0) {
+		if (kgl_ncasecmp(attr.data, attr.len, _KS("Proxy-")) == 0) {
 			goto do_not_insert;
 		}
 #endif
-
 		if (kgl_is_attr(av, _KS(X_REAL_IP_SIGN))) {
 			goto do_not_insert;
 		}
@@ -230,8 +229,13 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 	}
 #endif
 #ifdef HTTP_PROXY
-	if (container) {
-		container->addHeader(rq, &env);
+	if (client->container) {
+		KHttpHeader* header = client->container->get_proxy_header(rq->sink->pool);
+		while (header) {
+			kgl_get_header_name(av, &attr);
+			env.add(attr.data, attr.len, header->buf + header->val_offset, header->val_len);
+			header = header->next;
+		}
 	}
 #endif
 	if (rq->ctx->upstream_sign) {
