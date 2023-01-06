@@ -21,6 +21,7 @@ func Handle(pattern string, handler func(http.ResponseWriter, *http.Request)) {
 	http.HandleFunc("/upstream/http"+pattern, handler)
 	http.HandleFunc("/upstream/h2"+pattern, handler)
 	http.HandleFunc("/upstream/h2c"+pattern, handler)
+	http.HandleFunc("/upstream/ssl"+pattern, handler)
 }
 func WriteAll(conn io.Writer, buf []byte) error {
 

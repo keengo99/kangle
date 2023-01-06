@@ -115,7 +115,7 @@ public:
 	KUpstream *getConnection(KHttpRequest *rq)
 	{
 		lastActive = kgl_current_sec;
-		KUpstream*st = KPoolableSocketContainer::get_pool_socket();
+		KUpstream*st = KPoolableSocketContainer::get_pool_socket(0);
 		if (st) {
 			return st;
 		}

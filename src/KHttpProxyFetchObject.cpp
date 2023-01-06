@@ -111,12 +111,16 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 		s.WSTR("?");
 		s << param;
 	}
-	client->send_method_path(rq->sink->data.meth, s.getBuf(), (hlen_t)s.getSize());
+	uint8_t meth = rq->sink->data.meth;
+	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE) && client->IsMultiStream()) {
+		meth = METH_CONNECT;
+	}
+	client->send_method_path(meth, s.getBuf(), (hlen_t)s.getSize());
 	if (path != url->path) {
 		xfree(path);
 		path = NULL;
 	}
-	s.clean();	
+	s.clean();
 	s << url->host;
 	if (url->port != defaultPort) {
 		s.WSTR(":");
@@ -189,21 +193,30 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 		if (is_internal_header(av)) {
 			goto do_not_insert;
 		}
-		if (!client->send_header(attr.data, (hlen_t)attr.len, av->buf+av->val_offset, av->val_len)) {
+		if (av->name_is_know) {
+			if (!client->send_header((kgl_header_type)av->know_header, av->buf + av->val_offset, av->val_len)) {
+				return false;
+			}
+		} else if (!client->send_header(av->buf, av->name_len, av->buf+av->val_offset, av->val_len)) {
 			return false;
 		}
 	do_not_insert: 
 		av = av->next;
 	}
+	
 	int64_t content_length = in->f->get_read_left(in, rq);
 	if (rq_has_content_length(rq, content_length)) {
 		int len = int2string2(content_length, tmpbuff);
 		client->send_header(kgl_expand_string("Content-Length"), tmpbuff, len);
-	} else if (is_chunk_post() || KBIT_TEST(rq->sink->data.flags, RQ_INPUT_CHUNKED)) {
-		assert(content_length == -1);
+	} else {		
+		if (is_chunk_post() || KBIT_TEST(rq->sink->data.flags, RQ_INPUT_CHUNKED)) {
+			assert(content_length == -1);
+		} else if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE)) {
+			content_length = 0;
+		}
 	}
 	client->set_content_length(content_length);
-
+	
 	if (rq->sink->data.if_modified_since != 0) {
 		char *end = make_http_time(rq->sink->data.if_modified_since, tmpbuff, sizeof(tmpbuff));
 		if (rq->ctx->mt == modified_if_range_date) {

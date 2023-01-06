@@ -1,8 +1,10 @@
 package base_suite
 
 import (
+	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"test_server/common"
 	"time"
 
@@ -12,9 +14,20 @@ import (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
 }
 
 func HandleWebsocket(res http.ResponseWriter, req *http.Request) {
+	if req.FormValue("port") == "9900" {
+		//检查via,确保经过了http2代理过来的。
+		via := req.Header.Get("Via")
+		vias := strings.Split(via, ", ")
+		common.AssertSame(len(vias), 2)
+		item := strings.Split(vias[1], " ")
+		common.AssertSame(item[0], "2")
+	}
 	ws, err := upgrader.Upgrade(res, req, nil)
 	if err != nil {
 		panic(err.Error())
@@ -22,6 +35,7 @@ func HandleWebsocket(res http.ResponseWriter, req *http.Request) {
 	for {
 		messageType, messageContent, err := ws.ReadMessage()
 		if err != nil {
+			//fmt.Printf("read message error [%v]\n", err.Error())
 			return
 		}
 		if err := ws.WriteMessage(messageType, []byte(messageContent)); err != nil {
@@ -83,4 +97,24 @@ func test_websocket() {
 func test_upstream_disable_h2_websocket() {
 	check_client_first_websocket("127.0.0.1:9801")
 	check_server_first_websocket("127.0.0.1:9801")
+}
+func check_websocket_over_h2(port int) {
+	if port == 9900 {
+		//确保第一次连接后能判断出http2是否支持websocket.
+		common.Get("http://localhost:9900/upstream/http/etag?websocket", nil, nil)
+	}
+	conn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://localhost:%v/upstream/http/websocket2?port=%v", port, port), nil)
+	common.AssertSame(err, nil)
+	defer conn.Close()
+	conn.WriteMessage(1, []byte("hello"))
+	msgType, msg, err := conn.ReadMessage()
+	if err != nil {
+		panic((err.Error()))
+	}
+	common.AssertSame(msgType, 1)
+	common.AssertSame(string(msg), "hello")
+}
+func test_websocket_over_h2() {
+	check_websocket_over_h2(9999) //一次代理
+	check_websocket_over_h2(9900) //两次代理
 }

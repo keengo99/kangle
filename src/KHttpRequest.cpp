@@ -248,7 +248,7 @@ uint32_t KHttpRequest::get_upstream_flags() {
 		KBIT_SET(flags, KSOCKET_FLAGS_SKIP_POOL);
 	}
 	if (KBIT_TEST(sink->data.flags, RQ_HAS_CONNECTION_UPGRADE)) {
-		KBIT_SET(flags, KSOCKET_FLAGS_SKIP_POOL | KSOCKET_FLAGS_WEBSOCKET);
+		KBIT_SET(flags, KSOCKET_FLAGS_WEBSOCKET);
 	}
 	return flags;
 }

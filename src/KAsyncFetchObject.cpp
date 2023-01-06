@@ -154,14 +154,14 @@ KGL_RESULT KAsyncFetchObject::InternalProcess(KHttpRequest* rq, kfiber** post_fi
 	client->set_time_out(rq->sink->get_time_out());
 	assert(rq->sink->get_selector() == kgl_get_tls_selector());
 	int64_t post_length = in->f->get_read_left(in, rq);
-	if (post_length == -1 && !client->IsMultiStream()) {
+	if (post_length == -1 && !client->IsMultiStream() && !KBIT_TEST(rq->sink->data.flags,RQ_HAS_CONNECTION_UPGRADE)) {
 		chunk_post = 1;
 	}
 	KGL_RESULT ret = SendHeader(rq);
 	if (ret != KGL_OK) {
 		return ret;
 	}
-	if (post_length != 0) {
+	if (post_length != 0 && !KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE)) {
 		ret = ProcessPost(rq);
 		if (ret != KGL_END) {
 			return ret;
@@ -262,13 +262,13 @@ KGL_RESULT KAsyncFetchObject::ReadHeader(KHttpRequest* rq, kfiber** post_fiber) 
 	InitUpstreamBuffer();
 #if defined(WORK_MODEL_TCP) || defined(HTTP_PROXY)
 	//tcp pipe line
-	if (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
+	if (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE) && !client->IsMultiStream()) {
 		return on_read_head_success(rq, post_fiber);
 	}
 #endif
 	KGL_RESULT result = client->read_header();
 	if (result != KGL_ENOT_SUPPORT) {
-		if (result == KGL_OK) {
+		if (result == KGL_OK) {			
 			return on_read_head_success(rq, post_fiber);
 		}
 		return result;
@@ -417,7 +417,6 @@ KGL_RESULT KAsyncFetchObject::SendPost(KHttpRequest* rq) {
 		int bc = buffer->getReadBuffer(buf, kgl_countof(buf));
 		//debug_print_wsa_buf(buf, bc);
 		int got = client->write(buf, bc);
-		//printf("write upstream got=[%d]\n", got);
 		if (got <= 0) {
 			result = KGL_ESOCKET_BROKEN;
 			break;

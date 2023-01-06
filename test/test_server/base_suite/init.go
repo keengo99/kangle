@@ -48,7 +48,7 @@ func (b *base) Init() error {
 	<!-- 9801中转连接上游h2(test_server的4412端口) -->
 	<listen ip='127.0.0.1' port='9801' type='http' />
 	<!-- 9900中转连接kangle的h2(kangle的9443端口) -->
-	<listen ip='127.0.0.1' port='9900' type='http' />
+	<listen ip='127.0.0.1' port='9900h' type='http' />
 	<!-- 9902 https中转上上游http(kangle的9999) -->
 	<listen ip='127.0.0.1' port='9902' type='https' certificate='etc/server.crt' certificate_key='etc/server.key' http2='1' />
 	<gzip only_gzip_cache='0' min_gzip_length='1' gzip_level='5' br_level='5'/>
@@ -68,6 +68,7 @@ func (b *base) Init() error {
 		<table name='BEGIN'>
 			<chain  action='continue' >
 				<mark_flag  x_cache='1' age='1' ></mark_flag>
+				<mark_flag  via='1' ></mark_flag>
 			</chain>
 			<chain  action='server:localhost_proxy' >
 				<acl_self_port >9800</acl_self_port>
@@ -83,6 +84,9 @@ func (b *base) Init() error {
 			</chain>
 			<chain  action='server:upstream_h2c' >
 				<acl_path>/upstream/h2c/*</acl_path>
+			</chain>
+			<chain  action='server:upstream_ssl' >
+				<acl_path>/upstream/ssl/*</acl_path>
 			</chain>
 			<chain  action='server:upstream_h2' >
 				<acl_self_port >9801</acl_self_port>
@@ -145,6 +149,7 @@ func init() {
 	//s.AddCase("read_hup", "read_hup测试(配合dso以及linux下)", check_read_hup)
 	s.AddCase("websocket", "websocket", test_websocket)
 	s.AddCase("websocket_no_h2", "http1 websocket和上游禁止h2", test_upstream_disable_h2_websocket)
+	s.AddCase("websocket_over_h2", "websocket over h2", test_websocket_over_h2)
 	s.AddCase("head", "head method", test_head_method)
 	s.AddCase("broken_no_cache", "连接中断不能缓存", check_broken_no_cache)
 	s.AddCase("disk_cache", "磁盘缓存swap out/in", check_disk_cache)
