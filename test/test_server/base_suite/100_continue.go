@@ -34,9 +34,9 @@ func check_100_continue_port(port int) {
 	cn.Write([]byte(str))
 	cn.SetReadDeadline(time.Now().Add(2 * time.Second))
 	h, body, err = common.ReadHttpProtocol(reader, true)
-	common.AssertSame(err, nil)
-	common.AssertSame(body, "ok")
 	common.AssertSame(strings.ToLower(h["http/1.1"]), "200 ok")
+	common.AssertSame(body, "ok")
+	common.AssertSame(err, nil)
 
 	//read body
 	str = "POST /upstream/http/100_continue HTTP/1.1\r\nContent-Length: 4\r\nHost: localhost\r\nExpect: 100-continue\r\nx-read-body: 1\r\n\r\n"

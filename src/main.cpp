@@ -257,6 +257,7 @@ int shutdown_fiber(void* arg, int got) {
 		conf.dem->shutdown();
 	}
 	accessLogger.close();
+	kconfig::shutdown();
 	klog(KLOG_ERR, "shutdown\n");
 	errorLogger.close();
 	singleProgram.deletePid();

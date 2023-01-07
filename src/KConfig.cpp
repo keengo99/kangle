@@ -519,8 +519,6 @@ void clean_config() {
 #ifdef ENABLE_WRITE_BACK
 	writeBackManager.destroy();
 #endif
-	//contentType.destroy();
-	kconfig::shutdown();
 }
 int do_config_thread(void* first_time, int argc) {
 	assert(kfiber_self());
