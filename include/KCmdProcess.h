@@ -108,7 +108,7 @@ public:
 	{
 		unlink_unix();
 	}
-	void shutdown() {
+	void shutdown() override {
 		refresh(0);
 		vprocess->shutdown();
 	}
