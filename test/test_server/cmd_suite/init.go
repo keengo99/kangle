@@ -29,6 +29,7 @@ func (this *cmd) Init() error {
 		<map file_ext='http_mp' extend='cmd:http_mp' confirm_file='0' allow_method='*'/>
 		<map file_ext='http_sp' extend='cmd:http_sp' confirm_file='0' allow_method='*'/>
 		<host>cmd.test</host>
+		<host>cmd.localtest.me</host>
 	</vh>
 </config>
 `

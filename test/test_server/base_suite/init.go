@@ -16,7 +16,7 @@ var CONFIG_FILE_NAME = "base"
 
 func (b *base) Init() error {
 	createRange(1024)
-
+	server.Handle("/100_continue", handle_100_continue)
 	server.Handle("/post_chunk_trailer", HandlePostChunkTrailer)
 	server.Handle("/chunk_trailer", HandleChunkUpstreamTrailer)
 	server.Handle("/chunk_trailer_1", HandleHttp1ChunkUpstreamTrailer)
@@ -148,12 +148,13 @@ func init() {
 	//s.AddCase("extworker", "extworker", check_extworker)
 	//s.AddCase("read_hup", "read_hup测试(配合dso以及linux下)", check_read_hup)
 	s.AddCase("websocket", "websocket", test_websocket)
-	s.AddCase("websocket_no_h2", "http1 websocket和上游禁止h2", test_upstream_disable_h2_websocket)
 	s.AddCase("websocket_over_h2", "websocket over h2", test_websocket_over_h2)
+	s.AddCase("websocket_no_h2", "http1 websocket和上游禁止h2", test_upstream_disable_h2_websocket)
 	s.AddCase("head", "head method", test_head_method)
 	s.AddCase("broken_no_cache", "连接中断不能缓存", check_broken_no_cache)
 	s.AddCase("disk_cache", "磁盘缓存swap out/in", check_disk_cache)
 	s.AddCase("upstream_http_protocol", "测试上游http协议解析", check_upstream_http_protocol)
 	s.AddCase("fastcgi", "fastcgi协议测试", check_fastcgi)
 	s.AddCase("obs_fold", "obs_fold测试", check_obs_fold)
+	s.AddCase("100_continue", "100-continue测试", check_100_continue)
 }

@@ -56,6 +56,8 @@ func CreateMainConfig(malloc_debug int) (err error) {
 	<listen ip='127.0.0.1' port='9999h' type='http' />	
 	<listen ip='127.0.0.1' port='9943' type='https' certificate='etc/server.crt' certificate_key='etc/server.key' alpn='3' />
 	<listen ip='127.0.0.1' port='9911' type='manage' />
+	<timeout>60</timeout>
+	<connect_timeout>20</connect_timeout>
 	<admin user='admin' password='kangle' crypt='plain' auth_type='Basic' admin_ips='~127.0.0.1'/>
 	<request action='vhs'></request>
 	<vhs >

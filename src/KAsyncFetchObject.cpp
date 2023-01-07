@@ -154,14 +154,14 @@ KGL_RESULT KAsyncFetchObject::InternalProcess(KHttpRequest* rq, kfiber** post_fi
 	client->set_time_out(rq->sink->get_time_out());
 	assert(rq->sink->get_selector() == kgl_get_tls_selector());
 	int64_t post_length = in->f->get_read_left(in, rq);
-	if (post_length == -1 && !client->IsMultiStream() && !KBIT_TEST(rq->sink->data.flags,RQ_HAS_CONNECTION_UPGRADE)) {
+	if (post_length == -1 && !client->IsMultiStream() && !KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE)) {
 		chunk_post = 1;
 	}
 	KGL_RESULT ret = SendHeader(rq);
 	if (ret != KGL_OK) {
 		return ret;
 	}
-	if (post_length != 0 && !KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE)) {
+	if (post_length != 0 && !KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE | RQ_HAVE_EXPECT)) {
 		ret = ProcessPost(rq);
 		if (ret != KGL_END) {
 			return ret;
@@ -268,7 +268,7 @@ KGL_RESULT KAsyncFetchObject::ReadHeader(KHttpRequest* rq, kfiber** post_fiber) 
 #endif
 	KGL_RESULT result = client->read_header();
 	if (result != KGL_ENOT_SUPPORT) {
-		if (result == KGL_OK) {			
+		if (result == KGL_OK) {
 			return on_read_head_success(rq, post_fiber);
 		}
 		return result;
@@ -448,6 +448,17 @@ KGL_RESULT KAsyncFetchObject::on_read_head_success(KHttpRequest* rq, kfiber** po
 		client->set_time_out(tmo);
 		create_post_fiber(rq, post_fiber);
 	}
+	if (pop_header.is_100_continue && KBIT_TEST(rq->sink->data.flags, RQ_HAVE_EXPECT)) {
+		assert(KBIT_TEST(rq->sink->data.flags, RQ_HAVE_EXPECT));
+		pop_header.is_100_continue = 0;
+		if (*post_fiber == nullptr) {
+			KGL_RESULT ret = ProcessPost(rq);
+			if (ret != KGL_END) {
+				return ret;
+			}
+			return ReadHeader(rq, post_fiber);
+		}
+	}
 	return PushHeaderFinished(rq);
 }
 KGL_RESULT KAsyncFetchObject::PushHeaderFinished(KHttpRequest* rq) {
@@ -462,6 +473,10 @@ KGL_RESULT KAsyncFetchObject::PushHeaderFinished(KHttpRequest* rq) {
 	return out->f->write_header_finish(out, rq);
 }
 void KAsyncFetchObject::PushStatus(KHttpRequest* rq, int status_code) {
+	if (status_code == 100) {
+		pop_header.is_100_continue = 1;
+		return;
+	}
 	pop_header.status_send = 1;
 	if (is_status_code_no_body(status_code)) {
 		pop_header.no_body = 1;
@@ -469,7 +484,25 @@ void KAsyncFetchObject::PushStatus(KHttpRequest* rq, int status_code) {
 	out->f->write_status(out, rq, status_code);
 }
 KGL_RESULT KAsyncFetchObject::PushHeader(KHttpRequest* rq, const char* attr, int attr_len, const char* val, int val_len, bool request_line) {
-	//printf("attr=[%s] val=[%s] request_line=[%d]\n", attr,val, request_line);	
+	/*
+	if (attr) {
+		printf("attr=[%s] val=[%s] request_line=[%d]\n", attr , val, request_line);
+	}
+	*/
+	if (!attr) {
+		switch ((kgl_header_type)attr_len) {
+		case kgl_header_status:
+		{
+			int status_code;
+			if (kgl_parse_value_int(val, val_len, &status_code) == 0) {
+				PushStatus(rq, status_code);
+			}
+			return KGL_OK;
+		}
+		default:
+			return out->f->write_header(out, rq, (kgl_header_type)attr_len, val, val_len);
+		}
+	}
 	if (request_line && pop_header.proto == Proto_http) {
 		if (strncasecmp(attr, "HTTP/", 5) == 0) {
 			const char* dot = strchr(attr + 5, '.');
@@ -483,7 +516,8 @@ KGL_RESULT KAsyncFetchObject::PushHeader(KHttpRequest* rq, const char* attr, int
 			} else if (http_major == 1 && http_minor == 1) {
 				rq->ctx->upstream_connection_keep_alive = true;
 			}
-			PushStatus(rq, atoi(val));
+			int status_code = kgl_atoi((u_char*)val, val_len);
+			PushStatus(rq, status_code);
 			return KGL_OK;
 		}
 	}
@@ -579,9 +613,11 @@ KGL_RESULT KAsyncFetchObject::ParseBody(KHttpRequest* rq, char** data, char* end
 	if (len == 0) {
 		return KGL_OK;
 	}
-	//printf("ParseBody len=[%d]\n", len);
-	//fwrite(*data, 1, len, stdout);
-	//printf("\n");
+#if 0
+	printf("ParseBody len=[%d]\n", len);
+	fwrite(*data, 1, len, stdout);
+	printf("\n");
+#endif
 	KGL_RESULT result = PushBody(rq, out, *data, (int)len);
 	(*data) += len;
 	return result;

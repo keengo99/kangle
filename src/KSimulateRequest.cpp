@@ -114,7 +114,7 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 		}
 		rq->ctx->skip_access = 1;
 	}
-	ss->begin_request();
+	ss->read_header();
 	return rq;
 }
 int kgl_start_simulate_request(KHttpRequest *rq,kfiber **fiber)
@@ -167,7 +167,10 @@ static void WINAPI timer_simulate(void *arg)
 	kgl_simuate_http_request(&ctx);
 	//asyncHttpRequest(METH_GET,"http://www.kangleweb.net/test.php",NULL,test_header_hook,test_body_hook,NULL);
 }
-
+kev_result KSimulateSink::read_header() {
+	begin_request();
+	return kev_ok;
+}
 KSimulateSink::KSimulateSink() : KTcpServerSink(NULL)
 {
 	memset(&header_manager, 0, sizeof(KHttpHeaderManager));

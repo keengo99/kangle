@@ -106,6 +106,7 @@ func check_websocket_over_h2(port int) {
 	conn, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("ws://localhost:%v/upstream/http/websocket2?port=%v", port, port), nil)
 	common.AssertSame(err, nil)
 	defer conn.Close()
+	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 	conn.WriteMessage(1, []byte("hello"))
 	msgType, msg, err := conn.ReadMessage()
 	if err != nil {

@@ -34,18 +34,19 @@ public:
 	}
 	bool response_header(const char *name, int name_len, const char *val, int val_len) override
 	{
-		KHttpHeader *header = new_pool_http_header(c->pool, name, name_len, val, val_len);
+		KHttpHeader *header = new_pool_http_header(name, name_len, val, val_len,(kgl_malloc)kgl_pnalloc, c->pool);
 		if (header) {
 			header_manager.append(header);
 		}
 		return true;
 	}
+	kev_result read_header() override;
 	bool response_connection(const char *val, int val_len) override
 	{
 		return false;
 	}
 	//返回头长度,-1表示出错
-	int internal_start_response_body(int64_t body_size) override
+	int internal_start_response_body(int64_t body_size, bool is_100_continue) override
 	{
 		if (header) {
 			header(arg, status_code, header_manager.header);

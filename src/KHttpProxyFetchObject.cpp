@@ -16,12 +16,12 @@
 #include "KSimulateRequest.h"
 
 
-bool http2_header_callback(KUpstream *us, void *arg, const char *attr, int attr_len, const char *val, int val_len,bool is_first)
+bool http2_header_callback(KUpstream *us, void *arg, const char *attr, int attr_len, const char *val, int val_len,bool flag)
 {
 	KHttpRequest *rq = (KHttpRequest *)arg;
 	KAsyncFetchObject *fo = (KAsyncFetchObject *)us->GetOpaque();
 	assert(kselector_is_same_thread(rq->sink->get_selector()));
-	if (KGL_OK != fo->PushHeader(rq, attr, attr_len, val, val_len, is_first)) {
+	if (KGL_OK != fo->PushHeader(rq, attr, attr_len, val, val_len, flag)) {
 		return false;
 	}
 	return true;
@@ -182,9 +182,11 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 			}
 			goto do_not_insert;
 		}
+#if 0
 		if (KBIT_TEST(rq->sink->data.flags, RQ_HAVE_EXPECT) && kgl_is_attr(av, _KS("Expect"))) {
 			goto do_not_insert;
 		}
+#endif
 #ifdef ENABLE_BIG_OBJECT_206
 		if (rq->bo_ctx && kgl_is_attr(av, _KS("Range"))) {
 			goto do_not_insert;
