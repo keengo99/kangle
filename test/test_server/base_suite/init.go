@@ -20,7 +20,7 @@ func (b *base) Init() error {
 	server.Handle("/post_chunk_trailer", HandlePostChunkTrailer)
 	server.Handle("/chunk_trailer", HandleChunkUpstreamTrailer)
 	server.Handle("/chunk_trailer_1", HandleHttp1ChunkUpstreamTrailer)
-
+	server.Handle("/obs_fold", handle_obs_fold)
 	server.Handle("/chunk", HandleChunkUpstream)
 	server.Handle("/split_response", HandleSplitResponse)
 	server.Handle("/chunk_post", HandleChunkPost)
@@ -155,5 +155,5 @@ func init() {
 	s.AddCase("disk_cache", "磁盘缓存swap out/in", check_disk_cache)
 	s.AddCase("upstream_http_protocol", "测试上游http协议解析", check_upstream_http_protocol)
 	s.AddCase("fastcgi", "fastcgi协议测试", check_fastcgi)
-	//s.AddCase("h3_method", "h3 method", test_h3_method)
+	s.AddCase("obs_fold", "obs_fold测试", check_obs_fold)
 }
