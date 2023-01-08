@@ -9,8 +9,21 @@ import (
 	"strings"
 )
 
+func check_bigobj_md5() {
+	for i := 0; i < 2; i++ {
+		common.CreateRange(1024)
+		common.Get("/range", map[string]string{"pragma": "no-cache"}, func(resp *http.Response, err error) {
+			common.AssertContain(resp.Header.Get("X-Cache"), "MISS ")
+			common.AssertSame(common.RangeMd5, md5Response(resp, true))
+		})
+		common.Get("/range", nil, func(resp *http.Response, err error) {
+			common.AssertSame(common.RangeMd5, md5Response(resp, true))
+			common.AssertContain(resp.Header.Get("X-Cache"), "HIT ")
+		})
+	}
+}
 func check_dynamic_content() {
-	request_count = 0
+	common.RequestCount = 0
 	for i := 0; i < 2; i++ {
 		common.Get("/dynamic", map[string]string{"pragma": "no-cache"}, func(resp *http.Response, err error) {
 			common.AssertSame(common.Read(resp), last_dynamic_content)
@@ -21,20 +34,9 @@ func check_dynamic_content() {
 			common.AssertContain(resp.Header.Get("X-Cache"), "HIT ")
 		})
 	}
-	for i := 0; i < 2; i++ {
-		createRange(1024)
-		common.Get("/range", map[string]string{"pragma": "no-cache"}, func(resp *http.Response, err error) {
-			common.AssertContain(resp.Header.Get("X-Cache"), "MISS ")
-			common.AssertSame(range_md5, md5Response(resp, true))
-		})
-		common.Get("/range", nil, func(resp *http.Response, err error) {
-			common.AssertSame(range_md5, md5Response(resp, true))
-			common.AssertContain(resp.Header.Get("X-Cache"), "HIT ")
-		})
-	}
 }
 func check_etag() {
-	request_count = 0
+	common.RequestCount = 0
 
 	common.Get("/etag", nil, func(resp *http.Response, err error) {
 		common.AssertSame(common.Read(resp), "hello")
@@ -45,14 +47,14 @@ func check_etag() {
 		common.AssertSame(common.Read(resp), "hello")
 		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
 	})
-	common.Assert("progma-no-cache", request_count == 2)
+	common.Assert("progma-no-cache", common.RequestCount == 2)
 	common.Get("/etag", map[string]string{"if-none-match": "hello"}, func(resp *http.Response, err error) {
 		common.Assert("etag-304-response", resp.StatusCode == 304)
 		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
 	})
-	common.Assert("cache-no-verify", request_count == 2)
+	common.Assert("cache-no-verify", common.RequestCount == 2)
 	//test h2c
-	request_count = 0
+	common.RequestCount = 0
 	common.Get("/upstream/h2c/etag", nil, func(resp *http.Response, err error) {
 		common.AssertSame(common.Read(resp), "hello")
 		common.Assert("x-cache-miss", strings.Contains(resp.Header.Get("X-Cache"), "MISS "))

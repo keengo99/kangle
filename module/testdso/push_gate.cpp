@@ -39,6 +39,14 @@ static KGL_RESULT push_trailer(kgl_output_stream* gate, KREQUEST rq, const char*
 	kgl_async_context* ctx = kgl_get_out_async_context(gate);
 	return ctx->out->f->write_trailer(ctx->out, rq, attr, attr_len, val, val_len);
 }
+static bool support_sendfile(kgl_output_stream* out, KREQUEST rq) {
+	kgl_async_context* ctx = kgl_get_out_async_context(out);
+	return ctx->out->f->support_sendfile(ctx->out, rq);
+}
+static KGL_RESULT sendfile(kgl_output_stream* out, KREQUEST rq, KASYNC_FILE fp, int64_t *len) {
+	kgl_async_context* ctx = kgl_get_out_async_context(out);
+	return ctx->out->f->sendfile(ctx->out, rq, fp, len);
+}
 static KGL_RESULT push_header_finish(kgl_output_stream *gate, KREQUEST rq)
 {
 	kgl_async_context *ctx = kgl_get_out_async_context(gate);
@@ -71,6 +79,8 @@ static kgl_output_stream_function push_gate_function = {
 	push_body,
 	handle_error,
 	push_trailer,
+	support_sendfile,
+	sendfile,
 	push_body_finish,
 	(void(*)(kgl_output_stream *))free
 };

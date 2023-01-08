@@ -28,15 +28,15 @@
 #include "KSendable.h"
 #include "KChunked.h"
 #include "KCacheStream.h"
-//{{ent
 #ifdef ENABLE_DELTA_ENCODE
 #include "KDeltaEncode.h"
-#endif//}}
+#endif
 
 /*
+* @deprecated
  * This class use to transfer data to client
  * It support compress(use gzip) and chunk transfer encoding.
-
+ 
  数据流向:
  数据源(localfetch) -->   <--数据源(push模式)
  chunked接收(有或者没有)-->
@@ -55,7 +55,8 @@ public:
 	KHttpTransfer();
 	~KHttpTransfer();
 	void init(KHttpRequest *rq, KHttpObject *obj);
-	bool support_sendfile();
+	bool support_sendfile(void* rq) override;
+	KGL_RESULT sendfile(void* rq, kfiber_file* fp, int64_t *len) override;
 	/*
 	 * send actual data to client. cann't head data or chunked head
 	 */

@@ -65,7 +65,6 @@
 #endif
 #include "KHttp2.h"
 #include "HttpFiber.h"
-#include "KHttpFilterManage.h"
 #include "ksapi.h"
 #include "kaddr.h"
 #include "KLogDrill.h"

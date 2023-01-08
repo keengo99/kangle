@@ -16,23 +16,23 @@ import (
 
 type RequestRange struct {
 	from, length int
-	sc           rangeCallBackCheck
+	sc           common.RangeCallBackCheck
 	cc           common.ClientCheckBack
 }
 type RequestRangeHeader struct {
 	from, length int
 	header       map[string]string
-	sc           rangeCallBackCheck
+	sc           common.RangeCallBackCheck
 	cc           common.ClientCheckBack
 }
 
-func check_range_all(sc rangeCallBackCheck, cc common.ClientCheckBack) {
+func check_range_all(sc common.RangeCallBackCheck, cc common.ClientCheckBack) {
 	check_range_all_with_header(false, map[string]string{"Accept-Encoding": "gzip"}, sc, cc)
 }
-func check_range_all_with_header(gzip bool, header map[string]string, sc rangeCallBackCheck, cc common.ClientCheckBack) {
-	rangeChecker = sc
+func check_range_all_with_header(gzip bool, header map[string]string, sc common.RangeCallBackCheck, cc common.ClientCheckBack) {
+	common.RangeChecker = sc
 	defer func() {
-		rangeChecker = nil
+		common.RangeChecker = nil
 	}()
 	path := "/range"
 	if gzip {
@@ -43,11 +43,11 @@ func check_range_all_with_header(gzip bool, header map[string]string, sc rangeCa
 			fmt.Printf("get error [%s]\n", err.Error())
 		}
 		if gzip {
-			common.Assert("range", gz_range_size == int(resp.ContentLength))
+			common.Assert("range", common.GzRangeSize == int(resp.ContentLength))
 		} else {
-			common.Assert("range", range_size == int(resp.ContentLength))
+			common.Assert("range", common.RangeSize == int(resp.ContentLength))
 		}
-		common.Assert("range-md5", range_md5 == md5Response(resp, true))
+		common.Assert("range-md5", common.RangeMd5 == md5Response(resp, true))
 		if cc != nil {
 			cc(resp, err)
 		}
@@ -66,7 +66,7 @@ func check_ranges_with_header(rrs []RequestRangeHeader) {
 		check_range_with_header(false, rr.from, rr.length, rr.header, rr.sc, rr.cc)
 	}
 }
-func check_range(from int, length int, gzip bool, sc rangeCallBackCheck, cc common.ClientCheckBack) {
+func check_range(from int, length int, gzip bool, sc common.RangeCallBackCheck, cc common.ClientCheckBack) {
 	//fmt.Printf("from=[%d] length=[%d]\n", from, length)
 	check_range_with_header(gzip,
 		from,
@@ -75,8 +75,8 @@ func check_range(from int, length int, gzip bool, sc rangeCallBackCheck, cc comm
 		sc,
 		cc)
 }
-func check_range_with_header(gzip bool, from int, length int, header map[string]string, sc rangeCallBackCheck, cc common.ClientCheckBack) {
-	request_count = 0
+func check_range_with_header(gzip bool, from int, length int, header map[string]string, sc common.RangeCallBackCheck, cc common.ClientCheckBack) {
+	common.RequestCount = 0
 	if from == 0 && length == -1 {
 		check_range_all_with_header(gzip, header, sc, cc)
 		return
@@ -84,20 +84,20 @@ func check_range_with_header(gzip bool, from int, length int, header map[string]
 	if header == nil {
 		header = make(map[string]string)
 	}
-	rangeChecker = sc
+	common.RangeChecker = sc
 	defer func() {
-		rangeChecker = nil
+		common.RangeChecker = nil
 	}()
 	var range_header string
 	var to int
 	if length == -1 {
 		range_header = fmt.Sprintf("bytes=%d-", from)
-		to = range_size - 1
+		to = common.RangeSize - 1
 		length = to - from + 1
 	} else if from == -1 {
 		range_header = fmt.Sprintf("bytes=-%d", length)
-		to = range_size - 1
-		from = range_size - length
+		to = common.RangeSize - 1
+		from = common.RangeSize - length
 	} else {
 		to = from + length - 1
 		range_header = fmt.Sprintf("bytes=%d-%d", from, to)
@@ -105,10 +105,10 @@ func check_range_with_header(gzip bool, from int, length int, header map[string]
 	//fmt.Printf("range_header=[%s]\n", range_header)
 	header["Range"] = range_header
 	path := "/range"
-	check_size := range_size
+	check_size := common.RangeSize
 	if gzip {
 		path += "?g=1"
-		check_size = gz_range_size
+		check_size = common.GzRangeSize
 	}
 	common.Get(path, header, func(resp *http.Response, err error) {
 		if resp.StatusCode == 206 {
@@ -117,7 +117,7 @@ func check_range_with_header(gzip bool, from int, length int, header map[string]
 			common.Assert("range-content-length", length == int(resp.ContentLength))
 		} else {
 			common.Assert("range-size-200", check_size == int(resp.ContentLength))
-			common.Assert("range-md5-200", range_md5 == md5Response(resp, true))
+			common.Assert("range-md5-200", common.RangeMd5 == md5Response(resp, true))
 		}
 		if cc != nil {
 			cc(resp, err)
@@ -131,11 +131,11 @@ func checkRespRange(resp *http.Response, from int, to int) {
 		fmt.Printf("read resp error[%s]\n", err.Error())
 		return
 	}
-	buf2 := ReadRange(from, to, false)
+	buf2 := common.ReadRange(from, to, false)
 	common.AssertByteSame(buf, buf2)
 }
 func md5FileRange(file string, from, to int) string {
-	buf := ReadFileRange(file, from, to)
+	buf := common.ReadFileRange(file, from, to)
 	if buf != nil {
 		//fmt.Printf("md5File=[%s]\n", string(buf))
 		result := md5sum(buf)
@@ -145,7 +145,7 @@ func md5FileRange(file string, from, to int) string {
 	return ""
 }
 func md5File(from, to int, gzip bool) string {
-	buf := ReadRange(from, to, gzip)
+	buf := common.ReadRange(from, to, gzip)
 	if buf != nil {
 		//fmt.Printf("md5File=[%s]\n", string(buf))
 		result := md5sum(buf)

@@ -29,8 +29,11 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_output_stre
 	}
 	assert(fp == NULL);
 	assert(rq->file);
-
-	FILE_HANDLE fd = rq->file->open(fileRead, KFILE_ASYNC);
+	int file_flag = KFILE_ASYNC;
+	if (!KBIT_TEST(rq->sink->data.flags, RQ_HAVE_RANGE)) {
+		KBIT_SET(file_flag, KFILE_SEQUENTIAL);
+	}
+	FILE_HANDLE fd = rq->file->open(fileRead, file_flag);
 	if (!kflike(fd)) {
 		return out->f->write_message(out, rq, KGL_MSG_ERROR, "file not found", STATUS_NOT_FOUND);
 	}
@@ -113,6 +116,9 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_output_stre
 	KGL_RESULT result = out->f->write_header_finish(out, rq);
 	if (result != KGL_OK) {
 		return result;
+	}
+	if (out->f->support_sendfile(out, rq)) {
+		return out->f->sendfile(out, rq, (KASYNC_FILE)fp, &rq->ctx->left_read);
 	}
 	int buf_size = conf.io_buffer;
 	char* buf = (char*)aio_alloc_buffer(buf_size);

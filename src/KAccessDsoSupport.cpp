@@ -413,10 +413,10 @@ static KGL_RESULT support_function(
 	}
 	case KF_REQ_FILTER:
 	{
-		kgl_filter* filter = (kgl_filter*)data;
+		kgl_filter* filter = (kgl_filter*)data;		
 		void* dso_ctx = (void*)*ret;
 		KDsoFilter* dso_filter = new KDsoFilter(filter, dso_ctx);
-		rq->getOutputFilterContext()->registerFilterStream(dso_filter, true);
+		rq->getOutputFilterContext()->registerFilterStream(rq, dso_filter, true);
 	}
 	default:
 		return base_support_function(rq, req, data, ret);

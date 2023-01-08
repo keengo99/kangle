@@ -34,9 +34,9 @@ private:
 	void CheckMemoryCacheSize(KHttpRequest *rq);
 #ifdef ENABLE_DISK_CACHE	
 	KDiskCacheStream *NewDiskCache(KHttpRequest *rq);
-	KDiskCacheStream *disk_cache;
+	KDiskCacheStream *disk_cache = nullptr;
 #endif
-	KHttpObject *obj;
-	KAutoBuffer *buffer;
+	KHttpObject *obj = nullptr;
+	KAutoBuffer *buffer = nullptr;
 };
 #endif

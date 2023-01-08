@@ -37,8 +37,8 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 	KSimulateSink* ss = new KSimulateSink;
 	ss->data.raw_url = new KUrl;
 	KHttpRequest* rq = new KHttpRequest(ss);
-	selectable_bind(&ss->c->st, selector);	
-	selectable_bind_opaque(&ss->c->st, rq);
+	selectable_bind(&ss->cn->st, selector);	
+	selectable_bind_opaque(&ss->cn->st, rq);
 	if (!parse_url(ctx->url, ss->data.raw_url)) {
 		ss->data.raw_url->relase();
 		ss->data.raw_url = new KUrl;
@@ -102,8 +102,8 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 		KBIT_SET(rq->sink->data.flags, RQ_HAS_CONTENT_LEN);
 	}
 	if (KBIT_TEST(ctx->flags, KF_SIMULATE_LOCAL)) {
-		ss->c->server = conf.gvm->RefsServer(rq->sink->data.raw_url->port);
-		if (ss->c->server == NULL) {
+		ss->cn->server = conf.gvm->RefsServer(rq->sink->data.raw_url->port);
+		if (ss->cn->server == NULL) {
 			ss->body = NULL;
 			delete rq;
 			return NULL;
@@ -171,7 +171,7 @@ kev_result KSimulateSink::read_header() {
 	begin_request();
 	return kev_ok;
 }
-KSimulateSink::KSimulateSink() : KTcpServerSink(NULL)
+KSimulateSink::KSimulateSink() : KSingleConnectionSink(NULL, NULL)
 {
 	memset(&header_manager, 0, sizeof(KHttpHeaderManager));
 	status_code = 0;
@@ -181,7 +181,7 @@ KSimulateSink::KSimulateSink() : KTcpServerSink(NULL)
 	arg = NULL;
 	sockaddr_i addr;
 	ksocket_getaddr("127.0.0.1", 0, PF_INET, AI_NUMERICHOST, &addr);
-	c = kconnection_new(&addr);
+	cn = kconnection_new(&addr);
 }
 KSimulateSink::~KSimulateSink()
 {
@@ -191,7 +191,6 @@ KSimulateSink::~KSimulateSink()
 	if (body) {
 		this->body(arg, NULL, !KBIT_TEST(data.flags, RQ_BODY_NOT_COMPLETE));
 	}
-	kconnection_destroy(c);
 }
 int KSimulateSink::end_request()
 {

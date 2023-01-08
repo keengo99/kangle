@@ -15,7 +15,6 @@ type base struct {
 var CONFIG_FILE_NAME = "base"
 
 func (b *base) Init() error {
-	createRange(1024)
 	server.Handle("/100_continue", handle_100_continue)
 	server.Handle("/post_chunk_trailer", HandlePostChunkTrailer)
 	server.Handle("/chunk_trailer", HandleChunkUpstreamTrailer)
@@ -28,7 +27,7 @@ func (b *base) Init() error {
 	server.Handle("/br", HandleBr)
 	server.Handle("/gzip", HandleGzip)
 	server.Handle("/gzip_br", HandleGzipBr)
-	server.Handle("/range", HandleRange)
+	
 	server.Handle("/dynamic", HandleDynamic)
 	server.Handle("/no-cache", HandleNoCache)
 	server.Handle("/hole", HandleHole)
@@ -122,6 +121,7 @@ func init() {
 	s.AddCase("http2https", "发送http到https端口", check_http2https)
 	s.AddCase("etag", "etag支持", check_etag)
 	s.AddCase("dynamic", "动态内容使用etag缓存", check_dynamic_content)
+	s.AddCase("bigobj_md5", "大物件缓存，检测md5", check_bigobj_md5)
 	s.AddCase("br_unknow", "br和unknow的encoding", check_br_unknow_encoding)
 	s.AddCase("encoding_pri", "不同顺序请求encoding的优先级", check_encoding_priority)
 	s.AddCase("compress", "gzip/br压缩", check_compress)

@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <sstream>
 #include "kstring.h"
 #include "ksapi.h"
 #include "upstream.h"
+#include "filter.h"
 
 static void * create_ctx()
 {
@@ -63,6 +65,19 @@ static KGL_RESULT open(KREQUEST r, kgl_async_context *ctx)
 			return result;
 		}
 		return ctx->out->f->write_end(ctx->out, r, ctx->out->f->write_body(ctx->out, r, _KS("test_upstream_ok")));
+	case test_sendfile_report: {
+		ctx->out->f->write_status(ctx->out, r, 200);
+		ctx->out->f->write_header(ctx->out, r, kgl_header_content_type, _KS("text/plain"));
+		ctx->out->f->write_header(ctx->out, r, kgl_header_cache_control, _KS("no-cache, no-store"));
+		result = ctx->out->f->write_header_finish(ctx->out, r);
+		if (result != KGL_OK) {
+			return result;
+		}
+		std::stringstream s;
+		s <<  katom_get((void*)&sendfile_context.total_count) << "\r\n";
+		s <<  katom_get64((void*)&sendfile_context.total_length) << "\r\n";
+		return ctx->out->f->write_end(ctx->out, r, ctx->out->f->write_body(ctx->out, r, s.str().c_str(),(int)s.str().size()));
+	}
 	default:
 		break;
 	}

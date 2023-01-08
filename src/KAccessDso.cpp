@@ -3,8 +3,6 @@
 #include "ksapi.h"
 #include "extern.h"
 #include "KHttpRequest.h"
-#include "KHttpFilterContext.h"
-#include "KHttpFilterHook.h"
 #include "KHttpObject.h"
 #include "KAccessDsoSupport.h"
 #include "kselector_manager.h"

@@ -20,6 +20,13 @@ public:
 			free(header);
 		}
 	}
+	bool support_sendfile(void* rq) override {
+		return forward_support_sendfile(rq);
+	}
+	KGL_RESULT sendfile(void* rq, kfiber_file* fp, int64_t* len) override {
+		write_header(rq);
+		return KHttpStream::sendfile(rq, fp, len);
+	}
 	StreamState write_all(void *rq, const char *buf, int len) override
 	{
 		write_header(rq);
@@ -62,7 +69,7 @@ public:
 			return true;
 		}		
 		KFixHeaderFilter *filter = new KFixHeaderFilter(buf,len);
-		rq->getOutputFilterContext()->registerFilterStream(filter,true);		
+		rq->getOutputFilterContext()->registerFilterStream(rq, filter,true);		
 		return true;
 	}
 	std::string getDisplay() {

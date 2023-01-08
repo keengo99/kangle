@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"test_server/common"
 	"test_server/config"
 	"time"
 
@@ -70,6 +71,9 @@ func init() {
 
 }
 func Start() {
+	common.CreateRange(1024)
+	Handle("/range", common.HandleRange)
+
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h, _ := http.DefaultServeMux.Handler(r)
 		h.ServeHTTP(w, r)

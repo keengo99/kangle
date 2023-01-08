@@ -212,6 +212,7 @@ public:
 	inline bool response_connection() {
 		return sink->response_connection();
 	}
+	KGL_RESULT sendfile(kfiber_file* fp, int64_t *len);
 	/**
 	* if lock_header true the header param will locked by sink until startResponseBody be called.
 	*/

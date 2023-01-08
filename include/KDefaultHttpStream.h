@@ -5,6 +5,12 @@
 
 class KDefaultHttpStream : public KWriteStream {
 public:
+	bool support_sendfile(void *arg) override {
+		return ((KHttpRequest*)arg)->sink->support_sendfile();
+	}
+	KGL_RESULT sendfile(void* rq, kfiber_file* fp, int64_t *len) override {
+		return ((KHttpRequest*)rq)->sendfile(fp, len);
+	}
 	KGL_RESULT write_end(void* arg, KGL_RESULT result) override
 	{
 		KHttpRequest* rq = ((KHttpRequest*)arg);		
@@ -21,6 +27,5 @@ protected:
 	{
 		return ((KHttpRequest *)rq)->Write(buf, len);
 	}
-
 };
 #endif

@@ -43,8 +43,6 @@
 #include "kselector_manager.h"
 #include "KFilterContext.h"
 #include "KUrlParser.h"
-#include "KHttpFilterManage.h"
-#include "KHttpFilterContext.h"
 #include "KBufferFetchObject.h"
  //#include "KHttpTransfer.h"
 #include "KVirtualHostManage.h"
@@ -575,6 +573,25 @@ char* KHttpRequest::BuildVary(const char* vary) {
 		return NULL;
 	}
 	return s.stealString();
+}
+KGL_RESULT KHttpRequest::sendfile(kfiber_file* fp, int64_t *length) {
+	int64_t max_packet = 104857600;
+	if (slh) {
+		max_packet = 8192;
+	}
+	while (*length > 0) {
+		int send_length = (int)KGL_MIN(*length, max_packet);
+		int got = sink->sendfile(fp, send_length);		
+		if (got <= 0) {
+			return KGL_EIO;
+		}
+		int msec = get_sleep_msec(got);
+		if (msec > 0) {
+			kfiber_msleep(msec);
+		}
+		(*length) -= got;
+	}
+	return KGL_OK;
 }
 bool KHttpRequest::response_header(KHttpHeader* header, bool lock_header) {
 	if (header->name_is_know) {

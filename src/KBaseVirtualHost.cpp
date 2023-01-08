@@ -11,7 +11,6 @@
 #include "KApiRedirect.h"
 #include "lang.h"
 #include "http.h"
-#include "KHttpFilterManage.h"
 using namespace std;
 KBaseVirtualHost::KBaseVirtualHost()
 {

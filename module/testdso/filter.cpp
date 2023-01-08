@@ -34,8 +34,10 @@ static void release(void *model_ctx)
 }
 static kgl_filter filter = {
 	"test",
+	KGL_FILTER_NOT_CACHE,
 	write_all,
 	flush,
+	NULL,
 	write_end,
 	release
 };

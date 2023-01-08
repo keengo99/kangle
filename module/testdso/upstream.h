@@ -7,7 +7,8 @@ enum test_model {
 	test_next,
 	test_upload_sleep_forward,
 	test_websocket,
-	test_chunk
+	test_chunk,
+	test_sendfile_report
 };
 class test_context {
 public:

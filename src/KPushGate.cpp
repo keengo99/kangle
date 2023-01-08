@@ -90,6 +90,35 @@ done:
 	}
 	return result;
 }
+KGL_RESULT final_sendfile(kgl_output_stream* out, KREQUEST r, KASYNC_FILE fp, int64_t *len) {
+	KHttpRequest* rq = (KHttpRequest*)r;
+	if (rq->ctx->st) {
+		return rq->ctx->st->sendfile(r, (kfiber_file*)fp, len);
+	}
+	return KGL_ENOT_SUPPORT;
+}
+bool final_support_sendfile(kgl_output_stream* out, KREQUEST r) {
+	KHttpRequest* rq = (KHttpRequest*)r;
+	if (rq->ctx->st) {
+		return rq->ctx->st->support_sendfile(r);
+	}
+	return rq->sink->support_sendfile();
+}
+bool support_sendfile_false(kgl_output_stream* out, KREQUEST r) {
+	return false;
+}
+bool forward_support_sendfile(kgl_output_stream* out, KREQUEST r) {
+	kgl_forward_stream* g = (kgl_forward_stream*)out;
+	return g->down_stream->f->support_sendfile(out, r);
+}
+KGL_RESULT unsupport_sendfile(kgl_output_stream* out, KREQUEST r, KASYNC_FILE fp, int64_t *len) {
+	assert(false);
+	return KGL_ENOT_SUPPORT;
+}
+KGL_RESULT forward_sendfile(kgl_output_stream* out, KREQUEST r, KASYNC_FILE fp, int64_t *len) {
+	kgl_forward_stream* g = (kgl_forward_stream*)out;
+	return g->down_stream->f->sendfile(out, r, fp, len);
+}
 KGL_RESULT forward_write_header(kgl_output_stream* gate, KREQUEST r, kgl_header_type attr, const char* val, int val_len) {
 	kgl_forward_stream* g = (kgl_forward_stream*)gate;
 	return g->down_stream->f->write_header(g->down_stream, r, attr, val, val_len);
@@ -145,10 +174,12 @@ static kgl_output_stream_function dechunk_stream_function = {
 	forward_write_status,
 	forward_write_header,
 	forward_write_unknow_header,
-	forward_write_header_finish,
+	forward_write_header_finish,	
 	dechunk_push_body,
 	forward_write_message,
 	forward_write_trailer,
+	support_sendfile_false,
+	unsupport_sendfile,
 	dechunk_write_end,
 	dechunk_release
 };
@@ -163,10 +194,12 @@ kgl_output_stream_function forward_stream_function = {
 	forward_write_status,
 	forward_write_header,
 	forward_write_unknow_header,
-	forward_write_header_finish,
+	forward_write_header_finish,	
 	forward_write_body,
 	forward_write_message,
 	forward_write_trailer,
+	forward_support_sendfile,
+	forward_sendfile,
 	forward_write_end,
 	forward_release
 };
@@ -180,6 +213,10 @@ kgl_forward_stream* new_forward_stream(kgl_output_stream* down_stream) {
 struct kgl_default_output_stream : public kgl_output_stream
 {
 	KHttpResponseParser parser_ctx;
+#if 0
+	//rq->ctx->st 要放这里来。
+	KWriteStream* st;
+#endif
 };
 
 void st_write_status(kgl_output_stream* st, KREQUEST r, uint16_t status_code) {
@@ -298,17 +335,16 @@ static kgl_output_stream_function default_stream_function = {
 	st_write_body,
 	st_write_message,
 	common_write_trailer,
+	final_support_sendfile,
+	final_sendfile,
 	st_write_end,
 	st_release
 };
-
 kgl_output_stream* new_default_output_stream() {
 	kgl_default_output_stream* st = new kgl_default_output_stream;
 	st->f = &default_stream_function;
 	return st;
 }
-
-
 static int64_t default_input_get_read_left(kgl_input_stream* st, KREQUEST r) {
 	KHttpRequest* rq = (KHttpRequest*)r;
 	return rq->sink->data.left_read;
@@ -408,6 +444,8 @@ static kgl_output_stream_function check_stream_function = {
 	check_write_body,
 	st_write_message,
 	common_write_trailer,
+	final_support_sendfile,
+	final_sendfile,	
 	check_write_end,
 	check_release
 };

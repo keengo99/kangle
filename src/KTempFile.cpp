@@ -277,6 +277,8 @@ static kgl_output_stream_function tempfile_output_function = {
 	tempfile_write_body,
 	forward_write_message,
 	tempfile_write_trailer,
+	support_sendfile_false,
+	unsupport_sendfile,
 	tempfile_write_end,
 	tempfile_release
 };

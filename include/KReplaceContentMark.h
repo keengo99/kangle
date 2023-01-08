@@ -62,7 +62,7 @@ public:
 		rp->rq = rq;
 		filter->setBuffer((replaced_stop?buffer:0));
 		filter->setHook(replaceContentMarkCallBack,replaceContentMarkEndCallBack, replaceContentMarkMatchCallBack,rp);
-		rq->getOutputFilterContext()->registerFilterStream(filter,true);
+		rq->getOutputFilterContext()->registerFilterStream(rq, filter,true);
 		return true;
 	}
 	std::string getDisplay() {

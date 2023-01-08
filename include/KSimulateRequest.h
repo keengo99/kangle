@@ -14,14 +14,14 @@ class KHttpRequest;
 KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx);
 int kgl_start_simulate_request(KHttpRequest *rq, kfiber** fiber = NULL);
 int kgl_simuate_http_request(kgl_async_http *ctx, kfiber** fiber = NULL);
-class KSimulateSink : public KTcpServerSink
+class KSimulateSink : public KSingleConnectionSink
 {
 public:
 	KSimulateSink();
 	~KSimulateSink();
 	kconnection* get_connection() override
 	{
-		return c;
+		return cn;
 	}
 	bool set_transfer_chunked() override
 	{
@@ -34,7 +34,7 @@ public:
 	}
 	bool response_header(const char *name, int name_len, const char *val, int val_len) override
 	{
-		KHttpHeader *header = new_pool_http_header(name, name_len, val, val_len,(kgl_malloc)kgl_pnalloc, c->pool);
+		KHttpHeader *header = new_pool_http_header(name, name_len, val, val_len,(kgl_malloc)kgl_pnalloc, cn->pool);
 		if (header) {
 			header_manager.append(header);
 		}
@@ -87,7 +87,7 @@ public:
 	}
 	bool get_self_addr(sockaddr_i *addr) override
 	{
-		kgl_memcpy(addr, &c->addr, sizeof(sockaddr_i));
+		kgl_memcpy(addr, &cn->addr, sizeof(sockaddr_i));
 		return true;
 	}
 	int end_request() override;
@@ -107,7 +107,7 @@ public:
 	}
 	int get_time_out() override
 	{
-		return c->st.tmo;
+		return cn->st.tmo;
 	}
 	void flush() override
 	{
@@ -123,7 +123,6 @@ public:
 	uint16_t status_code;
 	int life_time;
 	void *arg;
-	kconnection *c;	
 protected:
 	void SetReadDelay(bool delay_flag)
 	{

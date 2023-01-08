@@ -40,7 +40,6 @@
 #include "KApiRedirect.h"
 #include "KApiPipeStream.h"
 #include "KTempleteVirtualHost.h"
-#include "KHttpFilterManage.h"
 #include "extern.h"
 #include "KAcserverManager.h"
 

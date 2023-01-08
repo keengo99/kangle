@@ -52,7 +52,6 @@
 #include "KCacheFetchObject.h"
 #include "KRewriteMarkEx.h"
 #include "KUrlParser.h"
-#include "KHttpFilterManage.h"
 #include "KHttpProxyFetchObject.h"
 #include "KSimulateRequest.h"
 #include "KHttpObjectSwaping.h"

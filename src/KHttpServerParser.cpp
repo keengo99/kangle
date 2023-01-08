@@ -33,7 +33,6 @@
 #include "utils.h"
 #include "KVirtualHostDatabase.h"
 #include "extern.h"
-#include "KHttpFilterManage.h"
 #include "kmalloc.h"
 #ifndef HTTP_PROXY
 using namespace std;

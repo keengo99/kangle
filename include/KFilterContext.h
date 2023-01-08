@@ -27,20 +27,12 @@ public:
 			delete st_head;
 		}
 	}
-	void registerFilterStreamEx(KHttpStream *head,KHttpStream *end,bool autoDelete = true)
+	
+	void registerFilterStream(KHttpRequest *rq, KHttpStream *st,bool autoDelete=true)
 	{
-		if (st_last==NULL) {
-			assert(st_head==NULL);
-			st_head = head;
-			st_last = end;
-			this->autoDelete = autoDelete;
-		} else {
-			st_last->connect(head,autoDelete);
-			st_last = end;
+		if (!KBIT_TEST(st->get_feature(), KGL_FILTER_NOT_CHANGE_LENGTH)) {
+			rq->ctx->has_change_length_filter = 1;
 		}
-	}
-	void registerFilterStream(KHttpStream *st,bool autoDelete=true)
-	{
 		return registerFilterStreamEx(st,st,autoDelete);
 	}
 	KHttpStream *getFilterStreamEnd()
@@ -177,5 +169,17 @@ public:
 	KHttpStream *st_head;
 	KHttpStream *st_last;
 	bool autoDelete;
+private:
+	void registerFilterStreamEx(KHttpStream* head, KHttpStream* end, bool autoDelete = true) {
+		if (st_last == NULL) {
+			assert(st_head == NULL);
+			st_head = head;
+			st_last = end;
+			this->autoDelete = autoDelete;
+		} else {
+			st_last->connect(head, autoDelete);
+			st_last = end;
+		}
+	}
 };
 #endif

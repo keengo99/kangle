@@ -20,8 +20,16 @@ func (d *dso) Init() error {
 			<chain  action='continue' >
 				<mark_test  test></mark_test>
 			</chain>
-		</table>
+		</table>		
 	</request>
+	<response action='allow' >
+		<table name='BEGIN'>
+			<chain  action='continue' >
+				<acl_reg_param  param='^no-cache' nc='1'></acl_reg_param>
+				<mark_response_flag   flagvalue='nocache,'></mark_response_flag>
+			</chain>
+		</table>
+	</response>
 <vh name='dso' doc_root='www'  inherit='on' app='1'>
 	<map path='/' extend='dso:testdso:async_test' confirm_file='0' allow_method='*'/>
 	<host>dso.localtest.me</host>
@@ -43,5 +51,6 @@ func init() {
 	s.AddCase("bc_chunk", "before cache chunk", check_before_cache_chunk)
 	s.AddCase("http_10_chunk", "http/1.0 meet chunked", check_http10_chunk)
 	s.AddCase("websocket", "dso websocket", test_dso_websocket)
+	s.AddCase("sendfile", "sendfile test", check_sendfile)
 	suite.Register(s)
 }

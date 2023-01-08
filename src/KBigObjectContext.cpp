@@ -122,7 +122,7 @@ KGL_RESULT KBigObjectContext::SendHeader(KHttpRequest* rq)
 		rq->ctx->st = new KBigObjectStream(rq);
 	}
 	INT64 content_length = gobj->index.content_length;
-	if (rq->needFilter()) {
+	if (rq->ctx->has_change_length_filter) {
 		content_length = -1;
 	}
 	INT64 if_range_from = rq->sink->data.range_from;

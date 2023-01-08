@@ -6,7 +6,10 @@ class KHttpRequest;
 class KCompressStream : public KHttpStream
 {
 public:
+	KCompressStream(KWriteStream* st) : KHttpStream(st) {
+
+	}
 };
-KCompressStream *create_compress_stream(KHttpRequest *rq, KHttpObject *obj, int64_t content_len);
+KCompressStream* create_compress_stream(KHttpRequest* rq, KHttpObject* obj, int64_t content_len);
 #endif
 

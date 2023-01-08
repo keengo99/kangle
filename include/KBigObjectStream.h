@@ -4,7 +4,7 @@
 #include "KHttpRequest.h"
 #include "KBigObjectContext.h"
 #include "KHttpObject.h"
-//{{ent
+
 #ifdef ENABLE_BIG_OBJECT_206
 class KBigObjectStream : public KWriteStream
 {
@@ -24,5 +24,4 @@ private:
 	KSharedBigObject *sbo;
 };
 #endif
-//}}
 #endif

@@ -28,14 +28,10 @@
 #include "KContentTransfer.h"
 #include "kselector.h"
 #include "KFilterContext.h"
-#include "KHttpFilterManage.h"
 #include "KDefaultHttpStream.h"
-//{{ent
 #include "KBigObjectContext.h"
 #include "KBigObjectStream.h"
-//}}
 #include "cache.h"
-
 
 KHttpTransfer::KHttpTransfer(KHttpRequest *rq, KHttpObject *obj) {
 	init(rq, obj);
@@ -49,7 +45,26 @@ void KHttpTransfer::init(KHttpRequest *rq, KHttpObject *obj) {
 KHttpTransfer::~KHttpTransfer() {
 	
 }
-
+bool KHttpTransfer::support_sendfile(void* arg) {
+	auto rq = (KHttpRequest*)arg;
+	if (st == NULL) {
+		if (sendHead(rq, false) != STREAM_WRITE_SUCCESS) {
+			KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
+			return false;
+		}
+	}
+	return KHttpStream::forward_support_sendfile(arg);
+}
+KGL_RESULT KHttpTransfer::sendfile(void* arg, kfiber_file* fp, int64_t *len) {
+	auto rq = (KHttpRequest*)arg;
+	if (st == NULL) {
+		if (sendHead(rq, false) != STREAM_WRITE_SUCCESS) {
+			KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
+			return STREAM_WRITE_FAILED;
+		}
+	}
+	return KHttpStream::sendfile(arg, fp, len);
+}
 StreamState KHttpTransfer::write_all(void *arg, const char *str, int len) {
 	auto rq = (KHttpRequest*)arg;
 	if (len<=0) {
@@ -75,10 +90,6 @@ StreamState KHttpTransfer::write_end(void *arg, KGL_RESULT result) {
 		}
 	}
 	return KHttpStream::write_end(rq, result);
-}
-bool KHttpTransfer::support_sendfile()
-{
-	return false;
 }
 StreamState KHttpTransfer::sendHead(KHttpRequest *rq, bool isEnd) {
 	INT64 start = 0;
@@ -106,7 +117,9 @@ StreamState KHttpTransfer::sendHead(KHttpRequest *rq, bool isEnd) {
 		/*
 		 检查是否需要加载内容变换层，如果要，则长度未知
 		 */
-		content_len = -1;
+		if (rq->ctx->has_change_length_filter) {
+			content_len = -1;
+		}
 		cache_layer = cache_memory;
 	}
 	KCompressStream *compress_st = NULL;
@@ -165,35 +178,8 @@ bool KHttpTransfer::loadStream(KHttpRequest *rq, KCompressStream *compress_st, c
 	 最下面是限速发送.
 	 */
 	assert(st==NULL && rq);
-#if 0
-#ifdef ENABLE_TF_EXCHANGE
-	if (rq->tf) {
-		st = rq->tf;
-		autoDelete = false;
-	} else {
-#endif		
-
-#ifdef ENABLE_TF_EXCHANGE
-	}
-#endif
-#endif
 	st = new KDefaultHttpStream();
 	autoDelete = true;
-#if 0
-	/*
-	 检查是否有chunk层
-	 */
-	if ((!rq->ctx->internal || rq->ctx->replace) && KBIT_TEST(rq->sink->data.flags, RQ_TE_CHUNKED)) {
-	//if (!(KBIT_TEST(workModel,WORK_MODEL_INTERNAL|WORK_MODEL_REPLACE)==WORK_MODEL_INTERNAL) && KBIT_TEST(rq->sink->data.flags,RQ_TE_CHUNKED)) {
-		KWriteStream *st2 = new KChunked(st, autoDelete);
-		if (st2) {
-			st = st2;
-			autoDelete = true;
-		} else {
-			return false;
-		}
-	}
-#endif
 	//检测是否加载cache层
 	
 	if (KBIT_TEST(obj->index.flags,ANSW_NO_CACHE)==0) {

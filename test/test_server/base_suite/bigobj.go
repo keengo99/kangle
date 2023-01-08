@@ -11,7 +11,7 @@ func check_change_first_hit() {
 	check_ranges([]RequestRange{
 		{0, 8192, nil, func(resp *http.Response, err error) {
 			common.Assert("range-status-code", resp.StatusCode == 206)
-			createRange(1024)
+			common.CreateRange(1024)
 		}},
 		{0, 8192 * 2, nil,
 			func(resp *http.Response, err error) {
@@ -29,7 +29,7 @@ func check_simple_range() {
 func check_change_first_miss() {
 	check_ranges([]RequestRange{
 		{8190, 8192, nil, func(resp *http.Response, err error) {
-			createRange(1024)
+			common.CreateRange(1024)
 		}},
 		{0, 8193, nil,
 			func(resp *http.Response, err error) {
@@ -56,7 +56,7 @@ func check_nochange_client_if_range() {
 		//*/
 		//*
 		{1024, 2048,
-			map[string]string{"If-Range": range_md5, "Accept-Encoding": "gzip"},
+			map[string]string{"If-Range": common.RangeMd5, "Accept-Encoding": "gzip"},
 			nil,
 			func(resp *http.Response, err error) {
 				common.Assert("check_nochange_client_if_range-right-status-code", resp.StatusCode == 206)
@@ -121,7 +121,7 @@ func check_sbo_not_enough_bug() {
 }
 
 func check_nochange_middle_hit() {
-	request_count = 0
+	common.RequestCount = 0
 
 	check_ranges([]RequestRange{
 		{262044, 102400, nil, func(resp *http.Response, err error) {
@@ -154,7 +154,7 @@ func check_big_object() {
 }
 func check_if_range_forward() {
 	check_ranges_with_header([]RequestRangeHeader{
-		{0, 1024, map[string]string{"If-Range": range_md5}, nil, func(resp *http.Response, err error) {
+		{0, 1024, map[string]string{"If-Range": common.RangeMd5}, nil, func(resp *http.Response, err error) {
 			common.AssertSame(resp.StatusCode, 206)
 		}},
 	})
@@ -174,11 +174,11 @@ func check_last_range() {
 		})
 	*/
 	check_ranges([]RequestRange{
-		{range_size - 4096, -1, nil, func(resp *http.Response, err error) {
+		{common.RangeSize - 4096, -1, nil, func(resp *http.Response, err error) {
 			common.AssertSame(resp.StatusCode, 206)
 			common.AssertContain(resp.Header.Get("X-Cache"), "MISS ")
 		}},
-		{range_size - 512, -1, nil, func(resp *http.Response, err error) {
+		{common.RangeSize - 512, -1, nil, func(resp *http.Response, err error) {
 			common.AssertSame(resp.StatusCode, 206)
 			common.AssertContain(resp.Header.Get("X-Cache"), "HIT ")
 		}},

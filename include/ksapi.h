@@ -258,6 +258,7 @@ typedef struct _kgl_filter_conext_function
 	kgl_get_variable_f get_variable;
 	KGL_RESULT(*write_all)(KREQUEST rq, KCONN cn, const char* buf, int size);
 	KGL_RESULT(*flush)(KREQUEST rq, KCONN cn);
+	KGL_RESULT(*sendfile)(KREQUEST rq, KCONN cn, KASYNC_FILE fp, int64_t* length);
 	KGL_RESULT(*write_end)(KREQUEST rq, KCONN cn, KGL_RESULT result);
 } kgl_filter_conext_function;
 
@@ -271,8 +272,13 @@ typedef struct _kgl_filter_context
 struct _kgl_filter
 {
 	const char* name;
+#define KGL_FILTER_NOT_CHANGE_LENGTH 1 /* do not change content length */
+#define KGL_FILTER_CACHE             2 /* filter cache */
+#define KGL_FILTER_NOT_CACHE         4 /* filter not cache */
+	int32_t flags;
 	KGL_RESULT(*write_all)(KREQUEST rq, kgl_filter_context* ctx, const char* buf, int size);
 	KGL_RESULT(*flush)(KREQUEST rq, kgl_filter_context* ctx);
+	KGL_RESULT(*sendfile)(KREQUEST rq, kgl_filter_context* ctx,KASYNC_FILE fp,int64_t *length);/* if filter not support sendfile,this must be NULL */
 	KGL_RESULT(*write_end)(KREQUEST rq, kgl_filter_context* ctx, KGL_RESULT result);
 	void (*release)(void* model_ctx);
 };
@@ -339,7 +345,10 @@ typedef struct _kgl_output_stream_function
 	KGL_RESULT(*write_body)(kgl_output_stream* out, KREQUEST rq, const char* str, int len);
 	KGL_RESULT(*write_message)(kgl_output_stream* out, KREQUEST rq, KGL_MSG_TYPE msg_type, const void* msg, int msg_flag);
 	KGL_RESULT(*write_trailer)(kgl_output_stream *out, KREQUEST rq, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len);
+	bool (*support_sendfile)(kgl_output_stream* out, KREQUEST rq);
+	KGL_RESULT(*sendfile)(kgl_output_stream* out, KREQUEST rq, KASYNC_FILE fp, int64_t *len);
 	KGL_RESULT(*write_end)(kgl_output_stream* out, KREQUEST rq, KGL_RESULT result);
+
 	//release
 	void(*release)(kgl_output_stream* out);
 
@@ -594,6 +603,7 @@ typedef struct _kgl_dso_function
 	const char* (*get_header_name)(KHttpHeader* header, int* len);
 	kgl_header_type(*parse_response_header)(const char* attr, hlen_t attr_len);
 	kgl_header_type(*parse_request_header)(const char* attr, hlen_t attr_len);
+	
 } kgl_dso_function;
 
 

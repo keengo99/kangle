@@ -13,6 +13,9 @@ public:
 	{
 
 	}
+	bool support_sendfile(void* arg) override {
+		return false;
+	}
 	StreamState write_all(void *rq,const char *str,int len)override;
 };
 #endif

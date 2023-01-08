@@ -12,7 +12,7 @@ import (
 func HandleBrokenCache(w http.ResponseWriter, r *http.Request) {
 	if_none_match := r.Header.Get("If-None-Match")
 	if if_none_match == "" {
-		request_count++
+		common.RequestCount++
 		hj, _ := w.(http.Hijacker)
 		cn, wb, _ := hj.Hijack()
 		chunk := r.FormValue("chunk")
@@ -26,7 +26,7 @@ func HandleBrokenCache(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	common.Assert("if-none-match-1", if_none_match == "hello")
-	request_count++
+	common.RequestCount++
 	w.WriteHeader(304)
 	w.Header().Add("Server", TEST_SERVER_NAME)
 }

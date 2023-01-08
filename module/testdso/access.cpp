@@ -6,7 +6,6 @@
 #include "filter.h"
 
 static int test_notify_type = KF_NOTIFY_REQUEST_MARK;
-
 static void *create_access_ctx()
 {
 	return NULL;
@@ -77,9 +76,19 @@ static uint32_t process(KREQUEST rq, kgl_access_context *ctx, DWORD notify)
 			register_async_upstream(rq, ctx, model_ctx, false);
 			return KF_STATUS_REQ_TRUE;
 		}
+		if (strcmp(buf, "/dso/sendfile_report") == 0) {
+			test_context* model_ctx = new test_context(test_sendfile_report);
+			register_async_upstream(rq, ctx, model_ctx, false);
+			return KF_STATUS_REQ_TRUE;
+		}
 	}
-	test_context *model_ctx = new test_context(test_forward);
-	register_async_upstream(rq, ctx, model_ctx);
+	if (ctx->f->get_variable(rq, KGL_VAR_HEADER, "x-forward-test", buf, &len) == KGL_OK) {
+		test_context* model_ctx = new test_context(test_forward);
+		register_async_upstream(rq, ctx, model_ctx);
+	}
+	if (ctx->f->get_variable(rq, KGL_VAR_HEADER, "x-sendfile-test", buf, &len) == KGL_OK) {
+		register_sendfile_log(rq, ctx, &sendfile_context);
+	}
 	return KF_STATUS_REQ_TRUE;
 }
 static kgl_access access_model = {

@@ -17,7 +17,7 @@ public:
 		filter->head = head;
 		filter->replace = replace;
 		filter->added = false;
-		rq->getOutputFilterContext()->registerFilterStream(filter,true);
+		rq->getOutputFilterContext()->registerFilterStream(rq, filter, true);
 		return true;
 	}
 	std::string getDisplay() {

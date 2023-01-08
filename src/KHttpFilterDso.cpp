@@ -1,5 +1,4 @@
 #include "kforwin32.h"
-#include "KHttpFilterDso.h"
 #include "KDynamicString.h"
 #include "log.h"
 #include "KAccess.h"
@@ -7,7 +6,6 @@
 #include "kselector_manager.h"
 #include "KTimer.h"
 #include "kmalloc.h"
-#include "KHttpFilterContext.h"
 #include "KAccessDsoSupport.h"
 #include "KSimulateRequest.h"
 #include "extern.h"

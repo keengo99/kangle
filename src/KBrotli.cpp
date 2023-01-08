@@ -1,7 +1,7 @@
 #include "KBrotli.h"
 #include "KConfig.h"
 #ifdef ENABLE_BROTLI
-KBrotliCompress::KBrotliCompress()
+KBrotliCompress::KBrotliCompress() : KCompressStream(NULL)
 {
 	state = BrotliEncoderCreateInstance(NULL, NULL, NULL);
 	BrotliEncoderSetParameter(state, BROTLI_PARAM_QUALITY, conf.br_level);
