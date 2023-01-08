@@ -8,12 +8,12 @@
 static KSELECTOR aio_get_selector(KASYNC_FILE fp)
 {
 	kfiber_file *af = (kfiber_file*)fp;
-	return kasync_file_get_selector(&af->fp);
+	return kasync_file_get_selector(af);
 }
 static FILE_HANDLE aio_get_handle(KASYNC_FILE fp)
 {
 	kfiber_file* af = (kfiber_file*)fp;
-	return kasync_file_get_handle(&af->fp);
+	return kasync_file_get_handle(af);
 }
 static const char* adjust_read_buffer(KASYNC_FILE fp, char* buf)
 {

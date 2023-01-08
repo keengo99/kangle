@@ -1123,9 +1123,6 @@ bool KHttpManage::sendMainFrame() {
 	s << "<tr><td>" << klang["request_worker_info"] << "</td><td>" << globalRequestQueue.getWorkerCount() << "/" << globalRequestQueue.getQueueSize() << "</td></tr>";
 	s << "<!-- queue refs=" << globalRequestQueue.getRef() << " -->\n";
 #endif
-#ifdef ENABLE_STAT_STUB
-	s << "<tr><td>async io</td><td>" << katom_get((void*)&kgl_aio_count) << "</td></tr>\n";
-#endif
 	s << "<tr><td>" << klang["io_worker_info"] << "</td><td>" << conf.ioWorker->worker << "/" << conf.ioWorker->queue << "</td></tr>\n";
 	s << "<tr><td>" << klang["dns_worker_info"] << "</td><td>" << conf.dnsWorker->worker << "/" << conf.dnsWorker->queue << "</td></tr>\n";
 	s << "<tr><td>addr cache:</td><td>" << kgl_get_addr_cache_count() << "</td></tr>\n";
@@ -1134,12 +1131,6 @@ bool KHttpManage::sendMainFrame() {
 	s << "<tr><td>dci mem:</td><td>" << (dci ? dci->memory_used() : 0) << "</td></tr>\n";
 #endif
 	s << "</table>\n";
-	//{{ent
-#ifdef ENABLE_FATBOY
-	//s << "<h3>" << LANG_FATBOY << "</h3>" << LANG_TOTAL_FATBOY << " "	<< net_request_count();
-#endif
-//}}
-	//kselector *selector = selectorManager.newSelector();
 	s << "<h3>" << klang["selector"] << "</h3>";
 	s << "<table>";
 	s << "<tr><td>" << LANG_NAME << "</td><td>";

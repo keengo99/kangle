@@ -785,19 +785,12 @@ KGL_RESULT process_cache_request(KHttpRequest *rq) {
 KGL_RESULT fiber_http_start(KHttpRequest *rq)
 {
 	KContext *context = rq->ctx;
-	//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
 	if (rq->bo_ctx) {
 		printf("TODO: bigobject\n");
 		assert(false);
 		//return stage_prepare(rq);
 		return prepare_request_fetchobj(rq);
-	}
-#endif//}}
-#ifdef ENABLE_STAT_STUB
-	if (conf.max_io > 0 && katom_get((void *)&kgl_aio_count) > (uint32_t)conf.max_io) {
-		//async io limit
-		KBIT_SET(rq->filter_flags, RF_NO_DISK_CACHE);
 	}
 #endif
 	//only if cached

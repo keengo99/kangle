@@ -575,13 +575,10 @@ char* KHttpRequest::BuildVary(const char* vary) {
 	return s.stealString();
 }
 KGL_RESULT KHttpRequest::sendfile(kfiber_file* fp, int64_t *length) {
-	int64_t max_packet = 104857600;
-	if (slh) {
-		max_packet = 8192;
-	}
+	int64_t max_packet = conf.io_buffer;
 	while (*length > 0) {
 		int send_length = (int)KGL_MIN(*length, max_packet);
-		int got = sink->sendfile(fp, send_length);		
+		int got = sink->sendfile(fp, send_length);
 		if (got <= 0) {
 			return KGL_EIO;
 		}

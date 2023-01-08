@@ -114,18 +114,6 @@ void KConfig::copy(KConfig* c) {
 	this->run_user = c->run_user;
 	this->run_group = c->run_group;
 	this->apache_config_file = c->apache_config_file;
-#if 0
-	ipLock.Lock();
-	//swap per_ip_head
-	KPerIpConnect* tp = per_ip_head;
-	per_ip_head = c->per_ip_head;
-	c->per_ip_head = tp;
-	//swap per_ip_last
-	tp = per_ip_last;
-	per_ip_last = c->per_ip_last;
-	c->per_ip_last = tp;
-	ipLock.Unlock();
-#endif
 	return;
 }
 KConfig::~KConfig() {
@@ -134,13 +122,6 @@ KConfig::~KConfig() {
 	for (it = service.begin(); it != service.end(); it++) {
 		delete (*it);
 	}
-#if 0
-	while (per_ip_head) {
-		per_ip_last = per_ip_head->next;
-		delete per_ip_head;
-		per_ip_head = per_ip_last;
-	}
-#endif
 }
 KGlobalConfig::KGlobalConfig() {
 	gam = new KAcserverManager;
@@ -297,9 +278,7 @@ void init_config(KConfig* conf) {
 	conf->min_compress_length = 512;
 	conf->auth_delay = 5;
 	conf->fiber_stack_size = 0;
-	//{{ent
 	conf->wl_time = 1800;
-	//}}
 	SAFE_STRCPY(conf->access_log, "access.log");
 	conf->maxLogHandle = 2;
 #ifdef ENABLE_TF_EXCHANGE
@@ -328,7 +307,6 @@ void LoadDefaultConfig() {
 	conf.sysHost->browse = false;
 	KSubVirtualHost* svh = new KSubVirtualHost(conf.sysHost);
 	svh->setDocRoot(conf.sysHost->doc_root.c_str(), "/");
-	//{{ent
 #ifdef HTTP_PROXY
 	//add mime type
 	conf.sysHost->addMimeType("gif", "image/gif", kgl_compress_never, 0);
@@ -337,7 +315,6 @@ void LoadDefaultConfig() {
 	conf.sysHost->addMimeType("js", "text/javascript", kgl_compress_on, 0);
 	conf.sysHost->addMimeType("*", "text/plain", kgl_compress_unknow, 0);
 #endif
-	//}}
 	conf.sysHost->hosts.push_back(svh);
 	conf.sysHost->addRef();
 }

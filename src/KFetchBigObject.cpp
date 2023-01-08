@@ -38,7 +38,9 @@ KGL_RESULT KFetchBigObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_out
 	if (file == NULL) {
 		return KGL_EIO;
 	}
+	int buf_size = conf.io_buffer;
 	KGL_RESULT result = KGL_OK;
+	char* buffer;
 	//*
 	if (out) {
 		if (out->f->support_sendfile(out, rq)) {
@@ -49,13 +51,11 @@ KGL_RESULT KFetchBigObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_out
 	} else {
 		if (rq->sink->support_sendfile()) {
 			result = rq->sendfile(file, &rq->ctx->left_read);
-			kfiber_file_close(file);
-			return result;
+			goto done;
 		}
 	}
 	//*/
-	int buf_size = conf.io_buffer;
-	char* buffer = (char*)aio_alloc_buffer(buf_size);
+	buffer = (char*)aio_alloc_buffer(buf_size);
 	while (rq->ctx->left_read > 0) {
 		int got = kfiber_file_read(file, buffer, (int)(KGL_MIN(rq->ctx->left_read, (INT64)buf_size)));
 		if (got <= 0) {
@@ -69,6 +69,7 @@ KGL_RESULT KFetchBigObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_out
 		}
 	}
 	aio_free_buffer(buffer);
+done:
 	kfiber_file_close(file);
 	return result;
 }
