@@ -34,7 +34,6 @@
 #include "KHtAccess.h"
 #include "KConfigBuilder.h"
 #include "KDynamicListen.h"
-#include "KHttpFilterManage.h"
 #include "WhmContext.h"
 using namespace std;
 

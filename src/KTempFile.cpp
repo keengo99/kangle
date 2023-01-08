@@ -5,8 +5,6 @@
 #include "http.h"
 #include "directory.h"
 #include "kforwin32.h"
-#include "KHttpFilterStream.h"
-#include "KHttpFilterManage.h"
 #ifdef ENABLE_TF_EXCHANGE
 #ifdef _WIN32
 #define tunlink(f)             

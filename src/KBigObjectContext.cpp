@@ -5,13 +5,11 @@
 #include "KHttpObject.h"
 #include "kselectable.h"
 #include "cache.h"
-#include "KHttpFilterManage.h"
 #include "KFilterContext.h"
 #include "KContentTransfer.h"
 #include "KSimulateRequest.h"
 #include "KSboFile.h"
 #include "HttpFiber.h"
-//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
 int bigobj_read_body_fiber(void* arg, int got)
 {
@@ -265,4 +263,4 @@ KGL_RESULT KBigObjectContext::upstream_recv_headed(KHttpRequest* rq, KHttpObject
 	}
 	return KGL_OK ;
 }
-#endif//}}
+#endif
