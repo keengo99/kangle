@@ -258,6 +258,7 @@ typedef struct _kgl_filter_conext_function
 	kgl_get_variable_f get_variable;
 	KGL_RESULT(*write_all)(KREQUEST rq, KCONN cn, const char* buf, int size);
 	KGL_RESULT(*flush)(KREQUEST rq, KCONN cn);
+	bool (*support_sendfile)(KREQUEST rq, KCONN cn);
 	KGL_RESULT(*sendfile)(KREQUEST rq, KCONN cn, KASYNC_FILE fp, int64_t* length);
 	KGL_RESULT(*write_end)(KREQUEST rq, KCONN cn, KGL_RESULT result);
 } kgl_filter_conext_function;
