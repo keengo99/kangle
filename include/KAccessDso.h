@@ -63,7 +63,7 @@ public:
 	{
 		delete ad;
 	}
-	int32_t shutdown()
+	int32_t shutdown() override
 	{
 		return ad->shutdown();
 	}
