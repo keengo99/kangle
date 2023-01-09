@@ -27,7 +27,7 @@ func (b *base) Init() error {
 	server.Handle("/br", HandleBr)
 	server.Handle("/gzip", HandleGzip)
 	server.Handle("/gzip_br", HandleGzipBr)
-	
+
 	server.Handle("/dynamic", HandleDynamic)
 	server.Handle("/no-cache", HandleNoCache)
 	server.Handle("/hole", HandleHole)
@@ -157,4 +157,5 @@ func init() {
 	s.AddCase("fastcgi", "fastcgi协议测试", check_fastcgi)
 	s.AddCase("obs_fold", "obs_fold测试", check_obs_fold)
 	s.AddCase("100_continue", "100-continue测试", check_100_continue)
+	s.AddCase("bug", "bug", check_bug)
 }

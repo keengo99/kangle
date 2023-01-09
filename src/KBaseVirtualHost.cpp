@@ -16,11 +16,9 @@ KBaseVirtualHost::KBaseVirtualHost()
 {
 	defaultRedirect = NULL;
 	mimeType = NULL;
-	//{{ent
 #ifdef ENABLE_BLACK_LIST
 	blackList = NULL;
 #endif
-	//}}
 }
 KBaseVirtualHost::~KBaseVirtualHost() {
 	lock.Lock();
@@ -50,13 +48,11 @@ KBaseVirtualHost::~KBaseVirtualHost() {
 		delete mimeType;
 		mimeType = NULL;
 	}
-	//{{ent
 #ifdef ENABLE_BLACK_LIST
 	if (blackList) {
 		blackList->release();
 	}
 #endif
-	//}}
 	lock.Unlock();
 	clearEnv();
 }

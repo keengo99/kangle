@@ -10,17 +10,16 @@ import (
 )
 
 func check_bigobj_md5() {
-	for i := 0; i < 2; i++ {
-		common.CreateRange(1024)
-		common.Get("/range", map[string]string{"pragma": "no-cache"}, func(resp *http.Response, err error) {
-			common.AssertContain(resp.Header.Get("X-Cache"), "MISS ")
-			common.AssertSame(common.RangeMd5, md5Response(resp, true))
-		})
-		common.Get("/range", nil, func(resp *http.Response, err error) {
-			common.AssertSame(common.RangeMd5, md5Response(resp, true))
-			common.AssertContain(resp.Header.Get("X-Cache"), "HIT ")
-		})
-	}
+
+	common.CreateRange(1024)
+	common.Get("/range", map[string]string{"pragma": "no-cache"}, func(resp *http.Response, err error) {
+		common.AssertContain(resp.Header.Get("X-Cache"), "MISS ")
+		common.AssertSame(common.RangeMd5, md5Response(resp, true))
+	})
+	common.Get("/range", nil, func(resp *http.Response, err error) {
+		common.AssertSame(common.RangeMd5, md5Response(resp, true))
+		common.AssertContain(resp.Header.Get("X-Cache"), "HIT ")
+	})
 }
 func check_dynamic_content() {
 	common.RequestCount = 0

@@ -1121,14 +1121,6 @@ unsigned getpagesize() {
 void init_program()
 {
 	//printf("sizeof (rq) = %d\n",sizeof(KHttpRequest));
-#ifdef ENABLE_LOG_DRILL
-	init_log_drill();
-#endif
-	init_aio_align_size();
-	spProcessManage.setName("api:sp");
-	initFastcgiData();
-	kgl_pagesize = getpagesize();
-	server_container = new KCdnContainer;
 	int select_count = conf.select_count;
 	if(select_count<=0){
 		select_count = numberCpu;
@@ -1136,7 +1128,7 @@ void init_program()
 			select_count = 1;
 		}
 	}
-	kgl_addr_init();
+	
 	selector_manager_init(select_count,false);
 }
 
@@ -1262,14 +1254,12 @@ int main_fiber(void* arg, int argc)
 	m_ppid = getppid();
 #endif
 	klog(KLOG_NOTICE, "Start success [pid=%d].\n", m_pid);
-	//{{ent
 #ifdef _WIN32
 	if (m_ppid == 0) {
 		m_ppid = getpid();
 	}
 	init_winuser(true);
-#endif//}}
-
+#endif
 #ifdef ENABLE_VH_RUN_AS	
 	conf.gam->loadAllApi();
 #endif
@@ -1294,6 +1284,15 @@ void StartAll() {
 	}
 	signal(SIGCHLD, SIG_IGN);
 #endif
+#ifdef ENABLE_LOG_DRILL
+	init_log_drill();
+#endif
+	init_aio_align_size();
+	spProcessManage.setName("api:sp");
+	initFastcgiData();
+	kgl_pagesize = getpagesize();
+	server_container = new KCdnContainer;
+	kgl_addr_init();
 	kasync_main(main_fiber, NULL, 0);
 	selector_manager_start(kgl_update_http_time, true);
 	time_thread(NULL);
@@ -1307,7 +1306,6 @@ void StopAll() {
 }
 
 int main(int argc, char **argv) {
-
 #ifdef _WIN32
 	CoInitializeEx(NULL, COINIT_MULTITHREADED);
 #endif

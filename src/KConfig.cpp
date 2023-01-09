@@ -350,7 +350,7 @@ bool load_config_file(KFileName* file, int inclevel, KStringBuf& s, int& id, boo
 		klog(KLOG_ERR, "cann't open file[%s]\n", file->getName());
 		return false;
 	}
-	char* buf = (char*)xmalloc(len + 1);
+	char* buf = (char*)malloc(len + 1);
 	int read_len = fp.read(buf, len);
 	if (read_len != len) {
 		klog(KLOG_ERR, "this sure not be happen,read file [%s] size error.\n", file->getName());
@@ -363,7 +363,7 @@ bool load_config_file(KFileName* file, int inclevel, KStringBuf& s, int& id, boo
 	ds.blockModel = false;
 	ds.envChar = '%';
 	char* content = ds.parseDirect(buf);
-	xfree(buf);
+	free(buf);
 	char* hot = content;
 	while (*hot && isspace((unsigned char)*hot)) {
 		hot++;

@@ -532,6 +532,7 @@ typedef struct _kgl_file_function
 	int (*read)(KASYNC_FILE fp, char* buf, int length);
 	int (*write)(KASYNC_FILE fp, const char* buf, int length);
 	const char* (*adjust_read_buffer)(KASYNC_FILE fp, char* buf);
+	bool (*direct)(KASYNC_FILE fp,bool on_flag);
 	void* (*alloc_aio_buffer)(size_t size);
 	void (*free_aio_buffer)(void* ptr);
 } kgl_file_function;

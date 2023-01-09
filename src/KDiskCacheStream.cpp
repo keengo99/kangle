@@ -7,8 +7,13 @@ bool KDiskCacheStream::Open(KHttpRequest *rq,KHttpObject *obj)
 {
 	filename = obj->getFileName();
 	fileModel model = fileWrite;
-	fp = kfiber_file_open(filename, model, KFILE_ASYNC);
+	fp = kfiber_file_open(filename, model, 0);
 	if (fp == NULL) {
+		return false;
+	}
+	if (!kasync_file_direct(fp,true)) {
+		kfiber_file_close(fp);
+		fp = NULL;
 		return false;
 	}
 	kfiber_file_seek(fp, seekBegin, obj->GetHeaderSize(0));

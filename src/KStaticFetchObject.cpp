@@ -37,7 +37,7 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_output_stre
 	if (!kflike(fd)) {
 		return out->f->write_message(out, rq, KGL_MSG_ERROR, "file not found", STATUS_NOT_FOUND);
 	}
-	fp = kfiber_file_bind(fd, KFILE_ASYNC);
+	fp = kfiber_file_bind(fd);
 	if (fp == NULL) {
 		kfclose(fd);
 		return out->f->write_message(out, rq, KGL_MSG_ERROR, "file not found", STATUS_NOT_FOUND);
@@ -119,6 +119,10 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_output_stre
 	}
 	if (out->f->support_sendfile(out, rq)) {
 		return out->f->sendfile(out, rq, (KASYNC_FILE)fp, &rq->ctx->left_read);
+	}
+	if (!kasync_file_direct(fp,true)) {
+		klog(KLOG_ERR,"cann't turn on file direct_on\n");
+		return KGL_EIO;
 	}
 	int buf_size = conf.io_buffer;
 	char* buf = (char*)aio_alloc_buffer(buf_size);

@@ -10,12 +10,16 @@ swap_in_result KHttpObjectSwaping::swapin_proress(KHttpObject* obj, KHttpObjectB
 	if (filename == NULL) {
 		return swap_in_failed_other;
 	}
-	kfiber_file* file = kfiber_file_open(filename, fileRead, KFILE_ASYNC);
+	kfiber_file* file = kfiber_file_open(filename, fileRead, 0);
 	if (file == NULL) {
 		free(filename);
 		return swap_in_failed_open;
 	}
 	free(filename);
+	if (!kasync_file_direct(file,true)) {
+		kfiber_file_close(file);
+		return swap_in_failed_open;
+	}
 	int size = (int)kfiber_file_size(file);
 	size = (int)(KGL_MIN(16384, size));
 	char* buf = (char*)aio_alloc_buffer(size);
@@ -131,8 +135,12 @@ swap_in_result KHttpObjectSwaping::swapin(KHttpRequest* rq, KHttpObject* obj)
 	KHttpObjectBody* data = NULL;
 	char* filename = obj->getFileName();
 	swap_in_result result = swap_in_failed_other;
-	kfiber_file* file = kfiber_file_open(filename, fileRead, KFILE_ASYNC);
+	kfiber_file* file = kfiber_file_open(filename, fileRead, 0);
 	if (file == NULL) {
+		result = swap_in_failed_open;
+		goto clean;
+	}
+	if (!kasync_file_direct(file,true)) {
 		result = swap_in_failed_open;
 		goto clean;
 	}

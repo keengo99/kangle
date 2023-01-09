@@ -127,3 +127,6 @@ func check_compress() {
 	check_proxy_gzip_range()
 	check_local_gzip_range()
 }
+func check_bug() {
+	check_id()
+}
