@@ -15,10 +15,14 @@ static KGL_RESULT next_write_end(KREQUEST rq, KCONN cn, KGL_RESULT result)
 {
 	return ((KWriteStream*)cn)->write_end((KHttpRequest *)rq,result);
 }
+static bool next_support_sendfile(KREQUEST rq, KCONN cn) {
+	return ((KWriteStream*)cn)->support_sendfile(rq);
+}
 static kgl_filter_conext_function support_function = {
 	(kgl_get_variable_f)get_request_variable,
 	next_write_all,
 	next_flush,
+	next_support_sendfile,
 	next_sendfile,
 	next_write_end
 };
