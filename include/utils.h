@@ -63,7 +63,7 @@ int get_param(int argc, char **argv, int &i,const char *param, char *value);
 KTHREAD_FUNCTION time_thread(void *arg);
 void register_gc_service(void(*flush)(void *,time_t),void *arg);
 
-
+void my_msleep(int msec);
 void explode_cmd(char *str,std::vector<char *> &result);
 void explode(const char *str, const char split,
 		std::vector<std::string> &result, int limit = -1);
@@ -113,7 +113,6 @@ BOOL StartInteractiveClientProcess (
 		LPTSTR lpCommandLine ,
 		KPipeStream *st,int isCgi,LPVOID env
 );
-void my_msleep(int msec);
 BOOL init_winuser(bool first_run);
 #define PATH_SPLIT_CHAR		'\\'
 #else
