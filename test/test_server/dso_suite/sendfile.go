@@ -34,10 +34,10 @@ func get_sendfile_size() (int64, int64) {
 		})
 	}
 */
-func check_sendfile() {
+func check_sendfile_with_alpn(alpn int) {
 	config.Push()
 	defer config.Pop()
-	config.UseHttpClient(config.HTTP1)
+	config.UseHttpClient(alpn)
 
 	_, length := get_sendfile_size()
 	var resp_length int64
@@ -55,4 +55,8 @@ func check_sendfile() {
 		_, length3 := get_sendfile_size()
 		common.AssertSame(length2+int64(common.RangeSize), length3)
 	*/
+}
+func check_sendfile() {
+	check_sendfile_with_alpn(config.HTTP1)
+	check_sendfile_with_alpn(config.H2C)
 }
