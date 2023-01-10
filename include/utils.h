@@ -113,6 +113,7 @@ BOOL StartInteractiveClientProcess (
 		LPTSTR lpCommandLine ,
 		KPipeStream *st,int isCgi,LPVOID env
 );
+void my_msleep(int msec);
 BOOL init_winuser(bool first_run);
 #define PATH_SPLIT_CHAR		'\\'
 #else

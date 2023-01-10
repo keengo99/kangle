@@ -56,6 +56,8 @@
 #include "extern.h"
 #include "KWinCgiEnv.h"
 #include "KCgiEnv.h"
+#include "kfiber.h"
+#include "klib.h"
 using namespace std;
 /*
  const char ap_month_snames[12][4] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -262,7 +264,13 @@ FILE *fopen_as(const char *file, const char *mode, int uid, int gid) {
 	 return fp;
 	 */
 }
-
+void my_msleep(int msec) {
+	if (kfiber_is_main()) {
+		kgl_msleep(100);
+	} else {
+		kfiber_msleep(500);
+	}
+}
 
 bool name2uid(const char *name, int &uid, int &gid) {
 #ifndef _WIN32

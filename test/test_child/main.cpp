@@ -176,7 +176,7 @@ bool handle_fastcgi(kconnection* cn, int request_count, KMapEnv* env)
 	if (strncmp(request_uri, _KS("/fastcgi/304")) == 0) {
 		fastcgi_test_304_keep_conn(cn, request_count, env);
 		//msleep cause end_request packet send delay for test.
-		my_msleep(100);
+		kfiber_msleep(100);
 		goto done;
 	}
 	fastcgi_stdout(cn, resp_buf, pos);
