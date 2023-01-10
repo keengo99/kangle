@@ -101,7 +101,7 @@ int get_param(int argc, char **argv, int &i,const char *param, char *value) {
 	return 0;
 }
 #endif
-int get_path(char *argv0, string &path) {
+int get_path(char *argv0, std::string &path) {
 	//	int size = strlen(argv0);
 	char *p = strrchr(argv0, PATH_SPLIT_CHAR);
 	if (p) {
@@ -110,7 +110,6 @@ int get_path(char *argv0, string &path) {
 	} else {
 		conf.program = argv0;
 	}
-
 #ifndef _WIN32
 	if (argv0[0] != '/') {
 		char *pwd = getenv("PWD");

@@ -99,4 +99,5 @@ private:
 	std::list<KControlCodeBlock *> blockStack;
 	std::map<std::string,std::string> kv;
 };
+void set_program_home_env(const char* kangle_home);
 #endif

@@ -9,7 +9,6 @@
 #include "KAccessDsoSupport.h"
 #include "KSimulateRequest.h"
 #include "extern.h"
-
 #ifdef ENABLE_KSAPI_FILTER
 KGL_RESULT global_get_variable(PVOID ctx, KGL_GVAR type, const char *name, LPVOID value, LPDWORD size)
 {

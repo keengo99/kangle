@@ -1287,6 +1287,7 @@ void StartAll() {
 #ifdef ENABLE_LOG_DRILL
 	init_log_drill();
 #endif
+	set_program_home_env(conf.path.c_str());
 	init_aio_align_size();
 	spProcessManage.setName("api:sp");
 	initFastcgiData();

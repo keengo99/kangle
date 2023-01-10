@@ -3,7 +3,11 @@
 #include "utils.h"
 #include "KDynamicString.h"
 #include "kmalloc.h"
+static std::string env_kangle_home;
 
+void set_program_home_env(const char* kangle_home) {
+	env_kangle_home = kangle_home;
+}
 void buildAttribute(char* buf, std::map<char*, char*, lessp_icase>& attibute) {
 	while (*buf) {
 		while (*buf && isspace((unsigned char)*buf))
@@ -33,7 +37,6 @@ void buildAttribute(char* buf, std::map<char*, char*, lessp_icase>& attibute) {
 		attibute.insert(std::pair<char*, char*>(name, value));
 	}
 }
-
 const char* getSystemEnv(const char* name) {
 	if (strncasecmp(name, "env:", 4) == 0) {
 		const char* value = getenv(name + 4);
@@ -42,16 +45,14 @@ const char* getSystemEnv(const char* name) {
 		}
 		return value;
 	}
-	/*
 	if (strcasecmp(name, "kangle_home") == 0) {
-		return conf.path.c_str();
+		return env_kangle_home.c_str();
 	}
-	*/
 	if (strcasecmp(name, "kangle_version") == 0) {
 		return VERSION;
 	}
 	if (strcasecmp(name, "kangle_type") == 0) {
-		return getServerType();
+		return "web";
 	}
 	if (strcasecmp(name, "classpath_split_char") == 0) {
 #ifdef _WIN32
