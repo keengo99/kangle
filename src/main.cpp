@@ -236,12 +236,8 @@ void checkMemoryLeak() {
 #endif
 }
 int shutdown_fiber(void* arg, int got) {
-	if (quit_program_flag) {
-		klog(KLOG_DEBUG, "have another thread set quit flags\n");
-		return -1;
-	}
-	KAccess::ShutdownMarkModule();
 	quit_program_flag = PROGRAM_QUIT_IMMEDIATE;
+	KAccess::ShutdownMarkModule();
 	cache.shutdown_disk(true);
 	conf.gvm->UnBindGlobalListens(conf.service);
 	conf.gvm->shutdown();
@@ -260,25 +256,51 @@ int shutdown_fiber(void* arg, int got) {
 	if (conf.dem) {
 		conf.dem->shutdown();
 	}
-	klog(KLOG_INFO, "shutdown now\n");
 	accessLogger.close();
+	klog(KLOG_ERR, "shutdown\n");
 	errorLogger.close();
 	singleProgram.deletePid();
 	quit_program_flag = PROGRAM_QUIT_SHUTDOWN;
+#ifndef MALLOCDEBUG
+	/**
+	 *  malloc debug model. do not exit right now. 
+	 *  program will free all know memory and log leak memory. 
+	 * */
+	exit(0);
+#endif
 	return 0;
+}
+void shutdown_safe_process() {
+	exit(0);
+}
+void create_shutdown_fiber() {
+	/**
+	* we sure call shutdown function use fiber.
+	*/
+	quit_program_flag = PROGRAM_QUIT_IMMEDIATE;
+	kselector* selector = get_selector_by_index(0);
+	kfiber_create2(selector, shutdown_fiber, NULL, 0, 0, NULL);
 }
 void shutdown_signal(int sig) {
 #ifndef _WIN32
-	if (!workerProcess.empty()) {
-		killworker(sig);
-		if (sig != SIGHUP) {
-			quit_program_flag = PROGRAM_QUIT_IMMEDIATE;
+	/**
+	* on unix from signal do not call any function. only can set flag.
+	* this cause main selector call create_shutdown_fiber.	
+	*/
+	if (workerProcess.empty()) {
+		if (quit_program_flag>0) {
+			return;
 		}
+		quit_program_flag = PROGRAM_QUIT_PREPARE;
 		return;
 	}
+	killworker(sig);
+	if (sig != SIGHUP) {
+		quit_program_flag = PROGRAM_QUIT_IMMEDIATE;
+	}
+	return;
 #endif
-	kselector* selector = get_selector_by_index(0);
-	kfiber_create2(selector, shutdown_fiber, NULL, 0, 0, NULL);
+	create_shutdown_fiber();
 }
 
 #ifdef _WIN32
@@ -1130,7 +1152,7 @@ void my_fork() {
 #ifndef _WIN32
 	std::map<int, WorkerProcess*>::iterator it;
 	for (;;) {
-		if (workerProcess.size() == 0) {
+		if (workerProcess.empty()) {
 			if (quit_program_flag > 0) {
 				m_pid = 0;
 				singleProgram.deletePid();
@@ -1165,7 +1187,8 @@ void my_fork() {
 		WorkerProcess* process = (*it).second;
 		clean_process(process->pid);
 		if (WEXITSTATUS(status) == 100) {
-			shutdown();
+			shutdown_safe_process();
+			exit(0);
 		}
 		workerProcess.erase(it);
 		if (quit_program_flag == PROGRAM_NO_QUIT) {

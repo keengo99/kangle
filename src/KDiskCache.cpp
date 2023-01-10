@@ -250,12 +250,13 @@ bool saveCacheIndex()
 	if (dci) {
 		dci->start(ci_close, NULL);
 		while (!dci->allWorkedDone()) {
-			my_msleep(100);
+			my_msleep(100);			
 		}
-		return false;
+		
 	}
 #endif
-	return false;
+	klog(KLOG_ERR,"save cache index done.\n");
+	return true;
 }
 cor_result create_http_object2(KHttpObject* obj, char* url, uint32_t flag_encoding, const char* verified_filename)
 {
