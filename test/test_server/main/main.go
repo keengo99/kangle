@@ -23,7 +23,7 @@ var (
 	test_case      *string = flag.String("t", "", "test suite[.case][,suite[.case]])")
 	list_case      *bool   = flag.Bool("l", false, "list all test case")
 	server_model   *bool   = flag.Bool("s", false, "only run server")
-	malloc_debug   *bool   = flag.Bool("m", false, "malloc debug")
+	malloc_debug   *bool   = flag.Bool("m", true, "malloc debug")
 	upstream       *string = flag.String("u", "", "upstream config(s,h2)")
 	clean_cache    *bool   = flag.Bool("cc", true, "clean cache")
 	force          *bool   = flag.Bool("f", false, "continue when error happened")

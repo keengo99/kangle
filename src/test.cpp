@@ -295,7 +295,7 @@ static void test_dechunk2()
 			break;
 		}
 	}
-
+	ks_buffer_destroy(buffer);
 }
 #ifdef ENABLE_INPUT_FILTER
 void test_dechunk() {

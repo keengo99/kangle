@@ -43,11 +43,12 @@ KAcserverManager::KAcserverManager() {
 	cur_cmd = NULL;
 #endif
 }
-
-KAcserverManager::~KAcserverManager() {
+void KAcserverManager::shutdown() {
+	killAllProcess(NULL);
+	lock.WLock();
 	std::map<std::string, KSingleAcserver*>::iterator it;
 	for (it = acservers.begin(); it != acservers.end(); it++) {
-		(*it).second->release();
+		(*it).second->remove();
 	}
 	acservers.clear();
 #ifdef ENABLE_MULTI_SERVER
@@ -77,6 +78,10 @@ KAcserverManager::~KAcserverManager() {
 		cur_cmd->remove();
 	}
 #endif
+	lock.WUnlock();
+}
+KAcserverManager::~KAcserverManager() {
+	shutdown();
 }
 #ifdef ENABLE_VH_RUN_AS
 void KAcserverManager::refreshCmd(time_t nowTime) {

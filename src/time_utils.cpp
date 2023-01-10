@@ -14,10 +14,4 @@ void kgl_update_http_time()
 		do_config(false);
 		configReload = false;
 	}
-	if (unlikely(quit_program_flag > 0)) {
-		if (katom_get((void *)&mark_module_shutdown) == 0) {
-			//wait all module shutdown
-			shutdown();
-		}
-	}
 }

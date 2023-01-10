@@ -28,7 +28,6 @@
 #include "log.h"
 #include "extern.h"
 volatile int quit_program_flag = PROGRAM_NO_QUIT;
-volatile int32_t mark_module_shutdown = 0;
 #ifndef _WIN32
 int my_uid = -1;
 #endif

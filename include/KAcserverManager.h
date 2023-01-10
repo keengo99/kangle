@@ -34,19 +34,18 @@ public:
 	std::string apiList(std::string name = "");
 #ifdef ENABLE_VH_RUN_AS	
 	std::string cmdList(std::string name = "");
-	//{{ent
 #ifdef ENABLE_ADPP
 	/*
 	 * flush the cmd extend process cpu usage.
 	 */
 	void flushCpuUsage(ULONG64 cpuTime);
 #endif
+	void shutdown();
 	int getCmdPortMap(KVirtualHost* vh, std::string cmd, std::string name, int app);
-	//}}
 	void refreshCmd(time_t nowTime);
 	void getProcessInfo(std::stringstream& s);
 	void killCmdProcess(USER_T user);
-	void killAllProcess(KVirtualHost* vh = NULL);
+	void killAllProcess(KVirtualHost* vh);
 	/* 全部准备好了，可以加载所有的api了。*/
 	void loadAllApi();
 #endif

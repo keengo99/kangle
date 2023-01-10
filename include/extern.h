@@ -4,7 +4,6 @@
 #include "global.h"
 #include "kforwin32.h"
 extern volatile int quit_program_flag;
-extern volatile int32_t mark_module_shutdown;
 extern int my_uid;
 extern int api_child_key;
 extern int serial;

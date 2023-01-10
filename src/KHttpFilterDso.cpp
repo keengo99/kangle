@@ -101,7 +101,6 @@ KGL_RESULT global_support_function(
 	case KGL_REQ_MODULE_SHUTDOWN:
 	{
 		int32_t* value = (int32_t*)data;
-		katom_add((void*)&mark_module_shutdown, *value);
 		return KGL_OK;
 	}
 #ifdef ENABLE_SIMULATE_HTTP

@@ -52,7 +52,7 @@
 #include "log.h"
 #include "kserver.h"
 #include "extern.h"
-//#define OPEN_FILE
+ //#define OPEN_FILE
 #include "http.h"
 #include "cache.h"
 #include "KListenConfigParser.h"
@@ -96,17 +96,17 @@
 #ifndef HAVE_DAEMON
 int daemon(int nochdir, int noclose);
 #endif
-char *lang = NULL;
+char* lang = NULL;
 int m_debug = 0;
 bool skipCheckRunning = false;
-int program_rand_value ;
+int program_rand_value;
 using namespace std;
 int m_pid = 0;
 int m_ppid = 0;
-extern int my_uid ;
+extern int my_uid;
 int child_pid = 0;
 int reboot_flag = 0;
-int serial = 0 ;
+int serial = 0;
 int worker_index = 0;
 bool nodaemon = false;
 bool nofork = false;
@@ -120,31 +120,29 @@ HANDLE shutdown_event = INVALID_HANDLE_VALUE;
 HANDLE signal_pipe = INVALID_HANDLE_VALUE;
 static HANDLE notice_event = INVALID_HANDLE_VALUE;
 void start_safe_service();
-std::vector<WorkerProcess *> workerProcess;
+std::vector<WorkerProcess*> workerProcess;
 #else
-std::map<int,WorkerProcess *> workerProcess;
+std::map<int, WorkerProcess*> workerProcess;
 #endif
 /*
  the main process and child process communicate pipe
  */
 
-void my_exit(int code)
-{
+void my_exit(int code) {
 #ifdef _WIN32
 	SetUnhandledExceptionFilter(NULL);
 #endif
 	conf.gam->unloadAllApi();
 #ifdef _WIN32
-	TerminateProcess(GetCurrentProcess(),code);
+	TerminateProcess(GetCurrentProcess(), code);
 #endif
 	exit(code);
 }
 #ifndef _WIN32
-void killworker(int sig)
-{
-	std::map<int,WorkerProcess *>::iterator it;
-	for (it=workerProcess.begin();it!=workerProcess.end();it++) {
-		kill((*it).first,sig);
+void killworker(int sig) {
+	std::map<int, WorkerProcess*>::iterator it;
+	for (it = workerProcess.begin(); it != workerProcess.end(); it++) {
+		kill((*it).first, sig);
 	}
 	/*
 	if (sig==SIGHUP) {
@@ -164,13 +162,12 @@ extern "C" {
 #ifdef _WIN32
 void LogEvent(LPCTSTR pFormat, ...);
 #endif
-int clean_memory_leak_fiber(void *arg,int argc)
-{
+int clean_memory_leak_fiber(void* arg, int argc) {
 
 	printf("free all know memory\n");
 	selector_manager_close();
 #ifndef HTTP_PROXY
-	conf.gam->killAllProcess();
+	conf.gam->shutdown();
 #endif
 #ifdef ENABLE_VH_FLOW
 	conf.gvm->dumpFlow();
@@ -215,18 +212,20 @@ int clean_memory_leak_fiber(void *arg,int argc)
 		my_msleep(100);
 	}
 	kthread_close_all_free();
+#ifdef KSOCKET_SSL
+	kssl_clean();
+#endif
 	return 0;
 }
 #endif
-void checkMemoryLeak()
-{	
+void checkMemoryLeak() {
 #ifdef MALLOCDEBUG
 	if (!conf.mallocdebug) {
-		fprintf(stderr,"mallocdebug is not active\n");
+		fprintf(stderr, "mallocdebug is not active\n");
 		return;
 	}
 	my_msleep(1000);
-	kasync_main(clean_memory_leak_fiber, NULL, 0);	
+	kasync_main(clean_memory_leak_fiber, NULL, 0);
 	my_msleep(1500);
 	int leak_count = dump_memory_leak(0, -1);
 	printf("total memory leak count=[%d]\n", leak_count);
@@ -236,10 +235,13 @@ void checkMemoryLeak()
 	exit(0);
 #endif
 }
-void shutdown() {
-	if (quit_program_flag != PROGRAM_QUIT_IMMEDIATE) {
-		return;
+int shutdown_fiber(void* arg, int got) {
+	if (quit_program_flag) {
+		klog(KLOG_DEBUG, "have another thread set quit flags\n");
+		return -1;
 	}
+	KAccess::ShutdownMarkModule();
+	quit_program_flag = PROGRAM_QUIT_IMMEDIATE;
 	cache.shutdown_disk(true);
 	conf.gvm->UnBindGlobalListens(conf.service);
 	conf.gvm->shutdown();
@@ -250,7 +252,7 @@ void shutdown() {
 	}
 #endif
 #ifdef ENABLE_VH_RUN_AS
-	conf.gam->killAllProcess();
+	conf.gam->shutdown();
 #endif
 #ifdef ENABLE_VH_FLOW
 	conf.gvm->dumpFlow();
@@ -263,22 +265,9 @@ void shutdown() {
 	errorLogger.close();
 	singleProgram.deletePid();
 	quit_program_flag = PROGRAM_QUIT_SHUTDOWN;
-#ifndef MALLOCDEBUG
-	my_exit(0);
-#endif
-}
-int shutdown_fiber(void *arg,int got) {
-	if (quit_program_flag) {
-		klog(KLOG_DEBUG, "have another thread set quit flags\n");
-		return -1;
-	}
-	mark_module_shutdown = 0;
-	KAccess::ShutdownMarkModule();
-	quit_program_flag = PROGRAM_QUIT_IMMEDIATE;
 	return 0;
 }
-void shutdown_signal(int sig)
-{
+void shutdown_signal(int sig) {
 #ifndef _WIN32
 	if (!workerProcess.empty()) {
 		killworker(sig);
@@ -288,72 +277,67 @@ void shutdown_signal(int sig)
 		return;
 	}
 #endif
-	kselector *selector = get_selector_by_index(0);
+	kselector* selector = get_selector_by_index(0);
 	kfiber_create2(selector, shutdown_fiber, NULL, 0, 0, NULL);
 }
 
 #ifdef _WIN32
-char *get_signal_pipe_name(int pid)
-{
+char* get_signal_pipe_name(int pid) {
 	KStringBuf spipe;
 	spipe << "\\\\.\\pipe\\kangle_signal_" << pid;
 	return spipe.stealString();
 }
-int kill(int pid,char sig)
-{
-	char *spipe = get_signal_pipe_name(pid);
-	HANDLE fd = CreateFile(spipe,GENERIC_WRITE,0,NULL,OPEN_EXISTING,0,NULL);
+int kill(int pid, char sig) {
+	char* spipe = get_signal_pipe_name(pid);
+	HANDLE fd = CreateFile(spipe, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 	free(spipe);
 	if (!kflike(fd)) {
 		return -1;
 	}
 	DWORD bytesWrite;
-	BOOL result = WriteFile(fd,&sig,1,&bytesWrite,NULL);
+	BOOL result = WriteFile(fd, &sig, 1, &bytesWrite, NULL);
 	kfclose(fd);
 	if (result) {
 		return 0;
 	}
 	return -1;
 }
-KTHREAD_FUNCTION wait_shutdown(void* arg) 
-{
+KTHREAD_FUNCTION wait_shutdown(void* arg) {
 	WaitForSingleObject(shutdown_event, INFINITE);
 	shutdown_signal(0);
 	KTHREAD_RETURN;
 }
-bool signal_recved_pipe()
-{
+bool signal_recved_pipe() {
 	char buf[4];
 	DWORD bytesRead;
-	BOOL result = ReadFile(signal_pipe,buf,1,&bytesRead,NULL);
+	BOOL result = ReadFile(signal_pipe, buf, 1, &bytesRead, NULL);
 	if (!result) {
-		klog(KLOG_ERR,"readPipe error errno=%d\n",GetLastError());
+		klog(KLOG_ERR, "readPipe error errno=%d\n", GetLastError());
 		my_msleep(500);
 		return true;
 	}
-	klog(KLOG_ERR,"recv signal [%c]\n",buf[0]);
-	switch(buf[0]) {
-		case 'r':
-			do_config(false);
-			break;
-		case 'v':
-			do_config(false);
-			break;
-		case 'q':
-			shutdown_signal(0);
-			return false;
-		default:
-			break;
+	klog(KLOG_ERR, "recv signal [%c]\n", buf[0]);
+	switch (buf[0]) {
+	case 'r':
+		do_config(false);
+		break;
+	case 'v':
+		do_config(false);
+		break;
+	case 'q':
+		shutdown_signal(0);
+		return false;
+	default:
+		break;
 	}
 	return true;
 }
-void create_signal_pipe()
-{
-	char *spipe = get_signal_pipe_name((int)getpid());
+void create_signal_pipe() {
+	char* spipe = get_signal_pipe_name((int)getpid());
 	signal_pipe = CreateNamedPipe(
 		spipe, // pipe name
-		PIPE_ACCESS_DUPLEX|FILE_FLAG_OVERLAPPED, // read/write access
-		PIPE_TYPE_BYTE |PIPE_READMODE_BYTE| // message-read mode
+		PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED, // read/write access
+		PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | // message-read mode
 		PIPE_WAIT, // blocking mode
 		PIPE_UNLIMITED_INSTANCES, // max. instances
 		1024, // output buffer size
@@ -362,12 +346,11 @@ void create_signal_pipe()
 		NULL);
 	free(spipe);
 }
-KTHREAD_FUNCTION signal_thread(void* arg) 
-{
+KTHREAD_FUNCTION signal_thread(void* arg) {
 	if (!kflike(signal_pipe)) {
 		wait_shutdown(NULL);
 		KTHREAD_RETURN;
-	}	
+	}
 	HANDLE ev[3];
 	int max_ev = 1;
 	if (kflike(shutdown_event)) {
@@ -376,9 +359,9 @@ KTHREAD_FUNCTION signal_thread(void* arg)
 	}
 	for (;;) {
 		OVERLAPPED ol;
-		memset(&ol,0,sizeof(ol));
-		ol.hEvent = CreateEvent(NULL,FALSE,FALSE,NULL);
-		if (ConnectNamedPipe(signal_pipe,&ol)) {
+		memset(&ol, 0, sizeof(ol));
+		ol.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+		if (ConnectNamedPipe(signal_pipe, &ol)) {
 			if (!signal_recved_pipe()) {
 				CloseHandle(ol.hEvent);
 				CloseHandle(signal_pipe);
@@ -392,20 +375,20 @@ KTHREAD_FUNCTION signal_thread(void* arg)
 					CloseHandle(signal_pipe);
 					break;
 				}
-			}else if(error==ERROR_IO_PENDING) {
+			} else if (error == ERROR_IO_PENDING) {
 				ev[0] = ol.hEvent;
 				//WAIT_OBJECT_0 == WaitForSingleObject(ol.hEvent,INFINITE)){
 				//bResult = TRUE;
-				int ret = WaitForMultipleObjects(max_ev,ev,FALSE,INFINITE);
+				int ret = WaitForMultipleObjects(max_ev, ev, FALSE, INFINITE);
 				int index = ret - WAIT_OBJECT_0;
-				if (index==0) {
+				if (index == 0) {
 					if (!signal_recved_pipe()) {
 						CloseHandle(ol.hEvent);
 						CloseHandle(signal_pipe);
 						break;
 					}
 				}
-				if (index==1) {
+				if (index == 1) {
 					shutdown_signal(0);
 				}
 			} else {
@@ -421,17 +404,17 @@ KTHREAD_FUNCTION signal_thread(void* arg)
 #endif
 
 #ifdef ENABLE_DISK_CACHE
-bool create_dir(const char *dir) {
-	mkdir(dir,448);
+bool create_dir(const char* dir) {
+	mkdir(dir, 448);
 	return true;
 }
-void create_cache_dir(const char *disk_dir) {
+void create_cache_dir(const char* disk_dir) {
 	string path;
-	if(disk_dir && *disk_dir){
+	if (disk_dir && *disk_dir) {
 		path = disk_dir;
 		pathEnd(path);
 	} else {
-		path  = conf.path;
+		path = conf.path;
 		path += "cache";
 		path += PATH_SPLIT_CHAR;
 	}
@@ -440,7 +423,7 @@ void create_cache_dir(const char *disk_dir) {
 	for (int i = 0; i <= CACHE_DIR_MASK1; i++) {
 		s << path.c_str();
 		s.addHex(i);
-		if(!create_dir(s.getString())){
+		if (!create_dir(s.getString())) {
 			return;
 		}
 		s.clean();
@@ -449,7 +432,7 @@ void create_cache_dir(const char *disk_dir) {
 			s.addHex(i);
 			s << PATH_SPLIT_CHAR;
 			s.addHex(j);
-			if(!create_dir(s.getString())){
+			if (!create_dir(s.getString())) {
 				return;
 			}
 			s.clean();
@@ -458,7 +441,7 @@ void create_cache_dir(const char *disk_dir) {
 #if 0
 	KStringBuf index_name;
 	index_name << path << "index";
-	FILE *fp = fopen(index_name.getString(), "wb");
+	FILE* fp = fopen(index_name.getString(), "wb");
 	if (fp == NULL) {
 		fprintf(stderr, "cann't open cache index file for write[%s]\n", index_name.getString());
 		return;
@@ -470,7 +453,7 @@ void create_cache_dir(const char *disk_dir) {
 	indexHeader.state = INDEX_STATE_CLEAN;
 	indexHeader.cache_dir_mask1 = CACHE_DIR_MASK1;
 	indexHeader.cache_dir_mask2 = CACHE_DIR_MASK2;
-	fwrite((char *) &indexHeader, 1, sizeof(indexHeader), fp);
+	fwrite((char*)&indexHeader, 1, sizeof(indexHeader), fp);
 	fclose(fp);
 #endif
 	fprintf(stderr, "create cache dir success\n");
@@ -479,25 +462,25 @@ void create_cache_dir(const char *disk_dir) {
 void console_call_reboot() {
 	//quit_program_flag = PROGRAM_QUIT_IMMEDIATE;
 	shutdown_signal(10);
-//{{ent
+	//{{ent
 #ifdef _WIN32	
 	if (shutdown_event == NULL) {
 		PROCESS_INFORMATION pi;
 		STARTUPINFO si;
 		GetStartupInfo(&si);
 		BOOL bResult = CreateProcess(
-				conf.program.c_str(), // file to execute
-				NULL, // command line
-				NULL, // pointer to process SECURITY_ATTRIBUTES
-				NULL, // pointer to thread SECURITY_ATTRIBUTES
-				FALSE, // handles are not inheritable
-				NORMAL_PRIORITY_CLASS | DETACHED_PROCESS | CREATE_NO_WINDOW , // creation flags
-				NULL, // pointer to new environment block
-				NULL, // name of current directory
-				&si, // pointer to STARTUPINFO structure
-				&pi // receives information about new process
+			conf.program.c_str(), // file to execute
+			NULL, // command line
+			NULL, // pointer to process SECURITY_ATTRIBUTES
+			NULL, // pointer to thread SECURITY_ATTRIBUTES
+			FALSE, // handles are not inheritable
+			NORMAL_PRIORITY_CLASS | DETACHED_PROCESS | CREATE_NO_WINDOW, // creation flags
+			NULL, // pointer to new environment block
+			NULL, // name of current directory
+			&si, // pointer to STARTUPINFO structure
+			&pi // receives information about new process
 		);
-		if(bResult) {
+		if (bResult) {
 			CloseHandle(pi.hThread);
 			CloseHandle(pi.hProcess);
 		}
@@ -507,24 +490,23 @@ void console_call_reboot() {
 		}
 	}
 #endif
-//}}
+	//}}
 }
 //{{ent
 #ifdef _WIN32
-BOOL CtrlHandler( DWORD fdwCtrlType )
-{
-	debug("catch event = %d\n",fdwCtrlType);
-	switch( fdwCtrlType )
+BOOL CtrlHandler(DWORD fdwCtrlType) {
+	debug("catch event = %d\n", fdwCtrlType);
+	switch (fdwCtrlType)
 	{
-	// Handle the CTRL-C signal.
+		// Handle the CTRL-C signal.
 	case CTRL_C_EVENT:
 		shutdown_signal(0);
-		return( TRUE );
-	// CTRL-CLOSE: confirm that the user wants to exit.
+		return(TRUE);
+		// CTRL-CLOSE: confirm that the user wants to exit.
 	case CTRL_CLOSE_EVENT:
 		shutdown_signal(0);
 		return TRUE;
-	// Pass other signals to the next handler.
+		// Pass other signals to the next handler.
 	case CTRL_BREAK_EVENT:
 		shutdown_signal(0);
 		return TRUE;
@@ -543,7 +525,7 @@ BOOL CtrlHandler( DWORD fdwCtrlType )
 //}}
 void sigcatch(int sig) {
 #ifdef HAVE_SYSLOG_H
-	klog(KLOG_INFO,"catch signal %d,my_pid=%d\n", sig, getpid());
+	klog(KLOG_INFO, "catch signal %d,my_pid=%d\n", sig, getpid());
 #endif
 #ifndef _WIN32
 	//int status = 0;
@@ -556,14 +538,14 @@ void sigcatch(int sig) {
 		shutdown_signal(sig);
 		break;
 	case SIGHUP:
-		if(workerProcess.size()>0){
+		if (workerProcess.size() > 0) {
 			killworker(sig);
 		} else {
 			configReload = true;
 		}
 		break;
 	case SIGUSR2:
-		if(workerProcess.size()>0){
+		if (workerProcess.size() > 0) {
 			killworker(SIGUSR2);
 		} else {
 #ifdef ENABLE_VH_FLOW
@@ -581,30 +563,30 @@ void sigcatch(int sig) {
 }
 void set_user() {
 #if	!defined(_WIN32)
-	if(conf.run_user.size()>0){
-		int uid,gid;
+	if (conf.run_user.size() > 0) {
+		int uid, gid;
 		if (getuid() != 0) {
 			fprintf(stderr, "I am not root user,cann't run as user[%s]\n", conf.run_user.c_str());
 			return;
 		}
-		bool result = name2uid(conf.run_user.c_str(),uid,gid);
+		bool result = name2uid(conf.run_user.c_str(), uid, gid);
 		if (!result) {
-			klog(KLOG_ERR,"cann't find run_as user [%s]\n",conf.run_user.c_str());
+			klog(KLOG_ERR, "cann't find run_as user [%s]\n", conf.run_user.c_str());
 		}
-		if (result && conf.run_group.size()>0) {
-			result = name2gid(conf.run_group.c_str(),gid);
+		if (result && conf.run_group.size() > 0) {
+			result = name2gid(conf.run_group.c_str(), gid);
 			if (!result) {
-				klog(KLOG_ERR,"cann't find run_as group [%s]\n",conf.run_group.c_str());
+				klog(KLOG_ERR, "cann't find run_as group [%s]\n", conf.run_group.c_str());
 			}
 		}
 		if (result) {
-			chown(conf.tmppath.c_str(),uid,gid);
+			chown(conf.tmppath.c_str(), uid, gid);
 			setgid(gid);
 			setuid(uid);
 		}
-		
+
 	}
-	
+
 #endif	/* !_WIN32 */
 }
 void list_service() {
@@ -626,7 +608,7 @@ int service_to_signal(int sig, bool showError = true) {
 	return 0;
 }
 
-bool create_file_path(char *argv0) {
+bool create_file_path(char* argv0) {
 	if (!get_path(argv0, conf.path)) {
 		return false;
 	}
@@ -650,48 +632,46 @@ bool create_file_path(char *argv0) {
 #else
 	conf.tmppath = conf.path + PATH_SPLIT_CHAR + "tmp" + PATH_SPLIT_CHAR;
 #endif
-	mkdir(conf.tmppath.c_str(),448);
+	mkdir(conf.tmppath.c_str(), 448);
 	return true;
 }
-void shutdown_process(int pid,int sig)
-{
+void shutdown_process(int pid, int sig) {
 }
-int clean_process_handle(const char *file,void *param)
-{
-	int kangle_pid = *((int *)(param));
-	if(filencmp(file,"kp_",3)!=0){
+int clean_process_handle(const char* file, void* param) {
+	int kangle_pid = *((int*)(param));
+	if (filencmp(file, "kp_", 3) != 0) {
 		return 0;
 	}
-	int fpid = atoi(file+3);
-	if (kangle_pid>0 && fpid!=kangle_pid) {
+	int fpid = atoi(file + 3);
+	if (kangle_pid > 0 && fpid != kangle_pid) {
 		return 0;
 	}
 	int pid = 0;
 	int sig = 0;
-	const char *p = strchr(file+3,'_');
+	const char* p = strchr(file + 3, '_');
 	if (p) {
-		pid = atoi(p+1);
-		p = strchr(p+1,'_');
-		if(p){
-			sig = atoi(p+1);
+		pid = atoi(p + 1);
+		p = strchr(p + 1, '_');
+		if (p) {
+			sig = atoi(p + 1);
 		}
 #ifdef _WIN32
-		HANDLE hProcess = OpenProcess(PROCESS_TERMINATE,FALSE,pid);
-		if(hProcess!=NULL){
-			TerminateProcess(hProcess,sig);
+		HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, pid);
+		if (hProcess != NULL) {
+			TerminateProcess(hProcess, sig);
 			CloseHandle(hProcess);
 		}
 #else
-		kill(pid,sig);
+		kill(pid, sig);
 #endif
 	}
 	std::stringstream s;
 	s << conf.tmppath << file;
 	char unix_file[512];
-	FILE *fp = fopen(s.str().c_str(),"rb");
-	if(fp){
-		int len = (int)fread(unix_file,1,sizeof(unix_file)-1,fp);
-		if(len>0){
+	FILE* fp = fopen(s.str().c_str(), "rb");
+	if (fp) {
+		int len = (int)fread(unix_file, 1, sizeof(unix_file) - 1, fp);
+		if (len > 0) {
 			unix_file[len] = '\0';
 			unlink(unix_file);
 		}
@@ -700,58 +680,57 @@ int clean_process_handle(const char *file,void *param)
 	unlink(s.str().c_str());
 	return 0;
 }
-void clean_process(int pid)
-{
-	list_dir(conf.tmppath.c_str(),clean_process_handle,(void *)&pid);
+void clean_process(int pid) {
+	list_dir(conf.tmppath.c_str(), clean_process_handle, (void*)&pid);
 }
 
 static int Usage(bool only_version = false) {
 	printf(PROGRAM_NAME "/" VERSION "(%s) build with support:"
 #ifdef KSOCKET_IPV6
-			" ipv6"
+		" ipv6"
 #endif
 #ifdef KSOCKET_SSL
-			" ssl["
+		" ssl["
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
-			"S"
+		"S"
 #endif
 #ifdef TLSEXT_TYPE_next_proto_neg
-			"N"
+		"N"
 #endif
 #ifdef TLSEXT_TYPE_application_layer_protocol_negotiation
-			"A"
+		"A"
 #endif
 #ifdef ENABLE_KSSL_BIO
-			"B"
+		"B"
 #endif
 #ifdef SSL_READ_EARLY_DATA_SUCCESS
-			"E"
+		"E"
 #endif
-			"] "
+		"] "
 #endif
 #ifdef ENABLE_HTTP2
-			" h2"
+		" h2"
 #endif
 #ifdef ENABLE_HTTP3
-			" h3"
+		" h3"
 #endif
 #ifdef ENABLE_PROXY_PROTOCOL
-		   " proxy"
+		" proxy"
 #endif
 #ifdef ENABLE_BIG_OBJECT
 #ifdef ENABLE_BIG_OBJECT_206
 		" big-object-206"
 #else
-           " big-object"
+		" big-object"
 #endif
 #endif
 #ifdef IP_TRANSPARENT
 #ifdef ENABLE_TPROXY
-			" tproxy"
+		" tproxy"
 #endif
 #endif
 #ifdef ENABLE_DISK_CACHE
-			" disk-cache"
+		" disk-cache"
 #endif
 #ifndef NDEBUG
 		" debug"
@@ -762,53 +741,53 @@ static int Usage(bool only_version = false) {
 #ifdef MALLOCDEBUG
 		" malloc-debug"
 #endif
-			"\n", getServerType());
-	printf("pcre version: %s\n",pcre_version());
+		"\n", getServerType());
+	printf("pcre version: %s\n", pcre_version());
 #ifdef KSOCKET_SSL
-	printf("openssl version: %s\n",SSLeay_version(SSLEAY_VERSION));
+	printf("openssl version: %s\n", SSLeay_version(SSLEAY_VERSION));
 #endif
 #ifdef UPDATE_CODE
-	printf("UPDATE_CODE: %s\n",UPDATE_CODE);
+	printf("UPDATE_CODE: %s\n", UPDATE_CODE);
 #endif
 	if (!only_version) {
 		printf("Usage: " PROGRAM_NAME " [-hlqnra:] [-d level]\n"
-		"   (no param to start server.)\n"
-		"   [-h --help]      print the current message\n"
-		"   [-d level]       start in debug model,level=0-3\n"
-		"   [-r --reload]    reload config file graceful\n"
+			"   (no param to start server.)\n"
+			"   [-h --help]      print the current message\n"
+			"   [-d level]       start in debug model,level=0-3\n"
+			"   [-r --reload]    reload config file graceful\n"
 #ifndef _WIN32
-		"   [--reboot]       reboot server\n"
+			"   [--reboot]       reboot server\n"
 #endif
 #ifdef ENABLE_DISK_CACHE
-		"   [-z [disk_dir]]  create disk cache directory\n"
+			"   [-z [disk_dir]]  create disk cache directory\n"
 #endif
-		"   [-v --version]   show program version\n"
+			"   [-v --version]   show program version\n"
 #ifndef _WIN32
-		"   [-q]             shutdown\n"
-		"   [-n]             start program not in daemon\n"
+			"   [-q]             shutdown\n"
+			"   [-n]             start program not in daemon\n"
 #endif
-		"Report bugs to <keengo99@gmail.com>.\n"
-		"");
+			"Report bugs to <keengo99@gmail.com>.\n"
+			"");
 	}
 #ifdef ENABLE_JEMALLOC
-	const char *j;
-        size_t s = sizeof(j);
-	mallctl("version", &j,  &s, NULL, 0);
-	printf("jemalloc version: [%s]\n",j);
+	const char* j;
+	size_t s = sizeof(j);
+	mallctl("version", &j, &s, NULL, 0);
+	printf("jemalloc version: [%s]\n", j);
 #endif
 	//checkMemoryLeak();
 	fflush(stdout);
 	my_exit(0);
 	return 0;
 }
-bool create_path(char **argv) {
-	char *argv0 = NULL;
+bool create_path(char** argv) {
+	char* argv0 = NULL;
 #ifdef _WIN32
 	char szFilename[512];
-	::GetModuleFileName(NULL, szFilename, sizeof(szFilename)-1);
-	argv0=xstrdup(szFilename);
+	::GetModuleFileName(NULL, szFilename, sizeof(szFilename) - 1);
+	argv0 = xstrdup(szFilename);
 	conf.diskName = szFilename;
-	conf.diskName = conf.diskName.substr(0,2);
+	conf.diskName = conf.diskName.substr(0, 2);
 #else
 	argv0 = xstrdup(argv[0]);
 #endif
@@ -819,8 +798,8 @@ bool create_path(char **argv) {
 	xfree(argv0);
 	return true;
 }
-int parse_args(int argc, char ** argv) {
-	extern char *optarg;
+int parse_args(int argc, char** argv) {
+	extern char* optarg;
 	int ret = 0;
 #ifdef _WIN32
 	char tmp[512];
@@ -828,12 +807,12 @@ int parse_args(int argc, char ** argv) {
 	conf.log_level = -1;
 	string pidFile;
 #ifdef KANGLE_VAR_DIR
-        pidFile = KANGLE_VAR_DIR;
+	pidFile = KANGLE_VAR_DIR;
 #else
-        pidFile = conf.path;
+	pidFile = conf.path;
 	pidFile += "/var";
 #endif
-	mkdir(pidFile.c_str(),0700);
+	mkdir(pidFile.c_str(), 0700);
 	pidFile += PID_FILE;
 	m_pid = singleProgram.checkRunning(pidFile.c_str());
 	/*
@@ -854,13 +833,13 @@ int parse_args(int argc, char ** argv) {
 #ifndef _WIN32
 	int c;
 	struct option long_options[] = { { "reload", 0, 0, 'r' },
-	{ "version", 0, 0, 'v' }, 
-	{ "help", 0, 0,	'h' }, 
-	{ "reboot", 0, 0, 'b' }, 
+	{ "version", 0, 0, 'v' },
+	{ "help", 0, 0,	'h' },
+	{ "reboot", 0, 0, 'b' },
 	{ 0, 0, 0, 0 } };
 	int opt_index = 0;
 	while ((c = getopt_long(argc, argv, "lgnrz:mfqa:d:hvr?", long_options,
-			&opt_index)) != -1) {
+		&opt_index)) != -1) {
 		switch (c) {
 		case 0:
 			break;
@@ -872,9 +851,9 @@ int parse_args(int argc, char ** argv) {
 
 		case 'q':
 			m_pid = service_to_signal(SIGTERM);
-			if (m_pid>0) {
-				for (int i=0;i<200;i++) {
-					if (kill(m_pid,0)!=0) {
+			if (m_pid > 0) {
+				for (int i = 0; i < 200; i++) {
+					if (kill(m_pid, 0) != 0) {
 						break;
 					}
 					my_msleep(200);
@@ -886,7 +865,7 @@ int parse_args(int argc, char ** argv) {
 			my_exit(1);
 			break;
 #ifdef ENABLE_VH_FLOW
-			case 'f':
+		case 'f':
 			service_to_signal(SIGUSR2);
 			my_exit(0);
 			break;
@@ -934,9 +913,9 @@ int parse_args(int argc, char ** argv) {
 		}
 	}
 #else
-//{{ent
-	for(int i=1;i<argc;i++){
-		if (get_param(argc,argv,i,"-r",tmp)) {
+	//{{ent
+	for (int i = 1; i < argc; i++) {
+		if (get_param(argc, argv, i, "-r", tmp)) {
 			service_to_signal('r');
 			my_exit(0);
 			break;
@@ -951,61 +930,61 @@ int parse_args(int argc, char ** argv) {
 			my_exit(0);
 			break;
 		}
-		if (get_param(argc,argv,i,"--revh",tmp)) {
+		if (get_param(argc, argv, i, "--revh", tmp)) {
 			service_to_signal('v');
 			my_exit(0);
 			break;
 		}
-	#ifdef ENABLE_DISK_CACHE
-		if (get_param(argc,argv,i,"-z",tmp)) {
+#ifdef ENABLE_DISK_CACHE
+		if (get_param(argc, argv, i, "-z", tmp)) {
 			create_cache_dir(tmp);
 			my_exit(0);
 		}
-	#endif
-		if (get_param(argc,argv,i,"-a",tmp)) {
+#endif
+		if (get_param(argc, argv, i, "-a", tmp)) {
 			my_exit(merge_apache_config(tmp));
 		}
-		if (get_param(argc,argv,i,"-d",tmp)) {
-			ret=0;
-			m_debug=atoi(tmp);
+		if (get_param(argc, argv, i, "-d", tmp)) {
+			ret = 0;
+			m_debug = atoi(tmp);
 			continue;
 		}
 		if (get_param(argc, argv, i, "-n", NULL) || get_param(argc, argv, i, "-g", NULL)) {
 			ret = 0;
 			continue;
 		}
-		if(get_param(argc,argv,i,"-h",NULL)) {
+		if (get_param(argc, argv, i, "-h", NULL)) {
 			return Usage();
 		}
-		if(get_param(argc,argv,i,"--worker_index",tmp)){
+		if (get_param(argc, argv, i, "--worker_index", tmp)) {
 			worker_index = atoi(tmp);
 			continue;
 		}
-		if (get_param(argc,argv,i,"--ppid",tmp)) {
+		if (get_param(argc, argv, i, "--ppid", tmp)) {
 			m_ppid = atoi(tmp);
 			continue;
 		}
-		if (get_param(argc,argv,i,"--shutdown",tmp)) {
+		if (get_param(argc, argv, i, "--shutdown", tmp)) {
 			ret = 0;
 			shutdown_event = (HANDLE)string2int(tmp);
 			continue;
 		}
-		if (get_param(argc,argv,i,"--active",tmp)) {
+		if (get_param(argc, argv, i, "--active", tmp)) {
 			ret = 0;
 			active_event = (HANDLE)string2int(tmp);
 			continue;
 		}
-		if (get_param(argc,argv,i,"--notice",tmp)) {
+		if (get_param(argc, argv, i, "--notice", tmp)) {
 			ret = 0;
 			notice_event = (HANDLE)string2int(tmp);
 			continue;
 		}
 	}
-//}}
+	//}}
 #endif
 	if ((ret == 0) && (m_pid != 0) && !skipCheckRunning) {
 		fprintf(stderr, "Start error,another program (pid=%d) is running.\n",
-				m_pid);
+			m_pid);
 		fprintf(stderr, "Try (%s -q) to close it.\n", argv[0]);
 		my_exit(1);
 	}
@@ -1030,8 +1009,7 @@ void init_signal() {
 #endif
 }
 
-void init_safe_process()
-{
+void init_safe_process() {
 #ifdef KANGLE_ETC_DIR
 	string configFile = KANGLE_ETC_DIR;
 #else
@@ -1044,45 +1022,42 @@ void init_safe_process()
 	KXml::fread = (kxml_fread)kfread;
 	listenConfigParser.parse(configFile.c_str());
 }
-void init_stderr()
-{
+void init_stderr() {
 #ifdef ENABLE_TCMALLOC
 	close(2);
 	string stderr_file = conf.path + "/var/stderr.log";
 	KFile fp;
-	if (fp.open(stderr_file.c_str(),fileAppend)) {
+	if (fp.open(stderr_file.c_str(), fileAppend)) {
 		FILE_HANDLE fd = fp.stealHandle();
-		dup2(fd,2);
-		fprintf(stderr,"stderr is open success\n");
+		dup2(fd, 2);
+		fprintf(stderr, "stderr is open success\n");
 	}
 #endif
 }
-void init_core_limit()
-{
+void init_core_limit() {
 #ifndef _WIN32
 #ifndef NDEBUG
 #define KGL_CORE_DUMP_LIMIT 1073741824
 	struct rlimit rlim;
-	if (0==getrlimit(RLIMIT_CORE,&rlim)) {
-		if (rlim.rlim_cur < KGL_CORE_DUMP_LIMIT && rlim.rlim_cur!=RLIM_INFINITY) {
+	if (0 == getrlimit(RLIMIT_CORE, &rlim)) {
+		if (rlim.rlim_cur < KGL_CORE_DUMP_LIMIT && rlim.rlim_cur != RLIM_INFINITY) {
 			//turn on coredump
 			//rlim.rlim_cur = RLIM_INFINITY;
 			//rlim.rlim_max = RLIM_INFINITY;
 			rlim.rlim_cur = KGL_CORE_DUMP_LIMIT;
 			rlim.rlim_max = KGL_CORE_DUMP_LIMIT;
-			int ret = setrlimit(RLIMIT_CORE,&rlim);
-			klog(KLOG_ERR,"set core dump limit ret=[%d]\n",ret);
+			int ret = setrlimit(RLIMIT_CORE, &rlim);
+			klog(KLOG_ERR, "set core dump limit ret=[%d]\n", ret);
 		} else {
-			klog(KLOG_ERR,"core dump  limit [%lld %lld] will not set.\n",(long long)rlim.rlim_cur,(long long)rlim.rlim_max);
+			klog(KLOG_ERR, "core dump  limit [%lld %lld] will not set.\n", (long long)rlim.rlim_cur, (long long)rlim.rlim_max);
 		}
 	} else {
-		klog(KLOG_ERR,"get core dump  limit error [%d]\n",errno);
+		klog(KLOG_ERR, "get core dump  limit error [%d]\n", errno);
 	}
 #endif
 #endif
 }
-bool init_resource_limit(int numcpu)
-{
+bool init_resource_limit(int numcpu) {
 	bool result = true;
 #ifndef _WIN32
 	//adjust max open file
@@ -1091,22 +1066,22 @@ bool init_resource_limit(int numcpu)
 	if (open_file_limited < 65536) {
 		open_file_limited = 65536;
 	}
-	if (0==getrlimit(RLIMIT_NOFILE,&rlim)) {
+	if (0 == getrlimit(RLIMIT_NOFILE, &rlim)) {
 		if (rlim.rlim_max < open_file_limited) {
 			rlim.rlim_cur = open_file_limited;
 			rlim.rlim_max = open_file_limited;
-			int ret = setrlimit(RLIMIT_NOFILE,&rlim);
-			if (ret!=0) {
-				klog(KLOG_ERR,"set open file limit error [%d]\n",errno);
+			int ret = setrlimit(RLIMIT_NOFILE, &rlim);
+			if (ret != 0) {
+				klog(KLOG_ERR, "set open file limit error [%d]\n", errno);
 				result = false;
 			}
 		}
 	}
-	if (0==getrlimit(RLIMIT_NOFILE,&rlim)) {
-		klog(KLOG_ERR,"max open file limit [cur:%d,max:%d]\n",rlim.rlim_cur,rlim.rlim_max);
+	if (0 == getrlimit(RLIMIT_NOFILE, &rlim)) {
+		klog(KLOG_ERR, "max open file limit [cur:%d,max:%d]\n", rlim.rlim_cur, rlim.rlim_max);
 		open_file_limit = rlim.rlim_max;
 	} else {
-		klog(KLOG_ERR,"get max open file limit error [%d]\n",errno);
+		klog(KLOG_ERR, "get max open file limit error [%d]\n", errno);
 	}
 #endif
 	return result;
@@ -1118,30 +1093,28 @@ unsigned getpagesize() {
 	return si.dwPageSize;
 }
 #endif
-void init_program()
-{
+void init_program() {
 	//printf("sizeof (rq) = %d\n",sizeof(KHttpRequest));
 	int select_count = conf.select_count;
-	if(select_count<=0){
+	if (select_count <= 0) {
 		select_count = numberCpu;
-		if (select_count==0) {
+		if (select_count == 0) {
 			select_count = 1;
 		}
 	}
-	
-	selector_manager_init(select_count,false);
+
+	selector_manager_init(select_count, false);
 }
 
 #ifndef _WIN32
-int create_worker_process(int index)
-{
+int create_worker_process(int index) {
 	worker_index = index;
 	int pid = fork();
-	if (pid==0) {
+	if (pid == 0) {
 		//child
 		//singleProgram.unlock();
-		std::map<int,WorkerProcess *>::iterator it;
-		for(it = workerProcess.begin();it!=workerProcess.end();it++){
+		std::map<int, WorkerProcess*>::iterator it;
+		for (it = workerProcess.begin(); it != workerProcess.end(); it++) {
 			delete (*it).second;
 		}
 		workerProcess.clear();
@@ -1155,65 +1128,64 @@ int create_worker_process(int index)
 #endif
 void my_fork() {
 #ifndef _WIN32
-	std::map<int,WorkerProcess *>::iterator it;
+	std::map<int, WorkerProcess*>::iterator it;
 	for (;;) {
-		if (workerProcess.size()==0) {
-			if (quit_program_flag>0) {
+		if (workerProcess.size() == 0) {
+			if (quit_program_flag > 0) {
 				m_pid = 0;
 				singleProgram.deletePid();
 				my_exit(0);
 				break;
-		
+
 			}
-			for (size_t i=0;i<1;i++) {
+			for (size_t i = 0; i < 1; i++) {
 				int pid = create_worker_process(i);
-				if (pid==0) {
+				if (pid == 0) {
 					return;
 				}
-				if (pid<0) {
+				if (pid < 0) {
 					continue;
 				}
-				WorkerProcess *process = new WorkerProcess;
+				WorkerProcess* process = new WorkerProcess;
 				process->pid = pid;
 				process->worker_index = i;
-				workerProcess.insert(pair<int,WorkerProcess *>(pid,process));
+				workerProcess.insert(pair<int, WorkerProcess*>(pid, process));
 			}
 		}
 		int status;
-		int pid = waitpid(-1,&status,WNOHANG);
-		if (pid<=0) {
+		int pid = waitpid(-1, &status, WNOHANG);
+		if (pid <= 0) {
 			sleep(1);
 			continue;
-		}	
+		}
 		it = workerProcess.find(pid);
-		if (it==workerProcess.end()) {
+		if (it == workerProcess.end()) {
 			continue;
 		}
-		WorkerProcess *process = (*it).second;
+		WorkerProcess* process = (*it).second;
 		clean_process(process->pid);
-		if (WEXITSTATUS(status)==100) {
+		if (WEXITSTATUS(status) == 100) {
 			shutdown();
 		}
 		workerProcess.erase(it);
 		if (quit_program_flag == PROGRAM_NO_QUIT) {
 			pid = create_worker_process(process->worker_index);
-			if (pid==0) {
+			if (pid == 0) {
 				return;
 			}
-			if (pid<0) {
-				fprintf(stderr,"create worker process failed,errno=%d\n",errno);
+			if (pid < 0) {
+				fprintf(stderr, "create worker process failed,errno=%d\n", errno);
 				continue;
 			}
 			process->pid = pid;
-			workerProcess.insert(pair<int,WorkerProcess *>(pid,process));
+			workerProcess.insert(pair<int, WorkerProcess*>(pid, process));
 		} else {
 			delete process;
 		}
 	}
 #endif
 }
-int main_fiber(void* arg, int argc)
-{
+int main_fiber(void* arg, int argc) {
 	//init kxml
 	KXml::fopen = (kxml_fopen)kfiber_file_open;
 	KXml::fclose = (kxml_fclose)kfiber_file_close;
@@ -1306,15 +1278,15 @@ void StopAll() {
 	shutdown_signal(0);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
 #ifdef _WIN32
 	CoInitializeEx(NULL, COINIT_MULTITHREADED);
 #endif
-	srand((unsigned) time(NULL));	
+	srand((unsigned)time(NULL));
 	program_rand_value = rand();
 
 	if (!create_path(argv)) {
-		fprintf(stderr,	"cann't create path,don't start kangle in search path\n");
+		fprintf(stderr, "cann't create path,don't start kangle in search path\n");
 #ifdef _WIN32
 		LogEvent("cann't create path\n");
 #endif
@@ -1322,12 +1294,12 @@ int main(int argc, char **argv) {
 	}
 	LoadDefaultConfig();
 
-//{{ent
+	//{{ent
 #ifdef _WIN32	
 #ifdef _WIN32_SERVICE
-	if (argc==2) {
-		if (strcmp(argv[1],"--onlyinstall")==0) {
-			if(InstallService(PROGRAM_NAME,true,false)) {
+	if (argc == 2) {
+		if (strcmp(argv[1], "--onlyinstall") == 0) {
+			if (InstallService(PROGRAM_NAME, true, false)) {
 				printf("install service success\n");
 				return 0;
 			} else {
@@ -1335,8 +1307,8 @@ int main(int argc, char **argv) {
 				return 1;
 			}
 		}
-		if (strcmp(argv[1],"--start")==0) {
-			if(InstallService(PROGRAM_NAME,false,true)) {
+		if (strcmp(argv[1], "--start") == 0) {
+			if (InstallService(PROGRAM_NAME, false, true)) {
 				printf("start service success\n");
 				return 0;
 			} else {
@@ -1344,8 +1316,8 @@ int main(int argc, char **argv) {
 				return 1;
 			}
 		}
-		if (::strcmp(argv[1], "--stop")==0) {
-			if(UninstallService(PROGRAM_NAME,false)) {
+		if (::strcmp(argv[1], "--stop") == 0) {
+			if (UninstallService(PROGRAM_NAME, false)) {
 				printf("stop service success\n");
 				return 0;
 			} else {
@@ -1353,7 +1325,7 @@ int main(int argc, char **argv) {
 				return 1;
 			}
 		}
-		if (::strcmp(argv[1], "--install")==0) {
+		if (::strcmp(argv[1], "--install") == 0) {
 			if (InstallService(PROGRAM_NAME)) {
 				printf("install service success\n");
 			} else {
@@ -1361,7 +1333,7 @@ int main(int argc, char **argv) {
 			}
 			return 0;
 		}
-		if (::strcmp(argv[1], "--uninstall")==0) {
+		if (::strcmp(argv[1], "--uninstall") == 0) {
 			if (UninstallService(PROGRAM_NAME)) {
 				printf("uninstall service success\n");
 			} else {
@@ -1369,7 +1341,7 @@ int main(int argc, char **argv) {
 			}
 			return 0;
 		}
-		if(::strcmp(argv[1], "--ntsrv")==0) {
+		if (::strcmp(argv[1], "--ntsrv") == 0) {
 			SERVICE_TABLE_ENTRY service_table_entry[] =
 			{
 				{	PROGRAM_NAME, serviceMain},
@@ -1378,22 +1350,22 @@ int main(int argc, char **argv) {
 			::StartServiceCtrlDispatcher(service_table_entry);
 			return 0;
 		}
-		if(strcmp(argv[1],"--safe")==0){
+		if (strcmp(argv[1], "--safe") == 0) {
 			start_safe_service();
 			return 0;
 		}
 	}
-	if(argc==1) {
+	if (argc == 1) {
 		//	printf("Usage:\n%s --install	install service\n",argv[0]);
 		//	printf("%s --uninstall	uninstall service\n",argv[0]);
 	}
 #endif
 	SetUnhandledExceptionFilter(CustomUnhandledExceptionFilter);
 #endif
-//}}
+	//}}
 	numberCpu = GetNumberOfProcessors();
 	//printf("number of cpus %d\n",numberCpu);
-	if(numberCpu<=0){
+	if (numberCpu <= 0) {
 		numberCpu = 1;
 	}
 	//	printf("using LANG %s\n",lang);
@@ -1401,13 +1373,13 @@ int main(int argc, char **argv) {
 		Usage();
 		my_exit(0);
 	}
-//{{ent
+	//{{ent
 #ifdef _WIN32
 	if (shutdown_event == INVALID_HANDLE_VALUE) {
-		SetConsoleCtrlHandler((PHANDLER_ROUTINE) CtrlHandler, TRUE );
+		SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlHandler, TRUE);
 	}
 #endif
-//}}
+	//}}
 	StartAll();
 	return 0;
 }
