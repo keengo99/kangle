@@ -238,8 +238,9 @@
 #define BSD_OS 1
 #endif
 #define PROGRAM_NO_QUIT               0
-#define PROGRAM_QUIT_IMMEDIATE        1
-#define PROGRAM_QUIT_SHUTDOWN         2
+#define PROGRAM_QUIT_PREPARE          1
+#define PROGRAM_QUIT_IMMEDIATE        2
+#define PROGRAM_QUIT_SHUTDOWN         3
 #ifdef _WIN32
 #define WHM_MODULE                 1
 #endif
