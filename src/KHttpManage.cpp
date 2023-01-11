@@ -946,7 +946,6 @@ bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* co
 		rq->response_header(kgl_expand_string("Cache-control"), s.getBuf(), s.getSize());
 	}
 	kbuf* gzipOut = NULL;
-	rq->response_connection();
 	if (content_length > conf.min_compress_length && msg && KBIT_TEST(rq->sink->data.raw_url->accept_encoding, KGL_ENCODING_GZIP)) {
 		kbuf in;
 		memset(&in, 0, sizeof(in));
@@ -959,6 +958,7 @@ bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* co
 	if (content_length >= 0) {
 		rq->response_content_length(content_length);
 	}
+	rq->response_connection();
 	rq->start_response_body(-1);
 	if (gzipOut) {
 		bool result = rq->write_buff(gzipOut);
@@ -968,10 +968,13 @@ bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* co
 	if (msg == NULL) {
 		return true;
 	}
-	if (content_length <= 0) {
+	if (content_length < 0) {
 		content_length = strlen(msg);
 	}
-	return rq->write_all(msg, (int)content_length);
+	if (content_length > 0 && rq->sink->data.meth != METH_HEAD) {
+		return rq->write_all(msg, (int)content_length);
+	}
+	return true;
 }
 bool KHttpManage::sendHttp(const string& msg) {
 	return sendHttp(msg.c_str(), msg.size());

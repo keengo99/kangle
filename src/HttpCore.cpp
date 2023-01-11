@@ -168,7 +168,7 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 	}
 	rq->response_connection();
 	rq->start_response_body(send_len);
-	if (body) {
+	if (body && rq->sink->data.meth!=METH_HEAD) {
 		if (!rq->write_buff(body->getHead())) {
 			return KGL_ESOCKET_BROKEN;
 		}
