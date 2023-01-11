@@ -212,7 +212,7 @@ public:
 	inline bool response_connection() {
 		return sink->response_connection();
 	}
-	KGL_RESULT sendfile(kfiber_file* fp, int64_t *len);
+	KGL_RESULT sendfile(KASYNC_FILE fp, int64_t *len);
 	/**
 	* if lock_header true the header param will locked by sink until startResponseBody be called.
 	*/
@@ -226,7 +226,7 @@ public:
 	void ResponseVary(const char* vary);
 	char* BuildVary(const char* vary);
 	const char* get_method();
-	bool write_all(WSABUF* buf, int* vc);
+	KGL_RESULT write_all(WSABUF* buf, int vc);
 	int Write(WSABUF* buf, int bc);
 	int Write(const char* buf, int len);
 	bool write_all(const char* buf, int len);

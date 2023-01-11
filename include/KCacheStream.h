@@ -27,7 +27,7 @@ public:
 	}
 	~KCacheStream();
 	void init(KHttpRequest *rq, KHttpObject *obj, cache_model cache_layer);
-	StreamState write_direct(void *rq, char *buf,int len) override;
+	//StreamState write_direct(void *rq, char *buf,int len) override;
 	StreamState write_all(void*rq, const char *buf,int len)override;
 	StreamState write_end(void*rq, KGL_RESULT result)override;
 private:

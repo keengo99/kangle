@@ -415,7 +415,7 @@ bool KHttpRequest::write_buff(kbuf* buf) {
 			bc++;
 		}
 		assert(bc > 0);
-		if (!write_all(bufs, &bc)) {
+		if (KGL_OK != write_all(bufs, bc)) {
 			return false;
 		}
 	}
@@ -432,11 +432,11 @@ int KHttpRequest::Write(WSABUF* buf, int bc) {
 	}
 	return got;
 }
-bool KHttpRequest::write_all(WSABUF* buf, int* vc) {
-	while (*vc > 0) {
-		int got = sink->write(buf, slh ? 1 : *vc);
+KGL_RESULT KHttpRequest::write_all(WSABUF* buf, int vc) {
+	while (vc > 0) {
+		int got = sink->write(buf, slh ? 1 : vc);
 		if (got <= 0) {
-			return false;
+			return KGL_EIO;
 		}
 		int sleep_msec = get_sleep_msec(got);
 		if (sleep_msec > 0) {
@@ -448,14 +448,14 @@ bool KHttpRequest::write_all(WSABUF* buf, int* vc) {
 				buf->iov_base = (char*)buf->iov_base + got;
 				break;
 			}
-			assert(*vc > 0);
+			assert(vc > 0);
 			got -= (int)buf->iov_len;
 			buf++;
-			(*vc)--;
+			vc--;
 			assert(got >= 0);
 		}
 	}
-	return true;
+	return KGL_OK;
 }
 int KHttpRequest::Write(const char* buf, int len) {
 	WSABUF bufs;
@@ -468,7 +468,7 @@ bool KHttpRequest::write_all(const char* buf, int len) {
 	bufs.iov_base = (char*)buf;
 	bufs.iov_len = len;
 	int bc = 1;
-	return write_all(&bufs, &bc);
+	return write_all(&bufs, bc) == KGL_OK;
 }
 int KHttpRequest::Read(char* buf, int len) {
 	return sink->read(buf, len);
@@ -574,11 +574,11 @@ char* KHttpRequest::BuildVary(const char* vary) {
 	}
 	return s.stealString();
 }
-KGL_RESULT KHttpRequest::sendfile(kfiber_file* fp, int64_t *length) {
+KGL_RESULT KHttpRequest::sendfile(KASYNC_FILE fp, int64_t *length) {
 	int64_t max_packet = conf.io_buffer;
 	while (*length > 0) {
 		int send_length = (int)KGL_MIN(*length, max_packet);
-		int got = sink->sendfile(fp, send_length);
+		int got = sink->sendfile((kasync_file *)fp, send_length);
 		if (got <= 0) {
 			return KGL_EIO;
 		}

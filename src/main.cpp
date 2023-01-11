@@ -444,16 +444,16 @@ void create_cache_dir(const char* disk_dir) {
 	create_dir(path.c_str());
 	for (int i = 0; i <= CACHE_DIR_MASK1; i++) {
 		s << path.c_str();
-		s.addHex(i);
+		s.add_as_hex(i);
 		if (!create_dir(s.getString())) {
 			return;
 		}
 		s.clean();
 		for (int j = 0; j <= CACHE_DIR_MASK2; j++) {
 			s << path.c_str();
-			s.addHex(i);
+			s.add_as_hex(i);
 			s << PATH_SPLIT_CHAR;
-			s.addHex(j);
+			s.add_as_hex(j);
 			if (!create_dir(s.getString())) {
 				return;
 			}

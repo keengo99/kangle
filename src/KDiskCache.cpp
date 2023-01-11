@@ -457,9 +457,9 @@ bool recreate_index(const char* path, int& first_dir_index, int& second_dir_inde
 				return false;
 			}
 			s << path;
-			s.addHex(first_dir_index);
+			s.add_as_hex(first_dir_index);
 			s << PATH_SPLIT_CHAR;
-			s.addHex(second_dir_index);
+			s.add_as_hex(second_dir_index);
 			recreate_index_dir(s.getString());
 			s.clean();
 			save_index_scan_state();

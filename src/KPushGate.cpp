@@ -292,8 +292,7 @@ KGL_RESULT st_write_message(kgl_output_stream* st, KREQUEST r, KGL_MSG_TYPE msg_
 		result = rq->write_all((char*)msg, (int)len);
 		break;
 	case KGL_MSG_VECTOR:
-		result = rq->write_all(buf, &msg_flag);
-		break;
+		return rq->write_all(buf, msg_flag);
 	default:
 		break;
 	}

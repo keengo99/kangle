@@ -247,13 +247,13 @@ char* KHttpObject::getFileName(bool part)
 		dk.filename1 = katom_get((void*)&disk_file_base);
 		dk.filename2 = katom_inc((void*)&disk_file_index);
 	}
-	s.addHex((dk.filename1 & CACHE_DIR_MASK1));
+	s.add_as_hex((dk.filename1 & CACHE_DIR_MASK1));
 	s << PATH_SPLIT_CHAR;
-	s.addHex((dk.filename2 & CACHE_DIR_MASK2));
+	s.add_as_hex((dk.filename2 & CACHE_DIR_MASK2));
 	s << PATH_SPLIT_CHAR;
-	s.addHex(dk.filename1);
+	s.add_as_hex(dk.filename1);
 	s << "_";
-	s.addHex(dk.filename2);
+	s.add_as_hex(dk.filename2);
 	if (part) {
 		s << ".part";
 	}

@@ -383,6 +383,7 @@ void test_mem_function()
 }
 bool test() {	
 	test_mem_function();
+	printf("sizeof(KHttpRequest)=[%d]\n", (int)sizeof(KHttpRequest));
 	//printf("offsetof st_flags=[%d] %d %d %d\n", offsetof(kselectable, st_flags), offsetof(kselectable, tmo_left), offsetof(kselectable, tmo), offsetof(kselectable, fd));
 	//printf("size=[%d]\n", kgl_align(1, 1024));
 	//test_freed_memory();
@@ -404,8 +405,6 @@ bool test() {
 	test_http2();
 #endif
 	//selectorManager.onReady(when_selector_manager_ready, NULL);
-	kbuf b;
-	b.flags = 0;
 	test_url_decode();
 	test_regex();
 	test_htaccess();

@@ -31,7 +31,6 @@
 #ifdef ENABLE_DELTA_ENCODE
 #include "KDeltaEncode.h"
 #endif
-
 /*
 * @deprecated
  * This class use to transfer data to client

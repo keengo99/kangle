@@ -85,6 +85,7 @@ void KCacheStream::CheckMemoryCacheSize(KHttpRequest *rq)
 	delete buffer;
 	buffer = NULL;
 }
+#if 0
 StreamState KCacheStream::write_direct(void *arg, char *buf,int len)
 {
 	auto rq = (KHttpRequest*)arg;
@@ -106,6 +107,7 @@ StreamState KCacheStream::write_direct(void *arg, char *buf,int len)
 	xfree(buf);
 	return result;
 }
+#endif
 
 StreamState KCacheStream::write_all(void *arg, const char *buf,int len)
 {

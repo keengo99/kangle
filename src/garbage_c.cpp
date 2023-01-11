@@ -174,11 +174,9 @@ KTHREAD_FUNCTION time_thread(void* arg) {
 	unsigned i = rand();
 #ifdef MALLOCDEBUG
 	void start_hook_alloc();
-	bool test();
 	if (conf.mallocdebug) {
 		start_hook_alloc();
 	}
-	assert(test());
 #endif
 	time_t nowTime;
 	INT64 now_msec;
