@@ -44,6 +44,7 @@
 #include "KPipeStream.h"
 #include "KCgiEnv.h"
 #include "KWinCgiEnv.h"
+#include "klib.h"
 #define RDSTD_NAME_PIPE   0
 #define RDSTD_ALL         1
 #define RDSTD_NONE        2
@@ -58,6 +59,7 @@ typedef KCgiEnv KCmdEnv;
 //#else
 //#define USER_T	int
 //#endif
+#define isAbsolutePath kgl_is_absolute_path
 int get_path(char *argv0, std::string &path);
 int get_param(int argc, char **argv, int &i,const char *param, char *value);
 KTHREAD_FUNCTION time_thread(void *arg);
@@ -229,49 +231,43 @@ inline char *getPath(const char *file) {
 	return path;
 
 }
-inline bool isAbsolutePath(const char *str) {
-	return is_absolute_path(str);
-}
 inline void strip_path_end(std::string &path)
 {
-	if (path.empty()) {
+	size_t path_size = path.size();
+	if (path_size==0) {
 		return;
 	}
-	bool path_ended = false;
-	const char c = path[path.size() - 1];
+	const char c = path[path_size - 1];
 	if (c == '/') {
-		path_ended = true;
+		path = path.substr(0, path_size - 1);
+		return;
 	}
 #ifdef _WIN32
 	else if (c == '\\') {
-		path_ended = true;
+		path = path.substr(0, path_size - 1);
+		return;
 	}
 #endif
-	if (path_ended) {
-		path = path.substr(0,path.size() - 1);
-	}
 }
 /*
  * be sure path is ended with '/'
  */
 inline void pathEnd(std::string &path) {
-	bool pathEnded = false;
-	if (path.size() == 0) {
+	size_t path_size = path.size();
+	if (path_size == 0) {
 		path = "/";
 		return;
 	}
-	const char c = path[path.size() - 1];
+	const char c = path[path_size - 1];
 	if (c == '/') {
-		pathEnded = true;
+		return;
 	}
 #ifdef _WIN32
 	else if(c=='\\') {
-		pathEnded = true;
+		return;
 	}
 #endif
-	if (!pathEnded) {
-		path = path + PATH_SPLIT_CHAR;
-	}
+	path = path + PATH_SPLIT_CHAR;
 }
 inline const char *getServerType() {
 #ifdef HTTP_PROXY
