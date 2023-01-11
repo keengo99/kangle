@@ -32,7 +32,8 @@ bool KReplaceContentFilter::dumpBuffer(void *rq)
 		if (st==NULL) {
 			break;
 		}
-		result = st->write_direct(rq, head->data,head->used);
+		result = st->write_all(rq, head->data,head->used);
+		free(head->data);
 		free(head);
 		head = buf;
 		if (result!=STREAM_WRITE_SUCCESS) {

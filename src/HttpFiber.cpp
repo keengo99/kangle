@@ -149,6 +149,7 @@ KGL_RESULT process_request(KHttpRequest* rq)
 		}
 #endif
 	}
+
 	result = open_queued_fetchobj(rq, fo, in, out, queue);
 	if (!rq->continue_next_source(result)) {
 		goto done;
@@ -645,20 +646,12 @@ KGL_RESULT send_memory_object(KHttpRequest *rq)
 		return KGL_NO_BODY;
 	}
 	if (send_buffer && send_len>0) {
-		kr_buffer buffer;
-		memset(&buffer, 0, sizeof(buffer));
-		kr_init(&buffer, send_buffer, (int)start, (int)send_len, rq->sink->pool);
-		WSABUF buf[16];
-		for (;;) {
-			int bc = kr_get_read_buffers(&buffer, buf, sizeof(buf) / sizeof(WSABUF));
-			int got = rq->Write(buf, bc);
-			if (got <= 0) {
-				return KGL_ESOCKET_BROKEN;
-			}
-			if (!kr_read_success(&buffer, got)) {
-				return KGL_OK;
-			}
+		kbuf* buf = kbuf_init_read(send_buffer, (int)start, rq->sink->pool);
+		assert(buf);
+		if (!buf) {
+			return KGL_EUNKNOW;
 		}
+		return rq->write_buf(buf, (int)send_len);
 	}
 	return KGL_OK;
 }

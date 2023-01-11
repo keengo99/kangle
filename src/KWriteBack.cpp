@@ -59,15 +59,15 @@ void KWriteBack::buildRequest(KHttpRequest* rq)
 	while (h) {
 		rq->response_header(h, false);
 		h = h->next;
-	}
-	rq->response_header(kgl_expand_string("Content-Length"), body.getSize());
+	}	
 	if (!keep_alive) {
 		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 	}
-	rq->response_connection();
 	if (rq->sink->data.meth != METH_HEAD) {
 		KAutoBuffer buffer(rq->sink->pool);
 		buffer.write_all(body.getBuf(), body.getSize());
-		rq->append_source(new KBufferFetchObject(buffer.getHead(), 0, buffer.getLen(), NULL));
+		rq->append_source(new KBufferFetchObject(buffer.getHead(),buffer.getLen()));
+	} else {
+		rq->append_source(new KBufferFetchObject(NULL, body.getSize()));
 	}
 }

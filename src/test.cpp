@@ -383,28 +383,9 @@ void test_mem_function()
 }
 bool test() {	
 	test_mem_function();
-	printf("sizeof(KHttpRequest)=[%d]\n", (int)sizeof(KHttpRequest));
-	//printf("offsetof st_flags=[%d] %d %d %d\n", offsetof(kselectable, st_flags), offsetof(kselectable, tmo_left), offsetof(kselectable, tmo), offsetof(kselectable, fd));
-	//printf("size=[%d]\n", kgl_align(1, 1024));
-	//test_freed_memory();
-	//test_suffix_corrupt();
-	//test_prefix_corrupt();
-	//printf("sizeof(kconnection) = %d\n",sizeof(kconnection));
-	//printf("sizeof(KHttpSink)=%d\n",sizeof(KHttpSink));
-	//printf("sizeof(KHttpRequest) = %d\n",sizeof(KHttpRequest));
-	//printf("sizeof(pthread_mutex_t)=%d\n",sizeof(pthread_mutex_t));
-	//printf("sizeof(lock)=%d\n",sizeof(KMutex));
-	//test_cache();
-	//test_file();
-	//test_timematch();
-	//test_xml();
-	//printf("sizeof(kgl_str_t)=%d\n",sizeof(kgl_str_t));
-	//test_ip_map();
-	//test_line_file();
 #ifdef ENABLE_HTTP2
 	test_http2();
 #endif
-	//selectorManager.onReady(when_selector_manager_ready, NULL);
 	test_url_decode();
 	test_regex();
 	test_htaccess();
@@ -416,7 +397,7 @@ bool test() {
 	test_dechunk2();
 	test_white_list();
 	//test_http_parser();
-	//printf("sizeof(KHttpRequest)=%d\n",sizeof(KHttpRequest));
+	//printf("sizeof(KHttpRequest)=%d\n",(int)sizeof(KHttpRequest));
 	//	test_pipe();
 	//printf("sizeof(KHttpHeader)=%d,sizeof(KHttpHeader2)=[%d]\n", (int)sizeof(KHttpHeader),sizeof(KHttpHeader2));
 	//printf("sizeof(selectable)=[%d]\n", (int)sizeof(kselectable));

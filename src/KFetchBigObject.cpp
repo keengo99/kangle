@@ -68,8 +68,8 @@ KGL_RESULT KFetchBigObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_out
 		}
 		assert(got<=rq->ctx->left_read && got <= buf_size);
 		rq->ctx->left_read -= got;
-		if (!rq->write_all(kfiber_file_adjust(file, buffer), got)) {
-			result = KGL_ESOCKET_BROKEN;
+		result = rq->write_all(kfiber_file_adjust(file, buffer), got);
+		if (result!=KGL_OK) {
 			break;
 		}
 	}

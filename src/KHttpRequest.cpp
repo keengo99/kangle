@@ -72,6 +72,56 @@ kev_result on_sink_readhup(KOPAQUE data, void* arg, int got) {
 	}
 	return kev_ok;
 }
+KOutputFilterContext* KHttpRequestData::getOutputFilterContext() {
+	if (of_ctx == NULL) {
+		of_ctx = new KOutputFilterContext;
+		return of_ctx;
+	}
+	return of_ctx;
+}
+KHttpRequestData::~KHttpRequestData() {
+	if (of_ctx) {
+		delete of_ctx;
+		of_ctx = NULL;
+	}
+#ifdef ENABLE_INPUT_FILTER
+	if (if_ctx) {
+		delete if_ctx;
+		if_ctx = NULL;
+	}
+#endif
+#ifdef ENABLE_BIG_OBJECT_206
+	if (bo_ctx) {
+		delete bo_ctx;
+		bo_ctx = NULL;
+	}
+#endif
+
+	//tr由ctx->st负责删除
+	tr = NULL;
+	while (slh) {
+		KSpeedLimitHelper* slh_next = slh->next;
+		delete slh;
+		slh = slh_next;
+	}
+	if (auth) {
+		delete auth;
+		auth = NULL;
+	}
+	destroy_source();
+	if (file) {
+		delete file;
+		file = NULL;
+	}
+}
+void KHttpRequestData::destroy_source() {
+	while (fo_head) {
+		KFetchObject* fo_next = fo_head->next;
+		delete fo_head;
+		fo_head = fo_next;
+	}
+	fo_last = nullptr;
+}
 void KHttpRequest::parse_connection(const char* val, const char* end) {
 	KHttpFieldValue field(val, end);
 	do {
@@ -139,13 +189,7 @@ void KHttpRequest::SetSelfPort(uint16_t port, bool ssl) {
 	sink->set_self_port(port, ssl);
 }
 void KHttpRequest::close_source() {
-
-	while (fo_head) {
-		KFetchObject* fo_next = fo_head->next;
-		delete fo_head;
-		fo_head = fo_next;
-	}
-	fo_last = nullptr;
+	destroy_source();
 #ifdef ENABLE_REQUEST_QUEUE
 	ReleaseQueue();
 #endif
@@ -359,78 +403,17 @@ std::string KHttpRequest::getInfo() {
 }
 
 KHttpRequest::~KHttpRequest() {
-	close_source();
-	assert(ctx->queue_handled == 0);
-	if (file) {
-		delete file;
-		file = NULL;
-	}
 	assert(ctx);
 	ctx->clean();
-	//tr由ctx->st负责删除
-	tr = NULL;
-	if (of_ctx) {
-		delete of_ctx;
-		of_ctx = NULL;
-	}
-#ifdef ENABLE_INPUT_FILTER
-	if (if_ctx) {
-		delete if_ctx;
-		if_ctx = NULL;
-	}
-#endif
-#ifdef ENABLE_BIG_OBJECT_206
-	if (bo_ctx) {
-		delete bo_ctx;
-		bo_ctx = NULL;
-	}
-#endif
-	while (slh) {
-		KSpeedLimitHelper* slh_next = slh->next;
-		delete slh;
-		slh = slh_next;
-	}
-	if (auth) {
-		delete auth;
-		auth = NULL;
-	}
 	delete ctx;
 #ifdef ENABLE_REQUEST_QUEUE
 	assert(queue == NULL);
+	ReleaseQueue();
 #endif
 	assert(sink);
 	if (sink) {
 		sink->end_request();
 	}
-}
-bool KHttpRequest::write_buff(kbuf* buf) {
-#define KGL_RQ_WRITE_BUF_COUNT 16
-	WSABUF bufs[KGL_RQ_WRITE_BUF_COUNT];
-	while (buf) {
-		int bc = 0;
-		while (bc < KGL_RQ_WRITE_BUF_COUNT && buf) {
-			bufs[bc].iov_base = buf->data;
-			bufs[bc].iov_len = buf->used;
-			buf = buf->next;
-			bc++;
-		}
-		assert(bc > 0);
-		if (KGL_OK != write_all(bufs, bc)) {
-			return false;
-		}
-	}
-	return true;
-}
-int KHttpRequest::Write(WSABUF* buf, int bc) {
-	int got = sink->write(buf, slh ? 1 : bc);
-	if (got > 0) {
-		assert(!kfiber_is_main());
-		int sleep_msec = get_sleep_msec(got);
-		if (sleep_msec > 0) {
-			kfiber_msleep(sleep_msec);
-		}
-	}
-	return got;
 }
 KGL_RESULT KHttpRequest::write_all(WSABUF* buf, int vc) {
 	while (vc > 0) {
@@ -457,18 +440,31 @@ KGL_RESULT KHttpRequest::write_all(WSABUF* buf, int vc) {
 	}
 	return KGL_OK;
 }
-int KHttpRequest::Write(const char* buf, int len) {
-	WSABUF bufs;
-	bufs.iov_base = (char*)buf;
-	bufs.iov_len = len;
-	return Write(&bufs, 1);
+#if 0
+int KHttpRequest::write(const char* buf, int len) {
+	int got = sink->write(buf, len);
+	if (got > 0) {
+		assert(!kfiber_is_main());
+		int sleep_msec = get_sleep_msec(got);
+		if (sleep_msec > 0) {
+			kfiber_msleep(sleep_msec);
+		}
+	}
+	return got;
 }
-bool KHttpRequest::write_all(const char* buf, int len) {
+#endif
+KGL_RESULT KHttpRequest::flush() {
+	sink->flush();
+	return KGL_OK;
+}
+KGL_RESULT KHttpRequest::write_end(KGL_RESULT result) {
+	return KGL_OK;
+}
+KGL_RESULT KHttpRequest::write_all(const char* buf, int len) {
 	WSABUF bufs;
 	bufs.iov_base = (char*)buf;
 	bufs.iov_len = len;
-	int bc = 1;
-	return write_all(&bufs, bc) == KGL_OK;
+	return write_all(&bufs, 1);
 }
 int KHttpRequest::Read(char* buf, int len) {
 	return sink->read(buf, len);
@@ -504,12 +500,6 @@ int KHttpRequest::checkFilter(KHttpObject* obj) {
 
 void KHttpRequest::addFilter(KFilterHelper* chain) {
 	getOutputFilterContext()->addFilter(chain);
-}
-KOutputFilterContext* KHttpRequest::getOutputFilterContext() {
-	if (of_ctx == NULL) {
-		of_ctx = new KOutputFilterContext;
-	}
-	return of_ctx;
 }
 void KHttpRequest::ResponseVary(const char* vary) {
 	KHttpField field;

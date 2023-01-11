@@ -2,27 +2,30 @@
 #define KBUFFERFETCHOBJECT_H
 #include "KFetchObject.h"
 #include "KBuffer.h"
+#include "KHttpRequest.h"
+
 class KBufferFetchObject : public KFetchObject {
 public:
-	KBufferFetchObject(kbuf *buf,int offset,int len,kgl_pool_t *pool)
+	KBufferFetchObject(kbuf *buffer,int length)
 	{
-		memset(&buffer, 0, sizeof(buffer));
-		kassert(len > 0);
-		kr_init(&buffer, buf, offset, len, pool);
-	}
-	KBufferFetchObject(KAutoBuffer *buffer)
-	{
-		memset(&this->buffer, 0, sizeof(buffer));
-		kassert(buffer->getLen() > 0);
-		kr_init(&this->buffer, buffer->getHead(), 0,buffer->getLen(), buffer->pool);			
+		header = buffer;
+		this->length = length;
 	}
 	~KBufferFetchObject()
 	{
 	}
 	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out)
 	{
-		return KGL_EUNKNOW;
+		rq->response_connection();
+		rq->response_content_length(length);
+		rq->start_response_body(length);
+		if (rq->sink->data.meth != METH_HEAD && header) {
+			return rq->write_buf(header,length);
+		}
+		return KGL_OK;
 	}
-	kr_buffer buffer;
+private:
+	kbuf* header;
+	int length;
 };
 #endif

@@ -87,16 +87,80 @@ class KContext;
 class KOutputFilterContext;
 class KHttpFilterContext;
 class KHttpRequest;
-
-class KHttpRequest
+class KHttpRequestData
 {
 public:
-	inline KHttpRequest(KSink* sink) {
+	KHttpRequestData() {
 		memset(this, 0, sizeof(*this));
+	}
+	~KHttpRequestData();
+	uint32_t filter_flags;
+	KFetchObject* fo_head;
+	KFetchObject* fo_last;
+	//物理文件映射
+	KFileName* file;
+	KHttpTransfer* tr;
+	//http认证
+	KHttpAuth* auth;
+	//有关object及缓存上下文	
+#ifdef ENABLE_BIG_OBJECT_206
+	//大物件上下文
+	KBigObjectContext* bo_ctx;
+#endif
+#ifdef ENABLE_REQUEST_QUEUE
+	KRequestQueue* queue;
+#endif
+	//限速(叠加)
+	KSpeedLimitHelper* slh;
+
+	//发送上下文
+#ifdef ENABLE_INPUT_FILTER
+	bool hasInputFilter() {
+		if (if_ctx == NULL) {
+			return false;
+		}
+		return !if_ctx->isEmpty();
+	}
+	/************
+	* 输入过滤
+	*************/
+	KInputFilterContext* if_ctx;
+#endif
+	/****************
+* 输出过滤
+*****************/
+	KOutputFilterContext* of_ctx;
+	KOutputFilterContext* getOutputFilterContext();
+	void pushSpeedLimit(KSpeedLimit* sl) {
+		KSpeedLimitHelper* helper = new KSpeedLimitHelper(sl);
+		helper->next = slh;
+		slh = helper;
+	}
+	int get_sleep_msec(int len) {
+		int msec = 0;
+		KSpeedLimitHelper* helper = slh;
+		while (helper) {
+			int t = helper->sl->get_sleep_msec(len);
+			if (t > msec) {
+				msec = t;
+			}
+			helper = helper->next;
+		}
+		return msec;
+	}
+protected:
+	void destroy_source();
+};
+class KHttpRequest : public KWStream, public KHttpRequestData
+{
+public:
+	inline KHttpRequest(KSink* sink) {	
 		ctx = new KContext;
 		this->sink = sink;
 	}
 	~KHttpRequest();
+	KContext* ctx;
+	KSink* sink;
 	bool isBad();
 	void set_url_param(char* param);
 	//判断是否还有post数据可读
@@ -106,6 +170,15 @@ public:
 	char* getUrl();
 	void beginRequest();
 	int EndRequest();
+
+#ifdef ENABLE_INPUT_FILTER
+	KInputFilterContext* getInputFilterContext() {
+		if (if_ctx == NULL && (sink->data.content_length > 0 || sink->data.url->param)) {
+			if_ctx = new KInputFilterContext(this);
+		}
+		return if_ctx;
+	}
+#endif
 	uint32_t get_upstream_flags();
 	KFetchObject* get_next_source(KFetchObject* fo) {
 		if (fo != fo_head) {
@@ -145,54 +218,15 @@ public:
 	}
 	void parse_connection(const char* val, const char* end);
 	void readhup();
-	void close_source();
+	
 	bool rewrite_url(const char* newUrl, int errorCode = 0, const char* prefix = NULL);
 	void EnterRequestQueue();
 	void LeaveRequestQueue();
 	char* map_url_path(const char* url, KBaseRedirect* caller);
-	uint32_t filter_flags;
-	KSink* sink;
-	//数据源
-	bool is_source_empty() {
-		return fo_head == nullptr;
-	}
-	KFetchObject* get_source() {
-		return fo_head;
-	}
+
+
 	KSubVirtualHost* get_virtual_host();
-	KFetchObject* fo_head;
-	KFetchObject* fo_last;
-	//物理文件映射
-	KFileName* file;
-	KHttpTransfer* tr;
-	//http认证
-	KHttpAuth* auth;
-	//有关object及缓存上下文
-	KContext* ctx;
-	//发送上下文
-#ifdef ENABLE_INPUT_FILTER
-	bool hasInputFilter() {
-		if (if_ctx == NULL) {
-			return false;
-		}
-		return !if_ctx->isEmpty();
-	}
-	/************
-	* 输入过滤
-	*************/
-	KInputFilterContext* if_ctx;
-	KInputFilterContext* getInputFilterContext() {
-		if (if_ctx == NULL && (sink->data.content_length > 0 || sink->data.url->param)) {
-			if_ctx = new KInputFilterContext(this);
-		}
-		return if_ctx;
-	}
-#endif
-	/****************
-	* 输出过滤
-	*****************/
-	KOutputFilterContext* of_ctx;
-	KOutputFilterContext* getOutputFilterContext();
+
 	void addFilter(KFilterHelper* chain);
 	inline bool response_status(uint16_t status_code) {
 		return sink->response_status(status_code);
@@ -212,7 +246,7 @@ public:
 	inline bool response_connection() {
 		return sink->response_connection();
 	}
-	KGL_RESULT sendfile(KASYNC_FILE fp, int64_t *len);
+	
 	/**
 	* if lock_header true the header param will locked by sink until startResponseBody be called.
 	*/
@@ -226,31 +260,24 @@ public:
 	void ResponseVary(const char* vary);
 	char* BuildVary(const char* vary);
 	const char* get_method();
-	KGL_RESULT write_all(WSABUF* buf, int vc);
-	int Write(WSABUF* buf, int bc);
-	int Write(const char* buf, int len);
-	bool write_all(const char* buf, int len);
-	bool write_buff(kbuf* buf);
+
+	/* override KWStream function begin */
+	KGL_RESULT write_all(WSABUF* buf, int vc) override;
+	KGL_RESULT write_all(const char* buf, int len) override;
+	KGL_RESULT flush() override;
+	KGL_RESULT write_end(KGL_RESULT result) override;
+	KGL_RESULT sendfile(KASYNC_FILE fp, int64_t* len) override;
+	bool support_sendfile() override {
+		return sink->support_sendfile();
+	}
+	void release() {
+		/**
+		* KHttpRequest do not destroy when called from KWStream.
+		*/
+	}
+	/* override KWStream function end */
+
 	int checkFilter(KHttpObject* obj);
-	//限速(叠加)
-	KSpeedLimitHelper* slh;
-	void pushSpeedLimit(KSpeedLimit* sl) {
-		KSpeedLimitHelper* helper = new KSpeedLimitHelper(sl);
-		helper->next = slh;
-		slh = helper;
-	}
-	int get_sleep_msec(int len) {
-		int msec = 0;
-		KSpeedLimitHelper* helper = slh;
-		while (helper) {
-			int t = helper->sl->get_sleep_msec(len);
-			if (t > msec) {
-				msec = t;
-			}
-			helper = helper->next;
-		}
-		return msec;
-	}
 	uint16_t GetSelfPort() {
 		return sink->get_self_port();
 	}
@@ -276,18 +303,20 @@ public:
 	uint32_t GetWorkModel() {
 		return sink->get_server_model();
 	}
+	/* 数据源 */
+	bool is_source_empty() {
+		return fo_head == nullptr;
+	}
+	KFetchObject* get_source() {
+		return fo_head;
+	}
+	void close_source();
 	void insert_source(KFetchObject* fo);
 	void append_source(KFetchObject* fo);
 	bool has_final_source();
 	bool has_before_cache();
-#ifdef ENABLE_BIG_OBJECT_206
-	//大物件上下文
-	KBigObjectContext* bo_ctx;
-#endif
+	/* 数据源结束 */
 
-#ifdef ENABLE_REQUEST_QUEUE
-	KRequestQueue* queue;
-#endif
 	//从堆上分配内存，在rq删除时，自动释放。
 	void* alloc_connect_memory(int size) {
 		return kgl_pnalloc(sink->get_connection_pool(), size);

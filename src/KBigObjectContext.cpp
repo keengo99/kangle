@@ -62,8 +62,9 @@ KGL_RESULT KBigObjectContext::ReadBody(KHttpRequest* rq)
 			result = KGL_EIO;
 			break;
 		}
-		if (!rq->write_all(buf, got)) {
-			result = KGL_EIO;
+		result = rq->write_all(buf, got);
+		if (result!=KGL_OK) {
+			break;
 			break;
 		}
 		range_from += got;

@@ -23,9 +23,13 @@ public:
 		return result;
 	}
 protected:
-	int write(void *rq, const char *buf, int len) override
+	int write(void *r, const char *buf, int len) override
 	{
-		return ((KHttpRequest *)rq)->Write(buf, len);
+		KHttpRequest* rq = (KHttpRequest*)r;
+		if (KGL_OK != rq->write_all(buf, len)) {
+			return -1;
+		}
+		return len;
 	}
 };
 #endif

@@ -286,17 +286,14 @@ KGL_RESULT st_write_message(kgl_output_stream* st, KREQUEST r, KGL_MSG_TYPE msg_
 	rq->response_content_length(len);
 	rq->response_connection();
 	rq->start_response_body(len);
-	bool result = true;
 	switch (msg_type) {
 	case KGL_MSG_RAW:
-		result = rq->write_all((char*)msg, (int)len);
-		break;
+		return rq->write_all((char*)msg, (int)len);
 	case KGL_MSG_VECTOR:
 		return rq->write_all(buf, msg_flag);
 	default:
-		break;
+		return KGL_ENOT_SUPPORT;
 	}
-	return result ? KGL_OK : KGL_ESOCKET_BROKEN;
 }
 KGL_RESULT common_write_trailer(kgl_output_stream* st, KREQUEST r, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
 	KHttpRequest* rq = (KHttpRequest*)r;
@@ -423,7 +420,7 @@ KGL_RESULT check_write_body(kgl_output_stream* st, KREQUEST r, const char* buf, 
 		assert(rq->ctx->left_read >= len);
 		rq->ctx->left_read -= len;
 	}
-	return rq->write_all(buf, len) ? KGL_OK : KGL_ESOCKET_BROKEN;
+	return rq->write_all(buf, len);
 }
 static KGL_RESULT check_write_end(kgl_output_stream* st, KREQUEST r, KGL_RESULT result) {
 	KHttpRequest* rq = (KHttpRequest*)r;

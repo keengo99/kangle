@@ -64,10 +64,13 @@ func (b *base) Init() error {
 	<server name='upstream_ssl' host='127.0.0.1' port='4412s' proto='http' life_time='10'/>	
 	<server name='upstream_h2' host='127.0.0.1' port='4412sp' proto='http' life_time='10'/>	
 	<request>
-		<table name='BEGIN'>
+		<table name='BEGIN'>			
 			<chain  action='continue' >
-				<mark_flag  x_cache='1' age='1' ></mark_flag>
-				<mark_flag  via='1' ></mark_flag>
+				<mark_flag  x_cache='1' age='1' via='1'></mark_flag>
+			</chain>
+			<chain  action='return' >
+				<acl_path  path='/stub_status'></acl_path>
+				<mark_stub_status  ></mark_stub_status>
 			</chain>
 			<chain  action='server:localhost_proxy' >
 				<acl_self_port >9800</acl_self_port>
@@ -157,5 +160,5 @@ func init() {
 	s.AddCase("fastcgi", "fastcgi协议测试", check_fastcgi)
 	s.AddCase("obs_fold", "obs_fold测试", check_obs_fold)
 	s.AddCase("100_continue", "100-continue测试", check_100_continue)
-	s.AddCase("bug", "bug", check_bug)
+	s.AddCase("sub_status", "sub_status", test_stub_status)
 }

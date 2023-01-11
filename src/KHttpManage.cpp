@@ -961,9 +961,9 @@ bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* co
 	rq->response_connection();
 	rq->start_response_body(-1);
 	if (gzipOut) {
-		bool result = rq->write_buff(gzipOut);
+		auto result = rq->write_buf(gzipOut);
 		destroy_kbuf(gzipOut);
-		return result;
+		return result==KGL_OK;
 	}
 	if (msg == NULL) {
 		return true;
@@ -972,7 +972,7 @@ bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* co
 		content_length = strlen(msg);
 	}
 	if (content_length > 0 && rq->sink->data.meth != METH_HEAD) {
-		return rq->write_all(msg, (int)content_length);
+		return rq->write_all(msg, (int)content_length) == KGL_OK;
 	}
 	return true;
 }
@@ -1040,13 +1040,11 @@ bool KHttpManage::sendLeftMenu() {
 #ifdef ENABLE_WRITE_BACK
 	//s << "<tr><td height=30><a href=/writeback target=mainFrame>" << LANG_WRITE_BACK << "</a></td></tr>";
 #endif
-	//if (conf.max_per_ip > 0)
 	s << "<tr><td height=30><a href=/connect_per_ip target=mainFrame>" << LANG_CONNECT_PER_IP << "</a></td></tr>";
 	s << "<tr><td height=30><a href=/connection target=mainFrame>" << LANG_CONNECTION << "</a></td></tr>";
 	s << "<tr><td height=30><a href='/config' target=mainFrame>" << LANG_CONFIG << "</a></td></tr>";
 	s << "<tr><td height=30><a href=\"javascript:if(confirm('really reboot')){ window.parent.location='/reboot';}\">";
 	s << klang["reboot"] << "</a>";
-	//*/
 	s << "</table></body></html>";
 	return sendHttp(s.str().c_str());
 }

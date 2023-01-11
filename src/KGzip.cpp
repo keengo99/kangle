@@ -90,7 +90,8 @@ StreamState KGzipCompress::write_end(void* rq, KGL_RESULT result) {
 	}
 	used += 4;
 	//}
-	result2 = st->write_direct(rq, out, used);
+	result2 = st->write_all(rq, out, used);
+	xfree(out);
 	out = NULL;
 	if (result2 != STREAM_WRITE_SUCCESS) {
 		return KHttpStream::write_end(rq, result2);
@@ -122,7 +123,8 @@ StreamState KGzipCompress::compress(void* rq, int flush_flag) {
 		unsigned have = GZIP_CHUNK - used - strm.avail_out;
 		used += have;
 		if (used >= GZIP_CHUNK) {
-			StreamState result = st->write_direct(rq, out, used);
+			StreamState result = st->write_all(rq, out, used);
+			free(out);
 			//printf("this=%p,up=%p\n",this,st);
 			out = NULL;
 			if (result != STREAM_WRITE_SUCCESS) {

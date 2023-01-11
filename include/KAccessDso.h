@@ -79,9 +79,7 @@ public:
 			if (cn.buffer) {
 				kassert(KBIT_TEST(ad->notify_type, KF_NOTIFY_RESPONSE_MARK | KF_NOTIFY_RESPONSE_ACL) == 0);
 				rq->close_source();
-				rq->response_connection();
-				rq->response_header(kgl_expand_string("Content-Length"), cn.buffer->getLen());
-				rq->append_source(new KBufferFetchObject(cn.buffer));
+				rq->append_source(new KBufferFetchObject(cn.buffer->getHead(),cn.buffer->getLen()));
 				if (rq->sink->data.status_code == 0) {
 					rq->response_status(STATUS_OK);
 				}
