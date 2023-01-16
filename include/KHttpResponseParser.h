@@ -24,4 +24,9 @@ private:
 	unsigned age;
 };
 kgl_header_type kgl_parse_response_header(const char* attr, hlen_t attr_len);
+struct kgl_default_output_stream_ctx
+{
+	KHttpResponseParser parser_ctx;
+	KHttpRequest* rq;
+};
 #endif /*KHTTPOBJECTPARSER_H_*/

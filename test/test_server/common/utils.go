@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 func md5sum(buf []byte) string {
@@ -22,6 +23,19 @@ func Md5File(from, to int, gzip bool) string {
 		return result
 	}
 	return ""
+}
+func MatchEtag(if_none_match string, etag string) bool {
+	strs := strings.Split(if_none_match, ",")
+	for _, str := range strs {
+		str = strings.TrimSpace(str)
+		if str == "*" {
+			return true
+		}
+		if str == etag {
+			return true
+		}
+	}
+	return false
 }
 func Md5Response(resp *http.Response, decode bool) string {
 	buf := make([]byte, 1024)

@@ -178,6 +178,7 @@ KGL_RESULT KAsyncFetchObject::InternalProcess(KHttpRequest* rq, kfiber** post_fi
 	return ReadBody(rq);
 }
 KGL_RESULT KAsyncFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) {
+	body = { 0 };
 	kfiber* post_fiber = NULL;
 	this->in = in;
 	this->out = out;
@@ -488,11 +489,11 @@ void KAsyncFetchObject::PushStatus(KHttpRequest* rq, int status_code) {
 	out->f->write_status(out->ctx,  status_code);
 }
 KGL_RESULT KAsyncFetchObject::PushHeader(KHttpRequest* rq, const char* attr, int attr_len, const char* val, int val_len, bool request_line) {
-	/*
+	///*
 	if (attr) {
 		printf("attr=[%s] val=[%s] request_line=[%d]\n", attr , val, request_line);
 	}
-	*/
+	//*/
 	if (!attr) {
 		switch ((kgl_header_type)attr_len) {
 		case kgl_header_status:

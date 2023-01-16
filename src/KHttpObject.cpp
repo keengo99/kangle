@@ -29,13 +29,9 @@ KHttpObjectBody::KHttpObjectBody(KHttpObjectBody* data)
 	KHttpHeader* tmp = data->headers;
 	while (tmp) {
 		KHttpHeader* new_t = (KHttpHeader*)xmalloc(sizeof(KHttpHeader));
-		if (tmp->name_is_know) {
-			new_t->buf = (char*)malloc(tmp->val_len + 1);
-			memcpy(new_t->buf, tmp->buf, tmp->val_len + 1);
-		} else {
-			new_t->buf = (char*)malloc(tmp->val_len + tmp->name_len + 2);
-			memcpy(new_t->buf, tmp->buf, tmp->val_len + tmp->name_len + 2);
-		}
+		new_t->buf = (char*)malloc(tmp->val_len + tmp->val_offset+1);
+		memcpy(new_t->buf, tmp->buf, tmp->val_len + tmp->val_offset);
+		new_t->buf[tmp->val_len + tmp->val_offset] = '\0';
 		new_t->name_attribute = tmp->name_attribute;
 		new_t->val_attribute = tmp->val_attribute;
 		new_t->next = NULL;
@@ -130,6 +126,23 @@ void KHttpObject::UpdateCache(KHttpObject* obj)
 	//TODO:更新vary,或max_age等缓存控制	
 	return;
 }
+bool KHttpObject::is_same_precondition(KHttpObject* obj) 	{
+	if (KBIT_TEST(index.flags, OBJ_HAS_ETAG) != KBIT_TEST(obj->index.flags, OBJ_HAS_ETAG)) {
+		return false;
+	}
+	if (KBIT_TEST(index.flags, OBJ_HAS_ETAG)) {
+		KHttpHeader* h = find_header(_KS("Etag"));
+		if (!h) {
+			return false;
+		}
+		KHttpHeader* h2 = obj->find_header(_KS("Etag"));
+		if (!h2) {
+			return false;
+		}
+		return kgl_mem_same(h->buf + h->val_offset, h->val_len, h2->buf + h2->val_offset, h2->val_len);
+	}
+	return data->i.last_modified == obj->data->i.last_modified;
+}
 bool KHttpObject::precondition_time(time_t time) {
 	return data->i.last_modified > time;
 }
@@ -144,7 +157,7 @@ bool KHttpObject::match_if_range(const char* entity, size_t len) 	{
 	if (h == NULL) {
 		return false;
 	}
-	return kgl_mem_same(h->buf + h->val_offset, h->val_len, entity, len) == 0;
+	return kgl_mem_same(h->buf + h->val_offset, h->val_len, entity, len);
 }
 bool KHttpObject::precondition_entity(const char* entity, size_t len) {
 	if (!KBIT_TEST(index.flags, OBJ_HAS_ETAG)) {
@@ -212,7 +225,6 @@ int KHttpObject::GetHeaderSize(int url_len)
 #ifdef ENABLE_DISK_CACHE
 void KHttpObjectBody::create_type(HttpObjectIndex* index)
 {
-	//{{ent
 #ifdef ENABLE_BIG_OBJECT_206
 	if (KBIT_TEST(index->flags, FLAG_BIG_OBJECT_PROGRESS)) {
 		this->i.type = BIG_OBJECT_PROGRESS;
@@ -220,7 +232,7 @@ void KHttpObjectBody::create_type(HttpObjectIndex* index)
 		//this->sbo->setBodyStart(index->head_size);
 		return;
 	}
-#endif//}}
+#endif
 	if (index->content_length >= conf.max_cache_size) {
 		this->i.type = BIG_OBJECT;
 		return;
@@ -337,8 +349,9 @@ int KHttpObject::build_header(char* buf, char* end, const char* url, int url_len
 		header = header->next;
 	}
 	hot += kgl_dc_write_string(hot, NULL, 0);
-	kassert(hot - buf <= (INT64)index.head_size);
-	return (int)(hot - buf);
+	int header_length = (int)(hot - buf);
+	kassert(header_length <= (INT64)index.head_size);
+	return header_length;
 }
 char* KHttpObject::build_aio_header(int& len, const char* url, int url_len)
 {

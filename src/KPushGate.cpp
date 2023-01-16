@@ -7,7 +7,6 @@
 #include "HttpFiber.h"
 #include "KHttpTransfer.h"
 
-
 struct kgl_dechunk_stream : public kgl_forward_output_stream
 {
 	kgl_response_body body;
@@ -171,16 +170,6 @@ static KGL_RESULT dechunk_close(kgl_response_body_ctx* gate, KGL_RESULT result) 
 	}
 	return g->body.f->close(g->body.ctx, KGL_EDATA_FORMAT);
 }
-static kgl_output_stream_function dechunk_stream_function = {
-	forward_write_status,
-	forward_write_header,
-	forward_write_unknow_header,
-	forward_error,
-	forward_write_header_finish,
-	forward_write_trailer,
-	dechunk_release
-};
-
 static kgl_response_body_function dechunk_body_function = {
 	unsupport_writev<dechunk_push_body>,
 	dechunk_push_body,
@@ -189,6 +178,28 @@ static kgl_response_body_function dechunk_body_function = {
 	unsupport_sendfile,
 	dechunk_close
 };
+
+KGL_RESULT dechunk_header_finish(kgl_output_stream_ctx* gate, kgl_response_body* body) {
+	kgl_dechunk_stream* g = (kgl_dechunk_stream*)gate;
+	g->body = { 0 };
+	KGL_RESULT result = g->down_stream.f->write_header_finish(g->down_stream.ctx, &g->body);
+	if (g->body.ctx) {
+		body->ctx = (kgl_response_body_ctx*)g;
+		body->f = &dechunk_body_function;
+	}
+	return result;
+}
+static kgl_output_stream_function dechunk_stream_function = {
+	forward_write_status,
+	forward_write_header,
+	forward_write_unknow_header,
+	forward_error,
+	dechunk_header_finish,
+	forward_write_trailer,
+	dechunk_release
+};
+
+
 bool new_dechunk_stream(kgl_output_stream* down_stream) {
 	kgl_dechunk_stream* gate = new kgl_dechunk_stream;
 	gate->down_stream = *down_stream;
@@ -214,11 +225,7 @@ kgl_response_body_function forward_body_function = {
 	forward_sendfile,
 	forward_close
 };
-struct kgl_default_output_stream_ctx
-{
-	KHttpResponseParser parser_ctx;
-	KHttpRequest* rq;
-};
+
 
 void st_write_status(kgl_output_stream_ctx* st, uint16_t status_code) {
 	kgl_default_output_stream_ctx* g = (kgl_default_output_stream_ctx*)st;

@@ -119,7 +119,7 @@ public:
 	KUpstream *client;
 	kgl_input_stream *in;
 	kgl_output_stream *out;
-	kgl_response_body body = { 0 };
+	kgl_response_body body;
 	friend class KHttp2;
 protected:
 	KGL_RESULT on_read_head_success(KHttpRequest *rq, kfiber **post_fiber);

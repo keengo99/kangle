@@ -9,6 +9,7 @@ bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, c
 	assert(val_len != 0);
 	const char* end = val + val_len;
 	KHttpObject* obj = rq->ctx.obj;
+	assert(!rq->ctx.obj->in_cache);
 	switch (attr) {
 	case kgl_header_etag:
 		KBIT_SET(obj->index.flags, OBJ_HAS_ETAG);
@@ -154,6 +155,7 @@ bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, c
 bool KHttpResponseParser::parse_unknow_header(KHttpRequest* rq, const char* attr, int attr_len, const char* val, int val_len, bool request_line) {
 	//printf("parse unknow header attr=[%s] val=[%s]\n",attr,val);
 	KHttpObject* obj = rq->ctx.obj;
+	assert(!rq->ctx.obj->in_cache);
 	if (*attr == 'x' || *attr == 'X') {
 		if (!KBIT_TEST(rq->ctx.filter_flags, RF_NO_X_SENDFILE) &&
 			(kgl_mem_case_same(attr, attr_len, _KS("X-Accel-Redirect")) || kgl_mem_case_same(attr, attr_len, _KS("X-Proxy-Redirect")))) {
@@ -172,6 +174,7 @@ bool KHttpResponseParser::parse_unknow_header(KHttpRequest* rq, const char* attr
 	return add_header(attr, attr_len, val, val_len);
 }
 void KHttpResponseParser::end_parse(KHttpRequest* rq) {
+	assert(!rq->ctx.obj->in_cache);
 	/*
  * see rfc2616
  * 没有 Last-Modified 我们不缓存.

@@ -18,26 +18,43 @@ int bigobj_send_fiber(void* arg, int got)
 	KBigObjectContext* bo_ctx = (KBigObjectContext*)arg;
 	return (int)bo_ctx->send_data(NULL);
 }
-void KBigObjectContext::close()
+KGL_RESULT KBigObjectContext::close(KGL_RESULT result)
 {
+	
+	if (!bigobj_dead && rq->ctx.st.ctx) {
+		/* bigobj_dead 状态下，response_body 不由我负责关闭。*/
+		result = rq->ctx.st.f->close(rq->ctx.st.ctx, result);
+	}
 	delete this;
+	return result;
 }
-void KBigObjectContext::close_write(int64_t from) {
-	obj->data->sbo->close_write(obj, from);
+void KBigObjectContext::close_write() {
+	if (write_offset >= 0) {
+		obj->data->sbo->close_write(obj, write_offset);
+		write_offset = -1;
+	}
 }
 KGL_RESULT KBigObjectContext::send_data(bool *net_fiber)
-{
+{	
+	KGL_RESULT result = prepare_write_body(rq, &rq->ctx.st);
+	if (result != KGL_OK) {
+		return result;
+	}
 	KSharedBigObject* sbo = get_shared_big_obj();
 	sbo->open_read(obj);
-	KGL_RESULT result = KGL_OK;
 	int block_length = conf.io_buffer;
 	char* buf = (char*)malloc(block_length);
 	int retried = 0;
 	while (left_read > 0) {
-		int got = sbo->read(rq, obj,offset, buf, (int)KGL_MIN((int64_t)block_length,left_read),net_fiber);	
-		//printf("left_read=[" INT64_FORMAT "],range_from=[" INT64_FORMAT "] got=[%d]\n", left_read, range_from, got);
+		int got = sbo->read(rq, obj,read_offset, buf, (int)KGL_MIN((int64_t)block_length,left_read), net_fiber);	
+		//printf("left_read=[" INT64_FORMAT "],range_from=[" INT64_FORMAT "] got=[%d]\n", left_read, read_offset, got);
 		if (got == -2) {
+			if (net_fiber == NULL) {
+				//treat as ok
+				break;
+			}
 			if (net_fiber && *net_fiber) {
+				write_offset = rq->ctx.sub_request->range->from;
 				result = KGL_ENO_DATA;
 				break;
 			}
@@ -49,15 +66,15 @@ KGL_RESULT KBigObjectContext::send_data(bool *net_fiber)
 			retried++;
 			continue;
 		}
-		if (got <= 0) {
-			result = KGL_EIO;
+		if (got <= 0) {		
+			result = KGL_EIO;	
 			break;
 		}
 		result = rq->ctx.st.f->write(rq->ctx.st.ctx, buf, got);
 		if (result!=KGL_OK) {
 			break;
 		}
-		offset += got;
+		read_offset += got;
 		left_read -= got;
 		retried = 0;
 	}
@@ -89,27 +106,48 @@ KGL_RESULT KBigObjectContext::create()
 	}
 	return KGL_OK;
 }
-
-
 KGL_RESULT KBigObjectContext::open_cache()
 {
 	assert(obj);
 	KSharedBigObject* sbo = get_shared_big_obj();
 	assert(sbo);
 	assert(!rq->ctx.sub_request);
+	bool precondition_result = kgl_request_precondition(rq, obj);
 	kgl_sub_request *srq = rq->alloc_sub_request();
 	srq->range = rq->sink->alloc<kgl_request_range>();
 	if (rq->sink->data.range) {
+		left_read = obj->index.content_length;
+		kgl_adjust_range(rq->sink->data.range, &left_read);
 		memcpy(srq->range, rq->sink->data.range, sizeof(kgl_sub_request));
 	} else {
 		memset(srq->range, 0, sizeof(kgl_sub_request));
 		srq->range->to = -1;
 	}
-	if (sbo->can_satisfy(srq->range, obj) || rq->sink->data.meth == METH_HEAD) {
+	kgl_satisfy_status status;
+	if (rq->sink->data.meth == METH_HEAD) {
+		status = kgl_satisfy_all;
+	} else {
+		status = sbo->can_satisfy(srq->range, obj);
+	}
+	switch (status) {
+	case kgl_satisfy_all:
 		if (!check_object_expiration(rq, obj)) {
 			//没有过期，并且也满足，直接走大文件缓存通道。
-			return send_cache_object(rq, obj);
+			if (precondition_result) {
+				return send_memory_object(rq);
+			}
+			if (rq->sink->data.meth == METH_GET || rq->sink->data.meth == METH_HEAD) {
+				return send_http2(rq, obj, STATUS_NOT_MODIFIED);
+			}
+			return send_http2(rq, obj, STATUS_PRECONDITION);
 		}
+		break;
+	case kgl_satisfy_part:
+		rq->ctx.cache_hit_part = true;
+		break;
+	default:
+		KBIT_CLR(rq->sink->data.flags, RQ_CACHE_HIT);
+		break;
 	}
 	if (!adjust_length()) {
 		return send_error2(rq, 416, "");
@@ -134,8 +172,12 @@ KGL_RESULT KBigObjectContext::open_cache()
 		net_ctx->bo_ctx = this;
 
 		KGL_RESULT result = process_request_stream(rq, &in, &out);
+		if (bigobj_dead) {
+			return result;
+		}
 		if (result == KGL_NO_BODY) {
 			//handle no_body
+			printf("result=304\n");
 		}
 		if (result != KGL_OK) {
 			break;
@@ -159,16 +201,22 @@ void KBigObjectContext::build_if_range(KHttpRequest* rq)
 	assert(rq->ctx.sub_request && rq->ctx.sub_request->range);
 	rq->ctx.sub_request->precondition = nullptr;
 	rq->ctx.precondition_flag = 0;
-	if (obj->data->i.last_modified>0) {
+	if (KBIT_TEST(obj->index.flags, OBJ_HAS_ETAG)) {
+		KHttpHeader* h = obj->find_header(_KS("Etag"));		
+		if (h) {
+			char* etag = h->buf + h->val_offset;
+			if (h->val_len > 2 && (*etag == 'W' || *etag == 'w') && (*(etag + 1) == '/')) {
+				//weak etag
+				rq->ctx.sub_request->range = nullptr;
+			} else {
+				rq->ctx.sub_request->range->if_range_entity = rq->sink->alloc<kgl_str_t>();
+				rq->ctx.sub_request->range->if_range_entity->data = h->buf + h->val_offset;
+				rq->ctx.sub_request->range->if_range_entity->len = h->val_len;
+			}
+		}
+	} else if (obj->data->i.last_modified>0) {
 		KBIT_SET(rq->ctx.precondition_flag, kgl_precondition_if_range_date);
 		rq->ctx.sub_request->range->if_range_date = obj->data->i.last_modified;
-	} else if (KBIT_TEST(obj->index.flags, OBJ_HAS_ETAG)) {
-		KHttpHeader* h = obj->find_header(_KS("Etag"));
-		if (h) {
-			rq->ctx.sub_request->range->if_range_entity = rq->sink->alloc<kgl_str_t>();
-			rq->ctx.sub_request->range->if_range_entity->data = h->buf + h->val_offset;
-			rq->ctx.sub_request->range->if_range_entity->len = h->val_len;
-		}
 	}
 	//提前更新last verified，减少源的连接数
 	obj->index.last_verified = kgl_current_sec;
@@ -203,44 +251,11 @@ KGL_RESULT KBigObjectContext::upstream_recv_headed()
 			klog(KLOG_INFO, "obj content range is not eq %lld gobj=%lld\n", obj->getTotalContentSize(), gobj->index.content_length);
 		}
 	}
-	if (!bigobj_dead) {
+	if (bigobj_dead) {
+		rq->ctx.cache_hit_part = false;
+		KBIT_CLR(rq->sink->data.flags, RQ_CACHE_HIT);
+	} else {
 		rq->pop_obj();
-#if 0
-		if (rq->ctx.st == NULL) {
-			rq->ctx.st = new KBigObjectStream(rq);
-		}
-#endif
-#if 0
-		if (net_fiber == NULL) {
-			net_fiber = kfiber_ref_self(false);
-			assert(last_net_from == -1);
-			assert(false);//TODO open write.
-			//last_net_from = gobj->data->sbo->OpenWrite(rq->sink->data.range_from);
-			kfiber_create(bigobj_send_fiber, rq, (int)SendHeader(rq), conf.fiber_stack_size, NULL);
-		}
-		return KGL_OK;
-#endif
-	}
-	rq->ctx.cache_hit_part = false;
-#if 0
-	if (net_fiber) {
-		assert(net_fiber == kfiber_self());
-		return KGL_EIO;
-	}
-#endif
-#if 0
-	//大物件If-Range的请求回应,如果回应码不是206，则把大物件die掉。
-	//或者是无if-range的请求，但回应不是304
-	KBIT_CLR(rq->sink->data.flags, RQ_HAVE_RANGE);
-
-	kassert(rq->tr == NULL);
-	if (rq->ctx.st) {
-		delete rq->ctx.st;
-		rq->ctx.st = NULL;
-	}
-#endif
-	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER)) {
-		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 	}
 	return KGL_OK ;
 }
@@ -250,7 +265,31 @@ static KGL_RESULT bigobj_error(kgl_output_stream_ctx* ctx, uint16_t status_code,
 }
 static KGL_RESULT upstream_recv_headed(kgl_output_stream_ctx* ctx, kgl_response_body* body) {
 	KBigObjectContext* bo_ctx = (KBigObjectContext*)ctx;
+	assert(bo_ctx->rq->ctx.old_obj && bo_ctx->rq->ctx.old_obj == bo_ctx->obj);
+	if (is_status_code_no_body(bo_ctx->rq->ctx.obj->data->i.status_code)) {
+		return KGL_NO_BODY;
+	}
+	if (bo_ctx->rq->sink->data.meth == METH_HEAD) {
+		//没有http body的情况
+		return KGL_NO_BODY;
+	}	
+	kgl_default_output_stream_ctx* default_ctx = (kgl_default_output_stream_ctx*)bo_ctx->down_stream.ctx;
+	assert(default_ctx->rq == bo_ctx->rq);
+	default_ctx->parser_ctx.end_parse(bo_ctx->rq);
 	KGL_RESULT result = bo_ctx->upstream_recv_headed();
+	if (bo_ctx->bigobj_dead || result != KGL_OK) {
+		assert(bo_ctx->write_offset == -1);
+		return forward_write_header_finish(ctx, body);
+	}
+
+
+	auto st = get_bigobj_response_body(bo_ctx->rq, body);
+	assert(bo_ctx->rq->ctx.sub_request);
+	st->bo_ctx = bo_ctx;
+	st->offset = bo_ctx->rq->ctx.sub_request->range ? bo_ctx->rq->ctx.sub_request->range->from : 0;
+	if (bo_ctx->write_offset == -1) {
+		bo_ctx->write_offset = bo_ctx->get_shared_big_obj()->open_write(bo_ctx->obj, st->offset);
+	}
 	return result;
 }
 KGL_RESULT bigobj_write_trailer(kgl_output_stream_ctx* ctx, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {

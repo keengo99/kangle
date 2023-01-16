@@ -51,7 +51,7 @@ func check_nochange_client_if_range() {
 			}},
 		//*
 		{1024, 2048,
-			map[string]string{"If-Range": "wrong-test", "Accept-Encoding": "gzip"},
+			map[string]string{"If-Range": "\"wrong-test\"", "Accept-Encoding": "gzip"},
 			nil,
 			func(resp *http.Response, err error) {
 				common.AssertSame(resp.StatusCode, 200)
@@ -230,5 +230,22 @@ func check_weak_etag_range() {
 		fmt.Printf("etag=" + resp.Header.Get("etag"))
 		common.Assert("x-big-object-miss", strings.Contains(resp.Header.Get("X-Cache"), "MISS"))
 		common.AssertSame(common.RangeMd5, common.Md5Response(resp, true))
+	})
+}
+
+/**
+* 客户发送正确If-Range,自已是错误的etag，又部分命中。
+ */
+func check_client_right_if_range() {
+	check_ranges_with_header([]RequestRangeHeader{
+		{2048, 8192, nil, nil, func(resp *http.Response, err error) {
+			common.CreateRange(1024)
+		}},
+		{0, 8192, map[string]string{"If-Range": common.RangeMd5}, nil,
+			func(resp *http.Response, err error) {
+				common.AssertSame(resp.StatusCode, 206)
+				common.AssertContain(resp.Header.Get("X-Cache"), "MISS")
+			}},
+		{0, -1, nil, nil, nil},
 	})
 }

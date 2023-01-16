@@ -52,7 +52,7 @@ func handle_etag_last_modified(w http.ResponseWriter, r *http.Request) {
 func handle_dynamic_etag(w http.ResponseWriter, r *http.Request) {
 	if_none_match := r.Header.Get("If-None-Match")
 	etag := r.Header.Get("x-etag")
-	if if_none_match == "" || if_none_match != etag {
+	if if_none_match == "" || !common.MatchEtag(if_none_match, etag) {
 		w.Header().Add("Server", TEST_SERVER_NAME)
 		w.Header().Add("Etag", etag)
 		w.Write([]byte(etag))
@@ -166,8 +166,9 @@ func check_cache_etag_last_modified() {
 		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
 	})
 	//right If-None-Match,wrong If-Modified-Since
+	//规则是以if-none-match为主.
 	common.Get("/etag_last_modified", map[string]string{"If-None-Match": etag, "If-Modified-Since": "Thu, 14 Oct 2020 02:45:05 GMT", "Accept-Encoding": "gzip"}, func(resp *http.Response, err error) {
-		common.AssertSame(resp.StatusCode, 200)
+		common.AssertSame(resp.StatusCode, 304)
 		common.AssertSame(resp.Header.Get("etag"), etag)
 		common.AssertSame(resp.Header.Get("Last-Modified"), last_modified)
 		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))

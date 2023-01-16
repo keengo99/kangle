@@ -15,25 +15,11 @@
 
 #define UPSTREAM_AUTO_DELAY_BUFFER_SIZE 4194304
 #ifdef ENABLE_BIG_OBJECT_206
-#if 0
-int bigobject_net_request(void* arg, int len)
-{
-	KBigObjectReadContext* ctx = (KBigObjectReadContext*)arg;
-	kgl_input_stream in;
-	kgl_output_stream out;
-	new_default_stream(ctx->rq, &in, &out);
-	defer(in.f->release(in.ctx); out.f->release(out.ctx));
-	process_request(ctx->rq, &in, &out);
-	delete ctx;
-	return 0;
-}
-#endif
-krb_node *KSharedBigObject::find_next_block_node(int64_t from)
-{
-	struct krb_node *last = NULL;
-	struct krb_node *node = blocks.rb_node;
+krb_node* KSharedBigObject::find_next_block_node(int64_t from) {
+	struct krb_node* last = NULL;
+	struct krb_node* node = blocks.rb_node;
 	while (node) {
-		KBigObjectBlock *data = (KBigObjectBlock *)(node->data);
+		KBigObjectBlock* data = (KBigObjectBlock*)(node->data);
 		if (from < data->file_block.from) {
 			last = node;
 			node = node->rb_left;
@@ -45,11 +31,10 @@ krb_node *KSharedBigObject::find_next_block_node(int64_t from)
 	}
 	return last;
 }
-krb_node *KSharedBigObject::find_block_node(int64_t from)
-{
-	struct krb_node *node = blocks.rb_node;
+krb_node* KSharedBigObject::find_block_node(int64_t from) {
+	struct krb_node* node = blocks.rb_node;
 	while (node) {
-		KBigObjectBlock *data = (KBigObjectBlock *)(node->data);
+		KBigObjectBlock* data = (KBigObjectBlock*)(node->data);
 		if (from < data->file_block.from) {
 			node = node->rb_left;
 		} else if (from > data->file_block.to) {
@@ -60,14 +45,13 @@ krb_node *KSharedBigObject::find_block_node(int64_t from)
 	}
 	return NULL;
 }
-krb_node *KSharedBigObject::insert(int64_t from,bool &new_obj)
-{
-	struct krb_node **n = &(blocks.rb_node), *parent = NULL;
-	KBigObjectBlock *block = NULL;
+krb_node* KSharedBigObject::insert(int64_t from, bool& new_obj) {
+	struct krb_node** n = &(blocks.rb_node), * parent = NULL;
+	KBigObjectBlock* block = NULL;
 	new_obj = true;
 	/* Figure out where to put new node */
 	while (*n) {
-		block = (KBigObjectBlock *)((*n)->data);
+		block = (KBigObjectBlock*)((*n)->data);
 		parent = *n;
 		if (from < block->file_block.from) {
 			n = &((*n)->rb_left);
@@ -75,14 +59,14 @@ krb_node *KSharedBigObject::insert(int64_t from,bool &new_obj)
 			n = &((*n)->rb_right);
 		} else {
 			new_obj = false;
-		    break;
+			break;
 		}
 	}
 	if (new_obj) {
 		block = new KBigObjectBlock();
 		block->file_block.from = from;
 		block->file_block.to = from;
-		krb_node *node = new krb_node;
+		krb_node* node = new krb_node;
 		node->data = block;
 		rb_link_node(node, parent, n);
 		rb_insert_color(node, &blocks);
@@ -90,15 +74,14 @@ krb_node *KSharedBigObject::insert(int64_t from,bool &new_obj)
 	}
 	return *n;
 }
-KSharedBigObject::~KSharedBigObject()
-{
+KSharedBigObject::~KSharedBigObject() {
 	assert(read_refs == 0);
 	assert(write_refs == 0);
 	while (blocks.rb_node) {
-		krb_node *node = blocks.rb_node;
-		KBigObjectBlock *block = (KBigObjectBlock *)node->data;
+		krb_node* node = blocks.rb_node;
+		KBigObjectBlock* block = (KBigObjectBlock*)node->data;
 		delete block;
-		rb_erase(node,&blocks);
+		rb_erase(node, &blocks);
 		delete node;
 	}
 	kfiber_mutex_destroy(lock);
@@ -106,84 +89,83 @@ KSharedBigObject::~KSharedBigObject()
 		kfiber_file_close(fp);
 	}
 }
-void KSharedBigObject::print()
-{
-	krb_node *node = rb_first(&blocks);
+void KSharedBigObject::print() {
+	krb_node* node = rb_first(&blocks);
 	while (node) {
 		//KBigObjectBlock *block = (KBigObjectBlock *)node->data;
 		//printf("from=%d,to=%d\n",(int)block->from,(int)block->to);
 		node = rb_next(node);
 	}
 }
-bool KSharedBigObject::fix_if_range_to(kgl_request_range *range,krb_node *next_node)
-{
-	KBigObjectBlock *next_block = (KBigObjectBlock *)next_node->data;
+kgl_satisfy_status KSharedBigObject::fix_if_range_to(kgl_request_range* range, krb_node* next_node) {
+	KBigObjectBlock* next_block = (KBigObjectBlock*)next_node->data;
 	//修正range_to
-	if (range->to==-1 || next_block->file_block.from <= range->to) {
+	if (range->to == -1 || next_block->file_block.from <= range->to) {
 		range->to = next_block->file_block.from - 1;
-		return true;
+		return kgl_satisfy_part;
 	}
-	return false;
+	return kgl_satisfy_none;
 }
 
 //创建If-Range头，from_node为from所在的块
-bool KSharedBigObject::create_if_range(kgl_request_range* range,krb_node *from_node)
-{
+kgl_satisfy_status KSharedBigObject::create_if_range(kgl_request_range* range, krb_node* from_node) {
 	if (from_node) {
 		//开始块在node中，修正range_from
-		range->from = ((KBigObjectBlock *)from_node->data)->file_block.to;
+		range->from = ((KBigObjectBlock*)from_node->data)->file_block.to;
 		//rq->ctx.cache_hit_part = true;
 		//找下一块
-		krb_node *next_node = rb_next(from_node);
+		krb_node* next_node = rb_next(from_node);
 		if (next_node) {
-			return fix_if_range_to(range,next_node);
+			fix_if_range_to(range, next_node);
 		}
-		return true;
+		return kgl_satisfy_part;
 	}
 	//没有找到range_from块，找下一块。
-	krb_node *next_node = find_next_block_node(range->from);
+	krb_node* next_node = find_next_block_node(range->from);
 	if (next_node) {
-		return fix_if_range_to(range,next_node);
-	}	
-	return false;
+		return fix_if_range_to(range, next_node);
+	}
+	return kgl_satisfy_none;
 }
-void KSharedBigObject::open_read(KHttpObject* obj)
-{
+bool KSharedBigObject::open_file_handle(KHttpObject* obj) {
+	if (fp) {
+		return true;
+	}
+	char* filename = obj->get_filename();
+	if (!filename) {
+		return false;
+	}
+	if (filename) {
+		fp = kfiber_file_open(filename, fileReadWrite, 0);
+		free(filename);
+	}
+	return true;
+}
+void KSharedBigObject::open_read(KHttpObject* obj) {
 	kfiber_mutex_lock(lock);
 	read_refs++;
-	if (fp == NULL) {
-		char* filename = obj->get_filename();
-		if (filename) {
-			fp = kfiber_file_open(filename, fileReadWrite, 0);
-			free(filename);
-		}
-	}
+	open_file_handle(obj);
 	kfiber_mutex_unlock(lock);
-	return ;
+	return;
 }
-int64_t KSharedBigObject::open_write(int64_t from)
-{	
-	//printf("OpenWrite fiber=[%p] from=[" INT64_FORMAT "]\n", kfiber_self(), from);
+int64_t KSharedBigObject::open_write(KHttpObject* obj, int64_t from) {
+	printf("OpenWrite fiber=[%p] from=[" INT64_FORMAT "]\n", kfiber_self(), from);
+	assert(from >= 0);
 	kfiber_mutex_lock(lock);
-	bool newobj;
+	open_file_handle(obj);
+	bool new_obj;
 	//插入块,有就查找，没有就插入
-	krb_node* node = insert(from, newobj);
+	krb_node* node = insert(from, new_obj);
 	assert(node);
 	KBigObjectBlock* block = (KBigObjectBlock*)node->data;
 	assert(block->net_fiber != kfiber_self());
-	if (block->net_fiber == NULL) {
-		//printf("OpenWrite from=[" INT64_FORMAT "]\n", from);
-		write_refs++;
-		//数据块没有读请求,可以加入，否则关闭该网络请求
-		block->net_fiber = kfiber_self();
-		kfiber_mutex_unlock(lock);
-		return from;
-	}
+	write_refs++;
+	//数据块没有读请求,可以加入，否则关闭该网络请求
+	block->net_fiber = kfiber_self();
 	kfiber_mutex_unlock(lock);
-	return -1;
+	return from;
 }
-void KSharedBigObject::close(KHttpObject* obj)
-{
+void KSharedBigObject::close(KHttpObject* obj) {
 	if (read_refs == 0 && write_refs == 0 && fp) {
 		kfiber_file_close(fp);
 		fp = NULL;
@@ -192,8 +174,7 @@ void KSharedBigObject::close(KHttpObject* obj)
 		}
 	}
 }
-void KSharedBigObject::close_read(KHttpObject* obj)
-{
+void KSharedBigObject::close_read(KHttpObject* obj) {
 	assert(KBIT_TEST(obj->index.flags, FLAG_BIG_OBJECT_PROGRESS));
 	kfiber_mutex_lock(lock);
 	read_refs--;
@@ -201,10 +182,9 @@ void KSharedBigObject::close_read(KHttpObject* obj)
 	close(obj);
 	kfiber_mutex_unlock(lock);
 }
-int KSharedBigObject::read(KHttpRequest *rq, KHttpObject *obj, int64_t offset, char* buf, int length, bool *net_fiber)
-{
+int KSharedBigObject::read(KHttpRequest* rq, KHttpObject* obj, int64_t offset, char* buf, int length, bool* net_fiber) {
 	kfiber_mutex_lock(lock);
-	if (fp==NULL) {
+	if (fp == NULL) {
 		kfiber_mutex_unlock(lock);
 		return -1;
 	}
@@ -219,7 +199,8 @@ int KSharedBigObject::read(KHttpRequest *rq, KHttpObject *obj, int64_t offset, c
 	}
 	if (!node) {
 		kfiber_mutex_unlock(lock);
-		return -1;
+		//need net fiber
+		return -2;
 	}
 	KBigObjectBlock* block = (KBigObjectBlock*)node->data;
 	krb_node* nextNode = rb_next(node);
@@ -241,7 +222,7 @@ int KSharedBigObject::read(KHttpRequest *rq, KHttpObject *obj, int64_t offset, c
 	}
 	//没有数据,加入到等待队列中。
 	/*
-	printf("from=[" INT64_FORMAT "] block->to=[" INT64_FORMAT "],read length=[%d] no data join to the read queue to wait, block read_fiber=[%p]\n", 
+	printf("from=[" INT64_FORMAT "] block->to=[" INT64_FORMAT "],read length=[%d] no data join to the read queue to wait, block read_fiber=[%p]\n",
 		from,
 		block->file_block.to,
 		length,
@@ -253,7 +234,7 @@ int KSharedBigObject::read(KHttpRequest *rq, KHttpObject *obj, int64_t offset, c
 		//如果没有读的请求，则启动一个读。
 		if (!net_fiber) {
 			kfiber_mutex_unlock(lock);
-			return -1;
+			return -2;
 		}
 		write_refs++;
 		if (!rq->ctx.sub_request) {
@@ -261,7 +242,7 @@ int KSharedBigObject::read(KHttpRequest *rq, KHttpObject *obj, int64_t offset, c
 		}
 		if (!rq->ctx.sub_request->range) {
 			rq->ctx.sub_request->range = rq->sink->alloc<kgl_request_range>();
-		}	
+		}
 		rq->ctx.sub_request->range->from = offset;
 		block->net_fiber = kfiber_self();
 		*net_fiber = true;
@@ -284,14 +265,13 @@ int KSharedBigObject::read(KHttpRequest *rq, KHttpObject *obj, int64_t offset, c
 	queue->selector = kgl_get_tls_selector();
 	queue->from = offset;
 	queue->length = length;
-	block->wait_queue.push_back(queue);	
+	block->wait_queue.push_back(queue);
 	kfiber_mutex_unlock(lock);
 	return kfiber_wait(buf);
 }
-void KSharedBigObject::close_write(KHttpObject* obj, int64_t write_from)
-{
+void KSharedBigObject::close_write(KHttpObject* obj, int64_t write_from) {
 	assert(write_from >= 0);
-	//printf("CloseWrite fiber=[%p] from=[" INT64_FORMAT "]\n", kfiber_self(), range_from);
+	//printf("CloseWrite fiber=[%p] from=[" INT64_FORMAT "]\n", kfiber_self(), write_from);
 	std::list<BigObjectReadQueue*> notice_queues;
 	assert(obj->getRefs() > 0);
 	bool change_to_big_object = false;
@@ -301,9 +281,10 @@ void KSharedBigObject::close_write(KHttpObject* obj, int64_t write_from)
 	assert(node);
 	KBigObjectBlock* block = (KBigObjectBlock*)node->data;
 	assert(block);
+	//printf("close write block infomation fiber=%p from=" INT64_FORMAT ",block=%p\n", block->net_fiber, block->file_block.from, block);
+
 	if (block->net_fiber == kfiber_self()) {
 		//如果该块的读请求是自已，则清空,并通知等待队列
-		//printf("清空等待队列,读请求是自已的哦,st=%p range_from=" INT64_FORMAT ",block=%p\n",(KSelectable *)rq,range_from,block);
 		block->net_fiber = NULL;
 		//复原读取点
 		block->read_point = block->file_block.from;
@@ -335,20 +316,20 @@ void KSharedBigObject::close_write(KHttpObject* obj, int64_t write_from)
 			nobj->uk.vary = obj->uk.vary->Clone();
 			lock->Unlock();
 		}
-		nobj->h = obj->h;		
+		nobj->h = obj->h;
 		KBIT_CLR(nobj->index.flags, FLAG_BIG_OBJECT_PROGRESS);
 		assert(nobj->data == NULL);
 		nobj->data = new KHttpObjectBody(obj->data);
 		nobj->data->i.type = BIG_OBJECT;
 		nobj->dc_index_update = 1;
 		bool cache_result = cache.add(nobj, LIST_IN_MEM);
-		char*aio_buffer = NULL;
+		char* aio_buffer = NULL;
 		int aio_buffer_size = 0;
 		if (cache_result) {
 			//把文件传给新物件
 			KBIT_SET(nobj->index.flags, FLAG_IN_DISK);
 			dci->start(ci_update, nobj);
-			aio_buffer = nobj->build_aio_header(aio_buffer_size,nullptr,0);
+			aio_buffer = nobj->build_aio_header(aio_buffer_size, nullptr, 0);
 		} else {
 			KBIT_SET(obj->index.flags, FLAG_IN_DISK);
 		}
@@ -370,49 +351,43 @@ void KSharedBigObject::close_write(KHttpObject* obj, int64_t write_from)
 		delete (*it);
 	}
 }
-bool KSharedBigObject::open(KHttpObject* obj, bool create_flag)
-{
+bool KSharedBigObject::create(KHttpObject* obj) {
 	assert(obj->data->i.type == BIG_OBJECT_PROGRESS);
-	char *filename = obj->get_filename();
+	char* filename = obj->get_filename();
 	if (filename == NULL) {
 		return false;
 	}
-	fileModel model = fileReadWrite;
-	if (create_flag) {
-		model = fileWriteRead;
-	}
 	kfiber_mutex_lock(lock);
 	assert(fp == NULL);
-	fp = kfiber_file_open(filename, model, 0);
+	fp = kfiber_file_open(filename, fileWriteRead, 0);
 	xfree(filename);
 	if (fp == NULL) {
 		kfiber_mutex_unlock(lock);
 		return false;
 	}
-	if (create_flag) {
-		if (KBIT_TEST(obj->index.flags, ANSW_HAS_CONTENT_RANGE)) {
-			obj->remove_http_header(_KS("Content-Range"));
-			obj->index.content_length = obj->index.content_range_length;
-		}
-		obj->data->i.status_code = STATUS_OK;
-		KBIT_SET(obj->index.flags, FLAG_IN_DISK | FLAG_BIG_OBJECT_PROGRESS);
-		obj->cache_is_ready = 1;
-		int size;
-		char* buf = obj->build_aio_header(size, nullptr, 0);
-		if (buf) {
-			kfiber_file_write(fp, buf, size);
-			aio_free_buffer(buf);
-		}	
+	if (KBIT_TEST(obj->index.flags, ANSW_HAS_CONTENT_RANGE)) {
+		KBIT_CLR(obj->index.flags, ANSW_HAS_CONTENT_RANGE);
+		obj->remove_http_header(_KS("Content-Range"));
+		obj->index.content_length = obj->index.content_range_length;
 	}
+	obj->index.last_verified = kgl_current_sec;
+	obj->data->i.status_code = STATUS_OK;
+	KBIT_SET(obj->index.flags, FLAG_IN_DISK | FLAG_BIG_OBJECT_PROGRESS);
+	obj->cache_is_ready = 1;
+	int size;
+	char* buf = obj->build_aio_header(size, nullptr, 0);
+	if (buf) {
+		kfiber_file_write(fp, buf, size);
+		aio_free_buffer(buf);
+	}	
 	kfiber_mutex_unlock(lock);
 	return true;
 }
-KGL_RESULT KSharedBigObject::write(KHttpObject *obj,int64_t offset, const char* buf, int length)
-{
-	//printf("sbo Write fiber=[%p] from=[" INT64_FORMAT "] length=[%d]\n", kfiber_self(), range_from, length);
+KGL_RESULT KSharedBigObject::write(KHttpObject* obj, int64_t offset, const char* buf, int length) {
+	//printf("sbo Write fiber=[%p] from=[" INT64_FORMAT "] length=[%d]\n", kfiber_self(), offset, length);
 	std::list<BigObjectReadQueue*> noticeQueues;
 	kfiber_mutex_lock(lock);
-	if (fp==NULL || kfiber_file_seek(fp, seekBegin, offset + obj->index.head_size)!=0) {
+	if (fp == NULL || kfiber_file_seek(fp, seekBegin, offset + obj->index.head_size) != 0) {
 		kfiber_mutex_unlock(lock);
 		return KGL_EIO;
 	}
@@ -457,7 +432,7 @@ KGL_RESULT KSharedBigObject::write(KHttpObject *obj,int64_t offset, const char* 
 			rb_erase(next, &blocks);
 			delete nextBlock;
 			delete next;
-			result = STREAM_WRITE_END;
+			result = KGL_END;
 		}
 	}
 	std::list<BigObjectReadQueue*>::iterator it;
@@ -472,11 +447,6 @@ KGL_RESULT KSharedBigObject::write(KHttpObject *obj,int64_t offset, const char* 
 			//不满足，继续等待
 			it++;
 		}
-	}
-	if (read_refs <= 0) {
-		assert(block->wait_queue.size() == 0 && noticeQueues.size() == 0);
-		//如果没有读，则取消写
-		result = KGL_ESOCKET_BROKEN;
 	}
 	kfiber_mutex_unlock(lock);
 	for (it = noticeQueues.begin(); it != noticeQueues.end(); it++) {
@@ -502,64 +472,50 @@ KGL_RESULT KSharedBigObject::write(KHttpObject *obj,int64_t offset, const char* 
 	}
 	return result;
 }
-bool KSharedBigObject::can_satisfy(kgl_request_range *range,KHttpObject *obj)
-{
-#if 0
-	if (rq->sink->data.meth==METH_HEAD) {
-		return true;
-	}
-#endif
+kgl_satisfy_status KSharedBigObject::can_satisfy(kgl_request_range* range, KHttpObject* obj) {
 	if (body_complete) {
-		return true;
+		return kgl_satisfy_all;
 	}
 	if (!range) {
-		return false;
+		return kgl_satisfy_part;
 	}
-#if 0
-	int64_t from = 0;
-	int64_t to = -1;
-
-	if (range) {
-		from = range->from;
-		to = range->to;
-	}
-#endif
+	kgl_satisfy_status status = kgl_satisfy_none;
 	kfiber_mutex_lock(lock);
-	krb_node *node = find_block_node(range->from);
+	krb_node* node = find_block_node(range->from);
 	if (node == NULL) {
-		create_if_range(range, NULL);
+		status = create_if_range(range, NULL);
 		kfiber_mutex_unlock(lock);
-		return false;
+		return status;
 	}
-	KBigObjectBlock *block = (KBigObjectBlock *)node->data;
-	bool result = false;
+	KBigObjectBlock* block = (KBigObjectBlock*)node->data;
 	if (block->file_block.to == range->from) {
 		//block->to是没有数据的。
-		create_if_range(range, node);
+		status = create_if_range(range, node);
 		kfiber_mutex_unlock(lock);
-		return result;
+		return status;
 	}
 	if (block->file_block.to >= obj->index.content_length) {
 		//最后一块
 		kfiber_mutex_unlock(lock);
-		return true;
+		return kgl_satisfy_all;
 	}
 	if (range->to >= 0) {
 		//块数据结束能满足
-		result = block->file_block.to >= range->to;
+		if (block->file_block.to >= range->to) {
+			status = kgl_satisfy_all;
+		}
 	}
-	if (!result) {
-		create_if_range(range, node);
+	if (status!= kgl_satisfy_all) {
+		status = create_if_range(range, node);
 	}
 	kfiber_mutex_unlock(lock);
-	return result;
+	return status;
 }
 
-bool KSharedBigObject::save_progress(KHttpObject *obj)
-{
+bool KSharedBigObject::save_progress(KHttpObject* obj) {
 	assert(!kfiber_is_main());
-	char *filename = obj->get_filename(true);
-	if (filename==NULL) {
+	char* filename = obj->get_filename(true);
+	if (filename == NULL) {
 		return false;
 	}
 	kfiber_file* fp = kfiber_file_open(filename, fileWrite, 0);
@@ -568,25 +524,24 @@ bool KSharedBigObject::save_progress(KHttpObject *obj)
 		return false;
 	}
 	free(filename);
-	krb_node *node = rb_first(&blocks);
+	krb_node* node = rb_first(&blocks);
 	while (node) {
-		KBigObjectBlock *block = (KBigObjectBlock *)node->data;
+		KBigObjectBlock* block = (KBigObjectBlock*)node->data;
 		int len = sizeof(block->file_block);
-		kfiber_file_write_fully(fp, (char *)&block->file_block,&len);
+		kfiber_file_write_fully(fp, (char*)&block->file_block, &len);
 		node = rb_next(node);
 	}
 	kfiber_file_close(fp);
 	return true;
 }
-bool KSharedBigObject::restore(char *buf, int length)
-{
-	KFileBlock*pi = (KFileBlock*)buf;
+bool KSharedBigObject::restore(char* buf, int length) {
+	KFileBlock* pi = (KFileBlock*)buf;
 	kfiber_mutex_lock(lock);
 	while (length >= (int)sizeof(KFileBlock)) {
 		length -= sizeof(KFileBlock);
 		bool new_obj;
-		krb_node *node = insert(pi->from, new_obj);
-		KBigObjectBlock *block = (KBigObjectBlock *)node->data;
+		krb_node* node = insert(pi->from, new_obj);
+		KBigObjectBlock* block = (KBigObjectBlock*)node->data;
 		if (!new_obj) {
 			break;
 		}
@@ -596,8 +551,7 @@ bool KSharedBigObject::restore(char *buf, int length)
 	kfiber_mutex_unlock(lock);
 	return length == 0;
 }
-void KSharedBigObject::save_last_verified(KHttpObject *obj)
-{
+void KSharedBigObject::save_last_verified(KHttpObject* obj) {
 #if 0
 	lock.Lock();
 	obj->index.last_verified = kgl_current_sec;

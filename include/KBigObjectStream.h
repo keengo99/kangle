@@ -7,5 +7,6 @@
 
 #ifdef ENABLE_BIG_OBJECT_206
 KBigObjectReadContext *get_bigobj_response_body(KHttpRequest *rq, kgl_response_body* body);
+KBigObjectReadContext* get_tunon_bigobj_response_body(KHttpRequest* rq, kgl_response_body* body);
 #endif
 #endif

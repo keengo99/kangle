@@ -16,6 +16,7 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_input_strea
 	KBIT_SET(obj->index.flags, ANSW_LOCAL_SERVER);
 	kgl_precondition_flag flag;
 	kgl_precondition* condition = in->f->get_precondition(in->ctx, &flag);
+	time_t last_modified = rq->file->getLastModified();
 	if (!kgl_is_safe_method(rq->sink->data.meth)) {
 		if (condition) {
 			out->f->write_status(out->ctx, STATUS_PRECONDITION);
@@ -30,7 +31,7 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_input_strea
 			out->f->write_status(out->ctx, STATUS_PRECONDITION);
 			return out->f->write_header_finish(out->ctx, nullptr);
 		}
-		if (condition->time >= rq->file->getLastModified()) {
+		if (condition->time >= last_modified) {
 			out->f->write_status(out->ctx, STATUS_NOT_MODIFIED);
 			return out->f->write_header_finish(out->ctx, nullptr);
 		}
@@ -39,6 +40,13 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_input_strea
 	assert(rq->file);
 	int file_flag = KFILE_ASYNC;
 	kgl_request_range* range = in->f->get_range(in->ctx);
+	if (range && range->if_range_entity) {
+		if (KBIT_TEST(flag, kgl_precondition_if_range_date)) {
+			if (range->if_range_date != last_modified) {
+				range = nullptr;
+			}
+		}
+	}
 	if (!range) {
 		KBIT_SET(file_flag, KFILE_SEQUENTIAL);
 	}
@@ -119,7 +127,6 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_input_strea
 		out->f->write_header(out->ctx, kgl_header_content_encoding, kgl_expand_string("identity"));
 	}
 	out->f->write_header(out->ctx, kgl_header_content_length, (const char*)&left_send, KGL_HEADER_VALUE_INT64);
-	time_t last_modified = rq->file->getLastModified();
 	out->f->write_header(out->ctx, kgl_header_last_modified, (const char*)&last_modified, KGL_HEADER_VALUE_TIME);
 	out->f->write_header(out->ctx, kgl_header_content_type, content_type, (hlen_t)strlen(content_type));
 	//rq->buffer << "1234";

@@ -623,7 +623,7 @@ KGL_RESULT load_object_from_source(KHttpRequest* rq) {
 		rq->ctx.precondition_flag = 0;
 		kgl_sub_request* sub_request = rq->alloc_sub_request();
 		sub_request->precondition = rq->sink->alloc<kgl_precondition>();		
-		if (old_obj->data->i.last_modified == 0 || (condition && !KBIT_TEST(flag, kgl_precondition_if_unmodified) && condition->time > old_obj->data->i.last_modified)) {
+		if (condition && !KBIT_TEST(flag, kgl_precondition_if_unmodified) && condition->time > old_obj->data->i.last_modified) {
 			sub_request->precondition->time = condition->time;
 		} else {
 			sub_request->precondition->time = old_obj->data->i.last_modified;
@@ -666,8 +666,14 @@ KGL_RESULT load_object_from_source(KHttpRequest* rq) {
 	if (!rq->ctx.old_obj || rq->ctx.obj->data->i.status_code != STATUS_NOT_MODIFIED) {
 		goto done;
 	}
-	if (kgl_request_precondition(rq, rq->ctx.old_obj)) {
-
+	if (condition) {
+		if (!rq->ctx.obj->is_same_precondition(rq->ctx.old_obj)) {
+			rq->dead_old_obj();
+			goto done;
+		}
+		if (!kgl_request_precondition(rq, rq->ctx.old_obj)) {
+			return send_http2(rq, rq->ctx.old_obj, STATUS_NOT_MODIFIED);
+		}
 	}
 	KBIT_SET(rq->sink->data.flags, RQ_OBJ_VERIFIED);
 	rq->ctx.old_obj->index.last_verified = kgl_current_sec;
@@ -690,8 +696,7 @@ KGL_RESULT process_check_cache_expire(KHttpRequest* rq, KHttpObject* obj) {
 		*
 		*/
 		KBigObjectContext* bo_ctx = new KBigObjectContext(rq, obj);
-		defer(bo_ctx->close());
-		return bo_ctx->open_cache();
+		return bo_ctx->close(bo_ctx->open_cache());
 	}
 #endif
 	if (!is_cache_object_expired(rq, obj)) {
@@ -706,7 +711,7 @@ KGL_RESULT send_memory_object(KHttpRequest* rq) {
 #ifdef ENABLE_BIG_OBJECT
 	if (rq->ctx.obj->data->i.type == BIG_OBJECT || rq->ctx.obj->data->i.type == BIG_OBJECT_PROGRESS) {
 		if (rq->ctx.obj->data->i.type == BIG_OBJECT_PROGRESS) {
-			assert(rq->ctx.obj->data->sbo->can_satisfy(rq->get_range(), rq->ctx.obj));
+			assert(rq->ctx.obj->data->sbo->can_satisfy(rq->get_range(), rq->ctx.obj)==kgl_satisfy_all);
 		}
 		KFetchObject* fo = new KFetchBigObject();
 		rq->append_source(fo);
@@ -900,42 +905,31 @@ KGL_RESULT prepare_write_body(KHttpRequest* rq, kgl_response_body* body) {
 			return KGL_ENOT_PREPARE;
 		}
 		*body = rq->ctx.st;
+		assert(body->ctx);
 	}
 	return KGL_OK;
 }
 
 KGL_RESULT on_upstream_finished_header(KHttpRequest* rq, kgl_response_body* body) {
 	KHttpObject* obj = rq->ctx.obj;
-	if (obj->data->i.status_code == 0) {
-		//如果status没有设置，设置为200
+	switch (obj->data->i.status_code) {
+	case 0:
 		obj->data->i.status_code = STATUS_OK;
-	}
-	uint16_t status_code = obj->data->i.status_code;
-	if (status_code != STATUS_OK && status_code != STATUS_CONTENT_PARTIAL) {
+		//fallthough
+	case STATUS_OK:
+		rq->sink->data.range = nullptr;
+		break;
+	case STATUS_CONTENT_PARTIAL:
+		break;
+	default:
 		KBIT_SET(obj->index.flags, ANSW_NO_CACHE);
+		break;
 	}
 	if (checkResponse(rq, obj) == JUMP_DENY) {
 		send_error2(rq, 403, "denied by check response");
 		return KGL_EDENIED;
 	}
 	obj->checkNobody();
-#if 0
-	if (status_code == STATUS_NOT_MODIFIED) {
-		KBIT_SET(obj->index.flags, FLAG_DEAD);
-		if (rq->ctx.old_obj) {
-			if (!KBIT_TEST(rq->sink->data.flags, RQ_HAS_IF_MOD_SINCE | RQ_HAS_IF_NONE_MATCH)) {
-				//直接发送old_obj给客户
-				KBIT_SET(rq->ctx.filter_flags, RQ_SWAP_OLD_OBJ);
-			}
-			KBIT_SET(rq->sink->data.flags, RQ_OBJ_VERIFIED);
-			rq->ctx.old_obj->index.last_verified = kgl_current_sec;
-			rq->ctx.old_obj->UpdateCache(obj);
-		}
-		kassert(obj->data->bodys == NULL);
-		return KGL_NO_BODY;
-	}
-	KBIT_CLR(rq->sink->data.flags, RQ_CACHE_HIT);
-#endif
 	if (rq->sink->data.meth == METH_HEAD || KBIT_TEST(rq->ctx.obj->index.flags, FLAG_NO_BODY)) {
 		//没有http body的情况
 		return KGL_NO_BODY;
@@ -957,10 +951,6 @@ KGL_RESULT on_upstream_finished_header(KHttpRequest* rq, kgl_response_body* body
 #endif
 	KBIT_CLR(rq->sink->data.flags, RQ_CACHE_HIT);
 	rq->dead_old_obj();
-	if (status_code == STATUS_CONTENT_PARTIAL && !obj->IsContentRangeComplete()) {
-		//强行设置206不缓存
-		KBIT_SET(obj->index.flags, ANSW_NO_CACHE);
-	}
 	kassert(!kfiber_is_main());
 	return prepare_write_body(rq, body);
 }

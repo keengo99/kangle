@@ -324,7 +324,6 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 	start = 0;
 	send_len = content_len;
 	assert(!KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER));
-	//KBIT_SET(rq->sink->data.flags,RQ_HAS_SEND_HEADER);
 	if (obj->data->i.status_code == 0) {
 		obj->data->i.status_code = STATUS_OK;
 	}
@@ -332,7 +331,7 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 	bool send_obj_header = true;
 	if (rq->sink->data.range
 		&& obj->data->i.status_code == STATUS_OK
-		&& content_len > 0) {
+		&& content_len>0) {
 		send_len = content_len;
 		if (!rq->sink->adjust_range(&send_len)) {
 			build_first = false;

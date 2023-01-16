@@ -131,3 +131,10 @@ func check_port_is_ok(port int, ssl bool) {
 func check_proxy_port() {
 	check_port_is_ok(9800, false)
 }
+
+func check_bug() {
+	common.Getx(fmt.Sprintf("/upstream/http/chunk_trailer?s=%v", 0), "localhost", nil, func(resp *http.Response, err error) {
+		common.AssertSame(common.Read(resp), "MozillaDeveloperNetwork")
+		common.AssertSame(resp.Trailer.Get("x-trailer-test"), "hello")
+	})
+}

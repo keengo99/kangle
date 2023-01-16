@@ -23,17 +23,20 @@ public:
 	KGL_RESULT create();
 
 	KGL_RESULT upstream_recv_headed();
-	void close();
+	KGL_RESULT close(KGL_RESULT result);
 	KGL_RESULT send_data(bool* net_fiber);
 	KGL_RESULT stream_write(INT64 offset, const char* buf, int len);
 	bool create_send_fiber(kfiber** send_fiber);
-	void close_write(int64_t from);
+	void close_write();
 	KSharedBigObject* get_shared_big_obj() {
 		return obj->data->sbo;
 	}
 	bool bigobj_dead = false;
 	bool read_fiber_error = false;
-
+	KHttpObject* obj;
+	KHttpRequest* rq;
+	int64_t write_offset = -1;
+	int64_t read_offset = 0;
 private:
 	~KBigObjectContext();
 	void build_if_range(KHttpRequest* rq);
@@ -45,13 +48,11 @@ private:
 			if (!kgl_adjust_range(rq->sink->data.range, &left_read)) {
 				return false;
 			}
-			offset = rq->sink->data.range->from;
+			read_offset = rq->sink->data.range->from;
 		}
 		return true;
 	}
-	KHttpObject* obj;
-	KHttpRequest* rq;
-	int64_t offset = 0;
+
 	int64_t left_read = -1;//发送到用户数据剩余
 	void tee_output_stream(kgl_output_stream* out);
 };
@@ -59,7 +60,6 @@ struct KBigObjectReadContext
 {
 	KBigObjectContext* bo_ctx;
 	kfiber* send_fiber;
-	int64_t write_from;
 	int64_t offset;
 };
 int bigobj_send_fiber(void* arg, int got);

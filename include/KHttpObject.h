@@ -210,6 +210,7 @@ public:
 		}
 		return NULL;
 	}
+	bool is_same_precondition(KHttpObject* obj);
 	bool precondition_time(time_t time);
 	bool precondition_entity(const char* entity, size_t len);
 	bool match_if_range(const char* entity, size_t len);

@@ -2,6 +2,7 @@
 #define KPUSHGATE_H_99
 #include "ksapi.h"
 #include "KStream.h"
+
 class KHttpRequest;
 
 struct kgl_forward_input_stream
@@ -16,6 +17,7 @@ struct kgl_forward_body
 {
 	kgl_response_body down_body;
 };
+
 template<KGL_RESULT(*forward_write)(kgl_response_body_ctx* , const char* , int)>
 KGL_RESULT unsupport_writev(kgl_response_body_ctx* ctx, WSABUF* bufs, int bc) {
 	for (int i = 0; i < bc; i++) {

@@ -147,6 +147,7 @@ func init() {
 	s.AddCase("change_first_hit", "内容变化，前面hit", check_change_first_hit)
 	s.AddCase("nochange_first_miss", "内容不变，前面miss", check_nochange_first_miss)
 	s.AddCase("nochange_middle_hit", "内容不变，中间命中", check_nochange_middle_hit)
+	//s.AddCase("client_if_range_bigobj", "客户有正确if-range,自已是错误的内容", check_client_right_if_range)
 	s.AddCase("miss_status_string", "上流有status_code但缺失status信息", check_miss_status_string)
 	s.AddCase("http_1_1_pipe_line", "http/1.1的pipe line支持", check_http_1_1_pipe_line)
 	s.AddCase("chunk_post", "form表单chunk方式上传", check_chunk_post)
@@ -168,4 +169,5 @@ func init() {
 	s.AddCase("obs_fold", "obs_fold测试", check_obs_fold)
 	s.AddCase("100_continue", "100-continue测试", check_100_continue)
 	s.AddCase("sub_status", "sub_status", test_stub_status)
+	s.AddCase("bug", "bug", check_bug)
 }

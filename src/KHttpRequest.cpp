@@ -525,6 +525,7 @@ int KHttpRequest::write(const char* buf, int len) {
 #endif
 KGL_RESULT KHttpRequest::write_end(KGL_RESULT result) {
 	assert(ctx.st.ctx);
+	printf("request=[%p] called write_end with result=[%d]\n", this, result);
 	ctx.st = { 0 };
 	return result;
 }
