@@ -151,8 +151,8 @@ void KPoolableRedirect::build_proto_html(KPoolableRedirect *mserver, std::string
 	s << "<br>";
 
 }
-KFetchObject *KPoolableRedirect::makeFetchObject(KHttpRequest *rq, KFileName *file) {
-	KBIT_CLR(rq->filter_flags,RQ_FULL_PATH_INFO);
+KRedirectSource*KPoolableRedirect::makeFetchObject(KHttpRequest *rq, KFileName *file) {
+	KBIT_CLR(rq->ctx.filter_flags,RQ_FULL_PATH_INFO);
 	switch (proto) {
 	case Proto_fcgi:
 		return new KFastcgiFetchObject();

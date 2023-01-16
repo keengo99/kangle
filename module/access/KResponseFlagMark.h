@@ -137,9 +137,9 @@ public:
 
 	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType) {
 		if (no_extend) {
-			KBIT_SET(rq->filter_flags,RQ_NO_EXTEND);
+			KBIT_SET(rq->ctx.filter_flags,RQ_NO_EXTEND);
 		} else {
-			KBIT_CLR(rq->filter_flags,RQ_NO_EXTEND);
+			KBIT_CLR(rq->ctx.filter_flags,RQ_NO_EXTEND);
 		}
 		return true;
 	}

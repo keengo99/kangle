@@ -46,8 +46,8 @@ public:
 		}
 	}
 	int64_t GetLength(KHttpObject* obj);
-	bool Open(KHttpRequest *rq,KHttpObject *obj);
-	bool Write(KHttpRequest *rq, KHttpObject *obj,const char *buf, int len);
+	bool Open(KHttpObject *obj);
+	bool Write(KHttpObject *obj,const char *buf, int len);
 	bool Close(KHttpObject *obj);
 private:
 	bool FlushBuffer();

@@ -9,6 +9,59 @@ import (
 	"test_server/kangle"
 )
 
+const (
+	last_modified = "Thu, 14 Oct 2021 02:45:05 GMT"
+	etag          = "\"hello\""
+)
+
+func handle_etag_last_modified(w http.ResponseWriter, r *http.Request) {
+	hj, _ := w.(http.Hijacker)
+	cn, wb, _ := hj.Hijack()
+
+	defer cn.Close()
+	if_none_match := r.Header.Get("If-None-Match")
+	if_modified_since := r.Header.Get("If-Modified-Since")
+	if if_none_match != "" && if_modified_since != "" {
+		if if_none_match == etag && if_modified_since == last_modified {
+			wb.WriteString("HTTP/1.1 304 Not Modified\r\nContent-Length: 2\r\nConnection: close\r\n\r\n")
+			wb.Flush()
+			return
+		}
+	}
+	if if_none_match != "" && if_modified_since == "" {
+		if if_none_match == etag {
+			wb.WriteString("HTTP/1.1 304 Not Modified\r\nContent-Length: 2\r\nConnection: close\r\n\r\n")
+			wb.Flush()
+			return
+		}
+	}
+	if if_none_match == "" && if_modified_since != "" {
+		if if_modified_since == last_modified {
+			wb.WriteString("HTTP/1.1 304 Not Modified\r\nContent-Length: 2\r\nConnection: close\r\n\r\n")
+			wb.Flush()
+			return
+		}
+	}
+	wb.WriteString("HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\nLast-Modified: ")
+	wb.WriteString(last_modified)
+	wb.WriteString("\r\nEtag: ")
+	wb.WriteString(etag)
+	wb.WriteString("\r\nServer: test-server/1.0\r\n\r\nok")
+	wb.Flush()
+}
+func handle_dynamic_etag(w http.ResponseWriter, r *http.Request) {
+	if_none_match := r.Header.Get("If-None-Match")
+	etag := r.Header.Get("x-etag")
+	if if_none_match == "" || if_none_match != etag {
+		w.Header().Add("Server", TEST_SERVER_NAME)
+		w.Header().Add("Etag", etag)
+		w.Write([]byte(etag))
+		return
+	}
+	w.WriteHeader(304)
+	w.Header().Add("Etag", etag)
+	w.Header().Add("Server", TEST_SERVER_NAME)
+}
 func HandleBrokenCache(w http.ResponseWriter, r *http.Request) {
 	if_none_match := r.Header.Get("If-None-Match")
 	if if_none_match == "" {
@@ -61,4 +114,63 @@ func check_disk_cache() {
 	common.Get("/static/index.id?dc=1", nil, func(resp *http.Response, err error) {
 		common.Assert("x-cache-hit", resp == nil || strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
 	})
+}
+func cache_cache_etag() {
+	common.Get("/dynamic_etag", map[string]string{"x-etag": "1", "Accept-Encoding": "gzip"}, func(resp *http.Response, err error) {
+		common.AssertSame(common.Read(resp), "1")
+		common.AssertSame(resp.Header.Get("etag"), "1")
+		common.Assert("x-cache-miss", strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
+	})
+	common.Get("/dynamic_etag", map[string]string{"x-etag": "2", "If-None-Match": "2", "Pragma": "no-cache", "Accept-Encoding": "gzip"}, func(resp *http.Response, err error) {
+		common.Assert("x-cache-miss", strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
+		common.AssertSame(resp.StatusCode, 304)
+	})
+	common.Get("/dynamic_etag", map[string]string{"x-etag": "2", "Accept-Encoding": "gzip"}, func(resp *http.Response, err error) {
+		common.AssertSame(common.Read(resp), "2")
+		common.AssertSame(resp.Header.Get("etag"), "2")
+		common.Assert("x-cache-miss", strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
+	})
+}
+func check_cache_etag_last_modified() {
+	common.Get("/etag_last_modified", map[string]string{"Accept-Encoding": "gzip"}, func(resp *http.Response, err error) {
+		common.AssertSame(common.Read(resp), "ok")
+		common.AssertSame(resp.Header.Get("etag"), etag)
+		common.AssertSame(resp.Header.Get("Last-Modified"), last_modified)
+		common.Assert("x-cache-miss", strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
+	})
+
+	common.Get("/etag_last_modified", map[string]string{"Accept-Encoding": "gzip"}, func(resp *http.Response, err error) {
+		common.AssertSame(common.Read(resp), "ok")
+		common.AssertSame(resp.Header.Get("etag"), etag)
+		common.AssertSame(resp.Header.Get("Last-Modified"), last_modified)
+		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	})
+
+	common.Get("/etag_last_modified", map[string]string{"If-None-Match": etag, "Accept-Encoding": "gzip"}, func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 304)
+		common.AssertSame(resp.Header.Get("etag"), etag)
+		common.AssertSame(resp.Header.Get("Last-Modified"), last_modified)
+		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	})
+	common.Get("/etag_last_modified", map[string]string{"If-Modified-Since": last_modified, "Accept-Encoding": "gzip"}, func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 304)
+		common.AssertSame(resp.Header.Get("etag"), etag)
+		common.AssertSame(resp.Header.Get("Last-Modified"), last_modified)
+		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	})
+	//wrong If-None-Match,right If-Modified-Since
+	common.Get("/etag_last_modified", map[string]string{"If-None-Match": "\"wrong_etag\"", "If-Modified-Since": last_modified, "Accept-Encoding": "gzip"}, func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 200)
+		common.AssertSame(resp.Header.Get("etag"), etag)
+		common.AssertSame(resp.Header.Get("Last-Modified"), last_modified)
+		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	})
+	//right If-None-Match,wrong If-Modified-Since
+	common.Get("/etag_last_modified", map[string]string{"If-None-Match": etag, "If-Modified-Since": "Thu, 14 Oct 2020 02:45:05 GMT", "Accept-Encoding": "gzip"}, func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 200)
+		common.AssertSame(resp.Header.Get("etag"), etag)
+		common.AssertSame(resp.Header.Get("Last-Modified"), last_modified)
+		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	})
+
 }

@@ -1307,7 +1307,7 @@ void KHttpManage::parsePostData() {
 	char* str = buffer;
 	int length = 0;
 	while (rq->sink->data.left_read > 0) {
-		length = rq->Read(str, (int)rq->sink->data.left_read);
+		length = rq->read(str, (int)rq->sink->data.left_read);
 		if (length <= 0) {
 			free(buffer);
 			KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
@@ -1847,7 +1847,7 @@ KGL_RESULT KHttpManage::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_
 	if (!hit) {
 		return send_error2(rq, STATUS_NOT_FOUND, "no such file");
 	}
-	return out->f->write_end(out, rq, KGL_OK);
+	return KGL_OK;
 }
 bool KHttpManage::start(bool& hit) {
 

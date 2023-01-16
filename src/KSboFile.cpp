@@ -50,7 +50,7 @@ kev_result KSboFile::read(KHttpRequest *rq, char *buffer,INT64 offset, int *leng
 	block_length = sbo->find_block(offset, &next_from);
 	//printf("find_block offset=[" INT64_FORMAT "] length=[" INT64_FORMAT "]\n",offset,block_length);
 	if ((block_length>0 && block_length < rq->bo_ctx->left_read) || (next_from>0 && next_from <= (offset + rq->bo_ctx->left_read))) {
-		rq->ctx->cache_hit_part = true;
+		rq->ctx.cache_hit_part = true;
 	}
 	if (block_length <= 0) {
 		*length = 0;

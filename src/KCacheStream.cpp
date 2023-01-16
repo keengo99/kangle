@@ -2,77 +2,80 @@
 #include "KCacheStream.h"
 #include "do_config.h"
 #include "KCache.h"
-KCacheStream::~KCacheStream()
-{
-	if (buffer) {
-		delete buffer;
-	}
-#ifdef ENABLE_DISK_CACHE
-	if (disk_cache) {
-		delete disk_cache;
-	}
-#endif
+inline void set_buffer_obj(KAutoBuffer* buffer, KHttpObject* obj) {
+	assert(obj->data->bodys == NULL);
+	obj->index.content_length = buffer->getLen();
+	obj->data->bodys = buffer->stealBuff();
+	obj->cache_is_ready = 1;
 }
-void KCacheStream::init(KHttpRequest *rq, KHttpObject *obj, cache_model cache_layer)
+static bool obj_can_use_disk_cache(KHttpObject* obj) {
+	if (KBIT_TEST(obj->index.flags, ANSW_LOCAL_SERVER | FLAG_NO_DISK_CACHE)) {
+		return false;
+	}
+	return cache.IsDiskCacheReady();
+}
+
+void KCacheStream::init(KHttpObject *obj, cache_model cache_layer)
 {
 	this->obj = obj;
+	assert(KBIT_TEST(obj->index.flags, FLAG_DEAD | ANSW_NO_CACHE) == 0);
 #ifdef ENABLE_DISK_CACHE
 	if (cache_layer != cache_memory) {
 		buffer = NULL;
-		disk_cache = NewDiskCache(rq);
+		disk_cache = NewDiskCache();
 		return;
 	}
 	disk_cache = NULL;
 #endif
 	buffer = new KAutoBuffer();
 }
-StreamState KCacheStream::write_end(void *arg, KGL_RESULT result)
-{
-	auto rq = (KHttpRequest*)arg;
-	if (result != KGL_OK) {
-		return KHttpStream::write_end(rq, result);
-	}
-	bool have_cache = (buffer != NULL);
+KGL_RESULT cache_close(kgl_response_body_ctx* ctx, KGL_RESULT result) {
+	KCacheStream* cache = (KCacheStream*)ctx;
+	result = cache->down_body.f->close(cache->down_body.ctx, result);
+	if (result == KGL_OK) {
+		bool have_cache = (cache->buffer != NULL);
 #ifdef ENABLE_DISK_CACHE
-	if (disk_cache) {
-		have_cache = true;
-	}
-#endif
-	if (have_cache && obj->data->i.status_code == STATUS_CONTENT_PARTIAL) {
-		kassert(obj->IsContentRangeComplete(rq));
-		obj->data->i.status_code = STATUS_OK;
-		obj->removeHttpHeader(_KS("Content-Range"));
-		KBIT_CLR(obj->index.flags, ANSW_HAS_CONTENT_RANGE);
-	}
-	if (buffer) {
-		set_buffer_obj(buffer,obj);
-	}
-#ifdef ENABLE_DISK_CACHE
-	if (disk_cache) {
-		kassert(buffer == NULL);		
-		if (disk_cache->Close(obj)) {
-			kassert(obj->data->bodys == NULL);
-			KBIT_SET(obj->index.flags, OBJ_IS_READY | FLAG_IN_DISK);
-			obj->data->i.type = BIG_OBJECT;
+		if (cache->disk_cache) {
+			have_cache = true;
 		}
-	}
 #endif
-	return KHttpStream::write_end(rq, result);
+		if (have_cache && cache->obj->data->i.status_code == STATUS_CONTENT_PARTIAL) {
+			cache->obj->data->i.status_code = STATUS_OK;
+			cache->obj->remove_http_header(_KS("Content-Range"));
+			KBIT_CLR(cache->obj->index.flags, ANSW_HAS_CONTENT_RANGE);
+		}
+		if (cache->buffer) {
+			set_buffer_obj(cache->buffer, cache->obj);
+		}
+#ifdef ENABLE_DISK_CACHE
+		if (cache->disk_cache) {
+			kassert(cache->buffer == NULL);
+			if (cache->disk_cache->Close(cache->obj)) {
+				kassert(cache->obj->data->bodys == NULL);
+				KBIT_SET(cache->obj->index.flags, FLAG_IN_DISK);
+				cache->obj->cache_is_ready = 1;
+				cache->obj->data->i.type = BIG_OBJECT;
+			}
+		}
+#endif
+	}
+	delete cache;
+	return result;
 }
-void KCacheStream::CheckMemoryCacheSize(KHttpRequest *rq)
+void KCacheStream::CheckMemoryCacheSize()
 {
 	if (buffer->getLen() <= conf.max_cache_size) {
 		return;
 	}
 #ifdef ENABLE_DISK_CACHE
-	if (obj_can_disk_cache(rq, obj)) {
+	if (obj_can_use_disk_cache(obj)) {
 		//turn on disk cache
 		kassert(disk_cache == NULL);
-		disk_cache = NewDiskCache(rq);
+		disk_cache = NewDiskCache();
 		if (disk_cache) {
 			kbuf *buf = buffer->getHead();
 			while (buf) {
-				if (buf->used > 0 && !disk_cache->Write(rq, obj, buf->data, buf->used)) {
+				if (buf->used > 0 && !disk_cache->Write(obj, buf->data, buf->used)) {
 					delete disk_cache;
 					disk_cache = NULL;
 					break;
@@ -85,58 +88,55 @@ void KCacheStream::CheckMemoryCacheSize(KHttpRequest *rq)
 	delete buffer;
 	buffer = NULL;
 }
-#if 0
-StreamState KCacheStream::write_direct(void *arg, char *buf,int len)
-{
-	auto rq = (KHttpRequest*)arg;
-	StreamState result = KHttpStream::write_all(rq, buf,len);
-	if (buffer) {
-		buffer->write_direct(buf, len);
-#ifdef ENABLE_DISK_CACHE
-		kassert(disk_cache == NULL);
-#endif
-		CheckMemoryCacheSize(rq);
-		return result;
-	}
-#ifdef ENABLE_DISK_CACHE
-	if (disk_cache && !disk_cache->Write(rq,obj, buf, len)) {
-		delete disk_cache;
-		disk_cache = NULL;		
-	}
-#endif
-	xfree(buf);
-	return result;
-}
-#endif
 
-StreamState KCacheStream::write_all(void *arg, const char *buf,int len)
+static KGL_RESULT cache_write(kgl_response_body_ctx* ctx, const char* buf, int len)
 {
-	auto rq = (KHttpRequest*)arg;
-	StreamState result = KHttpStream::write_all(rq, buf,len);
-	if (buffer) {
-		buffer->write_all(buf, len);
+	KCacheStream* cache = (KCacheStream*)ctx;
+	StreamState result = cache->down_body.f->write(cache->down_body.ctx, buf, len);
+	if (cache->buffer) {
+		cache->buffer->write_all(buf, len);
 #ifdef ENABLE_DISK_CACHE
-		kassert(disk_cache == NULL);
+		kassert(cache->disk_cache == NULL);
 #endif
-		CheckMemoryCacheSize(rq);
+		cache->CheckMemoryCacheSize();
 		return result;
 	}
 #ifdef ENABLE_DISK_CACHE
-	if (disk_cache && !disk_cache->Write(rq, obj, buf, len)) {
-		delete disk_cache;
-		disk_cache = NULL;		
+	if (cache->disk_cache && !cache->disk_cache->Write(cache->obj, buf, len)) {
+		delete cache->disk_cache;
+		cache->disk_cache = NULL;		
 	}
 #endif
 	return result;
 }
 #ifdef ENABLE_DISK_CACHE
-KDiskCacheStream *KCacheStream::NewDiskCache(KHttpRequest *rq)
+KDiskCacheStream *KCacheStream::NewDiskCache()
 {
 	KDiskCacheStream *disk_cache = new KDiskCacheStream;
-	if (!disk_cache->Open(rq, obj)) {
+	if (!disk_cache->Open(obj)) {
 		delete disk_cache;
 		return NULL;
 	}
 	return disk_cache;
 }
 #endif
+static kgl_response_body_function cache_body_function = {
+	unsupport_writev<cache_write>,
+	cache_write,
+	forward_flush,
+	support_sendfile_false,
+	unsupport_sendfile,
+	cache_close
+};
+bool pipe_cache_stream(KHttpRequest* rq, KHttpObject* obj, cache_model cache_layer, kgl_response_body* body) 	{
+	if (KBIT_TEST(obj->index.flags, ANSW_NO_CACHE|FLAG_DEAD) >0) {
+		return false;
+	}
+	if (!KBIT_TEST(rq->ctx.filter_flags, RF_NO_DISK_CACHE)) {
+		cache_layer = cache_memory;
+	}
+	KCacheStream* stream = new KCacheStream;
+	stream->init(obj, cache_layer);
+	pipe_response_body(stream, &cache_body_function, body);
+	return true;
+}

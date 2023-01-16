@@ -36,7 +36,7 @@ public:
 		return "obj_always_on";
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) {
-		return rq->ctx->always_on_model;
+		return rq->ctx.always_on_model;
 	}
 	std::string getDisplay() {
 		return "";

@@ -60,17 +60,6 @@ void KHttpObject::ResponseVaryHeader(KHttpRequest* rq)
 		return;
 	}
 	rq->ResponseVary(uk.vary->key);
-#if 0
-	int key_len = 0;
-	char* hot = uk.vary->key;
-	while (*hot && *hot != KGL_VARY_EXTEND_CHAR) {
-		key_len++;
-		hot++;
-	}
-	if (key_len > 0) {
-		rq->response_header(kgl_expand_string("Vary"), uk.vary->key, (hlen_t)key_len);
-	}
-#endif
 	lock->Unlock();
 }
 bool KHttpObject::AddVary(KHttpRequest* rq, const char* val, int val_len)
@@ -107,7 +96,7 @@ KHttpObject::KHttpObject(KHttpRequest* rq, KHttpObject* obj)
 	init(rq->sink->data.url);
 	uk.url->encoding = rq->sink->data.raw_url->encoding;
 	index.flags = obj->index.flags;
-	KBIT_CLR(index.flags, FLAG_IN_DISK | OBJ_IS_READY | OBJ_IS_STATIC2 | FLAG_NO_BODY | ANSW_HAS_CONTENT_LENGTH | ANSW_HAS_CONTENT_RANGE);
+	KBIT_CLR(index.flags, FLAG_IN_DISK | OBJ_IS_STATIC2 | FLAG_NO_BODY | ANSW_HAS_CONTENT_LENGTH | ANSW_HAS_CONTENT_RANGE);
 	KBIT_SET(index.flags, FLAG_IN_MEM);
 	index.last_verified = obj->index.last_verified;
 	data = new KHttpObjectBody(obj->data);
@@ -140,6 +129,59 @@ void KHttpObject::UpdateCache(KHttpObject* obj)
 	}
 	//TODO:更新vary,或max_age等缓存控制	
 	return;
+}
+bool KHttpObject::precondition_time(time_t time) {
+	return data->i.last_modified > time;
+}
+bool KHttpObject::match_if_range(const char* entity, size_t len) 	{
+	if (!KBIT_TEST(index.flags, OBJ_HAS_ETAG)) {
+		return false;
+	}
+	if (data == NULL) {
+		return false;
+	}
+	KHttpHeader* h = find_header("Etag", sizeof("Etag") - 1);
+	if (h == NULL) {
+		return false;
+	}
+	return kgl_mem_same(h->buf + h->val_offset, h->val_len, entity, len) == 0;
+}
+bool KHttpObject::precondition_entity(const char* entity, size_t len) {
+	if (!KBIT_TEST(index.flags, OBJ_HAS_ETAG)) {
+		return true;
+	}
+	if (data == NULL) {
+		return true;
+	}
+	KHttpHeader* h = find_header("Etag", sizeof("Etag") - 1);
+	if (h == NULL) {
+		return true;
+	}
+	KHttpFieldValue field(entity, entity + len);
+	for (;;) {
+		const char* field_end = field.get_field_end();
+		if (field_end == field.val) {
+			return true;
+		}
+		const char* strip_end = field_end;		
+		strip_end--;		
+		while (strip_end > field.val && isspace((unsigned char)*strip_end)) {
+			strip_end--;
+		}
+		size_t field_len = strip_end - field.val + 1;
+		if (field_len == 1 && *field.val == '*') {
+			return false;
+		}
+		if (field_len == h->val_len) {
+			if (memcmp(field.val, h->buf + h->val_offset, h->val_len) == 0) {
+				return false;
+			}
+		}
+		if (!field.next(field_end)) {
+			break;
+		}
+	}
+	return true;
 }
 int KHttpObject::GetHeaderSize(int url_len)
 {
@@ -213,7 +255,7 @@ void KHttpObject::unlinkDiskFile()
 			dci->start(ci_del, this);
 		}
 #endif
-		char* name = getFileName();
+		char* name = get_filename();
 		int ret = unlink(name);
 		char* url = this->uk.url->getUrl();
 		assert(url);
@@ -239,7 +281,7 @@ void KHttpObject::unlinkDiskFile()
 		free(name);
 	}
 }
-char* KHttpObject::getFileName(bool part)
+char* KHttpObject::get_filename(bool part)
 {
 	KStringBuf s;
 	get_disk_base_dir(s);
@@ -363,7 +405,7 @@ bool KHttpObject::swapout(KBufferFile* file, bool fast_model)
 	if (buffer_size > KGL_MAX_BUFFER_FILE_SIZE) {
 		buffer_size = KGL_MAX_BUFFER_FILE_SIZE;
 	}
-	filename = getFileName();
+	filename = get_filename();
 	klog(KLOG_INFO, "swap out obj=[%p %x] url=[%s] to file [%s]\n",
 		this,
 		index.flags,

@@ -72,4 +72,5 @@ private:
 	bool fast;
 	bool isSuccess;
 };
+bool pipe_gzip_compress(int gzip_level, kgl_response_body* body);
 #endif /* KGZIP_H_ */

@@ -16,5 +16,6 @@ private:
 	KGL_RESULT Compress(void*rq, const uint8_t **str, size_t len, BrotliEncoderOperation op);
 	BrotliEncoderState *state;
 };
+bool pipe_brotli_compress(int level, kgl_response_body* body);
 #endif
 #endif

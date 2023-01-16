@@ -24,59 +24,65 @@ static KGL_RESULT open(KREQUEST r, kgl_async_context *ctx)
 		return KGL_NEXT;
 	case test_websocket:
 	{
-		ctx->out->f->write_status(ctx->out, r, 101);
-		ctx->out->f->write_header(ctx->out, r, kgl_header_connection, _KS("Upgrade"));
-		ctx->out->f->write_header(ctx->out, r, kgl_header_upgrade, _KS("test"));
-		ctx->out->f->write_header(ctx->out, r, kgl_header_cache_control, _KS("no-cache, no-store"));
-		result = ctx->out->f->write_header_finish(ctx->out, r);
+		ctx->out->f->write_status(ctx->out->ctx, 101);
+		ctx->out->f->write_header(ctx->out->ctx, kgl_header_connection, _KS("Upgrade"));
+		ctx->out->f->write_header(ctx->out->ctx, kgl_header_upgrade, _KS("test"));
+		ctx->out->f->write_header(ctx->out->ctx, kgl_header_cache_control, _KS("no-cache, no-store"));
+		kgl_response_body body;
+		result = ctx->out->f->write_header_finish(ctx->out->ctx, &body);
 		if (result != KGL_OK) {
 			return result;
 		}
-		int left_read = (int)ctx->in->f->get_read_left(ctx->in, r);
+		int left_read = (int)ctx->in->f->get_read_left(ctx->in->ctx);
 		assert(-1 == left_read);
 		for (;;) {
 			char buf[8];
-			int len = ctx->in->f->read_body(ctx->in, r, buf, sizeof(buf));
+			int len = ctx->in->f->read_body(ctx->in->ctx, buf, sizeof(buf));
 			if (len <= 0) {
 				break;
 			}
-			ctx->out->f->write_body(ctx->out, r, buf, len);
+			body.f->write(body.ctx, buf, len);
 		}
-		return ctx->out->f->write_end(ctx->out, r, KGL_OK);
+		return body.f->close(body.ctx, KGL_OK);
 	}
 	case test_chunk:
 	{
-		ctx->out->f->write_status(ctx->out, r, 200);
+		kgl_response_body body;
+		ctx->out->f->write_status(ctx->out->ctx,  200);
 		int64_t content_length = -1;
-		ctx->out->f->write_header(ctx->out, r, kgl_header_content_length, (char*)&content_length, KGL_HEADER_VALUE_INT64);
-		result = ctx->out->f->write_header_finish(ctx->out, r);
+		ctx->out->f->write_header(ctx->out->ctx, kgl_header_content_length, (char*)&content_length, KGL_HEADER_VALUE_INT64);
+		result = ctx->out->f->write_header_finish(ctx->out->ctx,  &body);
 		if (result != KGL_OK) {
 			return result;
 		}
-		ctx->out->f->write_body(ctx->out, r, _KS("he"));		
-		return ctx->out->f->write_end(ctx->out, r, ctx->out->f->write_body(ctx->out, r, _KS("llo")));
+		body.f->write(body.ctx, _KS("he"));
+		return body.f->close(body.ctx, body.f->write(body.ctx, _KS("llo")));
 	}
 	case test_upstream:
-		ctx->out->f->write_status(ctx->out, r, 200);
-		ctx->out->f->write_header(ctx->out, r, kgl_header_content_type, _KS("text/plain"));
-		ctx->out->f->write_header(ctx->out, r, kgl_header_cache_control, _KS("no-cache, no-store"));
-		result = ctx->out->f->write_header_finish(ctx->out, r);
+	{
+		kgl_response_body body;
+		ctx->out->f->write_status(ctx->out->ctx,  200);
+		ctx->out->f->write_header(ctx->out->ctx,  kgl_header_content_type, _KS("text/plain"));
+		ctx->out->f->write_header(ctx->out->ctx,  kgl_header_cache_control, _KS("no-cache, no-store"));
+		result = ctx->out->f->write_header_finish(ctx->out->ctx,  &body);
 		if (result != KGL_OK) {
 			return result;
 		}
-		return ctx->out->f->write_end(ctx->out, r, ctx->out->f->write_body(ctx->out, r, _KS("test_upstream_ok")));
+		return body.f->close(body.ctx, body.f->write(body.ctx, _KS("test_upstream_ok")));
+	}
 	case test_sendfile_report: {
-		ctx->out->f->write_status(ctx->out, r, 200);
-		ctx->out->f->write_header(ctx->out, r, kgl_header_content_type, _KS("text/plain"));
-		ctx->out->f->write_header(ctx->out, r, kgl_header_cache_control, _KS("no-cache, no-store"));
-		result = ctx->out->f->write_header_finish(ctx->out, r);
+		kgl_response_body body;
+		ctx->out->f->write_status(ctx->out->ctx,  200);
+		ctx->out->f->write_header(ctx->out->ctx,  kgl_header_content_type, _KS("text/plain"));
+		ctx->out->f->write_header(ctx->out->ctx,  kgl_header_cache_control, _KS("no-cache, no-store"));
+		result = ctx->out->f->write_header_finish(ctx->out->ctx,  &body);
 		if (result != KGL_OK) {
 			return result;
 		}
 		std::stringstream s;
 		s <<  katom_get((void*)&sendfile_context.total_count) << "\r\n";
 		s <<  katom_get64((void*)&sendfile_context.total_length) << "\r\n";
-		return ctx->out->f->write_end(ctx->out, r, ctx->out->f->write_body(ctx->out, r, s.str().c_str(),(int)s.str().size()));
+		return body.f->close(body.ctx, body.f->write(body.ctx, s.str().c_str(), (int)s.str().size()));
 	}
 	default:
 		break;

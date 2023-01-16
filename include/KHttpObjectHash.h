@@ -119,7 +119,7 @@ public:
 		bool result = false;
 		while (obj) {
 			if (KBIT_TEST(obj->index.flags,FLAG_IN_DISK)) {
-				char *file = obj->getFileName();
+				char *file = obj->get_filename();
 				if (file) {
 					result = (strcmp(file,filename)==0);
 					free(file);
@@ -190,9 +190,9 @@ public:
 				//soft
 				obj->index.last_verified = 0;
 			}
-			if ((rq->ctx->internal == (KBIT_TEST(obj->index.flags, FLAG_RQ_INTERNAL)>0)) &&
+			if ((rq->ctx.internal == (KBIT_TEST(obj->index.flags, FLAG_RQ_INTERNAL)>0)) &&
 				obj->uk.url->match_accept_encoding(rq->sink->data.raw_url->accept_encoding)) {
-				if (!KBIT_TEST(rq->filter_flags, RF_NO_DISK_CACHE) || (obj->data != NULL && obj->data->i.type == MEMORY_OBJECT)) {
+				if (!KBIT_TEST(rq->ctx.filter_flags, RF_NO_DISK_CACHE) || (obj->data != NULL && obj->data->i.type == MEMORY_OBJECT)) {
 					//hit cache
 					if (hit_obj == NULL || obj->uk.url->accept_encoding > hit_obj->uk.url->accept_encoding) {
 						hit_obj = obj;
@@ -203,6 +203,7 @@ public:
 		}
 		if (hit_obj) {
 			hit_obj->addRef();
+			assert(hit_obj->in_cache);
 		}
 		lock.Unlock();
 		return hit_obj;

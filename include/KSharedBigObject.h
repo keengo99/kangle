@@ -10,19 +10,20 @@
 #include "kfiber.h"
 #include "kfiber_sync.h"
 
-//{{ent
+
 #ifdef ENABLE_BIG_OBJECT_206
+
 struct BigObjectReadQueue
 {
 	kfiber* rq;
 	kselector* selector;
 	char* buf;
-	INT64 from;
-	INT64 length;
+	int64_t from;
+	int64_t length;
 };
 struct KFileBlock {
-	INT64 from;
-	INT64 to;
+	int64_t from;
+	int64_t to;
 };
 //大物件数据块
 class KBigObjectBlock
@@ -32,7 +33,7 @@ public:
 	//so length = to - from
 	KFileBlock file_block;
 	//最大读取点
-	INT64 read_point;
+	int64_t read_point;
 	std::list<BigObjectReadQueue*> wait_queue;
 	kfiber* net_fiber;
 };
@@ -50,31 +51,34 @@ public:
 		lock = kfiber_mutex_init();
 	}
 	~KSharedBigObject();
-	bool CanSatisfy(KHttpRequest *rq, KHttpObject *obj);
-	void saveLastVerified(KHttpObject *obj);
-	int Read(KHttpRequest* rq, KHttpObject *obj, char *buf, INT64 from, int length);
-	bool Open(KHttpRequest* rq, KHttpObject* obj, bool create_flag);
-	bool OpenRead(KHttpObject* obj);
-	INT64 OpenWrite(INT64 from);
-	void CloseWrite(KHttpObject* obj, INT64 from);
-	void CloseRead(KHttpObject* obj);
-	KGL_RESULT Write(KHttpObject *obj, INT64 offset, const char* buf, int length);
+	bool can_satisfy(kgl_request_range *range, KHttpObject *obj);
+	void save_last_verified(KHttpObject *obj);
+
+	int read(KHttpRequest* rq, KHttpObject* obj,int64_t offset, char* buf, int length, bool *net_fiber);
+	KGL_RESULT write(KHttpObject* obj,int64_t offset, const char* buf, int length);
+
+	bool open(KHttpObject* obj, bool create_flag);
+	void open_read(KHttpObject* obj);
+	int64_t open_write(int64_t from);
+	void close_write(KHttpObject* obj, int64_t from);
+	void close_read(KHttpObject* obj);
+
+
 	friend class KBigObjectContext;
-	//bool loadProgress(KHttpObject *obj);
 	bool restore(char *buf,int length);
 	void print();
 private:
 	/**
 	* 保存和恢复进度数据
 	*/
-	bool SaveProgress(KHttpObject* obj);
-	void Close(KHttpObject* obj);
-	void create_if_range(KHttpRequest *rq,krb_node *node);
-	void fix_if_range_to(KHttpRequest *rq,krb_node *node);	
-	bool body_complete ;
-	krb_node *find_block_node(INT64 from);
-	krb_node *find_next_block_node(INT64 from);
-	krb_node *insert(INT64 from,bool &new_object);
+	bool save_progress(KHttpObject* obj);
+	void close(KHttpObject* obj);
+	bool create_if_range(kgl_request_range*range,krb_node *node);
+	bool fix_if_range_to(kgl_request_range *range,krb_node *node);	
+	krb_node *find_block_node(int64_t from);
+	krb_node *find_next_block_node(int64_t from);
+	krb_node *insert(int64_t from,bool &new_obj);
+	bool body_complete;
 	//数据块
 	int read_refs;
 	int write_refs;
@@ -84,6 +88,5 @@ private:
 };
 
 #endif
-//}}
 #endif
 

@@ -19,7 +19,7 @@ public:
 	~KDirectoryFetchObject();
 	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out);
 private:
-	KGL_RESULT Write(KHttpRequest *rq, kgl_output_stream * st,const char *path);
+	KGL_RESULT Write(KHttpRequest *rq, kgl_response_body* st,const char *path);
 #ifdef _WIN32
 	HANDLE dp;
 	WIN32_FIND_DATA FileData;

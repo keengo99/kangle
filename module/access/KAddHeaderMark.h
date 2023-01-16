@@ -29,7 +29,7 @@ public:
 			}
 			if (obj) {
 				//如果是缓存物件，则不再重复增加header
-				if (!obj->in_cache && (this->force || obj->findHeader(attr,attr_len)==NULL)) {
+				if (!obj->in_cache && (this->force || obj->find_header(attr,attr_len)==NULL)) {
 					obj->insert_http_header((const char *)attr,attr_len,s->getString(),s->getSize());
 				}
 			} else if (this->force || rq->sink->data.find(attr, attr_len) ==NULL) {

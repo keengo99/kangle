@@ -2,11 +2,7 @@ package base_suite
 
 import (
 	"bufio"
-	"compress/gzip"
-	"crypto/md5"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"test_server/common"
@@ -47,7 +43,7 @@ func check_range_all_with_header(gzip bool, header map[string]string, sc common.
 		} else {
 			common.Assert("range", common.RangeSize == int(resp.ContentLength))
 		}
-		common.Assert("range-md5", common.RangeMd5 == md5Response(resp, true))
+		common.Assert("range-md5", common.RangeMd5 == common.Md5Response(resp, true))
 		if cc != nil {
 			cc(resp, err)
 		}
@@ -113,103 +109,16 @@ func check_range_with_header(gzip bool, from int, length int, header map[string]
 	common.Get(path, header, func(resp *http.Response, err error) {
 		if resp.StatusCode == 206 {
 			//checkRespRange(resp,from,to)
-			common.Assert(fmt.Sprintf("range-md5-%d-%d", from, to), md5Response(resp, false) == md5File(from, to, gzip))
+			common.Assert(fmt.Sprintf("range-md5-%d-%d", from, to), common.Md5Response(resp, false) == common.Md5File(from, to, gzip))
 			common.Assert("range-content-length", length == int(resp.ContentLength))
 		} else {
 			common.Assert("range-size-200", check_size == int(resp.ContentLength))
-			common.Assert("range-md5-200", common.RangeMd5 == md5Response(resp, true))
+			common.Assert("range-md5-200", common.RangeMd5 == common.Md5Response(resp, true))
 		}
 		if cc != nil {
 			cc(resp, err)
 		}
 	})
-}
-func checkRespRange(resp *http.Response, from int, to int) {
-	//fmt.Printf("from=[%d],to=[%d]\n", from, to)
-	buf, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Printf("read resp error[%s]\n", err.Error())
-		return
-	}
-	buf2 := common.ReadRange(from, to, false)
-	common.AssertByteSame(buf, buf2)
-}
-func md5FileRange(file string, from, to int) string {
-	buf := common.ReadFileRange(file, from, to)
-	if buf != nil {
-		//fmt.Printf("md5File=[%s]\n", string(buf))
-		result := md5sum(buf)
-		//fmt.Printf("result=[%s]\n", result)
-		return result
-	}
-	return ""
-}
-func md5File(from, to int, gzip bool) string {
-	buf := common.ReadRange(from, to, gzip)
-	if buf != nil {
-		//fmt.Printf("md5File=[%s]\n", string(buf))
-		result := md5sum(buf)
-		//fmt.Printf("result=[%s]\n", result)
-		return result
-	}
-	return ""
-}
-func md5Response2(resp *http.Response) (length int, md5_result string) {
-	buf := make([]byte, 1024)
-	hash := md5.New()
-	var total_read int
-	for {
-		n, err := resp.Body.Read(buf)
-		if n <= 0 {
-			break
-		}
-		total_read += n
-		//fmt.Printf("md5Response=[%s]\n", string(buf[0:n]))
-		hash.Write(buf[0:n])
-		if err != nil {
-			break
-		}
-	}
-	//fmt.Printf("total_read=[%d]\n", total_read)
-	//AssertSame(total_read, int(resp.ContentLength))
-	result := fmt.Sprintf("%x", hash.Sum(nil))
-	//fmt.Printf("md5Respons=[%s]\n", result)
-	return total_read, result
-}
-func md5Response(resp *http.Response, decode bool) string {
-	buf := make([]byte, 1024)
-	hash := md5.New()
-	var total_read int
-	content_encoding := resp.Header.Get("Content-Encoding")
-	//fmt.Printf("content_encoding: [%v]\n", content_encoding)
-	var reader io.Reader
-	reader = resp.Body
-	if decode && content_encoding == "gzip" {
-		reader, _ = gzip.NewReader(resp.Body)
-	}
-	//fmt.Printf("\n")
-	for {
-		n, err := reader.Read(buf)
-		if n <= 0 {
-			break
-		}
-		total_read += n
-		//fmt.Printf("%s", string(buf[0:n]))
-		hash.Write(buf[0:n])
-		if err != nil {
-			break
-		}
-	}
-	//fmt.Printf("\ntotal_read=[%d]\n", total_read)
-	//common.AssertSame(total_read, int(resp.ContentLength))
-	result := fmt.Sprintf("%x", hash.Sum(nil))
-	//fmt.Printf("md5Respons=[%s]\n", result)
-	return result
-}
-func md5sum(buf []byte) string {
-	hash := md5.New()
-	hash.Write(buf)
-	return fmt.Sprintf("%x", hash.Sum(nil))
 }
 func readHttpHeader(reader *bufio.Reader, read_body bool) (map[string]string, string, error) {
 	headers := make(map[string]string)

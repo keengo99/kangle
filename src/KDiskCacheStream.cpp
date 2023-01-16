@@ -3,9 +3,9 @@
 #include "KHttpObject.h"
 #ifdef ENABLE_DISK_CACHE
 
-bool KDiskCacheStream::Open(KHttpRequest *rq,KHttpObject *obj)
+bool KDiskCacheStream::Open(KHttpObject *obj)
 {
-	filename = obj->getFileName();
+	filename = obj->get_filename();
 	fileModel model = fileWrite;
 	fp = kfiber_file_open(filename, model, 0);
 	if (fp == NULL) {
@@ -24,7 +24,7 @@ int64_t KDiskCacheStream::GetLength(KHttpObject* obj)
 	assert(fp);
 	return kfiber_file_tell(fp) - obj->index.head_size;
 }
-bool KDiskCacheStream::Write(KHttpRequest *rq, KHttpObject *obj, const char *buf, int len)
+bool KDiskCacheStream::Write(KHttpObject *obj, const char *buf, int len)
 {
 	while (len > 0) {
 		if (buffer == NULL) {

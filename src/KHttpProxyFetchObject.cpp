@@ -84,7 +84,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 		defaultPort = 443;
 	}
 	KUrl* url = rq->sink->data.url;
-	if (KBIT_TEST(rq->filter_flags, RF_PROXY_RAW_URL) || !KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
+	if (KBIT_TEST(rq->ctx.filter_flags, RF_PROXY_RAW_URL) || !KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
 		url = rq->sink->data.raw_url;
 	}
 	char* path = url->path;
@@ -92,7 +92,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 	if (url == rq->sink->data.url && KBIT_TEST(url->flags, KGL_URL_ENCODE)) {
 		path = url_encode(url->path, strlen(url->path), &path_len);
 	}
-	if (KBIT_TEST(rq->filter_flags, RF_PROXY_FULL_URL) && !client->IsMultiStream()) {
+	if (KBIT_TEST(rq->ctx.filter_flags, RF_PROXY_FULL_URL) && !client->IsMultiStream()) {
 		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
 			s.WSTR("https");
 		} else {
@@ -138,11 +138,9 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 	kgl_str_t attr;
 	while (av) {
 		kgl_get_header_name(av, &attr);
-		if (kgl_is_attr(av, _KS("Connection")) ||
-			kgl_is_attr(av, _KS("Keep-Alive")) ||
+		if (kgl_is_attr(av, _KS("Keep-Alive")) ||
 			kgl_is_attr(av, _KS("Proxy-Connection")) ||
-			(!av->name_is_know && *(av->buf)==':') ||
-			kgl_is_attr(av, _KS("Transfer-Encoding"))) {
+			(!av->name_is_know && *(av->buf)==':')) {
 			goto do_not_insert;
 		}
 #ifdef HTTP_PROXY
@@ -153,10 +151,10 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 		if (kgl_is_attr(av, _KS(X_REAL_IP_SIGN))) {
 			goto do_not_insert;
 		}
-		if (KBIT_TEST(rq->filter_flags, RF_X_REAL_IP) && (kgl_is_attr(av, _KS("X-Real-IP")) || kgl_is_attr(av, _KS("X-Forwarded-Proto")))) {
+		if (KBIT_TEST(rq->ctx.filter_flags, RF_X_REAL_IP) && (kgl_is_attr(av, _KS("X-Real-IP")) || kgl_is_attr(av, _KS("X-Forwarded-Proto")))) {
 			goto do_not_insert;
 		}
-		if (!KBIT_TEST(rq->filter_flags, RF_NO_X_FORWARDED_FOR) && kgl_is_attr(av, _KS("X-Forwarded-For"))) {
+		if (!KBIT_TEST(rq->ctx.filter_flags, RF_NO_X_FORWARDED_FOR) && kgl_is_attr(av, _KS("X-Forwarded-For"))) {
 			if (x_forwarded_for_inserted) {
 				goto do_not_insert;
 			}
@@ -170,7 +168,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 			}
 			goto do_not_insert;
 		}
-		if (kgl_is_attr(av, _KS("Via")) && KBIT_TEST(rq->filter_flags, RF_VIA)) {
+		if (kgl_is_attr(av, _KS("Via")) && KBIT_TEST(rq->ctx.filter_flags, RF_VIA)) {
 			if (via_inserted) {
 				goto do_not_insert;
 			}
@@ -182,16 +180,6 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 			}
 			goto do_not_insert;
 		}
-#if 0
-		if (KBIT_TEST(rq->sink->data.flags, RQ_HAVE_EXPECT) && kgl_is_attr(av, _KS("Expect"))) {
-			goto do_not_insert;
-		}
-#endif
-#ifdef ENABLE_BIG_OBJECT_206
-		if (rq->bo_ctx && kgl_is_attr(av, _KS("Range"))) {
-			goto do_not_insert;
-		}
-#endif
 		if (is_internal_header(av)) {
 			goto do_not_insert;
 		}
@@ -206,7 +194,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 		av = av->next;
 	}
 	
-	int64_t content_length = in->f->get_read_left(in, rq);
+	int64_t content_length = in->f->get_read_left(in->ctx);
 	if (rq_has_content_length(rq, content_length)) {
 		int len = int2string2(content_length, tmpbuff);
 		client->send_header(kgl_expand_string("Content-Length"), tmpbuff, len);
@@ -218,31 +206,49 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 		}
 	}
 	client->set_content_length(content_length);
-	
-	if (rq->sink->data.if_modified_since != 0) {
-		char *end = make_http_time(rq->sink->data.if_modified_since, tmpbuff, sizeof(tmpbuff));
-		if (rq->ctx->mt == modified_if_range_date) {
-			client->send_header(kgl_expand_string("If-Range"), tmpbuff, (hlen_t)(end - tmpbuff));
-		} else {
-			client->send_header(kgl_expand_string("If-Modified-Since"), tmpbuff, (hlen_t)(end - tmpbuff));
-		}		
-	} else if (rq->sink->data.if_none_match != NULL) {
-		if (rq->ctx->mt == modified_if_range_etag) {
-			client->send_header(kgl_expand_string("If-Range"), rq->sink->data.if_none_match->data, (int)rq->sink->data.if_none_match->len);
-		} else {
-			client->send_header(kgl_expand_string("If-None-Match"), rq->sink->data.if_none_match->data, (int)rq->sink->data.if_none_match->len);
+	kgl_precondition_flag flag;
+	kgl_precondition* condition = in->f->get_precondition(in->ctx, &flag);
+	if (condition) {
+		if (condition->time > 0) {
+			char* end = make_http_time(condition->time, tmpbuff, sizeof(tmpbuff));
+			if (KBIT_TEST(flag, kgl_precondition_if_unmodified)) {
+				client->send_header(kgl_header_if_modified_since, tmpbuff, (hlen_t)(end - tmpbuff));
+			} else {
+				client->send_header(kgl_header_if_unmodified_since, tmpbuff, (hlen_t)(end - tmpbuff));
+			}
+		}
+		if (condition->entity) {
+			if (KBIT_TEST(flag, kgl_precondition_if_match)) {
+				client->send_header(kgl_header_if_match, condition->entity->data, (int)condition->entity->len);
+			} else {
+				client->send_header(kgl_header_if_none_match, condition->entity->data, (int)condition->entity->len);
+			}
 		}
 	}
-#ifdef ENABLE_BIG_OBJECT_206
-	if (rq->bo_ctx && rq->sink->data.range_from >= 0) {
+	kgl_request_range* range = in->f->get_range(in->ctx);
+	if (range) {
 		s.clean();
-		s << "bytes=" << rq->sink->data.range_from << "-";
-		if (rq->sink->data.range_to >= 0) {
-			s << rq->sink->data.range_to;
+		s << "bytes=";
+		if (range->from >= 0) {
+			s << range->from << "-";
+			if (range->to >= 0) {
+				s << range->to;
+			}
+		} else {
+			s << range->from;
 		}
-		client->send_header(kgl_expand_string("Range"), s.getBuf(), s.getSize());
+		client->send_header(kgl_header_range, s.getBuf(), s.getSize());
+		if (range->if_range_entity) {
+			if (KBIT_TEST(flag, kgl_precondition_if_range_date)) {
+				char* end = make_http_time(range->if_range_date, tmpbuff, sizeof(tmpbuff));
+				client->send_header(kgl_header_if_range, tmpbuff, (hlen_t)(end - tmpbuff));
+			} else {
+				/* if-range not allowed weak etag */
+				assert(*range->if_range_entity->data != 'W' || *range->if_range_entity->data != 'w');
+				client->send_header(kgl_header_if_range, range->if_range_entity->data, (hlen_t)range->if_range_entity->len);
+			}
+		}
 	}
-#endif
 #ifdef HTTP_PROXY
 	if (client->container) {
 		KHttpHeader* header = client->container->get_proxy_header(rq->sink->pool);
@@ -253,28 +259,28 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 		}
 	}
 #endif
-	if (rq->ctx->upstream_sign) {
+	if (rq->ctx.upstream_sign) {
 		upstream_sign_request(rq, &env);
 	}
-	if (rq->ctx->internal) {
+	if (rq->ctx.internal) {
 		client->send_header(kgl_expand_string("User-Agent"), kgl_expand_string(PROGRAM_NAME "/" VERSION));
 	}
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE)) {
 		client->send_connection(kgl_expand_string("upgrade"));
-	} else if (KBIT_TEST(rq->filter_flags, RF_UPSTREAM_NOKA) || client->GetLifeTime() <= 0) {
+	} else if (KBIT_TEST(rq->ctx.filter_flags, RF_UPSTREAM_NOKA) || client->GetLifeTime() <= 0) {
 		client->send_connection(kgl_expand_string("close"));
 	}
-	if (!KBIT_TEST(rq->filter_flags, RF_NO_X_FORWARDED_FOR) && !x_forwarded_for_inserted) {
+	if (!KBIT_TEST(rq->ctx.filter_flags, RF_NO_X_FORWARDED_FOR) && !x_forwarded_for_inserted) {
 		client->send_header(kgl_expand_string("X-Forwarded-For"), ips, ips_len);
 	}
-	if (KBIT_TEST(rq->filter_flags, RF_VIA) && !via_inserted) {
+	if (KBIT_TEST(rq->ctx.filter_flags, RF_VIA) && !via_inserted) {
 		s.clean();
 		insert_via(rq, s, NULL);
 		if (!client->send_header(kgl_expand_string("Via"), s.getBuf(), (hlen_t)s.getSize())) {
 			return false;
 		}
 	}
-	if (KBIT_TEST(rq->filter_flags, RF_X_REAL_IP)) {
+	if (KBIT_TEST(rq->ctx.filter_flags, RF_X_REAL_IP)) {
 		client->send_header(kgl_expand_string(X_REAL_IP_HEADER), ips, ips_len);
 		if (!client->IsMultiStream()) {
 			if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {

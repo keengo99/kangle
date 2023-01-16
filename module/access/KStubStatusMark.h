@@ -25,7 +25,6 @@ public:
 		s << " " <<(INT64)katom_get64((void *)&kgl_total_servers) << " " << (INT64)katom_get64((void *)&kgl_total_accepts) << " " << (INT64)katom_get64((void *)&kgl_total_requests) << " \n";
 		s << "Reading: " << (int)katom_get((void *)&kgl_reading) << " Writing: " << (int)katom_get((void *)&kgl_writing) << " Waiting: " << (int)katom_get((void *)&kgl_waiting) << " \n";
 		jumpType = JUMP_DENY;
-		rq->close_source();
 		rq->append_source(new KBufferFetchObject(s.getHead(),s.getLen()));
 		return true;
 	}

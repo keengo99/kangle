@@ -161,11 +161,9 @@
 //#define FLAG_URL_FREE           (1<<1) /* */
 #define FLAG_IN_MEM             (1<<2) /* */
 #define FLAG_IN_DISK            (1<<3) 
-//#define OBJ_IS_ENCODING         (1<<4)
 #define FLAG_NO_BODY            (1<<5) /* body */
 #define OBJ_MUST_REVALIDATE     (1<<6) /* must-revalidate */
 #define OBJ_IS_STATIC2          (1<<7) /* */
-#define OBJ_IS_READY            (1<<8) /* ׼ */
 //////////////////////////////////////////////////////////////////
 #define ANSW_HAS_EXPIRES        (1<<9) /* */
 #define ANSW_NO_CACHE           (1<<10) /**/
@@ -194,7 +192,7 @@
 //#define FLAG_BIG_OBJECT          (1<<28)
 //#define OBJ_INDEX_SAVED          (1<<29)
 //#define OBJ_INDEX_UPDATE         (1<<30)
-#define OBJ_NOT_OK               (1<<31)
+//#define OBJ_NOT_OK               (1<<31)
 
 ///////////////////////////////////////////////
 //rq->filter_flag

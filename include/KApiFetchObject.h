@@ -19,7 +19,7 @@
 #include "KFetchObject.h"
 #include "KApiService.h"
 
-class KApiFetchObject: public KFetchObject , public KApiService {
+class KApiFetchObject: public KRedirectSource , public KApiService {
 public:
 	KApiFetchObject(KApiRedirect *rd);
 	virtual ~KApiFetchObject();
@@ -42,7 +42,7 @@ public:
 private:
 	kgl_input_stream* in;
 	kgl_output_stream* out;
-
+	kgl_response_body body = { 0 };
 	bool initECB(EXTENSION_CONTROL_BLOCK *ecb) override;
 };
 #endif /* KAPIFETCHOBJECT_H_ */

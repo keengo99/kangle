@@ -27,7 +27,6 @@ func HandleGzip(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("X-Gzip", "on")
 	w.Header().Add("Server", TEST_SERVER_NAME)
 	w.Write([]byte("gzipgzipgzip"))
-	return
 }
 func HandleBr(w http.ResponseWriter, r *http.Request) {
 	if_none_match := r.Header.Get("If-None-Match")

@@ -11,14 +11,8 @@ class KHttpObject;
 class KRequestQueue;
 class KHttpRequest;
 class KWriteStream;
-enum modified_type
-{
-	modified_if_modified,
-	modified_if_range_date,
-	modified_if_unmodified,
-	modified_if_none_match,
-	modified_if_range_etag
-};
+
+#if 0
 class KContext
 {
 public:
@@ -30,23 +24,20 @@ public:
 	{
 		assert(obj==NULL && old_obj==NULL);
 	}
-	void push_obj(KHttpObject *obj);
-	void pop_obj();
+
 	KWriteStream *st;
-	KHttpObject *obj;
-	KHttpObject *old_obj;
+
 	uint32_t internal:1;
 	uint32_t replace : 1;
 	uint32_t simulate : 1;
 	uint32_t skip_access : 1;
 	uint32_t cache_hit_part : 1;
-	uint32_t haveStored : 1;
+	uint32_t have_stored : 1;
 	uint32_t new_object : 1;
 	uint32_t upstream_connection_keep_alive : 1;
 	//connect代理
 	uint32_t connection_connect_proxy : 1;
 	uint32_t always_on_model : 1;
-	//uint32_t upstream_chunked : 1;
 	uint32_t response_checked : 1;
 	uint32_t no_body : 1;
 	uint32_t upstream_sign : 1;
@@ -58,12 +49,13 @@ public:
 	uint32_t has_change_length_filter : 1;//有改变长度的filter
 	//lastModified类型
 	modified_type mt;
-	int64_t content_range_length;
-	int64_t left_read;	//final fetchobj 使用
+
+	void push_obj(KHttpObject* obj);
+	void pop_obj();
 	void dead_old_obj();
 	void clean();
 	void clean_obj(KHttpRequest *rq,bool store_flag = true);
 	void store_obj(KHttpRequest *rq);
 };
-
+#endif
 #endif

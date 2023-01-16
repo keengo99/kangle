@@ -86,7 +86,6 @@ typedef struct _kgl_filter kgl_filter;
 #define   KGL_REQ_REGISTER_VARY                    (KGL_REQ_RESERV_COMMAND+12)
 #define   KGL_REQ_MODULE_SHUTDOWN                  (KGL_REQ_RESERV_COMMAND+13)
 
-
 typedef struct _kgl_command_env
 {
 	char* name;
@@ -216,10 +215,6 @@ typedef enum
 	KGL_VAR_HAS_CONTENT_LENGTH, //bool
 	KGL_VAR_HAS_CONNECTION_UPGRADE,//bool
 	KGL_VAR_CONTENT_TYPE,
-	KGL_VAR_IF_MODIFIED_SINCE,//time_t
-	KGL_VAR_IF_NONE_MATCH,
-	KGL_VAR_IF_RANGE_TIME,//time_t
-	KGL_VAR_IF_RANGE_STRING,
 	KGL_VAR_CACHE_TYPE
 } KGL_VAR;
 
@@ -230,6 +225,10 @@ typedef enum _KGL_GVAR
 	KGL_GCONFIG
 } KGL_GVAR;
 
+typedef struct _kgl_output_stream_ctx kgl_output_stream_ctx;
+typedef struct _kgl_input_stream_ctx kgl_input_stream_ctx;
+typedef struct _kgl_response_body_ctx kgl_response_body_ctx;
+typedef struct _kgl_parse_header_ctx kgl_parse_header_ctx;
 
 typedef LPVOID KCONN;
 typedef LPVOID KSOCKET_CLIENT;
@@ -263,12 +262,59 @@ typedef struct _kgl_filter_conext_function
 	KGL_RESULT(*write_end)(KREQUEST rq, KCONN cn, KGL_RESULT result);
 } kgl_filter_conext_function;
 
-typedef struct _kgl_filter_context
+typedef struct _kgl_response_body_function
 {
+	KGL_RESULT(*writev)(kgl_response_body_ctx* ctx, WSABUF* bufs, int bc);
+	KGL_RESULT(*write)(kgl_response_body_ctx* ctx, const char* buf, int size);
+	KGL_RESULT(*flush)(kgl_response_body_ctx* ctx);
+	bool (*support_sendfile)(kgl_response_body_ctx* ctx);
+	KGL_RESULT(*sendfile)(kgl_response_body_ctx* ctx, KASYNC_FILE fp, int64_t* length);
+	KGL_RESULT(*close)(kgl_response_body_ctx* ctx, KGL_RESULT result);
+} kgl_response_body_function;
+
+typedef struct _kgl_response_body {
+	kgl_response_body_function* f;
+	kgl_response_body_ctx *ctx;
+} kgl_response_body;
+
+typedef struct _kgl_filter_context {
 	KCONN          cn;
 	PVOID          module;
 	kgl_filter_conext_function* f;
 } kgl_filter_context;
+
+typedef struct _kgl_url
+{
+#define KGL_URL_SSL       1   /* 根据端口判断是否是ssl */
+#define KGL_URL_IPV6      2
+#define KGL_URL_REWRITED  8
+#define KGL_URL_RANGED    0x10
+#define KGL_URL_ENCODE    0x20
+#define KGL_URL_ORIG_SSL  0x40  //源建议的ssl
+
+
+#define KGL_ENCODING_DEFLATE  1
+#define KGL_ENCODING_COMPRESS (1<<1)
+#define KGL_ENCODING_GZIP     (1<<2)
+#define KGL_ENCODING_BR       (1<<3)
+#define KGL_ENCODING_UNKNOW   (1<<6)
+
+	char* host;
+	char* path;
+	char* param;
+	volatile uint16_t refs_count;
+	uint16_t port;
+	union
+	{
+		uint32_t flag_encoding;
+		struct
+		{
+			uint16_t flags;
+			uint8_t  accept_encoding;
+			uint8_t  encoding;
+		};
+	};
+} kgl_url;
 
 struct _kgl_filter
 {
@@ -277,11 +323,13 @@ struct _kgl_filter
 #define KGL_FILTER_CACHE             2 /* filter cache */
 #define KGL_FILTER_NOT_CACHE         4 /* filter not cache */
 	int32_t flags;
+	/* deprecated */
 	KGL_RESULT(*write_all)(KREQUEST rq, kgl_filter_context* ctx, const char* buf, int size);
 	KGL_RESULT(*flush)(KREQUEST rq, kgl_filter_context* ctx);
 	KGL_RESULT(*sendfile)(KREQUEST rq, kgl_filter_context* ctx,KASYNC_FILE fp,int64_t *length);/* if filter not support sendfile,this must be NULL */
 	KGL_RESULT(*write_end)(KREQUEST rq, kgl_filter_context* ctx, KGL_RESULT result);
 	void (*release)(void* model_ctx);
+	kgl_response_body* (*get_response_body)(KREQUEST rq, kgl_filter_context* ctx);
 };
 typedef struct _kgl_access_function
 {
@@ -327,41 +375,72 @@ typedef enum _KGL_MSG_TYPE
 	KGL_MSG_VECTOR
 } KGL_MSG_TYPE;
 
+typedef struct _kgl_parse_header_function {
+	KGL_RESULT(*parse_header)(kgl_parse_header_ctx* ctx, kgl_header_type attr, const char* val, int val_len);
+	KGL_RESULT(*parse_unknow_header)(kgl_parse_header_ctx* ctx, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len);
+} kgl_parse_header_function;
+
+typedef struct _kgl_request_range
+{
+	int64_t from;
+	int64_t to;
+	union
+	{
+		time_t if_range_date;
+		kgl_str_t* if_range_entity;
+	};
+} kgl_request_range;
+
+typedef struct _kgl_precondition
+{
+	time_t time;
+	kgl_str_t* entity;
+} kgl_precondition;
+
+typedef enum
+{
+	kgl_precondition_not_set = 0,
+	kgl_precondition_if_unmodified = (1),
+	kgl_precondition_if_match = (1<<1),
+	kgl_precondition_if_range_date = (1<<2),
+} kgl_precondition_flag;
+
 typedef struct _kgl_input_stream_function
 {
-	int64_t(*get_read_left)(kgl_input_stream* in, KREQUEST rq);
-	int (*read_body)(kgl_input_stream* in, KREQUEST rq, char* buf, int len);
+	kgl_url *(*get_url)(kgl_input_stream_ctx* ctx);
+	kgl_precondition *(*get_precondition)(kgl_input_stream_ctx* ctx, kgl_precondition_flag* flag);
+	/* return NULL if no range , if-range type return by get_precondition param flag */
+	kgl_request_range *(*get_range)(kgl_input_stream_ctx* ctx);
+	int (*get_header_count)(kgl_input_stream_ctx* ctx);/* do not include host,precondition,and range header */
+	KGL_RESULT (*get_header)(kgl_input_stream_ctx *ctx, kgl_parse_header_ctx* cb_ctx, kgl_parse_header_function* cb);
+	int64_t(*get_read_left)(kgl_input_stream_ctx *ctx);/* return -1 is mean the input body unknow length, like chunk. */
+	int (*read_body)(kgl_input_stream_ctx* ctx, char* buf, int len);/* return 0 mean body is end, -1 is error */
 	//release
-	void(*release)(kgl_input_stream* in);
+	void(*release)(kgl_input_stream_ctx* ctx);
 } kgl_input_stream_function;
 
 typedef struct _kgl_output_stream_function
 {
 	//out header
-	void(*write_status)(kgl_output_stream* out, KREQUEST rq, uint16_t status_code);
-	KGL_RESULT(*write_header)(kgl_output_stream* out, KREQUEST rq, kgl_header_type attr, const char* val, int val_len);
-	KGL_RESULT(*write_unknow_header)(kgl_output_stream* out, KREQUEST rq, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len);
-	KGL_RESULT(*write_header_finish)(kgl_output_stream* out, KREQUEST rq);
-	//out body
-	KGL_RESULT(*write_body)(kgl_output_stream* out, KREQUEST rq, const char* str, int len);
-	KGL_RESULT(*write_message)(kgl_output_stream* out, KREQUEST rq, KGL_MSG_TYPE msg_type, const void* msg, int msg_flag);
-	KGL_RESULT(*write_trailer)(kgl_output_stream *out, KREQUEST rq, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len);
-	bool (*support_sendfile)(kgl_output_stream* out, KREQUEST rq);
-	KGL_RESULT(*sendfile)(kgl_output_stream* out, KREQUEST rq, KASYNC_FILE fp, int64_t *len);
-	KGL_RESULT(*write_end)(kgl_output_stream* out, KREQUEST rq, KGL_RESULT result);
-
-	//release
-	void(*release)(kgl_output_stream* out);
-
+	void(*write_status)(kgl_output_stream_ctx* ctx, uint16_t status_code);
+	KGL_RESULT(*write_header)(kgl_output_stream_ctx* ctx, kgl_header_type attr, const char* val, int val_len);
+	KGL_RESULT(*write_unknow_header)(kgl_output_stream_ctx *ctx, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len);
+	KGL_RESULT(*error)(kgl_output_stream_ctx *ctx, uint16_t status_code, const char* reason, size_t reason_len);
+	/* if return KGL_OK body must call close to release */
+	KGL_RESULT(*write_header_finish)(kgl_output_stream_ctx* ctx,kgl_response_body *body);
+	KGL_RESULT(*write_trailer)(kgl_output_stream_ctx* ctx, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len);
+	void (*release)(kgl_output_stream_ctx* ctx);
 } kgl_output_stream_function;
 
 struct _kgl_input_stream
 {
 	kgl_input_stream_function* f;
+	kgl_input_stream_ctx *ctx;
 };
 struct _kgl_output_stream
 {
 	kgl_output_stream_function* f;
+	kgl_output_stream_ctx *ctx;
 };
 
 typedef struct _kgl_async_context_function
@@ -399,8 +478,8 @@ typedef struct _kgl_dso_output_stream
 	kgl_async_context* ctx;
 } kgl_dso_output_stream;
 
-#define kgl_get_in_async_context(gate)  (((kgl_dso_input_stream *)gate)->ctx)
-#define kgl_get_out_async_context(gate)  (((kgl_dso_output_stream *)gate)->ctx)
+#define kgl_get_in_async_context(gate)  ((kgl_async_context *)gate)
+#define kgl_get_out_async_context(gate) ((kgl_async_context *)gate)
 
 typedef struct _kgl_vary_conext
 {
@@ -554,8 +633,8 @@ typedef struct _kgl_mutex_function
 typedef struct _kgl_cond_function
 {
 	KFIBER_COND(*init)(bool thread_safe, bool auto_reset);
-	int (*wait)(KFIBER_COND mutex);
-	int (*notice)(KFIBER_COND mutex);
+	int (*wait)(KFIBER_COND mutex, int *got);
+	int (*notice)(KFIBER_COND mutex, int got);
 	void (*destroy)(KFIBER_COND mutex);
 } kgl_cond_function;
 
@@ -632,6 +711,5 @@ typedef struct _kgl_dso_version
 
 DLL_PUBLIC BOOL kgl_dso_init(kgl_dso_version* ver);
 DLL_PUBLIC BOOL kgl_dso_finit(int32_t flag);
-
 KEND_DECLS
 #endif /* SAPI_H_ */

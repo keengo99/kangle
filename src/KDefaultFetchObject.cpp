@@ -15,13 +15,13 @@ KGL_RESULT KDefaultFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl
 				KPrevDirectoryFetchObject fo;
 				return fo.Open(rq, in, out);
 			} else {
-				return out->f->write_message(out, rq, KGL_MSG_ERROR, "method not allowed", STATUS_METH_NOT_ALLOWED);
+				return out->f->error(out->ctx, STATUS_METH_NOT_ALLOWED,_KS("method not allowed"));
 			}
 		}
 		auto svh = rq->get_virtual_host();
 		if (!svh->vh->browse) {
 			//Èç¹ûÔÊÐíä¯ÀÀ
-			return out->f->write_message(out, rq, KGL_MSG_ERROR, "You don't have permission to browse.", STATUS_FORBIDEN);
+			return out->f->error(out->ctx, STATUS_FORBIDEN,_KS("You don't have permission to browse."));
 		}
 		KDirectoryFetchObject fo;
 		return fo.Open(rq, in, out);

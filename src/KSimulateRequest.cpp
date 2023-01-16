@@ -86,7 +86,7 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 		timeLock.Unlock();
 	}
 	rq->sink = ss;
-	rq->ctx->simulate = 1;
+	rq->ctx.simulate = 1;
 	if (KBIT_TEST(ctx->flags, KF_SIMULATE_GZIP)) {
 		rq->sink->parse_header(kgl_expand_string("Accept-Encoding"), kgl_expand_string("gzip"), false);
 	}
@@ -96,7 +96,7 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 	KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 	if (!KBIT_TEST(ctx->flags, KF_SIMULATE_CACHE)) {
 		KBIT_SET(rq->sink->data.flags, RQ_HAS_NO_CACHE);
-		KBIT_SET(rq->filter_flags, RF_NO_CACHE);
+		KBIT_SET(rq->ctx.filter_flags, RF_NO_CACHE);
 	}
 	if (rq->sink->data.content_length > 0) {
 		KBIT_SET(rq->sink->data.flags, RQ_HAS_CONTENT_LEN);
@@ -112,14 +112,14 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 		if (ctx->queue) {			
 			rq->queue = get_request_queue(rq, ctx->queue);
 		}
-		rq->ctx->skip_access = 1;
+		rq->ctx.skip_access = 1;
 	}
 	ss->read_header();
 	return rq;
 }
 int kgl_start_simulate_request(KHttpRequest *rq,kfiber **fiber)
 {
-	if (rq->ctx->skip_access) {
+	if (rq->ctx.skip_access) {
 		rq->beginRequest();
 		if (!rq->has_final_source()) {
 			rq->append_source(new KHttpProxyFetchObject());

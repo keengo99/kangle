@@ -60,6 +60,7 @@
 #include "KBigObjectContext.h"
 #include "KAcserverManager.h"
 #include "KHttpUpstream.h"
+#include "KDefer.h"
 #ifndef KANGLE_FREE
 #include "KWhiteList.h"
 #endif
@@ -236,7 +237,7 @@ void log_access(KHttpRequest* rq) {
 #ifdef ENABLE_BLACK_LIST
 		KIpList* iplist = svh->vh->blackList;
 		if (iplist) {
-			iplist->addStat(rq->sink->data.flags, rq->filter_flags);
+			iplist->addStat(rq->sink->data.flags, rq->ctx.filter_flags);
 		}
 #endif
 #ifdef ENABLE_VH_LOG_FILE
@@ -349,9 +350,9 @@ void log_access(KHttpRequest* rq) {
 	//*
 	l.WSTR("\"[");
 #ifndef NDEBUG
-	l << "F" << (unsigned)rq->sink->data.flags << "f" << (unsigned)rq->filter_flags;
-	//l << "u" << (int)rq->ctx->upstream_socket;
-	if (!rq->ctx->upstream_expected_done) {
+	l << "F" << (unsigned)rq->sink->data.flags << "f" << (unsigned)rq->ctx.filter_flags;
+	//l << "u" << (int)rq->ctx.upstream_socket;
+	if (!rq->ctx.upstream_expected_done) {
 		l.WSTR("d");
 	}
 #endif
@@ -363,7 +364,7 @@ void log_access(KHttpRequest* rq) {
 	}
 #endif
 #endif
-	if (rq->ctx->read_huped) {
+	if (rq->ctx.read_huped) {
 		l.WSTR("h");
 	}
 	if (KBIT_TEST(rq->sink->data.flags, RQ_CACHE_HIT)) {
@@ -378,7 +379,7 @@ void log_access(KHttpRequest* rq) {
 			l.WSTR("E");
 		}
 	}
-	if (rq->ctx->parent_signed) {
+	if (rq->ctx.parent_signed) {
 		l.WSTR("P");
 	}
 	if (KBIT_TEST(rq->sink->data.flags, RQ_OBJ_VERIFIED)) {
@@ -393,17 +394,17 @@ void log_access(KHttpRequest* rq) {
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_KEEP_CONNECTION | RQ_CONNECTION_CLOSE) == RQ_HAS_KEEP_CONNECTION) {
 		l.WSTR("L");
 	}
-	if (rq->ctx->upstream_connection_keep_alive) {
+	if (rq->ctx.upstream_connection_keep_alive) {
 		l.WSTR("l");
 	}
 	if (KBIT_TEST(rq->sink->data.flags, RQ_INPUT_CHUNKED)) {
 		l.WSTR("I");
 	}
 	//{{ent
-	if (KBIT_TEST(rq->filter_flags, RQF_CC_PASS)) {
+	if (KBIT_TEST(rq->ctx.filter_flags, RQF_CC_PASS)) {
 		l.WSTR("p");
 	}
-	if (KBIT_TEST(rq->filter_flags, RQF_CC_HIT)) {
+	if (KBIT_TEST(rq->ctx.filter_flags, RQF_CC_HIT)) {
 		l.WSTR("c");
 	}
 	//}}
@@ -417,7 +418,7 @@ void log_access(KHttpRequest* rq) {
 		l << (int)rq->sink->data.mark;
 	}
 	//l.WSTR("a");
-	//l << rq->ctx->us_code;
+	//l << rq->ctx.us_code;
 	l.WSTR("]");
 	if (conf.log_event_id) {
 		l.WSTR(" ");

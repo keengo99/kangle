@@ -59,7 +59,7 @@ KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest* rq)
 	assert(buffer == NULL);
 	buffer = new KSocketBuffer(AJP_BUFF_SIZE);
 	char tmpbuff[50];
-	KHttpObject* obj = rq->ctx->obj;
+	KHttpObject* obj = rq->ctx.obj;
 	KBIT_SET(obj->index.flags, ANSW_LOCAL_SERVER);
 	KAjpMessage b(buffer);
 	b.putByte(JK_AJP13_FORWARD_REQUEST);
@@ -82,7 +82,7 @@ KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest* rq)
 	b.putShort(rq->sink->get_self_port());
 	//is secure
 	b.putByte(KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL) ? 1 : 0);
-	int64_t content_length = in->f->get_read_left(in, rq);
+	int64_t content_length = in->f->get_read_left(in->ctx);
 	KHttpHeader* header = rq->sink->data.get_header();
 	int count = 0;
 	while (header) {
@@ -91,8 +91,22 @@ KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest* rq)
 		}
 		header = header->next;
 	}
-	if (rq->sink->data.if_modified_since != 0 || rq->sink->data.if_none_match != NULL) {
+	kgl_precondition_flag flag;
+	kgl_precondition* condition = in->f->get_precondition(in->ctx, &flag);
+	if (condition) {
+		if (condition->time > 0) {
+			count++;
+		}
+		if (condition->entity) {
+			count++;
+		}
+	}
+	kgl_request_range* range = in->f->get_range(in->ctx);
+	if (range) {
 		count++;
+		if (range->if_range_entity) {
+			count++;
+		}
 	}
 	if (content_length > 0) {
 		count++;
@@ -129,22 +143,47 @@ KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest* rq)
 		b.putShort(0xA008);
 		b.putString((char*)int2string(content_length, tmpbuff));
 	}
-	if (rq->sink->data.if_modified_since != 0) {
-		char tmpbuff[50];
-		mk1123time(rq->sink->data.if_modified_since, tmpbuff, sizeof(tmpbuff));
-		if (rq->ctx->mt == modified_if_range_date) {
-			b.putString(_KS("If-Range"));
-		} else {
-			b.putString(_KS("If-Modified-Since"));
+	if (condition) {
+		if (condition->time > 0) {
+			if (KBIT_TEST(flag, kgl_precondition_if_unmodified)) {
+				b.putString(_KS("If-Unmodified-Since"));
+			} else {
+				b.putString(_KS("If-Modified-Since"));
+			}
+			mk1123time(condition->time, tmpbuff, sizeof(tmpbuff));
+			b.putString(tmpbuff);
 		}
-		b.putString(tmpbuff);
-	} else if (rq->sink->data.if_none_match != NULL) {
-		if (rq->ctx->mt == modified_if_range_etag) {
-			b.putString(_KS("If-Range"));
-		} else {
-			b.putString(_KS("If-None-Match"));
+		if (condition->entity) {
+			if (KBIT_TEST(flag, kgl_precondition_if_match)) {
+				b.putString(_KS("If-Match"));
+			} else {
+				b.putString(_KS("If-None-Match"));
+			}
+			b.putString(condition->entity->data, (int)condition->entity->len);
 		}
-		b.putString(rq->sink->data.if_none_match->data, (int)rq->sink->data.if_none_match->len);
+	}
+	if (range) {
+		KStringBuf s;
+		s << "bytes=";
+		if (range->from >= 0) {
+			s << range->from << "-";
+			if (range->to >= 0) {
+				s << range->to;
+			}
+		} else {
+			s << range->from;
+		}
+		b.putString(_KS("Range"));
+		b.putString(s.getBuf(), s.getSize());
+		if (range->if_range_entity) {
+			b.putString(_KS("If-Range"));
+			if (KBIT_TEST(flag, kgl_precondition_if_range_date)) {
+				char* end = make_http_time(range->if_range_date, tmpbuff, sizeof(tmpbuff));
+				b.putString(tmpbuff, (int)(end - tmpbuff));
+			} else {
+				b.putString(range->if_range_entity->data, (int)range->if_range_entity->len);
+			}
+		}
 	}
 	if (rq->sink->data.url->param) {
 		//printf("send query_string\n");
@@ -203,7 +242,7 @@ KGL_RESULT KAjpFetchObject::ParseBody(KHttpRequest* rq, char** data, char* end)
 			}
 			//printf("chunk_length=[%d]\n",chunk_length);
 			chunk_data = msg.getBytes();
-			KGL_RESULT ret = PushBody(rq, out, chunk_data, chunk_length);
+			KGL_RESULT ret = PushBody(rq, &body, chunk_data, chunk_length);
 			if (KGL_OK != ret) {
 				return ret;
 			}
@@ -225,7 +264,7 @@ kgl_parse_result KAjpFetchObject::parse_unknow_header(KHttpRequest* rq, char** d
 		default:
 			return kgl_parse_error;
 		}
-		unsigned char type = parseMessage(rq, rq->ctx->obj, &msg);
+		unsigned char type = parseMessage(rq, rq->ctx.obj, &msg);
 		//printf("type=[%d]\n",type);
 		switch (type) {
 		case JK_AJP13_SEND_HEADERS:

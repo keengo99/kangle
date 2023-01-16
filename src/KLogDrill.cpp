@@ -133,7 +133,7 @@ void add_log_drill(KHttpRequest *rq,KStringBuf &s)
 	internal_check_log_drill();
 #endif
 	drill_stat.total_count++;
-	if (!KBIT_TEST(rq->filter_flags, RF_LOG_DRILL)) {
+	if (!KBIT_TEST(rq->ctx.filter_flags, RF_LOG_DRILL)) {
 		drill_lock.Unlock();
 		return;
 	}

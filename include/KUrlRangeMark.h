@@ -3,6 +3,7 @@
 /*
 * url´ørangeÇëÇó
 */
+#if 0
 class KUrlRangeMark : public KMark
 {
 public:
@@ -94,4 +95,5 @@ private:
 	KReg range_from;
 	KReg range_to;
 };
+#endif
 #endif

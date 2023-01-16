@@ -44,7 +44,7 @@
 
 bool saveCacheIndex();
 void init_cache();
-void release_obj(KHttpObject *);
+void release_obj(KHttpObject *obj);
 void dead_all_obj();
 void caculateCacheSize(INT64 &csize,INT64 &cdsize,INT64 &hsize,INT64 &hdsize);
 
@@ -67,15 +67,14 @@ inline bool objCanCache(KHttpRequest *rq,KHttpObject *obj)
 	}
 	return true;
 }
-inline KHttpObject * findHttpObject(KHttpRequest *rq, bool create_flags, KContext *ctx) {
-	ctx->new_object = 0;
+inline KHttpObject * find_cache_object(KHttpRequest *rq, bool create_flags) {
 	u_short url_hash = cache.hash_url(rq->sink->data.url);
 	KHttpObject *obj = cache.find(rq,url_hash);
 	if (obj == NULL && create_flags) {
 		obj = new KHttpObject(rq);
 		//cache the url_hash
+		assert(obj->in_cache==0);
 		obj->h = url_hash;
-		ctx->new_object = 1;	
 	}
 	return obj;
 }

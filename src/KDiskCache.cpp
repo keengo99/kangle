@@ -34,7 +34,7 @@ static INT64 recreate_start_time = 0;
 using namespace std;
 bool obj_can_disk_cache(KHttpRequest* rq, KHttpObject* obj)
 {
-	if (KBIT_TEST(rq->filter_flags, RF_NO_DISK_CACHE)) {
+	if (KBIT_TEST(rq->ctx.filter_flags, RF_NO_DISK_CACHE)) {
 		return false;
 	}
 	if (KBIT_TEST(obj->index.flags, ANSW_LOCAL_SERVER | FLAG_NO_DISK_CACHE)) {
@@ -296,7 +296,7 @@ cor_result create_http_object2(KHttpObject* obj, char* url, uint32_t flag_encodi
 	if (KBIT_TEST(obj->index.flags, FLAG_IN_DISK)) {
 		if (obj->index.head_size != kgl_align(obj->index.head_size, kgl_aio_align_size)) {
 			char* url = obj->uk.url->getUrl();
-			char* filename = obj->getFileName();
+			char* filename = obj->get_filename();
 			klog(KLOG_ERR, "disk cache file head_size=[%d] is not align by size=[%d], url=[%s] file=[%s] now dead it.\n", obj->index.head_size, kgl_aio_align_size, url, filename);
 			free(filename);
 			free(url);

@@ -176,7 +176,7 @@ bool KAuthMark::mark(KHttpRequest *rq, KHttpObject *obj,
 #endif
 	}
 	jumpType = JUMP_DENY;
-	KBIT_SET(rq->filter_flags,RQ_SEND_AUTH);
+	KBIT_SET(rq->ctx.filter_flags,RQ_SEND_AUTH);
 	return true;
 
 }

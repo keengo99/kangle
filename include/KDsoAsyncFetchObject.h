@@ -4,7 +4,7 @@
 #include "KHttpResponseParser.h"
 #include "KDsoRedirect.h"
 
-class KDsoAsyncFetchObject : public KFetchObject
+class KDsoAsyncFetchObject : public KRedirectSource
 {
 public:
 	KDsoAsyncFetchObject(bool need_check)

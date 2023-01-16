@@ -6,7 +6,7 @@
 #ifdef ENABLE_BIG_OBJECT_206
 swap_in_result KHttpObjectSwaping::swapin_proress(KHttpObject* obj, KHttpObjectBody* data)
 {
-	char* filename = obj->getFileName(true);
+	char* filename = obj->get_filename(true);
 	if (filename == NULL) {
 		return swap_in_failed_other;
 	}
@@ -133,7 +133,7 @@ clean:
 swap_in_result KHttpObjectSwaping::swapin(KHttpRequest* rq, KHttpObject* obj)
 {
 	KHttpObjectBody* data = NULL;
-	char* filename = obj->getFileName();
+	char* filename = obj->get_filename();
 	swap_in_result result = swap_in_failed_other;
 	kfiber_file* file = kfiber_file_open(filename, fileRead, 0);
 	if (file == NULL) {

@@ -25,7 +25,7 @@ struct kgl_pop_header {
 /**
 * 异步调用扩展，所以支持异步调用的扩展从该类继承
 */
-class KAsyncFetchObject : public KFetchObject
+class KAsyncFetchObject : public KRedirectSource
 {
 public:
 	KAsyncFetchObject()
@@ -39,9 +39,9 @@ public:
 	void Close(KHttpRequest *rq)
 	{
 		if (client) {
-			if (KBIT_TEST(rq->filter_flags,RF_UPSTREAM_NOKA) 
-				|| !rq->ctx->upstream_connection_keep_alive
-				|| !rq->ctx->upstream_expected_done) {
+			if (KBIT_TEST(rq->ctx.filter_flags,RF_UPSTREAM_NOKA) 
+				|| !rq->ctx.upstream_connection_keep_alive
+				|| !rq->ctx.upstream_expected_done) {
 				pop_header.keep_alive_time_out = -1;
 			}
 			client->gc(pop_header.keep_alive_time_out);
@@ -65,7 +65,7 @@ public:
 	//期望中的完成，长连接中用于标识此连接还可用
 	virtual void expectDone(KHttpRequest *rq)
 	{
-		rq->ctx->upstream_expected_done = 1;
+		rq->ctx.upstream_expected_done = 1;
 	}
 #ifdef ENABLE_REQUEST_QUEUE
 	bool needQueue(KHttpRequest *rq) override
@@ -119,9 +119,10 @@ public:
 	KUpstream *client;
 	kgl_input_stream *in;
 	kgl_output_stream *out;
+	kgl_response_body body = { 0 };
 	friend class KHttp2;
 protected:
-	KGL_RESULT on_read_head_success(KHttpRequest *rq,kfiber **post_fiber);
+	KGL_RESULT on_read_head_success(KHttpRequest *rq, kfiber **post_fiber);
 	void BuildChunkHeader();
 	void PushStatus(KHttpRequest *rq, int status_code);
 	KGL_RESULT PushHeaderFinished(KHttpRequest *rq);

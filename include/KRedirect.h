@@ -14,13 +14,13 @@
 
 class KHttpRequest;
 class KAsyncFetchObject;
-class KFetchObject;
+class KRedirectSource;
 class KUpstream;
 class KRedirect: public KJump {
 public:
 	KRedirect();
 	virtual ~KRedirect();
-	virtual KFetchObject *makeFetchObject(KHttpRequest *rq, KFileName *file) = 0;
+	virtual KRedirectSource*makeFetchObject(KHttpRequest *rq, KFileName *file) = 0;
 	//virtual kev_result connect(KHttpRequest *rq, KAsyncFetchObject *fo) = 0;
 	virtual KUpstream *GetUpstream(KHttpRequest *rq)
 	{

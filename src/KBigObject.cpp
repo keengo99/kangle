@@ -6,51 +6,67 @@
 #include "KDiskCache.h"
 #include "KDiskCacheIndex.h"
 #include "cache.h"
-//{{ent
+#include "HttpFiber.h"
+
 #ifdef ENABLE_BIG_OBJECT_206
-//大物件处理,网络请求部分处理
-KGL_RESULT handle_bigobject_progress(KHttpRequest* rq, KHttpObject* obj)
-{
-	return KGL_OK;
-}
-//由内存物件转入大物件
-KGL_RESULT turn_on_bigobject(KHttpRequest *rq,KHttpObject *obj)
-{
-	rq->ctx->dead_old_obj();
+KGL_RESULT turn_on_bigobject(KHttpRequest* rq, KHttpObject* obj, kgl_response_body* body) {
+	assert(rq->ctx.st.ctx == nullptr);
+	rq->dead_old_obj();
 	kassert(obj->data->i.type == MEMORY_OBJECT);
-	kassert(rq->ctx->new_object);
-	kassert(obj->refs==1);
+	kassert(!obj->in_cache);
+	kassert(obj->refs == 1);
 	kassert(obj->data->bodys == NULL);
-	/*
-	删除httpobject->data->bodys
-	*/
-	//kbuf *bodys = obj->data->bodys;
 	obj->data->i.type = BIG_OBJECT_PROGRESS;
 	obj->data->sbo = new KSharedBigObject;
 	if (obj->data->i.status_code == STATUS_OK) {
-		KBIT_CLR(rq->sink->data.flags,RQ_HAVE_RANGE);
-		rq->sink->data.range_from = 0;
-		rq->sink->data.range_to = -1;
+		rq->sink->data.range = nullptr;
 	}
-	if (!obj->data->sbo->Open(rq, obj, true)) {
+	if (!obj->data->sbo->open(obj, true)) {
 		return KGL_EIO;
 	}
-	INT64 last_net_from = obj->data->sbo->OpenWrite(rq->sink->data.range_from);
+	assert(false);
+	INT64 last_net_from = obj->data->sbo->open_write(0);
+	//printf("range_from=[%d] last_net_from=[%d]\n", (int)rq->sink->data.range_from, (int)last_net_from);
+	//assert(last_net_from == -1 || last_net_from == rq->sink->data.range_from);
 	obj->dc_index_update = 1;
-	rq->ctx->store_obj(rq);
+	rq->store_obj();
 	assert(obj->list_state != LIST_IN_NONE);
 	if (obj->list_state != LIST_IN_NONE) {
 		dci->start(ci_add, obj);
 	}
-	if (rq->bo_ctx==NULL) {
-		rq->bo_ctx = new KBigObjectContext(obj);
+	KBigObjectContext *bo_ctx = new KBigObjectContext(rq, obj);
+
+	rq->registerRequestCleanHook([](void* ctx) {
+		KBigObjectContext* bo_ctx = (KBigObjectContext*)ctx;
+		bo_ctx->close();
+	},bo_ctx);
+
+	bo_ctx->create();
+	assert(!rq->ctx.st.ctx);
+	KGL_RESULT result = prepare_write_body(rq, &rq->ctx.st);
+	if (result != KGL_OK) {
+		bo_ctx->close_write(last_net_from);
+		return result;
 	}
-	KGL_RESULT result = rq->bo_ctx->Open(rq,true);
-	rq->bo_ctx->last_net_from = last_net_from;
-	if (last_net_from==-1) {
-		return KGL_DOUBLICATE;
+	auto st = get_bigobj_response_body(rq, body);	
+	st->bo_ctx = bo_ctx;
+	st->write_from = last_net_from;
+	assert(st->write_from == st->offset);
+	/*
+	kgl_request_range* range = rq->sink->data.range;
+	if (range) {
+		send_ctx->offset = range->from;
+		if (range->to < 0) {
+			send_ctx->left_read = obj->index.content_length - range->from;
+		} else {
+			send_ctx->left_read = range->to + 1 - range->from;
+		}
+	} else {
+		send_ctx->offset = 0;
+		send_ctx->left_read = obj->index.content_length;
 	}
+	kfiber_create(bigobj_send_fiber, send_ctx, 1, conf.fiber_stack_size, &st->wait_fiber);
+	*/
 	return result;
 }
 #endif
-//}}

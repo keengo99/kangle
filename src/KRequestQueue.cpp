@@ -41,10 +41,10 @@ bool KRequestQueue::Start(KHttpRequest* rq)
 	} else {
 		assert(rq->queue == this);
 	}
-	assert(rq->ctx->queue_handled == 0);
+	assert(rq->ctx.queue_handled == 0);
 	rq->EnterRequestQueue();
-	rq->ctx->queue_handled = Lock();
+	rq->ctx.queue_handled = Lock();
 	rq->LeaveRequestQueue();
-	return rq->ctx->queue_handled;
+	return rq->ctx.queue_handled;
 }
 #endif

@@ -12,6 +12,7 @@
 #include "KHttpRequest.h"
 #include "KHttpObjectSwaping.h"
 #include "KVary.h"
+#include "KHttpFieldValue.h"
 
 #ifdef ENABLE_BIG_OBJECT_206
 #include "KSharedBigObject.h"
@@ -28,7 +29,7 @@
 #define   LIST_IN_DISK  1
 #define   LIST_IN_NONE  2
 
-extern KMutex obj_lock[HASH_SIZE+2];
+extern KMutex obj_lock[HASH_SIZE + 2];
 
 class KHttpObjectHash;
 
@@ -39,25 +40,25 @@ class KHttpObjectHash;
 #define BIG_OBJECT_PROGRESS 2
 #endif
 #define SWAPING_OBJECT      3
-inline void kgl_safe_copy_body_data(KHttpObjectBodyData* dst, KHttpObjectBodyData* src)
-{
+inline void kgl_safe_copy_body_data(KHttpObjectBodyData* dst, KHttpObjectBodyData* src) {
 	//must not override dst->type
 	memcpy(dst, src, offsetof(KHttpObjectBodyData, type));
 }
 /**
  * httpobject的信息主体
  */
-class KHttpObjectBody {
+class KHttpObjectBody
+{
 public:
 	KHttpObjectBody() {
 		memset(this, 0, sizeof(KHttpObjectBody));
 	}
-	KHttpObjectBody(KHttpObjectBody *data);
+	KHttpObjectBody(KHttpObjectBody* data);
 	~KHttpObjectBody() {
 		if (headers) {
 			free_header_list(headers);
 		}
-		switch(i.type){
+		switch (i.type) {
 		case MEMORY_OBJECT:
 			if (bodys) {
 				destroy_kbuf(bodys);
@@ -86,18 +87,19 @@ public:
 		}
 	}
 #ifdef ENABLE_DISK_CACHE
-	bool restore_header(KHttpObject *obj,char *buf, int len);
-	void create_type(HttpObjectIndex *index);
+	bool restore_header(KHttpObject* obj, char* buf, int len);
+	void create_type(HttpObjectIndex* index);
 #endif
 	KHttpObjectBodyData i;
-	KHttpHeader *headers; /* headers */
-	union {
-		kbuf *bodys;
+	KHttpHeader* headers; /* headers */
+	union
+	{
+		kbuf* bodys;
 #ifdef ENABLE_DISK_CACHE
-		KHttpObjectSwaping *os;
+		KHttpObjectSwaping* os;
 #endif
 #ifdef ENABLE_BIG_OBJECT_206
-		KSharedBigObject *sbo;
+		KSharedBigObject* sbo;
 #endif
 	};
 };
@@ -105,29 +107,30 @@ public:
 inline bool status_code_can_cache(u_short code) {
 	switch (code) {
 	case STATUS_OK:
-			//目前仅支持200
-			return true;
+		//目前仅支持200
+		return true;
 	default:
-			return false;
+		return false;
 	}
 }
 /**
  * http物件。例如网页之类,缓存对象
  */
-class KHttpObject {
+class KHttpObject
+{
 public:
 	friend class KHttpObjectHash;
 	KHttpObject() {
 		init(NULL);
 	}
-	KHttpObject(KHttpRequest *rq) {		
+	KHttpObject(KHttpRequest* rq) {
 		init(rq->sink->data.url);
-		data = new KHttpObjectBody();	
-		KBIT_SET(index.flags,FLAG_IN_MEM);
+		data = new KHttpObjectBody();
+		KBIT_SET(index.flags, FLAG_IN_MEM);
 	}
-	KHttpObject(KHttpRequest *rq,KHttpObject *obj);
-	void init(KUrl *url) {
-		memset(&index,0,sizeof(index));
+	KHttpObject(KHttpRequest* rq, KHttpObject* obj);
+	void init(KUrl* url) {
+		memset(&index, 0, sizeof(index));
 		memset(&dk, 0, sizeof(dk));
 		list_state = LIST_IN_NONE;
 		runtime_flags = 0;
@@ -143,35 +146,32 @@ public:
 		data = NULL;
 	}
 	void Dead();
-	void UpdateCache(KHttpObject *obj);
+	void UpdateCache(KHttpObject* obj);
 	bool IsContentEncoding() {
 		return uk.url->encoding > 0;
 	}
-	void AddContentEncoding(u_char encoding,const char *val, hlen_t val_len)
-	{
+	void AddContentEncoding(u_char encoding, const char* val, hlen_t val_len) {
 		uk.url->set_content_encoding(encoding);
 		insert_http_header(kgl_header_content_encoding, val, val_len);
 	}
-	bool IsContentRangeComplete(KHttpRequest *rq)
-	{
+	bool IsContentRangeComplete() {
 		if (!KBIT_TEST(index.flags, ANSW_HAS_CONTENT_RANGE)) {
 			return false;
 		}
-		assert(data);
-		return rq->ctx->content_range_length==index.content_length;
+		assert(data);		
+		return index.content_range_length == index.content_length;
 	}
-	inline char *getCharset()
-	{
-		if (data==NULL) {
+	inline char* getCharset() {
+		if (data == NULL) {
 			return NULL;
 		}
-		KHttpHeader *tmp = data->headers;
-		while (tmp){
+		KHttpHeader* tmp = data->headers;
+		while (tmp) {
 			if (!tmp->name_is_know || tmp->know_header != kgl_header_content_type) {
 				tmp = tmp->next;
 				continue;
 			}
-			const char *p = kgl_memstr(tmp->buf + tmp->val_offset,tmp->val_len, _KS("charset="));
+			const char* p = kgl_memstr(tmp->buf + tmp->val_offset, tmp->val_len, _KS("charset="));
 			if (p == NULL) {
 				return NULL;
 			}
@@ -180,7 +180,7 @@ public:
 			while (p < end && IS_SPACE((unsigned char)*p)) {
 				p++;
 			}
-			const char *charsetend = p;
+			const char* charsetend = p;
 			while (charsetend < end && !IS_SPACE((unsigned char)*charsetend) && *charsetend != ';') {
 				charsetend++;
 			}
@@ -190,8 +190,7 @@ public:
 		}
 		return NULL;
 	}
-	KMutex *getLock()
-	{
+	KMutex* getLock() {
 		return &obj_lock[h];
 	}
 	int getRefs() {
@@ -201,71 +200,59 @@ public:
 		obj_lock[hh].Unlock();
 		return ret;
 	}
-	KHttpHeader *findHeader(const char *attr,int len) {
-		KHttpHeader *h = data->headers;
+	KHttpHeader* find_header(const char* attr, int len) {
+		KHttpHeader* h = data->headers;
 		while (h) {
 			if (kgl_is_attr(h, attr, len)) {
 				return h;
 			}
-			h = h->next;			
+			h = h->next;
 		}
 		return NULL;
 	}
-	bool matchEtag(const char *if_none_match,int len) {
-		if (!KBIT_TEST(index.flags,OBJ_HAS_ETAG)) {
-			return false;
-		}
-		if (data==NULL) {
-			return false;
-		}
-		KHttpHeader *h = findHeader("Etag",sizeof("Etag")-1);
-		if (h==NULL || len!=h->val_len) {
-			return false;
-		}
-		return memcmp(if_none_match,h->buf+h->val_offset,h->val_len)==0;
-	}
+	bool precondition_time(time_t time);
+	bool precondition_entity(const char* entity, size_t len);
+	bool match_if_range(const char* entity, size_t len);
 	void addRef() {
 		u_short hh = h;
 		obj_lock[hh].Lock();
 		refs++;
 		obj_lock[hh].Unlock();
 	}
-	void release()
-	{
+	void release() {
 		u_short hh = h;
 		obj_lock[hh].Lock();
-		assert(refs>0);
+		assert(refs > 0);
 		refs--;
-		if (refs==0) {
+		if (refs == 0) {
 			obj_lock[hh].Unlock();
 			delete this;
 			return;
 		}
 		obj_lock[hh].Unlock();
 	}
-	unsigned getCurrentAge(time_t nowTime) {	
-		return (unsigned) (nowTime - index.last_verified);
+	unsigned get_current_age(time_t now_time) {
+		return (unsigned)(now_time - index.last_verified);
 	}
 #ifdef ENABLE_FORCE_CACHE
 	//强制缓存
-	bool force_cache(bool insertLastModified=true)
-	{
+	bool force_cache(bool insertLastModified = true) {
 		if (!status_code_can_cache(data->i.status_code)) {
 			return false;
 		}
-		KBIT_CLR(index.flags,ANSW_NO_CACHE|OBJ_MUST_REVALIDATE);
-		if (!KBIT_TEST(index.flags,ANSW_LAST_MODIFIED|OBJ_HAS_ETAG)) {
+		KBIT_CLR(index.flags, ANSW_NO_CACHE | OBJ_MUST_REVALIDATE);
+		if (!KBIT_TEST(index.flags, ANSW_LAST_MODIFIED | OBJ_HAS_ETAG)) {
 			data->i.last_modified = kgl_current_sec;
-			if (insertLastModified) {			
-				insert_http_header(kgl_header_last_modified, (char *)&data->i.last_modified, KGL_HEADER_VALUE_TIME);				
+			if (insertLastModified) {
+				insert_http_header(kgl_header_last_modified, (char*)&data->i.last_modified, KGL_HEADER_VALUE_TIME);
 			}
-			KBIT_SET(index.flags,ANSW_LAST_MODIFIED);
+			KBIT_SET(index.flags, ANSW_LAST_MODIFIED);
 		}
-		KBIT_SET(index.flags,OBJ_IS_STATIC2);
+		KBIT_SET(index.flags, OBJ_IS_STATIC2);
 		return true;
 	}
 #endif
-	bool isNoBody(KHttpRequest *rq) {
+	bool isNoBody(KHttpRequest* rq) {
 		if (this->checkNobody()) {
 			return true;
 		}
@@ -273,56 +260,52 @@ public:
 	}
 	bool checkNobody() {
 		if (is_status_code_no_body(data->i.status_code)) {
-			KBIT_SET(index.flags,FLAG_NO_BODY);
+			KBIT_SET(index.flags, FLAG_NO_BODY);
 			return true;
 		}
-		if (KBIT_TEST(index.flags,ANSW_XSENDFILE)) {
-			KBIT_SET(index.flags,FLAG_NO_BODY);
+		if (KBIT_TEST(index.flags, ANSW_XSENDFILE)) {
+			KBIT_SET(index.flags, FLAG_NO_BODY);
 			return true;
 		}
 		return false;
 	}
-	void CountSize(INT64 &mem_size,INT64 &disk_size,int &mem_count,int &disk_count)
-	{
-		if (KBIT_TEST(index.flags,FLAG_IN_MEM)) {
+	void CountSize(INT64& mem_size, INT64& disk_size, int& mem_count, int& disk_count) {
+		if (KBIT_TEST(index.flags, FLAG_IN_MEM)) {
 			mem_count++;
 			mem_size += GetMemorySize();
 		}
-		if (KBIT_TEST(index.flags,FLAG_IN_DISK)) {
+		if (KBIT_TEST(index.flags, FLAG_IN_DISK)) {
 			disk_count++;
-			disk_size += GetDiskSize();			
+			disk_size += GetDiskSize();
 		}
 	}
-	inline INT64 GetMemorySize()
-	{
+	inline INT64 GetMemorySize() {
 		INT64 size = GetHeaderSize();
 		if (data && data->i.type == MEMORY_OBJECT) {
 			size += index.content_length;
 		}
 		return size;
 	}
-	inline INT64 GetDiskSize()
-	{
+	inline INT64 GetDiskSize() {
 		return GetHeaderSize() + index.content_length;
 	}
-	int GetHeaderSize(int url_len=0);
+	int GetHeaderSize(int url_len = 0);
 #ifdef ENABLE_DISK_CACHE
-	bool swapout(KBufferFile *file,bool fast_model);
+	bool swapout(KBufferFile* file, bool fast_model);
 	void unlinkDiskFile();
-	char *getFileName(bool part=false);
-	void write_file_header(KHttpObjectFileHeader *fileHeader);
-	bool save_header(KBufferFile *fp,const char *url, int url_len);
-	char *build_aio_header(int &len, const char* url, int url_len);
-	int build_header(char* pos,char *end, const char* url, int url_len);
+	char* get_filename(bool part = false);
+	void write_file_header(KHttpObjectFileHeader* fileHeader);
+	bool save_header(KBufferFile* fp, const char* url, int url_len);
+	char* build_aio_header(int& len, const char* url, int url_len);
+	int build_header(char* pos, char* end, const char* url, int url_len);
 #endif
-	bool removeHttpHeader(const char *attr,int attr_len)
-	{
+	bool remove_http_header(const char* attr, int attr_len) {
 		bool result = false;
-		KHttpHeader *h = data->headers;
-		KHttpHeader *last = NULL;
+		KHttpHeader* h = data->headers;
+		KHttpHeader* last = NULL;
 		while (h) {
-			KHttpHeader *next = h->next;
-			if (kgl_is_attr(h,attr,attr_len)) {
+			KHttpHeader* next = h->next;
+			if (kgl_is_attr(h, attr, attr_len)) {
 				if (last) {
 					last->next = next;
 				} else {
@@ -338,8 +321,7 @@ public:
 		}
 		return result;
 	}
-	void insert_http_header(kgl_header_type type, const char* val, int val_len)
-	{
+	void insert_http_header(kgl_header_type type, const char* val, int val_len) {
 		KHttpHeader* new_h = new_http_know_header(type, val, val_len);
 		if (!new_h) {
 			return;
@@ -347,32 +329,34 @@ public:
 		new_h->next = data->headers;
 		data->headers = new_h;
 	}
-	void insert_http_header(const char *attr,int attr_len, const char *val,int val_len) {
+	void insert_http_header(const char* attr, int attr_len, const char* val, int val_len) {
 		KHttpHeader* new_h = new_http_header(attr, attr_len, val, val_len);
 		new_h->next = data->headers;
 		data->headers = new_h;
 	}
-	void ResponseVaryHeader(KHttpRequest *rq);
-	bool AddVary(KHttpRequest *rq,const char *val,int val_len);
-	INT64 getTotalContentSize(KHttpRequest *rq)
-	{
-		if (KBIT_TEST(index.flags,ANSW_HAS_CONTENT_RANGE)) {
-			return rq->ctx->content_range_length;
+	void ResponseVaryHeader(KHttpRequest* rq);
+	bool AddVary(KHttpRequest* rq, const char* val, int val_len);
+	int64_t getTotalContentSize() {
+		if (KBIT_TEST(index.flags, ANSW_HAS_CONTENT_RANGE)) {
+			return index.content_range_length;
 		}
 		return index.content_length;
 	}
-	KHttpObject *lnext; /* in list */
-	KHttpObject *lprev; /* in list */
-	KHttpObject *next;  /* in hash */	
+	KHttpObject* lnext; /* in list */
+	KHttpObject* lprev; /* in list */
+	KHttpObject* next;  /* in hash */
 	/* list state
 	 LIST_IN_NONE
 	 LIST_IN_MEM
 	 LIST_IN_DISK
 	 */
 	unsigned char list_state;
-	union {
-		struct {
+	union
+	{
+		struct
+		{
 			unsigned char in_cache : 1;
+			unsigned char cache_is_ready : 1;
 			unsigned char dc_index_update : 1;//文件index更新
 			unsigned char us_ok_dead : 1;
 			unsigned char us_err_dead : 1;
@@ -384,12 +368,12 @@ public:
 	short h; /* hash value */
 	int refs;
 	KUrlKey uk;
-	KHttpObjectBody *data;
+	KHttpObjectBody* data;
 	KHttpObjectKey dk;
 	HttpObjectIndex index;
 private:
 	~KHttpObject();
-	char *BuildVary(KHttpRequest *rq);
+	char* BuildVary(KHttpRequest* rq);
 };
 
 #endif /*KHTTPOBJECT_H_*/

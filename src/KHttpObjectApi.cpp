@@ -22,7 +22,7 @@ KGL_RESULT obj_get_header(KHTTPOBJECT o, LPSTR  name, LPVOID value, LPDWORD size
 KHTTPOBJECT get_old_obj(KREQUEST r)
 {
 	KHttpRequest *rq = (KHttpRequest *)r;
-	return (KHTTPOBJECT)rq->ctx->old_obj;
+	return (KHTTPOBJECT)rq->ctx.old_obj;
 }
 kgl_http_object_function http_object_provider = {
 	obj_get_header,

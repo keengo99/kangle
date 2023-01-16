@@ -18,13 +18,13 @@ static KFIBER_COND kgl_kfiber_cond_init(bool thread_safe, bool auto_reset)
 	}
 	return kfiber_cond_init(auto_reset);
 }
-static int kgl_kfiber_cond_wait(KFIBER_COND cond)
+static int kgl_kfiber_cond_wait(KFIBER_COND cond, int *got)
 {
-	return ((kfiber_cond*)cond)->f->wait((kfiber_cond*)cond);
+	return ((kfiber_cond*)cond)->f->wait((kfiber_cond*)cond,got);
 }
-static int kgl_kfiber_cond_notice(KFIBER_COND cond)
+static int kgl_kfiber_cond_notice(KFIBER_COND cond, int got)
 {
-	return ((kfiber_cond*)cond)->f->notice((kfiber_cond*)cond, 0);
+	return ((kfiber_cond*)cond)->f->notice((kfiber_cond*)cond, got);
 }
 static void kgl_kfiber_cond_destroy(KFIBER_COND cond)
 {

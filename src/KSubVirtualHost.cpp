@@ -303,7 +303,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 		return false;
 	}
 	if (type == subdir_local) {
-		if (!rq->ctx->internal && !vh->htaccess.empty()) {
+		if (!rq->ctx.internal && !vh->htaccess.empty()) {
 			char *path = xstrdup(rq->sink->data.url->path);
 			int prefix_len = 0;
 			for (;;) {
@@ -315,7 +315,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 					prefix_len = (int)(hot - path);
 				}
 				*hot = '\0';
-				char *apath = vh->alias(rq->ctx->internal, path);
+				char *apath = vh->alias(rq->ctx.internal, path);
 				KFileName htfile;
 				bool htfile_exsit;
 				if (apath) {
@@ -340,7 +340,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 							delete htrequest;
 							delete (*htresponse);
 							*htresponse = NULL;
-							handle_denied_request(rq);
+							//handle_denied_request(rq);
 							return true;
 						}
 					}
@@ -414,7 +414,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 	if (rd == NULL) {
 		return false;
 	}
-	KFetchObject *fo = rd->makeFetchObject(rq, rq->file);
+	KRedirectSource*fo = rd->makeFetchObject(rq, rq->file);
 	KBaseRedirect *brd = new KBaseRedirect(rd, false);
 	fo->bindBaseRedirect(brd);
 	brd->release();
@@ -424,7 +424,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 bool KSubVirtualHost::bindFile(KHttpRequest *rq,bool &exsit,bool searchDefaultFile,bool searchAlias)
 {
 	KFileName *file = new KFileName;
-	if (!searchAlias || !vh->alias(rq->ctx->internal,rq->sink->data.url->path,file,exsit,rq->getFollowLink())) {
+	if (!searchAlias || !vh->alias(rq->ctx.internal,rq->sink->data.url->path,file,exsit,rq->getFollowLink())) {
 		exsit = file->setName(doc_root, rq->sink->data.url->path, rq->getFollowLink());
 	}
 	kassert(rq->file == NULL);

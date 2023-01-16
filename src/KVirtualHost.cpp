@@ -166,7 +166,7 @@ bool KVirtualHost::isPathRedirect(KHttpRequest *rq, KFileName *file,
 }
 KFetchObject *KVirtualHost::findDefaultRedirect(KHttpRequest *rq,
 		KFileName *file, bool fileExsit) {
-	KFetchObject *fo = NULL;
+	KRedirectSource*fo = NULL;
 	lock.Lock();
 	if (defaultRedirect 
 		&& defaultRedirect->rd
@@ -209,7 +209,7 @@ KBaseRedirect* KVirtualHost::refsPathRedirect(const char* path, int path_len)
 }
 KFetchObject *KVirtualHost::findPathRedirect(KHttpRequest *rq, KFileName *file,const char *path,
 		bool fileExsit, bool &result) {
-	KFetchObject *fo = NULL;
+	KRedirectSource*fo = NULL;
 	int path_len = (int)strlen(path);
 	KLocker locker(&lock);
 	list<KPathRedirect *>::iterator it2;
@@ -229,7 +229,7 @@ KFetchObject *KVirtualHost::findPathRedirect(KHttpRequest *rq, KFileName *file,c
 }
 KFetchObject *KVirtualHost::findFileExtRedirect(KHttpRequest *rq,
 		KFileName *file, bool fileExsit, bool &result) {
-	KFetchObject *fo = NULL;
+	KRedirectSource*fo = NULL;
 	char *file_ext = (char *) file->getExt();
 	lock.Lock();
 	if (file_ext) {
@@ -526,14 +526,14 @@ int KVirtualHost::checkResponse(KHttpRequest *rq)
 	if (user_access.empty()) {
 		return JUMP_ALLOW;
 	}
-	return access[RESPONSE].check(rq,rq->ctx->obj);
+	return access[RESPONSE].check(rq,rq->ctx.obj);
 }
 int KVirtualHost::checkPostMap(KHttpRequest *rq)
 {
 	if(user_access.size()==0){
 		return JUMP_ALLOW;
 	}
-	return access[RESPONSE].checkPostMap(rq,rq->ctx->obj);
+	return access[RESPONSE].checkPostMap(rq,rq->ctx.obj);
 }
 void KVirtualHost::setAccess(std::string access_file)
 {

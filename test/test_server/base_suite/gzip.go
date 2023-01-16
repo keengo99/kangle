@@ -88,7 +88,6 @@ func check_local_gzip_range() {
 
 // 测试代理range的gzip压缩
 func check_proxy_gzip_range() {
-
 	check_ranges([]RequestRange{
 		{0, -1, nil, nil},
 		{0, 8192,
@@ -126,7 +125,4 @@ func check_compress() {
 	check_id()
 	check_proxy_gzip_range()
 	check_local_gzip_range()
-}
-func check_bug() {
-	check_id()
 }

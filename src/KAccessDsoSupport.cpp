@@ -49,7 +49,7 @@ KGL_RESULT add_header_var(LPVOID buffer, LPDWORD size, KHttpHeader* header, cons
 }
 KGL_RESULT get_response_variable(KHttpRequest* rq, KGL_VAR type, const char *name, LPVOID  buffer, LPDWORD size)
 {
-	KHttpObject* obj = rq->ctx->obj;
+	KHttpObject* obj = rq->ctx.obj;
 	if (obj == NULL) {
 		return KGL_ENO_DATA;
 	}
@@ -93,12 +93,12 @@ KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, const char *name
 	case KGL_VAR_CACHE_TYPE:
 	{
 		int32_t* v = (int32_t*)buffer;
-		if (rq->ctx->obj) {
-			if (rq->ctx->obj->in_cache) {
+		if (rq->ctx.obj) {
+			if (rq->ctx.obj->in_cache) {
 				*v = 1;
 				return KGL_OK;
 			}
-			if (rq->ctx->old_obj) {
+			if (rq->ctx.old_obj) {
 				*v = 2;
 				return KGL_OK;
 			}
@@ -203,38 +203,6 @@ KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, const char *name
 	}
 	case KGL_VAR_CONTENT_TYPE:
 		return add_header_var(buffer, size, rq->sink->data.get_header(), _KS("Content-Type"));
-	case KGL_VAR_IF_MODIFIED_SINCE:
-	{
-		if (rq->ctx->mt == modified_if_range_date || rq->sink->data.if_modified_since <= 0) {
-			return KGL_ENO_DATA;
-		}
-		time_t* v = (time_t*)buffer;
-		*v = rq->sink->data.if_modified_since;
-		return KGL_OK;
-	}
-	case KGL_VAR_IF_RANGE_TIME:
-	{
-		if (rq->ctx->mt != modified_if_range_date || rq->sink->data.if_modified_since <= 0) {
-			return KGL_ENO_DATA;
-		}
-		time_t* v = (time_t*)buffer;
-		*v = rq->sink->data.if_modified_since;
-		return KGL_OK;
-	}
-	case KGL_VAR_IF_NONE_MATCH:
-	{
-		if (rq->ctx->mt == modified_if_range_etag || rq->sink->data.if_none_match == NULL) {
-			return KGL_ENO_DATA;
-		}
-		return add_api_var(buffer, size, rq->sink->data.if_none_match->data, (int)rq->sink->data.if_none_match->len);
-	}
-	case KGL_VAR_IF_RANGE_STRING:
-	{
-		if (rq->ctx->mt != modified_if_range_etag || rq->sink->data.if_none_match == NULL) {
-			return KGL_ENO_DATA;
-		}
-		return add_api_var(buffer, size, rq->sink->data.if_none_match->data, (int)rq->sink->data.if_none_match->len);
-	}
 	default:
 		return KGL_ENOT_SUPPORT;
 	}
@@ -363,13 +331,13 @@ KGL_RESULT base_support_function(KHttpRequest* rq, KF_REQ_TYPE req, PVOID data, 
 #endif
 	case KD_REQ_OBJ_IDENTITY:
 	{
-		if (rq->ctx->obj == NULL) {
+		if (rq->ctx.obj == NULL) {
 			return KGL_ENO_DATA;
 		}
-		if (rq->ctx->obj->IsContentEncoding()) {
+		if (rq->ctx.obj->IsContentEncoding()) {
 			return KGL_ENO_DATA;
 		}
-		rq->ctx->obj->uk.url->accept_encoding = (uint8_t)(~0);
+		rq->ctx.obj->uk.url->accept_encoding = (uint8_t)(~0);
 		return KGL_OK;
 	}
 	default:
@@ -389,14 +357,14 @@ static KGL_RESULT support_function(
 	switch (req) {
 	case KF_REQ_UPSTREAM:
 	{
-		if (rq->ctx->obj) {
+		if (rq->ctx.obj) {
 			//回应控制不允许注册upstream
 			return KGL_EINVALID_PARAMETER;
 		}
 		kgl_upstream* us = (kgl_upstream*)data;
 		//目前还不支持同步模式	
 		KDsoRedirect* rd = new KDsoRedirect("", us);
-		KFetchObject* fo = rd->makeFetchObject(rq, *ret);
+		KRedirectSource* fo = rd->makeFetchObject(rq, *ret);
 		fo->bindRedirect(rd, KGL_CONFIRM_FILE_NEVER);
 		fo->filter = 1;
 		if (KBIT_TEST(us->flags, KGL_UPSTREAM_BEFORE_CACHE)) {

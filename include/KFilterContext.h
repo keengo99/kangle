@@ -31,7 +31,7 @@ public:
 	void registerFilterStream(KHttpRequest *rq, KHttpStream *st,bool autoDelete=true)
 	{
 		if (!KBIT_TEST(st->get_feature(), KGL_FILTER_NOT_CHANGE_LENGTH)) {
-			rq->ctx->has_change_length_filter = 1;
+			rq->ctx.has_change_length_filter = 1;
 		}
 		return registerFilterStreamEx(st,st,autoDelete);
 	}

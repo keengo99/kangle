@@ -11,32 +11,30 @@ enum cache_model
 	cache_disk
 };
 
-inline void set_buffer_obj(KAutoBuffer *buffer,KHttpObject *obj)
-{
-	assert(obj->data->bodys==NULL);
-	obj->index.content_length = buffer->getLen();
-	obj->data->bodys = buffer->stealBuff();
-	KBIT_SET(obj->index.flags,OBJ_IS_READY);
-}
-class KCacheStream : public KHttpStream
+
+struct KCacheStream : kgl_forward_body
 {
 public:
-	KCacheStream(KWriteStream *st, bool autoDelete) : KHttpStream(st, autoDelete)
-	{
-
+	~KCacheStream() {
+		if (buffer) {
+			delete buffer;
+		}
+#ifdef ENABLE_DISK_CACHE
+		if (disk_cache) {
+			delete disk_cache;
+		}
+#endif
 	}
-	~KCacheStream();
-	void init(KHttpRequest *rq, KHttpObject *obj, cache_model cache_layer);
-	//StreamState write_direct(void *rq, char *buf,int len) override;
-	StreamState write_all(void*rq, const char *buf,int len)override;
-	StreamState write_end(void*rq, KGL_RESULT result)override;
-private:
-	void CheckMemoryCacheSize(KHttpRequest *rq);
+	void init(KHttpObject *obj, cache_model cache_layer);
+	StreamState write_all(const char *buf,int len);
+	StreamState write_end(KGL_RESULT result);
+	void CheckMemoryCacheSize();
 #ifdef ENABLE_DISK_CACHE	
-	KDiskCacheStream *NewDiskCache(KHttpRequest *rq);
+	KDiskCacheStream *NewDiskCache();
 	KDiskCacheStream *disk_cache = nullptr;
 #endif
 	KHttpObject *obj = nullptr;
 	KAutoBuffer *buffer = nullptr;
 };
+bool pipe_cache_stream(KHttpRequest* rq, KHttpObject* obj, cache_model cache_layer, kgl_response_body* body);
 #endif

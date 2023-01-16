@@ -51,7 +51,6 @@ class KFetchObject {
 public:
 	KFetchObject()
 	{
-		brd = NULL;
 		flags = 0;
 	}
 	virtual ~KFetchObject();
@@ -59,23 +58,7 @@ public:
 
 	}
 	virtual KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) = 0;
-	void bindRedirect(KRedirect *rd,uint8_t confirmFile)
-	{
-		kassert(this->brd == NULL);
-		this->brd = new KBaseRedirect(rd, confirmFile);
-	}
-	void bindBaseRedirect(KBaseRedirect *brd)
-	{
-		kassert(this->brd==NULL);
-		this->brd = brd;
-		if (brd) {
-			brd->addRef();
-		}
-	}
-	KBaseRedirect *getBaseRedirect()
-	{
-		return brd;
-	}
+
 	virtual bool NeedTempFile(bool upload, KHttpRequest *rq);
 	bool is_chunk_post()
 	{
@@ -97,9 +80,35 @@ public:
 		return false;
 	}
 #endif
-	KGL_RESULT PushBody(KHttpRequest *rq, kgl_output_stream *out, const char *buf, int len);
+	KGL_RESULT PushBody(KHttpRequest *rq, kgl_response_body *out, const char *buf, int len);
 	KFetchObject* next = nullptr;
+};
+class KRedirectSource : public KFetchObject
+{
+public:
+	KRedirectSource() {
+		brd = nullptr;
+	}
+	virtual ~KRedirectSource() {
+		if (brd) {
+			brd->release();
+		}
+	}
+	void bindRedirect(KRedirect* rd, uint8_t confirmFile) {
+		kassert(this->brd == NULL);
+		this->brd = new KBaseRedirect(rd, confirmFile);
+	}
+	void bindBaseRedirect(KBaseRedirect* brd) {
+		kassert(this->brd == NULL);
+		this->brd = brd;
+		if (brd) {
+			brd->addRef();
+		}
+	}
+	KBaseRedirect* getBaseRedirect() {
+		return brd;
+	}
 protected:
-	KBaseRedirect *brd;	
+	KBaseRedirect* brd;
 };
 #endif /* KFETCHOBJECT_H_ */

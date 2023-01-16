@@ -10,46 +10,37 @@
 #include "KSimulateRequest.h"
 #include "KSboFile.h"
 #include "HttpFiber.h"
+#include "KDefer.h"
+
 #ifdef ENABLE_BIG_OBJECT_206
-int bigobj_read_body_fiber(void* arg, int got)
+int bigobj_send_fiber(void* arg, int got)
 {
-	KGL_RESULT result = (KGL_RESULT)got;
-	KHttpRequest* rq = (KHttpRequest*)arg;
-	kassert(rq->bo_ctx);
-	if (result == KGL_OK) {
-		result = rq->bo_ctx->ReadBody(rq);
-	}
-	rq->bo_ctx->Close(rq);
-	return stage_end_request(rq, result);
+	KBigObjectContext* bo_ctx = (KBigObjectContext*)arg;
+	return (int)bo_ctx->send_data(NULL);
 }
-void KBigObjectContext::Close(KHttpRequest* rq)
+void KBigObjectContext::close()
 {
-	if (net_fiber) {
-		kfiber_join(net_fiber, NULL);
-		net_fiber = NULL;
-	}
+	delete this;
 }
-int KBigObjectContext::EndRequest(KHttpRequest* rq)
-{
-	kassert(net_fiber == kfiber_self());
-	if (last_net_from >= 0) {
-		gobj->data->sbo->CloseWrite(gobj, last_net_from);
-		last_net_from = -1;
-	}
-	return 0;
+void KBigObjectContext::close_write(int64_t from) {
+	obj->data->sbo->close_write(obj, from);
 }
-KGL_RESULT KBigObjectContext::ReadBody(KHttpRequest* rq)
+KGL_RESULT KBigObjectContext::send_data(bool *net_fiber)
 {
-	KSharedBigObject* sbo = getSharedBigObject();
-	sbo->OpenRead(gobj);
+	KSharedBigObject* sbo = get_shared_big_obj();
+	sbo->open_read(obj);
 	KGL_RESULT result = KGL_OK;
 	int block_length = conf.io_buffer;
 	char* buf = (char*)malloc(block_length);
 	int retried = 0;
 	while (left_read > 0) {
-		int got = sbo->Read(rq, gobj, buf, range_from, (int)KGL_MIN((INT64)block_length,left_read));
+		int got = sbo->read(rq, obj,offset, buf, (int)KGL_MIN((int64_t)block_length,left_read),net_fiber);	
 		//printf("left_read=[" INT64_FORMAT "],range_from=[" INT64_FORMAT "] got=[%d]\n", left_read, range_from, got);
 		if (got == -2) {
+			if (net_fiber && *net_fiber) {
+				result = KGL_ENO_DATA;
+				break;
+			}
 			//需要重试
 			if (retried > 0) {
 				result = KGL_EIO;
@@ -62,151 +53,132 @@ KGL_RESULT KBigObjectContext::ReadBody(KHttpRequest* rq)
 			result = KGL_EIO;
 			break;
 		}
-		result = rq->write_all(buf, got);
+		result = rq->ctx.st.f->write(rq->ctx.st.ctx, buf, got);
 		if (result!=KGL_OK) {
 			break;
-			break;
 		}
-		range_from += got;
+		offset += got;
 		left_read -= got;
 		retried = 0;
 	}
-	sbo->CloseRead(gobj);
+	sbo->close_read(obj);
 	free(buf);
 	return result;
 }
-KGL_RESULT KBigObjectContext::StreamWrite(INT64 offset, const char* buf, int len)
-{
-	return getSharedBigObject()->Write(gobj, offset, buf, len);
+bool KBigObjectContext::create_send_fiber(kfiber** send_fiber) {
+	return 0 == kfiber_create(bigobj_send_fiber, this, 0, conf.fiber_stack_size, send_fiber);
 }
-KBigObjectContext::KBigObjectContext(KHttpObject* gobj)
+KGL_RESULT KBigObjectContext::stream_write(INT64 offset, const char* buf, int len)
 {
-	range_from = 0;
-	left_read = -1;
-	this->gobj = gobj;
-	net_fiber = NULL;
-	last_net_from = -1;
-	gobj->addRef();
+	return get_shared_big_obj()->write(obj, offset, buf, len);
+}
+KBigObjectContext::KBigObjectContext(KHttpRequest *rq, KHttpObject* obj)
+{
+	this->obj = obj;
+	this->rq = rq;
+	obj->addRef();
 }
 KBigObjectContext::~KBigObjectContext()
 {
-	kassert(net_fiber == NULL);
-	gobj->release();
+	obj->release();
 }
-KGL_RESULT KBigObjectContext::Open(KHttpRequest* rq, bool create_flag)
+KGL_RESULT KBigObjectContext::create()
 {
-	if (!KBIT_TEST(rq->sink->data.flags, RQ_HAVE_RANGE)) {
-		rq->sink->data.range_from = 0;
-		rq->sink->data.range_to = -1;
-	}
-	range_from = rq->sink->data.range_from;
-	if (rq->sink->data.range_to < 0) {
-		left_read = gobj->index.content_length - range_from;
-	} else {
-		left_read = rq->sink->data.range_to + 1 - range_from;
-	}
-	kassert(gobj);
-	if (!create_flag) {
-		return OpenCache(rq);
-	}
-	kassert(net_fiber == NULL);
-	net_fiber = kfiber_ref_self(false);
-	kfiber_create(bigobj_read_body_fiber, rq, (int)SendHeader(rq), conf.fiber_stack_size, NULL);
-	return KGL_OK;
-}
-
-KGL_RESULT KBigObjectContext::SendHeader(KHttpRequest* rq)
-{
-	if (rq->ctx->st == NULL) {
-		rq->ctx->st = new KBigObjectStream(rq);
-	}
-	INT64 content_length = gobj->index.content_length;
-	if (rq->ctx->has_change_length_filter) {
-		content_length = -1;
-	}
-	INT64 if_range_from = rq->sink->data.range_from;
-	INT64 if_range_to = rq->sink->data.range_to;
-	rq->sink->data.range_from = range_from;
-	rq->sink->data.range_to = range_from + left_read - 1;
-	if (rq->sink->data.range_to >= content_length - 1) {
-		rq->sink->data.range_to = -1;
-	}
-	if (!build_obj_header(rq, gobj, content_length, range_from, left_read)) {
-		return KGL_EUNKNOW;
-	}
-	rq->sink->data.range_from = if_range_from;
-	rq->sink->data.range_to = if_range_to;
-	//printf("start_send_header rq=[%p] left_read=[%lld]\n",rq,left_read);
-	if (range_from < 0) {
-		return KGL_NO_BODY;
-	}
-	//确保gobj==rq->ctx->obj
-	assert(gobj == rq->ctx->obj);
-	assert(range_from >= 0);
-	if (rq->sink->data.meth == METH_HEAD) {
-		return KGL_NO_BODY;
+	if (!adjust_length()) {
+		return KGL_ENO_DATA;
 	}
 	return KGL_OK;
 }
 
-KGL_RESULT KBigObjectContext::OpenCache(KHttpRequest* rq)
+
+KGL_RESULT KBigObjectContext::open_cache()
 {
-	assert(gobj);
-	KSharedBigObject* sbo = getSharedBigObject();
+	assert(obj);
+	KSharedBigObject* sbo = get_shared_big_obj();
 	assert(sbo);
-	if (sbo->CanSatisfy(rq, gobj)) {
-#ifndef NDEBUG
-		klog(KLOG_DEBUG, "st=%p can satisfy,from=" INT64_FORMAT ",to=" INT64_FORMAT "\n", rq, rq->sink->data.range_from, rq->sink->data.range_to);
-#endif
-		kfiber_next(bigobj_read_body_fiber, rq, (int)SendHeader(rq));
-		return KGL_OK;
+	assert(!rq->ctx.sub_request);
+	kgl_sub_request *srq = rq->alloc_sub_request();
+	srq->range = rq->sink->alloc<kgl_request_range>();
+	if (rq->sink->data.range) {
+		memcpy(srq->range, rq->sink->data.range, sizeof(kgl_sub_request));
+	} else {
+		memset(srq->range, 0, sizeof(kgl_sub_request));
+		srq->range->to = -1;
 	}
-#ifndef NDEBUG
-	if (rq->sink->data.range_to >= 0) {
-		assert(rq->sink->data.range_to >= rq->sink->data.range_from);
+	if (sbo->can_satisfy(srq->range, obj) || rq->sink->data.meth == METH_HEAD) {
+		if (!check_object_expiration(rq, obj)) {
+			//没有过期，并且也满足，直接走大文件缓存通道。
+			return send_cache_object(rq, obj);
+		}
 	}
-#endif
-	rq->ctx->push_obj(new KHttpObject(rq));
-	rq->ctx->new_object = true;
-	this->build_if_range(rq);
-	return prepare_request_fetchobj(rq);
+	if (!adjust_length()) {
+		return send_error2(rq, 416, "");
+	}
+	KGL_RESULT result = KGL_OK;
+	for (;;) {
+		rq->push_obj(new KHttpObject(rq));
+		this->build_if_range(rq);
+
+		kgl_input_stream in;
+		kgl_output_stream out;
+		new_default_stream(rq, &in, &out);
+		tee_output_stream(&out);
+		defer(in.f->release(in.ctx); out.f->release(out.ctx));
+
+		
+		if (!process_check_final_source(rq, &in, &out, &result)) {
+			return result;
+		}
+		KBigObjectReadContext* net_ctx = new KBigObjectReadContext;
+		memset(net_ctx, 0, sizeof(KBigObjectReadContext));
+		net_ctx->bo_ctx = this;
+
+		KGL_RESULT result = process_request_stream(rq, &in, &out);
+		if (result == KGL_NO_BODY) {
+			//handle no_body
+		}
+		if (result != KGL_OK) {
+			break;
+		}
+		if (left_read <= 0) {
+			break;
+		}
+		bool net_fiber = false;
+		result = send_data(&net_fiber);
+		if (result == KGL_OK) {
+			break;
+		}
+		if (!net_fiber) {
+			break;
+		}
+	}
+	return result;
 }
 void KBigObjectContext::build_if_range(KHttpRequest* rq)
 {
-	//last_net_from = getSharedBigObject()->OpenWrite(rq->sink->data.range_from);
-	KContext* context = rq->ctx;
-	context->mt = modified_if_range_date;
-	if (gobj->data->i.last_modified) {
-		rq->sink->data.if_modified_since = gobj->data->i.last_modified;
-	} else if (KBIT_TEST(gobj->index.flags, OBJ_HAS_ETAG)) {
-		context->mt = modified_if_range_etag;
-		KHttpHeader* h = gobj->findHeader("Etag", sizeof("Etag") - 1);
+	assert(rq->ctx.sub_request && rq->ctx.sub_request->range);
+	rq->ctx.sub_request->precondition = nullptr;
+	rq->ctx.precondition_flag = 0;
+	if (obj->data->i.last_modified>0) {
+		KBIT_SET(rq->ctx.precondition_flag, kgl_precondition_if_range_date);
+		rq->ctx.sub_request->range->if_range_date = obj->data->i.last_modified;
+	} else if (KBIT_TEST(obj->index.flags, OBJ_HAS_ETAG)) {
+		KHttpHeader* h = obj->find_header(_KS("Etag"));
 		if (h) {
-			rq->sink->set_if_none_match(h->buf, h->val_len);
+			rq->ctx.sub_request->range->if_range_entity = rq->sink->alloc<kgl_str_t>();
+			rq->ctx.sub_request->range->if_range_entity->data = h->buf + h->val_offset;
+			rq->ctx.sub_request->range->if_range_entity->len = h->val_len;
 		}
-	} else {
-		rq->sink->data.if_modified_since = gobj->index.last_verified;
 	}
 	//提前更新last verified，减少源的连接数
-	gobj->index.last_verified = kgl_current_sec;
+	obj->index.last_verified = kgl_current_sec;
 }
-void KBigObjectContext::StartNetRequest(KHttpRequest* rq, kfiber* fiber)
+KGL_RESULT KBigObjectContext::upstream_recv_headed()
 {
-	if (net_fiber) {
-		kfiber_join(net_fiber, NULL);
-	}
-	last_net_from = rq->sink->data.range_from;
-	rq->ctx->old_obj = rq->ctx->obj;
-	rq->ctx->obj = new KHttpObject(rq);
-	rq->ctx->new_object = true;
-	this->build_if_range(rq);
-	net_fiber = fiber;
-	kfiber_start(fiber, 0);
-}
-KGL_RESULT KBigObjectContext::upstream_recv_headed(KHttpRequest* rq, KHttpObject* obj, bool &bigobj_dead)
-{
+	assert(rq->ctx.old_obj && rq->ctx.old_obj->data->i.type == BIG_OBJECT_PROGRESS);
+	KHttpObject* obj = rq->ctx.obj;
 	assert(obj->data->i.type == MEMORY_OBJECT);
-	bigobj_dead = false;
+	assert(bigobj_dead == false);
 	if (obj->data->i.status_code != STATUS_CONTENT_PARTIAL) {
 		//status_code not 206
 		bigobj_dead = true;
@@ -216,7 +188,7 @@ KGL_RESULT KBigObjectContext::upstream_recv_headed(KHttpRequest* rq, KHttpObject
 		klog(KLOG_INFO, "bigobj_dead have no content_range\n");
 		bigobj_dead = true;
 	} else {
-		KHttpObject* gobj = rq->bo_ctx->gobj;
+		KHttpObject* gobj = this->obj;
 		assert(gobj);
 		if (obj->uk.url->encoding != gobj->uk.url->encoding) {
 			if (gobj->IsContentEncoding() || obj->IsContentEncoding()) {
@@ -225,43 +197,85 @@ KGL_RESULT KBigObjectContext::upstream_recv_headed(KHttpRequest* rq, KHttpObject
 				gobj->uk.url->merge_accept_encoding(obj->uk.url->encoding);
 			}
 		}
-		if (obj->getTotalContentSize(rq) != gobj->index.content_length) {
+		if (obj->getTotalContentSize() != gobj->index.content_length) {
 			//内容长度有改变
 			bigobj_dead = true;
-			klog(KLOG_INFO, "obj content range is not eq %lld gobj=%lld\n", obj->getTotalContentSize(rq), gobj->index.content_length);
+			klog(KLOG_INFO, "obj content range is not eq %lld gobj=%lld\n", obj->getTotalContentSize(), gobj->index.content_length);
 		}
 	}
 	if (!bigobj_dead) {
-		rq->ctx->pop_obj();
-		if (rq->ctx->st == NULL) {
-			rq->ctx->st = new KBigObjectStream(rq);
+		rq->pop_obj();
+#if 0
+		if (rq->ctx.st == NULL) {
+			rq->ctx.st = new KBigObjectStream(rq);
 		}
+#endif
+#if 0
 		if (net_fiber == NULL) {
 			net_fiber = kfiber_ref_self(false);
 			assert(last_net_from == -1);
-			last_net_from = gobj->data->sbo->OpenWrite(rq->sink->data.range_from);
-			kfiber_create(bigobj_read_body_fiber, rq, (int)SendHeader(rq), conf.fiber_stack_size, NULL);
+			assert(false);//TODO open write.
+			//last_net_from = gobj->data->sbo->OpenWrite(rq->sink->data.range_from);
+			kfiber_create(bigobj_send_fiber, rq, (int)SendHeader(rq), conf.fiber_stack_size, NULL);
 		}
 		return KGL_OK;
+#endif
 	}
-	rq->ctx->cache_hit_part = false;
+	rq->ctx.cache_hit_part = false;
+#if 0
 	if (net_fiber) {
 		assert(net_fiber == kfiber_self());
 		return KGL_EIO;
 	}
+#endif
+#if 0
 	//大物件If-Range的请求回应,如果回应码不是206，则把大物件die掉。
 	//或者是无if-range的请求，但回应不是304
 	KBIT_CLR(rq->sink->data.flags, RQ_HAVE_RANGE);
+
 	kassert(rq->tr == NULL);
-	if (rq->ctx->st) {
-		delete rq->ctx->st;
-		rq->ctx->st = NULL;
+	if (rq->ctx.st) {
+		delete rq->ctx.st;
+		rq->ctx.st = NULL;
 	}
-	delete rq->bo_ctx;
-	rq->bo_ctx = NULL;
+#endif
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER)) {
 		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 	}
 	return KGL_OK ;
+}
+static KGL_RESULT bigobj_error(kgl_output_stream_ctx* ctx, uint16_t status_code, const char* reason, size_t reason_len) {
+	KBigObjectContext* bo_ctx = (KBigObjectContext*)ctx;
+	return KGL_EUNKNOW;
+}
+static KGL_RESULT upstream_recv_headed(kgl_output_stream_ctx* ctx, kgl_response_body* body) {
+	KBigObjectContext* bo_ctx = (KBigObjectContext*)ctx;
+	KGL_RESULT result = bo_ctx->upstream_recv_headed();
+	return result;
+}
+KGL_RESULT bigobj_write_trailer(kgl_output_stream_ctx* ctx, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
+	KBigObjectContext* bo_ctx = (KBigObjectContext*)ctx;
+	if (bo_ctx->bigobj_dead) {
+		return forward_write_trailer(ctx, attr, attr_len, val, val_len);
+	}
+	return KGL_OK;
+}
+void bigobj_release(kgl_output_stream_ctx* ctx) {
+	KBigObjectContext* bo_ctx = (KBigObjectContext*)ctx;
+	bo_ctx->down_stream.f->release(bo_ctx->down_stream.ctx);
+	/* bigobj context not release here */
+}
+kgl_output_stream_function kgl_bigobj_output_stream_function = {
+	//out header
+	forward_write_status,
+	forward_write_header,
+	forward_write_unknow_header,
+	bigobj_error,
+	upstream_recv_headed,
+	bigobj_write_trailer,
+	bigobj_release
+};
+void KBigObjectContext::tee_output_stream(kgl_output_stream* out) {
+	pipe_output_stream(this, &kgl_bigobj_output_stream_function, out);
 }
 #endif

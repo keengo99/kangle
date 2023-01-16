@@ -86,7 +86,7 @@ func Start() {
 		}
 	}()
 	go func() {
-		err := http.ListenAndServe("127.0.0.1:4411", h2c.NewHandler(handler, h2s))
+		err := http.ListenAndServe("0.0.0.0:4411", h2c.NewHandler(handler, h2s))
 		if err != nil {
 			panic(err)
 		}

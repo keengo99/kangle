@@ -20,7 +20,14 @@ struct HttpObjectIndex
 	uint32_t head_size;
 	uint32_t flags;
 	int64_t  content_length; /* obj content_length */
-	time_t last_verified;
+	union {
+		/*
+		* last_verified used in cache object.
+		* content-range never in cache object. 
+		*/
+		time_t last_verified;
+		int64_t content_range_length;
+	};
 };
 struct KHttpObjectDbIndex
 {

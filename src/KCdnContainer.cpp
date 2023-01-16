@@ -183,7 +183,7 @@ KFetchObject *KCdnContainer::get(const char *ip,const char *host,int port,const 
 {
 	KRedirect *server = refsRedirect(ip,host,port,ssl,life_time,proto);
 	KBaseRedirect *brd = new KBaseRedirect(server, KGL_CONFIRM_FILE_NEVER);
-	KFetchObject *fo = new KHttpProxyFetchObject();
+	KRedirectSource*fo = new KHttpProxyFetchObject();
 	fo->bindBaseRedirect(brd);
 	brd->release();	
 	return fo;
@@ -195,7 +195,7 @@ KFetchObject *KCdnContainer::get(const char *name)
 		return NULL;
 	}
 	KBaseRedirect *brd = new KBaseRedirect(server, KGL_CONFIRM_FILE_NEVER);
-	KFetchObject *fo = new KHttpProxyFetchObject();
+	KRedirectSource*fo = new KHttpProxyFetchObject();
 	fo->bindBaseRedirect(brd);
 	brd->release();	
 	return fo;

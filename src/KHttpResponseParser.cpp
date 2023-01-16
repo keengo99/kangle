@@ -8,18 +8,23 @@ bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, c
 	//printf("parse header attr=[%d] val=[%s]\n",attr,val);
 	assert(val_len != 0);
 	const char* end = val + val_len;
-	KHttpObject* obj = rq->ctx->obj;
+	KHttpObject* obj = rq->ctx.obj;
 	switch (attr) {
 	case kgl_header_etag:
 		KBIT_SET(obj->index.flags, OBJ_HAS_ETAG);
 		return add_header(attr, val, val_len, false);
 	case kgl_header_content_range:
 	{
+		if (val_len == KGL_HEADER_VALUE_INT64) {
+			obj->index.content_range_length = *(int64_t*)val;
+			KBIT_SET(obj->index.flags, ANSW_HAS_CONTENT_RANGE);
+			return true;
+		}
 		const char* p = (char*)memchr(val, '/', val_len);
 		if (p) {
 			p++;
 			if (end > p) {
-				rq->ctx->content_range_length = kgl_atol((u_char*)p, end - p);
+				obj->index.content_range_length = kgl_atol((u_char*)p, end - p);
 				KBIT_SET(obj->index.flags, ANSW_HAS_CONTENT_RANGE);
 			}
 		}
@@ -148,9 +153,9 @@ bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, c
 }
 bool KHttpResponseParser::parse_unknow_header(KHttpRequest* rq, const char* attr, int attr_len, const char* val, int val_len, bool request_line) {
 	//printf("parse unknow header attr=[%s] val=[%s]\n",attr,val);
-	KHttpObject* obj = rq->ctx->obj;
+	KHttpObject* obj = rq->ctx.obj;
 	if (*attr == 'x' || *attr == 'X') {
-		if (!KBIT_TEST(rq->filter_flags, RF_NO_X_SENDFILE) &&
+		if (!KBIT_TEST(rq->ctx.filter_flags, RF_NO_X_SENDFILE) &&
 			(kgl_mem_case_same(attr, attr_len, _KS("X-Accel-Redirect")) || kgl_mem_case_same(attr, attr_len, _KS("X-Proxy-Redirect")))) {
 			KBIT_SET(obj->index.flags, ANSW_XSENDFILE);
 			return add_header(attr, attr_len, val, val_len, false);
@@ -172,12 +177,12 @@ void KHttpResponseParser::end_parse(KHttpRequest* rq) {
  * 没有 Last-Modified 我们不缓存.
  * 但如果有 expires or max-age  除外
  */
-	if (!KBIT_TEST(rq->ctx->obj->index.flags, ANSW_LAST_MODIFIED | OBJ_HAS_ETAG)) {
-		if (!KBIT_TEST(rq->ctx->obj->index.flags, ANSW_HAS_MAX_AGE | ANSW_HAS_EXPIRES)) {
-			KBIT_SET(rq->ctx->obj->index.flags, ANSW_NO_CACHE);
+	if (!KBIT_TEST(rq->ctx.obj->index.flags, ANSW_LAST_MODIFIED | OBJ_HAS_ETAG)) {
+		if (!KBIT_TEST(rq->ctx.obj->index.flags, ANSW_HAS_MAX_AGE | ANSW_HAS_EXPIRES)) {
+			KBIT_SET(rq->ctx.obj->index.flags, ANSW_NO_CACHE);
 		}
 	}
-	if (!KBIT_TEST(rq->ctx->obj->index.flags, ANSW_NO_CACHE)) {
+	if (!KBIT_TEST(rq->ctx.obj->index.flags, ANSW_NO_CACHE)) {
 		if (serverDate == 0) {
 			serverDate = kgl_current_sec;
 		}
@@ -195,17 +200,17 @@ void KHttpResponseParser::end_parse(KHttpRequest* rq) {
 		unsigned corrected_initial_age = corrected_received_age + response_delay;
 		unsigned resident_time = (unsigned)(kgl_current_sec - responseTime);
 		age = corrected_initial_age + resident_time;
-		if (!KBIT_TEST(rq->ctx->obj->index.flags, ANSW_HAS_MAX_AGE)
-			&& KBIT_TEST(rq->ctx->obj->index.flags, ANSW_HAS_EXPIRES)) {
-			rq->ctx->obj->data->i.max_age = (unsigned)(expireDate - serverDate) - age;
+		if (!KBIT_TEST(rq->ctx.obj->index.flags, ANSW_HAS_MAX_AGE)
+			&& KBIT_TEST(rq->ctx.obj->index.flags, ANSW_HAS_EXPIRES)) {
+			rq->ctx.obj->data->i.max_age = (unsigned)(expireDate - serverDate) - age;
 		}
 	}
 	commit_headers(rq);
 }
 void KHttpResponseParser::commit_headers(KHttpRequest* rq) {
 	if (last) {
-		last->next = rq->ctx->obj->data->headers;
-		rq->ctx->obj->data->headers = steal_header();
+		last->next = rq->ctx.obj->data->headers;
+		rq->ctx.obj->data->headers = steal_header();
 	}
 }
 

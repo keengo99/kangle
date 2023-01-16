@@ -87,6 +87,10 @@ class KContext;
 class KOutputFilterContext;
 class KHttpFilterContext;
 class KHttpRequest;
+struct kgl_sub_request {
+	kgl_request_range* range;
+	kgl_precondition* precondition;
+};
 class KHttpRequestData
 {
 public:
@@ -94,19 +98,42 @@ public:
 		memset(this, 0, sizeof(*this));
 	}
 	~KHttpRequestData();
-	uint32_t filter_flags;
+	struct {
+		uint32_t filter_flags;
+		uint32_t internal:1;
+		uint32_t replace : 1;
+		uint32_t simulate : 1;
+		uint32_t skip_access : 1;
+		uint32_t cache_hit_part : 1;
+		uint32_t have_stored : 1;
+		uint32_t upstream_connection_keep_alive : 1;
+		//connect代理
+		uint32_t connection_connect_proxy : 1;
+		uint32_t always_on_model : 1;
+		uint32_t response_checked : 1;
+		uint32_t upstream_sign : 1;
+		uint32_t parent_signed : 1;
+		//client主动关闭
+		uint32_t read_huped : 1;
+		uint32_t upstream_expected_done : 1;
+		uint32_t queue_handled : 1;
+		uint32_t has_change_length_filter : 1;//有改变长度的filter
+		//precondition类型
+		uint32_t precondition_flag:3;
+		//int64_t content_range_length;
+		int64_t left_read;	//final fetchobj 使用
+		KHttpObject* obj;
+		KHttpObject* old_obj;
+		kgl_sub_request* sub_request;
+		kgl_response_body st;
+	} ctx;
 	KFetchObject* fo_head;
 	KFetchObject* fo_last;
 	//物理文件映射
 	KFileName* file;
-	KHttpTransfer* tr;
+	//KHttpTransfer* tr;
 	//http认证
 	KHttpAuth* auth;
-	//有关object及缓存上下文	
-#ifdef ENABLE_BIG_OBJECT_206
-	//大物件上下文
-	KBigObjectContext* bo_ctx;
-#endif
 #ifdef ENABLE_REQUEST_QUEUE
 	KRequestQueue* queue;
 #endif
@@ -148,19 +175,34 @@ public:
 		}
 		return msec;
 	}
+	void push_obj(KHttpObject* obj);
+	void pop_obj();
+	void dead_old_obj();
+	void clean_obj();
 protected:
 	void destroy_source();
 };
-class KHttpRequest : public KWStream, public KHttpRequestData
+class KHttpRequest : public KHttpRequestData
 {
 public:
 	inline KHttpRequest(KSink* sink) {	
-		ctx = new KContext;
 		this->sink = sink;
 	}
 	~KHttpRequest();
-	KContext* ctx;
 	KSink* sink;
+	kgl_request_range* get_range() {
+		if (ctx.sub_request) {
+			return ctx.sub_request->range;
+		}
+		return sink->data.range;
+	}
+	kgl_sub_request* alloc_sub_request() {
+		ctx.sub_request = (kgl_sub_request*)kgl_pnalloc(sink->pool, sizeof(kgl_sub_request));
+		*ctx.sub_request = { 0 };
+		ctx.precondition_flag = 0;
+		return ctx.sub_request;
+	}
+	void store_obj();
 	bool isBad();
 	void set_url_param(char* param);
 	//判断是否还有post数据可读
@@ -170,7 +212,10 @@ public:
 	char* getUrl();
 	void beginRequest();
 	int EndRequest();
-
+	int64_t get_left() {
+		return sink->data.left_read;
+	}
+	int read(char* buf, int len);
 #ifdef ENABLE_INPUT_FILTER
 	KInputFilterContext* getInputFilterContext() {
 		if (if_ctx == NULL && (sink->data.content_length > 0 || sink->data.url->param)) {
@@ -182,9 +227,8 @@ public:
 	uint32_t get_upstream_flags();
 	KFetchObject* get_next_source(KFetchObject* fo) {
 		if (fo != fo_head) {
-			delete fo;
 			assert(false);
-			return fo_head;
+			return NULL;
 		}
 		auto next = fo_head->next;
 		delete fo_head;
@@ -207,11 +251,11 @@ public:
 		if (conf.path_info) {
 			follow_link |= FOLLOW_PATH_INFO;
 		}
-		if (KBIT_TEST(filter_flags, RF_FOLLOWLINK_OWN)) {
+		if (KBIT_TEST(ctx.filter_flags, RF_FOLLOWLINK_OWN)) {
 			follow_link |= FOLLOW_LINK_OWN;
 			return follow_link;
 		}
-		if (KBIT_TEST(filter_flags, RF_FOLLOWLINK_ALL)) {
+		if (KBIT_TEST(ctx.filter_flags, RF_FOLLOWLINK_ALL)) {
 			follow_link |= FOLLOW_LINK_ALL;
 		}
 		return follow_link;
@@ -262,19 +306,12 @@ public:
 	const char* get_method();
 
 	/* override KWStream function begin */
-	KGL_RESULT write_all(WSABUF* buf, int vc) override;
-	KGL_RESULT write_all(const char* buf, int len) override;
-	KGL_RESULT flush() override;
-	KGL_RESULT write_end(KGL_RESULT result) override;
-	KGL_RESULT sendfile(KASYNC_FILE fp, int64_t* len) override;
-	bool support_sendfile() override {
-		return sink->support_sendfile();
-	}
-	void release() {
-		/**
-		* KHttpRequest do not destroy when called from KWStream.
-		*/
-	}
+	KGL_RESULT write_all(WSABUF* buf, int vc);
+	KGL_RESULT write_all(const char* buf, int len);
+	KGL_RESULT write_end(KGL_RESULT result);
+	KGL_RESULT sendfile(KASYNC_FILE fp, int64_t* len) ;
+
+	KGL_RESULT write_buf(kbuf* buf, int length = -1);
 	/* override KWStream function end */
 
 	int checkFilter(KHttpObject* obj);
@@ -310,7 +347,7 @@ public:
 	KFetchObject* get_source() {
 		return fo_head;
 	}
-	void close_source();
+
 	void insert_source(KFetchObject* fo);
 	void append_source(KFetchObject* fo);
 	bool has_final_source();
@@ -333,12 +370,14 @@ public:
 		result->len = header->val_len;
 		return true;
 	}
-	int Read(char* buf, int len);
+	
 #ifdef ENABLE_REQUEST_QUEUE
 	bool NeedQueue();
 	void ReleaseQueue();
 #endif
 	KGL_RESULT open_next(KFetchObject* fo, kgl_input_stream* in, kgl_output_stream* out, const char* queue);
+private:
+	void close_source();
 };
 struct RequestError
 {

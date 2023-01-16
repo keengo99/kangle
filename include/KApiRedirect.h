@@ -28,7 +28,7 @@ public:
 	{
 		return name.c_str();
 	}
-	KFetchObject *makeFetchObject(KHttpRequest *rq, KFileName *file) override;
+	KRedirectSource*makeFetchObject(KHttpRequest *rq, KFileName *file) override;
 	bool load();
 	void setFile(std::string file);
 	bool load(std::string file);

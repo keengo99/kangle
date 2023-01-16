@@ -402,7 +402,7 @@ void KAccess::loadModel() {
 	addMarkModel(REQUEST_RESPONSE,new KTimeoutMark());
 	addMarkModel(RESPONSE,new KFooterMark());
 	addMarkModel(RESPONSE,new KReplaceContentMark());
-	addMarkModel(REQUEST,new KUrlRangeMark());
+	//addMarkModel(REQUEST,new KUrlRangeMark());
 	addMarkModel(REQUEST,new KMarkMark());
 #ifdef ENABLE_STAT_STUB
 	addMarkModel(REQUEST,new KStubStatusMark());
@@ -459,7 +459,7 @@ int KAccess::check(KHttpRequest *rq, KHttpObject *obj) {
 	{
 		assert(!rq->has_final_source());
 		as = (KPoolableRedirect *)jump;
-		KFetchObject *fo = as->makeFetchObject(rq, NULL);
+		KRedirectSource*fo = as->makeFetchObject(rq, NULL);
 		as->addRef();
 		fo->bindRedirect(as, KGL_CONFIRM_FILE_NEVER);
 		rq->append_source(fo);

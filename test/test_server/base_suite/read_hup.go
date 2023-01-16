@@ -12,7 +12,6 @@ func HandleReadHup(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Etag", "etag")
 	w.Header().Add("Server", TEST_SERVER_NAME)
 	w.Write([]byte("ok"))
-	return
 }
 func check_ssl_pending_readhup() {
 	config.Push()

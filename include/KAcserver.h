@@ -26,14 +26,14 @@
 #include "KRedirect.h"
 #include "KUpstream.h"
 #include "KFileName.h"
-class KFetchObject;
+class KRedirectSource;
 class KSockPoolHelper;
 class KPoolableRedirect: public KRedirect {
 
 public:
 	KPoolableRedirect();
 	virtual ~KPoolableRedirect();
-	KFetchObject *makeFetchObject(KHttpRequest *rq, KFileName *file);
+	KRedirectSource*makeFetchObject(KHttpRequest *rq, KFileName *file) override;
 	virtual bool isChanged(KPoolableRedirect *rd)
 	{
 		return this->proto != rd->proto;

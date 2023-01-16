@@ -12,13 +12,12 @@
 #define tunlink(f)             unlink(f)
 #endif
 
-struct kgl_tempfile_input_stream : public kgl_input_stream
+struct kgl_tempfile_input_stream : kgl_forward_input_stream
 {
-	kgl_input_stream* up;
 	KTempFile tmp_file;
 };
 
-struct kgl_tempfile_output_stream : public kgl_forward_stream
+struct kgl_tempfile_output_stream : kgl_forward_output_stream
 {
 	KTempFile tmp_file;
 	KREQUEST rq;
@@ -150,39 +149,42 @@ KTHREAD_FUNCTION clean_tempfile_thread(void* param) {
 	KTHREAD_RETURN;
 }
 
-static int64_t tmpfile_input_get_read_left(kgl_input_stream* st, KREQUEST r) {
+static int64_t tmpfile_input_get_read_left(kgl_input_stream_ctx* st) {
 	kgl_tempfile_input_stream* in = (kgl_tempfile_input_stream*)st;
 	return in->tmp_file.GetLeft();
 }
-static int tmpfile_input_read(kgl_input_stream* st, KREQUEST r, char* buf, int len) {
+static int tmpfile_input_read(kgl_input_stream_ctx* st, char* buf, int len) {
 	kgl_tempfile_input_stream* in = (kgl_tempfile_input_stream*)st;
 	return in->tmp_file.Read(buf, len);
 }
-static void tmpfile_input_release(kgl_input_stream* st) {
+static void tmpfile_input_release(kgl_input_stream_ctx* st) {
 	kgl_tempfile_input_stream* in = (kgl_tempfile_input_stream*)st;
+	in->up_stream.f->release(in->up_stream.ctx);
 	delete in;
 }
 static kgl_input_stream_function tempfile_input_stream_function = {
+	forward_get_url,
+	forward_get_precondition,
+	forward_get_range,
+	forward_get_header_count,
+	forward_get_header,
 	tmpfile_input_get_read_left,
 	tmpfile_input_read,
 	tmpfile_input_release
 };
-
-bool new_tempfile_input_stream(KHttpRequest* rq, kgl_input_stream** in) {
-	if ((*in)->f->get_read_left(*in, rq) == 0) {
+bool new_tempfile_input_stream(KHttpRequest* rq, kgl_input_stream* in) {
+	if ((in)->f->get_read_left(in->ctx) == 0) {
 		return true;
 	}
 	kgl_tempfile_input_stream* st = new kgl_tempfile_input_stream;
-	st->f = &tempfile_input_stream_function;
-	st->up = *in;
 	if (!st->tmp_file.Init()) {
 		delete st;
 		return false;
 	}
 	char* buf = (char*)malloc(TEMPFILE_POST_CHUNK_SIZE);
 	bool result = false;
-	while ((*in)->f->get_read_left(*in, rq) != 0) {
-		int got = (*in)->f->read_body(*in, rq, buf, TEMPFILE_POST_CHUNK_SIZE);
+	while ((in)->f->get_read_left(in->ctx) != 0) {
+		int got = in->f->read_body(in->ctx, buf, TEMPFILE_POST_CHUNK_SIZE);
 		if (got < 0) {
 			goto err;
 		}
@@ -194,15 +196,17 @@ bool new_tempfile_input_stream(KHttpRequest* rq, kgl_input_stream** in) {
 		}
 	}
 	st->tmp_file.WriteEnd();
-	*in = st;
 	free(buf);
+	pipe_input_stream(st, &tempfile_input_stream_function, in);
 	return true;
 err:
 	delete st;
 	free(buf);
 	return false;
 }
+#if 0
 int tempfile_write_fiber(void* arg, int got) {
+
 	kgl_tempfile_output_stream* out = (kgl_tempfile_output_stream*)arg;
 	KGL_RESULT result = KGL_OK;
 	char* buf = (char*)malloc(8192);
@@ -224,6 +228,8 @@ int tempfile_write_fiber(void* arg, int got) {
 	}
 	free(buf);
 	return (int)result;
+
+
 }
 
 int tempfile_end(kgl_tempfile_output_stream* tmp_out) {
@@ -271,26 +277,23 @@ static kgl_output_stream_function tempfile_output_function = {
 	forward_write_status,
 	forward_write_header,
 	forward_write_unknow_header,
+	forward_error,
 	forward_write_header_finish,
-	tempfile_write_body,
-	forward_write_message,
-	tempfile_write_trailer,
-	support_sendfile_false,
-	unsupport_sendfile,
-	tempfile_write_end,
+	tempfile_write_trailer,	
 	tempfile_release
 };
-bool new_tempfile_output_stream(KHttpRequest* rq, kgl_output_stream** out) {
+#endif
+bool new_tempfile_output_stream(KHttpRequest* rq, kgl_output_stream* out) {
+	return false;
+	/*
 	kgl_tempfile_output_stream* st = new kgl_tempfile_output_stream;
-	st->f = &tempfile_output_function;
 	st->write_fiber = NULL;
 	if (!st->tmp_file.Init()) {
 		delete st;
 		return false;
 	}
-	st->down_stream = *out;
-	st->rq = rq;
-	*out = st;
+	pipe_forward_stream(st, &tempfile_output_function, out);
 	return true;
+	*/
 }
 #endif

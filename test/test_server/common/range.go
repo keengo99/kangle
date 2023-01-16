@@ -44,6 +44,7 @@ func HandleRange(w http.ResponseWriter, r *http.Request) {
 	g := r.FormValue("g")
 	if_none_match := r.Header.Get("If-None-Match")
 	accept_encoding := r.Header.Get("Accept-Encoding")
+	weak_etag := (r.Header.Get("x-weak-etag") == "1")
 	gzip := strings.Contains(accept_encoding, "gzip")
 	total_content_length := RangeSize
 	if g != "1" {
@@ -54,7 +55,11 @@ func HandleRange(w http.ResponseWriter, r *http.Request) {
 	}
 	//fmt.Printf("range gzip = [%v]\n", gzip)
 	if if_none_match == RangeMd5 {
-		fmt.Printf("304\n")
+		w.Header().Add("Server", TEST_SERVER_NAME)
+		w.WriteHeader(304)
+		return
+	}
+	if strings.HasPrefix(if_none_match, "W/") {
 		w.Header().Add("Server", TEST_SERVER_NAME)
 		w.WriteHeader(304)
 		return
@@ -62,7 +67,7 @@ func HandleRange(w http.ResponseWriter, r *http.Request) {
 	rv := r.Header.Get("Range")
 	if_range := r.Header.Get("If-Range")
 	//fmt.Printf("if_range=[%s]\n", if_range)
-	if len(if_range) > 0 && if_range != RangeMd5 {
+	if len(if_range) > 0 && if_range != RangeMd5 && !strings.HasPrefix(if_range, "W/") {
 		//有变化,回应200
 		//fmt.Printf("if_range=[%s] changed\n", if_range)
 		rv = ""
@@ -112,12 +117,16 @@ func HandleRange(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Encoding", "gzip")
 	}
 	if len(vary) > 0 {
-		fmt.Printf("vary: %s\n", vary)
+		//fmt.Printf("vary: %s\n", vary)
 		w.Header().Add("vary", vary)
 		//wb.WriteString(fmt.Sprintf("Vary: %s\r\n", vary))
 	}
 	w.Header().Add("Server", TEST_SERVER_NAME)
-	w.Header().Add("Etag", RangeMd5)
+	etag := RangeMd5
+	if weak_etag {
+		etag = fmt.Sprintf("W/\"%v\"", "hello")
+	}
+	w.Header().Add("Etag", etag)
 	w.Header().Add("Content-Type", "binary/stream")
 	if buf != nil {
 		w.Header().Add("Content-Length", fmt.Sprintf("%d", len(buf)))
@@ -146,7 +155,7 @@ func ReadFileRange(filename string, from, to int) []byte {
 	file.Seek(int64(from), 0)
 	ret, err := io.ReadFull(file, buffer)
 	if length != ret {
-		fmt.Printf("from=[%d] length=[%d],ret=[%d],err=[%s]\n", from, length, ret, err.Error())
+		//fmt.Printf("from=[%d] length=[%d],ret=[%d],err=[%s]\n", from, length, ret, err.Error())
 		panic("length error")
 	}
 	if err != nil {

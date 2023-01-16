@@ -31,7 +31,7 @@ public:
 	}
 	KGL_RESULT Open(KHttpRequest *rq, kgl_input_stream* in, kgl_output_stream* out);
 private:
-	KGL_RESULT InternalProcess(KHttpRequest* rq, kgl_output_stream* out);
+	KGL_RESULT InternalProcess(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out);
 	kfiber_file* fp;
 };
 #endif

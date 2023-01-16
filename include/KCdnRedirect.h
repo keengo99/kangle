@@ -1,6 +1,7 @@
 #ifndef KCDNREDIRECT_H
 #define KCDNREDIRECT_H
 #include "KRedirect.h"
+#if 0
 class KCdnRedirect : public KRedirect
 {
 public:
@@ -12,10 +13,11 @@ public:
 	}
 	virtual ~KCdnRedirect(){
 	}
-	KFetchObject *makeFetchObject(KHttpRequest *rq, KFileName *file);
+	KRedirectSource*makeFetchObject(KHttpRequest *rq, KFileName *file) override;
 	const char *getType()
 	{
 		return "cdn";
 	}
 };
+#endif
 #endif

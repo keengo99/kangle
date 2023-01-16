@@ -5,16 +5,18 @@
 #include "KBufferFetchObject.h"
 #include "KVectorBufferFetchObject.h"
 #include "HttpFiber.h"
+#include "KHttpTransfer.h"
 
 
-struct kgl_dechunk_stream : public kgl_forward_stream
+struct kgl_dechunk_stream : public kgl_forward_output_stream
 {
+	kgl_response_body body;
 	char* saved_buffer;
 	int saved_len;
 	KDechunkEngine engine;
 };
 
-static KGL_RESULT dechunk_push_body(kgl_output_stream* gate, KREQUEST r, const char* buf, int len) {
+static KGL_RESULT dechunk_push_body(kgl_response_body_ctx* gate, const char* buf, int len) {
 	kgl_dechunk_stream* g = (kgl_dechunk_stream*)gate;
 	KGL_RESULT result = STREAM_WRITE_SUCCESS;
 	char* alloced_buffer = nullptr;
@@ -50,7 +52,7 @@ static KGL_RESULT dechunk_push_body(kgl_output_stream* gate, KREQUEST r, const c
 			while (sp < trailer_end && isspace((unsigned char)*sp)) {
 				sp++;
 			}
-			result = g->down_stream->f->write_trailer(g->down_stream, r, piece, attr_len, sp, (hlen_t)(trailer_end - sp));
+			result = g->down_stream.f->write_trailer(g->down_stream.ctx, piece, attr_len, sp, (hlen_t)(trailer_end - sp));
 			if (result != KGL_OK) {
 				goto done;
 			}
@@ -59,7 +61,7 @@ static KGL_RESULT dechunk_push_body(kgl_output_stream* gate, KREQUEST r, const c
 		case KDechunkResult::Success:
 		{
 			assert(piece && piece_length > 0);
-			KGL_RESULT result = g->down_stream->f->write_body(g->down_stream, r, piece, piece_length);
+			KGL_RESULT result = g->body.f->write(g->body.ctx, piece, piece_length);
 			if (result != KGL_OK) {
 				goto done;
 			}
@@ -90,170 +92,177 @@ done:
 	}
 	return result;
 }
-KGL_RESULT final_sendfile(kgl_output_stream* out, KREQUEST r, KASYNC_FILE fp, int64_t *len) {
-	KHttpRequest* rq = (KHttpRequest*)r;
-	if (rq->ctx->st) {
-		return rq->ctx->st->sendfile(r, (kfiber_file*)fp, len);
-	}
-	return KGL_ENOT_SUPPORT;
-}
-bool final_support_sendfile(kgl_output_stream* out, KREQUEST r) {
-	KHttpRequest* rq = (KHttpRequest*)r;
-	if (rq->ctx->st) {
-		return rq->ctx->st->support_sendfile(r);
-	}
-	return rq->sink->support_sendfile();
-}
-bool support_sendfile_false(kgl_output_stream* out, KREQUEST r) {
+
+bool support_sendfile_false(kgl_response_body_ctx* out) {
 	return false;
 }
-bool forward_support_sendfile(kgl_output_stream* out, KREQUEST r) {
-	kgl_forward_stream* g = (kgl_forward_stream*)out;
-	return g->down_stream->f->support_sendfile(out, r);
+KGL_RESULT kgl_empty_flush(kgl_response_body_ctx* out) {
+	return KGL_OK;
 }
-KGL_RESULT unsupport_sendfile(kgl_output_stream* out, KREQUEST r, KASYNC_FILE fp, int64_t *len) {
+KGL_RESULT forward_flush(kgl_response_body_ctx* out) {
+	kgl_forward_body* g = (kgl_forward_body*)out;
+	return g->down_body.f->flush(g->down_body.ctx);
+}
+bool forward_support_sendfile(kgl_response_body_ctx* out) {
+	kgl_forward_body* g = (kgl_forward_body*)out;
+	return g->down_body.f->support_sendfile(g->down_body.ctx);
+}
+KGL_RESULT unsupport_sendfile(kgl_response_body_ctx* out, KASYNC_FILE fp, int64_t* len) {
 	assert(false);
 	return KGL_ENOT_SUPPORT;
 }
-KGL_RESULT forward_sendfile(kgl_output_stream* out, KREQUEST r, KASYNC_FILE fp, int64_t *len) {
-	kgl_forward_stream* g = (kgl_forward_stream*)out;
-	return g->down_stream->f->sendfile(out, r, fp, len);
+KGL_RESULT forward_sendfile(kgl_response_body_ctx* out, KASYNC_FILE fp, int64_t* len) {
+	kgl_forward_body* g = (kgl_forward_body*)out;
+	return g->down_body.f->sendfile(g->down_body.ctx, fp, len);
 }
-KGL_RESULT forward_write_header(kgl_output_stream* gate, KREQUEST r, kgl_header_type attr, const char* val, int val_len) {
-	kgl_forward_stream* g = (kgl_forward_stream*)gate;
-	return g->down_stream->f->write_header(g->down_stream, r, attr, val, val_len);
+KGL_RESULT forward_write_header(kgl_output_stream_ctx* gate, kgl_header_type attr, const char* val, int val_len) {
+	kgl_forward_output_stream* g = (kgl_forward_output_stream*)gate;
+	return g->down_stream.f->write_header(g->down_stream.ctx, attr, val, val_len);
 }
-KGL_RESULT forward_write_unknow_header(kgl_output_stream* gate, KREQUEST r, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
-	kgl_forward_stream* g = (kgl_forward_stream*)gate;
-	return g->down_stream->f->write_unknow_header(g->down_stream, r, attr, attr_len, val, val_len);
+KGL_RESULT forward_write_unknow_header(kgl_output_stream_ctx* gate, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
+	kgl_forward_output_stream* g = (kgl_forward_output_stream*)gate;
+	return g->down_stream.f->write_unknow_header(g->down_stream.ctx, attr, attr_len, val, val_len);
 }
-KGL_RESULT forward_write_trailer(kgl_output_stream* gate, KREQUEST r, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
-	kgl_forward_stream* g = (kgl_forward_stream*)gate;
-	return g->down_stream->f->write_trailer(g->down_stream, r, attr, attr_len, val, val_len);
+KGL_RESULT forward_write_trailer(kgl_output_stream_ctx* gate, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
+	kgl_forward_output_stream* g = (kgl_forward_output_stream*)gate;
+	return g->down_stream.f->write_trailer(g->down_stream.ctx, attr, attr_len, val, val_len);
 }
-void forward_write_status(kgl_output_stream* gate, KREQUEST r, uint16_t status_code) {
-	kgl_forward_stream* g = (kgl_forward_stream*)gate;
-	return g->down_stream->f->write_status(g->down_stream, r, status_code);
+void forward_write_status(kgl_output_stream_ctx* gate, uint16_t status_code) {
+	kgl_forward_output_stream* g = (kgl_forward_output_stream*)gate;
+	return g->down_stream.f->write_status(g->down_stream.ctx, status_code);
 }
-KGL_RESULT forward_write_body(kgl_output_stream* gate, KREQUEST r, const char* buf, int len) {
-	kgl_forward_stream* g = (kgl_forward_stream*)gate;
-	return g->down_stream->f->write_body(g->down_stream, r, buf, len);
+KGL_RESULT forward_writev(kgl_response_body_ctx* ctx, WSABUF* bufs, int bc) {
+	kgl_forward_body* g = (kgl_forward_body*)ctx;
+	return g->down_body.f->writev(g->down_body.ctx, bufs, bc);
 }
-KGL_RESULT forward_write_header_finish(kgl_output_stream* gate, KREQUEST r) {
-	kgl_forward_stream* g = (kgl_forward_stream*)gate;
-	return g->down_stream->f->write_header_finish(g->down_stream, r);
+KGL_RESULT forward_write(kgl_response_body_ctx* gate, const char* buf, int len) {
+	kgl_forward_body* g = (kgl_forward_body*)gate;
+	return g->down_body.f->write(g->down_body.ctx, buf, len);
 }
-KGL_RESULT forward_write_message(kgl_output_stream* gate, KREQUEST rq, KGL_MSG_TYPE type, const void* msg, int32_t msg_flag) {
-	kgl_forward_stream* g = (kgl_forward_stream*)gate;
-	return g->down_stream->f->write_message(g->down_stream, rq, type, msg, msg_flag);
+KGL_RESULT forward_write_header_finish(kgl_output_stream_ctx* gate, kgl_response_body* body) {
+	kgl_forward_output_stream* g = (kgl_forward_output_stream*)gate;
+	return g->down_stream.f->write_header_finish(g->down_stream.ctx, body);
 }
-KGL_RESULT forward_write_end(kgl_output_stream* out, KREQUEST rq, KGL_RESULT result) {
-	kgl_forward_stream* g = (kgl_forward_stream*)out;
-	return g->down_stream->f->write_end(g->down_stream, rq, result);
+KGL_RESULT forward_error(kgl_output_stream_ctx* gate, uint16_t status_code, const char* msg, size_t msg_len) {
+	kgl_forward_output_stream* g = (kgl_forward_output_stream*)gate;
+	return g->down_stream.f->error(g->down_stream.ctx, status_code, msg, msg_len);
 }
-void forward_release(kgl_output_stream* gate) {
-	kgl_forward_stream* g = (kgl_forward_stream*)gate;
-	g->down_stream->f->release(g->down_stream);
+KGL_RESULT forward_close(kgl_response_body_ctx* out, KGL_RESULT result) {
+	kgl_forward_body* g = (kgl_forward_body*)out;
+	return g->down_body.f->close(g->down_body.ctx, result);
+}
+void forward_release(kgl_output_stream_ctx* gate) {
+	kgl_forward_output_stream* g = (kgl_forward_output_stream*)gate;
+	g->down_stream.f->release(g->down_stream.ctx);
 	delete g;
 }
-static void dechunk_release(kgl_output_stream* gate) {
+
+static void dechunk_release(kgl_output_stream_ctx* gate) {
 	kgl_dechunk_stream* g = (kgl_dechunk_stream*)gate;
 	if (g->saved_buffer) {
 		free(g->saved_buffer);
 	}
 	delete g;
 }
-static KGL_RESULT dechunk_write_end(kgl_output_stream* gate, KREQUEST rq, KGL_RESULT result) {
+static KGL_RESULT dechunk_close(kgl_response_body_ctx* gate, KGL_RESULT result) {
 	kgl_dechunk_stream* g = (kgl_dechunk_stream*)gate;
 	if (g->engine.is_success()) {
-		return g->down_stream->f->write_end(g->down_stream, rq, KGL_OK);
+		return g->body.f->close(g->body.ctx, result);
 	}
-	return g->down_stream->f->write_end(g->down_stream, rq, KGL_EDATA_FORMAT);
+	return g->body.f->close(g->body.ctx, KGL_EDATA_FORMAT);
 }
 static kgl_output_stream_function dechunk_stream_function = {
 	forward_write_status,
 	forward_write_header,
 	forward_write_unknow_header,
-	forward_write_header_finish,	
-	dechunk_push_body,
-	forward_write_message,
+	forward_error,
+	forward_write_header_finish,
 	forward_write_trailer,
-	support_sendfile_false,
-	unsupport_sendfile,
-	dechunk_write_end,
 	dechunk_release
 };
-kgl_output_stream* new_dechunk_stream(kgl_output_stream* down_stream) {
+
+static kgl_response_body_function dechunk_body_function = {
+	unsupport_writev<dechunk_push_body>,
+	dechunk_push_body,
+	kgl_empty_flush,
+	support_sendfile_false,
+	unsupport_sendfile,
+	dechunk_close
+};
+bool new_dechunk_stream(kgl_output_stream* down_stream) {
 	kgl_dechunk_stream* gate = new kgl_dechunk_stream;
-	gate->f = &dechunk_stream_function;
-	gate->down_stream = down_stream;
+	gate->down_stream = *down_stream;
+	down_stream->f = &dechunk_stream_function;
+	down_stream->ctx = (kgl_output_stream_ctx*)gate;
 	gate->saved_buffer = nullptr;
-	return gate;
+	return true;
 }
 kgl_output_stream_function forward_stream_function = {
 	forward_write_status,
 	forward_write_header,
 	forward_write_unknow_header,
-	forward_write_header_finish,	
-	forward_write_body,
-	forward_write_message,
+	forward_error,
+	forward_write_header_finish,
 	forward_write_trailer,
-	forward_support_sendfile,
-	forward_sendfile,
-	forward_write_end,
 	forward_release
 };
-kgl_forward_stream* new_forward_stream(kgl_output_stream* down_stream) {
-	kgl_forward_stream* gate = new kgl_forward_stream;
-	gate->f = &forward_stream_function;
-	gate->down_stream = down_stream;
-	return gate;
-}
-
-struct kgl_default_output_stream : public kgl_output_stream
+kgl_response_body_function forward_body_function = {
+	forward_writev,
+	forward_write,
+	forward_flush,
+	forward_support_sendfile,
+	forward_sendfile,
+	forward_close
+};
+struct kgl_default_output_stream_ctx
 {
 	KHttpResponseParser parser_ctx;
-#if 0
-	//rq->ctx->st 要放这里来。
-	KWriteStream* st;
-#endif
+	KHttpRequest* rq;
 };
 
-void st_write_status(kgl_output_stream* st, KREQUEST r, uint16_t status_code) {
-	((KHttpRequest*)r)->ctx->obj->data->i.status_code = status_code;
+void st_write_status(kgl_output_stream_ctx* st, uint16_t status_code) {
+	kgl_default_output_stream_ctx* g = (kgl_default_output_stream_ctx*)st;
+	g->rq->ctx.obj->data->i.status_code = status_code;
 }
-KGL_RESULT st_write_header(kgl_output_stream* st, KREQUEST r, kgl_header_type attr, const char* val, int val_len) {
-	kgl_default_output_stream* g = (kgl_default_output_stream*)st;
-	KHttpRequest* rq = (KHttpRequest*)r;
-	if (g->parser_ctx.parse_header((KHttpRequest*)rq, attr, val, val_len)) {
+KGL_RESULT st_write_header(kgl_output_stream_ctx* st, kgl_header_type attr, const char* val, int val_len) {
+	kgl_default_output_stream_ctx* g = (kgl_default_output_stream_ctx*)st;
+	if (g->parser_ctx.parse_header(g->rq, attr, val, val_len)) {
 		return KGL_OK;
 	}
 	return KGL_EDATA_FORMAT;
 }
-KGL_RESULT st_write_unknow_header(kgl_output_stream* st, KREQUEST rq, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
-	kgl_default_output_stream* g = (kgl_default_output_stream*)st;
-	if (g->parser_ctx.parse_unknow_header((KHttpRequest*)rq, attr, attr_len, val, val_len, false)) {
+KGL_RESULT st_write_unknow_header(kgl_output_stream_ctx* st, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
+	kgl_default_output_stream_ctx* g = (kgl_default_output_stream_ctx*)st;
+	if (g->parser_ctx.parse_unknow_header(g->rq, attr, attr_len, val, val_len, false)) {
 		return KGL_OK;
 	}
 	return KGL_EDATA_FORMAT;
 }
-KGL_RESULT st_write_header_finish(kgl_output_stream* st, KREQUEST r) {
-	kgl_default_output_stream* g = (kgl_default_output_stream*)st;
-	KHttpRequest* rq = (KHttpRequest*)r;
-	g->parser_ctx.end_parse(rq);
-	return on_upstream_finished_header(rq);
-}
+KGL_RESULT st_write_header_finish(kgl_output_stream_ctx* st, kgl_response_body* body) {
+	kgl_default_output_stream_ctx* g = (kgl_default_output_stream_ctx*)st;
+	g->parser_ctx.end_parse(g->rq);
+	return on_upstream_finished_header(g->rq, body);
+#if 0
+	if (result != KGL_OK) {
+		return result;
+	}
 
-KGL_RESULT st_write_body(kgl_output_stream* st, KREQUEST r, const char* buf, int len) {
-	KHttpRequest* rq = (KHttpRequest*)r;
-	kassert(rq->ctx->st);
-	return rq->ctx->st->write_all(rq, buf, len);
-}
-KGL_RESULT st_write_message(kgl_output_stream* st, KREQUEST r, KGL_MSG_TYPE msg_type, const void* msg, int msg_flag) {
-	KHttpRequest* rq = (KHttpRequest*)r;
-	if (msg_type == KGL_MSG_ERROR) {
-		return handle_error(rq, msg_flag, (const char*)msg);
+	if (!g->rq->ctx.st.ctx) {
+		get_default_response_body(g->rq, &g->rq->ctx.st);
+		if (!kgl_load_response_body(g->rq, &g->rq->ctx.st)) {
+			g->rq->ctx.st.f->close(g->rq->ctx.st.ctx, KGL_ENOT_PREPARE);
+			return KGL_ENOT_PREPARE;
+		}
+		*body = g->rq->ctx.st;
 	}
+	return KGL_OK;
+#endif
+}
+KGL_RESULT st_write_message(kgl_output_stream_ctx* st, uint16_t status_code, const char* msg, size_t msg_len) {
+	kgl_default_output_stream_ctx* g = (kgl_default_output_stream_ctx*)st;
+	KHttpRequest* rq = g->rq;
+	return handle_error(rq, status_code, (const char*)msg);
+#if 0
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER)) {
 		return KGL_EHAS_SEND_HEADER;
 	}
@@ -294,11 +303,11 @@ KGL_RESULT st_write_message(kgl_output_stream* st, KREQUEST r, KGL_MSG_TYPE msg_
 	default:
 		return KGL_ENOT_SUPPORT;
 	}
+#endif
 }
-KGL_RESULT common_write_trailer(kgl_output_stream* st, KREQUEST r, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
-	KHttpRequest* rq = (KHttpRequest*)r;
-	if (rq->ctx->st) {
-		KGL_RESULT result = rq->ctx->st->flush(rq);
+KGL_RESULT common_write_trailer(KHttpRequest* rq, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
+	if (rq->ctx.st.ctx) {
+		KGL_RESULT result = rq->ctx.st.f->flush(rq->ctx.st.ctx);
 		if (result != KGL_OK) {
 			return result;
 		}
@@ -308,51 +317,108 @@ KGL_RESULT common_write_trailer(kgl_output_stream* st, KREQUEST r, const char* a
 	}
 	return KGL_OK;
 }
-static KGL_RESULT st_write_end(kgl_output_stream* st, KREQUEST r, KGL_RESULT result) {
-	KHttpRequest* rq = (KHttpRequest*)r;
-	if (result == KGL_OK && rq->ctx->left_read > 0) {
-		//有content-length，又未读完
-		result = KGL_ESOCKET_BROKEN;
-	}
-	if (rq->ctx->st) {
-		return rq->ctx->st->write_end(rq, result);
-	}
-	return result;
+KGL_RESULT check_write_trailer(kgl_output_stream_ctx* st, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
+	return common_write_trailer((KHttpRequest*)st, attr, attr_len, val, val_len);
 }
-void st_release(kgl_output_stream* st) {
-	kgl_default_output_stream* g = (kgl_default_output_stream*)st;
+KGL_RESULT st_write_trailer(kgl_output_stream_ctx* st, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
+	kgl_default_output_stream_ctx* g = (kgl_default_output_stream_ctx*)st;
+	return common_write_trailer(g->rq, attr, attr_len, val, val_len);
+}
+void st_release(kgl_output_stream_ctx* st) {
+	kgl_default_output_stream_ctx* g = (kgl_default_output_stream_ctx*)st;
 	delete g;
 }
 static kgl_output_stream_function default_stream_function = {
 	st_write_status,
 	st_write_header,
 	st_write_unknow_header,
-	st_write_header_finish,
-	st_write_body,
 	st_write_message,
-	common_write_trailer,
-	final_support_sendfile,
-	final_sendfile,
-	st_write_end,
+	st_write_header_finish,
+	st_write_trailer,
 	st_release
 };
-kgl_output_stream* new_default_output_stream() {
-	kgl_default_output_stream* st = new kgl_default_output_stream;
-	st->f = &default_stream_function;
-	return st;
+void new_default_output_stream(KHttpRequest* rq, kgl_output_stream* out) {
+	kgl_default_output_stream_ctx* st = new kgl_default_output_stream_ctx;
+	out->f = &default_stream_function;
+	st->rq = rq;
+	out->ctx = (kgl_output_stream_ctx*)st;
+	return;
 }
-static int64_t default_input_get_read_left(kgl_input_stream* st, KREQUEST r) {
-	KHttpRequest* rq = (KHttpRequest*)r;
+void new_default_stream(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) 	{
+	new_default_input_stream(rq, in);
+	new_default_output_stream(rq, out);
+}
+static int64_t default_input_get_read_left(kgl_input_stream_ctx* ctx) {
+	KHttpRequest* rq = (KHttpRequest*)ctx;
 	return rq->sink->data.left_read;
 }
-static int default_input_read(kgl_input_stream* st, KREQUEST r, char* buf, int len) {
-	KHttpRequest* rq = (KHttpRequest*)r;
-	return rq->Read(buf, len);
+static int default_input_read(kgl_input_stream_ctx* ctx, char* buf, int len) {
+	KHttpRequest* rq = (KHttpRequest*)ctx;
+	return rq->read(buf, len);
 }
-static void default_input_release(kgl_input_stream* st) {
+static int default_get_header_count(kgl_input_stream_ctx* ctx) {
+	KHttpRequest* rq = (KHttpRequest*)ctx;
+	int count = 0;
+	KHttpHeader* header = rq->sink->data.get_header();
+	while (header) {
+		if (!is_internal_header(header)) {
+			count++;
+		}
+		header = header->next;
+	}
+	return count;
+}
+static kgl_url* default_get_url(kgl_input_stream_ctx* ctx) {
+	KHttpRequest* rq = (KHttpRequest*)ctx;
+	KUrl* url = rq->sink->data.url;
+	if (KBIT_TEST(rq->ctx.filter_flags, RF_PROXY_RAW_URL) || !KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
+		url = rq->sink->data.raw_url;
+	}
+	return url;
+}
+KGL_RESULT default_get_header(kgl_input_stream_ctx* ctx, kgl_parse_header_ctx* parse_ctx, kgl_parse_header_function* parse) {
+	KHttpRequest* rq = (KHttpRequest*)ctx;
+	KGL_RESULT result = KGL_OK;
+	KHttpHeader* header = rq->sink->data.get_header();
+	while (header) {
+		if (!is_internal_header(header)) {
+			if (header->name_is_know) {
+				result = parse->parse_header(parse_ctx, (kgl_header_type)header->know_header, header->buf + header->val_offset, header->val_len);
+			} else {
+				result = parse->parse_unknow_header(parse_ctx, header->buf, header->name_len, header->buf + header->val_offset, header->val_len);
+			}
+			if (result != KGL_OK) {
+				return result;
+			}
+		}
+		header = header->next;
+	}	
+	return result;
+}
+kgl_precondition *default_get_precondition(kgl_input_stream_ctx* ctx, kgl_precondition_flag* flag) {
+	KHttpRequest* rq = (KHttpRequest*)ctx;	
+	if (rq->ctx.sub_request) {
+		*flag = (kgl_precondition_flag)rq->ctx.precondition_flag;
+		return rq->ctx.sub_request->precondition;
+	}
+	return rq->sink->get_precondition(flag);
+}
+kgl_request_range *default_get_range(kgl_input_stream_ctx* ctx) {
+	KHttpRequest* rq = (KHttpRequest*)ctx;
+	if (rq->ctx.sub_request) {
+		return rq->ctx.sub_request->range;
+	}
+	return rq->sink->data.range;
+}
+static void default_input_release(kgl_input_stream_ctx* ctx) {
 
 }
 static kgl_input_stream_function default_input_stream_function = {
+	default_get_url,
+	default_get_precondition,
+	default_get_range,
+	default_get_header_count,
+	default_get_header,
 	default_input_get_read_left,
 	default_input_read,
 	default_input_release
@@ -361,17 +427,17 @@ static kgl_input_stream default_input_stream = {
 	&default_input_stream_function
 };
 
-kgl_input_stream* new_default_input_stream() {
-	return &default_input_stream;
+void new_default_input_stream(KHttpRequest* rq, kgl_input_stream* in) {
+	in->ctx = (kgl_input_stream_ctx*)rq;
+	in->f = &default_input_stream_function;
 }
-void check_release(kgl_output_stream* out) {
-
+void check_release(kgl_output_stream_ctx* out) {
 }
-void check_write_status(kgl_output_stream* st, KREQUEST r, uint16_t status_code) {
-	((KHttpRequest*)r)->response_status(status_code);
+void check_write_status(kgl_output_stream_ctx* st, uint16_t status_code) {
+	((KHttpRequest*)st)->response_status(status_code);
 }
-KGL_RESULT check_write_header(kgl_output_stream* st, KREQUEST r, kgl_header_type attr, const char* val, int val_len) {
-	KHttpRequest* rq = (KHttpRequest*)r;
+KGL_RESULT check_write_header(kgl_output_stream_ctx* st, kgl_header_type attr, const char* val, int val_len) {
+	KHttpRequest* rq = (KHttpRequest*)st;
 
 	switch (attr) {
 	case  kgl_header_content_length:
@@ -381,9 +447,9 @@ KGL_RESULT check_write_header(kgl_output_stream* st, KREQUEST r, kgl_header_type
 			return KGL_ENOT_SUPPORT;
 		}
 		if (rq->sink->data.meth == METH_HEAD) {
-			rq->ctx->left_read = 0;
+			rq->ctx.left_read = 0;
 		} else {
-			rq->ctx->left_read = content_length;
+			rq->ctx.left_read = content_length;
 		}
 		return rq->response_content_length(content_length) ? KGL_OK : KGL_EINVALID_PARAMETER;
 	}
@@ -391,7 +457,7 @@ KGL_RESULT check_write_header(kgl_output_stream* st, KREQUEST r, kgl_header_type
 	{
 		rq->parse_connection(val, val + val_len);
 		if (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
-			rq->ctx->left_read = -1;
+			rq->ctx.left_read = -1;
 		}
 		rq->response_connection();
 		return KGL_OK;
@@ -400,32 +466,89 @@ KGL_RESULT check_write_header(kgl_output_stream* st, KREQUEST r, kgl_header_type
 		return rq->response_header(attr, val, val_len) ? KGL_OK : KGL_EINVALID_PARAMETER;
 	}
 }
-KGL_RESULT check_write_unknow_header(kgl_output_stream* st, KREQUEST r, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
-	return ((KHttpRequest*)r)->response_header(attr, attr_len, val, val_len) ? KGL_OK : KGL_EINVALID_PARAMETER;
+kgl_url* forward_get_url(kgl_input_stream_ctx* ctx) 	{
+	kgl_forward_input_stream* st = (kgl_forward_input_stream*)ctx;
+	return st->up_stream.f->get_url(st->up_stream.ctx);
 }
-
-KGL_RESULT check_write_header_finish(kgl_output_stream* st, KREQUEST r) {
-	KHttpRequest* rq = (KHttpRequest*)r;
-	if (!rq->start_response_body(rq->ctx->left_read)) {
+int forward_get_header_count(kgl_input_stream_ctx* ctx) 	{
+	kgl_forward_input_stream* st = (kgl_forward_input_stream*)ctx;
+	return st->up_stream.f->get_header_count(st->up_stream.ctx);
+}
+kgl_precondition *forward_get_precondition(kgl_input_stream_ctx* ctx, kgl_precondition_flag *flag) 	{
+	kgl_forward_input_stream* st = (kgl_forward_input_stream*)ctx;
+	return st->up_stream.f->get_precondition(st->up_stream.ctx, flag);
+}
+kgl_request_range *forward_get_range(kgl_input_stream_ctx* ctx) 	{
+	kgl_forward_input_stream* st = (kgl_forward_input_stream*)ctx;
+	return st->up_stream.f->get_range(st->up_stream.ctx);
+}
+KGL_RESULT forward_get_header(kgl_input_stream_ctx* ctx, kgl_parse_header_ctx* cb_ctx, kgl_parse_header_function* cb) {
+	kgl_forward_input_stream* st = (kgl_forward_input_stream*)ctx;
+	return st->up_stream.f->get_header(st->up_stream.ctx, cb_ctx, cb);
+}
+KGL_RESULT check_write_unknow_header(kgl_output_stream_ctx* st, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
+	return ((KHttpRequest*)st)->response_header(attr, attr_len, val, val_len) ? KGL_OK : KGL_EINVALID_PARAMETER;
+}
+static KGL_RESULT default_writev(kgl_response_body_ctx* ctx, WSABUF* bufs, int bc) {
+	KHttpRequest* rq = (KHttpRequest*)ctx;
+	return rq->write_all(bufs, bc);
+}
+static KGL_RESULT default_write(kgl_response_body_ctx* ctx, const char* buf, int size) {
+	KHttpRequest* rq = (KHttpRequest*)ctx;
+	return rq->write_all(buf, size);
+}
+static KGL_RESULT default_flush(kgl_response_body_ctx* ctx) {
+	KHttpRequest* rq = (KHttpRequest*)ctx;
+	rq->sink->flush();
+	return KGL_OK;
+}
+static bool default_support_sendfile(kgl_response_body_ctx* ctx) {
+	KHttpRequest* rq = (KHttpRequest*)ctx;
+	return rq->sink->support_sendfile();
+}
+static 	KGL_RESULT default_sendfile(kgl_response_body_ctx* ctx, KASYNC_FILE fp, int64_t* length) {
+	KHttpRequest* rq = (KHttpRequest*)ctx;
+	return rq->sendfile(fp, length);
+}
+static KGL_RESULT default_close(kgl_response_body_ctx* ctx, KGL_RESULT result) {
+	KHttpRequest* rq = (KHttpRequest*)ctx;
+	return rq->write_end(result);
+}
+static kgl_response_body_function kgl_default_response_body = {
+	default_writev,
+	default_write,
+	default_flush,
+	default_support_sendfile,
+	default_sendfile,
+	default_close
+};
+void get_default_response_body(KREQUEST r, kgl_response_body* body) {
+	body->ctx = (kgl_response_body_ctx*)r;
+	body->f = &kgl_default_response_body;
+}
+KGL_RESULT check_write_header_finish(kgl_output_stream_ctx* st, kgl_response_body* body) {
+	KHttpRequest* rq = (KHttpRequest*)st;
+	if (!rq->start_response_body(rq->ctx.left_read)) {
 		return  KGL_EINVALID_PARAMETER;
 	}
 	if (rq->sink->data.meth == METH_HEAD || is_status_code_no_body(rq->sink->data.status_code)) {
 		return KGL_NO_BODY;
 	}
+	get_default_response_body(rq, body);
 	return KGL_OK;
 }
 KGL_RESULT check_write_body(kgl_output_stream* st, KREQUEST r, const char* buf, int len) {
 	KHttpRequest* rq = (KHttpRequest*)r;
-	if (rq->ctx->left_read > 0) {
-		assert(rq->ctx->left_read >= len);
-		rq->ctx->left_read -= len;
+	if (rq->ctx.left_read > 0) {
+		assert(rq->ctx.left_read >= len);
+		rq->ctx.left_read -= len;
 	}
 	return rq->write_all(buf, len);
 }
 static KGL_RESULT check_write_end(kgl_output_stream* st, KREQUEST r, KGL_RESULT result) {
 	KHttpRequest* rq = (KHttpRequest*)r;
 	if (result == KGL_OK) {
-		if (rq->ctx->left_read > 0) {
+		if (rq->ctx.left_read > 0) {
 			//有content-length，又未读完
 			return KGL_ESOCKET_BROKEN;
 		}
@@ -436,21 +559,29 @@ static kgl_output_stream_function check_stream_function = {
 	check_write_status,
 	check_write_header,
 	check_write_unknow_header,
-	check_write_header_finish,
-	check_write_body,
 	st_write_message,
-	common_write_trailer,
-	final_support_sendfile,
-	final_sendfile,	
-	check_write_end,
+	check_write_header_finish,
+	check_write_trailer,
 	check_release
 };
-static kgl_output_stream check_output_stream = {
-	&check_stream_function
-};
-kgl_output_stream* get_check_output_stream() {
-	return &check_output_stream;
+void get_check_stream(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) {
+	in->ctx = (kgl_input_stream_ctx*)rq;
+	in->f = &default_input_stream_function;
+	out->ctx = (kgl_output_stream_ctx*)rq;
+	out->f = &check_stream_function;
 }
-kgl_input_stream* get_check_input_stream() {
-	return &default_input_stream;
+void pipe_response_body(kgl_forward_body* forward_body, kgl_response_body_function* f, kgl_response_body* down_body) {
+	forward_body->down_body = *down_body;
+	down_body->ctx = (kgl_response_body_ctx*)forward_body;
+	down_body->f = f;
+}
+void pipe_output_stream(kgl_forward_output_stream* forward_st, kgl_output_stream_function* f, kgl_output_stream* down_stream) {
+	forward_st->down_stream = *down_stream;
+	down_stream->ctx = (kgl_output_stream_ctx*)forward_st;
+	down_stream->f = f;
+}
+void pipe_input_stream(kgl_forward_input_stream* forward_st, kgl_input_stream_function* f, kgl_input_stream* up_stream) {
+	forward_st->up_stream = *up_stream;
+	up_stream->ctx = (kgl_input_stream_ctx*)forward_st;
+	up_stream->f = f;
 }

@@ -10,6 +10,6 @@ public:
 
 	}
 };
-KCompressStream* create_compress_stream(KHttpRequest* rq, KHttpObject* obj, int64_t content_len);
+bool pipe_compress_stream(KHttpRequest* rq, KHttpObject* obj, int64_t content_len, kgl_response_body* body);
 #endif
 

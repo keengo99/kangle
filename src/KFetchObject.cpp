@@ -27,9 +27,6 @@
 
 KFetchObject::~KFetchObject()
 {
-	if (brd) {
-		brd->release();
-	}
 }
 
 bool KFetchObject::NeedTempFile(bool upload, KHttpRequest *rq)
@@ -39,11 +36,11 @@ bool KFetchObject::NeedTempFile(bool upload, KHttpRequest *rq)
 	}
 	return rq->sink->data.content_length == -1;
 }
-KGL_RESULT KFetchObject::PushBody(KHttpRequest *rq, kgl_output_stream *out, const char *buf, int len)
+KGL_RESULT KFetchObject::PushBody(KHttpRequest *rq, kgl_response_body *out, const char *buf, int len)
 {
-	if (!KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE) && rq->ctx->left_read>=0) {
-		len = (int)KGL_MIN(rq->ctx->left_read, (INT64)len);
-		rq->ctx->left_read -= len;
+	if (!KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE) && rq->ctx.left_read>=0) {
+		len = (int)KGL_MIN(rq->ctx.left_read, (INT64)len);
+		rq->ctx.left_read -= len;
 	}
-	return out->f->write_body(out, rq, buf, len);
+	return out->f->write(out->ctx, buf, len);
 }

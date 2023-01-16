@@ -26,8 +26,8 @@ public:
 	const char *getType() {
 		return "dso";
 	}
-	KFetchObject *makeFetchObject(KHttpRequest *rq, KFileName *file);
-	KFetchObject *makeFetchObject(KHttpRequest *rq, void *model_ctx);
+	KRedirectSource *makeFetchObject(KHttpRequest *rq, KFileName *file) override;
+	KRedirectSource *makeFetchObject(KHttpRequest *rq, void *model_ctx);
 	friend class KDsoExtend;
 	friend class KDsoAsyncFetchObject;
 private:

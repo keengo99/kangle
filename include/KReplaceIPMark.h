@@ -185,7 +185,7 @@ public:
 			}
 		}
 		if (matched) {
-			rq->ctx->parent_signed = true;
+			rq->ctx.parent_signed = true;
 			char* hot = h->buf+h->val_offset;
 			for (;;) {
 				char* p = strchr(hot, ',');

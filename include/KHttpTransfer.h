@@ -31,6 +31,7 @@
 #ifdef ENABLE_DELTA_ENCODE
 #include "KDeltaEncode.h"
 #endif
+
 /*
 * @deprecated
  * This class use to transfer data to client
@@ -48,6 +49,7 @@
  socket-->
  write hook
  */
+#if 0
 class KHttpTransfer: public KHttpStream {
 public:
 	KHttpTransfer(KHttpRequest *rq, KHttpObject *obj);
@@ -74,5 +76,6 @@ private:
 	//bool isHeadSend;
 
 };
-
+#endif
+bool kgl_load_response_body(KHttpRequest* rq, kgl_response_body* body);
 #endif /* KHTTPTRANSFER_H_ */

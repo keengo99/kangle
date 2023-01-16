@@ -79,7 +79,8 @@ bool stored_obj(KHttpRequest *rq, KHttpObject *obj,KHttpObject *old_obj) {
 	if (obj == NULL){
 		return false;
 	}
-	if (!KBIT_TEST(obj->index.flags,OBJ_IS_READY)) {
+	assert(!obj->in_cache);
+	if (!obj->cache_is_ready) {
 		return false;
 	}
 	if (!objCanCache(rq,obj)) {
@@ -90,10 +91,10 @@ bool stored_obj(KHttpRequest *rq, KHttpObject *obj,KHttpObject *old_obj) {
 		KBIT_SET(obj->index.flags,FLAG_RQ_GZIP);
 	}
 	*/
-	if (KBIT_TEST(rq->filter_flags, RF_NO_DISK_CACHE)) {
+	if (KBIT_TEST(rq->ctx.filter_flags, RF_NO_DISK_CACHE)) {
 		KBIT_SET(obj->index.flags, FLAG_NO_DISK_CACHE);
 	}
-	if (rq->ctx->internal) {
+	if (rq->ctx.internal) {
 		KBIT_SET(obj->index.flags,FLAG_RQ_INTERNAL);
 	}
 	if (KBIT_TEST(obj->index.flags,OBJ_IS_STATIC2)) {

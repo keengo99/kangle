@@ -33,9 +33,9 @@ public:
 	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,int &jumpType) {
 		if (clear) {
-			KBIT_CLR(rq->filter_flags,flag);
+			KBIT_CLR(rq->ctx.filter_flags,flag);
 		} else {
-			KBIT_SET(rq->filter_flags,flag);
+			KBIT_SET(rq->ctx.filter_flags,flag);
 		}
 		return true;
 	}

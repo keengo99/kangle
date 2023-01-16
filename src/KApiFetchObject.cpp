@@ -75,7 +75,7 @@ Token_t KApiFetchObject::getToken() {
 }
 KGL_RESULT KApiFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out)
 {
-	KHttpObject* obj = rq->ctx->obj;
+	KHttpObject* obj = rq->ctx.obj;
 	assert(dso);
 	this->rq = rq;
 	this->in = in;
@@ -84,7 +84,7 @@ KGL_RESULT KApiFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_out
 	if (dso->HttpExtensionProc) {
 		assert(rq);
 		if (!brd->rd->enable) {
-			return out->f->write_message(out, rq, KGL_MSG_ERROR, "extend is disable", STATUS_SERVER_ERROR);
+			return out->f->error(out->ctx,  STATUS_SERVER_ERROR, _KS("extend is disable"));
 		}
 		KBIT_SET(obj->index.flags, ANSW_LOCAL_SERVER);
 		if (rq->auth) {
@@ -107,20 +107,21 @@ KGL_RESULT KApiFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_out
 #ifndef _WIN32
 		chrooted = rq->get_virtual_host()->vh->chroot;
 #endif
-		make_http_env(rq, in, brd, rq->sink->data.if_modified_since, rq->file, &env, chrooted);
-		start();
+		make_http_env(rq, in, brd, rq->file, &env, chrooted);
+		result = start();
 	}
 	if (!headSended && result == KGL_OK) {
 		headSended = true;
-		result = out->f->write_header_finish(out, rq);
+		result = out->f->write_header_finish(out->ctx,  &body);
 	}
-	if (result == KGL_NO_BODY) {
+	if (body.ctx) {
+		assert(result != KGL_NO_BODY);
+		return body.f->close(body.ctx, result);
+	}
+	if (result == KGL_NO_BODY || no_body) {
 		return result;
 	}
-	if (no_body) {
-		return KGL_NO_BODY;
-	}
-	return out->f->write_end(out, rq, result);
+	return result;
 }
 bool KApiFetchObject::initECB(EXTENSION_CONTROL_BLOCK* ecb) {
 	memset(ecb, 0, sizeof(EXTENSION_CONTROL_BLOCK));
@@ -151,7 +152,7 @@ bool KApiFetchObject::initECB(EXTENSION_CONTROL_BLOCK* ecb) {
 }
 bool KApiFetchObject::setStatusCode(const char* status, int len) {
 	//printf("status: %s\n",status);
-	rq->ctx->obj->data->i.status_code = atoi(status);
+	rq->ctx.obj->data->i.status_code = atoi(status);
 	return true;
 }
 KGL_RESULT KApiFetchObject::map_url_path(const char* url, LPVOID file, LPDWORD file_len)
@@ -176,7 +177,7 @@ KGL_RESULT KApiFetchObject::addHeader(const char* attr, int len) {
 	case kgl_parse_finished:
 	{
 		headSended = true;
-		auto result = out->f->write_header_finish(out, rq);
+		auto result = out->f->write_header_finish(out->ctx,  &body);
 		if (result == KGL_NO_BODY) {
 			no_body = true;
 		}
@@ -189,7 +190,7 @@ KGL_RESULT KApiFetchObject::addHeader(const char* attr, int len) {
 }
 int KApiFetchObject::writeClient(const char* str, int len) {
 	if (!headSended) {
-		if (checkResponse(rq, rq->ctx->obj) == JUMP_DENY) {
+		if (checkResponse(rq, rq->ctx.obj) == JUMP_DENY) {
 			responseDenied = true;
 		}
 	}
@@ -197,17 +198,14 @@ int KApiFetchObject::writeClient(const char* str, int len) {
 	if (responseDenied) {
 		return -1;
 	}
-	if (rq->ctx->st == NULL) {
-		prepare_write_stream(rq);
-	}
-	switch (rq->ctx->st->write_all(rq, str, len)) {
-	case STREAM_WRITE_FAILED:
+	if (body.ctx == nullptr) {
 		return -1;
-	default:
-		break;
+	}
+	if (body.f->write(body.ctx, str, len) != KGL_OK) {
+		return -1;
 	}
 	return len;
 }
 int KApiFetchObject::readClient(char* buf, int len) {
-	return rq->Read(buf, len);
+	return in->f->read_body(in->ctx, buf, len);
 }

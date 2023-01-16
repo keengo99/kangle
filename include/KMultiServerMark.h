@@ -19,7 +19,7 @@ public:
 	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
 			int &jumpType) {
 		if (brd) {
-			KFetchObject *fo = brd->rd->makeFetchObject(rq,rq->file);
+			KRedirectSource*fo = brd->rd->makeFetchObject(rq,rq->file);
 			fo->bindBaseRedirect(brd);
 			rq->append_source(fo);
 			jumpType = JUMP_ALLOW;

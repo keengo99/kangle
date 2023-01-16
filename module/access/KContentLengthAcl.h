@@ -54,10 +54,7 @@ public:
 		return "content_length";
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) {
-		INT64 content_length = obj->index.content_length;
-		if (contentRange && KBIT_TEST(obj->index.flags,ANSW_HAS_CONTENT_RANGE)) {
-			content_length = rq->ctx->content_range_length;
-		}
+		INT64 content_length = obj->getTotalContentSize();
 		if (content_length < minlen) {
 			return false;
 		}

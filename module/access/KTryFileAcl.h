@@ -39,7 +39,7 @@ public:
 		KFileName file;
 		bool exsit = false;
 		KVirtualHost *vh = svh->vh;
-		if (!vh->alias(rq->ctx->internal,rq->sink->data.url->path,&file,exsit,rq->getFollowLink())) {
+		if (!vh->alias(rq->ctx.internal,rq->sink->data.url->path,&file,exsit,rq->getFollowLink())) {
 			exsit = file.setName(svh->doc_root, rq->sink->data.url->path, rq->getFollowLink());
 		}
 		if (file.isDirectory()) {			

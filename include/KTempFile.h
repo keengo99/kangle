@@ -42,8 +42,9 @@ private:
 	std::string file;
 	volatile bool write_is_end;
 };
-bool new_tempfile_input_stream(KHttpRequest* rq, kgl_input_stream** in);
-bool new_tempfile_output_stream(KHttpRequest* rq, kgl_output_stream** out);
+
+bool new_tempfile_input_stream(KHttpRequest* rq, kgl_input_stream* in);
+bool new_tempfile_output_stream(KHttpRequest* rq, kgl_output_stream* out);
 //读post数据到临时文件
 KTHREAD_FUNCTION clean_tempfile_thread(void *param);
 #endif

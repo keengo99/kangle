@@ -151,7 +151,7 @@ public:
 	virtual ~KGuestCacheMark() {
 	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType, int &jumpType) {
-		if (!KBIT_TEST(rq->filter_flags, RF_GUEST)) {
+		if (!KBIT_TEST(rq->ctx.filter_flags, RF_GUEST)) {
 			return false;
 		}
 		if (!KBIT_TEST(obj->index.flags, ANSW_NO_CACHE)) {
@@ -159,8 +159,8 @@ public:
 			return false;
 		}
 		if (!skip_set_cookie) {
-			if (obj->findHeader(kgl_expand_string("Set-Cookie")) != NULL
-				|| obj->findHeader(kgl_expand_string("Set-Cookie2")) != NULL) {
+			if (obj->find_header(kgl_expand_string("Set-Cookie")) != NULL
+				|| obj->find_header(kgl_expand_string("Set-Cookie2")) != NULL) {
 				//有Set-Cookie，说明是会员
 				return false;
 			}
@@ -169,8 +169,8 @@ public:
 			return false;
 		}
 		if (skip_set_cookie) {
-			obj->removeHttpHeader(_KS("Set-Cookie"));
-			obj->removeHttpHeader(_KS("Set-Cookie2"));
+			obj->remove_http_header(_KS("Set-Cookie"));
+			obj->remove_http_header(_KS("Set-Cookie2"));
 		}
 		if (max_age>0) {
 			obj->data->i.max_age = max_age;

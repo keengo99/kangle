@@ -92,8 +92,8 @@ func ProcessSuites(suites []string) {
 		}
 	}
 	common.Report()
-	suite.Clean(suites)
 	if len(*kangle_exe) > 0 {
+		suite.Clean(suites)
 		kangle.Close()
 	}
 }

@@ -47,7 +47,7 @@ KGL_RESULT KFastcgiFetchObject::buildHead(KHttpRequest* rq)
 	parser.first_same = 1;
 	pop_header.proto = Proto_fcgi;
 	buffer = new KSocketBuffer(NBUFF_SIZE);
-	KHttpObject* obj = rq->ctx->obj;
+	KHttpObject* obj = rq->ctx.obj;
 	KBIT_SET(obj->index.flags, ANSW_LOCAL_SERVER);
 	KFastcgiStream<KSocketBuffer> fbuf(FCGI_STDIN);
 	fbuf.setStream(buffer);
@@ -82,7 +82,7 @@ KGL_RESULT KFastcgiFetchObject::buildHead(KHttpRequest* rq)
 #ifndef _WIN32
 	chrooted = rq->get_virtual_host()->vh->chroot;
 #endif
-	bool sendResult = make_http_env(rq, in, brd, rq->sink->data.if_modified_since, rq->file, &fbuf, chrooted);
+	bool sendResult = make_http_env(rq, in, brd, rq->file, &fbuf, chrooted);
 	if (!sendResult) {//send error
 		buffer->destroy();
 		return KGL_EUNKNOW;
