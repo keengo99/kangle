@@ -149,7 +149,7 @@ void KSharedBigObject::open_read(KHttpObject* obj) {
 	return;
 }
 int64_t KSharedBigObject::open_write(KHttpObject* obj, int64_t from) {
-	printf("OpenWrite fiber=[%p] from=[" INT64_FORMAT "]\n", kfiber_self(), from);
+	//printf("OpenWrite fiber=[%p] from=[" INT64_FORMAT "]\n", kfiber_self(), from);
 	assert(from >= 0);
 	kfiber_mutex_lock(lock);
 	open_file_handle(obj);

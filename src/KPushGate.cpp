@@ -465,8 +465,7 @@ KGL_RESULT check_write_header(kgl_output_stream_ctx* st, kgl_header_type attr, c
 		rq->parse_connection(val, val + val_len);
 		if (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
 			rq->ctx.left_read = -1;
-		}
-		rq->response_connection();
+		}		
 		return KGL_OK;
 	}
 	default:
@@ -535,32 +534,18 @@ void get_default_response_body(KREQUEST r, kgl_response_body* body) {
 }
 KGL_RESULT check_write_header_finish(kgl_output_stream_ctx* st, kgl_response_body* body) {
 	KHttpRequest* rq = (KHttpRequest*)st;
+	rq->response_connection();
 	if (!rq->start_response_body(rq->ctx.left_read)) {
 		return  KGL_EINVALID_PARAMETER;
 	}
+	rq->ctx.left_read = 0;
 	if (rq->sink->data.meth == METH_HEAD || is_status_code_no_body(rq->sink->data.status_code)) {
 		return KGL_NO_BODY;
 	}
-	get_default_response_body(rq, body);
+	assert(rq->ctx.st.ctx == nullptr);
+	get_default_response_body(rq, &rq->ctx.st);
+	*body = rq->ctx.st;
 	return KGL_OK;
-}
-KGL_RESULT check_write_body(kgl_output_stream* st, KREQUEST r, const char* buf, int len) {
-	KHttpRequest* rq = (KHttpRequest*)r;
-	if (rq->ctx.left_read > 0) {
-		assert(rq->ctx.left_read >= len);
-		rq->ctx.left_read -= len;
-	}
-	return rq->write_all(buf, len);
-}
-static KGL_RESULT check_write_end(kgl_output_stream* st, KREQUEST r, KGL_RESULT result) {
-	KHttpRequest* rq = (KHttpRequest*)r;
-	if (result == KGL_OK) {
-		if (rq->ctx.left_read > 0) {
-			//ÓÐcontent-length£¬ÓÖÎ´¶ÁÍê
-			return KGL_ESOCKET_BROKEN;
-		}
-	}
-	return result;
 }
 static kgl_output_stream_function check_stream_function = {
 	check_write_status,
@@ -574,6 +559,10 @@ static kgl_output_stream_function check_stream_function = {
 void get_check_stream(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) {
 	in->ctx = (kgl_input_stream_ctx*)rq;
 	in->f = &default_input_stream_function;
+	out->ctx = (kgl_output_stream_ctx*)rq;
+	out->f = &check_stream_function;
+}
+void get_check_output_stream(KHttpRequest* rq, kgl_output_stream* out) 	{
 	out->ctx = (kgl_output_stream_ctx*)rq;
 	out->f = &check_stream_function;
 }
@@ -591,4 +580,39 @@ void pipe_input_stream(kgl_forward_input_stream* forward_st, kgl_input_stream_fu
 	forward_st->up_stream = *up_stream;
 	up_stream->ctx = (kgl_input_stream_ctx*)forward_st;
 	up_stream->f = f;
+}
+
+KGL_RESULT kgl_write_buf(kgl_response_body* body, kbuf* buf, int length) {
+
+#define KGL_RQ_WRITE_BUF_COUNT 16
+	WSABUF bufs[KGL_RQ_WRITE_BUF_COUNT];
+	while (buf) {
+		int bc = 0;
+		while (bc < KGL_RQ_WRITE_BUF_COUNT && buf) {
+			if (length == 0) {
+				break;
+			}
+			if (length > 0) {
+				bufs[bc].iov_len = KGL_MIN(length, buf->used);
+				length -= bufs[bc].iov_len;
+			} else {
+				bufs[bc].iov_len = buf->used;
+			}
+			bufs[bc].iov_base = buf->data;
+			buf = buf->next;
+			bc++;
+		}
+		if (bc == 0) {
+			if (length > 0) {
+				return KGL_ENO_DATA;
+			}
+			assert(length == 0);
+			return KGL_OK;
+		}
+		KGL_RESULT result = body->f->writev(body->ctx, bufs, bc);
+		if (result != KGL_OK) {
+			return result;
+		}
+	}
+	return KGL_OK;
 }

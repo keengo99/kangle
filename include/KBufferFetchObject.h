@@ -3,6 +3,7 @@
 #include "KFetchObject.h"
 #include "KBuffer.h"
 #include "KHttpRequest.h"
+#include "KDefer.h"
 
 class KBufferFetchObject : public KFetchObject {
 public:
@@ -16,16 +17,16 @@ public:
 	}
 	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out)
 	{
-		rq->response_connection();
-		rq->response_content_length(length);
-		rq->start_response_body(length);
-		if (rq->sink->data.meth != METH_HEAD && header) {
-			return rq->write_buf(header,length);
+		out->f->write_header(out->ctx, kgl_header_content_length, (char *)&length, KGL_HEADER_VALUE_INT64);
+		kgl_response_body body;
+		KGL_RESULT result = out->f->write_header_finish(out->ctx, &body);
+		if (result != KGL_OK) {
+			return result;
 		}
-		return KGL_OK;
+		return body.f->close(body.ctx, kgl_write_buf(&body, header, (int)length));
 	}
 private:
 	kbuf* header;
-	int length;
+	int64_t length;
 };
 #endif

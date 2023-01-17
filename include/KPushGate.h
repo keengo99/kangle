@@ -37,6 +37,7 @@ void pipe_response_body(kgl_forward_body* forward_body, kgl_response_body_functi
 void pipe_output_stream(kgl_forward_output_stream* forward_st, kgl_output_stream_function* f, kgl_output_stream* down_stream);
 void pipe_input_stream(kgl_forward_input_stream* forward_st, kgl_input_stream_function* f, kgl_input_stream* up_stream);
 void get_check_stream(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out);
+void get_check_output_stream(KHttpRequest* rq, kgl_output_stream* out);
 void forward_write_status(kgl_output_stream_ctx* gate, uint16_t status_code);
 
 kgl_url* forward_get_url(kgl_input_stream_ctx* ctx);
@@ -58,6 +59,6 @@ KGL_RESULT kgl_empty_flush(kgl_response_body_ctx* out);
 KGL_RESULT forward_sendfile(kgl_response_body_ctx* out, KASYNC_FILE fp, int64_t* len);
 bool forward_support_sendfile(kgl_response_body_ctx* out);
 KGL_RESULT forward_flush(kgl_response_body_ctx* out);
-
+KGL_RESULT kgl_write_buf(kgl_response_body* body, kbuf* buf, int length);
 void get_default_response_body(KREQUEST r, kgl_response_body* body);
 #endif

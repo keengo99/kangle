@@ -208,11 +208,15 @@ query_vh_result query_virtual(KHttpRequest* rq, const char* hostname, int len, i
 	return vh_result;
 }
 KGL_RESULT handle_denied_request(KHttpRequest* rq) {
-#if 0
-	if (rq->has_final_source()) {
-		return process_request(rq);
+	KFetchObject* fo = rq->fo_head;
+	while (fo && fo->filter) {
+		fo = fo->next;
 	}
-#endif
+	if (fo) {
+		kgl_output_stream out;
+		get_check_output_stream(rq, &out);
+		return fo->Open(rq, nullptr, &out);
+	}
 	if (rq->sink->data.status_code > 0) {
 		rq->start_response_body(0);
 		return KGL_OK;
