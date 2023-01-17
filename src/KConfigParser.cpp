@@ -113,16 +113,7 @@ bool KConfigParser::startElement(std::string &context, std::string &qName,
 		cconf->per_ip_deny = atoi(attribute["per_ip_deny"].c_str());
 		return true;
 	}
-#ifdef ENABLE_REQUEST_QUEUE
-	if(qName == "request_queue"){
-		globalRequestQueue.set(
-			atoi(attribute["max_worker"].c_str()),
-			atoi(attribute["max_queue"].c_str())
-			);
-		return true;
-	}
-#endif
-//{{ent
+
 	if (qName == "cdnbest") {
 		std::map<string,string>::iterator it;
 		it = attribute.find("error");
@@ -131,7 +122,6 @@ bool KConfigParser::startElement(std::string &context, std::string &qName,
 		}
 		return true;
 	}
-//}}
 	if (qName == "log") {
 		if (attribute["level"].size()>0) {
 			cconf->log_level = atoi(attribute["level"].c_str());

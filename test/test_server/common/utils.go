@@ -1,6 +1,7 @@
 package common
 
 import (
+	"bufio"
 	"compress/gzip"
 	"crypto/md5"
 	"fmt"
@@ -66,4 +67,29 @@ func Md5Response(resp *http.Response, decode bool) string {
 	result := fmt.Sprintf("%x", hash.Sum(nil))
 	//fmt.Printf("md5Respons=[%s]\n", result)
 	return result
+}
+func ReadHttpProtocol(reader *bufio.Reader, read_body bool) (map[string]string, string, error) {
+	headers := make(map[string]string)
+	request_line := true
+	for {
+		line, _, err := reader.ReadLine()
+		if err != nil {
+			return headers, "", err
+		}
+		if len(line) == 0 {
+			break
+		}
+		splitChar := ":"
+		if request_line {
+			splitChar = " "
+		}
+		request_line = false
+		kvs := strings.SplitN(string(line), splitChar, 2)
+		headers[strings.ToLower(kvs[0])] = strings.TrimSpace(kvs[1])
+	}
+	if !read_body {
+		return headers, "", nil
+	}
+	line, _, err := reader.ReadLine()
+	return headers, string(line), err
 }

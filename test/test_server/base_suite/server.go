@@ -74,7 +74,6 @@ func HandleGzipBr(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.Write([]byte("plain"))
 	}
-	return
 }
 func HandleDynamic(w http.ResponseWriter, r *http.Request) {
 	last_dynamic_content = fmt.Sprintf("hello_%v", common.RequestCount)
@@ -112,6 +111,7 @@ func HandleChunkPost(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
+	w.Write([]byte("\n"))
 }
 func HandleHole(w http.ResponseWriter, r *http.Request) {
 	hj, _ := w.(http.Hijacker)

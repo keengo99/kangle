@@ -23,7 +23,7 @@ func test_head_404() {
 
 	cn.Write([]byte(str))
 	cn.SetReadDeadline(time.Now().Add(2 * time.Second))
-	h, _, err = readHttpHeader(reader, false)
+	h, _, err = common.ReadHttpProtocol(reader, false)
 	common.AssertSame(err, nil)
 	line, _, err := reader.ReadLine()
 	common.AssertSame(strings.ToLower(h["http/1.1"]), "404 not found")

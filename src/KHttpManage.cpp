@@ -560,13 +560,6 @@ bool KHttpManage::config() {
 #endif//}}
 		s << klang["min_free_thread"] << ":<input type=text size=3 name=min_free_thread value='" << conf.min_free_thread << "'><br>";
 
-#ifdef ENABLE_REQUEST_QUEUE
-		s << klang["max_worker"] << ":<input type=text size=4 name='max_worker' value='";
-		s << globalRequestQueue.getMaxWorker() << "'> " << klang["max_queue"];
-		s << ":<input type=text size=4 name='max_queue' value='";
-		s << globalRequestQueue.getMaxQueue() << "'><br>";
-#endif
-		//{{ent
 #ifdef ENABLE_FATBOY
 		s << klang["bl_time"] << ":<input name='bl_time' size='6' value='" << conf.bl_time << "'><br>";
 		s << klang["wl_time"] << ":<input name='wl_time' size='6' value='" << conf.wl_time << "'><br>";
@@ -576,7 +569,7 @@ bool KHttpManage::config() {
 			<< ":<input type=text size=3 name='process_cpu_usage' value="
 			<< conf.process_cpu_usage << "><br>";
 #endif
-		//}}
+
 #ifndef _WIN32
 //		s << klang["lang_stack_size"]
 //				<< ":<input type=text name='stack_size' value="
@@ -752,27 +745,19 @@ bool KHttpManage::configsubmit() {
 	} else if (item == 3) {
 		size_t max_per_ip = atoi(getUrlValue("max_per_ip").c_str());
 		conf.per_ip_deny = atoi(getUrlValue("per_ip_deny").c_str());
-		//set_stack_size(getUrlValue("stack_size"));
-//{{ent
 #ifdef ENABLE_FATBOY
 		conf.bl_time = atoi(getUrlValue("bl_time").c_str());
 		conf.wl_time = atoi(getUrlValue("wl_time").c_str());
 #endif
-		//}}
 		conf.max = atoi(getUrlValue("max").c_str());
 		conf.min_free_thread = atoi(getUrlValue("min_free_thread").c_str());
 		if (conf.max_per_ip != max_per_ip) {
 			conf.max_per_ip = (unsigned)max_per_ip;
 		}
 
-#ifdef ENABLE_REQUEST_QUEUE
-		globalRequestQueue.set(atoi(getUrlValue("max_worker").c_str()), atoi(getUrlValue("max_queue").c_str()));
-#endif
-		//{{ent
 #ifdef ENABLE_ADPP
 		conf.process_cpu_usage = atoi(getUrlValue("process_cpu_usage").c_str());
 #endif
-		//}}
 		conf.worker_io = atoi(getUrlValue("worker_io").c_str());
 		conf.worker_dns = atoi(getUrlValue("worker_dns").c_str());
 		conf.max_io = atoi(getUrlValue("max_io").c_str());
@@ -1120,10 +1105,6 @@ bool KHttpManage::sendMainFrame() {
 	s << "<tr><td>" << LANG_WORKING_THREAD << "</td>";
 	s << "<td >" << worker_count << "</td></tr>\n";
 	s << "<tr><td>" << LANG_FREE_THREAD << "</td><td>" << free_count << "</td></tr>\n";
-#ifdef ENABLE_REQUEST_QUEUE
-	s << "<tr><td>" << klang["request_worker_info"] << "</td><td>" << globalRequestQueue.getWorkerCount() << "/" << globalRequestQueue.getQueueSize() << "</td></tr>";
-	s << "<!-- queue refs=" << globalRequestQueue.getRef() << " -->\n";
-#endif
 	s << "<tr><td>" << klang["io_worker_info"] << "</td><td>" << conf.ioWorker->worker << "/" << conf.ioWorker->queue << "</td></tr>\n";
 	s << "<tr><td>" << klang["dns_worker_info"] << "</td><td>" << conf.dnsWorker->worker << "/" << conf.dnsWorker->queue << "</td></tr>\n";
 	s << "<tr><td>addr cache:</td><td>" << kgl_get_addr_cache_count() << "</td></tr>\n";

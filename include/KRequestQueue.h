@@ -5,14 +5,11 @@
 #include "kthread.h"
 #include "kfiber_sync.h"
 #ifdef ENABLE_REQUEST_QUEUE
-
 class KRequestQueue : public KCountableEx
 {
 public:
 	KRequestQueue();
 	~KRequestQueue();
-	bool Lock();
-	void Unlock();
 	void set(unsigned max_worker,unsigned max_queue);
 	unsigned getMaxWorker()
 	{
@@ -34,13 +31,13 @@ public:
 	{
 		return kfiber_mutex_get_count(lock);
 	}
-	bool Start(KHttpRequest* rq);
+	bool start();
+	void stop();
 private:
 	kfiber_mutex* lock;
 	unsigned max_worker;
 	unsigned max_queue;
 };
-extern KRequestQueue globalRequestQueue;
 #endif
 #endif
 

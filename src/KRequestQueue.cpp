@@ -24,27 +24,12 @@ void KRequestQueue::set(unsigned max_worker,unsigned max_queue)
 	this->max_queue = max_queue;
 	kfiber_mutex_set_limit(lock, (int)max_worker);
 }
-bool KRequestQueue::Lock()
-{
-	int result = kfiber_mutex_try_lock(lock, max_queue);
-	return result == 0;
-}
-void KRequestQueue::Unlock()
+void KRequestQueue::stop()
 {
 	kfiber_mutex_unlock(lock);
 }
-bool KRequestQueue::Start(KHttpRequest* rq)
+bool KRequestQueue::start()
 {
-	if (rq->queue == NULL) {
-		rq->queue = this;
-		addRef();
-	} else {
-		assert(rq->queue == this);
-	}
-	assert(rq->ctx.queue_handled == 0);
-	rq->EnterRequestQueue();
-	rq->ctx.queue_handled = Lock();
-	rq->LeaveRequestQueue();
-	return rq->ctx.queue_handled;
+	return kfiber_mutex_try_lock(lock, max_queue) == 0;
 }
 #endif

@@ -221,14 +221,8 @@ void KConfigBuilder::build(std::stringstream &s) {
 	//s << "\t<tempfile>" << conf.tmpfile << "</tempfile>\n";
 	s << "\t<max_post_size>" << get_size(conf.max_post_size) << "</max_post_size>\n";
 #endif
-	//s << "\t<async_io>" << (conf.async_io?1:0) << "</async_io>\n";
-#ifdef ENABLE_REQUEST_QUEUE
-	unsigned max_worker = globalRequestQueue.getMaxWorker();
-	if(max_worker>0){
-		s << "\t<request_queue max_worker='" << max_worker << "' max_queue='" << globalRequestQueue.getMaxQueue() << "'/>\n";
-	}
-#endif
-//{{ent
+
+
 #ifdef ENABLE_BLACK_LIST
 	if (conf.bl_time>0) {
            s << "\t<bl_time>" << conf.bl_time << "</bl_time>\n";
@@ -251,7 +245,7 @@ void KConfigBuilder::build(std::stringstream &s) {
 		s << "\t<flush_flow_time>" << conf.flush_flow_time << "</flush_flow_time>\n";
 	}
 #endif
-//}}
+
 #ifdef KSOCKET_UNIX	
 	if(conf.unix_socket){
 		 s << "\t<unix_socket>1</unix_socket>\n";

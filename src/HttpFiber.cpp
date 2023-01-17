@@ -145,21 +145,21 @@ KGL_RESULT process_request_stream(KHttpRequest* rq, kgl_input_stream* in, kgl_ou
 		//后台管理及内部调用，不用排队
 		goto skip_queue;
 	}
-	if (queue == NULL) {
-		queue = &globalRequestQueue;
 #ifdef ENABLE_VH_QUEUE
+	if (queue == NULL) {
 		auto svh = rq->get_virtual_host();
 		if (svh && svh->vh->queue) {
 			queue = svh->vh->queue;
 		}
-#endif
 	}
-	if (fo) {
+#endif
+	if (queue && fo) {
 		result = open_queued_fetchobj(rq, fo, in, out, queue);
 		if (!rq->continue_next_source(result)) {
 			goto done;
 		}
 		fo = fo->next;
+
 	}
 #endif
 skip_queue:
@@ -178,10 +178,10 @@ KGL_RESULT open_queued_fetchobj(KHttpRequest* rq, KFetchObject* fo, kgl_input_st
 		return fo->Open(rq, in, out);
 	}
 	int64_t begin_lock_time = kgl_current_msec;
-	if (!queue->Start(rq)) {
+	if (!queue->start()) {
 		return out->f->error(out->ctx, STATUS_SERVICE_UNAVAILABLE, _KS("Server is busy."));
 	}
-	defer(rq->ReleaseQueue());
+	defer(queue->stop());
 	if (kgl_current_msec - begin_lock_time > conf.time_out * 1000) {
 		return out->f->error(out->ctx, STATUS_SERVICE_UNAVAILABLE, _KS("Wait in queue time out."));
 	}
@@ -210,10 +210,7 @@ query_vh_result query_virtual(KHttpRequest* rq, const char* hostname, int len, i
 KGL_RESULT handle_denied_request(KHttpRequest* rq) {
 #if 0
 	if (rq->has_final_source()) {
-		kgl_input_stream in;
-		new_default_input_stream(rq, &in);
-		defer(in.f->release(in.ctx));
-		return process_request(rq, &in);
+		return process_request(rq);
 	}
 #endif
 	if (rq->sink->data.status_code > 0) {
@@ -622,7 +619,7 @@ KGL_RESULT load_object_from_source(KHttpRequest* rq) {
 		assert(old_obj->data);
 		rq->ctx.precondition_flag = 0;
 		kgl_sub_request* sub_request = rq->alloc_sub_request();
-		sub_request->precondition = rq->sink->alloc<kgl_precondition>();		
+		sub_request->precondition = rq->sink->alloc<kgl_precondition>();
 		if (condition && !KBIT_TEST(flag, kgl_precondition_if_unmodified) && condition->time > old_obj->data->i.last_modified) {
 			sub_request->precondition->time = condition->time;
 		} else {
@@ -711,7 +708,7 @@ KGL_RESULT send_memory_object(KHttpRequest* rq) {
 #ifdef ENABLE_BIG_OBJECT
 	if (rq->ctx.obj->data->i.type == BIG_OBJECT || rq->ctx.obj->data->i.type == BIG_OBJECT_PROGRESS) {
 		if (rq->ctx.obj->data->i.type == BIG_OBJECT_PROGRESS) {
-			assert(rq->ctx.obj->data->sbo->can_satisfy(rq->get_range(), rq->ctx.obj)==kgl_satisfy_all);
+			assert(rq->ctx.obj->data->sbo->can_satisfy(rq->get_range(), rq->ctx.obj) == kgl_satisfy_all);
 		}
 		KFetchObject* fo = new KFetchBigObject();
 		rq->append_source(fo);

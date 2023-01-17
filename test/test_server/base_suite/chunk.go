@@ -1,6 +1,7 @@
 package base_suite
 
 import (
+	"bufio"
 	"crypto/md5"
 	"fmt"
 	"hash"
@@ -36,13 +37,13 @@ func check_chunk_post() {
 	str := "PUT /chunk_post HTTP/1.1\r\nHost: localhost\r\nTransfer-Encoding: chunked\r\n\r\n2\r\nte\r\n2\r\nst\r\n0\r\n\r\n"
 	cn, err := net.Dial("tcp", "127.0.0.1:9999")
 	common.Assert("err", err == nil)
+
 	defer cn.Close()
 	cn.Write([]byte(str))
 	cn.SetReadDeadline(time.Now().Add(2 * time.Second))
-	buf, _ := ioutil.ReadAll(cn)
-	str = string(buf)
-	//fmt.Printf("resp=[%v]\n", str)
-	common.Assert("chunk_post", strings.Index(str, "\ntest") > 0)
+	reader := bufio.NewReader(cn)
+	_, body, _ := common.ReadHttpProtocol(reader, true)
+	common.AssertSame(body, "test")
 }
 func HandlePostChunkTrailer(w http.ResponseWriter, r *http.Request) {
 	//fmt.Printf("header: %+v\n", r.Header)

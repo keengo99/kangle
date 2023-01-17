@@ -116,7 +116,6 @@ public:
 		//client主动关闭
 		uint32_t read_huped : 1;
 		uint32_t upstream_expected_done : 1;
-		uint32_t queue_handled : 1;
 		uint32_t has_change_length_filter : 1;//有改变长度的filter
 		//precondition类型
 		uint32_t precondition_flag:3;

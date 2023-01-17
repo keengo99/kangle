@@ -225,11 +225,7 @@ void KHttpRequest::close_source() {
 }
 #ifdef ENABLE_REQUEST_QUEUE
 void KHttpRequest::ReleaseQueue() {
-	if (queue) {
-		if (ctx.queue_handled) {
-			queue->Unlock();
-			ctx.queue_handled = 0;
-		}
+	if (queue) {		
 		queue->release();
 		queue = NULL;
 	}
@@ -477,7 +473,6 @@ std::string KHttpRequest::getInfo() {
 
 KHttpRequest::~KHttpRequest() {
 #ifdef ENABLE_REQUEST_QUEUE
-	assert(queue == NULL);
 	ReleaseQueue();
 #endif
 	assert(sink);
@@ -525,7 +520,13 @@ int KHttpRequest::write(const char* buf, int len) {
 #endif
 KGL_RESULT KHttpRequest::write_end(KGL_RESULT result) {
 	assert(ctx.st.ctx);
-	printf("request=[%p] called write_end with result=[%d]\n", this, result);
+	if (result == KGL_OK && ctx.left_read > 0) {
+		//ÓÐcontent-length£¬ÓÖÎ´¶ÁÍê
+		result = KGL_ESOCKET_BROKEN;
+	}
+	if (!is_result_ok(result)) {
+		KBIT_SET(sink->data.flags, RQ_CONNECTION_CLOSE | RQ_BODY_NOT_COMPLETE);
+	}
 	ctx.st = { 0 };
 	return result;
 }
