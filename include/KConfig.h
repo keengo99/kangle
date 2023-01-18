@@ -86,9 +86,7 @@ public:
 	{
 		return new_ssl_ctx(get_cert_file().c_str(), get_key_file().c_str());
 	}
-#ifdef ENABLE_HTTP2
 	u_char alpn = 0;
-#endif
 	bool early_data =  false;
 	std::string cipher;
 	std::string protocols;

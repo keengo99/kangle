@@ -132,7 +132,7 @@ bool KApiFetchObject::initECB(EXTENSION_CONTROL_BLOCK* ecb) {
 	ecb->lpszLogData[0] = '\0';
 	ecb->lpszPathInfo = (char*)env.getEnv("PATH_INFO");
 	ecb->lpszPathTranslated = (char*)env.getEnv("PATH_TRANSLATED");
-	int64_t content_length = rq->sink->data.content_length;
+	int64_t content_length = rq->get_left();
 	ecb->cbTotalBytes = content_length;
 	ecb->cbLeft = content_length;
 	ecb->lpszContentType = (env.contentType ? env.contentType : (char*)"");

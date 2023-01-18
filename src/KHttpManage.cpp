@@ -1276,15 +1276,16 @@ error: return NULL;
 }
 void KHttpManage::parsePostData() {
 #define MAX_POST_SIZE	8388608 //8m
-	if (rq->sink->data.content_length <= 0 || rq->sink->data.meth != METH_POST) {
+	if (rq->sink->data.left_read <= 0 || rq->sink->data.meth != METH_POST) {
 		return;
 	}
 	char* buffer = NULL;
-	if (rq->sink->data.content_length > MAX_POST_SIZE) {
+	if (rq->sink->data.left_read > MAX_POST_SIZE) {
 		fprintf(stderr, "post size is too big\n");
 		return;
 	}
-	buffer = (char*)xmalloc((int)(rq->sink->data.content_length + 1));
+	buffer = (char*)xmalloc((int)(rq->sink->data.left_read + 1));
+	postLen = (int)rq->sink->data.left_read;
 	char* str = buffer;
 	int length = 0;
 	while (rq->sink->data.left_read > 0) {
@@ -1296,7 +1297,7 @@ void KHttpManage::parsePostData() {
 		}
 		str += length;
 	}
-	postLen = (int)rq->sink->data.content_length;
+
 	buffer[postLen] = 0;
 	postData = buffer;
 }
@@ -1504,7 +1505,7 @@ bool KHttpManage::start_listen(bool& hit) {
 			<< (host ? host->key_file : "") << "'><br>";
 		s << "cipher:<input name='cipher' size=32 value='" << (host ? host->cipher : "") << "'><br>";
 		s << "protocols:<input name='protocols' size=32 value='" << (host ? host->protocols : "") << "'><br>";
-#if (ENABLE_HTTP2 && TLSEXT_TYPE_next_proto_neg)
+#if defined(ENABLE_HTTP2) && defined(TLSEXT_TYPE_next_proto_neg)
 		s << "<input type='checkbox' name='http2' value='1' ";
 		if (host == NULL || KBIT_TEST(host->alpn, KGL_ALPN_HTTP2)) {
 			s << "checked";

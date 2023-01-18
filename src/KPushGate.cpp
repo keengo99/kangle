@@ -538,7 +538,6 @@ KGL_RESULT check_write_header_finish(kgl_output_stream_ctx* st, kgl_response_bod
 	if (!rq->start_response_body(rq->ctx.left_read)) {
 		return  KGL_EINVALID_PARAMETER;
 	}
-	rq->ctx.left_read = 0;
 	if (rq->sink->data.meth == METH_HEAD || is_status_code_no_body(rq->sink->data.status_code)) {
 		return KGL_NO_BODY;
 	}

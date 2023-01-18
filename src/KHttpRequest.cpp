@@ -520,12 +520,9 @@ int KHttpRequest::write(const char* buf, int len) {
 #endif
 KGL_RESULT KHttpRequest::write_end(KGL_RESULT result) {
 	assert(ctx.st.ctx);
-	if (result == KGL_OK && ctx.left_read > 0) {
+	if (result == KGL_OK && sink->get_response_left() > 0) {
 		//ÓÐcontent-length£¬ÓÖÎ´¶ÁÍê
 		result = KGL_ESOCKET_BROKEN;
-	}
-	if (!is_result_ok(result)) {
-		KBIT_SET(sink->data.flags, RQ_CONNECTION_CLOSE | RQ_BODY_NOT_COMPLETE);
 	}
 	ctx.st = { 0 };
 	return result;

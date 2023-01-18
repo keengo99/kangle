@@ -87,7 +87,7 @@ func Prepare(kangle_path string, only_prepare bool) {
 	common.CopyFile(kangle_path+"/test_child"+common.ExeExtendFile(), config.Cfg.BasePath+"/bin/test_child"+common.ExeExtendFile())
 	common.CopyFile(kangle_path+"/testdso"+common.DllExtendFile(), config.Cfg.BasePath+"/bin/testdso"+common.DllExtendFile())
 	common.CopyFile(kangle_path+"/webdav"+common.DllExtendFile(), config.Cfg.BasePath+"/bin/webdav"+common.DllExtendFile())
-	common.CopyFile(kangle_path+"/khttpd/webdav_client_example"+common.ExeExtendFile(), config.Cfg.BasePath+"/bin/webdav_client_example"+common.ExeExtendFile())
+	common.CopyFile(kangle_path+"/webdav_client_example"+common.ExeExtendFile(), config.Cfg.BasePath+"/bin/webdav_client_example"+common.ExeExtendFile())
 	Start(only_prepare)
 	time.Sleep(time.Second)
 }

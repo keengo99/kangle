@@ -133,7 +133,7 @@ KInputFilter* KInputFilterContext::getFilter()
 	}
 	if (KBIT_TEST(rq->sink->data.flags, RQ_POST_UPLOAD)) {
 		filter = new KMultiPartInputFilter;
-	} else if (rq->sink->data.content_length != 0) {
+	} else if (rq->sink->data.left_read != 0) {
 		filter = new KInputFilter;
 	}
 	return filter;

@@ -594,7 +594,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 	if (in) {
 		content_length = in->f->get_read_left(in->ctx);
 	} else {
-		content_length = rq->sink->data.content_length;
+		content_length = rq->get_left();
 	}
 	if (rq_has_content_length(rq, content_length)) {
 		int val_len = int2string2(content_length, tmpbuff);

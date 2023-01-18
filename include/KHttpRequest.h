@@ -217,7 +217,7 @@ public:
 	int read(char* buf, int len);
 #ifdef ENABLE_INPUT_FILTER
 	KInputFilterContext* getInputFilterContext() {
-		if (if_ctx == NULL && (sink->data.content_length > 0 || sink->data.url->param)) {
+		if (if_ctx == NULL && (sink->data.left_read != 0 || sink->data.url->param)) {
 			if_ctx = new KInputFilterContext(this);
 		}
 		return if_ctx;

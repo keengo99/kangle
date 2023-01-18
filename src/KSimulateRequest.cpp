@@ -91,14 +91,14 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 		rq->sink->parse_header(kgl_expand_string("Accept-Encoding"), kgl_expand_string("gzip"), false);
 	}
 	rq->sink->data.meth = KHttpKeyValue::get_method(ctx->meth, (int)strlen(ctx->meth));
-	rq->sink->data.content_length = ctx->post_len;
+	rq->sink->data.left_read = ctx->post_len;
 	rq->sink->data.set_http_version(1, 1);
 	KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 	if (!KBIT_TEST(ctx->flags, KF_SIMULATE_CACHE)) {
 		KBIT_SET(rq->sink->data.flags, RQ_HAS_NO_CACHE);
 		KBIT_SET(rq->ctx.filter_flags, RF_NO_CACHE);
 	}
-	if (rq->sink->data.content_length > 0) {
+	if (rq->sink->data.left_read > 0) {
 		KBIT_SET(rq->sink->data.flags, RQ_HAS_CONTENT_LEN);
 	}
 	if (KBIT_TEST(ctx->flags, KF_SIMULATE_LOCAL)) {
@@ -189,7 +189,7 @@ KSimulateSink::~KSimulateSink()
 		xfree(host);
 	}
 	if (body) {
-		this->body(arg, NULL, !KBIT_TEST(data.flags, RQ_BODY_NOT_COMPLETE));
+		this->body(arg, NULL, response_left==0);
 	}
 }
 int KSimulateSink::end_request()

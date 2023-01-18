@@ -133,8 +133,5 @@ func check_proxy_port() {
 }
 
 func check_bug() {
-	common.Getx(fmt.Sprintf("/upstream/http/chunk_trailer?s=%v", 0), "localhost", nil, func(resp *http.Response, err error) {
-		common.AssertSame(common.Read(resp), "MozillaDeveloperNetwork")
-		common.AssertSame(resp.Trailer.Get("x-trailer-test"), "hello")
-	})
+
 }

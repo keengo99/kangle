@@ -1,7 +1,6 @@
 #include "KBigObjectContext.h"
 #include "KBigObjectStream.h"
 #include "http.h"
-#include "KChunked.h"
 #include "KHttpObject.h"
 #include "kselectable.h"
 #include "cache.h"

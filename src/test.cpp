@@ -33,7 +33,6 @@
 #include "KPipeStream.h"
 #include "KFileName.h"
 #include "KVirtualHost.h"
-#include "KChunked.h"
 #include "KHtAccess.h"
 #include "KTimeMatch.h"
 #include "KReg.h"

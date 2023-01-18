@@ -80,6 +80,7 @@ public:
 	{
 		if (body) {
 			if (body(arg, (char*)buf[0].iov_base, buf[0].iov_len) == 0) {
+				on_success_response(buf[0].iov_len);
 				return buf[0].iov_len;
 			}
 		}
