@@ -6,7 +6,7 @@
 #include "KHttpRequest.h"
 #include "KFilterContext.h"
 #include "utils.h"
-
+#if 0
 char *replaceUrlCallBack(void *param,html_tag_t *tag,const char *src_url,int url_len);
 void replaceUrlEndCallBack(void *param);
 class KReplaceUrlMark;
@@ -78,4 +78,5 @@ private:
 	char *dst;
 	bool location;
 };
+#endif
 #endif

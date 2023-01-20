@@ -2,7 +2,7 @@
 #include "KReplaceContentMark.h"
 #include "KRewriteMarkEx.h"
 #include "KHttpRequest.h"
-
+#if 0
 #define MAX_FILTER_OVECTOR   300
 KReplaceContentFilter::KReplaceContentFilter()
 {
@@ -149,3 +149,4 @@ StreamState KReplaceContentFilter::write_end(void *rq, KGL_RESULT result)
 	}
 	return KHttpStream::write_end(rq, result);
 }
+#endif

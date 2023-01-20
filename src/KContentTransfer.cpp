@@ -2,7 +2,7 @@
 #include "kmalloc.h"
 #include "KGzip.h"
 #include "KFilterContext.h"
-
+#if 0
 StreamState KContentTransfer::write_all(void *arg, const char *str,int len)
 {
 	KHttpRequest* rq = (KHttpRequest*)arg;
@@ -14,3 +14,4 @@ StreamState KContentTransfer::write_all(void *arg, const char *str,int len)
 	}
 	return KHttpStream::write_all(rq, str,len);
 }
+#endif

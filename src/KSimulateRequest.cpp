@@ -197,18 +197,19 @@ int KSimulateSink::end_request()
 	delete this;
 	return 0;
 }
+
 typedef struct {
 	char *save_file;
 	int code;
-	KWriteStream *st;
+	KWStream* st;
 } async_download_worker;
 
 int WINAPI async_download_header_hook(void *arg, int code, KHttpHeader *header)
 {
 	async_download_worker *dw = (async_download_worker *)arg;
 	dw->code = code;
-	kassert(dw->st == NULL);
 	if (code == 200) {
+
 		KFileStream *fs = new KFileStream;
 		fs->last_modified = 0;
 		KStringBuf filename;
@@ -227,15 +228,17 @@ int WINAPI async_download_header_hook(void *arg, int code, KHttpHeader *header)
 			}
 			header = header->next;
 		}
+
 	}
 	return 0;
 }
 int WINAPI async_download_body_hook(void *arg, const char *data, int len)
 {
 	async_download_worker *dw = (async_download_worker *)arg;
+
 	if (data == NULL) {
 		if (dw->st) {
-			KGL_RESULT ret = dw->st->write_end(NULL, KGL_OK);
+			KGL_RESULT ret = dw->st->write_end(KGL_OK);
 			delete dw->st;
 			dw->st = NULL;
 			KStringBuf filename;
@@ -254,7 +257,7 @@ int WINAPI async_download_body_hook(void *arg, const char *data, int len)
 		}
 	}
 	if (data && dw->st) {
-		if (KGL_OK != dw->st->write_all(NULL, data, len)) {
+		if (KGL_OK != dw->st->write_all(data, len)) {
 			return 1;
 		}
 	}

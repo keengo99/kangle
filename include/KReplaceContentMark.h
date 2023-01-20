@@ -7,6 +7,7 @@
 #include "KFilterContext.h"
 #include "utils.h"
 #include "KRewriteMarkEx.h"
+#if 0
 class KReplaceContentMark;
 struct KReplaceContentMarkParam
 {
@@ -200,5 +201,6 @@ private:
 	bool replaced_stop;
 	int buffer;
 };
+#endif
 #endif
 

@@ -475,7 +475,7 @@ KGL_RESULT KAsyncFetchObject::PushHeaderFinished(KHttpRequest* rq) {
 		rq->ctx.left_read = -1;
 	}
 	assert(body.ctx == nullptr);
-	return out->f->write_header_finish(out->ctx,  &body);
+	return out->f->write_header_finish(out->ctx, rq->ctx.left_read, &body);
 }
 void KAsyncFetchObject::PushStatus(KHttpRequest* rq, int status_code) {
 	if (status_code == 100) {
@@ -581,7 +581,8 @@ KGL_RESULT KAsyncFetchObject::PushHeader(KHttpRequest* rq, const char* attr, int
 		} else {
 			rq->ctx.left_read = content_length;
 		}
-		return out->f->write_header(out->ctx,  header, (char*)&content_length, KGL_HEADER_VALUE_INT64);
+		return KGL_OK;
+		//return out->f->write_header(out->ctx,  header, (char*)&content_length, KGL_HEADER_VALUE_INT64);
 	}
 	case kgl_header_unknow:
 		return out->f->write_unknow_header(out->ctx,  attr, attr_len, val, (hlen_t)val_len);

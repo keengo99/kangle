@@ -3,6 +3,7 @@
 #include "KStream.h"
 #include "KHttpRequest.h"
 #include "utils.h"
+#if 0
 struct html_tag_t
 {
 	const char *name;
@@ -54,4 +55,5 @@ private:
 	html_tag_t *tag_head;
 };
 extern html_tag_t url_tag[];
+#endif
 #endif

@@ -29,7 +29,7 @@ static KGL_RESULT open(KREQUEST r, kgl_async_context *ctx)
 		ctx->out->f->write_header(ctx->out->ctx, kgl_header_upgrade, _KS("test"));
 		ctx->out->f->write_header(ctx->out->ctx, kgl_header_cache_control, _KS("no-cache, no-store"));
 		kgl_response_body body;
-		result = ctx->out->f->write_header_finish(ctx->out->ctx, &body);
+		result = ctx->out->f->write_header_finish(ctx->out->ctx, -1, &body);
 		if (result != KGL_OK) {
 			return result;
 		}
@@ -49,9 +49,7 @@ static KGL_RESULT open(KREQUEST r, kgl_async_context *ctx)
 	{
 		kgl_response_body body;
 		ctx->out->f->write_status(ctx->out->ctx,  200);
-		int64_t content_length = -1;
-		ctx->out->f->write_header(ctx->out->ctx, kgl_header_content_length, (char*)&content_length, KGL_HEADER_VALUE_INT64);
-		result = ctx->out->f->write_header_finish(ctx->out->ctx,  &body);
+		result = ctx->out->f->write_header_finish(ctx->out->ctx, -1, &body);
 		if (result != KGL_OK) {
 			return result;
 		}
@@ -61,10 +59,12 @@ static KGL_RESULT open(KREQUEST r, kgl_async_context *ctx)
 	case test_upstream:
 	{
 		kgl_response_body body;
+		int64_t content_length = sizeof("test_upstream_ok")-1;
 		ctx->out->f->write_status(ctx->out->ctx,  200);
 		ctx->out->f->write_header(ctx->out->ctx,  kgl_header_content_type, _KS("text/plain"));
+		ctx->out->f->write_header(ctx->out->ctx, kgl_header_content_length, (char *)&content_length, KGL_HEADER_VALUE_INT64);
 		ctx->out->f->write_header(ctx->out->ctx,  kgl_header_cache_control, _KS("no-cache, no-store"));
-		result = ctx->out->f->write_header_finish(ctx->out->ctx,  &body);
+		result = ctx->out->f->write_header_finish(ctx->out->ctx, content_length, &body);
 		if (result != KGL_OK) {
 			return result;
 		}
@@ -75,13 +75,13 @@ static KGL_RESULT open(KREQUEST r, kgl_async_context *ctx)
 		ctx->out->f->write_status(ctx->out->ctx,  200);
 		ctx->out->f->write_header(ctx->out->ctx,  kgl_header_content_type, _KS("text/plain"));
 		ctx->out->f->write_header(ctx->out->ctx,  kgl_header_cache_control, _KS("no-cache, no-store"));
-		result = ctx->out->f->write_header_finish(ctx->out->ctx,  &body);
+		result = ctx->out->f->write_header_finish(ctx->out->ctx, -1, &body);
 		if (result != KGL_OK) {
 			return result;
 		}
 		std::stringstream s;
-		s <<  katom_get((void*)&sendfile_context.total_count) << "\r\n";
-		s <<  katom_get64((void*)&sendfile_context.total_length) << "\r\n";
+		s <<  katom_get((void*)&sendfile_total_count) << "\r\n";
+		s <<  katom_get64((void*)&sendfile_total_length) << "\r\n";
 		return body.f->close(body.ctx, body.f->write(body.ctx, s.str().c_str(), (int)s.str().size()));
 	}
 	default:
@@ -111,7 +111,7 @@ static kgl_upstream before_cache_async_upstream = {
 };
 void register_global_async_upstream(kgl_dso_version *ver)
 {
-	KGL_REGISTER_ASYNC_UPSTREAM(ver, &async_upstream);
+	KGL_REGISTER_UPSTREAM(ver, &async_upstream);
 }
 void register_async_upstream(KREQUEST r, kgl_access_context *ctx, test_context *model_ctx, bool before_cache)
 {

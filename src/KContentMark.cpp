@@ -25,7 +25,7 @@
 #include "KAccess.h"
 #include "KContentMark.h"
 #include "KFilterHelper.h"
-
+#if 0
 bool KContentMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
 		int &jumpType) {
 	KFilterHelper *filterHelper = new KFilterHelper(this, chainJumpType);
@@ -33,3 +33,4 @@ bool KContentMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpT
 	rq->addFilter(filterHelper);
 	return true;
 }
+#endif

@@ -913,51 +913,34 @@ bool KHttpManage::parseUrl(char* url) {
 }
 bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* content_type, const char* add_header, int max_age) {
 	KStringBuf s;
-	rq->response_status(STATUS_OK);
+	out->f->write_status(out->ctx, STATUS_OK);
 
-	timeLock.Lock();
-	rq->response_header(kgl_header_server, conf.serverName, conf.serverNameLength);
-	rq->response_header(kgl_header_date, (char*)cachedDateTime, 29);
-	timeLock.Unlock();
 	if (content_type) {
-		rq->response_header(kgl_expand_string("Content-Type"), content_type, (hlen_t)strlen(content_type));
+		out->f->write_unknow_header(out->ctx, kgl_expand_string("Content-Type"), content_type, (hlen_t)strlen(content_type));
 	} else {
-		rq->response_header(kgl_expand_string("Content-Type"), kgl_expand_string("text/html; charset=utf-8"));
+		out->f->write_unknow_header(out->ctx, kgl_expand_string("Content-Type"), kgl_expand_string("text/html; charset=utf-8"));
 	}
 	if (max_age == 0) {
-		rq->response_header(kgl_expand_string("Cache-control"), kgl_expand_string("no-cache,no-store"));
+		out->f->write_unknow_header(out->ctx, kgl_expand_string("Cache-control"), kgl_expand_string("no-cache,no-store"));
 	} else {
 		s << "public,max_age=" << max_age;
-		rq->response_header(kgl_expand_string("Cache-control"), s.getBuf(), s.getSize());
+		out->f->write_unknow_header(out->ctx, kgl_expand_string("Cache-control"), s.getBuf(), s.getSize());
 	}
-	kbuf* gzipOut = NULL;
-	if (content_length > conf.min_compress_length && msg && KBIT_TEST(rq->sink->data.raw_url->accept_encoding, KGL_ENCODING_GZIP)) {
-		kbuf in;
-		memset(&in, 0, sizeof(in));
-		in.data = (char*)msg;
-		in.used = (int)content_length;
-		gzipOut = deflate_buff(&in, conf.gzip_level, content_length, true);
-		KBIT_SET(rq->sink->data.flags, RQ_TE_COMPRESS);
-		rq->response_header(kgl_expand_string("Content-Encoding"), kgl_expand_string("gzip"));
-	}
-	if (content_length >= 0) {
-		rq->response_content_length(content_length);
-	}
-	rq->response_connection();
-	rq->start_response_body(-1);
-	if (gzipOut) {
-		auto result = rq->write_buf(gzipOut);
-		destroy_kbuf(gzipOut);
-		return result==KGL_OK;
-	}
-	if (msg == NULL) {
-		return true;
-	}
-	if (content_length < 0) {
+	out->f->write_unknow_header(out->ctx, _KS("x-gzip"), _KS("1"));
+	kgl_response_body body;
+
+
+	if (content_length < 0 && msg) {
 		content_length = strlen(msg);
 	}
-	if (content_length > 0 && rq->sink->data.meth != METH_HEAD) {
-		return rq->write_all(msg, (int)content_length) == KGL_OK;
+	KGL_RESULT result = out->f->write_header_finish(out->ctx, content_length, &body);
+	if (result != KGL_OK) {
+		return false;
+	}
+	if (msg) {
+		body.f->close(body.ctx, body.f->write(body.ctx, msg, (int)content_length));
+	} else {
+		body.f->close(body.ctx, KGL_OK);
 	}
 	return true;
 }
@@ -1822,6 +1805,7 @@ bool KHttpManage::sendProcessInfo() {
 }
 KGL_RESULT KHttpManage::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) {
 	this->rq = rq;
+	this->out = out;
 	bool hit = true;
 	if (!start(hit)) {
 		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);

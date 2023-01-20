@@ -63,6 +63,7 @@
 #include "KFetchBigObject.h"
 #include "KBigObjectContext.h"
 using namespace std;
+#if 0
 kbuf* deflate_buff(kbuf* in_buf, int level, INT64& len, bool fast) {
 	KBuffer buffer;
 	KBridgeStream2 st(&buffer, false);
@@ -81,6 +82,7 @@ kbuf* deflate_buff(kbuf* in_buf, int level, INT64& len, bool fast) {
 	len = buffer.getLen();
 	return buffer.stealBuffFast();
 }
+#endif
 KGL_RESULT send_auth2(KHttpRequest* rq, KAutoBuffer* body) {
 	if (conf.auth_delay > 0 && KBIT_TEST(rq->sink->data.flags, RQ_HAS_PROXY_AUTHORIZATION | RQ_HAS_AUTHORIZATION)) {
 		kfiber_msleep(conf.auth_delay * 1000);
@@ -331,7 +333,7 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 	bool send_obj_header = true;
 	if (rq->sink->data.range
 		&& obj->data->i.status_code == STATUS_OK
-		&& content_len>0) {
+		&& content_len>0 && obj->in_cache) {
 		send_len = content_len;
 		if (!rq->sink->adjust_range(&send_len)) {
 			build_first = false;

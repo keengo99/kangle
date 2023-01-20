@@ -20,9 +20,9 @@ int bigobj_send_fiber(void* arg, int got)
 KGL_RESULT KBigObjectContext::close(KGL_RESULT result)
 {
 	
-	if (!bigobj_dead && rq->ctx.st.ctx) {
+	if (!bigobj_dead && rq->ctx.body.ctx) {
 		/* bigobj_dead 状态下，response_body 不由我负责关闭。*/
-		result = rq->ctx.st.f->close(rq->ctx.st.ctx, result);
+		result = rq->ctx.body.f->close(rq->ctx.body.ctx, result);
 	}
 	delete this;
 	return result;
@@ -35,7 +35,7 @@ void KBigObjectContext::close_write() {
 }
 KGL_RESULT KBigObjectContext::send_data(bool *net_fiber)
 {	
-	KGL_RESULT result = prepare_write_body(rq, &rq->ctx.st);
+	KGL_RESULT result = prepare_write_body(rq, &rq->ctx.body);
 	if (result != KGL_OK) {
 		return result;
 	}
@@ -69,7 +69,7 @@ KGL_RESULT KBigObjectContext::send_data(bool *net_fiber)
 			result = KGL_EIO;	
 			break;
 		}
-		result = rq->ctx.st.f->write(rq->ctx.st.ctx, buf, got);
+		result = rq->ctx.body.f->write(rq->ctx.body.ctx, buf, got);
 		if (result!=KGL_OK) {
 			break;
 		}
@@ -262,7 +262,7 @@ static KGL_RESULT bigobj_error(kgl_output_stream_ctx* ctx, uint16_t status_code,
 	KBigObjectContext* bo_ctx = (KBigObjectContext*)ctx;
 	return KGL_EUNKNOW;
 }
-static KGL_RESULT upstream_recv_headed(kgl_output_stream_ctx* ctx, kgl_response_body* body) {
+static KGL_RESULT upstream_recv_headed(kgl_output_stream_ctx* ctx,int64_t body_size, kgl_response_body* body) {
 	KBigObjectContext* bo_ctx = (KBigObjectContext*)ctx;
 	assert(bo_ctx->rq->ctx.old_obj && bo_ctx->rq->ctx.old_obj == bo_ctx->obj);
 	if (is_status_code_no_body(bo_ctx->rq->ctx.obj->data->i.status_code)) {
@@ -271,17 +271,15 @@ static KGL_RESULT upstream_recv_headed(kgl_output_stream_ctx* ctx, kgl_response_
 	if (bo_ctx->rq->sink->data.meth == METH_HEAD) {
 		//没有http body的情况
 		return KGL_NO_BODY;
-	}	
+	}
 	kgl_default_output_stream_ctx* default_ctx = (kgl_default_output_stream_ctx*)bo_ctx->down_stream.ctx;
 	assert(default_ctx->rq == bo_ctx->rq);
-	default_ctx->parser_ctx.end_parse(bo_ctx->rq);
+	default_ctx->parser_ctx.end_parse(bo_ctx->rq, body_size);
 	KGL_RESULT result = bo_ctx->upstream_recv_headed();
 	if (bo_ctx->bigobj_dead || result != KGL_OK) {
 		assert(bo_ctx->write_offset == -1);
-		return forward_write_header_finish(ctx, body);
+		return on_upstream_finished_header(bo_ctx->rq, body);
 	}
-
-
 	auto st = get_bigobj_response_body(bo_ctx->rq, body);
 	assert(bo_ctx->rq->ctx.sub_request);
 	st->bo_ctx = bo_ctx;

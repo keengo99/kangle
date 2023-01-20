@@ -10,7 +10,7 @@
 
 #ifdef ENABLE_BIG_OBJECT_206
 KGL_RESULT turn_on_bigobject(KHttpRequest* rq, KHttpObject* obj, kgl_response_body* body) {
-	assert(rq->ctx.st.ctx == nullptr);
+	assert(rq->ctx.body.ctx == nullptr);
 	rq->dead_old_obj();
 	kassert(obj->data->i.type == MEMORY_OBJECT);
 	kassert(!obj->in_cache);
@@ -36,7 +36,7 @@ KGL_RESULT turn_on_bigobject(KHttpRequest* rq, KHttpObject* obj, kgl_response_bo
 		return result;
 	}
 	
-	assert(!rq->ctx.st.ctx);
+	assert(!rq->ctx.body.ctx);
 	auto st = get_tunon_bigobj_response_body(rq, body);
 	st->bo_ctx = bo_ctx;
 	bo_ctx->write_offset = obj->data->sbo->open_write(obj, bo_ctx->read_offset);

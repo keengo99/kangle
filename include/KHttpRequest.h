@@ -101,7 +101,7 @@ public:
 	struct {
 		uint32_t filter_flags;
 		uint32_t internal:1;
-		uint32_t replace : 1;
+		//uint32_t replace : 1;
 		uint32_t simulate : 1;
 		uint32_t skip_access : 1;
 		uint32_t cache_hit_part : 1;
@@ -116,7 +116,6 @@ public:
 		//client主动关闭
 		uint32_t read_huped : 1;
 		uint32_t upstream_expected_done : 1;
-		uint32_t has_change_length_filter : 1;//有改变长度的filter
 		//precondition类型
 		uint32_t precondition_flag:3;
 		//int64_t content_range_length;
@@ -124,7 +123,8 @@ public:
 		KHttpObject* obj;
 		KHttpObject* old_obj;
 		kgl_sub_request* sub_request;
-		kgl_response_body st;
+		kgl_response_body body;
+		kgl_input_stream in;
 	} ctx;
 	KFetchObject* fo_head;
 	KFetchObject* fo_last;
@@ -270,7 +270,7 @@ public:
 
 	KSubVirtualHost* get_virtual_host();
 
-	void addFilter(KFilterHelper* chain);
+	//void addFilter(KFilterHelper* chain);
 	inline bool response_status(uint16_t status_code) {
 		return sink->response_status(status_code);
 	}
@@ -313,7 +313,7 @@ public:
 	KGL_RESULT write_buf(kbuf* buf, int length = -1);
 	/* override KWStream function end */
 
-	int checkFilter(KHttpObject* obj);
+	//int checkFilter(KHttpObject* obj);
 	uint16_t GetSelfPort() {
 		return sink->get_self_port();
 	}

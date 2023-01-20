@@ -112,7 +112,7 @@ KGL_RESULT KApiFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_out
 	}
 	if (!headSended && result == KGL_OK) {
 		headSended = true;
-		result = out->f->write_header_finish(out->ctx,  &body);
+		result = out->f->write_header_finish(out->ctx,  -1, &body);
 	}
 	if (body.ctx) {
 		assert(result != KGL_NO_BODY);
@@ -177,7 +177,7 @@ KGL_RESULT KApiFetchObject::addHeader(const char* attr, int len) {
 	case kgl_parse_finished:
 	{
 		headSended = true;
-		auto result = out->f->write_header_finish(out->ctx,  &body);
+		auto result = out->f->write_header_finish(out->ctx, -1,  &body);
 		if (result == KGL_NO_BODY) {
 			no_body = true;
 		}

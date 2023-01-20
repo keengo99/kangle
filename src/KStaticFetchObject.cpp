@@ -20,20 +20,20 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_input_strea
 	if (!kgl_is_safe_method(rq->sink->data.meth)) {
 		if (condition) {
 			out->f->write_status(out->ctx, STATUS_PRECONDITION);
-			return out->f->write_header_finish(out->ctx, nullptr);
+			return out->f->write_header_finish(out->ctx,0, nullptr);
 		}
 		out->f->write_status(out->ctx, STATUS_METH_NOT_ALLOWED);
 		out->f->write_unknow_header(out->ctx, _KS("Allow"), _KS("GET, HEAD"));
-		return out->f->write_header_finish(out->ctx, nullptr);
+		return out->f->write_header_finish(out->ctx,0, nullptr);
 	}
 	if (condition && condition->time>0) {
-		if (!KBIT_TEST(flag, kgl_precondition_if_unmodified)) {
+		if (KBIT_TEST(flag, kgl_precondition_if_unmodified)) {
 			out->f->write_status(out->ctx, STATUS_PRECONDITION);
-			return out->f->write_header_finish(out->ctx, nullptr);
+			return out->f->write_header_finish(out->ctx,0, nullptr);
 		}
 		if (condition->time >= last_modified) {
 			out->f->write_status(out->ctx, STATUS_NOT_MODIFIED);
-			return out->f->write_header_finish(out->ctx, nullptr);
+			return out->f->write_header_finish(out->ctx,0, nullptr);
 		}
 	}	
 	assert(fp == NULL);
@@ -105,34 +105,19 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_input_strea
 			//url range的本地不缓存
 			KBIT_SET(obj->index.flags, ANSW_NO_CACHE);
 		}
-		if (!KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED)) {
-			KStringBuf b;
-			char buf[INT2STRING_LEN];
-			b.WSTR("bytes ");
-			b << int2string(range->from, buf);
-			b.WSTR("-");
-			b << int2string(range->to, buf);
-			b.WSTR("/");
-			b << int2string(rq->file->get_file_size(), buf);
-			out->f->write_header(out->ctx, kgl_header_content_range, b.getString(), b.getSize());
-			status_code = STATUS_CONTENT_PARTIAL;
-		} else {
-			//url range的本地不缓存
-			KBIT_SET(obj->index.flags, ANSW_NO_CACHE);
-		}
 	}
 	out->f->write_status(out->ctx, status_code);
 	rq->ctx.left_read = left_send;
 	if (obj->never_compress) {
 		out->f->write_header(out->ctx, kgl_header_content_encoding, kgl_expand_string("identity"));
 	}
-	out->f->write_header(out->ctx, kgl_header_content_length, (const char*)&left_send, KGL_HEADER_VALUE_INT64);
+	//out->f->write_header(out->ctx, kgl_header_content_length, (const char*)&left_send, KGL_HEADER_VALUE_INT64);
 	out->f->write_header(out->ctx, kgl_header_last_modified, (const char*)&last_modified, KGL_HEADER_VALUE_TIME);
 	out->f->write_header(out->ctx, kgl_header_content_type, content_type, (hlen_t)strlen(content_type));
 	//rq->buffer << "1234";
 	//通知http头已经处理完成
 	kgl_response_body body = { 0 };
-	KGL_RESULT result = out->f->write_header_finish(out->ctx, &body);
+	KGL_RESULT result = out->f->write_header_finish(out->ctx, left_send, &body);
 	if (result != KGL_OK) {
 		assert(body.ctx == nullptr);
 		return result;

@@ -94,6 +94,7 @@ bool stored_obj(KHttpRequest *rq, KHttpObject *obj,KHttpObject *old_obj) {
 	if (KBIT_TEST(rq->ctx.filter_flags, RF_NO_DISK_CACHE)) {
 		KBIT_SET(obj->index.flags, FLAG_NO_DISK_CACHE);
 	}
+	assert(!KBIT_TEST(obj->index.flags, FLAG_RQ_INTERNAL));
 	if (rq->ctx.internal) {
 		KBIT_SET(obj->index.flags,FLAG_RQ_INTERNAL);
 	}

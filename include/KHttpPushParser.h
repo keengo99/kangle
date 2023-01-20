@@ -56,7 +56,7 @@ private:
 				//printf("attr=[%s] val=[%s]\n", rs.attr, rs.val);
 				break;
 			case kgl_parse_finished:
-				parser_ctx.end_parse(rq);
+				parser_ctx.end_parse(rq, -1);
 				return kgl_parse_finished;
 			}
 		}

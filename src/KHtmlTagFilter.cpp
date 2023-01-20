@@ -1,6 +1,7 @@
 #include "KHtmlTagFilter.h"
 #include "KReplaceUrlMark.h"
 #include "utils.h"
+#if 0
 html_tag_t url_tag[] = {
 	{"a",1,"href",4},
 	{"form",4,"action",6},
@@ -244,3 +245,4 @@ StreamState KHtmlTagFilter::write_end(void *rq, KGL_RESULT result)
 	}
 	return KHttpStream::write_end(rq, result);
 }
+#endif

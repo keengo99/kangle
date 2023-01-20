@@ -381,10 +381,10 @@ static KGL_RESULT support_function(
 	}
 	case KF_REQ_FILTER:
 	{
-		kgl_filter* filter = (kgl_filter*)data;		
-		void* dso_ctx = (void*)*ret;
-		KDsoFilter* dso_filter = new KDsoFilter(filter, dso_ctx);
-		rq->getOutputFilterContext()->registerFilterStream(rq, dso_filter, true);
+		kgl_filter_body* body = new kgl_filter_body;
+		body->filter = (kgl_filter*)data;
+		body->ctx = (kgl_response_body_ctx*)*ret;
+		rq->getOutputFilterContext()->add(body);
 	}
 	default:
 		return base_support_function(rq, req, data, ret);

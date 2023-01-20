@@ -139,6 +139,7 @@ private:
 	bool soft;
 	bool must_revalidate;
 };
+#if 0
 class KGuestCacheMark : public KMark {
 public:
 	KGuestCacheMark() {
@@ -266,4 +267,5 @@ private:
 	bool must_revalidate;
 	bool skip_set_cookie;
 };
+#endif
 #endif /*KRESPONSEFLAGMARK_H_*/

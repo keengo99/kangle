@@ -6,6 +6,7 @@ struct brotli_context : kgl_forward_body
 {
 	BrotliEncoderState* state;
 };
+#if 0
 KBrotliCompress::KBrotliCompress() : KCompressStream(NULL)
 {
 	state = BrotliEncoderCreateInstance(NULL, NULL, NULL);
@@ -54,6 +55,7 @@ KGL_RESULT KBrotliCompress::write_end(void *rq, KGL_RESULT result)
 	}
 	return KHttpStream::write_end(rq, result);
 }
+#endif
 KGL_RESULT brotli_compress(brotli_context *ctx, const uint8_t** str, size_t len, BrotliEncoderOperation op)
 {
 	char out[8192];

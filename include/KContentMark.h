@@ -23,6 +23,7 @@
 #ifndef KFILTER_H_
 #define KFILTER_H_
 #include "KMark.h"
+#if 0
 #define PARTIALMATCH_BACKLEN	32
 enum {
 	FILTER_MATCH, FILTER_PARTIALMATCH, FILTER_NOMATCH,
@@ -57,5 +58,5 @@ public:
 	virtual int check(const char *buf, int len, const char *charset,
 			KFilterKey **keys) = 0;
 };
-
+#endif
 #endif /* KFILTER_H_ */

@@ -1,6 +1,7 @@
 #ifndef KSTATUSCODEMARK_H
 #define KSTATUSCODEMARK_H
 #include "KMark.h"
+#if 0
 class KStatusCodeMark: public KMark
 {
 public:
@@ -48,4 +49,5 @@ public:
 private:
 	int code;
 };
+#endif
 #endif

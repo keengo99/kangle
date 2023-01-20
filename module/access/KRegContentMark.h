@@ -29,7 +29,7 @@
 #include "KReg.h"
 #include "KContentMark.h"
 #include "log.h"
-
+#if 0
 #define WORK_SIZE		1024
 #define BACK_SIZE		128
 static std::map<std::string, std::string> replaceContentMap;
@@ -202,5 +202,5 @@ private:
 	KReg *localReg;
 	KReg *utf8Reg;
 };
-
+#endif
 #endif /*KCONTENTMARK_H_*/

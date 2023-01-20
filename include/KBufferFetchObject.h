@@ -17,9 +17,8 @@ public:
 	}
 	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out)
 	{
-		out->f->write_header(out->ctx, kgl_header_content_length, (char *)&length, KGL_HEADER_VALUE_INT64);
 		kgl_response_body body;
-		KGL_RESULT result = out->f->write_header_finish(out->ctx, &body);
+		KGL_RESULT result = out->f->write_header_finish(out->ctx, length, &body);
 		if (result != KGL_OK) {
 			return result;
 		}

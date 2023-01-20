@@ -35,13 +35,13 @@ static KGL_RESULT push_unknow_header(kgl_output_stream_ctx* gate,  const char *a
 	kgl_async_context *ctx = kgl_get_out_async_context(gate);
 	return ctx->out->f->write_unknow_header(ctx->out->ctx, attr, attr_len, val, val_len);
 }
-static KGL_RESULT push_header_finish(kgl_output_stream_ctx*gate,  kgl_response_body *body) {
+static KGL_RESULT push_header_finish(kgl_output_stream_ctx*gate, int64_t body_size, kgl_response_body *body) {
 	kgl_async_context* ctx = kgl_get_out_async_context(gate);
 	test_context* t = (test_context*)ctx->module;
 	if (t->read_post) {
 		ctx->out->f->write_unknow_header(ctx->out->ctx,  kgl_expand_string("x-testdso"), kgl_expand_string("forward-sleep"));
 	}
-	return ctx->out->f->write_header_finish(ctx->out->ctx,  body);
+	return ctx->out->f->write_header_finish(ctx->out->ctx,body_size, body);
 }
 static KGL_RESULT push_trailer(kgl_output_stream_ctx* gate, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
 	kgl_async_context* ctx = kgl_get_out_async_context(gate);
@@ -76,11 +76,10 @@ static KGL_RESULT handle_error(kgl_output_stream_ctx*gate,  uint16_t status_code
 }
 
 static kgl_output_stream_function push_gate_function = {
-	push_status,
-	push_header,
-	push_unknow_header,
-	handle_error,
-	push_header_finish,
-	push_trailer,
-	(void(*)(kgl_output_stream_ctx*))free
+		push_status,
+		push_header,
+		push_unknow_header,
+		handle_error,
+		push_header_finish,
+		push_trailer
 };

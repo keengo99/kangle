@@ -2,18 +2,17 @@
 #define KFILESTREAM_H
 #include "KHttpStream.h"
 #include "KFileName.h"
-
-class KFileStream : public KWriteStream {
+class KFileStream : public KWStream {
 public:
 	bool open(const char *str,fileModel model=fileWrite)
 	{
 		return fp.open(str, model);
 	}
-	int write(void *rq, const char *buf, int len) override
+	int write(const char *buf, int len) override
 	{
 		return fp.write(buf, len);
 	}
-	KGL_RESULT write_end(void*rq, KGL_RESULT result) override {
+	KGL_RESULT write_end(KGL_RESULT result) override {
 		if (last_modified > 0) {
 			if (!kfutime(fp.getHandle(), last_modified)) {
 				//printf("update modifi time=[%x] error\n", (unsigned)last_modified);

@@ -19,6 +19,7 @@ func check_upstream() {
 func check_filter() {
 	common.Getx("/test_dso_filter", config.GetLocalhost("dso"), nil, func(resp *http.Response, err error) {
 		common.AssertSame(common.Read(resp), "t*st_upstr*am_ok")
+		common.Assert("has content-length", resp.ContentLength > 0)
 	})
 }
 func check_http10_chunk() {

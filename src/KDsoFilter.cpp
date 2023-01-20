@@ -1,5 +1,6 @@
 #include "KDsoFilter.h"
 #include "KAccessDsoSupport.h"
+#if 0
 static KGL_RESULT next_flush(KREQUEST rq, KCONN cn)
 {
 	return ((KWriteStream*)cn)->flush((KHttpRequest *)rq);
@@ -60,3 +61,5 @@ bool KDsoFilter::support_sendfile(void* rq) {
 	}
 	return KHttpStream::forward_support_sendfile(rq);
 }
+#endif
+

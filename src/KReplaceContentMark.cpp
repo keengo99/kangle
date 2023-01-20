@@ -1,4 +1,5 @@
 #include "KReplaceContentMark.h"
+#if 0
 int replaceContentMarkMatchCallBack(void *param, const char *buf, int len, int *ovector, int overctor_size)
 {
 	KReplaceContentMarkParam *rp = (KReplaceContentMarkParam *)param;
@@ -15,3 +16,4 @@ void replaceContentMarkEndCallBack(void *param)
 	rp->mark->release();
 	delete rp;
 }
+#endif

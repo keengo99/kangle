@@ -2,7 +2,7 @@
 #define KCONTENTTRANSFER_H
 #include "KHttpStream.h"
 #include "KHttpRequest.h"
-
+#if 0
 /*
 ÄÚÈÝ±ä»»
 */
@@ -18,4 +18,5 @@ public:
 	}
 	StreamState write_all(void *rq,const char *str,int len)override;
 };
+#endif
 #endif

@@ -1,5 +1,6 @@
 #include "KReplaceUrlMark.h"
 #include "KRewriteMarkEx.h"
+#if 0
 char* replaceUrlCallBack(void* param, html_tag_t* hit_tag, const char* src_url, int url_len)
 {
 	KReplaceUrlParam* rp = (KReplaceUrlParam*)param;
@@ -71,3 +72,4 @@ bool KReplaceUrlMark::mark(KHttpRequest* rq, KHttpObject* obj, const int chainJu
 	}
 	return true;
 }
+#endif

@@ -2,6 +2,7 @@
 #define KREPLACECONTENTFILTER_H
 #include "KHttpStream.h"
 #include "KHttpRequest.h"
+#if 0
 class KReplaceContentMark;
 typedef int(*replaceContentMatchCallBack)(void *param, const char *buf,int len, int *ovector, int overctor_size);
 typedef bool (*replaceContentCallBack)(void *param,KRegSubString *sub_string,int *ovector,KStringBuf *st);
@@ -38,4 +39,5 @@ private:
 	replaceContentEndCallBack endCallBack;
 	void *param;
 };
+#endif
 #endif

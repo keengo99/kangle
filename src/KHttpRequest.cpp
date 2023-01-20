@@ -107,7 +107,7 @@ KHttpRequestData::~KHttpRequestData() {
 	}
 	clean_obj();
 	/* be sure response_body is closed. */
-	assert(ctx.st.ctx == nullptr);
+	assert(ctx.body.ctx == nullptr);
 }
 void KHttpRequestData::clean_obj() {
 	if (ctx.obj) {
@@ -519,12 +519,12 @@ int KHttpRequest::write(const char* buf, int len) {
 }
 #endif
 KGL_RESULT KHttpRequest::write_end(KGL_RESULT result) {
-	assert(ctx.st.ctx);
+	assert(ctx.body.ctx);
 	if (result == KGL_OK && sink->get_response_left() > 0) {
 		//ÓÐcontent-length£¬ÓÖÎ´¶ÁÍê
 		result = KGL_ESOCKET_BROKEN;
 	}
-	ctx.st = { 0 };
+	ctx.body = { 0 };
 	return result;
 }
 KGL_RESULT KHttpRequest::write_all(const char* buf, int len) {
@@ -543,6 +543,7 @@ KSubVirtualHost* KHttpRequest::get_virtual_host() {
 bool KHttpRequest::has_post_data(kgl_input_stream* in) {
 	return in->f->get_read_left(in->ctx) != 0;
 }
+#if 0
 int KHttpRequest::checkFilter(KHttpObject* obj) {
 	int action = JUMP_ALLOW;
 	if (KBIT_TEST(obj->index.flags, FLAG_NO_BODY)) {
@@ -568,6 +569,7 @@ int KHttpRequest::checkFilter(KHttpObject* obj) {
 void KHttpRequest::addFilter(KFilterHelper* chain) {
 	getOutputFilterContext()->addFilter(chain);
 }
+#endif
 void KHttpRequest::ResponseVary(const char* vary) {
 	KHttpField field;
 	field.parse(vary, ',');

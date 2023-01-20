@@ -3,14 +3,14 @@
 #include "ksapi.h"
 struct filter_context
 {
-
+	kgl_response_body down;
 };
 struct sendfile_log_context
 {
-	volatile int64_t total_length;
-	volatile int32_t total_count;
+	kgl_response_body down;
 };
 void register_filter(KREQUEST r, kgl_access_context *ctx, filter_context *model_ctx);
 void register_sendfile_log(KREQUEST r, kgl_access_context* ctx, sendfile_log_context* model_ctx);
-extern sendfile_log_context sendfile_context;
+extern volatile int64_t sendfile_total_length;
+extern volatile int32_t sendfile_total_count;
 #endif

@@ -138,9 +138,9 @@ KGL_RESULT forward_write(kgl_response_body_ctx* gate, const char* buf, int len) 
 	kgl_forward_body* g = (kgl_forward_body*)gate;
 	return g->down_body.f->write(g->down_body.ctx, buf, len);
 }
-KGL_RESULT forward_write_header_finish(kgl_output_stream_ctx* gate, kgl_response_body* body) {
+KGL_RESULT forward_write_header_finish(kgl_output_stream_ctx* gate, int64_t body_size, kgl_response_body* body) {
 	kgl_forward_output_stream* g = (kgl_forward_output_stream*)gate;
-	return g->down_stream.f->write_header_finish(g->down_stream.ctx, body);
+	return g->down_stream.f->write_header_finish(g->down_stream.ctx,body_size, body);
 }
 KGL_RESULT forward_error(kgl_output_stream_ctx* gate, uint16_t status_code, const char* msg, size_t msg_len) {
 	kgl_forward_output_stream* g = (kgl_forward_output_stream*)gate;
@@ -179,10 +179,10 @@ static kgl_response_body_function dechunk_body_function = {
 	dechunk_close
 };
 
-KGL_RESULT dechunk_header_finish(kgl_output_stream_ctx* gate, kgl_response_body* body) {
+KGL_RESULT dechunk_header_finish(kgl_output_stream_ctx* gate, int64_t body_size, kgl_response_body* body) {
 	kgl_dechunk_stream* g = (kgl_dechunk_stream*)gate;
 	g->body = { 0 };
-	KGL_RESULT result = g->down_stream.f->write_header_finish(g->down_stream.ctx, &g->body);
+	KGL_RESULT result = g->down_stream.f->write_header_finish(g->down_stream.ctx, -1, &g->body);
 	if (g->body.ctx) {
 		body->ctx = (kgl_response_body_ctx*)g;
 		body->f = &dechunk_body_function;
@@ -245,9 +245,9 @@ KGL_RESULT st_write_unknow_header(kgl_output_stream_ctx* st, const char* attr, h
 	}
 	return KGL_EDATA_FORMAT;
 }
-KGL_RESULT st_write_header_finish(kgl_output_stream_ctx* st, kgl_response_body* body) {
+KGL_RESULT st_write_header_finish(kgl_output_stream_ctx* st,int64_t body_size, kgl_response_body* body) {
 	kgl_default_output_stream_ctx* g = (kgl_default_output_stream_ctx*)st;
-	g->parser_ctx.end_parse(g->rq);
+	g->parser_ctx.end_parse(g->rq, body_size);
 	return on_upstream_finished_header(g->rq, body);
 #if 0
 	if (result != KGL_OK) {
@@ -313,8 +313,8 @@ KGL_RESULT st_write_message(kgl_output_stream_ctx* st, uint16_t status_code, con
 #endif
 }
 KGL_RESULT common_write_trailer(KHttpRequest* rq, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
-	if (rq->ctx.st.ctx) {
-		KGL_RESULT result = rq->ctx.st.f->flush(rq->ctx.st.ctx);
+	if (rq->ctx.body.ctx) {
+		KGL_RESULT result = rq->ctx.body.f->flush(rq->ctx.body.ctx);
 		if (result != KGL_OK) {
 			return result;
 		}
@@ -342,7 +342,7 @@ static kgl_output_stream_function default_stream_function = {
 	st_write_message,
 	st_write_header_finish,
 	st_write_trailer,
-	st_release
+	st_release,
 };
 void new_default_output_stream(KHttpRequest* rq, kgl_output_stream* out) {
 	kgl_default_output_stream_ctx* st = new kgl_default_output_stream_ctx;
@@ -449,6 +449,7 @@ KGL_RESULT check_write_header(kgl_output_stream_ctx* st, kgl_header_type attr, c
 	switch (attr) {
 	case  kgl_header_content_length:
 	{
+#if 0
 		INT64 content_length;
 		if (0 != kgl_parse_value_int64(val, val_len, &content_length)) {
 			return KGL_ENOT_SUPPORT;
@@ -459,6 +460,8 @@ KGL_RESULT check_write_header(kgl_output_stream_ctx* st, kgl_header_type attr, c
 			rq->ctx.left_read = content_length;
 		}
 		return rq->response_content_length(content_length) ? KGL_OK : KGL_EINVALID_PARAMETER;
+#endif
+		return KGL_OK;
 	}
 	case kgl_header_connection:
 	{
@@ -532,18 +535,19 @@ void get_default_response_body(KREQUEST r, kgl_response_body* body) {
 	body->ctx = (kgl_response_body_ctx*)r;
 	body->f = &kgl_default_response_body;
 }
-KGL_RESULT check_write_header_finish(kgl_output_stream_ctx* st, kgl_response_body* body) {
+KGL_RESULT check_write_header_finish(kgl_output_stream_ctx* st, int64_t body_size, kgl_response_body* body) {
 	KHttpRequest* rq = (KHttpRequest*)st;
+	rq->response_content_length(body_size);
 	rq->response_connection();
-	if (!rq->start_response_body(rq->ctx.left_read)) {
+	if (!rq->start_response_body(body_size)) {
 		return  KGL_EINVALID_PARAMETER;
 	}
 	if (rq->sink->data.meth == METH_HEAD || is_status_code_no_body(rq->sink->data.status_code)) {
 		return KGL_NO_BODY;
 	}
-	assert(rq->ctx.st.ctx == nullptr);
-	get_default_response_body(rq, &rq->ctx.st);
-	*body = rq->ctx.st;
+	assert(rq->ctx.body.ctx == nullptr);
+	get_default_response_body(rq, &rq->ctx.body);
+	*body = rq->ctx.body;
 	return KGL_OK;
 }
 static kgl_output_stream_function check_stream_function = {

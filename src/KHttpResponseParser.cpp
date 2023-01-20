@@ -173,8 +173,12 @@ bool KHttpResponseParser::parse_unknow_header(KHttpRequest* rq, const char* attr
 	}
 	return add_header(attr, attr_len, val, val_len);
 }
-void KHttpResponseParser::end_parse(KHttpRequest* rq) {
+void KHttpResponseParser::end_parse(KHttpRequest* rq,int64_t body_size) {
 	assert(!rq->ctx.obj->in_cache);
+	if (body_size >= 0) {
+		KBIT_SET(rq->ctx.obj->index.flags, ANSW_HAS_CONTENT_LENGTH);
+		rq->ctx.obj->index.content_length = body_size;
+	}
 	/*
  * see rfc2616
  * 没有 Last-Modified 我们不缓存.
@@ -214,6 +218,7 @@ void KHttpResponseParser::commit_headers(KHttpRequest* rq) {
 	if (last) {
 		last->next = rq->ctx.obj->data->headers;
 		rq->ctx.obj->data->headers = steal_header();
+		last = nullptr;
 	}
 }
 

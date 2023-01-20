@@ -314,11 +314,11 @@ void KAccess::loadModel() {
 	addAclModel(RESPONSE,new KContentLengthAcl());
 	addAclModel(RESPONSE,new KStatusCodeAcl());
 	addMarkModel(RESPONSE,new KCacheControlMark());
-	addMarkModel(RESPONSE, new KGuestCacheMark());
-	addMarkModel(RESPONSE,new KRegContentMark());
+	//addMarkModel(RESPONSE, new KGuestCacheMark());
+	//addMarkModel(RESPONSE,new KRegContentMark());
 	addMarkModel(RESPONSE,new KResponseFlagMark());
 	addMarkModel(RESPONSE,new KExtendFlagMark());
-	addMarkModel(RESPONSE,new KStatusCodeMark());
+	//addMarkModel(RESPONSE,new KStatusCodeMark());
 
 	acl = new KMarkAcl();
 	acl->addRef();
@@ -375,8 +375,8 @@ void KAccess::loadModel() {
 #endif
 	addAclModel(REQUEST,new KIpRateAcl());
 	addMarkModel(REQUEST,new KMultiServerMark());
-	addMarkModel(RESPONSE,new KReplaceUrlMark());
-	addMarkModel(REQUEST_RESPONSE,new KFixHeaderMark());
+	//addMarkModel(RESPONSE,new KReplaceUrlMark());
+	//addMarkModel(REQUEST_RESPONSE,new KFixHeaderMark());
 	addMarkModel(REQUEST, new KGeoMark());
 #endif
 #ifdef ENABLE_BLACK_LIST
@@ -400,8 +400,8 @@ void KAccess::loadModel() {
 	addMarkModel(REQUEST_RESPONSE,new KRemoveHeaderMark());
 	addMarkModel(REQUEST_RESPONSE,new KReplaceHeaderMark());
 	addMarkModel(REQUEST_RESPONSE,new KTimeoutMark());
-	addMarkModel(RESPONSE,new KFooterMark());
-	addMarkModel(RESPONSE,new KReplaceContentMark());
+	//addMarkModel(RESPONSE,new KFooterMark());
+	//addMarkModel(RESPONSE,new KReplaceContentMark());
 	//addMarkModel(REQUEST,new KUrlRangeMark());
 	addMarkModel(REQUEST,new KMarkMark());
 #ifdef ENABLE_STAT_STUB

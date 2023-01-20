@@ -44,13 +44,7 @@ KGL_RESULT handle_x_send_file(KHttpRequest* rq, kgl_input_stream* in, kgl_output
 	if (xurl == NULL) {
 		return send_error2(rq, STATUS_SERVER_ERROR, "missing X-Accel-Redirect header");
 	}
-#if 0
-	if (!rq->rewriteUrl(xurl, 0)) {
-		return send_error2(rq, STATUS_SERVER_ERROR, "X-Accel-Redirect value is not right");
-	}
-#endif
 	rq->ctx.internal = 1;
-	rq->ctx.replace = 1;
 	if (rq->file) {
 		delete rq->file;
 		rq->file = NULL;
@@ -76,50 +70,9 @@ KGL_RESULT handle_x_send_file(KHttpRequest* rq, kgl_input_stream* in, kgl_output
 }
 
 KGL_RESULT process_upstream_no_body(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) {
-
 	if (KBIT_TEST(rq->ctx.obj->index.flags, ANSW_XSENDFILE)) {
 		return handle_x_send_file(rq, in, out);
 	}
-	if (!rq->ctx.old_obj || rq->ctx.obj->data->i.status_code != STATUS_NOT_MODIFIED || !rq->ctx.sub_request) {
-		goto done;
-	}
-#if 0
-	//check source response 304	
-	if (!KBIT_TEST(rq->sink->data.flags, RQ_HAS_IF_MOD_SINCE | RQ_HAS_IF_NONE_MATCH)) {
-		//直接发送old_obj给客户
-		rq->pop_obj();
-		return send_memory_object(rq);
-	}
-	if (KBIT_TEST(rq->ctx.obj->index.flags, ANSW_LAST_MODIFIED) && rq->ctx.old_obj->data->i.last_modified != rq->ctx.obj->data->i.last_modified) {
-		goto done;
-	} else if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_IF_MOD_SINCE) && rq->ctx.old_obj->precondition_time(rq->sink->data.precondition_time)) {
-		goto done;
-	}
-	if (KBIT_TEST(rq->ctx.obj->index.flags, OBJ_HAS_ETAG)) {
-		KHttpHeader* etag = rq->ctx.obj->findHeader(_KS("Etag"));
-		if (etag) {
-			KHttpHeader* old_etag = rq->ctx.old_obj->findHeader(_KS("Etag"));
-			if (!old_etag) {
-				goto done;
-			}
-			if (!kgl_mem_same(etag->buf + etag->val_offset, etag->val_len, old_etag->buf + old_etag->val_offset, old_etag->val_len)) {
-				goto done;
-			}
-		}
-	} else if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_IF_NONE_MATCH) && rq->sink->data.precondition_entity) {
-		if (rq->ctx.old_obj->precondition_entity(rq->sink->data.precondition_entity->data, rq->sink->data.precondition_entity->len)) {
-			goto done;
-		}
-	}
-#endif
-	KBIT_SET(rq->sink->data.flags, RQ_OBJ_VERIFIED);
-	rq->ctx.old_obj->index.last_verified = kgl_current_sec;
-	rq->ctx.old_obj->UpdateCache(rq->ctx.obj);
-	rq->pop_obj();
-	return send_memory_object(rq);
-done:
-	KBIT_CLR(rq->sink->data.flags, RQ_CACHE_HIT);
-	rq->dead_old_obj();
 	if (kgl_load_response_body(rq, nullptr)) {
 		return KGL_OK;
 	}
@@ -507,7 +460,6 @@ KGL_RESULT handle_error(KHttpRequest* rq, int code, const char* msg) {
 		return process_request(rq);
 	}
 	return send_error2(rq, code, msg);
-	//*/
 }
 bool check_request_final_source(KHttpRequest* rq, RequestError* error, bool& handled) {
 	if (!rq->has_final_source()) {
@@ -539,7 +491,7 @@ bool check_request_final_source(KHttpRequest* rq, RequestError* error, bool& han
 		rq->append_source(fo);
 		//postmap
 		if (htresponse) {
-			if (!rq->ctx.internal && !rq->ctx.replace && htresponse->checkPostMap(rq, rq->ctx.obj) == JUMP_DENY) {
+			if (!rq->ctx.internal && htresponse->checkPostMap(rq, rq->ctx.obj) == JUMP_DENY) {
 				delete htresponse;
 				if (KBIT_TEST(rq->ctx.filter_flags, RQ_SEND_AUTH)) {
 					error->code = AUTH_STATUS_CODE;
@@ -553,7 +505,7 @@ bool check_request_final_source(KHttpRequest* rq, RequestError* error, bool& han
 			delete htresponse;
 		}
 	}
-	if (!rq->ctx.internal && !rq->ctx.replace && !rq->ctx.skip_access) {
+	if (!rq->ctx.internal && !rq->ctx.skip_access) {
 		KSubVirtualHost* svh = rq->get_virtual_host();
 		if (svh) {
 			if (svh->vh->checkPostMap(rq) == JUMP_DENY) {
@@ -684,10 +636,7 @@ KGL_RESULT load_object_from_source(KHttpRequest* rq) {
 done:
 	KBIT_CLR(rq->sink->data.flags, RQ_CACHE_HIT);
 	rq->dead_old_obj();
-	if (kgl_load_response_body(rq, nullptr)) {
-		return KGL_OK;
-	}
-	return KGL_ESOCKET_BROKEN;
+	return process_upstream_no_body(rq, &in, &out);
 }
 KGL_RESULT process_check_cache_expire(KHttpRequest* rq, KHttpObject* obj) {
 #ifdef ENABLE_BIG_OBJECT_206
@@ -899,14 +848,20 @@ KGL_RESULT fiber_http_start(KHttpRequest* rq) {
 	return process_cache_request(rq);
 }
 KGL_RESULT prepare_write_body(KHttpRequest* rq, kgl_response_body* body) {
-	if (!rq->ctx.st.ctx) {
-		get_default_response_body(rq, &rq->ctx.st);
-		if (!kgl_load_response_body(rq, &rq->ctx.st)) {
-			rq->ctx.st.f->close(rq->ctx.st.ctx, KGL_ENOT_PREPARE);
+	if (!rq->ctx.body.ctx) {
+		if (body) {
+			get_default_response_body(rq, body);
+		}
+		if (!kgl_load_response_body(rq, body)) {
+			if (body) {
+				body->f->close(body->ctx, KGL_ENOT_PREPARE);
+			}
 			return KGL_ENOT_PREPARE;
 		}
-		*body = rq->ctx.st;
-		assert(body->ctx);
+		if (body) {
+			rq->ctx.body = *body;
+			assert(body->ctx);
+		}
 	}
 	return KGL_OK;
 }
@@ -916,10 +871,8 @@ KGL_RESULT on_upstream_finished_header(KHttpRequest* rq, kgl_response_body* body
 	switch (obj->data->i.status_code) {
 	case 0:
 		obj->data->i.status_code = STATUS_OK;
-		//fallthough
-	case STATUS_OK:
-		rq->sink->data.range = nullptr;
 		break;
+	case STATUS_OK:
 	case STATUS_CONTENT_PARTIAL:
 		break;
 	default:
@@ -930,10 +883,11 @@ KGL_RESULT on_upstream_finished_header(KHttpRequest* rq, kgl_response_body* body
 		send_error2(rq, 403, "denied by check response");
 		return KGL_EDENIED;
 	}
-	obj->checkNobody();
-	if (rq->sink->data.meth == METH_HEAD || KBIT_TEST(rq->ctx.obj->index.flags, FLAG_NO_BODY)) {
-		//没有http body的情况
+	if (obj->isNoBody(rq)) {
 		return KGL_NO_BODY;
+	}
+	if (obj->data->i.status_code == STATUS_OK) {
+		rq->sink->data.range = nullptr;
 	}
 #ifdef ENABLE_BIG_OBJECT_206
 	if (obj->data->i.type == MEMORY_OBJECT) {

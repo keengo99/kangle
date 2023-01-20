@@ -29,7 +29,6 @@
 //#include "KHttpRequest.h"
 //#include "KHttpObject.h"
 #include "KCompressStream.h"
-
 class KHttpTransfer;
 enum {
 	GZIP_DECOMPRESS_ERROR, GZIP_DECOMPRESS_CONTINUE, GZIP_DECOMPRESS_END
@@ -37,17 +36,18 @@ enum {
 class KGzipDecompress : public KHttpStream
 {
 public:
-	KGzipDecompress(bool use_deflate,KWriteStream *st,bool autoDelete);
+	KGzipDecompress(bool use_deflate,KWStream *st,bool autoDelete);
 	~KGzipDecompress();
-	KGL_RESULT write_all(void *rq, const char *str,int len) override;
-	KGL_RESULT write_end(void*rq, KGL_RESULT result) override;
+	KGL_RESULT write_all(const char *str,int len) override;
+	KGL_RESULT write_end(KGL_RESULT result) override;
 private:
-	KGL_RESULT decompress(void*rq, int flush_flag);
+	KGL_RESULT decompress(int flush_flag);
 	z_stream strm;
 	bool isSuccess;
 	bool use_deflate;
 	int in_skip ;
 };
+#if 0
 class KGzipCompress : public KCompressStream
 {
 public:
@@ -72,5 +72,6 @@ private:
 	bool fast;
 	bool isSuccess;
 };
+#endif
 bool pipe_gzip_compress(int gzip_level, kgl_response_body* body);
 #endif /* KGZIP_H_ */

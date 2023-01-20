@@ -26,6 +26,7 @@
 #include <assert.h>
 #include "KContentMark.h"
 #include "kmalloc.h"
+#if 0
 class KFilterHelper {
 public:
 	KFilterHelper(KContentMark * filter, int jump) {
@@ -47,4 +48,5 @@ public:
 	int jump;
 	int lastResult;
 };
+#endif
 #endif /* KFILTERHELPER_H_ */

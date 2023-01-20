@@ -252,15 +252,6 @@ typedef enum _KF_ALLOC_MEMORY_TYPE
 	KF_ALLOC_REQUEST = 1
 } KF_ALLOC_MEMORY_TYPE;
 
-typedef struct _kgl_filter_conext_function
-{
-	kgl_get_variable_f get_variable;
-	KGL_RESULT(*write_all)(KREQUEST rq, KCONN cn, const char* buf, int size);
-	KGL_RESULT(*flush)(KREQUEST rq, KCONN cn);
-	bool (*support_sendfile)(KREQUEST rq, KCONN cn);
-	KGL_RESULT(*sendfile)(KREQUEST rq, KCONN cn, KASYNC_FILE fp, int64_t* length);
-	KGL_RESULT(*write_end)(KREQUEST rq, KCONN cn, KGL_RESULT result);
-} kgl_filter_conext_function;
 
 typedef struct _kgl_response_body_function
 {
@@ -277,11 +268,6 @@ typedef struct _kgl_response_body {
 	kgl_response_body_ctx *ctx;
 } kgl_response_body;
 
-typedef struct _kgl_filter_context {
-	KCONN          cn;
-	PVOID          module;
-	kgl_filter_conext_function* f;
-} kgl_filter_context;
 
 typedef struct _kgl_url
 {
@@ -318,18 +304,12 @@ typedef struct _kgl_url
 
 struct _kgl_filter
 {
-	const char* name;
+	int32_t size;
 #define KGL_FILTER_NOT_CHANGE_LENGTH 1 /* do not change content length */
 #define KGL_FILTER_CACHE             2 /* filter cache */
 #define KGL_FILTER_NOT_CACHE         4 /* filter not cache */
 	int32_t flags;
-	/* deprecated */
-	KGL_RESULT(*write_all)(KREQUEST rq, kgl_filter_context* ctx, const char* buf, int size);
-	KGL_RESULT(*flush)(KREQUEST rq, kgl_filter_context* ctx);
-	KGL_RESULT(*sendfile)(KREQUEST rq, kgl_filter_context* ctx,KASYNC_FILE fp,int64_t *length);/* if filter not support sendfile,this must be NULL */
-	KGL_RESULT(*write_end)(KREQUEST rq, kgl_filter_context* ctx, KGL_RESULT result);
-	void (*release)(void* model_ctx);
-	kgl_response_body* (*get_response_body)(KREQUEST rq, kgl_filter_context* ctx);
+	KGL_RESULT (*tee_body)(kgl_response_body_ctx *ctx, KREQUEST rq, kgl_response_body *body);
 };
 typedef struct _kgl_access_function
 {
@@ -368,12 +348,6 @@ typedef struct _kgl_access_context
 typedef struct _kgl_input_stream kgl_input_stream;
 typedef struct _kgl_output_stream kgl_output_stream;
 
-typedef enum _KGL_MSG_TYPE
-{
-	KGL_MSG_ERROR,
-	KGL_MSG_RAW,
-	KGL_MSG_VECTOR
-} KGL_MSG_TYPE;
 
 typedef struct _kgl_parse_header_function {
 	KGL_RESULT(*parse_header)(kgl_parse_header_ctx* ctx, kgl_header_type attr, const char* val, int val_len);
@@ -427,7 +401,7 @@ typedef struct _kgl_output_stream_function
 	KGL_RESULT(*write_unknow_header)(kgl_output_stream_ctx *ctx, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len);
 	KGL_RESULT(*error)(kgl_output_stream_ctx *ctx, uint16_t status_code, const char* reason, size_t reason_len);
 	/* if return KGL_OK body must call close to release */
-	KGL_RESULT(*write_header_finish)(kgl_output_stream_ctx* ctx,kgl_response_body *body);
+	KGL_RESULT(*write_header_finish)(kgl_output_stream_ctx* ctx, int64_t body_size, kgl_response_body *body);
 	KGL_RESULT(*write_trailer)(kgl_output_stream_ctx* ctx, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len);
 	void (*release)(kgl_output_stream_ctx* ctx);
 } kgl_output_stream_function;
@@ -707,7 +681,6 @@ typedef struct _kgl_dso_version
 #define KGL_REGISTER_ACCESS(dso_version,access) dso_version->f->global_support_function(dso_version->cn,KGL_REQ_REGISTER_ACCESS,access,NULL)
 #define KGL_REGISTER_UPSTREAM(dso_version,us) dso_version->f->global_support_function(dso_version->cn,KGL_REQ_REGISTER_UPSTREAM,us,NULL)
 #define KGL_REGISTER_VARY(dso_version,vary) dso_version->f->global_support_function(dso_version->cn,KGL_REQ_REGISTER_VARY,vary,NULL)
-#define KGL_REGISTER_ASYNC_UPSTREAM KGL_REGISTER_UPSTREAM
 
 DLL_PUBLIC BOOL kgl_dso_init(kgl_dso_version* ver);
 DLL_PUBLIC BOOL kgl_dso_finit(int32_t flag);

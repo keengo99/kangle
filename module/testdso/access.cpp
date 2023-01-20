@@ -87,7 +87,7 @@ static uint32_t process(KREQUEST rq, kgl_access_context *ctx, DWORD notify)
 		register_async_upstream(rq, ctx, model_ctx);
 	}
 	if (ctx->f->get_variable(rq, KGL_VAR_HEADER, "x-sendfile-test", buf, &len) == KGL_OK) {
-		register_sendfile_log(rq, ctx, &sendfile_context);
+		register_sendfile_log(rq, ctx, new sendfile_log_context);
 	}
 	return KF_STATUS_REQ_TRUE;
 }

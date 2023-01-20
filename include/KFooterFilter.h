@@ -1,7 +1,7 @@
 #ifndef KFOOTERFILTER_H
 #define KFOOTERFILTER_H
 #include "KHttpStream.h"
-
+#if 0
 class KFooterFilter : public KHttpStream
 {
 public:
@@ -32,4 +32,5 @@ public:
 	bool replace;
 private:
 };
+#endif
 #endif

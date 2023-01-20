@@ -60,7 +60,7 @@ KGL_RESULT KDirectoryFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, k
 	out->f->write_status(out->ctx,  STATUS_OK);
 	out->f->write_header(out->ctx,  kgl_header_content_type, _KS("text/html"));
 	kgl_response_body body;
-	KGL_RESULT ret = out->f->write_header_finish(out->ctx,  &body);
+	KGL_RESULT ret = out->f->write_header_finish(out->ctx, -1, &body);
 	if (ret != KGL_OK) {
 		return ret;
 	}

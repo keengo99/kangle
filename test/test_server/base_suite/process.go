@@ -133,5 +133,12 @@ func check_proxy_port() {
 }
 
 func check_bug() {
-
+	common.Get("/etag", nil, func(resp *http.Response, err error) {
+		common.AssertSame(common.Read(resp), "hello")
+		common.Assert("x-cache-miss", strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
+	})
+	common.Get("/etag", nil, func(resp *http.Response, err error) {
+		common.AssertSame(common.Read(resp), "hello")
+		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	})
 }

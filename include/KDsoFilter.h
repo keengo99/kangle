@@ -2,6 +2,7 @@
 #define KDSOFILTER_H_99
 #include "KHttpStream.h"
 #include "ksapi.h"
+#if 0
 class KDsoFilter : public KHttpStream
 {
 public:
@@ -22,4 +23,5 @@ public:
 	kgl_filter_context ctx;
 	kgl_filter* filter;
 };
+#endif
 #endif

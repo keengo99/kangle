@@ -35,6 +35,6 @@ func init() {
 	s := &filter{}
 	s.CasesMap = make(map[string]*suite.Case)
 	s.Name = "filter"
-	s.AddCase("footer", "footer测试", check_footer)
+	//s.AddCase("footer", "footer测试", check_footer)
 	suite.Register(s)
 }

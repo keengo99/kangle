@@ -509,6 +509,7 @@ KGL_RESULT stageHttpManage(KHttpRequest* rq)
 		}
 		assert(false);
 	}
+	rq->ctx.obj = new KHttpObject(rq);
 	rq->append_source(new KHttpManage);
 	return process_request(rq);
 }

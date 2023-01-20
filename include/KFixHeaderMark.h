@@ -6,6 +6,7 @@
 #include "KFilterContext.h"
 #include "utils.h"
 #include "KUrlParser.h"
+#if 0
 class KFixHeaderFilter : public KHttpStream
 {
 public:
@@ -117,3 +118,4 @@ private:
 };
 #endif
 
+#endif

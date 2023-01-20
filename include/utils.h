@@ -73,7 +73,7 @@ void explode(const char *str, const char split,
 		std::map<char *, bool, lessp> *result, int limit = -1);
 std::string string2lower(std::string str);
 
-kbuf *deflate_buff(kbuf *in_buf, int level, INT64 &len, bool fast);
+//kbuf *deflate_buff(kbuf *in_buf, int level, INT64 &len, bool fast);
 char *utf82charset(const char *str, size_t len, const char *charset);
 
 FILE *fopen_as(const char *file, const char *mode, int uid, int gid);

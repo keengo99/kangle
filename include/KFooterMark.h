@@ -2,6 +2,7 @@
 #define KFOOTERMARK_H
 #include "KFooterFilter.h"
 #include "KFilterContext.h"
+#if 0
 class KFooterMark : public KMark
 {
 public:
@@ -76,4 +77,5 @@ private:
 	bool head;
 	bool replace;
 };
+#endif
 #endif

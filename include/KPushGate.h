@@ -17,7 +17,6 @@ struct kgl_forward_body
 {
 	kgl_response_body down_body;
 };
-
 template<KGL_RESULT(*forward_write)(kgl_response_body_ctx* , const char* , int)>
 KGL_RESULT unsupport_writev(kgl_response_body_ctx* ctx, WSABUF* bufs, int bc) {
 	for (int i = 0; i < bc; i++) {
@@ -47,7 +46,7 @@ kgl_request_range *forward_get_range(kgl_input_stream_ctx* ctx);
 KGL_RESULT forward_get_header(kgl_input_stream_ctx* ctx, kgl_parse_header_ctx* parse_ctx, kgl_parse_header_function* parse);
 KGL_RESULT forward_writev(kgl_response_body_ctx* ctx, WSABUF* bufs, int bc);
 KGL_RESULT forward_write(kgl_response_body_ctx* gate, const char* buf, int len);
-KGL_RESULT forward_write_header_finish(kgl_output_stream_ctx* gate, kgl_response_body* body);
+KGL_RESULT forward_write_header_finish(kgl_output_stream_ctx* gate,int64_t body_size, kgl_response_body* body);
 KGL_RESULT forward_error(kgl_output_stream_ctx* gate, uint16_t status_code, const char* msg, size_t msg_len);
 KGL_RESULT forward_close(kgl_response_body_ctx* out, KGL_RESULT result);
 KGL_RESULT forward_write_header(kgl_output_stream_ctx* gate, kgl_header_type attr, const char* val, int val_len);

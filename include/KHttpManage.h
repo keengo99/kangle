@@ -49,6 +49,7 @@ public:
 private:
 	bool save_access(KVirtualHost *vh,std::string redirect_url);
 	KHttpRequest *rq;
+	kgl_output_stream* out;
 	std::map<std::string, std::string> urlParam;
 	KUrlValue urlValue;
 	char *postData;

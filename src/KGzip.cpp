@@ -26,6 +26,7 @@
 #include "klog.h"
 #include "KPushGate.h"
 #define GZIP_CHUNK 8192
+#if 0
 KGzipCompress::KGzipCompress(int gzip_level) : KCompressStream(NULL) {
 	fast = false;
 	isSuccess = false;
@@ -133,7 +134,8 @@ StreamState KGzipCompress::compress(void* rq, int flush_flag) {
 	} while (strm.avail_out == 0);
 	return STREAM_WRITE_SUCCESS;
 }
-KGzipDecompress::KGzipDecompress(bool use_deflate, KWriteStream* st, bool autoDelete) : KHttpStream(st, autoDelete) {
+#endif
+KGzipDecompress::KGzipDecompress(bool use_deflate, KWStream* st, bool autoDelete) : KHttpStream(st) {
 	isSuccess = false;
 	memset(&strm, 0, sizeof(strm));
 	this->use_deflate = use_deflate;
@@ -148,7 +150,7 @@ KGzipDecompress::KGzipDecompress(bool use_deflate, KWriteStream* st, bool autoDe
 	isSuccess = true;
 	return;
 }
-StreamState KGzipDecompress::decompress(void* rq, int flush_flag) {
+StreamState KGzipDecompress::decompress( int flush_flag) {
 	int ret = 0;
 	char out[GZIP_CHUNK];
 	do {
@@ -166,7 +168,7 @@ StreamState KGzipDecompress::decompress(void* rq, int flush_flag) {
 		}
 		int have = GZIP_CHUNK - strm.avail_out;
 		if (have > 0) {
-			StreamState result = st->write_all(rq, out, have);
+			StreamState result = st->write_all( out, have);
 			if (result != STREAM_WRITE_SUCCESS) {
 				return result;
 			}
@@ -174,20 +176,20 @@ StreamState KGzipDecompress::decompress(void* rq, int flush_flag) {
 	} while (strm.avail_out == 0);
 	return STREAM_WRITE_SUCCESS;
 }
-StreamState KGzipDecompress::write_end(void* rq, KGL_RESULT result) {
-	KGL_RESULT result2 = decompress(rq, Z_FINISH);
+StreamState KGzipDecompress::write_end(KGL_RESULT result) {
+	KGL_RESULT result2 = decompress(Z_FINISH);
 	if (result2 != KGL_OK) {
-		return KHttpStream::write_end(rq, result2);
+		return KHttpStream::write_end(result2);
 	}
-	return KHttpStream::write_end(rq, result);
+	return KHttpStream::write_end( result);
 }
-StreamState KGzipDecompress::write_all(void* rq, const char* str, int len) {
+StreamState KGzipDecompress::write_all(const char* str, int len) {
 	int skip_len = KGL_MIN(in_skip, len);
 	in_skip -= skip_len;
 	strm.avail_in = len - skip_len;
 	strm.next_in = (unsigned char*)str + skip_len;
 	if (strm.avail_in > 0) {
-		return decompress(rq, Z_NO_FLUSH);
+		return decompress(Z_NO_FLUSH);
 	}
 	return STREAM_WRITE_SUCCESS;
 }

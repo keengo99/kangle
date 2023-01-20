@@ -4,7 +4,7 @@
 #include "global.h"
 #ifdef ENABLE_BROTLI
 #include "brotli/encode.h"
-
+#if 0
 class KBrotliCompress : public KCompressStream {
 public:
 	KBrotliCompress();
@@ -16,6 +16,7 @@ private:
 	KGL_RESULT Compress(void*rq, const uint8_t **str, size_t len, BrotliEncoderOperation op);
 	BrotliEncoderState *state;
 };
+#endif
 bool pipe_brotli_compress(int level, kgl_response_body* body);
 #endif
 #endif
