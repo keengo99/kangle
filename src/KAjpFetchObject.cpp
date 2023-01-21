@@ -82,7 +82,7 @@ KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest* rq)
 	b.putShort(rq->sink->get_self_port());
 	//is secure
 	b.putByte(KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL) ? 1 : 0);
-	int64_t content_length = in->f->get_read_left(in->ctx);
+	int64_t content_length = in->f->get_left(in->ctx);
 	KHttpHeader* header = rq->sink->data.get_header();
 	int count = 0;
 	while (header) {
@@ -93,13 +93,8 @@ KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest* rq)
 	}
 	kgl_precondition_flag flag;
 	kgl_precondition* condition = in->f->get_precondition(in->ctx, &flag);
-	if (condition) {
-		if (condition->time > 0) {
-			count++;
-		}
-		if (condition->entity) {
-			count++;
-		}
+	if (condition && condition->entity) {
+		count++;
 	}
 	kgl_request_range* range = in->f->get_range(in->ctx);
 	if (range) {
@@ -143,18 +138,17 @@ KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest* rq)
 		b.putShort(0xA008);
 		b.putString((char*)int2string(content_length, tmpbuff));
 	}
-	if (condition) {
-		if (condition->time > 0) {
-			if (KBIT_TEST(flag, kgl_precondition_if_unmodified)) {
+	if (condition && condition->entity) {		
+		if (KBIT_TEST(flag,kgl_precondition_if_time)) {
+			if (KBIT_TEST(flag, kgl_precondition_if_match_unmodified)) {
 				b.putString(_KS("If-Unmodified-Since"));
 			} else {
 				b.putString(_KS("If-Modified-Since"));
 			}
 			mk1123time(condition->time, tmpbuff, sizeof(tmpbuff));
 			b.putString(tmpbuff);
-		}
-		if (condition->entity) {
-			if (KBIT_TEST(flag, kgl_precondition_if_match)) {
+		} else {
+			if (KBIT_TEST(flag, kgl_precondition_if_match_unmodified)) {
 				b.putString(_KS("If-Match"));
 			} else {
 				b.putString(_KS("If-None-Match"));

@@ -153,7 +153,7 @@ KGL_RESULT KAsyncFetchObject::InternalProcess(KHttpRequest* rq, kfiber** post_fi
 	client->BindOpaque(this);
 	client->set_time_out(rq->sink->get_time_out());
 	assert(rq->sink->get_selector() == kgl_get_tls_selector());
-	int64_t post_length = in->f->get_read_left(in->ctx);
+	int64_t post_length = in->f->get_left(in->ctx);
 	if (post_length == -1 && !client->IsMultiStream() && !KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE)) {
 		chunk_post = 1;
 	}
@@ -314,10 +314,10 @@ KGL_RESULT KAsyncFetchObject::ReadHeader(KHttpRequest* rq, kfiber** post_fiber) 
 	return KGL_EUNKNOW;
 }
 KGL_RESULT KAsyncFetchObject::ProcessPost(KHttpRequest* rq) {
-	while (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE) || in->f->get_read_left(in->ctx) != 0) {
+	while (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE) || in->f->get_left(in->ctx) != 0) {
 		int len;
 		char* buf = GetPostBuffer(&len);
-		int got = in->f->read_body(in->ctx, buf, len);
+		int got = in->f->read(in->ctx, buf, len);
 		KGL_RESULT ret = PostResult(rq, got);
 		if (ret != KGL_OK) {
 			return ret;
@@ -360,7 +360,7 @@ KGL_RESULT KAsyncFetchObject::PostResult(KHttpRequest* rq, int got) {
 	assert(buffer != NULL);
 	//printf("handleReadPost got=[%d] protocol=[%d]\n",got,(int)rq->sink->data.http_major);
 	if (got == 0 && !KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
-		if (in->f->get_read_left(in->ctx) == 0) {
+		if (in->f->get_left(in->ctx) == 0) {
 			KHttpHeader* trailer = rq->sink->get_trailer();
 			if (chunk_post) {
 				buffer->WSTR("0\r\n");

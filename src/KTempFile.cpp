@@ -173,7 +173,7 @@ static kgl_input_stream_function tempfile_input_stream_function = {
 	tmpfile_input_release
 };
 bool new_tempfile_input_stream(KHttpRequest* rq, kgl_input_stream* in) {
-	if ((in)->f->get_read_left(in->ctx) == 0) {
+	if ((in)->f->get_left(in->ctx) == 0) {
 		return true;
 	}
 	kgl_tempfile_input_stream* st = new kgl_tempfile_input_stream;
@@ -183,8 +183,8 @@ bool new_tempfile_input_stream(KHttpRequest* rq, kgl_input_stream* in) {
 	}
 	char* buf = (char*)malloc(TEMPFILE_POST_CHUNK_SIZE);
 	bool result = false;
-	while ((in)->f->get_read_left(in->ctx) != 0) {
-		int got = in->f->read_body(in->ctx, buf, TEMPFILE_POST_CHUNK_SIZE);
+	while ((in)->f->get_left(in->ctx) != 0) {
+		int got = in->f->read(in->ctx, buf, TEMPFILE_POST_CHUNK_SIZE);
 		if (got < 0) {
 			goto err;
 		}

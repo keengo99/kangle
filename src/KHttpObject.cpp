@@ -43,6 +43,15 @@ KHttpObjectBody::KHttpObjectBody(KHttpObjectBody* data)
 		hot = new_t;
 		tmp = tmp->next;
 	}
+	if (data->etag) {
+		if (data->i.condition_is_time) {
+			this->last_modified = data->last_modified;
+		} else {
+			this->etag = (kgl_len_str_t*)malloc(data->etag->len + 1 + sizeof(kgl_len_str_t));
+			memcpy(this->etag, data->etag, data->etag->len + sizeof(kgl_len_str_t));
+			this->etag->data[etag->len] = '\0';
+		}
+	}
 }
 void KHttpObject::ResponseVaryHeader(KHttpRequest* rq)
 {
@@ -127,47 +136,35 @@ void KHttpObject::UpdateCache(KHttpObject* obj)
 	return;
 }
 bool KHttpObject::is_same_precondition(KHttpObject* obj) 	{
-	if (KBIT_TEST(index.flags, OBJ_HAS_ETAG) != KBIT_TEST(obj->index.flags, OBJ_HAS_ETAG)) {
+
+	if (!!(obj->data->etag)!=!!(data->etag)) {
 		return false;
 	}
-	if (KBIT_TEST(index.flags, OBJ_HAS_ETAG)) {
-		KHttpHeader* h = find_header(_KS("Etag"));
-		if (!h) {
-			return false;
-		}
-		KHttpHeader* h2 = obj->find_header(_KS("Etag"));
-		if (!h2) {
-			return false;
-		}
-		return kgl_mem_same(h->buf + h->val_offset, h->val_len, h2->buf + h2->val_offset, h2->val_len);
+	if (obj->data->i.condition_is_time != data->i.condition_is_time) {
+		return false;
 	}
-	return data->i.last_modified == obj->data->i.last_modified;
+	if (data->i.condition_is_time) {
+		return data->last_modified == obj->data->last_modified;
+	}
+	if (data->etag) {		
+		return kgl_mem_same(data->etag->data,data->etag->len, obj->data->etag->data,obj->data->etag->len);
+	}
+	return true;
 }
 bool KHttpObject::precondition_time(time_t time) {
-	return data->i.last_modified > time;
+	if (!data || !data->etag || !data->i.condition_is_time) {
+		return false;
+	}
+	return data->last_modified > time;
 }
 bool KHttpObject::match_if_range(const char* entity, size_t len) 	{
-	if (!KBIT_TEST(index.flags, OBJ_HAS_ETAG)) {
+	if (!data || !data->etag || data->i.condition_is_time) {
 		return false;
 	}
-	if (data == NULL) {
-		return false;
-	}
-	KHttpHeader* h = find_header("Etag", sizeof("Etag") - 1);
-	if (h == NULL) {
-		return false;
-	}
-	return kgl_mem_same(h->buf + h->val_offset, h->val_len, entity, len);
+	return kgl_mem_same(data->etag->data, data->etag->len, entity, len);
 }
 bool KHttpObject::precondition_entity(const char* entity, size_t len) {
-	if (!KBIT_TEST(index.flags, OBJ_HAS_ETAG)) {
-		return true;
-	}
-	if (data == NULL) {
-		return true;
-	}
-	KHttpHeader* h = find_header("Etag", sizeof("Etag") - 1);
-	if (h == NULL) {
+	if (!data || !data->etag || data->i.condition_is_time) {
 		return true;
 	}
 	KHttpFieldValue field(entity, entity + len);
@@ -185,8 +182,8 @@ bool KHttpObject::precondition_entity(const char* entity, size_t len) {
 		if (field_len == 1 && *field.val == '*') {
 			return false;
 		}
-		if (field_len == h->val_len) {
-			if (memcmp(field.val, h->buf + h->val_offset, h->val_len) == 0) {
+		if (field_len == data->etag->len) {
+			if (memcmp(field.val, data->etag->data,data->etag->len) == 0) {
 				return false;
 			}
 		}
@@ -212,15 +209,51 @@ int KHttpObject::GetHeaderSize(int url_len)
 	len += url_len + sizeof(int);
 	KHttpHeader* header = data->headers;
 	while (header) {
-		len += header->val_len + sizeof(uint32_t) + 1;
-		if (!header->name_is_know) {
-			len += header->name_len + 1;
-		}
+		len += sizeof(int) + header->val_len + header->val_offset  + sizeof(uint32_t);
 		header = header->next;
 	}
 	len += sizeof(int);
+	if (data->etag) {
+		data->i.has_condition = 1;
+		if (data->i.condition_is_time) {
+			len += sizeof(data->last_modified);
+		} else {
+			len += (int)data->etag->len;
+		}
+	} else {
+		data->i.has_condition = 0;
+	}
+#ifdef _WIN32
+	index.head_size = len;
+#else
 	index.head_size = (uint32_t)kgl_align(len, kgl_aio_align_size);
+#endif
 	return index.head_size;
+}
+void KHttpObjectBody::set_last_modified(time_t last_modified)
+{
+	if (etag) {
+		return;
+	}
+	this->last_modified = last_modified;
+	if (last_modified > 0) {
+		i.condition_is_time = 1;
+	}
+}
+
+void KHttpObjectBody::set_etag(const char* val, size_t len)
+{
+	if (!i.condition_is_time && etag) {
+		return;
+	}
+	i.condition_is_time = 0;
+	etag = (kgl_len_str_t*)xmalloc(len + sizeof(kgl_len_str_t) + 1);
+	if (!etag) {
+		return;
+	}
+	etag->len = len;
+	memcpy(etag->data, val, len);
+	etag->data[len] = '\0';
 }
 #ifdef ENABLE_DISK_CACHE
 void KHttpObjectBody::create_type(HttpObjectIndex* index)
@@ -337,19 +370,31 @@ int KHttpObject::build_header(char* buf, char* end, const char* url, int url_len
 	write_file_header((KHttpObjectFileHeader*)hot);
 	hot += sizeof(KHttpObjectFileHeader);
 	hot += kgl_dc_write_string(hot, url, url_len);
+	//printf("after url offset=[%d]\n", hot - buf);
 	KHttpHeader* header = data->headers;
 	while (header) {
-		int buf_len = header->val_len + 1;
-		if (!header->name_is_know) {
-			buf_len += header->name_len + 1;
-		}
+		int buf_len = header->val_len + header->val_offset;
 		hot += kgl_dc_write_string(hot, header->buf, buf_len);
 		*((uint32_t*)hot) = header->name_attribute;
 		hot += sizeof(uint32_t);
+		//printf("after header offset=[%d]\n", hot - buf);
 		header = header->next;
 	}
 	hot += kgl_dc_write_string(hot, NULL, 0);
+	if (data->etag) {
+		if (data->i.condition_is_time) {
+			*(time_t*)hot = data->last_modified;
+			hot += sizeof(data->last_modified);
+		} else {
+			memcpy(hot, data->etag->data, data->etag->len);
+			hot += data->etag->len;
+		}
+	}
+	//printf("end header offset=[%d]\n", hot - buf);
 	int header_length = (int)(hot - buf);
+#ifdef _WIN32
+	assert(header_length == index.head_size);
+#endif
 	kassert(header_length <= (INT64)index.head_size);
 	return header_length;
 }

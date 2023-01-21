@@ -168,7 +168,7 @@
 #define ANSW_HAS_EXPIRES        (1<<9) /* */
 #define ANSW_NO_CACHE           (1<<10) /**/
 #define ANSW_HAS_MAX_AGE        (1<<11) /**/
-#define ANSW_LAST_MODIFIED      (1<<12) /* */
+//#define ANSW_LAST_MODIFIED      (1<<12) /* */
 #define ANSW_HAS_CONTENT_LENGTH (1<<13) 
 #define OBJ_HAS_VARY            (1<<14)
 #define ANSW_HAS_CONTENT_RANGE  (1<<15) 
@@ -182,7 +182,7 @@
 #define OBJ_IS_GUEST            (1<<21)  /*  */
 /////////////////////////////////////////////////////////////////////
 //#define OBJ_IS_DELTA            (1<<22)
-#define OBJ_HAS_ETAG            (1<<23)
+//#define OBJ_HAS_ETAG            (1<<23)
 /////////////////////////////////////////////////////////////////////
 #define OBJ_CACHE_RESPONSE      (1<<24) 
 #define ANSW_LOCAL_SERVER       (1<<25) 

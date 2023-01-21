@@ -133,12 +133,23 @@ func check_proxy_port() {
 }
 
 func check_bug() {
-	common.Get("/etag", nil, func(resp *http.Response, err error) {
-		common.AssertSame(common.Read(resp), "hello")
-		common.Assert("x-cache-miss", strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
-	})
-	common.Get("/etag", nil, func(resp *http.Response, err error) {
-		common.AssertSame(common.Read(resp), "hello")
-		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	check_ranges_with_header([]RequestRangeHeader{
+
+		//*
+		{1024, 2048,
+			map[string]string{"If-Range": "\"wrong-test\"", "Accept-Encoding": "gzip"},
+			nil,
+			func(resp *http.Response, err error) {
+				common.AssertSame(resp.StatusCode, 200)
+			}},
+		//*/
+		//*
+		{1024, 2048,
+			map[string]string{"If-Range": common.RangeMd5, "Accept-Encoding": "gzip"},
+			nil,
+			func(resp *http.Response, err error) {
+				common.AssertSame(resp.StatusCode, 206)
+			}},
+		//*/
 	})
 }

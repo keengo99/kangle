@@ -55,6 +55,9 @@ public:
 	}
 	KHttpObjectBody(KHttpObjectBody* data);
 	~KHttpObjectBody() {
+		if (etag && !i.condition_is_time) {
+			xfree(etag);
+		}
 		if (headers) {
 			free_header_list(headers);
 		}
@@ -90,7 +93,25 @@ public:
 	bool restore_header(KHttpObject* obj, char* buf, int len);
 	void create_type(HttpObjectIndex* index);
 #endif
+	time_t get_last_modified() {
+		if (!i.condition_is_time) {
+			return 0;
+		}
+		return last_modified;
+	}
+	kgl_len_str_t* get_etag() {
+		if (i.condition_is_time) {
+			return nullptr;
+		}
+		return etag;
+	}
+	void set_last_modified(time_t last_modified);
+	void set_etag(const char* val, size_t len);
 	KHttpObjectBodyData i;
+	union {
+		kgl_len_str_t* etag;  /* etag为主，有etag就忽略last-modified */
+		time_t last_modified;
+	};
 	KHttpHeader* headers; /* headers */
 	union
 	{
@@ -237,18 +258,12 @@ public:
 	}
 #ifdef ENABLE_FORCE_CACHE
 	//强制缓存
-	bool force_cache(bool insertLastModified = true) {
+	bool force_cache() {
 		if (!status_code_can_cache(data->i.status_code)) {
 			return false;
 		}
 		KBIT_CLR(index.flags, ANSW_NO_CACHE | OBJ_MUST_REVALIDATE);
-		if (!KBIT_TEST(index.flags, ANSW_LAST_MODIFIED | OBJ_HAS_ETAG)) {
-			data->i.last_modified = kgl_current_sec;
-			if (insertLastModified) {
-				insert_http_header(kgl_header_last_modified, (char*)&data->i.last_modified, KGL_HEADER_VALUE_TIME);
-			}
-			KBIT_SET(index.flags, ANSW_LAST_MODIFIED);
-		}
+		data->set_last_modified(kgl_current_sec);
 		KBIT_SET(index.flags, OBJ_IS_STATIC2);
 		return true;
 	}

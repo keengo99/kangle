@@ -194,11 +194,11 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 		av = av->next;
 	}
 	
-	int64_t content_length = in->f->get_read_left(in->ctx);
+	int64_t content_length = in->f->get_left(in->ctx);
 	if (rq_has_content_length(rq, content_length)) {
 		int len = int2string2(content_length, tmpbuff);
 		client->send_header(kgl_expand_string("Content-Length"), tmpbuff, len);
-	} else {		
+	} else {	
 		if (is_chunk_post() || KBIT_TEST(rq->sink->data.flags, RQ_INPUT_CHUNKED)) {
 			assert(content_length == -1);
 		} else if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE)) {
@@ -208,17 +208,16 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 	client->set_content_length(content_length);
 	kgl_precondition_flag flag;
 	kgl_precondition* condition = in->f->get_precondition(in->ctx, &flag);
-	if (condition) {
-		if (condition->time > 0) {
+	if (condition && condition->entity) {
+		if (KBIT_TEST(flag,kgl_precondition_if_time)) {
 			char* end = make_http_time(condition->time, tmpbuff, sizeof(tmpbuff));
-			if (KBIT_TEST(flag, kgl_precondition_if_unmodified)) {
+			if (KBIT_TEST(flag, kgl_precondition_if_match_unmodified)) {
 				client->send_header(kgl_header_if_modified_since, tmpbuff, (hlen_t)(end - tmpbuff));
 			} else {
 				client->send_header(kgl_header_if_unmodified_since, tmpbuff, (hlen_t)(end - tmpbuff));
 			}
-		}
-		if (condition->entity) {
-			if (KBIT_TEST(flag, kgl_precondition_if_match)) {
+		} else {
+			if (KBIT_TEST(flag, kgl_precondition_if_match_unmodified)) {
 				client->send_header(kgl_header_if_match, condition->entity->data, (int)condition->entity->len);
 			} else {
 				client->send_header(kgl_header_if_none_match, condition->entity->data, (int)condition->entity->len);

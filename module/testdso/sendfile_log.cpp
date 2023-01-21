@@ -50,11 +50,11 @@ static KGL_RESULT tee_body( kgl_response_body_ctx *ctx, KREQUEST rq, kgl_respons
 	return KGL_OK;
 }
 
-static kgl_filter sendfile_filter = {
-	sizeof(kgl_filter),
+static kgl_out_filter sendfile_filter = {
+	sizeof(kgl_out_filter),
 	KGL_FILTER_CACHE  | KGL_FILTER_NOT_CHANGE_LENGTH|KGL_FILTER_NOT_CACHE,
 	tee_body
 };
 void register_sendfile_log(KREQUEST r, kgl_access_context* ctx, sendfile_log_context* model_ctx) {
-	ctx->f->support_function(r, ctx->cn, KF_REQ_FILTER, &sendfile_filter, (void**)&model_ctx);
+	ctx->f->support_function(r, ctx->cn, KF_REQ_OUT_FILTER, &sendfile_filter, (void**)&model_ctx);
 }

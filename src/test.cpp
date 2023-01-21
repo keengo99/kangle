@@ -396,7 +396,7 @@ bool test() {
 	test_dechunk2();
 	test_white_list();
 	//test_http_parser();
-	printf("sizeof(KHttpRequest)=%d\n",(int)sizeof(KHttpRequest));
+	printf("sizeof(KHttpObjectBodyData)=%d\n",(int)sizeof(KHttpObjectBodyData));
 	//	test_pipe();
 	//printf("sizeof(KHttpHeader)=%d,sizeof(KHttpHeader2)=[%d]\n", (int)sizeof(KHttpHeader),sizeof(KHttpHeader2));
 	//printf("sizeof(selectable)=[%d]\n", (int)sizeof(kselectable));

@@ -126,7 +126,7 @@ func init() {
 	s.AddCase("http2https", "发送http到https端口", check_http2https)
 	s.AddCase("etag", "etag支持", check_etag)
 	s.AddCase("etag_last_modified", "测试etag和Last-Modified同时存在情况", check_cache_etag_last_modified)
-	s.AddCase("cache_etag", "测试etag变化,cache要正确。", cache_cache_etag)
+	s.AddCase("cache_etag", "测试etag变化,cache要正确。", check_cache_etag)
 	s.AddCase("dynamic", "动态内容使用etag缓存", check_dynamic_content)
 	s.AddCase("bigobj_md5", "大物件缓存，检测md5", check_bigobj_md5)
 	s.AddCase("br_unknow", "br和unknow的encoding", check_br_unknow_encoding)

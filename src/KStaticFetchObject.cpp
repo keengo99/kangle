@@ -27,7 +27,7 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_input_strea
 		return out->f->write_header_finish(out->ctx,0, nullptr);
 	}
 	if (condition && condition->time>0) {
-		if (KBIT_TEST(flag, kgl_precondition_if_unmodified)) {
+		if (KBIT_TEST(flag, kgl_precondition_mask) != kgl_precondition_if_modified_since) {
 			out->f->write_status(out->ctx, STATUS_PRECONDITION);
 			return out->f->write_header_finish(out->ctx,0, nullptr);
 		}

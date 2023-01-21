@@ -84,6 +84,9 @@ char* kgl_dc_read_string(char** hot, int& hotlen, int& len)
 		len = -1;
 		return NULL;
 	}
+	if (len == 0) {
+		return NULL;
+	}
 	char* buf = (char*)xmalloc(len + 1);
 	buf[len] = '\0';
 	if (len > 0) {
@@ -136,9 +139,11 @@ int kgl_dc_write_string(KBufferFile* file, const char* str, int len)
 }
 bool read_obj_head(KHttpObjectBody* data, char** hot, int& hotlen)
 {
+
 	assert(data->headers == NULL);
 	KHttpHeader* last = NULL;
 	for (;;) {
+		//printf("hotlen=[%d]\n", hotlen);
 		int buf_len;
 		//printf("before attr hotlen=[%d]\n",hotlen);
 		char* buf = kgl_dc_read_string(hot, hotlen, buf_len);
@@ -147,6 +152,21 @@ bool read_obj_head(KHttpObjectBody* data, char** hot, int& hotlen)
 			return false;
 		}
 		if (buf == NULL) {
+			if (data->i.has_condition) {
+				if (data->i.condition_is_time) {
+					if (hotlen < sizeof(time_t)) {
+						return false;
+					}
+					data->last_modified = *(time_t*)(*hot);
+					hot += sizeof(time_t);
+					hotlen -= sizeof(time_t);
+				} else {
+					data->set_etag(*hot, hotlen);
+					hot += hotlen;
+					hotlen = 0;
+				}
+			}
+			assert(hotlen == 0);
 			return true;
 		}
 		if (hotlen < sizeof(uint32_t)) {
@@ -160,6 +180,7 @@ bool read_obj_head(KHttpObjectBody* data, char** hot, int& hotlen)
 			xfree(buf);
 			return false;
 		}
+		header->next = NULL;
 		header->buf = buf;
 		header->name_attribute = *(uint32_t*)(*hot);
 		*hot += sizeof(uint32_t);

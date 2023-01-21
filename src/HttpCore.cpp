@@ -151,13 +151,17 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 				while (header) {
 					if (kgl_is_attr(header, _KS("Expires")) ||
 						kgl_is_attr(header, _KS("Content-Location")) ||
-						kgl_is_attr(header, _KS("Etag")) ||
-						kgl_is_attr(header, _KS("Last-Modified")) ||
-						kgl_is_attr(header, _KS("Cache-Control")) ||
-						kgl_is_attr(header, _KS("Vary"))) {
+						kgl_is_attr(header, _KS("Cache-Control"))) {
 						rq->response_header(header, true);
 					}
 					header = header->next;
+				}
+				if (obj->data->etag) {
+					if (obj->data->i.condition_is_time) {
+						rq->response_last_modified(obj->data->last_modified);
+					} else {
+						rq->response_header(kgl_header_etag, obj->data->etag->data, (int)obj->data->etag->len);
+					}
 				}
 			}
 			if (status_code == STATUS_RANGE_NOT_SATISFIABLE && KBIT_TEST(obj->index.flags, ANSW_HAS_CONTENT_RANGE)) {
@@ -412,6 +416,13 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 			rq->response_content_length(content_len);
 		}
 		obj->ResponseVaryHeader(rq);
+		if (obj->data->etag) {
+			if (obj->data->i.condition_is_time) {
+				rq->response_last_modified(obj->data->last_modified);
+			} else {
+				rq->response_header(kgl_header_etag, obj->data->etag->data, (int)obj->data->etag->len);
+			}
+		}
 	}
 	rq->response_connection();
 	return rq->start_response_body(send_len);
@@ -594,7 +605,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 	int64_t content_length;
 	assert(in);
 	if (in) {
-		content_length = in->f->get_read_left(in->ctx);
+		content_length = in->f->get_left(in->ctx);
 	} else {
 		content_length = rq->get_left();
 	}
@@ -604,17 +615,16 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 	}
 	kgl_precondition_flag flag;
 	kgl_precondition* condition = in->f->get_precondition(in->ctx, &flag);
-	if (condition) {
-		if (condition->time > 0) {
+	if (condition && condition->time>0) {
+		if (KBIT_TEST(flag,kgl_precondition_if_time)) {
 			char* end = make_http_time(condition->time, tmpbuff, sizeof(tmpbuff));
-			if (KBIT_TEST(flag, kgl_precondition_if_unmodified)) {
+			if (KBIT_TEST(flag, kgl_precondition_if_match_unmodified)) {
 				env->add_http_header(_KS("If-Unmodified-Since"), (char*)tmpbuff, end - tmpbuff);
 			} else {
 				env->add_http_header(_KS("If-Modified-Since"), (char*)tmpbuff, end - tmpbuff);
 			}
-		}
-		if (condition->entity) {
-			if (KBIT_TEST(flag, kgl_precondition_if_match)) {
+		} else {	
+			if (KBIT_TEST(flag, kgl_precondition_if_match_unmodified)) {
 				env->add_http_header(_KS("If-Match"), condition->entity->data, condition->entity->len);
 			} else {
 				env->add_http_header(_KS("If-None-Match"), condition->entity->data, condition->entity->len);

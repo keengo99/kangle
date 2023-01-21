@@ -12,8 +12,8 @@ bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, c
 	assert(!rq->ctx.obj->in_cache);
 	switch (attr) {
 	case kgl_header_etag:
-		KBIT_SET(obj->index.flags, OBJ_HAS_ETAG);
-		return add_header(attr, val, val_len, false);
+		obj->data->set_etag(val, val_len);
+		return true;
 	case kgl_header_content_range:
 	{
 		if (val_len == KGL_HEADER_VALUE_INT64) {
@@ -43,13 +43,12 @@ bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, c
 		}
 		return add_header(attr, val, val_len);
 	case kgl_header_last_modified:
-		if (kgl_parse_value_time(val, val_len, &obj->data->i.last_modified) != 0) {
+		time_t last_modified;
+		if (kgl_parse_value_time(val, val_len, &last_modified) != 0) {
 			return false;
 		}
-		if (obj->data->i.last_modified > 0) {
-			obj->index.flags |= ANSW_LAST_MODIFIED;
-		}
-		return add_header(attr, val, val_len);
+		obj->data->set_last_modified(last_modified);
+		return true;
 	case kgl_header_set_cookie:
 		if (!KBIT_TEST(obj->index.flags, OBJ_IS_STATIC2)) {
 			obj->index.flags |= ANSW_NO_CACHE;
@@ -184,7 +183,7 @@ void KHttpResponseParser::end_parse(KHttpRequest* rq,int64_t body_size) {
  * 没有 Last-Modified 我们不缓存.
  * 但如果有 expires or max-age  除外
  */
-	if (!KBIT_TEST(rq->ctx.obj->index.flags, ANSW_LAST_MODIFIED | OBJ_HAS_ETAG)) {
+	if (!rq->ctx.obj->data->etag) {
 		if (!KBIT_TEST(rq->ctx.obj->index.flags, ANSW_HAS_MAX_AGE | ANSW_HAS_EXPIRES)) {
 			KBIT_SET(rq->ctx.obj->index.flags, ANSW_NO_CACHE);
 		}

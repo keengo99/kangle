@@ -26,8 +26,6 @@ public:
 #endif
 	}
 	void init(KHttpObject *obj, cache_model cache_layer);
-	StreamState write_all(const char *buf,int len);
-	StreamState write_end(KGL_RESULT result);
 	void CheckMemoryCacheSize();
 #ifdef ENABLE_DISK_CACHE	
 	KDiskCacheStream *NewDiskCache();

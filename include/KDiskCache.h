@@ -36,10 +36,12 @@ struct KHttpObjectDbIndex
 };
 struct KHttpObjectBodyData
 {
-	time_t last_modified;	
 	uint32_t max_age;
 	uint16_t status_code;
-	uint16_t type;
+	uint8_t  has_condition : 1;
+	uint8_t  condition_is_time : 1;
+	uint8_t  reserv : 6;
+	uint8_t  type;/* type must be end */
 };
 struct KHttpObjectFileHeader
 {
@@ -74,7 +76,6 @@ int kgl_dc_write_string(KBufferFile *fp,const char *str,int len=0);
 int kgl_dc_write_string(char *hot, const char *str, int len);
 char *getCacheIndexFile();
 class KHttpObjectBody;
-bool read_obj_head(KHttpObjectBody *data,KFile *fp);
 bool read_obj_head(KHttpObjectBody *data,char **hot,int &hotlen);
 void scan_disk_cache();
 void get_disk_base_dir(KStringBuf &s);

@@ -207,5 +207,5 @@ int KApiFetchObject::writeClient(const char* str, int len) {
 	return len;
 }
 int KApiFetchObject::readClient(char* buf, int len) {
-	return in->f->read_body(in->ctx, buf, len);
+	return in->f->read(in->ctx, buf, len);
 }

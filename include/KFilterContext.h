@@ -2,8 +2,8 @@
 #define KFILTERCONTEXT_H
 #include "KFilterHelper.h"
 #include "KHttpObject.h"
-struct kgl_filter_body {
-	kgl_filter* filter;
+struct kgl_out_filter_body {
+	kgl_out_filter* filter;
 	kgl_response_body_ctx* ctx;
 	kgl_list queue;
 };
@@ -19,7 +19,7 @@ public:
 		kgl_list* pos;
 		while (!klist_empty(&filter)) {
 			pos = klist_head(&filter);
-			kgl_filter_body* st = kgl_list_data(pos, kgl_filter_body, queue);
+			kgl_out_filter_body* st = kgl_list_data(pos, kgl_out_filter_body, queue);
 			st->filter->tee_body(st->ctx, NULL, NULL);
 			klist_remove(pos);
 			delete st;
@@ -30,7 +30,7 @@ public:
 		bool will_change_body_size = false;
 		while (!klist_empty(&filter)) {
 			pos = klist_head(&filter);
-			kgl_filter_body* st = kgl_list_data(pos, kgl_filter_body, queue);
+			kgl_out_filter_body* st = kgl_list_data(pos, kgl_out_filter_body, queue);
 			if (!KBIT_TEST(st->filter->flags, KGL_FILTER_NOT_CHANGE_LENGTH)) {
 				will_change_body_size = true;
 			}
@@ -44,9 +44,9 @@ public:
 		}
 		return will_change_body_size;
 	}
-	void add(kgl_filter_body*st)
+	void add(kgl_out_filter_body*st)
 	{
-		assert(st->filter->size == sizeof(kgl_filter));
+		assert(st->filter->size == sizeof(kgl_out_filter));
 		klist_append(&filter, &st->queue);
 	}
 	kgl_list filter;

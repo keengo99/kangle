@@ -62,7 +62,7 @@ func check_nochange_client_if_range() {
 			map[string]string{"If-Range": common.RangeMd5, "Accept-Encoding": "gzip"},
 			nil,
 			func(resp *http.Response, err error) {
-				common.Assert("check_nochange_client_if_range-right-status-code", resp.StatusCode == 206)
+				common.AssertSame(resp.StatusCode, 206)
 			}},
 		{0, -1, nil, nil, nil},
 		//*/

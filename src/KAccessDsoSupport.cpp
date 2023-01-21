@@ -379,12 +379,17 @@ static KGL_RESULT support_function(
 		}
 		return KGL_OK;
 	}
-	case KF_REQ_FILTER:
+	case KF_REQ_OUT_FILTER:
 	{
-		kgl_filter_body* body = new kgl_filter_body;
-		body->filter = (kgl_filter*)data;
+		kgl_out_filter_body* body = new kgl_out_filter_body;
+		body->filter = (kgl_out_filter*)data;
 		body->ctx = (kgl_response_body_ctx*)*ret;
 		rq->getOutputFilterContext()->add(body);
+	}
+	case KF_REQ_IN_FILTER:
+	{
+		kgl_in_filter* in_filter = (kgl_in_filter*)data;
+		//in_filter->tee_body()
 	}
 	default:
 		return base_support_function(rq, req, data, ret);

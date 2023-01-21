@@ -47,31 +47,5 @@ private:
 	bool use_deflate;
 	int in_skip ;
 };
-#if 0
-class KGzipCompress : public KCompressStream
-{
-public:
-	KGzipCompress(int gzip_level);
-	~KGzipCompress();
-	KGL_RESULT write_all(void*rq, const char *str,int len) override;
-	KGL_RESULT write_end(void*rq, KGL_RESULT result) override;
-	void setFast(bool fast)
-	{
-		this->fast = fast;
-	}
-	KGL_RESULT flush(void*rq) override
-	{
-		return compress(rq, Z_SYNC_FLUSH);
-	}
-private:
-	KGL_RESULT compress(void *rq, int flush_flag);
-	z_stream strm;
-	char *out;
-	unsigned used;
-	uLong crc;
-	bool fast;
-	bool isSuccess;
-};
-#endif
 bool pipe_gzip_compress(int gzip_level, kgl_response_body* body);
 #endif /* KGZIP_H_ */

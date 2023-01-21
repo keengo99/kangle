@@ -68,8 +68,8 @@ void SetLastError(DWORD errorCode);
 #define INVALIDE_PIPE	-1
 #endif
 typedef struct _kgl_upstream kgl_upstream;
-typedef struct _kgl_filter kgl_filter;
-#define   kgl_async_upstream   kgl_upstream
+typedef struct _kgl_out_filter kgl_out_filter;
+typedef struct _kgl_in_filter kgl_in_filter;
 
 #define   KGL_REQ_RESERV_COMMAND                    100000
 #define   KGL_REQ_COMMAND                          (KGL_REQ_RESERV_COMMAND+1)
@@ -189,8 +189,8 @@ typedef enum _KF_REQ_TYPE
 	KD_REQ_OBJ_IDENTITY = 5,
 	//only support in access
 	KF_REQ_UPSTREAM = 14,
-	KF_REQ_FILTER = 15,
-
+	KF_REQ_OUT_FILTER = 15,
+	KF_REQ_IN_FILTER  = 16
 } KF_REQ_TYPE;
 
 typedef enum
@@ -228,6 +228,7 @@ typedef enum _KGL_GVAR
 typedef struct _kgl_output_stream_ctx kgl_output_stream_ctx;
 typedef struct _kgl_input_stream_ctx kgl_input_stream_ctx;
 typedef struct _kgl_response_body_ctx kgl_response_body_ctx;
+typedef struct _kgl_request_body_ctx kgl_request_body_ctx;
 typedef struct _kgl_parse_header_ctx kgl_parse_header_ctx;
 
 typedef LPVOID KCONN;
@@ -253,7 +254,7 @@ typedef enum _KF_ALLOC_MEMORY_TYPE
 } KF_ALLOC_MEMORY_TYPE;
 
 
-typedef struct _kgl_response_body_function
+typedef struct
 {
 	KGL_RESULT(*writev)(kgl_response_body_ctx* ctx, WSABUF* bufs, int bc);
 	KGL_RESULT(*write)(kgl_response_body_ctx* ctx, const char* buf, int size);
@@ -263,10 +264,31 @@ typedef struct _kgl_response_body_function
 	KGL_RESULT(*close)(kgl_response_body_ctx* ctx, KGL_RESULT result);
 } kgl_response_body_function;
 
-typedef struct _kgl_response_body {
+typedef struct {
 	kgl_response_body_function* f;
 	kgl_response_body_ctx *ctx;
 } kgl_response_body;
+
+typedef struct {
+	int64_t(*get_left)(kgl_request_body_ctx* ctx);/* return -1 is mean the input body unknow length, like chunk. */
+	int (*read)(kgl_request_body_ctx* ctx, char* buf, int len);/* return 0 mean body is end, -1 is error */
+} kgl_request_body_function;
+
+typedef struct {
+	kgl_request_body_function* f;
+	kgl_request_body_ctx* ctx;
+} kgl_request_body;
+
+
+typedef struct {
+	kgl_request_body_function base;
+	void (*close)(kgl_request_body_ctx* ctx);
+} kgl_request_closed_body_function;
+
+typedef struct {
+	kgl_request_closed_body_function* f;
+	kgl_request_body_ctx* ctx;
+} kgl_request_closed_body;
 
 
 typedef struct _kgl_url
@@ -302,7 +324,7 @@ typedef struct _kgl_url
 	};
 } kgl_url;
 
-struct _kgl_filter
+struct _kgl_out_filter
 {
 	int32_t size;
 #define KGL_FILTER_NOT_CHANGE_LENGTH 1 /* do not change content length */
@@ -310,6 +332,12 @@ struct _kgl_filter
 #define KGL_FILTER_NOT_CACHE         4 /* filter not cache */
 	int32_t flags;
 	KGL_RESULT (*tee_body)(kgl_response_body_ctx *ctx, KREQUEST rq, kgl_response_body *body);
+};
+struct _kgl_in_filter
+{
+	int32_t size;
+	int32_t flags;
+	KGL_RESULT(*tee_body)(kgl_request_body_ctx* ctx, KREQUEST rq, kgl_request_body* body);
 };
 typedef struct _kgl_access_function
 {
@@ -361,21 +389,25 @@ typedef struct _kgl_request_range
 	union
 	{
 		time_t if_range_date;
-		kgl_str_t* if_range_entity;
+		kgl_len_str_t* if_range_entity;
 	};
 } kgl_request_range;
 
-typedef struct _kgl_precondition
+typedef union _kgl_precondition
 {
 	time_t time;
-	kgl_str_t* entity;
+	kgl_len_str_t* entity;
 } kgl_precondition;
 
 typedef enum
 {
-	kgl_precondition_not_set = 0,
-	kgl_precondition_if_unmodified = (1),
-	kgl_precondition_if_match = (1<<1),
+	kgl_precondition_if_match_unmodified = (1),
+	kgl_precondition_if_time = (1 << 1),
+	kgl_precondition_if_none_match = 0,
+	kgl_precondition_if_match = 1,
+	kgl_precondition_if_modified_since = 2,
+	kgl_precondition_if_unmodified_since = 3,
+	kgl_precondition_mask = 3,
 	kgl_precondition_if_range_date = (1<<2),
 } kgl_precondition_flag;
 
@@ -387,8 +419,8 @@ typedef struct _kgl_input_stream_function
 	kgl_request_range *(*get_range)(kgl_input_stream_ctx* ctx);
 	int (*get_header_count)(kgl_input_stream_ctx* ctx);/* do not include host,precondition,and range header */
 	KGL_RESULT (*get_header)(kgl_input_stream_ctx *ctx, kgl_parse_header_ctx* cb_ctx, kgl_parse_header_function* cb);
-	int64_t(*get_read_left)(kgl_input_stream_ctx *ctx);/* return -1 is mean the input body unknow length, like chunk. */
-	int (*read_body)(kgl_input_stream_ctx* ctx, char* buf, int len);/* return 0 mean body is end, -1 is error */
+	int64_t(*get_left)(kgl_input_stream_ctx *ctx);/* return -1 is mean the input body unknow length, like chunk. */
+	int (*read)(kgl_input_stream_ctx* ctx, char* buf, int len);/* return 0 mean body is end, -1 is error */
 	//release
 	void(*release)(kgl_input_stream_ctx* ctx);
 } kgl_input_stream_function;

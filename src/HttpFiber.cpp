@@ -575,37 +575,36 @@ KGL_RESULT load_object_from_source(KHttpRequest* rq) {
 		assert(old_obj->data);
 		rq->ctx.precondition_flag = 0;
 		kgl_sub_request* sub_request = rq->alloc_sub_request();
-		sub_request->precondition = rq->sink->alloc<kgl_precondition>();
-		if (condition && !KBIT_TEST(flag, kgl_precondition_if_unmodified) && condition->time > old_obj->data->i.last_modified) {
-			sub_request->precondition->time = condition->time;
-		} else {
-			sub_request->precondition->time = old_obj->data->i.last_modified;
-		}
-		if (KBIT_TEST(old_obj->index.flags, OBJ_HAS_ETAG)) {
-			KHttpHeader* h = rq->ctx.old_obj->find_header(_KS("Etag"));
-			assert(h);
-			if (h) {
-				if (condition && condition->entity) {
-					size_t new_len = h->val_len + condition->entity->len + 1;
-					char* val = (char*)kgl_pnalloc(rq->sink->pool, new_len + 1);
-					char* hot = val;
-					memcpy(val, h->buf + h->val_offset, h->val_len);
-					hot += h->val_len;
+		if (old_obj->data->etag) {
+			sub_request->precondition = rq->sink->alloc<kgl_precondition>();
+			if (old_obj->data->i.condition_is_time) {
+				if (condition && (KBIT_TEST(flag, kgl_precondition_if_modified_since) == kgl_precondition_if_modified_since) && condition->time > old_obj->data->last_modified) {
+					sub_request->precondition->time = condition->time;
+				} else {
+					sub_request->precondition->time = old_obj->data->last_modified;
+				}
+				rq->ctx.precondition_flag = kgl_precondition_if_modified_since;
+			} else {
+				auto etag = old_obj->data->etag;
+				if (condition && KBIT_TEST(flag, kgl_precondition_if_none_match) == kgl_precondition_if_none_match) {
+					size_t new_len = etag->len + condition->entity->len + 1;
+					sub_request->precondition->entity = (kgl_len_str_t*)kgl_pnalloc(rq->sink->pool, new_len + 1 + sizeof(kgl_len_str_t));
+					sub_request->precondition->entity->len = new_len;
+					char* hot = sub_request->precondition->entity->data;
+					memcpy(hot, etag->data, etag->len);
+					hot += etag->len;
 					*hot = ',';
 					hot++;
 					memcpy(hot, condition->entity->data, condition->entity->len);
 					hot[condition->entity->len] = '\0';
-					sub_request->precondition->entity = rq->sink->alloc<kgl_str_t>();
-					sub_request->precondition->entity->data = val;
-					sub_request->precondition->entity->len = new_len;
 				} else {
-					sub_request->precondition->entity = rq->sink->alloc<kgl_str_t>();
-					sub_request->precondition->entity->data = h->buf + h->val_offset;
-					sub_request->precondition->entity->len = h->val_len;
+					sub_request->precondition->entity = etag;
 				}
+				rq->ctx.precondition_flag = kgl_precondition_if_none_match;
 			}
-		} else if (condition && condition->entity) {
-			sub_request->precondition->entity = condition->entity;
+		} else {
+			sub_request->precondition = condition;
+			rq->ctx.precondition_flag = flag;
 		}
 	}
 	kgl_input_stream in;
@@ -619,15 +618,12 @@ KGL_RESULT load_object_from_source(KHttpRequest* rq) {
 	if (!rq->ctx.old_obj || rq->ctx.obj->data->i.status_code != STATUS_NOT_MODIFIED) {
 		goto done;
 	}
-	if (condition) {
-		if (!rq->ctx.obj->is_same_precondition(rq->ctx.old_obj)) {
-			rq->dead_old_obj();
-			goto done;
-		}
-		if (!kgl_request_precondition(rq, rq->ctx.old_obj)) {
-			return send_http2(rq, rq->ctx.old_obj, STATUS_NOT_MODIFIED);
-		}
+	if (rq->ctx.obj->data->etag && !rq->ctx.obj->is_same_precondition(rq->ctx.old_obj)) {
+		goto done;
 	}
+	if (!kgl_request_precondition(rq, rq->ctx.old_obj)) {
+		return send_http2(rq, rq->ctx.old_obj, STATUS_NOT_MODIFIED);
+	}	
 	KBIT_SET(rq->sink->data.flags, RQ_OBJ_VERIFIED);
 	rq->ctx.old_obj->index.last_verified = kgl_current_sec;
 	rq->ctx.old_obj->UpdateCache(rq->ctx.obj);
@@ -695,14 +691,14 @@ bool kgl_request_precondition(KHttpRequest* rq, KHttpObject* obj) {
 	* cache server ignore step 1 & 2
 	*/
 	/* step 3 */
-	if (!KBIT_TEST(flag, kgl_precondition_if_match) && condition && condition->entity) {
+	if (KBIT_TEST(flag, kgl_precondition_mask) == kgl_precondition_if_none_match && condition) {
 		if (!obj->precondition_entity(condition->entity->data, condition->entity->len)) {
 			return false;
 		}
 		goto step_5;
 	}
 	/* step 4 */
-	if (!KBIT_TEST(flag, kgl_precondition_if_unmodified) && condition && condition->time > 0) {
+	if (KBIT_TEST(flag, kgl_precondition_mask) == kgl_precondition_if_modified_since && condition) {
 		if (!obj->precondition_time(condition->time)) {
 			return false;
 		}
@@ -710,7 +706,7 @@ bool kgl_request_precondition(KHttpRequest* rq, KHttpObject* obj) {
 step_5:
 	if (rq->sink->data.meth == METH_GET && range && range->if_range_entity) {
 		if (KBIT_TEST(flag, kgl_precondition_if_range_date)) {
-			if (range->if_range_date != obj->data->i.last_modified) {
+			if (range->if_range_date != obj->data->get_last_modified()) {
 				/* response 200 */
 				rq->sink->data.range = nullptr;
 			}
@@ -778,7 +774,7 @@ KGL_RESULT process_cache_request(KHttpRequest* rq) {
 	KHttpObject* obj = rq->ctx.obj;
 	if (rq->sink->data.meth != METH_GET && rq->sink->data.meth != METH_HEAD) {
 		KBIT_SET(rq->sink->data.flags, RQ_CACHE_HIT);
-		if (rq->sink->data.precondition) {
+		if (rq->sink->data.precondition.entity) {
 			return send_http2(rq, obj, STATUS_PRECONDITION);
 		}
 		return send_http2(rq, obj, STATUS_METH_NOT_ALLOWED);

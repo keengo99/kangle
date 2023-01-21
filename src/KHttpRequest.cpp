@@ -541,7 +541,7 @@ KSubVirtualHost* KHttpRequest::get_virtual_host() {
 }
 
 bool KHttpRequest::has_post_data(kgl_input_stream* in) {
-	return in->f->get_read_left(in->ctx) != 0;
+	return in->f->get_left(in->ctx) != 0;
 }
 #if 0
 int KHttpRequest::checkFilter(KHttpObject* obj) {

@@ -64,12 +64,12 @@ static KGL_RESULT filter_tee_body( kgl_response_body_ctx* ctx, KREQUEST rq, kgl_
 	body->f = &filter_body_function;
 	return KGL_OK;
 }
-static kgl_filter filter = {
-	sizeof(kgl_filter),
+static kgl_out_filter filter = {
+	sizeof(kgl_out_filter),
 	KGL_FILTER_NOT_CACHE| KGL_FILTER_CACHE|KGL_FILTER_NOT_CHANGE_LENGTH,
 	filter_tee_body,
 };
 void register_filter(KREQUEST r, kgl_access_context *ctx, filter_context *model_ctx)
 {
-	ctx->f->support_function(r, ctx->cn, KF_REQ_FILTER, &filter, (void **)&model_ctx);
+	ctx->f->support_function(r, ctx->cn, KF_REQ_OUT_FILTER, &filter, (void **)&model_ctx);
 }

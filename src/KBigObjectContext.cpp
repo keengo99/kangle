@@ -200,22 +200,20 @@ void KBigObjectContext::build_if_range(KHttpRequest* rq)
 	assert(rq->ctx.sub_request && rq->ctx.sub_request->range);
 	rq->ctx.sub_request->precondition = nullptr;
 	rq->ctx.precondition_flag = 0;
-	if (KBIT_TEST(obj->index.flags, OBJ_HAS_ETAG)) {
-		KHttpHeader* h = obj->find_header(_KS("Etag"));		
-		if (h) {
-			char* etag = h->buf + h->val_offset;
-			if (h->val_len > 2 && (*etag == 'W' || *etag == 'w') && (*(etag + 1) == '/')) {
-				//weak etag
-				rq->ctx.sub_request->range = nullptr;
-			} else {
-				rq->ctx.sub_request->range->if_range_entity = rq->sink->alloc<kgl_str_t>();
-				rq->ctx.sub_request->range->if_range_entity->data = h->buf + h->val_offset;
-				rq->ctx.sub_request->range->if_range_entity->len = h->val_len;
-			}
+	kgl_len_str_t* etag = obj->data->get_etag();
+	if (etag) {
+		if (etag->len > 2 && (*(etag->data) == 'W' || *(etag->data) == 'w') && (*(etag->data + 1) == '/')) {
+			//weak etag
+			rq->ctx.sub_request->range = nullptr;
+		} else {
+			rq->ctx.sub_request->range->if_range_entity = etag;
 		}
-	} else if (obj->data->i.last_modified>0) {
-		KBIT_SET(rq->ctx.precondition_flag, kgl_precondition_if_range_date);
-		rq->ctx.sub_request->range->if_range_date = obj->data->i.last_modified;
+	} else {
+		time_t last_modified = obj->data->get_last_modified();
+		if (last_modified > 0) {
+			KBIT_SET(rq->ctx.precondition_flag, kgl_precondition_if_range_date);
+			rq->ctx.sub_request->range->if_range_date = last_modified;
+		}
 	}
 	//提前更新last verified，减少源的连接数
 	obj->index.last_verified = kgl_current_sec;

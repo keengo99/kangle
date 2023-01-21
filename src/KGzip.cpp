@@ -276,7 +276,7 @@ done:
 	delete gzip;
 	return result;
 }
-static _kgl_response_body_function kgzip_function = {
+static kgl_response_body_function kgzip_function = {
 	unsupport_writev<kgzip_write>,
 	kgzip_write,
 	kgzip_flush,

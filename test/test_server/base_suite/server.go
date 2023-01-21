@@ -98,8 +98,9 @@ func HandleEtag(w http.ResponseWriter, r *http.Request) {
 	}
 	common.Assert("if-none-match-1", if_none_match == "hello")
 	common.RequestCount++
-	w.WriteHeader(304)
+	w.Header().Add("Etag", "hello")
 	w.Header().Add("Server", TEST_SERVER_NAME)
+	w.WriteHeader(304)
 }
 func HandleChunkPost(w http.ResponseWriter, r *http.Request) {
 	buf := make([]byte, 512)

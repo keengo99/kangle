@@ -124,7 +124,7 @@ public:
 		KHttpObject* old_obj;
 		kgl_sub_request* sub_request;
 		kgl_response_body body;
-		kgl_input_stream in;
+		kgl_request_body in_body;
 	} ctx;
 	KFetchObject* fo_head;
 	KFetchObject* fo_last;
@@ -281,6 +281,11 @@ public:
 		char buf[16];
 		int len = snprintf(buf, sizeof(buf) - 1, "%d", val);
 		return response_header(name, name_len, buf, len);
+	}
+	bool response_last_modified(time_t last_modified) {
+		char tmpbuf[KGL_1123_TIME_LEN + 1];
+		char* end = make_http_time(last_modified, tmpbuf, KGL_1123_TIME_LEN);
+		return response_header(kgl_header_last_modified, tmpbuf, (int)(end - tmpbuf));
 	}
 	bool response_content_length(int64_t content_length) {
 		return sink->response_content_length(content_length);
