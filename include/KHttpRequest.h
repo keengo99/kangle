@@ -124,7 +124,7 @@ public:
 		KHttpObject* old_obj;
 		kgl_sub_request* sub_request;
 		kgl_response_body body;
-		kgl_request_body in_body;
+		kgl_request_body *in_body;
 	} ctx;
 	KFetchObject* fo_head;
 	KFetchObject* fo_last;
@@ -204,8 +204,6 @@ public:
 	void store_obj();
 	bool isBad();
 	void set_url_param(char* param);
-	//判断是否还有post数据可读
-	bool has_post_data(kgl_input_stream* in);
 	bool NeedTempFile(bool upload);
 	std::string getInfo();
 	char* getUrl();
@@ -305,8 +303,8 @@ public:
 	inline bool needFilter() {
 		return of_ctx != NULL;
 	}
-	void ResponseVary(const char* vary);
-	char* BuildVary(const char* vary);
+	void response_vary(const char* vary);
+	char* build_vary(const char* vary);
 	const char* get_method();
 
 	/* override KWStream function begin */

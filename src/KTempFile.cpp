@@ -149,31 +149,31 @@ KTHREAD_FUNCTION clean_tempfile_thread(void* param) {
 	KTHREAD_RETURN;
 }
 
-static int64_t tmpfile_input_get_read_left(kgl_input_stream_ctx* st) {
+static int64_t tmpfile_input_get_read_left(kgl_request_body_ctx* st) {
 	kgl_tempfile_input_stream* in = (kgl_tempfile_input_stream*)st;
 	return in->tmp_file.GetLeft();
 }
-static int tmpfile_input_read(kgl_input_stream_ctx* st, char* buf, int len) {
+static int tmpfile_input_read(kgl_request_body_ctx* st, char* buf, int len) {
 	kgl_tempfile_input_stream* in = (kgl_tempfile_input_stream*)st;
 	return in->tmp_file.Read(buf, len);
 }
-static void tmpfile_input_release(kgl_input_stream_ctx* st) {
+static void tmpfile_input_release(kgl_request_body_ctx* st) {
 	kgl_tempfile_input_stream* in = (kgl_tempfile_input_stream*)st;
-	in->up_stream.f->release(in->up_stream.ctx);
+	in->up_stream.f->body.close(in->up_stream.body_ctx);
 	delete in;
 }
-static kgl_input_stream_function tempfile_input_stream_function = {
+static kgl_input_stream_function tempfile_input_stream_function = {	
+	tmpfile_input_get_read_left,
+	tmpfile_input_read,
+	tmpfile_input_release,
 	forward_get_url,
 	forward_get_precondition,
 	forward_get_range,
 	forward_get_header_count,
 	forward_get_header,
-	tmpfile_input_get_read_left,
-	tmpfile_input_read,
-	tmpfile_input_release
 };
 bool new_tempfile_input_stream(KHttpRequest* rq, kgl_input_stream* in) {
-	if ((in)->f->get_left(in->ctx) == 0) {
+	if ((in)->f->body.get_left(in->body_ctx) == 0) {
 		return true;
 	}
 	kgl_tempfile_input_stream* st = new kgl_tempfile_input_stream;
@@ -183,8 +183,8 @@ bool new_tempfile_input_stream(KHttpRequest* rq, kgl_input_stream* in) {
 	}
 	char* buf = (char*)malloc(TEMPFILE_POST_CHUNK_SIZE);
 	bool result = false;
-	while ((in)->f->get_left(in->ctx) != 0) {
-		int got = in->f->read(in->ctx, buf, TEMPFILE_POST_CHUNK_SIZE);
+	while ((in)->f->body.get_left(in->body_ctx) != 0) {
+		int got = in->f->body.read(in->body_ctx, buf, TEMPFILE_POST_CHUNK_SIZE);
 		if (got < 0) {
 			goto err;
 		}

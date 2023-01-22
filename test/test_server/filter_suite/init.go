@@ -16,6 +16,7 @@ func (this *filter) Init() error {
 	server.Handle("/footer", handleFooter)
 	config := `
 <config>
+	<dso_extend name='filter' filename='bin/filter.${dso}'/>
 		<response >
 		<table name='BEGIN'>
 			<chain  action='continue' >
@@ -35,6 +36,6 @@ func init() {
 	s := &filter{}
 	s.CasesMap = make(map[string]*suite.Case)
 	s.Name = "filter"
-	//s.AddCase("footer", "footer测试", check_footer)
+	s.AddCase("footer", "footer测试", check_footer)
 	suite.Register(s)
 }

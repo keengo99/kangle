@@ -82,7 +82,7 @@ KGL_RESULT process_request(KHttpRequest* rq) {
 	kgl_input_stream in;
 	kgl_output_stream out;
 	new_default_stream(rq, &in, &out);
-	defer(in.f->release(in.ctx); out.f->release(out.ctx));
+	defer(in.f->body.close(in.body_ctx); out.f->close(out.ctx));
 	KGL_RESULT result = process_request_stream(rq, &in, &out);
 	if (result == KGL_NO_BODY) {
 		return process_upstream_no_body(rq, &in, &out);
@@ -610,7 +610,7 @@ KGL_RESULT load_object_from_source(KHttpRequest* rq) {
 	kgl_input_stream in;
 	kgl_output_stream out;
 	new_default_stream(rq, &in, &out);
-	defer(in.f->release(in.ctx); out.f->release(out.ctx));
+	defer(in.f->body.close(in.body_ctx); out.f->close(out.ctx));
 	KGL_RESULT result = prepare_request_fetchobj(rq, &in, &out);
 	if (result != KGL_NO_BODY) {
 		return result;

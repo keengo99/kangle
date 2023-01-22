@@ -82,7 +82,7 @@ KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest* rq)
 	b.putShort(rq->sink->get_self_port());
 	//is secure
 	b.putByte(KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL) ? 1 : 0);
-	int64_t content_length = in->f->get_left(in->ctx);
+	int64_t content_length = in->f->body.get_left(in->body_ctx);
 	KHttpHeader* header = rq->sink->data.get_header();
 	int count = 0;
 	while (header) {

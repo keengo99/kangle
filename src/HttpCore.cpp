@@ -605,7 +605,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 	int64_t content_length;
 	assert(in);
 	if (in) {
-		content_length = in->f->get_left(in->ctx);
+		content_length = in->f->body.get_left(in->body_ctx);
 	} else {
 		content_length = rq->get_left();
 	}

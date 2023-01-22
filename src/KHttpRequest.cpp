@@ -108,6 +108,7 @@ KHttpRequestData::~KHttpRequestData() {
 	clean_obj();
 	/* be sure response_body is closed. */
 	assert(ctx.body.ctx == nullptr);
+	assert(ctx.in_body == nullptr);
 }
 void KHttpRequestData::clean_obj() {
 	if (ctx.obj) {
@@ -323,6 +324,10 @@ int KHttpRequest::EndRequest() {
 	sink->remove_readhup();
 	store_obj();
 	log_access(this);
+	if (ctx.in_body) {
+		ctx.in_body->f->close(ctx.in_body->ctx);
+		ctx.in_body = nullptr;
+	}
 	delete this;
 	return 0;
 }
@@ -540,9 +545,6 @@ KSubVirtualHost* KHttpRequest::get_virtual_host() {
 	return static_cast<KSubVirtualHost*>(sink->data.opaque);
 }
 
-bool KHttpRequest::has_post_data(kgl_input_stream* in) {
-	return in->f->get_left(in->ctx) != 0;
-}
 #if 0
 int KHttpRequest::checkFilter(KHttpObject* obj) {
 	int action = JUMP_ALLOW;
@@ -570,7 +572,7 @@ void KHttpRequest::addFilter(KFilterHelper* chain) {
 	getOutputFilterContext()->addFilter(chain);
 }
 #endif
-void KHttpRequest::ResponseVary(const char* vary) {
+void KHttpRequest::response_vary(const char* vary) {
 	KHttpField field;
 	field.parse(vary, ',');
 	KStringBuf s;
@@ -598,7 +600,7 @@ void KHttpRequest::ResponseVary(const char* vary) {
 		response_header(kgl_expand_string("Vary"), s.getString(), len);
 	}
 }
-char* KHttpRequest::BuildVary(const char* vary) {
+char* KHttpRequest::build_vary(const char* vary) {
 	KHttpField field;
 	field.parse(vary, ',');
 	KStringBuf s;

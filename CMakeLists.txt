@@ -24,6 +24,10 @@ file(GLOB VHS_SQLITE_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/module/vhs_sqlite/*.cpp
 )
 file(GLOB TESTDSO_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/module/testdso/*.cpp)
+file(GLOB FILTER_SOURCE_FILES 
+      ${CMAKE_CURRENT_SOURCE_DIR}/module/filter/*.cpp
+      ${CMAKE_CURRENT_SOURCE_DIR}/module/filter/*.h)
+
 
 list(APPEND EXTWORKER_SOURCE_FILES 
     src/EdcodeUtils.cpp 
@@ -143,6 +147,7 @@ if (NOT HTTP_PROXY)
     add_executable(extworker ${EXTWORKER_SOURCE_FILES})
     add_library(vhs_sqlite MODULE  ${VHS_SQLITE_SOURCE_FILES})
     add_library(testdso MODULE ${TESTDSO_SOURCE_FILES})
+    add_library(filter MODULE ${FILTER_SOURCE_FILES})
 
     target_include_directories(extworker PUBLIC ${KANGLE_INCLUDE_DIR})
     target_link_directories(extworker PUBLIC ${KANGLE_LIBS_DIR})
@@ -156,6 +161,10 @@ if (NOT HTTP_PROXY)
     set_property(TARGET testdso PROPERTY  PREFIX "")
     target_include_directories(testdso PUBLIC ${KANGLE_INCLUDE_DIR})
     target_link_directories(testdso PUBLIC ${KANGLE_LIBS_DIR})
+
+    set_property(TARGET filter PROPERTY  PREFIX "")
+    target_include_directories(filter PUBLIC ${KANGLE_INCLUDE_DIR})
+    target_link_directories(filter PUBLIC ${KANGLE_LIBS_DIR})
 
     install(TARGETS extworker vhs_sqlite
      RUNTIME DESTINATION bin 

@@ -152,7 +152,7 @@ KGL_RESULT forward_close(kgl_response_body_ctx* out, KGL_RESULT result) {
 }
 void forward_release(kgl_output_stream_ctx* gate) {
 	kgl_forward_output_stream* g = (kgl_forward_output_stream*)gate;
-	g->down_stream.f->release(g->down_stream.ctx);
+	g->down_stream.f->close(g->down_stream.ctx);
 	delete g;
 }
 
@@ -355,13 +355,23 @@ void new_default_stream(KHttpRequest* rq, kgl_input_stream* in, kgl_output_strea
 	new_default_input_stream(rq, in);
 	new_default_output_stream(rq, out);
 }
-static int64_t default_input_get_read_left(kgl_input_stream_ctx* ctx) {
+static int64_t default_input_get_read_left(kgl_request_body_ctx* ctx) {
 	KHttpRequest* rq = (KHttpRequest*)ctx;
 	return rq->sink->data.left_read;
 }
-static int default_input_read(kgl_input_stream_ctx* ctx, char* buf, int len) {
+static int default_input_read(kgl_request_body_ctx* ctx, char* buf, int len) {
 	KHttpRequest* rq = (KHttpRequest*)ctx;
 	return rq->read(buf, len);
+}
+static int64_t default_input_has_filter_get_left(kgl_request_body_ctx* ctx) {
+	KHttpRequest* rq = (KHttpRequest*)ctx;
+	assert(rq->ctx.in_body);
+	return rq->ctx.in_body->f->get_left(rq->ctx.in_body->ctx);
+}
+static int default_input_has_filter_read(kgl_request_body_ctx* ctx, char* buf, int len) {
+	KHttpRequest* rq = (KHttpRequest*)ctx;
+	assert(rq->ctx.in_body);
+	return rq->ctx.in_body->f->read(rq->ctx.in_body->ctx,buf,len);
 }
 static int default_get_header_count(kgl_input_stream_ctx* ctx) {
 	KHttpRequest* rq = (KHttpRequest*)ctx;
@@ -417,26 +427,54 @@ kgl_request_range *default_get_range(kgl_input_stream_ctx* ctx) {
 	}
 	return rq->sink->data.range;
 }
-static void default_input_release(kgl_input_stream_ctx* ctx) {
-
+static void default_input_release(kgl_request_body_ctx* ctx) {
 }
-static kgl_input_stream_function default_input_stream_function = {
+static void default_input_has_filter_release(kgl_request_body_ctx* ctx) {
+	KHttpRequest* rq = (KHttpRequest*)ctx;
+	assert(rq->ctx.in_body);
+	if (rq->ctx.in_body) {
+		rq->ctx.in_body->f->close(rq->ctx.in_body->ctx);
+		rq->ctx.in_body = nullptr;
+	}
+}
+static kgl_request_body_function default_request_body_function = {
+	default_input_get_read_left,
+	default_input_read,
+	default_input_release,
+};
+void kgl_init_request_in_body(KHttpRequest* rq)
+{
+	rq->ctx.in_body = rq->sink->alloc<kgl_request_body>();
+	rq->ctx.in_body->ctx = (kgl_request_body_ctx *)rq;
+	rq->ctx.in_body->f = &default_request_body_function;
+}
+static kgl_input_stream_function default_input_stream_function = {	
+	{default_request_body_function},
 	default_get_url,
 	default_get_precondition,
 	default_get_range,
 	default_get_header_count,
-	default_get_header,
-	default_input_get_read_left,
-	default_input_read,
-	default_input_release
+	default_get_header	
 };
-static kgl_input_stream default_input_stream = {
-	&default_input_stream_function
+static kgl_input_stream_function default_has_filter_input_stream_function = {
+	default_input_has_filter_get_left,
+	default_input_has_filter_read,
+	default_input_has_filter_release,
+	default_get_url,
+	default_get_precondition,
+	default_get_range,
+	default_get_header_count,
+	default_get_header
 };
+
 
 void new_default_input_stream(KHttpRequest* rq, kgl_input_stream* in) {
 	in->ctx = (kgl_input_stream_ctx*)rq;
-	in->f = &default_input_stream_function;
+	if (rq->ctx.in_body) {
+		in->f = &default_has_filter_input_stream_function;
+	} else {
+		in->f = &default_input_stream_function;
+	}
 }
 void check_release(kgl_output_stream_ctx* out) {
 }

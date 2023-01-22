@@ -272,23 +272,13 @@ typedef struct {
 typedef struct {
 	int64_t(*get_left)(kgl_request_body_ctx* ctx);/* return -1 is mean the input body unknow length, like chunk. */
 	int (*read)(kgl_request_body_ctx* ctx, char* buf, int len);/* return 0 mean body is end, -1 is error */
+	void (*close)(kgl_request_body_ctx* ctx);
 } kgl_request_body_function;
 
 typedef struct {
 	kgl_request_body_function* f;
 	kgl_request_body_ctx* ctx;
 } kgl_request_body;
-
-
-typedef struct {
-	kgl_request_body_function base;
-	void (*close)(kgl_request_body_ctx* ctx);
-} kgl_request_closed_body_function;
-
-typedef struct {
-	kgl_request_closed_body_function* f;
-	kgl_request_body_ctx* ctx;
-} kgl_request_closed_body;
 
 
 typedef struct _kgl_url
@@ -413,16 +403,13 @@ typedef enum
 
 typedef struct _kgl_input_stream_function
 {
+	kgl_request_body_function body;
 	kgl_url *(*get_url)(kgl_input_stream_ctx* ctx);
 	kgl_precondition *(*get_precondition)(kgl_input_stream_ctx* ctx, kgl_precondition_flag* flag);
 	/* return NULL if no range , if-range type return by get_precondition param flag */
 	kgl_request_range *(*get_range)(kgl_input_stream_ctx* ctx);
 	int (*get_header_count)(kgl_input_stream_ctx* ctx);/* do not include host,precondition,and range header */
 	KGL_RESULT (*get_header)(kgl_input_stream_ctx *ctx, kgl_parse_header_ctx* cb_ctx, kgl_parse_header_function* cb);
-	int64_t(*get_left)(kgl_input_stream_ctx *ctx);/* return -1 is mean the input body unknow length, like chunk. */
-	int (*read)(kgl_input_stream_ctx* ctx, char* buf, int len);/* return 0 mean body is end, -1 is error */
-	//release
-	void(*release)(kgl_input_stream_ctx* ctx);
 } kgl_input_stream_function;
 
 typedef struct _kgl_output_stream_function
@@ -435,13 +422,16 @@ typedef struct _kgl_output_stream_function
 	/* if return KGL_OK body must call close to release */
 	KGL_RESULT(*write_header_finish)(kgl_output_stream_ctx* ctx, int64_t body_size, kgl_response_body *body);
 	KGL_RESULT(*write_trailer)(kgl_output_stream_ctx* ctx, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len);
-	void (*release)(kgl_output_stream_ctx* ctx);
+	void (*close)(kgl_output_stream_ctx* ctx);
 } kgl_output_stream_function;
 
 struct _kgl_input_stream
 {
 	kgl_input_stream_function* f;
-	kgl_input_stream_ctx *ctx;
+	union {
+		kgl_input_stream_ctx* ctx;
+		kgl_request_body_ctx* body_ctx;
+	};
 };
 struct _kgl_output_stream
 {

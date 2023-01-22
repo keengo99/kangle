@@ -33,11 +33,11 @@ static KGL_RESULT open(KREQUEST r, kgl_async_context *ctx)
 		if (result != KGL_OK) {
 			return result;
 		}
-		int left_read = (int)ctx->in->f->get_left(ctx->in->ctx);
+		int left_read = (int)ctx->in->f->body.get_left(ctx->in->body_ctx);
 		assert(-1 == left_read);
 		for (;;) {
 			char buf[8];
-			int len = ctx->in->f->read(ctx->in->ctx, buf, sizeof(buf));
+			int len = ctx->in->f->body.read(ctx->in->body_ctx, buf, sizeof(buf));
 			if (len <= 0) {
 				break;
 			}

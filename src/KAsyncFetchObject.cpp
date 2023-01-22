@@ -153,7 +153,7 @@ KGL_RESULT KAsyncFetchObject::InternalProcess(KHttpRequest* rq, kfiber** post_fi
 	client->BindOpaque(this);
 	client->set_time_out(rq->sink->get_time_out());
 	assert(rq->sink->get_selector() == kgl_get_tls_selector());
-	int64_t post_length = in->f->get_left(in->ctx);
+	int64_t post_length = in->f->body.get_left(in->body_ctx);
 	if (post_length == -1 && !client->IsMultiStream() && !KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE)) {
 		chunk_post = 1;
 	}
@@ -314,10 +314,10 @@ KGL_RESULT KAsyncFetchObject::ReadHeader(KHttpRequest* rq, kfiber** post_fiber) 
 	return KGL_EUNKNOW;
 }
 KGL_RESULT KAsyncFetchObject::ProcessPost(KHttpRequest* rq) {
-	while (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE) || in->f->get_left(in->ctx) != 0) {
+	while (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE) || in->f->body.get_left(in->body_ctx) != 0) {
 		int len;
 		char* buf = GetPostBuffer(&len);
-		int got = in->f->read(in->ctx, buf, len);
+		int got = in->f->body.read(in->body_ctx, buf, len);
 		KGL_RESULT ret = PostResult(rq, got);
 		if (ret != KGL_OK) {
 			return ret;
@@ -360,32 +360,30 @@ KGL_RESULT KAsyncFetchObject::PostResult(KHttpRequest* rq, int got) {
 	assert(buffer != NULL);
 	//printf("handleReadPost got=[%d] protocol=[%d]\n",got,(int)rq->sink->data.http_major);
 	if (got == 0 && !KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
-		if (in->f->get_left(in->ctx) == 0) {
-			KHttpHeader* trailer = rq->sink->get_trailer();
-			if (chunk_post) {
-				buffer->WSTR("0\r\n");
-			}
-			while (trailer) {
-				kgl_str_t name;
-				kgl_get_header_name(trailer, &name);
-				if (chunk_post) {
-					buffer->write_all(name.data, (int)name.len);
-					buffer->WSTR(": ");
-					buffer->write_all(trailer->buf + trailer->val_offset, trailer->val_len);
-					buffer->WSTR("\r\n");
-				} else {
-					client->send_trailer(name.data, (hlen_t)name.len, trailer->buf + trailer->val_offset, trailer->val_len);
-				}
-				trailer = trailer->next;
-			}
-			//如果还有数据要读，而读到0的话，就表示读取失败，而不是读取结束。
-			if (chunk_post) {
-				buffer->WSTR("\r\n");
-				return KGL_OK;
-			}
-			client->write_end();
-			return KGL_END;
+		KHttpHeader* trailer = rq->sink->get_trailer();
+		if (chunk_post) {
+			buffer->WSTR("0\r\n");
 		}
+		while (trailer) {
+			kgl_str_t name;
+			kgl_get_header_name(trailer, &name);
+			if (chunk_post) {
+				buffer->write_all(name.data, (int)name.len);
+				buffer->WSTR(": ");
+				buffer->write_all(trailer->buf + trailer->val_offset, trailer->val_len);
+				buffer->WSTR("\r\n");
+			} else {
+				client->send_trailer(name.data, (hlen_t)name.len, trailer->buf + trailer->val_offset, trailer->val_len);
+			}
+			trailer = trailer->next;
+		}
+		//如果还有数据要读，而读到0的话，就表示读取失败，而不是读取结束。
+		if (chunk_post) {
+			buffer->WSTR("\r\n");
+			return KGL_OK;
+		}
+		client->write_end();
+		return KGL_END;
 	}
 	if (got <= 0) {
 		return KGL_ESOCKET_BROKEN;

@@ -64,14 +64,14 @@ void KHttpObject::ResponseVaryHeader(KHttpRequest* rq)
 		lock->Unlock();
 		return;
 	}
-	rq->ResponseVary(uk.vary->key);
+	rq->response_vary(uk.vary->key);
 	lock->Unlock();
 }
 bool KHttpObject::AddVary(KHttpRequest* rq, const char* val, int val_len)
 {
 	KBIT_SET(index.flags, OBJ_HAS_VARY);
 	if (uk.vary == NULL) {
-		char* vary_val = rq->BuildVary(val);
+		char* vary_val = rq->build_vary(val);
 		if (vary_val != NULL) {
 			uk.vary = new KVary;
 			uk.vary->val = vary_val;
@@ -92,7 +92,7 @@ char* KHttpObject::BuildVary(KHttpRequest* rq)
 		lock->Unlock();
 		return NULL;
 	}
-	char* vary = rq->BuildVary(uk.vary->key);
+	char* vary = rq->build_vary(uk.vary->key);
 	lock->Unlock();
 	return vary;
 }

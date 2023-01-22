@@ -194,7 +194,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 		av = av->next;
 	}
 	
-	int64_t content_length = in->f->get_left(in->ctx);
+	int64_t content_length = in->f->body.get_left(in->body_ctx);
 	if (rq_has_content_length(rq, content_length)) {
 		int len = int2string2(content_length, tmpbuff);
 		client->send_header(kgl_expand_string("Content-Length"), tmpbuff, len);

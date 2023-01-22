@@ -59,5 +59,9 @@ KGL_RESULT forward_sendfile(kgl_response_body_ctx* out, KASYNC_FILE fp, int64_t*
 bool forward_support_sendfile(kgl_response_body_ctx* out);
 KGL_RESULT forward_flush(kgl_response_body_ctx* out);
 KGL_RESULT kgl_write_buf(kgl_response_body* body, kbuf* buf, int length);
+void kgl_init_request_in_body(KHttpRequest* rq);
 void get_default_response_body(KREQUEST r, kgl_response_body* body);
+inline bool has_post_data(kgl_input_stream* in) {
+	return in->f->body.get_left(in->body_ctx) != 0;
+}
 #endif

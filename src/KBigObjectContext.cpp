@@ -160,7 +160,7 @@ KGL_RESULT KBigObjectContext::open_cache()
 		kgl_output_stream out;
 		new_default_stream(rq, &in, &out);
 		tee_output_stream(&out);
-		defer(in.f->release(in.ctx); out.f->release(out.ctx));
+		defer(in.f->body.close(in.body_ctx); out.f->close(out.ctx));
 
 		
 		if (!process_check_final_source(rq, &in, &out, &result)) {
@@ -296,7 +296,7 @@ KGL_RESULT bigobj_write_trailer(kgl_output_stream_ctx* ctx, const char* attr, hl
 }
 void bigobj_release(kgl_output_stream_ctx* ctx) {
 	KBigObjectContext* bo_ctx = (KBigObjectContext*)ctx;
-	bo_ctx->down_stream.f->release(bo_ctx->down_stream.ctx);
+	bo_ctx->down_stream.f->close(bo_ctx->down_stream.ctx);
 	/* bigobj context not release here */
 }
 kgl_output_stream_function kgl_bigobj_output_stream_function = {

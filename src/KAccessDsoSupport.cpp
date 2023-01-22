@@ -385,11 +385,20 @@ static KGL_RESULT support_function(
 		body->filter = (kgl_out_filter*)data;
 		body->ctx = (kgl_response_body_ctx*)*ret;
 		rq->getOutputFilterContext()->add(body);
+		return KGL_OK;
 	}
 	case KF_REQ_IN_FILTER:
 	{
 		kgl_in_filter* in_filter = (kgl_in_filter*)data;
-		//in_filter->tee_body()
+		if (rq->sink->data.left_read != 0) {
+			if (!rq->ctx.in_body) {
+				kgl_init_request_in_body(rq);
+			}
+			in_filter->tee_body((kgl_request_body_ctx*)*ret, rq, rq->ctx.in_body);
+			return KGL_OK;
+		}
+		in_filter->tee_body((kgl_request_body_ctx*)*ret, NULL, NULL);
+		return KGL_ENO_DATA;
 	}
 	default:
 		return base_support_function(rq, req, data, ret);
