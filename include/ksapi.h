@@ -281,38 +281,6 @@ typedef struct {
 } kgl_request_body;
 
 
-typedef struct _kgl_url
-{
-#define KGL_URL_SSL       1   /* 根据端口判断是否是ssl */
-#define KGL_URL_IPV6      2
-#define KGL_URL_REWRITED  8
-#define KGL_URL_RANGED    0x10
-#define KGL_URL_ENCODE    0x20
-#define KGL_URL_ORIG_SSL  0x40  //源建议的ssl
-
-
-#define KGL_ENCODING_DEFLATE  1
-#define KGL_ENCODING_COMPRESS (1<<1)
-#define KGL_ENCODING_GZIP     (1<<2)
-#define KGL_ENCODING_BR       (1<<3)
-#define KGL_ENCODING_UNKNOW   (1<<6)
-
-	char* host;
-	char* path;
-	char* param;
-	volatile uint16_t refs_count;
-	uint16_t port;
-	union
-	{
-		uint32_t flag_encoding;
-		struct
-		{
-			uint16_t flags;
-			uint8_t  accept_encoding;
-			uint8_t  encoding;
-		};
-	};
-} kgl_url;
 
 struct _kgl_out_filter
 {
@@ -372,34 +340,6 @@ typedef struct _kgl_parse_header_function {
 	KGL_RESULT(*parse_unknow_header)(kgl_parse_header_ctx* ctx, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len);
 } kgl_parse_header_function;
 
-typedef struct _kgl_request_range
-{
-	int64_t from;
-	int64_t to;
-	union
-	{
-		time_t if_range_date;
-		kgl_len_str_t* if_range_entity;
-	};
-} kgl_request_range;
-
-typedef union _kgl_precondition
-{
-	time_t time;
-	kgl_len_str_t* entity;
-} kgl_precondition;
-
-typedef enum
-{
-	kgl_precondition_if_match_unmodified = (1),
-	kgl_precondition_if_time = (1 << 1),
-	kgl_precondition_if_none_match = 0,
-	kgl_precondition_if_match = 1,
-	kgl_precondition_if_modified_since = 2,
-	kgl_precondition_if_unmodified_since = 3,
-	kgl_precondition_mask = 3,
-	kgl_precondition_if_range_date = (1<<2),
-} kgl_precondition_flag;
 
 typedef struct _kgl_input_stream_function
 {

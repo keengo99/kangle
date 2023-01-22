@@ -20,7 +20,7 @@ struct kgl_forward_body
 template<KGL_RESULT(*forward_write)(kgl_response_body_ctx* , const char* , int)>
 KGL_RESULT unsupport_writev(kgl_response_body_ctx* ctx, WSABUF* bufs, int bc) {
 	for (int i = 0; i < bc; i++) {
-		KGL_RESULT result = forward_write(ctx, bufs[i].iov_base, bufs[i].iov_len);
+		KGL_RESULT result = forward_write(ctx, (char *)bufs[i].iov_base, bufs[i].iov_len);
 		if (result != KGL_OK) {
 			return result;
 		}

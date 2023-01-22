@@ -247,6 +247,9 @@ KGL_RESULT kgzip_flush(kgl_response_body_ctx* ctx) {
 }
 KGL_RESULT kgzip_close(kgl_response_body_ctx* ctx, KGL_RESULT result) {
 	kgzip_context* gzip = (kgzip_context*)ctx;
+	unsigned total_length;
+	u_char out[8];
+	int n;
 	if (result != KGL_OK) {
 		goto done;
 	}
@@ -258,13 +261,11 @@ KGL_RESULT kgzip_close(kgl_response_body_ctx* ctx, KGL_RESULT result) {
 	if (result != KGL_OK) {
 		goto done;
 	}
-	u_char out[8];
-	int n;
 	for (n = 0; n < 4; n++) {
 		out[n] = (gzip->crc & 0xff);
 		gzip->crc >>= 8;
 	}
-	unsigned total_length = gzip->strm.total_in;
+	total_length = gzip->strm.total_in;
 	for (n = 0; n < 4; n++) {
 		out[n+4] = (total_length & 0xff);
 		total_length >>= 8;

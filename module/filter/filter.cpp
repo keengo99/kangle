@@ -1,8 +1,5 @@
 #include "filter.h"
 
-/**
-测试用例，把小写的e换成*
-*/
 static KGL_RESULT write_all(kgl_response_body_ctx*model_ctx, const char *buf, int size)
 {
 	kgl_filter_footer* ctx = (kgl_filter_footer*)model_ctx;
@@ -14,7 +11,7 @@ static KGL_RESULT write_all(kgl_response_body_ctx*model_ctx, const char *buf, in
 		KGL_RESULT result;
 		ctx->footer.added = true;
 		if (ctx->footer.data->len > 0) {
-			result = ctx->down.f->write(ctx->down.ctx, ctx->footer.data->data, ctx->footer.data->len);
+			result = ctx->down.f->write(ctx->down.ctx, (char *)ctx->footer.data->data, ctx->footer.data->len);
 			if (result != KGL_OK) {
 				return result;
 			}
@@ -24,7 +21,7 @@ static KGL_RESULT write_all(kgl_response_body_ctx*model_ctx, const char *buf, in
 }
 static KGL_RESULT unsupport_writev(kgl_response_body_ctx* ctx, WSABUF* bufs, int bc) {
 	for (int i = 0; i < bc; i++) {
-		KGL_RESULT result = write_all(ctx, bufs[i].iov_base, bufs[i].iov_len);
+		KGL_RESULT result = write_all(ctx, (char *)bufs[i].iov_base, bufs[i].iov_len);
 		if (result != KGL_OK) {
 			return result;
 		}

@@ -1,7 +1,7 @@
 #include "filter.h"
 
 /**
-²âÊÔÓÃÀý£¬°ÑÐ¡Ð´µÄe»»³É*
+ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡Ð´ï¿½ï¿½eï¿½ï¿½ï¿½ï¿½*
 */
 static KGL_RESULT write_all(kgl_response_body_ctx*model_ctx, const char *buf, int size)
 {
@@ -23,7 +23,7 @@ static KGL_RESULT write_all(kgl_response_body_ctx*model_ctx, const char *buf, in
 }
 static KGL_RESULT unsupport_writev(kgl_response_body_ctx* ctx, WSABUF* bufs, int bc) {
 	for (int i = 0; i < bc; i++) {
-		KGL_RESULT result = write_all(ctx, bufs[i].iov_base, bufs[i].iov_len);
+		KGL_RESULT result = write_all(ctx, (char *)bufs[i].iov_base, bufs[i].iov_len);
 		if (result != KGL_OK) {
 			return result;
 		}
