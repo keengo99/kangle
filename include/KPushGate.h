@@ -31,7 +31,7 @@ void new_default_input_stream(KHttpRequest* rq, kgl_input_stream* in);
 void new_default_output_stream(KHttpRequest* rq, kgl_output_stream* out);
 void new_default_stream(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out);
 
-bool new_dechunk_stream(kgl_output_stream* down_gate);
+bool new_dechunk_body(kgl_output_stream *out, kgl_response_body* down_gate);
 void pipe_response_body(kgl_forward_body* forward_body, kgl_response_body_function* f, kgl_response_body* down_body);
 void pipe_output_stream(kgl_forward_output_stream* forward_st, kgl_output_stream_function* f, kgl_output_stream* down_stream);
 void pipe_input_stream(kgl_forward_input_stream* forward_st, kgl_input_stream_function* f, kgl_input_stream* up_stream);

@@ -473,7 +473,14 @@ KGL_RESULT KAsyncFetchObject::PushHeaderFinished(KHttpRequest* rq) {
 		rq->ctx.left_read = -1;
 	}
 	assert(body.ctx == nullptr);
-	return out->f->write_header_finish(out->ctx, rq->ctx.left_read, &body);
+	auto result =  out->f->write_header_finish(out->ctx, rq->ctx.left_read, &body);
+	if (result != KGL_OK) {
+		return result;
+	}
+	if (pop_header.upstream_is_dechunk) {
+		new_dechunk_body(out, &body);
+	}
+	return KGL_OK;
 }
 void KAsyncFetchObject::PushStatus(KHttpRequest* rq, int status_code) {
 	if (status_code == 100) {
@@ -555,7 +562,7 @@ KGL_RESULT KAsyncFetchObject::PushHeader(KHttpRequest* rq, const char* attr, int
 	case kgl_header_transfer_encoding:
 	{
 		if (kgl_mem_case_same(val, val_len, _KS("chunked"))) {
-			new_dechunk_stream(out);
+			pop_header.upstream_is_dechunk = 1;
 			return KGL_OK;
 		}
 		break;

@@ -7,16 +7,16 @@
 #include "HttpFiber.h"
 #include "KHttpTransfer.h"
 
-struct kgl_dechunk_stream : public kgl_forward_output_stream
+struct kgl_dechunk_body : public kgl_forward_body
 {
-	kgl_response_body body;
 	char* saved_buffer;
 	int saved_len;
 	KDechunkEngine engine;
+	kgl_output_stream* out;
 };
 
 static KGL_RESULT dechunk_push_body(kgl_response_body_ctx* gate, const char* buf, int len) {
-	kgl_dechunk_stream* g = (kgl_dechunk_stream*)gate;
+	kgl_dechunk_body* g = (kgl_dechunk_body*)gate;
 	KGL_RESULT result = STREAM_WRITE_SUCCESS;
 	char* alloced_buffer = nullptr;
 	if (g->saved_buffer) {
@@ -51,7 +51,7 @@ static KGL_RESULT dechunk_push_body(kgl_response_body_ctx* gate, const char* buf
 			while (sp < trailer_end && isspace((unsigned char)*sp)) {
 				sp++;
 			}
-			result = g->down_stream.f->write_trailer(g->down_stream.ctx, piece, attr_len, sp, (hlen_t)(trailer_end - sp));
+			result = g->out->f->write_trailer(g->out->ctx, piece, attr_len, sp, (hlen_t)(trailer_end - sp));
 			if (result != KGL_OK) {
 				goto done;
 			}
@@ -60,7 +60,7 @@ static KGL_RESULT dechunk_push_body(kgl_response_body_ctx* gate, const char* buf
 		case KDechunkResult::Success:
 		{
 			assert(piece && piece_length > 0);
-			KGL_RESULT result = g->body.f->write(g->body.ctx, piece, piece_length);
+			KGL_RESULT result = g->down_body.f->write(g->down_body.ctx, piece, piece_length);
 			if (result != KGL_OK) {
 				goto done;
 			}
@@ -156,19 +156,18 @@ void forward_release(kgl_output_stream_ctx* gate) {
 	delete g;
 }
 
-static void dechunk_release(kgl_output_stream_ctx* gate) {
-	kgl_dechunk_stream* g = (kgl_dechunk_stream*)gate;
+static KGL_RESULT dechunk_close(kgl_response_body_ctx* gate, KGL_RESULT result) {
+	kgl_dechunk_body* g = (kgl_dechunk_body*)gate;
+	if (g->engine.is_success()) {
+		result = forward_close(gate, result);
+	} else {
+		result = forward_close(gate, KGL_EDATA_FORMAT);
+	}
 	if (g->saved_buffer) {
 		free(g->saved_buffer);
 	}
 	delete g;
-}
-static KGL_RESULT dechunk_close(kgl_response_body_ctx* gate, KGL_RESULT result) {
-	kgl_dechunk_stream* g = (kgl_dechunk_stream*)gate;
-	if (g->engine.is_success()) {
-		return g->body.f->close(g->body.ctx, result);
-	}
-	return g->body.f->close(g->body.ctx, KGL_EDATA_FORMAT);
+	return result;
 }
 static kgl_response_body_function dechunk_body_function = {
 	unsupport_writev<dechunk_push_body>,
@@ -179,32 +178,13 @@ static kgl_response_body_function dechunk_body_function = {
 	dechunk_close
 };
 
-KGL_RESULT dechunk_header_finish(kgl_output_stream_ctx* gate, int64_t body_size, kgl_response_body* body) {
-	kgl_dechunk_stream* g = (kgl_dechunk_stream*)gate;
-	g->body = { 0 };
-	KGL_RESULT result = g->down_stream.f->write_header_finish(g->down_stream.ctx, -1, &g->body);
-	if (g->body.ctx) {
-		body->ctx = (kgl_response_body_ctx*)g;
-		body->f = &dechunk_body_function;
-	}
-	return result;
-}
-static kgl_output_stream_function dechunk_stream_function = {
-	forward_write_status,
-	forward_write_header,
-	forward_write_unknow_header,
-	forward_error,
-	dechunk_header_finish,
-	forward_write_trailer,
-	dechunk_release
-};
 
 
-bool new_dechunk_stream(kgl_output_stream* down_stream) {
-	kgl_dechunk_stream* gate = new kgl_dechunk_stream;
-	gate->down_stream = *down_stream;
-	down_stream->f = &dechunk_stream_function;
-	down_stream->ctx = (kgl_output_stream_ctx*)gate;
+
+bool new_dechunk_body(kgl_output_stream *out, kgl_response_body* down_gate) {
+	kgl_dechunk_body* gate = new kgl_dechunk_body;
+	pipe_response_body(gate, &dechunk_body_function, down_gate);
+	gate->out = out;
 	gate->saved_buffer = nullptr;
 	return true;
 }

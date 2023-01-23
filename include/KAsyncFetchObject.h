@@ -20,6 +20,7 @@ struct kgl_pop_header {
 	uint16_t no_body:1;
 	uint16_t recved_end_request : 1;
 	uint16_t is_100_continue : 1;
+	uint16_t upstream_is_dechunk : 1;
 	int keep_alive_time_out;
 };
 /**

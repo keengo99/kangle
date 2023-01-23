@@ -67,6 +67,7 @@ void SetLastError(DWORD errorCode);
 #define ClosePipe	::close
 #define INVALIDE_PIPE	-1
 #endif
+
 typedef struct _kgl_upstream kgl_upstream;
 typedef struct _kgl_out_filter kgl_out_filter;
 typedef struct _kgl_in_filter kgl_in_filter;
@@ -402,20 +403,7 @@ typedef struct _kgl_async_context
 	kgl_async_context_function* f;
 } kgl_async_context;
 
-typedef struct _kgl_dso_input_stream
-{
-	kgl_input_stream base;
-	kgl_async_context* ctx;
-} kgl_dso_input_stream;
-
-typedef struct _kgl_dso_output_stream
-{
-	kgl_output_stream base;
-	kgl_async_context* ctx;
-} kgl_dso_output_stream;
-
-#define kgl_get_in_async_context(gate)  ((kgl_async_context *)gate)
-#define kgl_get_out_async_context(gate) ((kgl_async_context *)gate)
+#define kgl_get_out_async_context(x) ((kgl_async_context *)x)
 
 typedef struct _kgl_vary_conext
 {
