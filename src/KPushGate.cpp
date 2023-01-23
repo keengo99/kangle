@@ -429,7 +429,7 @@ void kgl_init_request_in_body(KHttpRequest* rq)
 	rq->ctx.in_body->f = &default_request_body_function;
 }
 static kgl_input_stream_function default_input_stream_function = {	
-	{default_request_body_function},
+	default_request_body_function,
 	default_get_url,
 	default_get_precondition,
 	default_get_range,
