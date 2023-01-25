@@ -336,7 +336,7 @@ void start_request_fiber(KSink* sink, int header_length) {
 
 skip_access:
 	fo = rq->fo_head;
-	while (fo && fo->before_cache) {
+	while (fo && fo->before_cache()) {
 		get_check_stream(rq, &check_in, &check_out);
 		KGL_RESULT result = fo->Open(rq, &check_in, &check_out);
 		fo = rq->get_next_source(fo);

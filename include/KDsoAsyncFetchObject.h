@@ -7,16 +7,14 @@
 class KDsoAsyncFetchObject : public KRedirectSource
 {
 public:
-	KDsoAsyncFetchObject(bool need_check)
-	{
-		memset(&ctx, 0, sizeof(ctx));
-		this->before_cache = need_check;
-	}
-	KDsoAsyncFetchObject(void *model_ctx,bool need_check)
+	KDsoAsyncFetchObject(void *model_ctx)
 	{
 		memset(&ctx, 0, sizeof(ctx));
 		ctx.module = model_ctx;
-		this->before_cache = need_check;
+	}
+	bool before_cache() override {
+		KDsoRedirect* dr = static_cast<KDsoRedirect*>(brd->rd);
+		return KBIT_TEST(((kgl_upstream*)dr->us)->flags, KGL_UPSTREAM_BEFORE_CACHE);
 	}
 	inline kgl_upstream *GetAsyncUpstream()
 	{

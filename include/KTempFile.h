@@ -13,7 +13,6 @@
 
 #ifdef ENABLE_TF_EXCHANGE
 #define TEMPFILE_POST_CHUNK_SIZE     8192
-class KHttpRequest;
 class KTempFile
 {
 public:
@@ -43,8 +42,8 @@ private:
 	volatile bool write_is_end;
 };
 
-bool new_tempfile_input_stream(KHttpRequest* rq, kgl_input_stream* in);
-bool new_tempfile_output_stream(KHttpRequest* rq, kgl_output_stream* out);
+bool new_tempfile_input_stream(kgl_input_stream* in);
+bool tee_tempfile_body(kgl_response_body * body);
 //读post数据到临时文件
 KTHREAD_FUNCTION clean_tempfile_thread(void *param);
 #endif

@@ -47,6 +47,7 @@
 #include "KIpMap.h"
 #include "KSimulateRequest.h"
 #include "KSockPoolHelper.h"
+#include "KAsyncFetchObject.h"
 #ifdef ENABLE_ATOM
 #include "KAtomLock.h"
 #endif
@@ -396,7 +397,7 @@ bool test() {
 	test_dechunk2();
 	test_white_list();
 	//test_http_parser();
-	printf("sizeof(KHttpObjectBodyData)=%d\n",(int)sizeof(KHttpObjectBodyData));
+	//printf("sizeof(kgl_pop_header)=%d\n",(int)sizeof(kgl_pop_header));
 	//	test_pipe();
 	//printf("sizeof(KHttpHeader)=%d,sizeof(KHttpHeader2)=[%d]\n", (int)sizeof(KHttpHeader),sizeof(KHttpHeader2));
 	//printf("sizeof(selectable)=[%d]\n", (int)sizeof(kselectable));

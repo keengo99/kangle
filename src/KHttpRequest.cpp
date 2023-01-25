@@ -732,6 +732,7 @@ bool KHttpRequest::NeedQueue() {
 	}
 	return false;
 }
+#ifdef ENABLE_TF_EXCHANGE
 bool KHttpRequest::NeedTempFile(bool upload) {
 	KFetchObject* fo = fo_head;
 	while (fo) {
@@ -742,12 +743,7 @@ bool KHttpRequest::NeedTempFile(bool upload) {
 	}
 	return false;
 }
-bool KHttpRequest::has_before_cache() {
-	if (fo_head == nullptr) {
-		return false;
-	}
-	return fo_head->before_cache;
-}
+#endif
 bool KHttpRequest::has_final_source() {
 	if (!fo_last) {
 		return false;

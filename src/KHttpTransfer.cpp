@@ -62,6 +62,13 @@ bool kgl_load_response_body(KHttpRequest* rq, kgl_response_body* body) {
 	}
 
 	if (body) {
+#ifdef ENABLE_TF_EXCHANGE
+		if (rq->NeedTempFile(false)) {
+			if (!tee_tempfile_body(body)) {
+				klog(KLOG_ERR, "cann't tee tempfile output body\n");
+			}
+		}
+#endif
 		//ÄÚÈÝ±ä»»²ã
 		if (rq->needFilter() && obj->in_cache) {
 			if (rq->of_ctx->tee_body(rq, body, KGL_FILTER_CACHE)) {

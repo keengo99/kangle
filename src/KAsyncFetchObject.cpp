@@ -153,9 +153,9 @@ KGL_RESULT KAsyncFetchObject::InternalProcess(KHttpRequest* rq, kfiber** post_fi
 	client->BindOpaque(this);
 	client->set_time_out(rq->sink->get_time_out());
 	assert(rq->sink->get_selector() == kgl_get_tls_selector());
-	int64_t post_length = in->f->body.get_left(in->body_ctx);
+	int64_t post_length = in->f->body.get_left(in->body_ctx);	
 	if (post_length == -1 && !client->IsMultiStream() && !KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE)) {
-		chunk_post = 1;
+		pop_header.post_is_chunk = 1;
 	}
 	KGL_RESULT ret = SendHeader(rq);
 	if (ret != KGL_OK) {
@@ -361,13 +361,13 @@ KGL_RESULT KAsyncFetchObject::PostResult(KHttpRequest* rq, int got) {
 	//printf("handleReadPost got=[%d] protocol=[%d]\n",got,(int)rq->sink->data.http_major);
 	if (got == 0 && !KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
 		KHttpHeader* trailer = rq->sink->get_trailer();
-		if (chunk_post) {
+		if (pop_header.post_is_chunk) {
 			buffer->WSTR("0\r\n");
 		}
 		while (trailer) {
 			kgl_str_t name;
 			kgl_get_header_name(trailer, &name);
-			if (chunk_post) {
+			if (pop_header.post_is_chunk) {
 				buffer->write_all(name.data, (int)name.len);
 				buffer->WSTR(": ");
 				buffer->write_all(trailer->buf + trailer->val_offset, trailer->val_len);
@@ -378,7 +378,7 @@ KGL_RESULT KAsyncFetchObject::PostResult(KHttpRequest* rq, int got) {
 			trailer = trailer->next;
 		}
 		//如果还有数据要读，而读到0的话，就表示读取失败，而不是读取结束。
-		if (chunk_post) {
+		if (pop_header.post_is_chunk) {
 			buffer->WSTR("\r\n");
 			return KGL_OK;
 		}
@@ -390,7 +390,7 @@ KGL_RESULT KAsyncFetchObject::PostResult(KHttpRequest* rq, int got) {
 		//return stageEndRequest(rq);
 	}
 	buffer->writeSuccess(got);
-	if (chunk_post) {
+	if (pop_header.post_is_chunk) {
 		BuildChunkHeader();
 	}
 	return KGL_OK;
@@ -477,7 +477,7 @@ KGL_RESULT KAsyncFetchObject::PushHeaderFinished(KHttpRequest* rq) {
 	if (result != KGL_OK) {
 		return result;
 	}
-	if (pop_header.upstream_is_dechunk) {
+	if (pop_header.upstream_is_chunk) {
 		new_dechunk_body(out, &body);
 	}
 	return KGL_OK;
@@ -562,7 +562,7 @@ KGL_RESULT KAsyncFetchObject::PushHeader(KHttpRequest* rq, const char* attr, int
 	case kgl_header_transfer_encoding:
 	{
 		if (kgl_mem_case_same(val, val_len, _KS("chunked"))) {
-			pop_header.upstream_is_dechunk = 1;
+			pop_header.upstream_is_chunk = 1;
 			return KGL_OK;
 		}
 		break;

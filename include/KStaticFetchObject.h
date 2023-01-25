@@ -25,11 +25,11 @@ public:
 			fp = NULL;
 		}
 	}
-	bool NeedTempFile(bool upload, KHttpRequest *rq)
+	bool NeedTempFile(bool upload, KHttpRequest *rq) override
 	{
 		return false;
 	}
-	KGL_RESULT Open(KHttpRequest *rq, kgl_input_stream* in, kgl_output_stream* out);
+	KGL_RESULT Open(KHttpRequest *rq, kgl_input_stream* in, kgl_output_stream* out) override;
 private:
 	KGL_RESULT InternalProcess(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out);
 	kfiber_file* fp;

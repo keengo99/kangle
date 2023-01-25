@@ -17,10 +17,9 @@ struct kgl_tempfile_input_stream : kgl_forward_input_stream
 	KTempFile tmp_file;
 };
 
-struct kgl_tempfile_output_stream : kgl_forward_output_stream
+struct kgl_tempfile_output_ctx : kgl_forward_body
 {
 	KTempFile tmp_file;
-	KREQUEST rq;
 	kfiber* write_fiber;
 };
 
@@ -172,7 +171,7 @@ static kgl_input_stream_function tempfile_input_stream_function = {
 	forward_get_header_count,
 	forward_get_header,
 };
-bool new_tempfile_input_stream(KHttpRequest* rq, kgl_input_stream* in) {
+bool new_tempfile_input_stream(kgl_input_stream* in) {
 	if ((in)->f->body.get_left(in->body_ctx) == 0) {
 		return true;
 	}
@@ -204,10 +203,10 @@ err:
 	free(buf);
 	return false;
 }
-#if 0
+
 int tempfile_write_fiber(void* arg, int got) {
 
-	kgl_tempfile_output_stream* out = (kgl_tempfile_output_stream*)arg;
+	kgl_tempfile_output_ctx* out = (kgl_tempfile_output_ctx*)arg;
 	KGL_RESULT result = KGL_OK;
 	char* buf = (char*)malloc(8192);
 	for (;;) {
@@ -219,20 +218,16 @@ int tempfile_write_fiber(void* arg, int got) {
 			result = KGL_EIO;
 			break;
 		}
-		KGL_RESULT ret = out->down_stream->f->write_body(out->down_stream, out->rq, buf, len);
-		if (ret != KGL_OK) {
+		result  = forward_write((kgl_response_body_ctx*)out, buf, len);
+		if (result != KGL_OK) {
 			out->tmp_file.Close();
-			result = ret;
 			break;
 		}
 	}
 	free(buf);
 	return (int)result;
-
-
 }
-
-int tempfile_end(kgl_tempfile_output_stream* tmp_out) {
+int tempfile_end(kgl_tempfile_output_ctx* tmp_out) {
 	tmp_out->tmp_file.WriteEnd();
 	if (tmp_out->write_fiber) {
 		int ret = -1;
@@ -242,15 +237,16 @@ int tempfile_end(kgl_tempfile_output_stream* tmp_out) {
 	}
 	return 0;
 }
-KGL_RESULT tempfile_write_trailer(kgl_output_stream* out, KREQUEST r, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
-	kgl_tempfile_output_stream* tmp_out = (kgl_tempfile_output_stream*)out;
-	//flush data.
+KGL_RESULT tempfile_close(kgl_response_body_ctx* out, KGL_RESULT result) {
+	kgl_tempfile_output_ctx* tmp_out = (kgl_tempfile_output_ctx*)out;
 	tempfile_end(tmp_out);
-	return tmp_out->down_stream->f->write_trailer(tmp_out->down_stream, r, attr, attr_len, val, val_len);
+	result = forward_close(out, result);
+	delete tmp_out;
+	return result;
 }
-static KGL_RESULT tempfile_write_body(kgl_output_stream* out, KREQUEST r, const char* buf, int len) {
+static KGL_RESULT tempfile_write_body(kgl_response_body_ctx* ctx, const char* buf, int len) {
 	kassert(!kfiber_is_main());
-	kgl_tempfile_output_stream* tmp_out = (kgl_tempfile_output_stream*)out;
+	kgl_tempfile_output_ctx* tmp_out = (kgl_tempfile_output_ctx*)ctx;
 	if (!tmp_out->tmp_file.write_all(buf, len)) {
 		return KGL_EIO;
 	}
@@ -259,41 +255,33 @@ static KGL_RESULT tempfile_write_body(kgl_output_stream* out, KREQUEST r, const 
 		if (tmp_out->write_fiber == NULL) {
 			return KGL_ESYSCALL;
 		}
+	} else {
+		int result = -1;
+		if (kfiber_try_join(tmp_out->write_fiber, &result) == 0) {
+			tmp_out->write_fiber == NULL;
+			return (KGL_RESULT)result;
+		}
 	}
 	return KGL_OK;
 }
-KGL_RESULT tempfile_write_end(kgl_output_stream* out, KREQUEST rq, KGL_RESULT result) {
-	kgl_tempfile_output_stream* tmp_out = (kgl_tempfile_output_stream*)out;
-	tempfile_end(tmp_out);
-	return tmp_out->down_stream->f->write_end(tmp_out->down_stream, rq, result);
-}
-static void tempfile_release(kgl_output_stream* out) {
-	kgl_tempfile_output_stream* tmp_out = (kgl_tempfile_output_stream*)out;
-	assert(tmp_out->write_fiber == NULL);
-	tmp_out->down_stream->f->release(tmp_out->down_stream);
-	delete tmp_out;
-}
-static kgl_output_stream_function tempfile_output_function = {
-	forward_write_status,
-	forward_write_header,
-	forward_write_unknow_header,
-	forward_error,
-	forward_write_header_finish,
-	tempfile_write_trailer,	
-	tempfile_release
+static kgl_response_body_function tempfile_output_function = {
+	unsupport_writev<tempfile_write_body>,
+	tempfile_write_body,
+	kgl_empty_flush,
+	support_sendfile_false,
+	unsupport_sendfile,
+	tempfile_close
 };
-#endif
-bool new_tempfile_output_stream(KHttpRequest* rq, kgl_output_stream* out) {
-	return false;
-	/*
-	kgl_tempfile_output_stream* st = new kgl_tempfile_output_stream;
-	st->write_fiber = NULL;
-	if (!st->tmp_file.Init()) {
-		delete st;
+
+bool tee_tempfile_body(kgl_response_body* body)
+{
+	kgl_tempfile_output_ctx* ctx = new kgl_tempfile_output_ctx;
+	ctx->write_fiber = nullptr;
+	if (!ctx->tmp_file.Init()) {
+		delete ctx;
 		return false;
 	}
-	pipe_forward_stream(st, &tempfile_output_function, out);
+	pipe_response_body(ctx, &tempfile_output_function, body);
 	return true;
-	*/
 }
 #endif

@@ -21,7 +21,7 @@ protected:
 	}
 	bool NeedTempFile(bool upload, KHttpRequest* rq) override
 	{
-		return true;
+		return !is_extend();
 	}
 	bool checkContinueReadBody(KHttpRequest* rq) override
 	{

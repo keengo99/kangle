@@ -204,7 +204,9 @@ public:
 	void store_obj();
 	bool isBad();
 	void set_url_param(char* param);
+#ifdef ENABLE_TF_EXCHANGE
 	bool NeedTempFile(bool upload);
+#endif
 	std::string getInfo();
 	char* getUrl();
 	void beginRequest();
@@ -353,7 +355,6 @@ public:
 	void insert_source(KFetchObject* fo);
 	void append_source(KFetchObject* fo);
 	bool has_final_source();
-	bool has_before_cache();
 	/* 数据源结束 */
 
 	//从堆上分配内存，在rq删除时，自动释放。

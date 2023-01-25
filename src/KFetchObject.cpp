@@ -28,13 +28,9 @@
 KFetchObject::~KFetchObject()
 {
 }
-
 bool KFetchObject::NeedTempFile(bool upload, KHttpRequest *rq)
 {
-	if (!upload) {
-		return true;
-	}
-	return rq->sink->data.left_read == -1;
+	return false;
 }
 KGL_RESULT KFetchObject::PushBody(KHttpRequest *rq, kgl_response_body *out, const char *buf, int len)
 {
