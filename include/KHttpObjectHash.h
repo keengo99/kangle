@@ -1,10 +1,11 @@
 #ifndef KHTTPOBJECTHASH_H_
 #define KHTTPOBJECTHASH_H_
 #include <map>
-#include "KHttpObjectNode.h"
 #include "KHttpRequest.h"
 #include "KMutex.h"
 #include "krbtree.h"
+#include "KVary.h"
+#include "KHttpObject.h"
 
 typedef void (*objHandler)(KHttpObject *obj,void *param);
 inline int cmp_vary_key(KVary *a, KVary *b)

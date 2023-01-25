@@ -25,7 +25,6 @@
 #include "kmalloc.h"
 #include "KCacheStream.h"
 #include "KGzip.h"
-#include "KContentTransfer.h"
 #include "kselector.h"
 #include "KFilterContext.h"
 #include "KBigObjectContext.h"

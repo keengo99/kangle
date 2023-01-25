@@ -1,6 +1,5 @@
 #ifndef KFILTERCONTEXT_H
 #define KFILTERCONTEXT_H
-#include "KFilterHelper.h"
 #include "KHttpObject.h"
 struct kgl_out_filter_body {
 	kgl_out_filter* filter;

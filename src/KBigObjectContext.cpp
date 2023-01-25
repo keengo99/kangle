@@ -5,7 +5,6 @@
 #include "kselectable.h"
 #include "cache.h"
 #include "KFilterContext.h"
-#include "KContentTransfer.h"
 #include "KSimulateRequest.h"
 #include "KSboFile.h"
 #include "HttpFiber.h"

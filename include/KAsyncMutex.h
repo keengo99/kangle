@@ -1,6 +1,7 @@
 #ifndef KASYNCMUTEX_H
 #define KASYNCMUTEX_H
 #include "KMutex.h"
+#if 0
 enum Lock_result
 {
 	Lock_success,
@@ -107,5 +108,6 @@ private:
 	KLockStack *head;
 	KLockStack *last;
 };
+#endif
 #endif
 

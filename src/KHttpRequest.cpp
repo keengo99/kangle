@@ -29,7 +29,6 @@
 #include "http.h"
 #include "KVirtualHost.h"
 #include "kselector.h"
-#include "KFilterHelper.h"
 #include "KHttpKeyValue.h"
 #include "KHttpField.h"
 #include "KHttpFieldValue.h"

@@ -40,7 +40,6 @@
 #include "KFileName.h"
 #include "KSpeedLimit.h"
 #include "KTempFile.h"
-#include "KInputFilter.h"
 #include "kserver.h"
 #include "KFlowInfo.h"
 #include "KHttp2.h"
