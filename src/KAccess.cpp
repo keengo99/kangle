@@ -86,9 +86,9 @@
 #ifdef ENABLE_INPUT_FILTER
 #include "KParamMark.h"
 #include "KPostFileMark.h"
-#include "KHttpOnlyCookieMark.h"
 #include "KUploadProgressMark.h"
 #endif
+#include "KHttpOnlyCookieMark.h"
 #include "KTempFileMark.h"
 #include "KRemoveParamMark.h"
 #include "KHostAliasMark.h"
@@ -364,8 +364,8 @@ void KAccess::loadModel() {
 	addMarkModel(REQUEST,new KParamCountMark());	
 	addMarkModel(REQUEST,new KPostFileMark());
 	addMarkModel(RESPONSE,new KHttpOnlyCookieMark());
-	addMarkModel(RESPONSE,new KCookieMark());
-#endif	
+#endif
+	addMarkModel(RESPONSE, new KCookieMark());
 	//{{ent
 #ifdef KANGLE_ENT
 	addAclModel(REQUEST_RESPONSE,new KWorkModelAcl());

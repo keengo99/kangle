@@ -258,7 +258,7 @@ static KGL_RESULT tempfile_write_body(kgl_response_body_ctx* ctx, const char* bu
 	} else {
 		int result = -1;
 		if (kfiber_try_join(tmp_out->write_fiber, &result) == 0) {
-			tmp_out->write_fiber == NULL;
+			tmp_out->write_fiber = NULL;
 			return (KGL_RESULT)result;
 		}
 	}

@@ -276,5 +276,6 @@ kgl_header_type kgl_parse_response_header(const char* attr, hlen_t attr_len) {
 	if (kgl_mem_case_same(attr, attr_len, _KS("Upgrade"))) {
 		return kgl_header_upgrade;
 	}
+
 	return kgl_header_unknow;
 }
