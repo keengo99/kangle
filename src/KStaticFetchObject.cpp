@@ -4,6 +4,8 @@
 #include "KVirtualHostManage.h"
 #include "kfiber.h"
 #include "KDefer.h"
+#include "HttpFiber.h"
+
 
 KGL_RESULT KStaticFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) {
 	KGL_RESULT result = InternalProcess(rq,in, out);
@@ -40,12 +42,8 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_input_strea
 	assert(rq->file);
 	int file_flag = KFILE_ASYNC;
 	kgl_request_range* range = in->f->get_range(in->ctx);
-	if (range && range->if_range_entity) {
-		if (KBIT_TEST(flag, kgl_precondition_if_range_date)) {
-			if (range->if_range_date != last_modified) {
-				range = nullptr;
-			}
-		}
+	if (range && !kgl_match_if_range(flag,range, last_modified)) {	
+		range = nullptr;
 	}
 	if (!range) {
 		KBIT_SET(file_flag, KFILE_SEQUENTIAL);

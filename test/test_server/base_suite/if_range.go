@@ -39,3 +39,26 @@ func check_if_range_local() {
 		common.AssertSame(resp.StatusCode, 200)
 	})
 }
+func check_change_if_range() {
+	common.CreateRange(1)
+	common.Get("/range?c1", map[string]string{"Accept-Encoding": "gzip"}, func(resp *http.Response, err error) {
+		common.AssertContain(resp.Header.Get("X-Cache"), "MISS")
+	})
+	common.Get("/range?c1", map[string]string{"Accept-Encoding": "gzip"}, func(resp *http.Response, err error) {
+		common.AssertContain(resp.Header.Get("X-Cache"), "HIT")
+	})
+	//内容变化
+	common.CreateRange(1)
+	common.Get("/range?c1", map[string]string{"Accept-Encoding": "gzip", "If-Range": common.RangeMd5, "Range": "bytes=1-2"}, func(resp *http.Response, err error) {
+		//缓存未过期。
+		common.AssertContain(resp.Header.Get("X-Cache"), "HIT")
+		common.AssertSame(resp.StatusCode, 200)
+	})
+	common.Get("/range?c1", map[string]string{"Accept-Encoding": "gzip", "If-Range": common.RangeMd5, "Range": "bytes=1-2", "Pragma": "no-cache"}, func(resp *http.Response, err error) {
+		//缓存必须验证
+		common.AssertContain(resp.Header.Get("X-Cache"), "MISS")
+		common.AssertSame(resp.StatusCode, 206)
+		common.AssertSame(resp.Header.Get("Etag"), common.RangeMd5)
+	})
+	common.CreateRange(1024)
+}

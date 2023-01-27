@@ -407,7 +407,7 @@ KGL_RESULT KSharedBigObject::write(KHttpObject* obj, int64_t offset, const char*
 	if (len <= 0) {
 		//from和block->to不相等
 		kfiber_mutex_unlock(lock);
-		return KGL_DOUBLICATE;
+		return KGL_OK;
 	}
 	block->file_block.to += len;
 	int64_t preloaded_length = block->file_block.to - block->read_point;

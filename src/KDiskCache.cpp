@@ -315,6 +315,7 @@ cor_result create_http_object2(KHttpObject* obj, char* url, uint32_t flag_encodi
 		}
 	}
 	if (KBIT_TEST(obj->index.flags, FLAG_IN_DISK)) {
+#ifdef KGL_DISK_CACHE_ALIGN_HEAD
 		if (obj->index.head_size != kgl_align(obj->index.head_size, kgl_aio_align_size)) {
 			char* url = obj->uk.url->getUrl();
 			char* filename = obj->get_filename();
@@ -323,6 +324,7 @@ cor_result create_http_object2(KHttpObject* obj, char* url, uint32_t flag_encodi
 			free(url);
 			KBIT_SET(obj->index.flags, FLAG_DEAD);
 		}
+#endif
 #ifndef ENABLE_BIG_OBJECT_206
 		if (KBIT_TEST(obj->index.flags, FLAG_BIG_OBJECT_PROGRESS)) {
 			char* url = obj->uk.url->getUrl();

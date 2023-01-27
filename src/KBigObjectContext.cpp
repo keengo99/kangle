@@ -110,8 +110,20 @@ KGL_RESULT KBigObjectContext::open_cache()
 	KSharedBigObject* sbo = get_shared_big_obj();
 	assert(sbo);
 	assert(!rq->ctx.sub_request);
-	bool precondition_result = kgl_request_precondition(rq, obj);
-	kgl_sub_request *srq = rq->alloc_sub_request();
+	kgl_sub_request* srq = rq->alloc_sub_request();
+	bool obj_is_expiration;
+	bool match_if_range = kgl_request_match_if_range(rq,obj);
+	KGL_RESULT result = KGL_OK;
+	if (!match_if_range && !sbo->body_complete) {
+		if (!verifiy_object(match_if_range, &result)) {
+			return result;
+		}
+		//client is wrong if-none-match must send 200
+		rq->sink->data.range = nullptr;
+		obj_is_expiration = false;
+	} else {
+		obj_is_expiration = check_object_expiration(rq, obj);
+	}
 	srq->range = rq->sink->alloc<kgl_request_range>();
 	if (rq->sink->data.range) {
 		left_read = obj->index.content_length;
@@ -129,17 +141,16 @@ KGL_RESULT KBigObjectContext::open_cache()
 	}
 	switch (status) {
 	case kgl_satisfy_all:
-		if (!check_object_expiration(rq, obj)) {
-			//没有过期，并且也满足，直接走大文件缓存通道。
-			if (precondition_result) {
-				return send_memory_object(rq);
+		if (obj_is_expiration) {
+			if (!verifiy_object(false, &result)) {
+				return result;
 			}
-			if (rq->sink->data.meth == METH_GET || rq->sink->data.meth == METH_HEAD) {
-				return send_http2(rq, obj, STATUS_NOT_MODIFIED);
-			}
-			return send_http2(rq, obj, STATUS_PRECONDITION);
 		}
-		break;
+		//没有过期，并且也满足，直接走大文件缓存通道。
+		if (kgl_request_precondition(rq, obj)) {
+			return send_memory_object(rq);
+		}
+		return send_http2(rq, obj, STATUS_NOT_MODIFIED);
 	case kgl_satisfy_part:
 		rq->ctx.cache_hit_part = true;
 		break;
@@ -150,6 +161,45 @@ KGL_RESULT KBigObjectContext::open_cache()
 	if (!adjust_length()) {
 		return send_error2(rq, 416, "");
 	}
+	return internal_fetch();
+}
+bool KBigObjectContext::verifiy_object(bool match_if_range,KGL_RESULT *result)
+{
+	if (verified_object) {
+		return true;
+	}
+	verified_object = true;
+	merge_precondition(rq, obj);
+	if (!match_if_range) {
+		rq->ctx.sub_request->range = rq->sink->data.range;
+		if (KBIT_TEST(rq->sink->data.flags, RQ_IF_RANGE_DATE)) {
+			rq->ctx.precondition_flag |= kgl_precondition_if_range_date;
+		}
+	}
+	rq->push_obj(new KHttpObject(rq));
+	kgl_input_stream in;
+	kgl_output_stream out;
+	new_default_stream(rq, &in, &out);
+	defer(in.f->body.close(in.body_ctx); out.f->close(out.ctx));
+	KBIT_CLR(rq->sink->data.flags, RQ_CACHE_HIT);
+	*result = prepare_request_fetchobj(rq, &in, &out);
+	if (*result != KGL_NO_BODY) {
+		rq->dead_old_obj();
+		return false;
+	}
+	if (rq->ctx.obj->data->etag && !rq->ctx.obj->is_same_precondition(obj)) {
+		rq->dead_old_obj();
+		*result = process_upstream_no_body(rq, &in, &out);
+		return false;
+	}
+	KBIT_SET(rq->sink->data.flags, RQ_OBJ_VERIFIED|RQ_CACHE_HIT);
+	rq->ctx.old_obj->index.last_verified = kgl_current_sec;
+	rq->ctx.old_obj->UpdateCache(rq->ctx.obj);
+	rq->pop_obj();
+	return true;
+}
+KGL_RESULT KBigObjectContext::internal_fetch()
+{
 	KGL_RESULT result = KGL_OK;
 	for (;;) {
 		rq->push_obj(new KHttpObject(rq));
@@ -160,22 +210,12 @@ KGL_RESULT KBigObjectContext::open_cache()
 		new_default_stream(rq, &in, &out);
 		tee_output_stream(&out);
 		defer(in.f->body.close(in.body_ctx); out.f->close(out.ctx));
-
-		
 		if (!process_check_final_source(rq, &in, &out, &result)) {
 			return result;
 		}
-		KBigObjectReadContext* net_ctx = new KBigObjectReadContext;
-		memset(net_ctx, 0, sizeof(KBigObjectReadContext));
-		net_ctx->bo_ctx = this;
-
-		KGL_RESULT result = process_request_stream(rq, &in, &out);
+		result = process_request_stream(rq, &in, &out);
 		if (bigobj_dead) {
 			return result;
-		}
-		if (result == KGL_NO_BODY) {
-			//handle no_body
-			printf("result=304\n");
 		}
 		if (result != KGL_OK) {
 			break;
@@ -201,11 +241,10 @@ void KBigObjectContext::build_if_range(KHttpRequest* rq)
 	rq->ctx.precondition_flag = 0;
 	kgl_len_str_t* etag = obj->data->get_etag();
 	if (etag) {
+		rq->ctx.sub_request->range->if_range_entity = etag;
 		if (etag->len > 2 && (*(etag->data) == 'W' || *(etag->data) == 'w') && (*(etag->data + 1) == '/')) {
 			//weak etag
 			rq->ctx.sub_request->range = nullptr;
-		} else {
-			rq->ctx.sub_request->range->if_range_entity = etag;
 		}
 	} else {
 		time_t last_modified = obj->data->get_last_modified();
@@ -220,6 +259,7 @@ void KBigObjectContext::build_if_range(KHttpRequest* rq)
 KGL_RESULT KBigObjectContext::upstream_recv_headed()
 {
 	assert(rq->ctx.old_obj && rq->ctx.old_obj->data->i.type == BIG_OBJECT_PROGRESS);
+	assert(rq->ctx.old_obj == this->obj);
 	KHttpObject* obj = rq->ctx.obj;
 	assert(obj->data->i.type == MEMORY_OBJECT);
 	assert(bigobj_dead == false);
@@ -227,6 +267,10 @@ KGL_RESULT KBigObjectContext::upstream_recv_headed()
 		//status_code not 206
 		bigobj_dead = true;
 		klog(KLOG_INFO, "bigobj_dead status_code=%d not expect 206\n", obj->data->i.status_code);
+		if (is_status_code_no_body(obj->data->i.status_code)) {
+			obj_dead();
+			return KGL_NO_BODY;
+		}
 	} else if (!KBIT_TEST(obj->index.flags, ANSW_HAS_CONTENT_RANGE)) {
 		//没有Content-Range
 		klog(KLOG_INFO, "bigobj_dead have no content_range\n");
@@ -248,8 +292,7 @@ KGL_RESULT KBigObjectContext::upstream_recv_headed()
 		}
 	}
 	if (bigobj_dead) {
-		rq->ctx.cache_hit_part = false;
-		KBIT_CLR(rq->sink->data.flags, RQ_CACHE_HIT);
+		obj_dead();
 	} else {
 		rq->pop_obj();
 	}
@@ -262,16 +305,16 @@ static KGL_RESULT bigobj_error(kgl_output_stream_ctx* ctx, uint16_t status_code,
 static KGL_RESULT upstream_recv_headed(kgl_output_stream_ctx* ctx,int64_t body_size, kgl_response_body* body) {
 	KBigObjectContext* bo_ctx = (KBigObjectContext*)ctx;
 	assert(bo_ctx->rq->ctx.old_obj && bo_ctx->rq->ctx.old_obj == bo_ctx->obj);
-	if (is_status_code_no_body(bo_ctx->rq->ctx.obj->data->i.status_code)) {
-		return KGL_NO_BODY;
-	}
+	
+	
+	kgl_default_output_stream_ctx* default_ctx = (kgl_default_output_stream_ctx*)bo_ctx->down_stream.ctx;
+	assert(default_ctx->rq == bo_ctx->rq);
+	default_ctx->parser_ctx.end_parse(bo_ctx->rq, body_size);
+	assert(bo_ctx->rq->sink->data.meth != METH_HEAD);
 	if (bo_ctx->rq->sink->data.meth == METH_HEAD) {
 		//没有http body的情况
 		return KGL_NO_BODY;
 	}
-	kgl_default_output_stream_ctx* default_ctx = (kgl_default_output_stream_ctx*)bo_ctx->down_stream.ctx;
-	assert(default_ctx->rq == bo_ctx->rq);
-	default_ctx->parser_ctx.end_parse(bo_ctx->rq, body_size);
 	KGL_RESULT result = bo_ctx->upstream_recv_headed();
 	if (bo_ctx->bigobj_dead || result != KGL_OK) {
 		assert(bo_ctx->write_offset == -1);

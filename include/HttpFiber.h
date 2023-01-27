@@ -31,7 +31,19 @@ KGL_RESULT open_queued_fetchobj(KHttpRequest* rq, KFetchObject* fo, kgl_input_st
 KGL_RESULT send_memory_object(KHttpRequest* rq);
 int stage_end_request(KHttpRequest* rq, KGL_RESULT result);
 KGL_RESULT prepare_request_fetchobj(KHttpRequest* rq,kgl_input_stream *in, kgl_output_stream *out);
-bool  kgl_request_precondition(KHttpRequest* rq, KHttpObject* obj);
+KGL_RESULT process_upstream_no_body(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out);
+/* merge obj precondition to sub_request */
+void merge_precondition(KHttpRequest* rq, KHttpObject* obj);
+/* return true 200/206 false 304/412 */
+bool kgl_request_precondition(KHttpRequest* rq, KHttpObject* obj);
+/* return true 206, false 200 */
+bool kgl_request_match_if_range(KHttpRequest* rq, KHttpObject* obj);
+/** kgl_match_if_range
+* return true must response 206
+* return false must response 200.
+*/
+bool kgl_match_if_range(kgl_precondition_flag flag, kgl_request_range* range, time_t last_modified);
+bool kgl_match_if_range(kgl_precondition_flag flag, kgl_request_range* range, kgl_len_str_t *etag);
 bool process_check_final_source(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out, KGL_RESULT* result);
 
 #endif

@@ -180,3 +180,56 @@ func check_cache_etag_last_modified() {
 	})
 
 }
+func check_not_get_cache() {
+
+	common.CreateRange(1)
+	common.Get("/range?not_get", nil, func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 200)
+		common.Assert("x-cache-miss", strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
+	})
+	common.Post("/range?not_get", map[string]string{"If-None-Match": common.RangeMd5}, "", func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 412)
+		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	})
+	common.Post("/range?not_get", nil, "", func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 405)
+		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	})
+	common.Head("/range?not_get", nil, func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 200)
+		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	})
+
+	common.Head("/range?not_get", map[string]string{"Accept-Encoding": "gzip", "If-None-Match": "\"wrong_etag\""}, func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 200)
+		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	})
+	common.Head("/range?not_get", map[string]string{"Accept-Encoding": "gzip", "If-None-Match": common.RangeMd5}, func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 304)
+		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	})
+
+	common.CreateRange(1024)
+	common.Get("/range?not_get2", map[string]string{"Accept-Encoding": "gzip", "Range": "bytes=1-2"}, func(resp *http.Response, err error) {
+		//缓存未过期。
+		common.Assert("x-cache-miss", strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
+		common.AssertSame(resp.StatusCode, 206)
+	})
+	common.Post("/range?not_get2", map[string]string{"Accept-Encoding": "gzip", "If-None-Match": common.RangeMd5}, "", func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 412)
+		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	})
+	common.Head("/range?not_get2", map[string]string{"Accept-Encoding": "gzip"}, func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 200)
+		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	})
+
+	common.Head("/range?not_get2", map[string]string{"Accept-Encoding": "gzip", "If-None-Match": "\"wrong_etag\""}, func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 200)
+		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	})
+	common.Head("/range?not_get2", map[string]string{"Accept-Encoding": "gzip", "If-None-Match": common.RangeMd5}, func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 304)
+		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	})
+}

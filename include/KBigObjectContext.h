@@ -28,18 +28,28 @@ public:
 	KGL_RESULT stream_write(INT64 offset, const char* buf, int len);
 	bool create_send_fiber(kfiber** send_fiber);
 	void close_write();
+	void obj_dead()
+	{
+		rq->ctx.cache_hit_part = false;
+		KBIT_CLR(rq->sink->data.flags, RQ_CACHE_HIT);
+		obj->Dead();
+	}
 	KSharedBigObject* get_shared_big_obj() {
 		return obj->data->sbo;
 	}
 	bool bigobj_dead = false;
 	bool read_fiber_error = false;
+	bool verified_object = false;
 	KHttpObject* obj;
 	KHttpRequest* rq;
 	int64_t write_offset = -1;
 	int64_t read_offset = 0;
 private:
 	~KBigObjectContext();
+	//return true continue false not continue
+	bool verifiy_object(bool match_if_range,KGL_RESULT *result);
 	void build_if_range(KHttpRequest* rq);
+	KGL_RESULT internal_fetch();
 	bool adjust_length() {
 		if (!rq->sink->data.range) {
 			left_read = obj->index.content_length;

@@ -7,6 +7,9 @@
 #include <stdio.h>
 #include "kasync_file.h"
 #include <list>
+#ifndef _WIN32
+#define KGL_DISK_CACHE_ALIGN_HEAD 1
+#endif
 #define CACHE_DISK_VERSION  4
 #define CACHE_FIX_STR      "HXJW"
 #pragma pack(push,4)

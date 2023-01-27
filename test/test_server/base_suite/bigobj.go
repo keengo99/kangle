@@ -41,7 +41,7 @@ func check_change_first_miss() {
 		{0, -1, nil, nil},
 	}, false)
 }
-func check_nochange_client_if_range() {
+func check_nochange_if_range() {
 	check_ranges_with_header([]RequestRangeHeader{
 		{0, 16 * 1024,
 			map[string]string{"Accept-Encoding": "gzip"},
@@ -234,18 +234,54 @@ func check_weak_etag_range() {
 }
 
 /**
-* 客户发送正确If-Range,自已是错误的etag，又部分命中。
+* 客户发送If-Range和自已的不一样
  */
-func check_client_right_if_range() {
+func check_bigobj_client_if_range() {
+	/* client is right if-range */
 	check_ranges_with_header([]RequestRangeHeader{
-		{2048, 8192, nil, nil, func(resp *http.Response, err error) {
+		{2048, 8192, map[string]string{"Accept-Encoding": "gzip"}, nil, func(resp *http.Response, err error) {
+			common.CreateRange(1024)
+			//fmt.Printf("md5=%v\n", common.RangeMd5)
+		}},
+	})
+	check_range_with_header(false, 0, 8192, map[string]string{"If-Range": common.RangeMd5, "Accept-Encoding": "gzip"}, nil, func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 206)
+		common.AssertContain(resp.Header.Get("X-Cache"), "MISS")
+	})
+	check_range_with_header(false, 0, -1, map[string]string{"Accept-Encoding": "gzip"}, func(from, to, request_count int, r *http.Request) {
+
+	}, func(resp *http.Response, err error) {
+		common.AssertContain(resp.Header.Get("X-Cache"), "HIT-PART")
+	})
+
+	/* client is wrong if-range cann't satisfy*/
+	check_ranges_with_header([]RequestRangeHeader{
+		{2048, 8192, map[string]string{"Accept-Encoding": "gzip"}, nil, func(resp *http.Response, err error) {
 			common.CreateRange(1024)
 		}},
-		{0, 8192, map[string]string{"If-Range": common.RangeMd5}, nil,
-			func(resp *http.Response, err error) {
-				common.AssertSame(resp.StatusCode, 206)
-				common.AssertContain(resp.Header.Get("X-Cache"), "MISS")
-			}},
-		{0, -1, nil, nil, nil},
+	})
+	check_range_with_header(false, 0, 8192, map[string]string{"If-Range": "\"wrong_etag\"", "Accept-Encoding": "gzip"}, nil, func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 200)
+		common.AssertContain(resp.Header.Get("X-Cache"), "MISS")
+	})
+	check_range_with_header(false, 0, -1, map[string]string{"Accept-Encoding": "gzip"}, func(from, to, request_count int, r *http.Request) {
+
+	}, func(resp *http.Response, err error) {
+		common.AssertContain(resp.Header.Get("X-Cache"), "HIT")
+	})
+
+	/* client is wrong if-range can satisfy */
+	check_ranges_with_header([]RequestRangeHeader{
+		{2048, 8192, map[string]string{"Accept-Encoding": "gzip"}, nil, func(resp *http.Response, err error) {
+			common.CreateRange(1024)
+		}},
+	})
+	check_range_with_header(false, 2048, 8192, map[string]string{"If-Range": "\"wrong_etag\"", "Accept-Encoding": "gzip"}, nil, func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 200)
+		common.AssertContain(resp.Header.Get("X-Cache"), "MISS")
+	})
+	check_range_with_header(false, 0, -1, map[string]string{"Accept-Encoding": "gzip"}, func(from, to, request_count int, r *http.Request) {
+	}, func(resp *http.Response, err error) {
+		common.AssertContain(resp.Header.Get("X-Cache"), "HIT")
 	})
 }

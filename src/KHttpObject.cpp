@@ -223,10 +223,10 @@ int KHttpObject::GetHeaderSize(int url_len)
 	} else {
 		data->i.has_condition = 0;
 	}
-#ifdef _WIN32
-	index.head_size = len;
-#else
+#ifdef KGL_DISK_CACHE_ALIGN_HEAD
 	index.head_size = (uint32_t)kgl_align(len, kgl_aio_align_size);
+#else
+	index.head_size = len;
 #endif
 	return index.head_size;
 }
@@ -392,7 +392,7 @@ int KHttpObject::build_header(char* buf, char* end, const char* url, int url_len
 	}
 	//printf("end header offset=[%d]\n", hot - buf);
 	int header_length = (int)(hot - buf);
-#ifdef _WIN32
+#ifndef KGL_DISK_CACHE_ALIGN_HEAD
 	assert(header_length == index.head_size);
 #endif
 	kassert(header_length <= (INT64)index.head_size);

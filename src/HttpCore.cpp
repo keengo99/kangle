@@ -431,6 +431,7 @@ bool push_redirect_header(KHttpRequest* rq, const char* url, int url_len, int co
 	if (code == 0) {
 		code = STATUS_FOUND;
 	}
+	assert(!KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER));
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER)) {
 		return false;
 	}
