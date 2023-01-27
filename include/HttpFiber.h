@@ -29,6 +29,7 @@ KGL_RESULT prepare_write_body(KHttpRequest* rq, kgl_response_body* body);
 KGL_RESULT handle_denied_request(KHttpRequest* rq);
 KGL_RESULT open_queued_fetchobj(KHttpRequest* rq, KFetchObject* fo, kgl_input_stream* in, kgl_output_stream* out, KRequestQueue* queue);
 KGL_RESULT send_memory_object(KHttpRequest* rq);
+KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj);
 int stage_end_request(KHttpRequest* rq, KGL_RESULT result);
 KGL_RESULT prepare_request_fetchobj(KHttpRequest* rq,kgl_input_stream *in, kgl_output_stream *out);
 KGL_RESULT process_upstream_no_body(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out);

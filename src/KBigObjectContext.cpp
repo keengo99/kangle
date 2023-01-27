@@ -148,7 +148,7 @@ KGL_RESULT KBigObjectContext::open_cache()
 		}
 		//没有过期，并且也满足，直接走大文件缓存通道。
 		if (kgl_request_precondition(rq, obj)) {
-			return send_memory_object(rq);
+			return response_cache_object(rq,obj);
 		}
 		return send_http2(rq, obj, STATUS_NOT_MODIFIED);
 	case kgl_satisfy_part:

@@ -14,6 +14,7 @@
 #include "KHttpServer.h"
 #include "KDefaultFetchObject.h"
 #include "KDefer.h"
+#include "KFilterContext.h"
 
 int stage_end_request(KHttpRequest* rq, KGL_RESULT result) {
 	return rq->EndRequest();
@@ -669,6 +670,104 @@ KGL_RESULT process_check_cache_expire(KHttpRequest* rq, KHttpObject* obj) {
 	}
 	return load_object_from_source(rq);
 }
+KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj)
+{
+	kgl_response_body body;
+	int64_t content_length = rq->ctx.obj->index.content_length;
+	get_default_response_body(rq, &body);
+	if (rq->needFilter()) {
+		int32_t flag = KGL_FILTER_CACHE;
+		if (rq->sink->data.range != nullptr) {
+			flag |= KGL_FILTER_NOT_CHANGE_LENGTH;
+		}
+		if (rq->of_ctx->tee_body(rq, &body, flag)) {
+			assert(rq->sink->data.range == nullptr);
+			content_length = -1;
+		}
+	}
+	rq->ctx.body = body;
+	int64_t start;
+	KGL_RESULT result = KGL_OK;
+	if (!build_obj_header(rq, obj, content_length, start, rq->ctx.left_read)) {
+		result = KGL_EUNKNOW;
+		goto done;
+	}
+	if (rq->sink->data.meth == METH_HEAD) {
+		rq->ctx.left_read = 0;
+		return body.f->close(body.ctx, KGL_NO_BODY);
+	}
+	switch (obj->data->i.type) {
+#ifdef ENABLE_BIG_OBJECT_206
+	case BIG_OBJECT_PROGRESS:
+		assert(rq->sink->data.meth == METH_HEAD || rq->ctx.obj->data->sbo->can_satisfy(rq->get_range(), rq->ctx.obj) == kgl_satisfy_all);
+#endif
+	case BIG_OBJECT:
+	{
+		kfiber_file* file = kgl_open_big_file(rq, rq->ctx.obj, start);
+		if (file == NULL) {
+			result = KGL_EIO;
+			break;
+		}
+		defer(kfiber_file_close(file););
+		int buf_size = conf.io_buffer;
+		char* buffer;
+		if (body.f->support_sendfile(body.ctx)) {
+			result = body.f->sendfile(body.ctx, file, &rq->ctx.left_read);
+			break;
+		}
+		if (!kasync_file_direct(file, true)) {
+			klog(KLOG_ERR, "cann't turn on file direct_on\n");
+			result = KGL_EIO;
+			break;
+		}
+		buffer = (char*)aio_alloc_buffer(buf_size);
+		if (!buffer) {
+			result = KGL_ENO_MEMORY;
+			break;
+		}
+		defer(aio_free_buffer(buffer););
+		while (rq->ctx.left_read > 0) {
+			int got = kfiber_file_read(file, buffer, (int)(KGL_MIN(rq->ctx.left_read, (INT64)buf_size)));
+			if (got <= 0) {
+				result = KGL_EIO;
+				break;
+			}
+			assert(got <= rq->ctx.left_read && got <= buf_size);
+			rq->ctx.left_read -= got;
+			result = body.f->write(body.ctx, kfiber_file_adjust(file, buffer), got);
+			if (result != KGL_OK) {
+				break;
+			}
+		}		
+		break;
+	}
+	case MEMORY_OBJECT:
+	{
+		kbuf* send_buffer = obj->data->bodys;
+		if (rq->ctx.left_read>0) {
+			if (!send_buffer) {
+				klog(KLOG_ERR,"obj has no body\n");
+				result = KGL_EDATA_FORMAT;
+				break;
+			}
+			kbuf* buf = kbuf_init_read(send_buffer, (int)start, rq->sink->pool);
+			assert(buf);
+			if (!buf) {
+				result = KGL_EUNKNOW;
+				break;
+			}
+			result = rq->write_buf(buf, (int)rq->ctx.left_read);
+		}
+		break;
+	}
+	default:
+		klog(KLOG_ERR,"unknow obj data type=[%d]\n",obj->data->i.type);
+		result = KGL_ENOT_SUPPORT;
+		break;
+	}
+done:
+	return body.f->close(body.ctx, result);
+}
 /**
 * 发送在内存中的object.
 */
@@ -677,32 +776,7 @@ KGL_RESULT send_memory_object(KHttpRequest* rq) {
 	if (!kgl_request_match_if_range(rq, obj)) {
 		rq->sink->data.range = nullptr;
 	}
-#ifdef ENABLE_BIG_OBJECT
-	if (rq->ctx.obj->data->i.type == BIG_OBJECT || rq->ctx.obj->data->i.type == BIG_OBJECT_PROGRESS) {
-		if (rq->ctx.obj->data->i.type == BIG_OBJECT_PROGRESS) {
-			assert(rq->sink->data.meth == METH_HEAD || rq->ctx.obj->data->sbo->can_satisfy(rq->get_range(), rq->ctx.obj) == kgl_satisfy_all);
-		}
-		KFetchObject* fo = new KFetchBigObject();
-		rq->append_source(fo);
-		return fo->Open(rq, NULL, NULL);
-	}
-#endif
-	INT64 send_len;
-	INT64 start;
-	kbuf* send_buffer = build_memory_obj_header(rq, rq->ctx.obj, start, send_len);
-	if (KBIT_TEST(rq->ctx.obj->index.flags, FLAG_NO_BODY) || rq->sink->data.meth == METH_HEAD) {
-		send_len = 0;
-		return KGL_NO_BODY;
-	}
-	if (send_buffer && send_len > 0) {
-		kbuf* buf = kbuf_init_read(send_buffer, (int)start, rq->sink->pool);
-		assert(buf);
-		if (!buf) {
-			return KGL_EUNKNOW;
-		}
-		return rq->write_buf(buf, (int)send_len);
-	}
-	return KGL_OK;
+	return response_cache_object(rq,obj);
 }
 bool kgl_match_if_range(kgl_precondition_flag flag, kgl_request_range* range, time_t last_modified)
 {

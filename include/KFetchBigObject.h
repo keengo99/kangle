@@ -8,18 +8,7 @@
 #define MIN_SENDFILE_SIZE 4096
 
 #ifdef ENABLE_BIG_OBJECT
-class KFetchBigObject : public KFetchObject
-{
-public:
-	KFetchBigObject()
-	{
-	}
-	~KFetchBigObject()
-	{
-
-	}
-	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) override;
-};
+kfiber_file* kgl_open_big_file(KHttpRequest* rq, KHttpObject* obj, INT64 start);
 #endif
 
 #endif
