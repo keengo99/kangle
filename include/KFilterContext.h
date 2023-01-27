@@ -30,11 +30,11 @@ public:
 		while (!klist_empty(&filter)) {
 			pos = klist_head(&filter);
 			kgl_out_filter_body* st = kgl_list_data(pos, kgl_out_filter_body, queue);
-			if (!KBIT_TEST(st->filter->flags, KGL_FILTER_NOT_CHANGE_LENGTH)) {
-				will_change_body_size = true;
-			}
 			if (KBIT_TEST(st->filter->flags, match_flag)== match_flag) {
 				st->filter->tee_body(st->ctx, rq, body);
+				if (!KBIT_TEST(st->filter->flags, KGL_FILTER_NOT_CHANGE_LENGTH)) {
+					will_change_body_size = true;
+				}
 			} else {
 				st->filter->tee_body(st->ctx, NULL, NULL);
 			}

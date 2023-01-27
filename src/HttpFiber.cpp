@@ -694,12 +694,16 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj)
 	}
 	if (rq->sink->data.meth == METH_HEAD) {
 		rq->ctx.left_read = 0;
-		return body.f->close(body.ctx, KGL_NO_BODY);
+		result = KGL_NO_BODY;
+		goto done;
+	}
+	if (rq->ctx.left_read == -1) {
+		rq->ctx.left_read = rq->ctx.obj->index.content_length;
 	}
 	switch (obj->data->i.type) {
 #ifdef ENABLE_BIG_OBJECT_206
 	case BIG_OBJECT_PROGRESS:
-		assert(rq->sink->data.meth == METH_HEAD || rq->ctx.obj->data->sbo->can_satisfy(rq->get_range(), rq->ctx.obj) == kgl_satisfy_all);
+		assert(rq->ctx.obj->data->sbo->can_satisfy(rq->get_range(), rq->ctx.obj) == kgl_satisfy_all);
 #endif
 	case BIG_OBJECT:
 	{
@@ -738,7 +742,7 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj)
 			if (result != KGL_OK) {
 				break;
 			}
-		}		
+		}
 		break;
 	}
 	case MEMORY_OBJECT:
@@ -756,7 +760,7 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj)
 				result = KGL_EUNKNOW;
 				break;
 			}
-			result = rq->write_buf(buf, (int)rq->ctx.left_read);
+			result = kgl_write_buf(&body, buf, (int)rq->ctx.left_read);
 		}
 		break;
 	}
