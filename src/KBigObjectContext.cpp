@@ -8,6 +8,7 @@
 #include "KSimulateRequest.h"
 #include "KSboFile.h"
 #include "HttpFiber.h"
+#include "KHttpTransfer.h"
 #include "KDefer.h"
 
 #ifdef ENABLE_BIG_OBJECT_206
@@ -18,7 +19,6 @@ int bigobj_send_fiber(void* arg, int got)
 }
 KGL_RESULT KBigObjectContext::close(KGL_RESULT result)
 {
-	
 	if (!bigobj_dead && rq->ctx.body.ctx) {
 		/* bigobj_dead 状态下，response_body 不由我负责关闭。*/
 		result = rq->ctx.body.f->close(rq->ctx.body.ctx, result);
@@ -34,6 +34,21 @@ void KBigObjectContext::close_write() {
 }
 KGL_RESULT KBigObjectContext::send_data(bool *net_fiber)
 {	
+	if (!rq->ctx.body.ctx) {
+		int64_t body_size = this->left_read;
+		bool build_status = true;
+		kgl_load_cache_response_body(rq, &body_size);
+		if (rq->sink->data.range) {
+			if (!KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED)) {
+				build_status = false;
+				rq->response_status(STATUS_CONTENT_PARTIAL);
+				rq->response_content_range(rq->sink->data.range, obj->index.content_length);
+			}
+		}
+		if (!build_obj_header(rq, obj, body_size, build_status)) {
+			return KGL_EUNKNOW;
+		}
+	}
 	KGL_RESULT result = prepare_write_body(rq, &rq->ctx.body);
 	if (result != KGL_OK) {
 		return result;
@@ -159,7 +174,7 @@ KGL_RESULT KBigObjectContext::open_cache()
 		break;
 	}
 	if (!adjust_length()) {
-		return send_error2(rq, 416, "");
+		return send_http2(rq, obj, STATUS_RANGE_NOT_SATISFIABLE, nullptr);
 	}
 	return internal_fetch();
 }

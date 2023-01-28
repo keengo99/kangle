@@ -273,6 +273,7 @@ public:
 	inline bool response_status(uint16_t status_code) {
 		return sink->response_status(status_code);
 	}
+	bool response_content_range(kgl_request_range *range, int64_t content_length);
 	inline bool response_header(kgl_header_type name, const char* val, hlen_t val_len, bool lock_value = false) {
 		return sink->response_header(name, val, val_len, lock_value);
 	}

@@ -30,9 +30,22 @@
 #include "KBigObjectContext.h"
 #include "KBigObjectStream.h"
 #include "cache.h"
+bool kgl_load_cache_response_body(KHttpRequest* rq, int64_t *body_size)
+{
+	get_default_response_body(rq, &rq->ctx.body);
+	if (rq->needFilter()) {
+		int32_t flag = KGL_FILTER_CACHE;
+		if (rq->sink->data.range != nullptr) {
+			flag |= KGL_FILTER_NOT_CHANGE_LENGTH;
+		}
+		if (rq->of_ctx->tee_body(rq, &rq->ctx.body, flag)) {
+			assert(rq->sink->data.range == nullptr);
+			*body_size = -1;
+		}
+	}
+	return true;
+}
 bool kgl_load_response_body(KHttpRequest* rq, kgl_response_body* body) {
-	INT64 start = 0;
-	INT64 send_len = 0;
 	StreamState result = STREAM_WRITE_SUCCESS;
 	KHttpObject* obj = rq->ctx.obj;
 	cache_model cache_layer = cache_memory;
@@ -95,6 +108,6 @@ bool kgl_load_response_body(KHttpRequest* rq, kgl_response_body* body) {
 	//端口映射不发送http头
 	if (!KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_TCP))
 #endif
-		return build_obj_header(rq, obj, content_len, start, send_len);
+		return build_obj_header(rq, obj, content_len);
 	return true;
 }

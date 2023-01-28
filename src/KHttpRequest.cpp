@@ -683,6 +683,21 @@ KGL_RESULT KHttpRequest::sendfile(KASYNC_FILE fp, int64_t *length) {
 	}
 	return KGL_OK;
 }
+bool KHttpRequest::response_content_range(kgl_request_range* range, int64_t content_length)
+{
+	KStringBuf s;
+	s.WSTR("bytes ");
+	if (range) {
+		s.add(range->from, INT64_FORMAT);
+		s.WSTR("-");
+		s.add(range->to, INT64_FORMAT);
+		s.WSTR("/");
+	} else {
+		s.WSTR("*/");
+	}	
+	s.add(content_length, INT64_FORMAT);
+	return response_header(kgl_header_content_range, s.getBuf(), s.getSize());
+}
 bool KHttpRequest::response_header(KHttpHeader* header, bool lock_header) {
 	if (header->name_is_know) {
 		assert(header->know_header < kgl_header_unknow);

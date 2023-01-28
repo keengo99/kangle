@@ -165,10 +165,7 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 				}
 			}
 			if (status_code == STATUS_RANGE_NOT_SATISFIABLE && KBIT_TEST(obj->index.flags, ANSW_HAS_CONTENT_RANGE)) {
-				KStringBuf b;
-				b.write_all(_KS("*/"));
-				b << obj->index.content_range_length;
-				rq->response_header(kgl_header_content_range, b.getBuf(), b.getSize());
+				rq->response_content_range(nullptr, obj->index.content_range_length);
 			}
 		}
 		//发送Age头
@@ -195,12 +192,6 @@ KGL_RESULT send_error2(KHttpRequest* rq, int code, const char* reason) {
 	log_request_error(rq, code, reason);
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER) || rq->ctx.read_huped) {
 		return KGL_EHAS_SEND_HEADER;
-		/*
-		if (!KBIT_TEST(rq->sink->data.flags, RQ_SYNC)) {
-			return stageEndRequest(rq);
-		}
-		return kev_err;
-		*/
 	}
 	KBIT_SET(rq->sink->data.flags, RQ_IS_ERROR_PAGE);
 	if (rq->sink->data.meth == METH_HEAD) {
@@ -323,51 +314,13 @@ void insert_via(KHttpRequest* rq, KWStream& s, char* old_via, size_t len) {
 	s.write_all(conf.serverName, conf.serverNameLength);
 	s.write_all(_KS(")"));
 }
+
 /*************************
 * 创建回应http头信息
 *************************/
-bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT64& start, INT64& send_len) {
-	start = 0;
-	send_len = content_len;
+bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, bool build_status) {
 	assert(!KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER));
-	if (obj->data->i.status_code == 0) {
-		obj->data->i.status_code = STATUS_OK;
-	}
-	bool build_first = true;
-	bool send_obj_header = true;
-	if (rq->sink->data.range
-		&& obj->data->i.status_code == STATUS_OK
-		&& content_len>0 && obj->in_cache) {
-		send_len = content_len;
-		if (!rq->sink->adjust_range(&send_len)) {
-			build_first = false;
-			send_obj_header = false;
-			rq->response_status(416);
-			KStringBuf s;
-			s.WSTR("*/");
-			s.add(content_len, INT64_FORMAT);
-			rq->response_header(kgl_header_content_length, _KS("0"), true);
-			rq->response_header(kgl_header_content_range, s.getBuf(), s.getSize());
-			start = 0;
-			send_len = 0;
-		} else {
-			if (!KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED)) {
-				build_first = false;
-				rq->response_status(STATUS_CONTENT_PARTIAL);
-				KStringBuf s;
-				s.WSTR("bytes ");
-				s.add(rq->sink->data.range->from, INT64_FORMAT);
-				s.WSTR("-");
-				s.add(rq->sink->data.range->to, INT64_FORMAT);
-				s.WSTR("/");
-				s.add(content_len, INT64_FORMAT);
-				rq->response_header(kgl_header_content_range, s.getBuf(), s.getSize());
-			}
-			start = rq->sink->data.range->from;
-			content_len = send_len;
-		}
-	}
-	if (build_first) {
+	if (likely(build_status)) {
 		uint16_t status_code = obj->data->i.status_code;
 		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED) && rq->sink->data.status_code == STATUS_CONTENT_PARTIAL) {
 			//如果请求是url模拟range，则强制转换206的回应为200
@@ -383,49 +336,48 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, INT
 	}
 	//bool via_inserted = false;
 	//发送附加的头
-	if (likely(send_obj_header)) {
-		KHttpHeader* header = obj->data->headers;
-		while (header) {
-			rq->response_header(header, true);
-			header = header->next;
-		}
-		//发送Age头
-		if (KBIT_TEST(rq->ctx.filter_flags, RF_AGE) && !KBIT_TEST(obj->index.flags, FLAG_DEAD | ANSW_NO_CACHE)) {
-			int current_age = (int)obj->get_current_age(kgl_current_sec);
-			if (current_age > 0) {
-				rq->response_header(kgl_expand_string("Age"), current_age);
-			}
-		}
-		if (KBIT_TEST(rq->ctx.filter_flags, RF_X_CACHE)) {
-			KStringBuf b;
-			if (rq->ctx.cache_hit_part) {
-				b.WSTR("HIT-PART from ");
-			} else if (KBIT_TEST(rq->sink->data.flags, RQ_CACHE_HIT)) {
-				b.WSTR("HIT from ");
-			} else {
-				b.WSTR("MISS from ");
-			}
-			b << conf.hostname;
-			rq->response_header(kgl_expand_string("X-Cache"), b.getBuf(), b.getSize());
-		}
-		if (!KBIT_TEST(obj->index.flags, FLAG_NO_BODY)) {
-			/*
-			* no body的不发送content-length
-			* head method要发送content-length,但不发送内容
-			*/
-			rq->response_content_length(content_len);
-		}
-		obj->ResponseVaryHeader(rq);
-		if (obj->data->etag) {
-			if (obj->data->i.condition_is_time) {
-				rq->response_last_modified(obj->data->last_modified);
-			} else {
-				rq->response_header(kgl_header_etag, obj->data->etag->data, (int)obj->data->etag->len);
-			}
+
+	KHttpHeader* header = obj->data->headers;
+	while (header) {
+		rq->response_header(header, true);
+		header = header->next;
+	}
+	//发送Age头
+	if (KBIT_TEST(rq->ctx.filter_flags, RF_AGE) && !KBIT_TEST(obj->index.flags, FLAG_DEAD | ANSW_NO_CACHE)) {
+		int current_age = (int)obj->get_current_age(kgl_current_sec);
+		if (current_age > 0) {
+			rq->response_header(kgl_expand_string("Age"), current_age);
 		}
 	}
+	if (KBIT_TEST(rq->ctx.filter_flags, RF_X_CACHE)) {
+		KStringBuf b;
+		if (rq->ctx.cache_hit_part) {
+			b.WSTR("HIT-PART from ");
+		} else if (KBIT_TEST(rq->sink->data.flags, RQ_CACHE_HIT)) {
+			b.WSTR("HIT from ");
+		} else {
+			b.WSTR("MISS from ");
+		}
+		b << conf.hostname;
+		rq->response_header(kgl_expand_string("X-Cache"), b.getBuf(), b.getSize());
+	}
+	if (!KBIT_TEST(obj->index.flags, FLAG_NO_BODY)) {
+		/*
+		* no body的不发送content-length
+		* head method要发送content-length,但不发送内容
+		*/
+		rq->response_content_length(content_len);
+	}
+	obj->ResponseVaryHeader(rq);
+	if (obj->data->etag) {
+		if (obj->data->i.condition_is_time) {
+			rq->response_last_modified(obj->data->last_modified);
+		} else {
+			rq->response_header(kgl_header_etag, obj->data->etag->data, (int)obj->data->etag->len);
+		}
+	}	
 	rq->response_connection();
-	return rq->start_response_body(send_len);
+	return rq->start_response_body(content_len);
 }
 bool push_redirect_header(KHttpRequest* rq, const char* url, int url_len, int code) {
 	if (code == 0) {
@@ -446,16 +398,6 @@ bool push_redirect_header(KHttpRequest* rq, const char* url, int url_len, int co
 	return true;
 }
 
-kbuf* build_memory_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64& start, INT64& send_len) {
-	INT64 content_len = obj->index.content_length;
-	if (!obj->in_cache && !KBIT_TEST(obj->index.flags, ANSW_HAS_CONTENT_LENGTH)) {
-		content_len = -1;
-	}
-	send_len = content_len;
-	start = 0;
-	build_obj_header(rq, obj, content_len, start, send_len);
-	return obj->data->bodys;
-}
 
 KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KAccess** htresponse, bool& handled) {
 	assert(rq->file == NULL);

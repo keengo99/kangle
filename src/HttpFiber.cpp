@@ -672,23 +672,32 @@ KGL_RESULT process_check_cache_expire(KHttpRequest* rq, KHttpObject* obj) {
 }
 KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj)
 {
-	kgl_response_body body;
-	int64_t content_length = rq->ctx.obj->index.content_length;
-	get_default_response_body(rq, &body);
-	if (rq->needFilter()) {
-		int32_t flag = KGL_FILTER_CACHE;
-		if (rq->sink->data.range != nullptr) {
-			flag |= KGL_FILTER_NOT_CHANGE_LENGTH;
-		}
-		if (rq->of_ctx->tee_body(rq, &body, flag)) {
-			assert(rq->sink->data.range == nullptr);
-			content_length = -1;
-		}
-	}
-	rq->ctx.body = body;
-	int64_t start;
+	int64_t content_length = obj->index.content_length;
+	rq->ctx.left_read = content_length;
+	kgl_load_cache_response_body(rq, &content_length);
+	int64_t start = 0;
 	KGL_RESULT result = KGL_OK;
-	if (!build_obj_header(rq, obj, content_length, start, rq->ctx.left_read)) {
+	bool build_status = true;
+	if (rq->sink->data.range && 
+		content_length > 0 &&
+		obj->data->i.status_code==STATUS_OK) {
+		if (!rq->sink->adjust_range(&rq->ctx.left_read)) {
+			rq->response_status(STATUS_RANGE_NOT_SATISFIABLE);
+			rq->response_content_range(nullptr, content_length);
+			rq->response_header(kgl_header_content_length, _KS("0"), true);
+			rq->response_connection();
+			rq->start_response_body(0);
+			goto done;
+		}
+		if (!KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED)) {
+			build_status = false;
+			rq->response_status(STATUS_CONTENT_PARTIAL);
+			rq->response_content_range(rq->sink->data.range, content_length);
+		}
+		start = rq->sink->data.range->from;
+		content_length = rq->ctx.left_read;		
+	}
+	if (!build_obj_header(rq, obj, content_length, build_status)) {
 		result = KGL_EUNKNOW;
 		goto done;
 	}
@@ -696,9 +705,6 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj)
 		rq->ctx.left_read = 0;
 		result = KGL_NO_BODY;
 		goto done;
-	}
-	if (rq->ctx.left_read == -1) {
-		rq->ctx.left_read = rq->ctx.obj->index.content_length;
 	}
 	switch (obj->data->i.type) {
 #ifdef ENABLE_BIG_OBJECT_206
@@ -715,8 +721,8 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj)
 		defer(kfiber_file_close(file););
 		int buf_size = conf.io_buffer;
 		char* buffer;
-		if (body.f->support_sendfile(body.ctx)) {
-			result = body.f->sendfile(body.ctx, file, &rq->ctx.left_read);
+		if (rq->ctx.body.f->support_sendfile(rq->ctx.body.ctx)) {
+			result = rq->ctx.body.f->sendfile(rq->ctx.body.ctx, file, &rq->ctx.left_read);
 			break;
 		}
 		if (!kasync_file_direct(file, true)) {
@@ -738,7 +744,7 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj)
 			}
 			assert(got <= rq->ctx.left_read && got <= buf_size);
 			rq->ctx.left_read -= got;
-			result = body.f->write(body.ctx, kfiber_file_adjust(file, buffer), got);
+			result = rq->ctx.body.f->write(rq->ctx.body.ctx, kfiber_file_adjust(file, buffer), got);
 			if (result != KGL_OK) {
 				break;
 			}
@@ -760,7 +766,7 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj)
 				result = KGL_EUNKNOW;
 				break;
 			}
-			result = kgl_write_buf(&body, buf, (int)rq->ctx.left_read);
+			result = kgl_write_buf(&rq->ctx.body, buf, (int)rq->ctx.left_read);
 		}
 		break;
 	}
@@ -770,7 +776,7 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj)
 		break;
 	}
 done:
-	return body.f->close(body.ctx, result);
+	return rq->ctx.body.f->close(rq->ctx.body.ctx, result);
 }
 /**
 * 发送在内存中的object.
@@ -780,7 +786,7 @@ KGL_RESULT send_memory_object(KHttpRequest* rq) {
 	if (!kgl_request_match_if_range(rq, obj)) {
 		rq->sink->data.range = nullptr;
 	}
-	return response_cache_object(rq,obj);
+	return response_cache_object(rq, obj);
 }
 bool kgl_match_if_range(kgl_precondition_flag flag, kgl_request_range* range, time_t last_modified)
 {
@@ -836,23 +842,6 @@ bool kgl_request_precondition(KHttpRequest* rq, KHttpObject* obj) {
 			return false;
 		}
 	}
-#if 0
-	step_5:
-	if (rq->sink->data.meth == METH_GET && range && range->if_range_entity) {
-		if (KBIT_TEST(flag, kgl_precondition_if_range_date)) {
-			if (range->if_range_date != obj->data->get_last_modified()) {
-				/* response 200 */
-				rq->sink->data.range = nullptr;
-			}
-		}
-		else {
-			if (!obj->match_if_range(range->if_range_entity->data, range->if_range_entity->len)) {
-				/* response 200 */
-				rq->sink->data.range = nullptr;
-			}
-		}
-	}
-#endif
 	return true;
 }
 /*
