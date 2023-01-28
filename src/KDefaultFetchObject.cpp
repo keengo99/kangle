@@ -8,15 +8,24 @@
 
 KGL_RESULT KDefaultFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out)
 {
+	switch (rq->sink->data.meth) {
+	case METH_OPTIONS:
+		out->f->write_status(out->ctx, STATUS_OK);
+		out->f->write_unknow_header(out->ctx,_KS("Allow"),_KS("GET, HEAD"));
+		return out->f->write_header_finish(out->ctx,0, nullptr);
+	case METH_GET:
+	case METH_HEAD:
+		break;
+	default:
+		out->f->write_status(out->ctx, STATUS_METH_NOT_ALLOWED);
+		out->f->write_unknow_header(out->ctx, _KS("Allow"), _KS("GET, HEAD"));
+		return out->f->write_header_finish(out->ctx, 0, nullptr);
+	}
 	if (rq->file->isDirectory()) {
 		if (!rq->file->isPrevDirectory()) {
 			//url后面不是以/结尾,重定向处理
-			if (rq->sink->data.meth == METH_GET) {
-				KPrevDirectoryFetchObject fo;
-				return fo.Open(rq, in, out);
-			} else {
-				return out->f->error(out->ctx, STATUS_METH_NOT_ALLOWED,_KS("method not allowed"));
-			}
+			KPrevDirectoryFetchObject fo;
+			return fo.Open(rq, in, out);
 		}
 		auto svh = rq->get_virtual_host();
 		if (!svh->vh->browse) {

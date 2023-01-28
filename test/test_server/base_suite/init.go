@@ -165,6 +165,7 @@ func init() {
 	s.AddCase("websocket_over_h2", "websocket over h2", test_websocket_over_h2)
 	s.AddCase("websocket_no_h2", "http1 websocket和上游禁止h2", test_upstream_disable_h2_websocket)
 	s.AddCase("head", "head method", test_head_method)
+	s.AddCase("options", "options method", test_options_method)
 	s.AddCase("broken_no_cache", "连接中断不能缓存", check_broken_no_cache)
 	s.AddCase("disk_cache", "磁盘缓存swap out/in", check_disk_cache)
 	s.AddCase("upstream_http_protocol", "测试上游http协议解析", check_upstream_http_protocol)

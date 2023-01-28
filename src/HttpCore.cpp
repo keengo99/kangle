@@ -62,6 +62,7 @@
 #include "HttpFiber.h"
 #include "KFetchBigObject.h"
 #include "KBigObjectContext.h"
+#include "KDefaultFetchObject.h"
 using namespace std;
 #if 0
 kbuf* deflate_buff(kbuf* in_buf, int level, INT64& len, bool fast) {
@@ -487,6 +488,9 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KAccess** h
 	}
 done:
 	if (!result) {
+		if (rq->sink->data.meth == METH_OPTIONS) {
+			return new KDefaultFetchObject;
+		}
 		if (rq->ctx.obj->data->i.status_code == 0) {
 			error->set(STATUS_NOT_FOUND, "No such file or directory.");
 		}

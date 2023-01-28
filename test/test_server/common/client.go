@@ -199,13 +199,16 @@ func Request(method string, path string, host string, header map[string]string, 
 func Getx(path string, host string, header map[string]string, cb ClientCheckBack) {
 	Request("GET", path, host, header, cb)
 }
-
+func Options(path string, header map[string]string, cb ClientCheckBack) {
+	Request("OPTIONS", path, "", header, cb)
+}
 func Get(path string, header map[string]string, cb ClientCheckBack) {
 	Getx(path, "", header, cb)
 }
 func Head(path string, header map[string]string, cb ClientCheckBack) {
 	Request("HEAD", path, "", header, cb)
 }
+
 func Bench(method string, url string, header map[string]string, count int, report chan int) (success_count int) {
 	req, err := http.NewRequest(method, url, nil)
 
