@@ -21,7 +21,7 @@ var RequestCount int
 var RangeSize, GzRangeSize int
 var RangeMd5 string
 
-type RangeCallBackCheck func(from, to, request_count int, r *http.Request)
+type RangeCallBackCheck func(from, to, request_count int, r *http.Request, w http.ResponseWriter) bool
 
 var RangeChecker RangeCallBackCheck
 
@@ -54,12 +54,8 @@ func HandleRange(w http.ResponseWriter, r *http.Request) {
 		total_content_length = GzRangeSize
 	}
 	//fmt.Printf("range gzip = [%v]\n", gzip)
-	if if_none_match == RangeMd5 {
-		w.Header().Add("Server", TEST_SERVER_NAME)
-		w.WriteHeader(304)
-		return
-	}
-	if strings.HasPrefix(if_none_match, "W/") {
+	if if_none_match == RangeMd5 || strings.HasPrefix(if_none_match, "W/") {
+		//fmt.Printf("response 304\n")
 		w.Header().Add("Server", TEST_SERVER_NAME)
 		w.WriteHeader(304)
 		return
@@ -73,11 +69,6 @@ func HandleRange(w http.ResponseWriter, r *http.Request) {
 		rv = ""
 	}
 
-	//hj, _ := w.(http.Hijacker)
-
-	//cn, wb, _ := hj.Hijack()
-	//defer cn.Close()
-
 	//fmt.Printf("rv=[%v]\n", rv)
 	status_code := 200
 	if len(rv) > 0 {
@@ -90,7 +81,9 @@ func HandleRange(w http.ResponseWriter, r *http.Request) {
 		//fmt.Printf("adjust from=[%d] to=[%d],length=[%d]\n", from, to, to-from+1)
 		buf = ReadRange(from, to, gzip)
 		if RangeChecker != nil {
-			RangeChecker(from, to, RequestCount, r)
+			if !RangeChecker(from, to, RequestCount, r, w) {
+				return
+			}
 		}
 		if length < 0 {
 			status_code = 416
@@ -99,18 +92,20 @@ func HandleRange(w http.ResponseWriter, r *http.Request) {
 		} else {
 			status_code = 206
 			//w.WriteHeader(206)
-			w.Header().Add("Content-Range", fmt.Sprintf("%d-%d/%d", from, to, total_content_length))
+			w.Header().Add("Content-Range", fmt.Sprintf("bytes %d-%d/%d", from, to, total_content_length))
 			//wb.WriteString("HTTP/1.1 206 Partcial Content\r\n")
 			//wb.WriteString()
 		}
 	} else {
 		//fmt.Printf("rv is empty\n")
-		if RangeChecker != nil {
-			RangeChecker(0, -1, RequestCount, r)
-		}
 		//w.WriteHeader(200)
 		//wb.WriteString("HTTP/1.1 200 OK\r\n")
 		buf = ReadRange(0, -1, gzip)
+		if RangeChecker != nil {
+			if !RangeChecker(0, -1, RequestCount, r, w) {
+				return
+			}
+		}
 	}
 	RequestCount++
 	if gzip {
@@ -128,9 +123,12 @@ func HandleRange(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add("Etag", etag)
 	w.Header().Add("Content-Type", "binary/stream")
+	//fmt.Printf("response status_code=[%v]\n", status_code)
 	if buf != nil {
 		w.Header().Add("Content-Length", fmt.Sprintf("%d", len(buf)))
+		//fmt.Printf("response len=[%v]\n", len(buf))
 	}
+
 	w.WriteHeader(status_code)
 	if buf != nil {
 		w.Write(buf)

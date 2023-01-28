@@ -40,6 +40,7 @@ public:
 	bool bigobj_dead = false;
 	bool read_fiber_error = false;
 	bool verified_object = false;
+	bool opened_body = false;
 	KHttpObject* obj;
 	KHttpRequest* rq;
 	int64_t write_offset = -1;

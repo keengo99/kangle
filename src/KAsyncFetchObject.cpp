@@ -496,7 +496,7 @@ void KAsyncFetchObject::PushStatus(KHttpRequest* rq, int status_code) {
 KGL_RESULT KAsyncFetchObject::PushHeader(KHttpRequest* rq, const char* attr, int attr_len, const char* val, int val_len, bool request_line) {
 	/*
 	if (attr) {
-		printf("attr=[%s] val=[%s] request_line=[%d]\n", attr , val, request_line);
+		printf("<<%.*s%s%.*s\n",attr_len, attr, (request_line ?" ":": "),val_len, val);
 	}
 	//*/
 	if (!attr) {

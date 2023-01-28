@@ -80,8 +80,9 @@ func check_nochange_first_miss() {
 			}},
 		//*
 		{0, -1,
-			func(from, to, c int, r *http.Request) {
+			func(from, to, c int, r *http.Request, w http.ResponseWriter) bool {
 				common.Assert("range-request", from > 0)
+				return true
 			},
 			func(resp *http.Response, err error) {
 				common.Assert("x-big-object-hit-part2", strings.Contains(resp.Header.Get("X-Cache"), "HIT-PART "))
@@ -93,9 +94,10 @@ func check_nochange_first_part() {
 	check_ranges([]RequestRange{
 		{0, 8192 + 333, nil, nil},
 		{0, -1,
-			func(from, to, c int, r *http.Request) {
+			func(from, to, c int, r *http.Request, w http.ResponseWriter) bool {
 				//fmt.Printf("from=[%v],to=[%d]\n", from, to)
 				common.Assert("range-request", from > 0)
+				return true
 			},
 			func(resp *http.Response, err error) {
 				common.Assert("x-big-object-hit-part3", strings.Contains(resp.Header.Get("X-Cache"), "HIT-PART "))
@@ -136,7 +138,7 @@ func check_nochange_middle_hit() {
 		{0, 8190, nil, func(resp *http.Response, err error) {
 			common.Assert("x-big-object-miss2", strings.Contains(resp.Header.Get("X-Cache"), "MISS"))
 		}},
-		{0, -1, func(from, to, c int, r *http.Request) {
+		{0, -1, func(from, to, c int, r *http.Request, w http.ResponseWriter) bool {
 			//fmt.Printf("from=[%d],to=[%d] c=[%d]\n", from, to, c)
 			if c == 0 {
 				common.Assert("range-request-middle", from >= 0 && to != -1)
@@ -145,6 +147,7 @@ func check_nochange_middle_hit() {
 			} else {
 				common.Assert("range-request-middle", false)
 			}
+			return true
 		}, func(resp *http.Response, err error) {
 			common.Assert("x-big-object-hit-part4", strings.Contains(resp.Header.Get("X-Cache"), "HIT-PART"))
 		}},
@@ -185,8 +188,28 @@ func check_last_range() {
 		{0, -1, nil, nil},
 	}, false)
 }
+func check_bigobj_upstream_error() {
+	//multi miss change
+	check_ranges([]RequestRange{
+		{262044, 102400, nil, func(resp *http.Response, err error) {
+			common.Assert("x-big-object-miss1", strings.Contains(resp.Header.Get("X-Cache"), "MISS"))
+		}},
+		{0, -1, func(from, to, c int, r *http.Request, w http.ResponseWriter) bool {
+			if c == 1 {
+				common.SkipCheckRespComplete = true
+				cn, _ := w.(http.Hijacker)
+				c, _, err := cn.Hijack()
+				if err == nil {
+					c.Close()
+					return false
+				}
+			}
+			return true
+		}, nil},
+	}, false)
+}
 func check_multi_miss() {
-	common.RequestCount = 0
+	//multi miss nochange
 	check_ranges([]RequestRange{
 		{262044, 102400, nil, func(resp *http.Response, err error) {
 			common.Assert("x-big-object-miss1", strings.Contains(resp.Header.Get("X-Cache"), "MISS"))
@@ -194,7 +217,7 @@ func check_multi_miss() {
 		{100000, 8190, nil, func(resp *http.Response, err error) {
 			common.Assert("x-big-object-miss2", strings.Contains(resp.Header.Get("X-Cache"), "MISS"))
 		}},
-		{0, -1, func(from, to, c int, r *http.Request) {
+		{0, -1, func(from, to, c int, r *http.Request, w http.ResponseWriter) bool {
 			//fmt.Printf("from=[%d],to=[%d] c=[%d]\n", from, to, c)
 			if c == 0 {
 				common.Assert("range-request-middle", from >= 0 && to != -1)
@@ -205,6 +228,53 @@ func check_multi_miss() {
 			} else {
 				common.Assert("range-request-middle", false)
 			}
+			return true
+		}, func(resp *http.Response, err error) {
+			common.Assert("x-big-object-hit-part4", strings.Contains(resp.Header.Get("X-Cache"), "HIT-PART"))
+		}},
+	}, false)
+
+	//multi miss change
+	check_ranges([]RequestRange{
+		{262044, 102400, nil, func(resp *http.Response, err error) {
+			common.Assert("x-big-object-miss1", strings.Contains(resp.Header.Get("X-Cache"), "MISS"))
+		}},
+		{100000, 8190, func(from, to, request_count int, r *http.Request, w http.ResponseWriter) bool {
+			common.CreateRange(1024)
+			return true
+		}, func(resp *http.Response, err error) {
+			common.Assert("x-big-object-miss2", strings.Contains(resp.Header.Get("X-Cache"), "MISS"))
+		}},
+		{0, -1, func(from, to, c int, r *http.Request, w http.ResponseWriter) bool {
+			if c == 0 {
+				//common.CreateRange(1024)
+			} else if c == 1 {
+				common.Assert("range-request-middle", from > 0 && to != -1)
+			} else {
+				common.Assert("range-request-middle", false)
+			}
+			return true
+		}, func(resp *http.Response, err error) {
+			common.AssertContain(resp.Header.Get("X-Cache"), "MISS")
+
+		}},
+	}, false)
+
+	//multi miss change
+	check_ranges([]RequestRange{
+		{262044, 102400, nil, func(resp *http.Response, err error) {
+			common.Assert("x-big-object-miss1", strings.Contains(resp.Header.Get("X-Cache"), "MISS"))
+		}},
+		{100000, 8190, nil, func(resp *http.Response, err error) {
+			common.Assert("x-big-object-miss2", strings.Contains(resp.Header.Get("X-Cache"), "MISS"))
+		}},
+		{0, -1, func(from, to, c int, r *http.Request, w http.ResponseWriter) bool {
+			//fmt.Printf("from=[%d],to=[%d] c=[%d]\n", from, to, c)
+			if c == 0 {
+				common.CreateRange(1024)
+				common.SkipCheckRespComplete = true
+			}
+			return true
 		}, func(resp *http.Response, err error) {
 			common.Assert("x-big-object-hit-part4", strings.Contains(resp.Header.Get("X-Cache"), "HIT-PART"))
 		}},
@@ -248,8 +318,8 @@ func check_bigobj_client_if_range() {
 		common.AssertSame(resp.StatusCode, 206)
 		common.AssertContain(resp.Header.Get("X-Cache"), "MISS")
 	})
-	check_range_with_header(false, 0, -1, map[string]string{"Accept-Encoding": "gzip"}, func(from, to, request_count int, r *http.Request) {
-
+	check_range_with_header(false, 0, -1, map[string]string{"Accept-Encoding": "gzip"}, func(from, to, request_count int, r *http.Request, w http.ResponseWriter) bool {
+		return true
 	}, func(resp *http.Response, err error) {
 		common.AssertContain(resp.Header.Get("X-Cache"), "HIT-PART")
 	})
@@ -264,8 +334,8 @@ func check_bigobj_client_if_range() {
 		common.AssertSame(resp.StatusCode, 200)
 		common.AssertContain(resp.Header.Get("X-Cache"), "MISS")
 	})
-	check_range_with_header(false, 0, -1, map[string]string{"Accept-Encoding": "gzip"}, func(from, to, request_count int, r *http.Request) {
-
+	check_range_with_header(false, 0, -1, map[string]string{"Accept-Encoding": "gzip"}, func(from, to, request_count int, r *http.Request, w http.ResponseWriter) bool {
+		return true
 	}, func(resp *http.Response, err error) {
 		common.AssertContain(resp.Header.Get("X-Cache"), "HIT")
 	})
@@ -280,7 +350,8 @@ func check_bigobj_client_if_range() {
 		common.AssertSame(resp.StatusCode, 200)
 		common.AssertContain(resp.Header.Get("X-Cache"), "MISS")
 	})
-	check_range_with_header(false, 0, -1, map[string]string{"Accept-Encoding": "gzip"}, func(from, to, request_count int, r *http.Request) {
+	check_range_with_header(false, 0, -1, map[string]string{"Accept-Encoding": "gzip"}, func(from, to, request_count int, r *http.Request, w http.ResponseWriter) bool {
+		return true
 	}, func(resp *http.Response, err error) {
 		common.AssertContain(resp.Header.Get("X-Cache"), "HIT")
 	})

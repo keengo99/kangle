@@ -19,8 +19,7 @@ int bigobj_send_fiber(void* arg, int got)
 }
 KGL_RESULT KBigObjectContext::close(KGL_RESULT result)
 {
-	if (!bigobj_dead && rq->ctx.body.ctx) {
-		/* bigobj_dead 状态下，response_body 不由我负责关闭。*/
+	if (opened_body && rq->ctx.body.ctx) {
 		result = rq->ctx.body.f->close(rq->ctx.body.ctx, result);
 	}
 	delete this;
@@ -35,6 +34,7 @@ void KBigObjectContext::close_write() {
 KGL_RESULT KBigObjectContext::send_data(bool *net_fiber)
 {	
 	if (!rq->ctx.body.ctx) {
+		opened_body = true;
 		int64_t body_size = this->left_read;
 		bool build_status = true;
 		kgl_load_cache_response_body(rq, &body_size);
@@ -277,37 +277,35 @@ KGL_RESULT KBigObjectContext::upstream_recv_headed()
 	assert(rq->ctx.old_obj == this->obj);
 	KHttpObject* obj = rq->ctx.obj;
 	assert(obj->data->i.type == MEMORY_OBJECT);
-	assert(bigobj_dead == false);
+	assert(bigobj_dead == false); 
 	if (obj->data->i.status_code != STATUS_CONTENT_PARTIAL) {
 		//status_code not 206
 		bigobj_dead = true;
 		klog(KLOG_INFO, "bigobj_dead status_code=%d not expect 206\n", obj->data->i.status_code);
-		if (is_status_code_no_body(obj->data->i.status_code)) {
-			obj_dead();
-			return KGL_NO_BODY;
-		}
 	} else if (!KBIT_TEST(obj->index.flags, ANSW_HAS_CONTENT_RANGE)) {
 		//没有Content-Range
 		klog(KLOG_INFO, "bigobj_dead have no content_range\n");
 		bigobj_dead = true;
 	} else {
-		KHttpObject* gobj = this->obj;
-		assert(gobj);
-		if (obj->uk.url->encoding != gobj->uk.url->encoding) {
-			if (gobj->IsContentEncoding() || obj->IsContentEncoding()) {
+		assert(this->obj);
+		if (obj->uk.url->encoding != this->obj->uk.url->encoding) {
+			if (this->obj->IsContentEncoding() || obj->IsContentEncoding()) {
 				bigobj_dead = true;
 			} else {
-				gobj->uk.url->merge_accept_encoding(obj->uk.url->encoding);
+				this->obj->uk.url->merge_accept_encoding(obj->uk.url->encoding);
 			}
 		}
-		if (obj->getTotalContentSize() != gobj->index.content_length) {
+		if (obj->getTotalContentSize() != this->obj->index.content_length) {
 			//内容长度有改变
 			bigobj_dead = true;
-			klog(KLOG_INFO, "obj content range is not eq %lld gobj=%lld\n", obj->getTotalContentSize(), gobj->index.content_length);
+			klog(KLOG_INFO, "obj content range is not eq %lld gobj=%lld\n", obj->getTotalContentSize(), this->obj->index.content_length);
 		}
 	}
 	if (bigobj_dead) {
 		obj_dead();
+		if (rq->ctx.body.ctx) {
+			return KGL_EDATA_FORMAT;
+		}
 	} else {
 		rq->pop_obj();
 	}
@@ -315,13 +313,13 @@ KGL_RESULT KBigObjectContext::upstream_recv_headed()
 }
 static KGL_RESULT bigobj_error(kgl_output_stream_ctx* ctx, uint16_t status_code, const char* reason, size_t reason_len) {
 	KBigObjectContext* bo_ctx = (KBigObjectContext*)ctx;
+	bo_ctx->bigobj_dead = true;
+	bo_ctx->obj_dead();
 	return KGL_EUNKNOW;
 }
 static KGL_RESULT upstream_recv_headed(kgl_output_stream_ctx* ctx,int64_t body_size, kgl_response_body* body) {
 	KBigObjectContext* bo_ctx = (KBigObjectContext*)ctx;
 	assert(bo_ctx->rq->ctx.old_obj && bo_ctx->rq->ctx.old_obj == bo_ctx->obj);
-	
-	
 	kgl_default_output_stream_ctx* default_ctx = (kgl_default_output_stream_ctx*)bo_ctx->down_stream.ctx;
 	assert(default_ctx->rq == bo_ctx->rq);
 	default_ctx->parser_ctx.end_parse(bo_ctx->rq, body_size);
@@ -331,7 +329,10 @@ static KGL_RESULT upstream_recv_headed(kgl_output_stream_ctx* ctx,int64_t body_s
 		return KGL_NO_BODY;
 	}
 	KGL_RESULT result = bo_ctx->upstream_recv_headed();
-	if (bo_ctx->bigobj_dead || result != KGL_OK) {
+	if (result != KGL_OK) {
+		return result;
+	}
+	if (bo_ctx->bigobj_dead) {
 		assert(bo_ctx->write_offset == -1);
 		return on_upstream_finished_header(bo_ctx->rq, body);
 	}
@@ -354,6 +355,8 @@ KGL_RESULT bigobj_write_trailer(kgl_output_stream_ctx* ctx, const char* attr, hl
 void bigobj_release(kgl_output_stream_ctx* ctx) {
 	KBigObjectContext* bo_ctx = (KBigObjectContext*)ctx;
 	bo_ctx->down_stream.f->close(bo_ctx->down_stream.ctx);
+	/* close_write 一般由KBigObjectReadContext 负责，但是有一些错误发生在KBigObjectReadContext 还未创建。*/
+	bo_ctx->close_write();
 	/* bigobj context not release here */
 }
 kgl_output_stream_function kgl_bigobj_output_stream_function = {

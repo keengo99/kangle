@@ -134,14 +134,4 @@ func check_proxy_port() {
 
 func check_bug() {
 
-	/* client is wrong if-range can satisfy */
-	check_ranges_with_header([]RequestRangeHeader{
-		{2048, 8192, map[string]string{"Accept-Encoding": "gzip"}, nil, func(resp *http.Response, err error) {
-			common.CreateRange(1024)
-		}},
-	})
-	check_range_with_header(false, 2048, 8192, map[string]string{"If-Range": "\"wrong_etag\"", "Accept-Encoding": "gzip"}, nil, func(resp *http.Response, err error) {
-		common.AssertSame(resp.StatusCode, 200)
-		common.AssertContain(resp.Header.Get("X-Cache"), "MISS")
-	})
 }

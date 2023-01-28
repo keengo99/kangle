@@ -19,16 +19,10 @@ func AssertByteSame(a []byte, b []byte) {
 	}
 }
 func AssertContain(a string, sub string) {
-	if !my_assert(strings.Contains(a, sub)) {
-		fmt.Printf("[%s] not contain [%s]\n", a, sub)
-	}
+	Assert(fmt.Sprintf("[%s] must contain [%s]", a, sub), strings.Contains(a, sub))
 }
 func AssertSame(a interface{}, b interface{}) {
-	if a == b {
-		return
-	}
-	fmt.Printf("[%v] not eq [%v]\n", a, b)
-	Assert("", false)
+	Assert(fmt.Sprintf("[%v] must same [%v]", a, b), a == b)
 }
 func my_assert(expression bool) bool {
 	return Assert("", expression)
@@ -37,6 +31,7 @@ func Assert(test_name string, expression bool) bool {
 	if !expression {
 		failed_count++
 		if !config.Cfg.Force {
+			fmt.Printf("\n")
 			panic(test_name)
 		}
 		buf := make([]byte, 4096)

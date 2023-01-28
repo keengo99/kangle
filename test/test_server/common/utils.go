@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+var SkipCheckRespComplete bool
+
 func md5sum(buf []byte) string {
 	hash := md5.New()
 	hash.Write(buf)
@@ -38,7 +40,18 @@ func MatchEtag(if_none_match string, etag string) bool {
 	}
 	return false
 }
-func Md5Response(resp *http.Response, decode bool) string {
+func AssertResp(buf []byte, resp *http.Response) int {
+	md5, length := md5Response(resp, false)
+	if !SkipCheckRespComplete {
+		AssertSame(int(resp.ContentLength), int(length))
+	}
+	Assert("length", length <= len(buf))
+	if length > 0 {
+		AssertSame(md5sum(buf[0:length]), md5)
+	}
+	return length
+}
+func md5Response(resp *http.Response, decode bool) (string, int) {
 	buf := make([]byte, 1024)
 	hash := md5.New()
 	var total_read int
@@ -66,7 +79,11 @@ func Md5Response(resp *http.Response, decode bool) string {
 	//common.AssertSame(total_read, int(resp.ContentLength))
 	result := fmt.Sprintf("%x", hash.Sum(nil))
 	//fmt.Printf("md5Respons=[%s]\n", result)
-	return result
+	return result, total_read
+}
+func Md5Response(resp *http.Response, decode bool) string {
+	md5, _ := md5Response(resp, decode)
+	return md5
 }
 func ReadHttpProtocol(reader *bufio.Reader, read_body bool) (map[string]string, string, error) {
 	headers := make(map[string]string)

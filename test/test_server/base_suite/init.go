@@ -136,6 +136,7 @@ func init() {
 	s.AddCase("weak_etag", "weak etag测试", check_weak_etag_range)
 	s.AddCase("bigobj_range", "大物件简单部分缓存", check_simple_range)
 	s.AddCase("bigobj_multi_miss", "大文件缓存，多段缺失", check_multi_miss)
+	s.AddCase("bigobj_upstream_error", "大文件缓存,源异常不可用", check_bigobj_upstream_error)
 	s.AddCase("if_range_forward", "if-range转发", check_if_range_forward)
 	s.AddCase("if_range_local", "if-range本地", check_if_range_local)
 	s.AddCase("not_get_cache", "not GET cache", check_not_get_cache)

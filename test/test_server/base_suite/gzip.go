@@ -108,8 +108,9 @@ func check_proxy_gzip_range() {
 
 	check_ranges([]RequestRange{
 		{0, 8192, nil, nil},
-		{0, -1, func(from, to, request_count int, r *http.Request) {
+		{0, -1, func(from, to, request_count int, r *http.Request, w http.ResponseWriter) bool {
 			common.AssertSame(from, 8192)
+			return true
 		},
 			func(resp *http.Response, err error) {
 				common.AssertSame(resp.StatusCode, 200)
