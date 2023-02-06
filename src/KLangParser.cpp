@@ -30,13 +30,12 @@ KLangParser::KLangParser() {
 
 KLangParser::~KLangParser() {
 }
-bool KLangParser::startElement(KXmlContext *context,
-		std::map<std::string,std::string> &attribute) {
+bool KLangParser::startElement(KXmlContext *context) {
 	if (context->qName == "include") {
 		KXml xml;
 		KLangParser parser;
 		xml.setEvent(&parser);
-		xml.parseFile(conf.path+attribute["file"]);
+		xml.parseFile(conf.path+ context->attribute["file"]);
 		map<string,string>::iterator it;
 		for (it=parser.langs.begin(); it!=parser.langs.end(); it++) {
 			langs.insert(*it);
@@ -44,7 +43,7 @@ bool KLangParser::startElement(KXmlContext *context,
 	}
 	if (context->qName == "lang") {
 		map<string,string>::iterator it;
-		for (it=attribute.begin(); it!=attribute.end(); it++) {
+		for (it= context->attribute.begin(); it!= context->attribute.end(); it++) {
 			langs.insert(*it);
 		}
 	}

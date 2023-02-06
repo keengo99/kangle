@@ -539,7 +539,7 @@ bool KWebDavService::writeResourceProp(KResource* rs) {
 	return true;
 }
 bool KWebDavService::doMove() {
-	KXmlDocument document;
+	KXmlDocument document(true);
 	if (!parseDocument(document)) {
 	}
 	char destination[1024];
@@ -594,7 +594,6 @@ bool KWebDavService::doMove() {
 		char* dst = provider->getHttpHeader("Destination");
 		provider->sendUnknowHeader("Location", dst);
 		provider->freeHttpHeader(dst);
-
 	} else {
 		send(STATUS_FORBIDEN);
 	}

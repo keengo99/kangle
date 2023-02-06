@@ -1033,25 +1033,27 @@ KApiRedirect* KAcserverManager::getApiRedirect(std::string name) {
 	}
 	return NULL;
 }
-bool KAcserverManager::startElement(std::string& context, std::string& qName,
-	std::map<std::string, std::string>& attribute) {
+bool KAcserverManager::startElement(KXmlContext* context)
+{
 	string errMsg;
-	if (qName == "server") {
-		string name = attribute["name"];
+	if (context->qName == "server") {
+		string name = context->attribute["name"];
 		/*
 		if (getAcserver(name) != NULL) {
 			fprintf(stderr, "server name=[%s] is used\n", name.c_str());
 			return false;
 		}
-		*/
-		string host = attribute["host"];
-		string proto = attribute["proto"];
+		
+		
+		string proto = context->attribute["proto"];
 		if (proto.size() == 0) {
 			//¼æÈÝÐÔ
-			proto = attribute["type"];
+			proto = context->attribute["type"];
 		}
-		if (host.size() > 0) {
-			if (!newSingleAcserver(false, attribute, errMsg)) {
+		*/
+		string host = context->attribute["host"];
+		if (!host.empty()) {
+			if (!newSingleAcserver(false, context->attribute, errMsg)) {
 				fprintf(stderr, "cann't new server,errmsg=%s\n", errMsg.c_str());
 			}
 			return true;
@@ -1060,66 +1062,61 @@ bool KAcserverManager::startElement(std::string& context, std::string& qName,
 		assert(cur_mserver == NULL);
 		cur_mserver = new KMultiAcserver;
 		cur_mserver->name = name;
-		cur_mserver->parse(attribute);
+		cur_mserver->parse(context->attribute);
 #endif
 		return true;
 	}
 #ifdef ENABLE_MULTI_SERVER
-	if (qName == "node") {
+	if (context->qName == "node") {
 		if (cur_mserver == NULL) {
 			//fprintf(stderr, "node tag must under server tag\n");
 			return false;
 		}
-		cur_mserver->editNode(attribute);
+		cur_mserver->editNode(context->attribute);
 	}
 #endif
 #ifndef HTTP_PROXY
-	if (qName == "api") {
-		string name = attribute["name"];
-		string file = attribute["file"];
-		if (!newApiRedirect(name, file, attribute["type"], attribute["flag"], errMsg)) {
+	if (context->qName == "api") {
+		string name = context->attribute["name"];
+		string file = context->attribute["file"];
+		if (!newApiRedirect(name, file, context->attribute["type"], context->attribute["flag"], errMsg)) {
 			fprintf(stderr, "cann't load api[%s] ,errmsg=%s\n", name.c_str(),
 				errMsg.c_str());
 		}
 		return true;
 	}
-	if (qName == "pre_event") {
+	if (context->qName == "pre_event") {
 		if (cur_extend) {
-			return cur_extend->addEvent(true, attribute);
+			return cur_extend->addEvent(true, context->attribute);
 		}
 	}
-	if (qName == "post_event") {
+	if (context->qName == "post_event") {
 		if (cur_extend) {
-			return cur_extend->addEvent(false, attribute);
+			return cur_extend->addEvent(false, context->attribute);
 		}
 	}
 #endif
-	return false;
-}
-bool KAcserverManager::startElement(KXmlContext* context, std::map<std::string,
-	std::string>& attribute)
-{
 	if (context->qName == "env"
 		&& (context->getParentName() == "api" || context->getParentName() == "cmd")) {
 		if (cur_extend) {
-			cur_extend->parseEnv(attribute);
+			cur_extend->parseEnv(context->attribute);
 		}
 	}
 #ifdef ENABLE_VH_RUN_AS
 	if (context->qName == "cmd") {
 		assert(cur_cmd == NULL);
-		string name = attribute["name"];
+		string name = context->attribute["name"];
 		cur_cmd = new KCmdPoolableRedirect;
 		cur_cmd->name = name;
-		cur_cmd->parseConfig(attribute);
+		cur_cmd->parseConfig(context->attribute);
 		cur_extend = cur_cmd;
 	}
 #endif
 	return true;
 }
-bool KAcserverManager::endElement(std::string& context, std::string& qName) {
+bool KAcserverManager::endElement(KXmlContext* context) {
 #ifdef ENABLE_MULTI_SERVER
-	if (qName == "server" && cur_mserver) {
+	if (context->qName == "server" && cur_mserver) {
 		KMultiAcserver* mac = conf.gam->refsMultiAcserver(cur_mserver->name);
 		if (mac) {
 			if (!mac->isChanged(cur_mserver)) {
@@ -1136,7 +1133,7 @@ bool KAcserverManager::endElement(std::string& context, std::string& qName) {
 	}
 #endif
 #ifdef ENABLE_VH_RUN_AS
-	if (qName == "cmd" && cur_cmd) {
+	if (context->qName == "cmd" && cur_cmd) {
 		KCmdPoolableRedirect* mac = conf.gam->refsCmdRedirect(cur_cmd->name);
 		if (mac) {
 			if (!mac->isChanged(cur_cmd)) {
@@ -1154,7 +1151,7 @@ bool KAcserverManager::endElement(std::string& context, std::string& qName) {
 		return true;
 	}
 #endif
-	if (qName == "api" && cur_extend) {
+	if (context->qName == "api" && cur_extend) {
 		cur_extend = NULL;
 		return true;
 	}

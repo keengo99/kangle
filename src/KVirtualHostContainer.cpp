@@ -5,9 +5,9 @@
 
 static int vh_container_find_cmp(void *k, void *k2)
 {
-	unsigned char *s1 = (unsigned char *)k;
+	domain_t s1 = (domain_t)k;
 	KDomainMap*s2 = (KDomainMap*)k2;
-	return memn2cmp(s1, (unsigned char *)s2->name);
+	return kgl_domain_cmp(s1, s2->name);
 }
 KVirtualHostContainer::KVirtualHostContainer()
 {

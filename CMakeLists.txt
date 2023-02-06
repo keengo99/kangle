@@ -14,6 +14,7 @@ file(GLOB KANGLE_SOURCE_FILES
     )
 list(APPEND KANGLE_SOURCE_FILES 
     ${CMAKE_CURRENT_SOURCE_DIR}/khttpd/davlib/KXml.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/khttpd/davlib/KXmlDocument.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/khttpd/davlib/KXmlContext.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/khttpd/davlib/KXmlException.cpp
     )
@@ -34,7 +35,6 @@ list(APPEND EXTWORKER_SOURCE_FILES
     src/KHttpExt.cpp 
     src/KApiDso.cpp 
     src/KApiEnv.cpp 
-    src/KBuffer.cpp 
     src/KEnvInterface.cpp 
     src/KFastcgiUtils.cpp 
     src/KPipeStream.cpp

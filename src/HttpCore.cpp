@@ -39,7 +39,6 @@
 #include "KHttpKeyValue.h"
 #include "KObjectList.h"
 #include "KHttpTransfer.h"
-#include "KSendable.h"
 #include "KUpstream.h"
 #include "kthread.h"
 #include "lang.h"
@@ -64,26 +63,6 @@
 #include "KBigObjectContext.h"
 #include "KDefaultFetchObject.h"
 using namespace std;
-#if 0
-kbuf* deflate_buff(kbuf* in_buf, int level, INT64& len, bool fast) {
-	KBuffer buffer;
-	KBridgeStream2 st(&buffer, false);
-	KGzipCompress gzip(level);
-	gzip.setFast(fast);
-	gzip.connect(&st, false);
-	while (in_buf && in_buf->used > 0) {
-		if (gzip.write_all(nullptr, in_buf->data, in_buf->used) != STREAM_WRITE_SUCCESS) {
-			return NULL;
-		}
-		in_buf = in_buf->next;
-	}
-	if (gzip.write_end(nullptr, KGL_OK) != STREAM_WRITE_SUCCESS) {
-		return NULL;
-	}
-	len = buffer.getLen();
-	return buffer.stealBuffFast();
-}
-#endif
 KGL_RESULT send_auth2(KHttpRequest* rq, KAutoBuffer* body) {
 	if (conf.auth_delay > 0 && KBIT_TEST(rq->sink->data.flags, RQ_HAS_PROXY_AUTHORIZATION | RQ_HAS_AUTHORIZATION)) {
 		kfiber_msleep(conf.auth_delay * 1000);

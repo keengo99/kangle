@@ -23,12 +23,10 @@ public:
 	bool editWriteBack(std::string name, KWriteBack &m_a, std::string &err_msg);
 	std::string writebackList(std::string name = "");
 	std::vector<std::string> getWriteBackNames();
-	bool startElement(std::string &context, std::string &qName, std::map<
-			std::string, std::string> &attribute);
-	bool startCharacter(std::string &context, std::string &qName,
-			char *character, int len);
+	bool startElement(KXmlContext *context) override;
+	bool startCharacter(KXmlContext* context, char *character, int len) override;
 	//	bool endElement(std::string context, std::string qName);
-	void buildXML(std::stringstream &s, int flag);
+	void buildXML(std::stringstream &s, int flag) override;
 	friend class KAccess;
 private:
 	KWriteBack * getWriteBack(std::string table_name);

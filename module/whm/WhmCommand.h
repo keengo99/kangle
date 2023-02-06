@@ -21,6 +21,9 @@ public:
 	{
 		return "command";
 	}
+	bool startElement(KXmlContext* context) override {
+		return true;
+	}
 private:
 	std::vector<std::string> args;
 };

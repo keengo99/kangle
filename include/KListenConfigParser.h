@@ -23,15 +23,17 @@
 class KListenConfigParser : public KXmlEvent {
 public:
 	bool parse(std::string file);
-	bool startElement(std::string &context, std::string &qName,
-			std::map<std::string,std::string> &attribute);
-	bool startCharacter(std::string &context, std::string &qName,
-			char *character, int len);
+	bool startElement(KXmlContext* context) override;
+	bool startCharacter(KXmlContext* context,
+			char *character, int len) override;
 };
 class KWorkerConfigParser : public KXmlEvent {
 public:
 	bool parse(std::string file);
-	bool startCharacter(KXmlContext *context, char *character, int len);
+	bool startElement(KXmlContext* context) override {
+		return true;
+	}
+	bool startCharacter(KXmlContext *context, char *character, int len) override;
 };
 extern KListenConfigParser listenConfigParser;
 extern KWorkerConfigParser worker_config_parser;

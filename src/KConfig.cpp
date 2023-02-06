@@ -32,6 +32,7 @@
 #include "kthread.h"
 #include "kfiber.h"
 #include "KHttpServer.h"
+#include "KConfigTree.h"
 #ifdef _WIN32
 #include <direct.h>
 #else
@@ -554,6 +555,7 @@ int do_config_thread(void* first_time, int argc) {
 			kaccess[i].setGlobal(true);
 		}
 		KAccess::loadModel();
+		kconfig::init();
 	}
 	assert(cconf == NULL);
 	cconf = new KConfig;
@@ -562,6 +564,7 @@ int do_config_thread(void* first_time, int argc) {
 	post_load_config(first_time != NULL);
 	delete cconf;
 	cconf = NULL;
+	kconfig::reload();
 	katom_set((void*)&load_config_progress, 0);
 	return 0;
 }

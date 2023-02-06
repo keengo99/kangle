@@ -27,16 +27,10 @@ public:
 	void endXml(bool result);	
 	KConfigParser();
 	virtual ~KConfigParser();
-	bool startElement(std::string &context, std::string &qName,
-			std::map<std::string,std::string> &attribute);
-	bool startElement(KXmlContext *context,
-			std::map<std::string,std::string> &attribute);
-	bool startCharacter(std::string &context, std::string &qName,
-			char *character, int len);
+	bool startElement(KXmlContext *context) override;
 	bool startCharacter(KXmlContext *context,
-				char *character, int len);
-	bool endElement(std::string &context, std::string &qName);
-	bool endElement(KXmlContext *context);
+				char *character, int len) override;
+	bool endElement(KXmlContext *context) override;
 };
 
 #endif /*KCONFIGPARSER_H_*/

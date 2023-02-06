@@ -19,7 +19,6 @@
 #define KBUFFER_H
 #include "kbuf.h"
 #include "ksocket.h"
-#include "KSendable.h"
 #include "KStream.h"
 #include "KAutoBuffer.h"
 #include "kmalloc.h"

@@ -104,8 +104,6 @@ public:
 #endif
 	}
 private:
-	//char* saveName();
-	//void restoreName(char* n);
 	bool getFileInfo(int name_len);
 #ifdef ENABLE_UNICODE_FILE
 	wchar_t *wname;
@@ -139,12 +137,6 @@ public:
 		//fflush(fp);
 #endif
 	}
-#ifdef ENABLE_SENDFILE
-	int sendfile(SOCKET sockfd, off_t offset, int size)
-	{
-		return ::sendfile(sockfd, fp, &offset, (size_t)size);
-	}
-#endif
 	INT64 getFileSize()
 	{
 		return kfsize(fp);

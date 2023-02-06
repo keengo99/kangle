@@ -56,11 +56,12 @@ public:
 	void empty();
 	friend class KAccess;
 public:
-
-	bool startElement(KXmlContext *context,
-			std::map<std::string, std::string> &attribute,KAccess *kaccess);
-	bool startCharacter(KXmlContext *context, char *character, int len);
-	bool endElement(KXmlContext *context);
+	bool startElement(KXmlContext* context) override {
+		return true;
+	}
+	bool startElement(KXmlContext *context,KAccess *kaccess);
+	bool startCharacter(KXmlContext *context, char *character, int len) override;
+	bool endElement(KXmlContext *context) override;
 	/*
 
 	*/

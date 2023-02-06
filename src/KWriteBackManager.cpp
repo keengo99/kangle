@@ -150,30 +150,28 @@ bool KWriteBackManager::addWriteBack(KWriteBack *wb)
 	lock.WUnlock();
 	return true;
 }
-bool KWriteBackManager::startElement(std::string &context, std::string &qName,
-		std::map<std::string,std::string> &attribute) {
-	if (qName=="writeback") {
+bool KWriteBackManager::startElement(KXmlContext* context) {
+	if (context->qName=="writeback") {
 		assert(curWriteBack==NULL);
 		string err_msg;
-		if (attribute["type"]=="del") {
-			delWriteBack(attribute["name"], err_msg);
+		if (context->attribute["type"]=="del") {
+			delWriteBack(context->attribute["name"], err_msg);
 			return true;
 		}
-		if (attribute["type"] == "edit") {
+		if (context->attribute["type"] == "edit") {
 			edit=true;
 		} else {
 			edit=false;
 		}
 		curWriteBack=new KWriteBack();
-		curWriteBack->name=attribute["name"];
+		curWriteBack->name= context->attribute["name"];
 		return true;
 	}
 	return false;
 }
-bool KWriteBackManager::startCharacter(std::string &context,
-		std::string &qName, char *character, int len) {
+bool KWriteBackManager::startCharacter(KXmlContext* context, char *character, int len) {
 
-	if (qName=="writeback") {
+	if (context->qName=="writeback") {
 		string err_msg;
 		if (curWriteBack) {
 			curWriteBack->setMsg(KXml::decode(character));

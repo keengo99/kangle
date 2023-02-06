@@ -28,6 +28,9 @@ public:
 	{
 		return name.c_str();
 	}
+	bool startElement(KXmlContext* context) override {
+		return true;
+	}
 	KRedirectSource*makeFetchObject(KHttpRequest *rq, KFileName *file) override;
 	bool load();
 	void setFile(std::string file);

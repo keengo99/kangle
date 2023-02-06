@@ -29,12 +29,11 @@ public:
 	virtual ~KHttpServerParser();
 	bool parse(std::string file);
 	bool parseString(const char *buf);
-	bool startElement(KXmlContext *context,
-			std::map<std::string,std::string> &attribute);
-	bool startCharacter(KXmlContext *context, char *character, int len);
-	bool endElement(KXmlContext *context);
-	void startXml(const std::string &encoding);
-	void endXml(bool result);
+	bool startElement(KXmlContext *context) override;
+	bool startCharacter(KXmlContext *context, char *character, int len) override;
+	bool endElement(KXmlContext *context) override;
+	void startXml(const std::string &encoding) override;
+	void endXml(bool result) override;
 	static bool buildVirtualHost(KAttributeHelper *ah,KVirtualHost *virtualHost,KBaseVirtualHost *gvh,KTempleteVirtualHost *tm,KVirtualHost *ov = NULL);
 	static KVirtualHost *buildVirtualHost(std::map<std::string,std::string> &attribute,KBaseVirtualHost *gvh,KTempleteVirtualHost *tm,KVirtualHost *ov);
 	static KVirtualHost *buildVirtualHost(KAttributeHelper *ah,KBaseVirtualHost *gvh,KTempleteVirtualHost *tm,KVirtualHost *ov = NULL);

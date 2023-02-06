@@ -18,6 +18,9 @@ public:
 	{
 	
 	}
+	bool startElement(KXmlContext* context) override {
+		return true;
+	}
 	kev_result connect(KHttpRequest *rq, KAsyncFetchObject *fo)
 	{
 		kassert(false);
@@ -26,6 +29,7 @@ public:
 	const char *getType() {
 		return "dso";
 	}
+
 	KRedirectSource *makeFetchObject(KHttpRequest *rq, KFileName *file) override;
 	KRedirectSource *makeFetchObject(KHttpRequest *rq, void *model_ctx);
 	friend class KDsoExtend;

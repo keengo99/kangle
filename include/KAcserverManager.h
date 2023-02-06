@@ -117,11 +117,8 @@ public:
 	friend class KAccess;
 	friend class KHttpManage;
 public:
-	bool startElement(std::string& context, std::string& qName, std::map<
-		std::string, std::string>& attribute);
-	bool startElement(KXmlContext* context, std::map<std::string,
-		std::string>& attribute);
-	bool endElement(std::string& context, std::string& qName);
+	bool startElement(KXmlContext* context) override;
+	bool endElement(KXmlContext *context) override;
 	void buildXML(std::stringstream& s, int flag);
 private:
 	bool newApiRedirect(std::string name, std::string file, std::string type, std::string flag, std::string& err_msg);

@@ -25,8 +25,7 @@
 #include "time_utils.h"
 using namespace std;
 
-bool KTable::startElement(KXmlContext *context, std::map<std::string,
-		std::string> &attribute,KAccess *kaccess) {
+bool KTable::startElement(KXmlContext *context,KAccess *kaccess) {
 
 	if (context->getParentName() == TABLE_CONTEXT && context->qName	== CHAIN_CONTEXT) {
 		if (curChain) {
@@ -35,7 +34,7 @@ bool KTable::startElement(KXmlContext *context, std::map<std::string,
 		curChain = new KChain();
 	}
 	if (curChain) {
-		return curChain->startElement(context, attribute,kaccess);
+		return curChain->startElement(context, kaccess);
 	}
 	return false;
 }

@@ -112,7 +112,7 @@ public:
 		return s.str();
 	}
 
-	bool startCharacter(KXmlContext *context, char *character, int len) {
+	bool startCharacter(KXmlContext *context, char *character, int len) override {
 		//		if (context->getParentName()==ACL_CONTEXT && context->qName==getName()) {
 		addIpModel(character, ip);
 		return true;
@@ -120,7 +120,7 @@ public:
 		//		return false;
 	}
 
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override  {
 		s << ">" << getDisplay();
 	}
 protected:

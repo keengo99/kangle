@@ -2,6 +2,7 @@
 #define KDSOCONFIGPARSER_H_99
 #include "KXmlEvent.h"
 class KDsoConfigParser : public KXmlEvent {
-	bool startElement(KXmlContext *context, std::map<std::string,std::string> &attribute);
+public:
+	bool startElement(KXmlContext *context) override;
 };
 #endif

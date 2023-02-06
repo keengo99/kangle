@@ -70,33 +70,32 @@ bool KHttpServerParser::parse(std::string file) {
 	}
 	return result;
 }
-bool KHttpServerParser::startElement(KXmlContext *context, std::map<
-		std::string, std::string> &attribute) {
+bool KHttpServerParser::startElement(KXmlContext *context) {
 	KXmlException e;
 	KConfig *c = (KConfig *)context->getData();
 	KVirtualHostManage *vhm = (c?c->vm:conf.gvm);
 	if (context->path == "config" && context->qName == "ssl") {
-		ParseSsl(vhm, attribute);
+		ParseSsl(vhm, context->attribute);
 		return true;
 	}
 	if (strcasecmp(context->qName.c_str(), "vh_database") == 0) {
-		return vhd.parseAttribute(attribute);
+		return vhd.parseAttribute(context->attribute);
 	}
 	if (strcasecmp(context->qName.c_str(), "vhs") == 0) {
-		buildBaseVirtualHost(&attribute, &vhm->globalVh);
+		buildBaseVirtualHost(&context->attribute, &vhm->globalVh);
 		return true;
 	} else if (strcasecmp(context->qName.c_str(), "vh") == 0) {
 		assert(virtualHost==NULL);
 		KTempleteVirtualHost *tvh =  NULL;
-		string templete = attribute["templete"];
+		string templete = context->attribute["templete"];
 		if(templete.size()>0){
 			tvh = vhm->refsTempleteVirtualHost(templete);
 			if(tvh==NULL){
 				fprintf(stderr,"cann't find vh_templete [%s]\n",templete.c_str());
 			}
 		}
-		KVirtualHost *ov = conf.gvm->refsVirtualHostByName(attribute["name"]);
-		virtualHost = buildVirtualHost(attribute,&vhm->globalVh, tvh,ov);
+		KVirtualHost *ov = conf.gvm->refsVirtualHostByName(context->attribute["name"]);
+		virtualHost = buildVirtualHost(context->attribute,&vhm->globalVh, tvh,ov);
 		if (ov) {
 			ov->destroy();
 		}
@@ -105,7 +104,7 @@ bool KHttpServerParser::startElement(KXmlContext *context, std::map<
 		}
 	} else if (strcasecmp(context->qName.c_str(), "vh_templete") == 0) {
 		assert(cur_tvh==NULL);
-		string templete = attribute["templete"];
+		string templete = context->attribute["templete"];
 		KTempleteVirtualHost *tvh =  NULL;
 		if(templete.size()>0){
 			tvh = vhm->refsTempleteVirtualHost(templete);
@@ -114,7 +113,7 @@ bool KHttpServerParser::startElement(KXmlContext *context, std::map<
 			}
 		}
 		cur_tvh = new KTempleteVirtualHost;
-		KAttributeHelper helper(&attribute);
+		KAttributeHelper helper(&context->attribute);
 		if (!buildVirtualHost(&helper,cur_tvh,&vhm->globalVh,  tvh,NULL)) {
 			delete cur_tvh;
 			cur_tvh = NULL;
@@ -125,7 +124,7 @@ bool KHttpServerParser::startElement(KXmlContext *context, std::map<
 		}
 	}
 	if (cur_tvh) {
-		cur_tvh->addEvent(context->qName.c_str(),attribute);
+		cur_tvh->addEvent(context->qName.c_str(), context->attribute);
 	}
 	KBaseVirtualHost *bv = virtualHost;
 	if (bv == NULL) {
@@ -135,20 +134,20 @@ bool KHttpServerParser::startElement(KXmlContext *context, std::map<
 	if (parent=="vh" || parent=="vhs" || parent=="vh_templete"){
 		if (context->qName == "map" || context->qName == "redirect"
 			|| context->qName == "default_map") {
-			std::string extend = attribute["extend"];
+			std::string extend = context->attribute["extend"];
 			KRedirect *ac = NULL;
 			if (strcasecmp(extend.c_str(), "default") != 0) {
 				KAcserverManager *am = (c ? c->am : conf.gam);
 				ac = am->refsRedirect(extend);
 				if (ac == NULL) {
 					fprintf(stderr, "cann't find extend [%s]\n",
-							attribute["extend"].c_str());
+						context->attribute["extend"].c_str());
 					return true;
 				}
 			}
 			if (context->qName == "default_map") {
-				KBaseRedirect *rd = new KBaseRedirect(ac, (uint8_t)atoi(attribute["confirm_file"].c_str()));
-				rd->allowMethod.setMethod(attribute["allow_method"].c_str());
+				KBaseRedirect *rd = new KBaseRedirect(ac, (uint8_t)atoi(context->attribute["confirm_file"].c_str()));
+				rd->allowMethod.setMethod(context->attribute["allow_method"].c_str());
 				bv->lock.Lock();
 				if (bv->defaultRedirect) {
 					bv->defaultRedirect->release();
@@ -158,12 +157,12 @@ bool KHttpServerParser::startElement(KXmlContext *context, std::map<
 			} else {
 				std::string value;
 				bool file_ext;
-				if (attribute["file_ext"].size() > 0) {
+				if (context->attribute["file_ext"].size() > 0) {
 					file_ext = true;
-					value = attribute["file_ext"];
-				} else if (attribute["path"].size() > 0) {
+					value = context->attribute["file_ext"];
+				} else if (context->attribute["path"].size() > 0) {
 					file_ext = false;
-					value = attribute["path"];
+					value = context->attribute["path"];
 				}
 				if (value.size() == 0) {
 					if (ac) {
@@ -173,48 +172,48 @@ bool KHttpServerParser::startElement(KXmlContext *context, std::map<
 					//e << "map must have file_ext or path attribute\n";
 					//throw e;
 				}
-				bv->addRedirect(file_ext, value, ac, attribute["allow_method"],(uint8_t)atoi(attribute["confirm_file"].c_str()),attribute["params"]);
+				bv->addRedirect(file_ext, value, ac, context->attribute["allow_method"],(uint8_t)atoi(context->attribute["confirm_file"].c_str()), context->attribute["params"]);
 			}
 
 		}
 		if (strcasecmp(context->qName.c_str(), "index") == 0) {
-			bv->addIndexFile(attribute["file"],atoi(attribute["id"].c_str()));
+			bv->addIndexFile(context->attribute["file"],atoi(context->attribute["id"].c_str()));
 			return true;
 		}
 		if (strcasecmp(context->qName.c_str(), "alias") == 0) {
 			string errMsg;
-			if (!bv->addAlias(attribute["path"], attribute["to"],(virtualHost?virtualHost->doc_root.c_str():conf.path.c_str()), attribute["internal"]=="1",0, errMsg)) {
+			if (!bv->addAlias(context->attribute["path"], context->attribute["to"],(virtualHost?virtualHost->doc_root.c_str():conf.path.c_str()), context->attribute["internal"]=="1",0, errMsg)) {
 				fprintf(stderr, "%s\n", errMsg.c_str());
 			}
 			return true;
 		}
 		if(strcasecmp(context->qName.c_str(), "env") == 0) {
 			std::map<string, string>::iterator it;
-			for (it = attribute.begin(); it != attribute.end(); it++) {
+			for (it = context->attribute.begin(); it != context->attribute.end(); it++) {
 				bv->addEnvValue((*it).first.c_str(), (*it).second.c_str());
 			}
 			return true;
 		}
 		if (strcasecmp(context->qName.c_str(),"mime_type") == 0) {
 			kgl_compress_type compress = kgl_compress_unknow;
-			if (!attribute["gzip"].empty()) {
+			if (!context->attribute["gzip"].empty()) {
 				//¼æÈÝ
-				compress = (kgl_compress_type)(attribute["gzip"] == "1");
+				compress = (kgl_compress_type)(context->attribute["gzip"] == "1");
 			}
-			if (!attribute["compress"].empty()) {
-				compress = (kgl_compress_type)atoi(attribute["compress"].c_str());
+			if (!context->attribute["compress"].empty()) {
+				compress = (kgl_compress_type)atoi(context->attribute["compress"].c_str());
 			}
-			bv->addMimeType(attribute["ext"].c_str(),attribute["type"].c_str(), compress,atoi(attribute["max_age"].c_str()));
+			bv->addMimeType(context->attribute["ext"].c_str(), context->attribute["type"].c_str(), compress,atoi(context->attribute["max_age"].c_str()));
 		}
 	}
 
 	if (virtualHost) {
 		for (int i=0;i<2;i++) {
-			virtualHost->access[i].startElement(context,attribute);
+			virtualHost->access[i].startElement(context);
 		}
 	} else {
 		for (int i=0;i<2;i++) {
-			this->kaccess[i]->startElement(context,attribute);
+			this->kaccess[i]->startElement(context);
 		}
 	}
 	return true;

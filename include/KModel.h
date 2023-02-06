@@ -57,8 +57,8 @@ public:
 		return 500;
 	}
 	virtual std::string getHtml(KModel *model)=0;
-	virtual bool startElement(KXmlContext *context,std::map<std::string, std::string> &attribute) {
-		editHtml(attribute, false);
+	virtual bool startElement(KXmlContext *context) override {
+		editHtml(context->attribute, false);
 		return true;
 	}
 	bool revers;

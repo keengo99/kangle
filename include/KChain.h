@@ -63,7 +63,7 @@ private:
 	bool editModel(KModel *model, KUrlValue *urlValue);
 	void getModelHtml(KModel *model, std::stringstream &s, int type, int index);
 public:
-	bool startElement(KXmlContext *context,std::map<std::string, std::string> &attribute,KAccess *kaccess);
+	bool startElement(KXmlContext *context,KAccess *kaccess);
 	bool startCharacter(KXmlContext *context, char *character, int len);
 	bool endElement(KXmlContext *context);
 	void buildXML(std::stringstream &s,int flag);

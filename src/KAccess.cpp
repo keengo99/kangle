@@ -594,24 +594,23 @@ void KAccess::copy(KAccess &a)
 	actionParsed = a.actionParsed;
 	kfiber_rwlock_wunlock(rwlock);
 }
-bool KAccess::startElement(KXmlContext *context, std::map<std::string,
-		std::string> &attribute) {
+bool KAccess::startElement(KXmlContext *context) {
 	if (context == NULL)
 		return false;
 	bool result = false;
 	if (context->qName == qName) {
-		if (attribute["action"].size()>0) {
-			parseChainAction(attribute["action"], default_jump_type, jump_name);
+		if (context->attribute["action"].size()>0) {
+			parseChainAction(context->attribute["action"], default_jump_type, jump_name);
 		}
 	}
 	if (context->getParentName() == qName && context->qName == "table") {
 		if (curTable != NULL) {
 			klog(KLOG_ERR, "warning! xml config file format may be wrong? table element not closed.\n");
 		}
-		curTable = getTable(attribute["name"]);
+		curTable = getTable(context->attribute["name"]);
 		if (curTable == NULL) {
 			curTable = new KTable();
-			curTable->name = attribute["name"];
+			curTable->name = context->attribute["name"];
 			if (curTable->name.size() == 0) {
 				klog(KLOG_ERR, "Warning: table name is empty in %s.\n",
 						context->getPoint().c_str());
@@ -633,7 +632,7 @@ bool KAccess::startElement(KXmlContext *context, std::map<std::string,
 		result = true;
 	}
 	if (curTable) {
-		result = curTable->startElement(context, attribute,this);
+		result = curTable->startElement(context, this);
 	}
 	return result;
 }

@@ -24,9 +24,8 @@ class KLangParser : public KXmlEvent {
 public:
 	KLangParser();
 	virtual ~KLangParser();
-	bool startElement(KXmlContext *context,
-			std::map<std::string,std::string> &attribute);
-	bool startCharacter(KXmlContext *context, char *character, int len);
+	bool startElement(KXmlContext *context) override;
+	bool startCharacter(KXmlContext *context, char *character, int len) override;
 	std::map<std::string,std::string> langs;
 };
 

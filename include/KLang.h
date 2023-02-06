@@ -55,10 +55,9 @@ public:
 	const char * operator [](const char *name);
 	void getAllLangName(std::vector<std::string> &names);
 	bool load(std::string file);
-	bool startElement(KXmlContext *context,
-			std::map<std::string,std::string> &attribute);
-	bool startCharacter(KXmlContext *context, char *character, int len);
-	bool endElement(KXmlContext *context) ;
+	bool startElement(KXmlContext *context) override;
+	bool startCharacter(KXmlContext *context, char *character, int len) override;
+	bool endElement(KXmlContext *context) override;
 private:
 	const char *get(char *lang_name,const char *name);
 	KLocalLang *getLocal(char *name);

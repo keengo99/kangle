@@ -463,14 +463,13 @@ bool KChain::delMark(std::string mark) {
 	}
 	return false;
 }
-bool KChain::startElement(KXmlContext *context, std::map<std::string,
-		std::string> &attribute,KAccess *kaccess) {
+bool KChain::startElement(KXmlContext *context,KAccess *kaccess) {
 	string qName = context->qName;
 	int elementType = 0;
 	if(context->qName == CHAIN_CONTEXT){
-		std::string action = attribute["action"];
-		kaccess->parseChainAction(attribute["action"], jumpType,jumpName);
-		name = attribute["name"];
+		std::string action = context->attribute["action"];
+		kaccess->parseChainAction(context->attribute["action"], jumpType,jumpName);
+		name = context->attribute["name"];
 		return true;
 	}
 	if (strncasecmp(qName.c_str(), "acl_", 4) == 0) {
@@ -482,11 +481,11 @@ bool KChain::startElement(KXmlContext *context, std::map<std::string,
 	}
 	if (context->getParentName() == ACL_CONTEXT || elementType == MODEL_ACL) {
 		std::map<std::string,KAcl *>::iterator it;
-		curacl = addAcl(qName,attribute["name"],kaccess);
+		curacl = addAcl(qName, context->attribute["name"],kaccess);
 		if (curacl) {
-			curacl->revers = (attribute["revers"] == "1");
-			curacl->is_or = (attribute["or"] == "1");
-			curacl->startElement(context, attribute);
+			curacl->revers = (context->attribute["revers"] == "1");
+			curacl->is_or = (context->attribute["or"] == "1");
+			curacl->startElement(context);
 		} else {
 			fprintf(stderr, "cann't load acl model[%s]\n", qName.c_str());
 		}
@@ -494,22 +493,22 @@ bool KChain::startElement(KXmlContext *context, std::map<std::string,
 	}
 	if (context->getParentName() == MARK_CONTEXT || elementType == MODEL_MARK) {
 		std::map<std::string,KMark *>::iterator it;
-		curmark = addMark(qName,attribute["name"],kaccess);
+		curmark = addMark(qName, context->attribute["name"],kaccess);
 		if (curmark) {
-			curmark->revers = (attribute["revers"] == "1");
-			curmark->is_or = (attribute["or"] == "1");
-			curmark->startElement(context, attribute);
+			curmark->revers = (context->attribute["revers"] == "1");
+			curmark->is_or = (context->attribute["or"] == "1");
+			curmark->startElement(context);
 		} else {
 			fprintf(stderr, "cann't load mark model[%s]\n", qName.c_str());
 		}
 		return true;
 	}
 	if (curacl) {
-		return curacl->startElement(context, attribute);
+		return curacl->startElement(context);
 	}
 
 	if (curmark) {
-		return curmark->startElement(context, attribute);
+		return curmark->startElement(context);
 	}
 	return true;
 }

@@ -23,6 +23,9 @@ public:
 	{
 		return "dso";
 	}
+	bool startElement(KXmlContext* context) override {
+		return true;
+	}
 private:
 	HMODULE handle;
 	GetWhmVersionf GetWhmVersion;

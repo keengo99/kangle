@@ -28,10 +28,9 @@ public:
 	{
 		this->file = file;
 	}
-	bool startElement(KXmlContext *context,
-			std::map<std::string, std::string> &attribute);
-	bool startCharacter(KXmlContext *context, char *character, int len);
-	bool endElement(KXmlContext *context);
+	bool startElement(KXmlContext *context) override;
+	bool startCharacter(KXmlContext *context, char *character, int len) override;
+	bool endElement(KXmlContext *context) override;
 private:
 //	WhmContext *whmContext;
 	WhmCallMap *newCallMap(std::string &name,std::string &callName);

@@ -25,11 +25,7 @@
 #include "KHttpRequest.h"
 #include "KHttpObject.h"
 #include "KCompressStream.h"
-#include "KSendable.h"
 #include "KCacheStream.h"
-#ifdef ENABLE_DELTA_ENCODE
-#include "KDeltaEncode.h"
-#endif
 bool kgl_load_response_body(KHttpRequest* rq, kgl_response_body* body);
 bool kgl_load_cache_response_body(KHttpRequest *rq, int64_t *body_size);
 #endif /* KHTTPTRANSFER_H_ */

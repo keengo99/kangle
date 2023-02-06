@@ -34,6 +34,7 @@ list(APPEND KWEBDAV_SOURCE_FILES ${KANGLE_DIR}/khttpd/src/KStream.cpp)
 list(APPEND KWEBDAV_SOURCE_FILES ${KANGLE_DIR}/khttpd/src/KHttpLib.cpp)
 list(APPEND KWEBDAV_SOURCE_FILES ${KANGLE_DIR}/khttpd/src/KHttpKeyValue.cpp)
 list(APPEND KWEBDAV_SOURCE_FILES ${KANGLE_DIR}/kasync/src/kfile.c)
+list(APPEND KWEBDAV_SOURCE_FILES ${KANGLE_DIR}/kasync/src/krbtree.c)
 
 add_library(webdav MODULE  ${KWEBDAV_SOURCE_FILES})
 set_property(TARGET webdav PROPERTY  PREFIX "")

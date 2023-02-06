@@ -48,6 +48,7 @@
 #include "KSimulateRequest.h"
 #include "KSockPoolHelper.h"
 #include "KAsyncFetchObject.h"
+#include "KConfigTree.h"
 #ifdef ENABLE_ATOM
 #include "KAtomLock.h"
 #endif
@@ -250,6 +251,7 @@ void test_atom()
 }
 void test_xml()
 {
+	
 	char *s = strdup("&&&");
 	int len = (int)strlen(s);
 	char *dst = KXml::htmlEncode(s,len,NULL);
@@ -261,8 +263,7 @@ void test_xml()
 }
 void test_config()
 {
-	KConfig c;
-	//printf("sizeof = %d\n",sizeof(c.a));
+	kconfig::test();
 }
 //}}
 void test_url_decode() {
@@ -381,11 +382,12 @@ void test_mem_function()
 	assert(kgl_ncmp(_KS("AA"), _KS("AABB")) != 0);
 	assert(kgl_casecmp("aaa", _KS("aAA")) == 0);
 }
-bool test() {	
+bool test() {
 	test_mem_function();
 #ifdef ENABLE_HTTP2
 	test_http2();
 #endif
+	test_config();
 	test_url_decode();
 	test_regex();
 	test_htaccess();
@@ -397,7 +399,6 @@ bool test() {
 	test_dechunk2();
 	test_white_list();
 	//test_http_parser();
-	//printf("sizeof(kgl_pop_header)=%d\n",(int)sizeof(kgl_pop_header));
 	//	test_pipe();
 	//printf("sizeof(KHttpHeader)=%d,sizeof(KHttpHeader2)=[%d]\n", (int)sizeof(KHttpHeader),sizeof(KHttpHeader2));
 	//printf("sizeof(selectable)=[%d]\n", (int)sizeof(kselectable));

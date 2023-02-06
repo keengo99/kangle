@@ -1,6 +1,7 @@
 #ifndef KLISTNODE_H
 #define KLISTNODE_H
 #include <stdlib.h>
+#if 0
 class KListNode
 {
 public:
@@ -68,4 +69,5 @@ protected:
 	KListNode *head;
 	KListNode *end;
 };
+#endif
 #endif

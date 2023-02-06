@@ -28,7 +28,10 @@ public:
 	void buildRequest(KHttpRequest *rq);
 	std::string getMsg();
 	void setMsg(std::string msg);
-	void buildXML(std::stringstream &s) {
+	bool startElement(KXmlContext* context) override {
+		return true;
+	}
+	void buildXML(std::stringstream &s) override {
 		s << "\t<writeback name='" << name << "'>";
 		s << CDATA_START << KXml::encode(getMsg()) << CDATA_END << "</writeback>\n";
 	}

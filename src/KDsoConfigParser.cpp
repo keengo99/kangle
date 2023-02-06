@@ -2,7 +2,7 @@
 #include "KConfig.h"
 #include "KDsoExtendManage.h"
 #include "KDsoConfigParser.h"
-bool KDsoConfigParser::startElement(KXmlContext *context, std::map<std::string, std::string> &attribute)
+bool KDsoConfigParser::startElement(KXmlContext *context)
 {
 #ifdef ENABLE_KSAPI_FILTER
 	if (context->path == "config") {
@@ -10,7 +10,7 @@ bool KDsoConfigParser::startElement(KXmlContext *context, std::map<std::string, 
 			if (conf.dem == NULL) {
 				conf.dem = new KDsoExtendManage;
 			}
-			conf.dem->add(attribute);
+			conf.dem->add(context->attribute);
 		}
 	}
 #endif

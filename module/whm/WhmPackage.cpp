@@ -139,11 +139,10 @@ WhmCallMap *WhmPackage::newCallMap(std::string &name, std::string &callName) {
 	}
 	return new WhmCallMap(extend, callName);
 }
-bool WhmPackage::startElement(KXmlContext *context, std::map<std::string,
-		std::string> &attribute) {
+bool WhmPackage::startElement(KXmlContext *context) {
 	if(context->parent == NULL){
 		//root element
-		version = attribute["version"];
+		version = context->attribute["version"];
 		return true;
 	}
 	if (context->qName == "call") {
@@ -151,19 +150,19 @@ bool WhmPackage::startElement(KXmlContext *context, std::map<std::string,
 		if (curCallable) {
 			WhmError("curCall is not NULL\n");
 		} else {
-			std::string name = attribute["name"];
-			std::string extendCall = attribute["call"];
+			std::string name = context->attribute["name"];
+			std::string extendCall = context->attribute["call"];
 			if(extendCall.size()==0){
 				extendCall = name;
 			}
-			curCallable = newCallMap(attribute["extend"],extendCall);
+			curCallable = newCallMap(context->attribute["extend"],extendCall);
 			if (curCallable == NULL) {
 				WhmError("cann't find extend[%s]\n",
-						attribute["extend"].c_str());
+					context->attribute["extend"].c_str());
 				return false;
 			}
 			curCallable->name = name;
-			if (attribute["scope"] == "public") {
+			if (context->attribute["scope"] == "public") {
 				curCallable->scope = callScopePublic;
 			}
 		}
@@ -172,24 +171,24 @@ bool WhmPackage::startElement(KXmlContext *context, std::map<std::string,
 		if (curCallable == NULL) {
 			WhmError("cann't add event,it must under tag call\n");
 		}
-		WhmExtend *extend = findExtend(attribute["extend"]);
+		WhmExtend *extend = findExtend(context->attribute["extend"]);
 		if (extend == NULL) {
-			WhmError("cann't find extend[%s]\n", attribute["extend"].c_str());
+			WhmError("cann't find extend[%s]\n", context->attribute["extend"].c_str());
 			return false;
 		}
-		if (strcasecmp(attribute["type"].c_str(), "before") == 0) {
-			curCallable->addBeforeEvent(extend, attribute);
+		if (strcasecmp(context->attribute["type"].c_str(), "before") == 0) {
+			curCallable->addBeforeEvent(extend, context->attribute);
 		} else {
-			curCallable->addAfterEvent(extend, attribute);
+			curCallable->addAfterEvent(extend, context->attribute);
 		}
 	} else if (context->qName == "extend") {
-		std::string name = attribute["name"];
+		std::string name = context->attribute["name"];
 		WhmExtend *extend = findExtend(name);
 		if (extend) {
 			WhmError("extend name[%s] is duplicate\n", name.c_str());
 			return false;
 		}
-		std::string type = attribute["type"];
+		std::string type = context->attribute["type"];
 		if (type.size()>0) {
 			//have type attribute
 			if (type=="shell") {
@@ -198,11 +197,11 @@ bool WhmPackage::startElement(KXmlContext *context, std::map<std::string,
 		} else {
 			//@deprecated please use type=<dso|cmd|url|whmshell>
 			std::string file;
-			file = attribute["dso"];
+			file = context->attribute["dso"];
 			if (file.size() == 0) {
-				file = attribute["cmd"];
+				file = context->attribute["cmd"];
 				if (file.size() == 0) {
-					file = attribute["url"];
+					file = context->attribute["url"];
 					if (file.size() == 0) {
 						WhmError("new extend error. type must be dso or cmd\n");
 						return false;
@@ -210,7 +209,7 @@ bool WhmPackage::startElement(KXmlContext *context, std::map<std::string,
 					extend = new WhmUrl(file);
 				} else {
 					WhmCommand *e = new WhmCommand(file);
-					if (attribute["runas"] == "user") {
+					if (context->attribute["runas"] == "user") {
 						e->runAsUser = true;
 					} else {
 						e->runAsUser = false;
@@ -232,7 +231,7 @@ bool WhmPackage::startElement(KXmlContext *context, std::map<std::string,
 		extends.insert(std::pair<std::string, WhmExtend *> (name, extend));
 		curExtend = extend;
 	} else if (context->qName=="include") {
-		std::string name = attribute["extend"];
+		std::string name = context->attribute["extend"];
 		WhmExtend *extend = findExtend(name);
 		if (extend==NULL) {
 			WhmError("extend name[%s] cann't find\n",name.c_str());
@@ -250,7 +249,7 @@ bool WhmPackage::startElement(KXmlContext *context, std::map<std::string,
 		shell->include(static_cast<WhmShell *>(extend));		
 	}
 	if (curExtend) {
-		curExtend->startElement(context,attribute);
+		curExtend->startElement(context);
 	}
 	return true;
 }

@@ -34,10 +34,9 @@ KAccessParser::~KAccessParser() {
 
 }
 
-bool KAccessParser::startElement(KXmlContext *context, std::map<std::string,
-		std::string> &attribute) {
+bool KAccessParser::startElement(KXmlContext *context) {
 	for (int i = 0; i < 2; i++) {
-		access[i].startElement(context, attribute);
+		access[i].startElement(context);
 	}
 	return true;
 }

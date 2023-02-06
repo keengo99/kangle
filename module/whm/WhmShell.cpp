@@ -163,38 +163,38 @@ void WhmShell::run(WhmShellContext *sc)
 	//set the shellcontext is closed
 	sc->closed = true;
 }
-bool WhmShell::startElement(KXmlContext *context, std::map<std::string,std::string> &attribute)
+bool WhmShell::startElement(KXmlContext *context)
 {
 	if (context->qName=="commands") {
 		if (curProcess==NULL) {
 			curProcess = new WhmShellProcess;
-			std::string v = attribute["stdin"];
+			std::string v = context->attribute["stdin"];
 			if (v.size()>0) {
 				curProcess->stdin_file = strdup(v.c_str());
 			}
-			v = attribute["stdout"];
+			v = context->attribute["stdout"];
 			if (v.size()>0) {
 				curProcess->stdout_file = strdup(v.c_str());
 			}
-			v = attribute["stderr"];
+			v = context->attribute["stderr"];
 			if (v.size()>0) {
 				curProcess->stderr_file = strdup(v.c_str());
 			}
-			v = attribute["runas"];
+			v = context->attribute["runas"];
 			if (v=="system") {
 				curProcess->runAsUser = false;
 			} else {
 				curProcess->runAsUser = true;
 			}
-			v = attribute["curdir"];
+			v = context->attribute["curdir"];
 			if (v.size()>0) {
 				curProcess->curdir = strdup(v.c_str());
 			}
 		}
 	}
 	if (context->qName=="extend") {
-		async = (attribute["async"]=="1");
-		merge = (attribute["merge"]=="1");
+		async = (context->attribute["async"]=="1");
+		merge = (context->attribute["merge"]=="1");
 	}
 	return true;
 }

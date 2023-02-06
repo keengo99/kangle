@@ -78,8 +78,7 @@ KLocalLang *KLang::getLocal(char *name)
 	}
 	return (*it).second;
 }
-bool KLang::startElement(KXmlContext *context,
-		std::map<std::string,std::string> &attribute) {
+bool KLang::startElement(KXmlContext *context) {
 	if (context->qName == "include") {
 		//KXml xml;
 		KLang parser(langs);
@@ -91,7 +90,7 @@ bool KLang::startElement(KXmlContext *context,
 			file = conf.path + "/webadmin";
 #endif
 			file += "/";
-			file += attribute["file"];
+			file += context->attribute["file"];
 			parser.load(file.c_str());
 		} catch(KXmlException &e) {
 			fprintf(stderr,"catch exception :%s\n",e.what());
@@ -99,9 +98,9 @@ bool KLang::startElement(KXmlContext *context,
 		return true;
 	}
 	if (context->qName == "lang") {
-		std::string name = attribute["name"];
+		std::string name = context->attribute["name"];
 		map<string,string>::iterator it;
-		for (it=attribute.begin(); it!=attribute.end(); it++) {
+		for (it= context->attribute.begin(); it!= context->attribute.end(); it++) {
 			add(name,(*it).first,(*it).second);
 		}
 		return true;

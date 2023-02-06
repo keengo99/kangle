@@ -38,7 +38,6 @@
 #include "utils.h"
 #include "KHttpResponseParser.h"
 #include "KVirtualHost.h"
-#include "KSendable.h"
 #include "KEnvInterface.h"
 #include "KPipeStream.h"
 #include "kselector.h"
@@ -64,7 +63,6 @@ KFetchObject *bindVirtualHost(KHttpRequest *rq, RequestError *error, KAccess **h
 
 //void prepare_write_stream(KHttpRequest *rq);
 KGL_RESULT load_object_from_source(KHttpRequest* rq);
-StreamState send_buff(KSendable *socket, kbuf *buf , INT64 &start,INT64 &send_len);
 KGL_RESULT send_auth2(KHttpRequest *rq, KAutoBuffer *body = NULL);
 char *find_content_type(KHttpRequest *rq,KHttpObject *obj);
 bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, bool build_status = true);

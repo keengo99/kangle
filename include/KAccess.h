@@ -100,12 +100,12 @@ public:
 	void listTable(KVirtualHostEvent *ctx);
 	bool listChain(std::string table_name,const char *chain_name,KVirtualHostEvent *ctx,int flag);
 public:
-	void startXml(const std::string &encoding);
-	void endXml(bool result);
-	bool startElement(KXmlContext *context,std::map<std::string, std::string> &attribute);
-	bool startCharacter(KXmlContext *context, char *character, int len);
-	bool endElement(KXmlContext *context);
-	void buildXML(std::stringstream &s, int flag);	
+	void startXml(const std::string &encoding) override;
+	void endXml(bool result) override;
+	bool startElement(KXmlContext *context) override;
+	bool startCharacter(KXmlContext *context, char *character, int len) override;
+	bool endElement(KXmlContext *context) override;
+	void buildXML(std::stringstream &s, int flag) override;
 public:
 	const char *qName;
 	u_short type;

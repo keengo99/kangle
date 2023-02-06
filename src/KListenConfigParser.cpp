@@ -47,38 +47,37 @@ bool KWorkerConfigParser::parse(std::string file) {
 	}
 	return result;
 }
-bool KListenConfigParser::startElement(std::string &context, std::string &qName,
-		std::map<std::string, std::string> &attribute) {
-	if (context!="config") {
+bool KListenConfigParser::startElement(KXmlContext *context) {
+	if (context->getParentName()!="config") {
 		return true;
 	}
 	KConfig *c = cconf;
 	if (c==NULL) {
 		c = &conf;
 	}
-	if (qName == "listen") {
+	if (context->qName == "listen") {
 		KListenHost *m_host = new KListenHost;
 		//m_host->name = attribute["name"];
-		m_host->ip = attribute["ip"];
-		m_host->port = attribute["port"];
+		m_host->ip = context->attribute["ip"];
+		m_host->port = context->attribute["port"];
 #ifdef KSOCKET_SSL
-		m_host->cert_file = attribute["certificate"];
-		m_host->key_file = attribute["certificate_key"];
-		if (!attribute["alpn"].empty()) {
-			m_host->alpn = (u_char)atoi(attribute["alpn"].c_str());
+		m_host->cert_file = context->attribute["certificate"];
+		m_host->key_file = context->attribute["certificate_key"];
+		if (!context->attribute["alpn"].empty()) {
+			m_host->alpn = (u_char)atoi(context->attribute["alpn"].c_str());
 		} else {
 			m_host->alpn = 0;
 		}
 #ifdef ENABLE_HTTP2
-		if (!attribute["http2"].empty()) {
-			m_host->alpn = attribute["http2"] == "1";
+		if (!context->attribute["http2"].empty()) {
+			m_host->alpn = context->attribute["http2"] == "1";
 		}
 #endif
-		m_host->early_data = attribute["early_data"] == "1";
-		m_host->cipher = attribute["cipher"];
-		m_host->protocols = attribute["protocols"];
+		m_host->early_data = context->attribute["early_data"] == "1";
+		m_host->cipher = context->attribute["cipher"];
+		m_host->protocols = context->attribute["protocols"];
 #endif
-		if (!parseWorkModel(attribute["type"].c_str(),m_host->model)) {
+		if (!parseWorkModel(context->attribute["type"].c_str(),m_host->model)) {
 			delete m_host;
 			return false;
 		}
@@ -87,9 +86,9 @@ bool KListenConfigParser::startElement(std::string &context, std::string &qName,
 	}
 	return true;
 }
-bool KListenConfigParser::startCharacter(std::string &context, std::string &qName,
+bool KListenConfigParser::startCharacter(KXmlContext *context,
 		char *character, int len) {
-	if (context == "config") {
+	if (context->getParentName() == "config") {
 		
 	}
 	return true;

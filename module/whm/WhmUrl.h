@@ -17,6 +17,9 @@ public:
 	bool init(std::string &whmFile) {
 		return true;
 	}
+	bool startElement(KXmlContext* context) override {
+		return true;
+	}
 	int call(const char *callName,const char *eventType, WhmContext *context);
 	const char *getType()
 	{

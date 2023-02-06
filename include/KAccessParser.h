@@ -30,10 +30,9 @@ class KAccessParser: public KXmlEvent {
 public:
 	KAccessParser();
 	virtual ~KAccessParser();
-	bool startElement(KXmlContext *context,
-			std::map<std::string, std::string> &attribute);
-	bool startCharacter(KXmlContext *context, char *character, int len);
-	bool endElement(KXmlContext *context);
+	bool startElement(KXmlContext *context) override;
+	bool startCharacter(KXmlContext *context, char *character, int len) override;
+	bool endElement(KXmlContext *context) override;
 	bool parseFile(std::string file, KAccess *access);
 	bool parseString(const char *str,KAccess *access);
 	void startXml(const std::string &encoding);

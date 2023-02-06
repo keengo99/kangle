@@ -5,29 +5,12 @@
 #include "KHttpHeader.h"
 #include "KHttpLib.h"
 #include "KAtomCountable.h"
+#include "KConfigTree.h"
 
-typedef unsigned char * domain_t;
 class KSubVirtualHost;
 class KHttpRequest;
 class KVirtualHost;
 
-inline int memn2cmp(unsigned char *s1, unsigned char *s2)
-{
-	unsigned char n;
-    int  m, z;
-    if (*s1 <= *s2) {
-        n = *s1;
-        z = -1;
-    } else {
-        n = *s2;
-        z = 1;
-    }
-    m = memcmp(s1 + 1, s2 + 1, n);
-    if (m || *s1 == *s2) {
-		return m;
-    }
-    return z;
-}
 inline bool revert_hostname(const char *src,int len,domain_t dst,int dst_len)
 {
 	kgl_str_t stack[256];
