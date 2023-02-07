@@ -28,7 +28,7 @@ namespace kconfig {
 			names[cur_level++] = name;
 			return true;
 		}
-		T *pop() {
+		T* pop() {
 			if (cur_level == 0) {
 				return nullptr;
 			}
@@ -47,18 +47,18 @@ namespace kconfig {
 	class KConfigTree
 	{
 	public:
-		KConfigTree(KXmlKey *key) :name(key->tag,key->vary) {
-			init();			
+		KConfigTree(KXmlKey* key) :name(key->tag, key->vary) {
+			init();
 		}
-		KConfigTree(const char* key, size_t len) :name(key,len){
+		KConfigTree(const char* key, size_t len) :name(key, len) {
 			init();
 		}
 		~KConfigTree();
-		KConfigTree* add(KXmlKey **names);
-		void* remove(KXmlKey **names);
-		KMapNode<KConfigTree>* find_child(KXmlKey* name);
-		void remove_child(KMapNode<KConfigTree>* node);
-		bool add_child(KConfigTree* n);
+		KConfigTree* add(KXmlKey** names);
+		void* remove(KXmlKey** names);
+		KConfigTree* find_child(KXmlKey* name);
+		//void remove_child(KMapNode<KConfigTree>* node);
+		//bool add_child(KConfigTree* n);
 		int cmp(KXmlKey* a) {
 			return name.cmp(a);
 		}
@@ -66,13 +66,15 @@ namespace kconfig {
 		KXmlKey name;
 		KMap<KXmlKey, KConfigTree>* child;
 		void* data;
+		KConfigTree* wide_leaf;
 	private:
 		void init() {
 			child = nullptr;
 			this->data = nullptr;
+			this->wide_leaf = nullptr;
 		}
 		bool empty() {
-			return !child && !data;
+			return !child && !data && !wide_leaf;
 		}
 	};
 	class KConfigFile
@@ -90,27 +92,27 @@ namespace kconfig {
 		}
 		KXmlNode* load();
 		bool reload();
-		void update(KXmlNode* new_nodes);
-		void update(const char* str, size_t len);
+		bool reload(const char* str, size_t len);
 		uint32_t id;
 		uint32_t index = 50;
 		time_t last_modified = 0;
 		KXmlNode* nodes = nullptr;
 		std::string filename;
 	private:
-		void notice(KConfigTree* tree, KXmlNode* o, KXmlNode* n);
+		void update(KXmlNode* new_nodes);
+		KXmlNode* parse_xml(char* buf, size_t len);
 		KConfigTree* ev;
 		bool diff(KConfigTree* name, KXmlNode* o, KXmlNode* n);
 		bool diff_nodes(KConfigTree* name, KMap<KXmlKey, KXmlNode>* o, KMap<KXmlKey, KXmlNode>* n);
 	};
 	class KConfigEvent;
-	typedef void (*kconfig_event_callback)(void *data, KConfigFile* file, KXmlNode* o,KXmlNode* n);
+	typedef void (*kconfig_event_callback)(void* data, KConfigFile* file, KXmlNode* o, KXmlNode* n);
 
 	class KConfigEventNode
 	{
 	public:
 		KConfigEventNode() {
-			
+
 		}
 		~KConfigEventNode() {
 		}
@@ -124,7 +126,7 @@ namespace kconfig {
 	class KConfigEventDir
 	{
 	public:
-		KConfigEventDir(KXmlKey *key) : name(key->tag,key->vary) {
+		KConfigEventDir(KXmlKey* key) : name(key->tag, key->vary) {
 			this->node = nullptr;
 		}
 		~KConfigEventDir() {

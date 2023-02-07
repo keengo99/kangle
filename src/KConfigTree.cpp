@@ -62,7 +62,12 @@ namespace kconfig {
 			delete child;
 			child = nullptr;
 		}
+		if (wide_leaf) {
+			delete wide_leaf;
+			wide_leaf = nullptr;
+		}
 	}
+#if 0
 	bool KConfigTree::add_child(KConfigTree* n) {
 		if (!child) {
 			child = new KMap<KXmlKey, KConfigTree>();
@@ -75,9 +80,16 @@ namespace kconfig {
 		it->value(n);
 		return true;
 	}
-	KConfigTree* KConfigTree::add(KXmlKey **name) {
+#endif
+	KConfigTree* KConfigTree::add(KXmlKey** name) {
 		if (!*name) {
 			return this;
+		}
+		if ((*name)->is_wide()) {
+			if (!wide_leaf) {
+				wide_leaf = new KConfigTree(*name);
+			}
+			return wide_leaf->add(name + 1);
 		}
 		int new_flag = 0;
 		if (!child) {
@@ -89,62 +101,58 @@ namespace kconfig {
 		}
 		return node->value()->add(name + 1);
 	}
-	void KConfigTree::remove_child(KMapNode<KConfigTree>* node) {
-		assert(child);
-		child->erase(node);
-		if (child->empty()) {
-			delete child;
-			child = nullptr;
-		}	
-	}
 	void* KConfigTree::remove(KXmlKey** name) {
 		if (!*name) {
 			void* result = data;
-			this->data = NULL;
+			this->data = nullptr;
 			return result;
 		}
+		if ((*name)->is_wide()) {
+			if (!wide_leaf) {
+				return nullptr;
+			}
+			void* ret = wide_leaf->remove(name + 1);
+			if (!ret) {
+				return nullptr;
+			}
+			if (wide_leaf->empty()) {
+				delete wide_leaf;
+				wide_leaf = nullptr;
+			}
+			return ret;
+		}
 		if (!child) {
-			return NULL;
+			return nullptr;
 		}
 		auto node = child->find(*name);
 		if (!node) {
-			return NULL;
+			return nullptr;
 		}
-
 		KConfigTree* rn = node->value();
 		void* ret = rn->remove(name + 1);
 		if (!ret) {
-			return NULL;
+			return nullptr;
 		}
 		if (rn->empty()) {
 			delete rn;
 			child->erase(node);
 			if (child->empty()) {
 				delete child;
-				child = NULL;
+				child = nullptr;
 			}
 		}
 		return ret;
 	}
-	KMapNode<KConfigTree>* KConfigTree::find_child(KXmlKey* name) {
+	KConfigTree* KConfigTree::find_child(KXmlKey* name) {
 		if (!child) {
-			return NULL;
+			return wide_leaf;
 		}
-		return child->find(name);
+		auto node = child->find(name);
+		if (!node) {
+			return wide_leaf;
+		}
+		return node->value();
 	}
-#if 0
-	KConfigTree* KConfigTree::find(std::string** name) {
-		if (!*name) {
-			return this;
-		}
-		auto rn = find_child(*name);
-		if (!rn) {
-			return NULL;
-		}
-		name++;
-		return ((KConfigTree*)rn->data)->find(name);
-	}
-#endif
 	KXmlNode* KConfigFile::load() {
 		auto fp = kfiber_file_open(this->filename.c_str(), fileRead, KFILE_ASYNC);
 		if (!fp) {
@@ -166,19 +174,14 @@ namespace kconfig {
 		if (!kfiber_file_read_full(fp, buf, &size)) {
 			return nullptr;
 		}
-		KXmlDocument document;
-		auto nodes = document.parse(buf);
-		if (nodes) {
-			return nodes->add_ref();
-		}
-		return nullptr;
+		return parse_xml(buf, size);
 	}
 	bool KConfigFile::diff_nodes(KConfigTree* name, KMap<KXmlKey, KXmlNode>* o, KMap<KXmlKey, KXmlNode>* n) {
 		bool result = false;
 		if (!o) {
 			assert(n != nullptr);
 			assert(name);
-			for (auto it = n->first(); it; it=it->next()) {
+			for (auto it = n->first(); it; it = it->next()) {
 				if (diff(name, nullptr, it->value())) {
 					result = true;
 				}
@@ -205,7 +208,7 @@ namespace kconfig {
 						return true;
 					}
 					result = true;
-				}				
+				}
 				while (child) {
 					child->parent = NULL;
 					child = child->next;
@@ -231,38 +234,17 @@ namespace kconfig {
 		}
 		return result;
 	}
-	void KConfigFile::notice(KConfigTree* tree, KXmlNode* o, KXmlNode* n) {
-		KConfigEvent* e = (KConfigEvent*)tree->data;
-		e->notice(this, o, n);
-	}
 	bool KConfigFile::diff(KConfigTree* ev_node, KXmlNode* o, KXmlNode* n) {
-		KConfigTree* notice_ev = nullptr;
+		KConfigEvent* notice_ev = nullptr;
 		if (ev_node) {
-			struct krb_node* child = ev_node->find_child(o ? &o->key : &n->key);
-			if (child) {
-				auto tree_node = (KConfigTree*)child->data;
-				if (tree_node->data) {
-					auto ev = (KConfigEvent*)tree_node->data;
-					if (!ev->is_dir()) {
-						notice_ev = tree_node;
-					}
-				}
-			}
-			if (!notice_ev && ev_node->data) {
-				auto ev = (KConfigEvent*)ev_node->data;
-				if (ev->is_dir()) {
-					notice_ev = ev_node;
-				}
-			}
-			if (child) {
-				ev_node = (KConfigTree*)child->data;
-			} else {
-				ev_node = nullptr;
+			ev_node = ev_node->find_child(o ? &o->key : &n->key);
+			if (ev_node) {
+				notice_ev = (KConfigEvent*)ev_node->data;
 			}
 		}
 		if (!o) {
 			if (notice_ev) {
-				notice(notice_ev, nullptr, n);
+				notice_ev->notice(this, nullptr, n);
 			}
 			if (ev_node) {
 				diff_nodes(ev_node, nullptr, &n->childs);
@@ -274,7 +256,7 @@ namespace kconfig {
 				diff_nodes(ev_node, &o->childs, nullptr);
 			}
 			if (notice_ev) {
-				notice(notice_ev, o, nullptr);
+				notice_ev->notice(this, o, nullptr);
 			}
 			return !notice_ev;
 		}
@@ -283,7 +265,7 @@ namespace kconfig {
 		while (o_next && n_next) {
 			if (diff_nodes(ev_node, &o_next->childs, &n_next->childs) || !o_next->is_same(n_next)) {
 				if (notice_ev) {
-					notice(notice_ev, o, n);
+					notice_ev->notice(this, o, n);
 				}
 				return !notice_ev;
 			}
@@ -292,28 +274,36 @@ namespace kconfig {
 		}
 		if (o_next || n_next) {
 			if (notice_ev) {
-				notice(notice_ev, o, n);
+				notice_ev->notice(this, o, n);
 			}
 			return !notice_ev;
 		}
 		return false;
 	}
-	void KConfigFile::update(const char* str, size_t size) {
-		//printf("now update xml=[%s]\n", str);
-		char* buf = (char*)malloc(size + 1);
-		if (!buf) {
-			return;
-		}
-		defer(xfree(buf));
-		buf[size] = '\0';
-		memcpy(buf, str, size);
+	KXmlNode* KConfigFile::parse_xml(char* buf, size_t len) {
 		KXmlDocument document;
 		document.set_vary(&config_vary);
 		auto nodes = document.parse(buf);
 		if (nodes) {
-			update(nodes->add_ref());
+			return nodes->add_ref();
 		}
-		return;
+		return nullptr;
+	}
+	bool KConfigFile::reload(const char* str, size_t size) {
+		//printf("now update xml=[%s]\n", str);
+		char* buf = (char*)malloc(size + 1);
+		if (!buf) {
+			return false;
+		}
+		defer(xfree(buf));
+		buf[size] = '\0';
+		memcpy(buf, str, size);
+		auto tree_node = parse_xml(buf, size);
+		if (!tree_node) {
+			return false;
+		}
+		update(tree_node);
+		return true;
 	}
 	void KConfigFile::update(KXmlNode* new_nodes) {
 		diff_nodes(ev, nodes ? &nodes->childs : nullptr, new_nodes ? &new_nodes->childs : nullptr);
@@ -358,10 +348,10 @@ namespace kconfig {
 			return;
 		}
 		(*node)->update(file->id, file->index);
-		cb(data, file, o, n);		
+		cb(data, file, o, n);
 		if (!n) {
 			delete (*node);
-			*node = nullptr;			
+			*node = nullptr;
 			return;
 		}
 	}
@@ -370,8 +360,8 @@ namespace kconfig {
 		klog(KLOG_ERR, "notice %s/%s%s%s  [%s] [%p] o=[%p] n=[%p]\n",
 			xml->parent ? xml->parent->key.tag->data : "",
 			xml->key.tag->data,
-			xml->key.vary?"@":"",
-			xml->key.vary?xml->key.vary->data:"",
+			xml->key.vary ? "@" : "",
+			xml->key.vary ? xml->key.vary->data : "",
 			(o ? (n ? "update" : "remove") : "new"),
 			this,
 			o,
@@ -404,7 +394,7 @@ namespace kconfig {
 		}
 		notice(&node, file, o, n);
 	}
-	bool remove_listen(KXmlKey **name, KConfigTree* ev_tree) {
+	bool remove_listen(KXmlKey** name, KConfigTree* ev_tree) {
 		void* data = ev_tree->remove(name);
 		if (data) {
 			delete (KConfigEvent*)data;
@@ -412,7 +402,7 @@ namespace kconfig {
 		}
 		return false;
 	}
-	bool listen(KXmlKey**name, void* data, kconfig_event_callback cb, event_flag flag, KConfigTree* ev_tree) {
+	bool listen(KXmlKey** name, void* data, kconfig_event_callback cb, event_flag flag, KConfigTree* ev_tree) {
 		auto tree = ev_tree->add(name);
 		if (!tree) {
 			return false;
@@ -420,11 +410,14 @@ namespace kconfig {
 		if (tree->data) {
 			return false;
 		}
+		if (tree->name.is_wide()) {
+			flag |= event_is_dir;
+		}
 		KConfigEvent* ev = new KConfigEvent(data, cb, flag);
 		tree->data = ev;
 		return true;
 	}
-	bool convert(KStackName<KXmlKey> *names, const char* name, size_t size, event_flag& flag) {
+	bool convert(KStackName<KXmlKey>* names, const char* name, size_t size, event_flag& flag) {
 		size_t lable_size;
 		while (size > 0) {
 			if (*name == '/') {
@@ -436,17 +429,19 @@ namespace kconfig {
 				flag = event_is_merge;
 				break;
 			}
+			/*
 			if (*name == '*') {
 				flag = event_is_dir;
 				break;
 			}
+			*/
 			const char* p = (const char*)memchr(name, '/', size);
 			if (p == NULL) {
 				lable_size = size;
 			} else {
 				lable_size = p - name;
 			}
-			if (lable_size > 255) {				
+			if (lable_size > 255) {
 				return false;
 			}
 			names->push(new KXmlKey(name, lable_size));
@@ -458,7 +453,7 @@ namespace kconfig {
 	bool listen(const char* name, size_t size, void* data, kconfig_event_callback cb, KConfigTree* ev_tree) {
 		event_flag is_dir = 0;
 		KStackName<KXmlKey> names(31);
-		auto result = convert(&names, name, size, is_dir);		
+		auto result = convert(&names, name, size, is_dir);
 		defer(while (auto v = names.pop()) {
 			delete v;
 		});
@@ -493,12 +488,12 @@ namespace kconfig {
 #if 0
 		listen((domain_t)"\0", NULL, [](void* data, KXmlNode* node, KConfigEventType type) {
 			printf("config [%s] event =[%d]\n", node->tag.c_str(), type);
-	}, &events);
+			}, &events);
 		listen(_KS("vh"), NULL, [](void* data, KXmlNode* node, KConfigEventType type) {
 			printf("vh [%s] event =[%d]\n", node->tag.c_str(), type);
 			});
 #endif
-}
+	}
 	void shutdown() {
 
 	}
@@ -525,18 +520,18 @@ namespace kconfig {
 			}
 			}, &test_ev);
 
-		t.update(_KS("<config><int>3</int></config>"));
+		t.reload(_KS("<config><int>3</int></config>"));
 		assert(ctx.int_value == 3);
 		assert(ctx.attr_value == 0);
-		t.update(_KS("<config><int>4</int></config>"));
+		t.reload(_KS("<config><int>4</int></config>"));
 		assert(ctx.int_value == 4);
 		assert(ctx.attr_value == 0);
-		t.update(_KS("<config><int v='3'>4</int></config>"));
+		t.reload(_KS("<config><int v='3'>4</int></config>"));
 		assert(ctx.int_value == 4);
 		assert(ctx.attr_value == 3);
-		t.update(_KS("<config/>"));
+		t.reload(_KS("<config/>"));
 
-		listen(_KS("vh/*"), &ctx, [](void *data, KConfigFile *file, KXmlNode* o, KXmlNode* n) {
+		listen(_KS("/vh/*"), &ctx, [](void* data, KConfigFile* file, KXmlNode* o, KXmlNode* n) {
 			test_config_context* v = (test_config_context*)data;
 			auto node = o ? o : n;
 			v->ev_count++;
@@ -546,17 +541,17 @@ namespace kconfig {
 				v->vh_count--;
 			}
 			}, &test_ev);
-		t.update(_KS("<config><vh><a/><b/></vh></config>"));
+		t.reload(_KS("<config><vh><a/><b/></vh></config>"));
 		assert(ctx.vh_count == 2);
 		//no change
 		int prev_ev = ctx.ev_count;
-		t.update(_KS("<config><vh><a/><b/></vh></config>"));
+		t.reload(_KS("<config><vh><a/><b/></vh></config>"));
 		assert(prev_ev == ctx.ev_count);
 		assert(ctx.vh_count == 2);
 
-		t.update(_KS("<config><vh><c><d/><d/></c><c/><b/></vh></config>"));
+		t.reload(_KS("<config><vh><c><d/><d/></c><c/><b/></vh></config>"));
 		assert(ctx.vh_count == 2);
-		t.update(_KS("<config/>"));
+		t.reload(_KS("<config/>"));
 		assert(ctx.vh_count == 0);
 		/* test subnode update */
 
@@ -565,14 +560,14 @@ namespace kconfig {
 			test_config_context* v = (test_config_context*)data;
 			v->ev_count++;
 			}, &test_ev));
-		t.update(_KS("<config><int><aa/></int></config>"));
+		t.reload(_KS("<config><int><aa/></int></config>"));
 		prev_ev = ctx.ev_count;
-		t.update(_KS("<config><int><aa name='aa'/></int></config>"));
+		t.reload(_KS("<config><int><aa name='aa'/></int></config>"));
 		assert(ctx.ev_count == prev_ev + 1);
 
 		/* test vector */
-		assert(remove_listen(_KS("vh"), &test_ev));
-		assert(remove_listen(_KS(""), &test_ev));
+		assert(remove_listen(_KS("/vh/*"), &test_ev));
+		assert(remove_listen(_KS("/*"), &test_ev));
 		ctx.vh_count = 0;
 		assert(listen(_KS("*"), &ctx, [](void* data, KConfigFile* file, KXmlNode* o, KXmlNode* n) {
 			test_config_context* v = (test_config_context*)data;
@@ -591,13 +586,13 @@ namespace kconfig {
 				v->vh_count++;
 				n = n->next;
 			}
-			}, & test_ev));
-		t.update(_KS("<config></config>"));
+			}, &test_ev));
+		t.reload(_KS("<config></config>"));
 
 		assert(ctx.vh_count == 0);
-		t.update(_KS("<config><vh name='b'/><vh name='a'/><dd/></config>"));
+		t.reload(_KS("<config><vh name='b'/><vh name='a'/><dd/></config>"));
 
-		t.update(_KS("<config><vh name='b'/><vh name='a'/><sss/></config>"));
+		t.reload(_KS("<config><vh name='b'/><vh name='a'/><sss/></config>"));
 		assert(ctx.vh_count == 2);
-		}
 	}
+}
