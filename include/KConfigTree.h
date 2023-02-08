@@ -6,9 +6,8 @@
 #include "kmalloc.h"
 #include "KXmlDocument.h"
 
-typedef unsigned char* domain_t;
-int kgl_domain_cmp(domain_t s1, domain_t s2);
 namespace kconfig {
+	class KConfigFile;
 	template <typename T>
 	class KStackName
 	{
@@ -19,6 +18,9 @@ namespace kconfig {
 			cur_level = 0;
 		}
 		~KStackName() {
+			while (auto v = pop()) {
+				delete v;
+			}
 			xfree(names);
 		}
 		bool push(T* name) {
@@ -77,51 +79,124 @@ namespace kconfig {
 			return !child && !data && !wide_leaf;
 		}
 	};
+	class KNodeList
+	{
+	public:
+		KNodeList(int index) {
+			this->index = index;
+		}
+		int cmp(int* key) {
+			return *key - index;
+		}
+		int index;
+		std::list<KXmlNode*> nodes;
+	};
+	class KIndexNode
+	{
+	public:
+		~KIndexNode() {
+			nodes.iterator([](void* data, void* arg) {
+				delete (KNodeList*)data;
+				return iterator_remove_continue;
+				}, NULL);
+		}
+		template <typename F>
+		void iterator(F f) {
+			for (auto it = nodes.first(); it; it = it->next()) {
+				auto node_list = it->value();
+				for (auto it2 = node_list->nodes.begin(); it2 != node_list->nodes.end(); it2++) {
+					if (!f((*it2))) {
+						return;
+					}
+				}
+			}
+		}
+		template <typename F>
+		void riterator(F f) {
+			for (auto it = nodes.last(); it; it = it->prev()) {
+				auto node_list = it->value();
+				for (auto it2 = node_list->nodes.begin(); it2 != node_list->nodes.end(); it2++) {
+					if (!f((*it2))) {
+						return;
+					}
+				}
+			}
+		}
+		KMap<int, KNodeList> nodes;
+	};
 	class KConfigFile
 	{
 	public:
 		KConfigFile(KConfigTree* ev, std::string filename) {
 			this->filename.swap(filename);
-			this->id = 0;
+			this->ref = 1;
 			this->ev = ev;
 		}
+		void release() {
+			if (katom_dec((void*)&ref) == 0) {
+				delete this;
+			}
+		}
+		KConfigFile* add_ref() {
+			katom_inc((void*)&ref);
+			return this;
+		}
+		KXmlNode* load();
+		void clear() {
+			update(nullptr);
+		}
+		bool reload();
+		bool reload(const char* str, size_t len);
+		uint32_t get_index() {
+			return index;
+		}
+	private:
 		~KConfigFile() {
 			if (nodes) {
 				nodes->release();
 			}
 		}
-		KXmlNode* load();
-		bool reload();
-		bool reload(const char* str, size_t len);
-		uint32_t id;
-		uint32_t index = 50;
-		time_t last_modified = 0;
-		KXmlNode* nodes = nullptr;
-		std::string filename;
-	private:
 		void update(KXmlNode* new_nodes);
 		KXmlNode* parse_xml(char* buf, size_t len);
 		KConfigTree* ev;
+		KXmlNode* nodes = nullptr;
+		uint32_t index = 50;
+		volatile uint32_t ref;
+		time_t last_modified = 0;
+		std::string filename;
 		bool diff(KConfigTree* name, KXmlNode* o, KXmlNode* n);
 		bool diff_nodes(KConfigTree* name, KMap<KXmlKey, KXmlNode>* o, KMap<KXmlKey, KXmlNode>* n);
+		void convert_nodes(KMap<KXmlKey, KXmlNode>* nodes, KIndexNode &index_nodes);
 	};
 	class KConfigEvent;
-	typedef void (*kconfig_event_callback)(void* data, KConfigFile* file, KXmlNode* o, KXmlNode* n);
+	class KConfigEventNode;
+	enum class KConfigEventType
+	{
+		New,
+		Update,
+		Remove
+	};
+	typedef void (*kconfig_event_callback)(void* data, KConfigEventNode* node, KXmlNode* xml, KConfigEventType ev);
 
 	class KConfigEventNode
 	{
 	public:
-		KConfigEventNode() {
-
+		KConfigEventNode(KConfigFile* file, KXmlNode* xml) {
+			this->xml = xml->add_ref();
+			this->file = file->add_ref();
 		}
 		~KConfigEventNode() {
+			assert(xml);
+			xml->release();
+			file->release();
 		}
-		void update(uint32_t file_id, uint32_t index) {
-			this->file_id = file_id;
-			this->index = index;
+		void update(KXmlNode* xml) {
+			this->xml->release();
+			this->xml = xml->add_ref();
 		}
-		uint32_t file_id = 0;
-		uint32_t index = 0;
+		KConfigFile* file;
+		KXmlNode* xml;
+		KConfigEventNode* next = nullptr;
 	};
 	class KConfigEventDir
 	{
@@ -175,7 +250,7 @@ namespace kconfig {
 		bool is_merge() {
 			return (flag & event_is_merge) > 0;
 		}
-		void notice(KConfigFile* file, KXmlNode* o, KXmlNode* n);
+		void notice(KConfigFile* file, KXmlNode* o, KXmlNode* n, bool is_same);
 		union
 		{
 			KConfigEventNode* node;
@@ -185,11 +260,14 @@ namespace kconfig {
 		kconfig_event_callback cb;
 		event_flag flag;
 	private:
-		void notice(KConfigEventNode** node, KConfigFile* file, KXmlNode* o, KXmlNode* n);
+		void notice(KConfigEventNode** node, KConfigFile* file, KXmlNode* o, KXmlNode* n, bool is_same);
 	};
 	bool listen(const char* name, size_t size, void* data, kconfig_event_callback cb);
+	bool update(const char* name, size_t size, KXmlNode* xml, KConfigEventType type);
 	void reload();
 	void init();
+	void set_name_vary(const char* name, size_t len);
+	void set_name_index(const char* name,size_t len, int index);
 	void shutdown();
 	void test();
 };

@@ -20,7 +20,6 @@
  *
  * See COPYING file for detail.
  */
-#include <vector>
 #include <assert.h>
 #include <string.h>
 #include "global.h"
@@ -398,10 +397,6 @@ bool test() {
 #endif
 	test_dechunk2();
 	test_white_list();
-	//test_http_parser();
-	//	test_pipe();
-	//printf("sizeof(KHttpHeader)=%d,sizeof(KHttpHeader2)=[%d]\n", (int)sizeof(KHttpHeader),sizeof(KHttpHeader2));
-	//printf("sizeof(selectable)=[%d]\n", (int)sizeof(kselectable));
 	time_t nowTime = time(NULL);
 	char timeStr[41];
 	mk1123time(nowTime, timeStr, sizeof(timeStr) - 1);
