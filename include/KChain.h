@@ -34,12 +34,10 @@ public:
 	bool match(KHttpRequest *rq, KHttpObject *obj, int &jumpType,
 			KJump **jumpTable);
 	uint32_t hit_count;
-	bool addAcl(KAcl *acl);
 	KAcl *addAcl(std::string acl,std::string name,KAccess *kaccess);
 	bool delAcl(std::string acl);
 	bool downAcl(std::string id);
 	bool downMark(std::string id);
-	bool addMark(KMark *mark);
 	KMark *addMark(std::string mark,std::string name,KAccess *kaccess);
 	bool delMark(std::string mark);
 

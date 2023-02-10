@@ -16,17 +16,17 @@ public:
 	~KIpUrlRateAcl()
 	{
 	}
-	bool supportRuntime()
+	bool supportRuntime() override
 	{
 		return true;
 	}
-	KAcl *newInstance() {
+	KAcl *newInstance() override {
 		return new KIpUrlRateAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "ip_url_rate";
 	}	
-	std::string getDisplay() {
+	std::string getDisplay() override  {
 		std::stringstream s;
 		s << "&gt;" << request << "/" << second << "s ";
 		s << rate.getCount();

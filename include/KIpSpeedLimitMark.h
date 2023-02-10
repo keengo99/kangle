@@ -26,7 +26,7 @@ public:
 			free((*it).first);
 		}
 	}
-	bool supportRuntime()
+	bool supportRuntime() override
 	{
 		return true;
 	}

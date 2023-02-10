@@ -97,6 +97,14 @@ func (b *base) Init() error {
 			</chain>
 		</table>
 	</request>
+	<response action='allow' >
+		<table name='BEGIN'>
+			<chain  action='continue' >
+				<acl_path  path='/force_cache'></acl_path>
+				<mark_cache_control   max_age='10' force='1'></mark_cache_control>
+			</chain>
+		</table>
+	</response>
 	<!--vh start-->
 	<vh name='base' doc_root='www'  inherit='on' app='1'>		
 		<map path='/static' extend='default' confirm_file='0' allow_method='*'/>

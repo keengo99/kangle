@@ -33,7 +33,7 @@ public:
 	~KQueueMark();
 	bool mark(KHttpRequest *rq, KHttpObject *obj,
 		const int chainJumpType, int &jumpType);
-	bool supportRuntime()
+	bool supportRuntime() override
 	{
 		return true;
 	}
@@ -64,7 +64,7 @@ public:
 	}
 	~KPerQueueMark();
 	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType, int &jumpType);
-	bool supportRuntime()
+	bool supportRuntime() override
 	{
 		return true;
 	}

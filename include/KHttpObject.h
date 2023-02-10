@@ -128,7 +128,11 @@ public:
 inline bool status_code_can_cache(u_short code) {
 	switch (code) {
 	case STATUS_OK:
-		//目前仅支持200
+	case 301:
+	case 302:
+	case 307:
+	case 308:
+	case 404:
 		return true;
 	default:
 		return false;
@@ -258,13 +262,16 @@ public:
 	}
 #ifdef ENABLE_FORCE_CACHE
 	//强制缓存
-	bool force_cache() {
+	bool force_cache(bool static_flag) {
 		if (!status_code_can_cache(data->i.status_code)) {
 			return false;
 		}
-		KBIT_CLR(index.flags, ANSW_NO_CACHE | OBJ_MUST_REVALIDATE);
-		data->set_last_modified(kgl_current_sec);
-		KBIT_SET(index.flags, OBJ_IS_STATIC2);
+		KBIT_CLR(index.flags, ANSW_NO_CACHE);
+		if (static_flag) {
+			KBIT_CLR(index.flags, OBJ_MUST_REVALIDATE);
+			data->set_last_modified(kgl_current_sec);
+			KBIT_SET(index.flags, OBJ_IS_STATIC2);
+		}
 		return true;
 	}
 #endif

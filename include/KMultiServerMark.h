@@ -12,12 +12,12 @@ public:
 			brd->release();
 		}
 	}
-	bool supportRuntime()
+	bool supportRuntime() override
 	{
 		return true;
 	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
-			int &jumpType) {
+			int &jumpType) override  {
 		if (brd) {
 			KRedirectSource*fo = brd->rd->makeFetchObject(rq,rq->file);
 			fo->bindBaseRedirect(brd);
@@ -26,7 +26,7 @@ public:
 		}
 		return true;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		if (brd) {
 			KMultiAcserver *as = static_cast<KMultiAcserver *>(brd->rd);
@@ -40,7 +40,7 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) {
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override  {
 		KMultiAcserver *as = NULL;
 		if (brd==NULL) {
 			as = new KMultiAcserver;

@@ -85,7 +85,7 @@ bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, c
 #ifdef ENABLE_FORCE_CACHE
 			if (field.is(_KS("static"))) {
 				//通过http header强制缓存
-				obj->force_cache();
+				obj->force_cache(true);
 			} else
 #endif
 				if (field.is(_KS("public"))) {

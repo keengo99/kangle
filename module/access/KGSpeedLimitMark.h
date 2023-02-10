@@ -35,7 +35,7 @@ public:
 	virtual ~KGSpeedLimitMark() {
 		gsl->release();
 	}
-	bool supportRuntime()
+	bool supportRuntime() override
 	{
 		return true;
 	}

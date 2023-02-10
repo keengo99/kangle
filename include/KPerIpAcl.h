@@ -37,7 +37,7 @@ public:
 	}
 	virtual ~KPerIpAcl() {
 	}
-	bool supportRuntime()
+	bool supportRuntime() override
 	{
 		return true;
 	}

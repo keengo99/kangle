@@ -25,16 +25,16 @@ class KCacheControlMark: public KMark {
 public:
 	KCacheControlMark() {
 		max_age = 0;
-		staticUrl = false;
-		soft = false;
+		force = false;
+		static_flag = false;
 		must_revalidate = false;
 	}
 	virtual ~KCacheControlMark() {
 	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,int &jumpType) {
 #ifdef ENABLE_FORCE_CACHE
-		if (staticUrl) {
-			if (!obj->force_cache()) {
+		if (force) {
+			if (!obj->force_cache(static_flag)) {
 				return false;
 			}
 		}
@@ -43,7 +43,7 @@ public:
 			if (max_age>0) {
 				obj->data->i.max_age = max_age;
 				//soft指标是否发送max-age头给客户
-				KBIT_SET(obj->index.flags,(soft?ANSW_HAS_EXPIRES:ANSW_HAS_MAX_AGE));
+				//KBIT_SET(obj->index.flags,(soft?ANSW_HAS_EXPIRES:ANSW_HAS_MAX_AGE));
 			}
 			if (must_revalidate) {
 				KBIT_SET(obj->index.flags,OBJ_MUST_REVALIDATE);
@@ -54,11 +54,10 @@ public:
 	std::string getDisplay() {
 		std::stringstream s;
 		s << "max_age:" << max_age;
-		if(staticUrl){
+		if (static_flag) {
 			s << " static";
-		}
-		if (soft) {
-			s << " soft";
+		} else if (force) {
+			s << " force";
 		}
 		if (must_revalidate) {
 			s << " must_revalidate";
@@ -67,12 +66,13 @@ public:
 	}
 	void editHtml(std::map<std::string, std::string> &attribute,bool html){
 		max_age = atoi(attribute["max_age"].c_str());
+		force = (attribute["force"] == "1");
 		if(attribute["static"]=="on" || attribute["static"]=="1"){
-			staticUrl = true;
+			static_flag = true;
+			force = true;
 		}else{
-			staticUrl = false;
+			static_flag = false;
 		}
-		soft = (attribute["soft"]=="1");
 		must_revalidate = (attribute["must_revalidate"]=="1");
 	}
 	std::string getHtml(KModel *model) {
@@ -83,15 +83,17 @@ public:
 			s << mark->max_age;
 		}
 		s << "'><input type=checkbox name='static' value='1' ";
-		if(mark && mark->staticUrl){
+		if(mark && mark->static_flag){
 			s << "checked";
 		}
 		s << ">" << klang["static"];
-		s << "<input type=checkbox name='soft' value='1' ";
-		if(mark && mark->soft){
+
+		s << "<input type=checkbox name='force' value='1' ";
+		if(mark && mark->force){
 			s << "checked";
 		}
-		s << ">soft";
+		s << ">force";
+
 		s << "<input type=checkbox name='must_revalidate' value='1' ";
 		if(mark && mark->must_revalidate){
 			s << "checked";
@@ -108,11 +110,11 @@ public:
 public:
 	void buildXML(std::stringstream &s) {
 		s << " max_age='" << max_age << "'";
-		if(staticUrl){
-			s << " static='1'";
+		if(force){
+			s << " force='1'";
 		}
-		if (soft) {
-			s << " soft='1'";
+		if (static_flag) {
+			s << " static='1'";
 		}
 		if (must_revalidate) {
 			s << " must_revalidate='1'";
@@ -121,8 +123,8 @@ public:
 	}
 private:
 	unsigned max_age;
-	bool staticUrl;
-	bool soft;
+	bool force;
+	bool static_flag;	
 	bool must_revalidate;
 };
 #endif /*KRESPONSEFLAGMARK_H_*/

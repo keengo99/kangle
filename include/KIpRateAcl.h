@@ -14,7 +14,7 @@ public:
 	~KIpRateAcl()
 	{
 	}
-	bool supportRuntime()
+	bool supportRuntime() override
 	{
 		return true;
 	}

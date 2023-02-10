@@ -10,38 +10,38 @@ public:
 	~KCounterMark()
 	{
 	}
-	bool supportRuntime()
+	bool supportRuntime() override
 	{
 		return true;
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType)
+	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType) override
 	{
 		lock.Lock();
 		counter++;
 		lock.Unlock();
 		return true;
 	}
-	KMark *newInstance()
+	KMark *newInstance() override
 	{
 		return new KCounterMark();
 	}
-	const char *getName()
+	const char *getName() override
 	{
 		return "counter";
 	}
-	std::string getHtml(KModel *model)
+	std::string getHtml(KModel *model) override
 	{
 		std::stringstream s;
 		s << "<input type=checkbox name='reset' value='1'>reset";
 		return s.str();
 	}
-	std::string getDisplay()
+	std::string getDisplay() override
 	{
 		std::stringstream s;
 		s << counter;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) 
+	void editHtml(std::map<std::string, std::string> &attribute,bool html)  override
 	{
 	}
 	int whmCall(WhmContext *ctx)

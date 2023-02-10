@@ -16,17 +16,17 @@ public:
 	~KUrlRateAcl()
 	{
 	}
-	bool supportRuntime()
+	bool supportRuntime() override
 	{
 		return true;
 	}
-	KAcl *newInstance() {
+	KAcl *newInstance() override {
 		return new KUrlRateAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "url_rate";
 	}	
-	std::string getDisplay() {
+	std::string getDisplay() override  {
 		std::stringstream s;
 		s << "&gt;" << request << "/" << second << "s ";
 		s << rate.getCount();

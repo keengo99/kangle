@@ -14,12 +14,11 @@ public:
 			fi->release();
 		}
 	}
-	bool supportRuntime()
+	bool supportRuntime() override
 	{
 		return true;
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,
-				const int chainJumpType, int &jumpType)
+	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType, int &jumpType) override
 	{
 		if (fi) {
 			fi->addRef();
@@ -28,21 +27,21 @@ public:
 		}
 		return false;
 	}
-	KMark *newInstance()
+	KMark *newInstance() override
 	{
 		return new KFlowMark();
 	}
-	const char *getName()
+	const char *getName() override
 	{
 		return "flow";
 	}
-	std::string getHtml(KModel *model)
+	std::string getHtml(KModel *model) override
 	{
 		std::stringstream s;
 		s << "<input type=checkbox name='reset' value='1'>reset";
 		return s.str();
 	}
-	std::string getDisplay()
+	std::string getDisplay() override
 	{
 		std::stringstream s;
 		if (fi) {
@@ -50,7 +49,7 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
 	{
 		if (fi==NULL) {
 			fi = new KFlowInfo;
@@ -59,7 +58,7 @@ public:
 			fi->reset();
 		}
 	}
-	void buildXML(std::stringstream &s,int flag)
+	void buildXML(std::stringstream &s,int flag) override
 	{
 		if (fi) {
 			s << "flow='" << fi->flow << "' ";

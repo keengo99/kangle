@@ -506,7 +506,6 @@ bool KChain::startElement(KXmlContext *context,KAccess *kaccess) {
 	if (curacl) {
 		return curacl->startElement(context);
 	}
-
 	if (curmark) {
 		return curmark->startElement(context);
 	}

@@ -35,7 +35,7 @@ public:
 		kassert(flush_timer == false);
 		kfiber_rwlock_destroy(lock);
 	}
-	bool supportRuntime()
+	bool supportRuntime() override
 	{
 		return false;
 	}

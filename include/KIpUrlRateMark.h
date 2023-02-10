@@ -20,7 +20,7 @@ public:
 	{
 		iplist->release();
 	}
-	bool supportRuntime()
+	bool supportRuntime() override
 	{
 		return true;
 	}
