@@ -130,51 +130,6 @@ namespace kconfig {
 		}
 
 	};
-	class KNodeList
-	{
-	public:
-		KNodeList(int index) {
-			this->index = index;
-		}
-		int cmp(int* key) {
-			return *key - index;
-		}
-		int index;
-		std::list<KXmlNode*> nodes;
-	};
-	class KIndexNode
-	{
-	public:
-		~KIndexNode() {
-			nodes.iterator([](void* data, void* arg) {
-				delete (KNodeList*)data;
-				return iterator_remove_continue;
-				}, NULL);
-		}
-		template <typename F>
-		void iterator(F f) {
-			for (auto it = nodes.first(); it; it = it->next()) {
-				auto node_list = it->value();
-				for (auto it2 = node_list->nodes.begin(); it2 != node_list->nodes.end(); it2++) {
-					if (!f((*it2))) {
-						return;
-					}
-				}
-			}
-		}
-		template <typename F>
-		void riterator(F f) {
-			for (auto it = nodes.last(); it; it = it->prev()) {
-				auto node_list = it->value();
-				for (auto it2 = node_list->nodes.begin(); it2 != node_list->nodes.end(); it2++) {
-					if (!f((*it2))) {
-						return;
-					}
-				}
-			}
-		}
-		KMap<int, KNodeList> nodes;
-	};
 	class KConfigFile
 	{
 	public:
@@ -219,7 +174,6 @@ namespace kconfig {
 		time_t last_modified = 0;
 		bool diff(KConfigTree* name, KXmlNode* o, KXmlNode* n);
 		bool diff_nodes(KConfigTree* name, KMap<KXmlKey, KXmlNode>* o, KMap<KXmlKey, KXmlNode>* n);
-		void convert_nodes(KMap<KXmlKey, KXmlNode>* nodes, KIndexNode& index_nodes);
 	};
 	class KConfigEventNode
 	{
@@ -248,8 +202,7 @@ namespace kconfig {
 	void init();
 	void lock();
 	void unlock();
-	void set_name_vary(const char* name, size_t len);
-	void set_name_index(const char* name, size_t len, int index);
+	void set_name_vary(const char* name, size_t len, uint16_t index = 50);
 	void shutdown();
 	void test();
 };

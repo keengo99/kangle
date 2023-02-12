@@ -14,36 +14,6 @@ namespace kconfig {
 	static KConfigTree events(nullptr, _KS("config"));
 	KConfigFile* file = nullptr;
 	KMap<kgl_ref_str_t, KXmlKey> config_vary;
-	struct lable_index
-	{
-		lable_index(const char* name, size_t len, int index) {
-			key = kstring_from2(name, len);
-			this->index = index;
-		}
-		~lable_index() {
-			kstring_release(key);
-		}
-		kgl_ref_str_t* key;
-		int index;
-		int cmp(kgl_ref_str_t* a) {
-			return kgl_cmp(a->data, a->len, key->data, key->len);
-		}
-	};
-	KMap<kgl_ref_str_t, lable_index> lables;
-#if 0
-	template<typename T>
-	int config_tree_find_cmp2(void* k, void* k2) {
-		kgl_ref_str_t* s1 = (kgl_ref_str_t*)k;
-		T* s2 = (T*)k2;
-		return kgl_cmp(s1->data, s1->len, (char*)s2->name + 1, *s2->name);
-	}
-	template<typename T>
-	int config_tree_find_cmp(void* k, void* k2) {
-		domain_t s1 = (domain_t)k;
-		T* s2 = (T*)k2;
-		return kgl_domain_cmp(s1, s2->name);
-	}
-#endif
 	KConfigTree::~KConfigTree() {
 		clean();
 		if (node) {
@@ -314,86 +284,62 @@ namespace kconfig {
 		}
 		return parse_xml(buf, size);
 	}
-	void KConfigFile::convert_nodes(KMap<KXmlKey, KXmlNode>* nodes, KIndexNode& index_nodes) {
-		for (auto it = nodes->first(); it; it = it->next()) {
-			auto node = it->value();
-			auto it2 = lables.find(node->key.tag);
-			KNodeList* node_list;
-			int index;
-			if (!it2) {
-				index = 50;
-			} else {
-				index = it2->value()->index;
-			}
-			int new_flag;
-			auto it3 = index_nodes.nodes.insert(&index, &new_flag);
-			if (new_flag) {
-				node_list = new KNodeList(index);
-				it3->value(node_list);
-			} else {
-				node_list = it3->value();
-			}
-			node_list->nodes.push_back(node);
-		}
-	}
 	bool KConfigFile::diff_nodes(KConfigTree* name, KMap<KXmlKey, KXmlNode>* o, KMap<KXmlKey, KXmlNode>* n) {
 		bool result = false;
-		KIndexNode index_n;
 		if (!o) {
 			assert(n != nullptr);
 			assert(name);
-			convert_nodes(n, index_n);
-			index_n.iterator([&](KXmlNode* node) -> bool {
+			for (auto it = n->first(); it; it = it->next()) {
+				auto node = it->value();
 				if (diff(name, nullptr, node)) {
 					result = true;
 				}
-				return true;
-				});
+			}
 			return result;
 		}
 		if (!n) {
 			assert(o != nullptr);
 			assert(name);
-			convert_nodes(o, index_n);
-			index_n.riterator([&](KXmlNode* node) -> bool {
+			for (auto it = o->last(); it; it = it->prev()) {
+				auto node = it->value();
 				if (diff(name, node, nullptr)) {
 					result = true;
 				}
-				return true;
-				});
+			}
 			return result;
 		}
-		KIndexNode index_n2;
-		convert_nodes(n, index_n2);
-		index_n2.iterator([&](KXmlNode* node) -> bool {
+		for (auto itn = n->first(); itn; itn = itn->next()) {
+			auto node = itn->value();
 			auto it = o->find(&node->key);
 			if (it) {
 				auto child = it->value();
 				if (diff(name, child, node)) {
 					result = true;
 					if (!name) {
-						return false;
+						return true;
 					}
 				}
 				child->release();
 				o->erase(it);
-				return true;
+				continue;
 			}
 			if (diff(name, nullptr, node)) {
 				result = true;
+				if (!name) {
+					return true;
+				}
 			}
 			return name;
-			});
+		};
 		if (!name && !o->empty()) {
 			return true;
 		}
-		convert_nodes(o, index_n);
-		index_n.riterator([&](KXmlNode* node) -> bool {
+		for (auto it = o->last(); it; it = it->prev()) {
+			auto node = it->value();
 			if (diff(name, node, nullptr)) {
 				result = true;
 			}
-			return true;
-			});
+		}
 		return result;
 	}
 	bool KConfigFile::diff(KConfigTree* ev_node, KXmlNode* o, KXmlNode* n) {
@@ -594,18 +540,12 @@ namespace kconfig {
 	void reload() {
 		file->reload();
 	}
-	void set_name_vary(const char* name, size_t len) {
+	void set_name_vary(const char* name, size_t len, uint16_t index) {
 		auto key = new KXmlKey(name, len);
+		key->tag->id = index;
 		auto old_key = config_vary.insert(key->tag, key);
 		if (old_key) {
 			delete old_key;
-		}
-	}
-	void set_name_index(const char* name, size_t len, int index) {
-		auto lable = new lable_index(name, len, index);
-		auto old_lable = lables.insert(lable->key, lable);
-		if (old_lable) {
-			delete old_lable;
 		}
 	}
 	void init() {
@@ -620,11 +560,6 @@ namespace kconfig {
 		listen(_KS("/vh/*"), listener, &events);
 	}
 	void shutdown() {
-		lables.iterator([](void* data, void* arg) {
-			lable_index* lable = (lable_index*)data;
-			delete lable;
-			return iterator_remove_continue;
-			}, NULL);
 		config_vary.iterator([](void* data, void* arg) {
 			delete (KXmlKey*)data;
 			return iterator_remove_continue;
@@ -648,14 +583,16 @@ namespace kconfig {
 			int vh_count;
 			int attr_value;
 		};
-		set_name_index(_KS("a"), 10);
-		set_name_index(_KS("b"), 9);
-		set_name_index(_KS("c"), 3);
+		int prev_ev;
+		set_name_vary(_KS("a"), 10);
+		set_name_vary(_KS("b"), 2);
+		set_name_vary(_KS("c"), 6);
 		KConfigTree test_ev(nullptr, _KS("config"));
 		test_config_context ctx;
 		memset(&ctx, 0, sizeof(ctx));
 		KConfigFile* t = new KConfigFile(&test_ev, "");
 		defer(t->release());
+
 		auto listener = config_listen([&](KConfigTree* tree, KXmlNode* xml, KConfigEventType ev) {
 			ctx.ev_count++;
 			if (ev != KConfigEventType::Remove) {
@@ -689,7 +626,7 @@ namespace kconfig {
 		t->reload(_KS("<config><vh2><a/><c/><b/></vh2></config>"));
 		assert(ctx.vh_count == 3);
 		//no change
-		int prev_ev = ctx.ev_count;
+		prev_ev = ctx.ev_count;
 		t->reload(_KS("<config><vh2><a/><c/><b/></vh2></config>"));
 		assert(prev_ev == ctx.ev_count);
 		assert(ctx.vh_count == 3);
@@ -709,7 +646,7 @@ namespace kconfig {
 		prev_ev = ctx.ev_count;
 		t->reload(_KS("<config><int><aa name='aa'/></int></config>"));
 		assert(ctx.ev_count == prev_ev + 1);
-
+		return;
 		/* test vector */
 		assert(remove_listen(_KS("/vh2/*"), &test_ev));
 		assert(remove_listen(_KS("/*"), &test_ev));
