@@ -33,6 +33,7 @@
 #include "kfiber.h"
 #include "KHttpServer.h"
 #include "KConfigTree.h"
+#include "KHttpManage.h"
 #ifdef _WIN32
 #include <direct.h>
 #else
@@ -318,6 +319,7 @@ void LoadDefaultConfig() {
 #endif
 	conf.sysHost->hosts.push_back(svh);
 	conf.sysHost->addRef();
+	init_manager_handler();
 }
 void loadExtConfigFile(int index, KExtConfig* config, KXml& xmlParser) {
 	while (config) {

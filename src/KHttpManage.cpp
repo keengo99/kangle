@@ -29,6 +29,7 @@
 #include "KHttpDigestAuth.h"
 #include "KHttpServerParser.h"
 #include "KVirtualHostManage.h"
+#include "KBodyWStream.h"
 #include "iconv.h"
 #include "KProcessManage.h"
 #include "KLogHandle.h"
@@ -38,6 +39,7 @@
 #include "kaddr.h"
 #include "HttpFiber.h"
 #include "KHttpServer.h"
+#include "KConfigTree.h"
 #include "extern.h"
 #include "lang.h"
 #include "kmd5.h"
@@ -46,6 +48,7 @@ namespace kangle {
 };
 using namespace std;
 using namespace kangle;
+KPathHandler<kgl_request_handler> KHttpManage::handler(_KS(""));
 KTHREAD_FUNCTION check_autoupdate(void* param);
 void get_url_info(KSink* rq, KStringBuf& s) {
 	if (rq->data.raw_url == NULL) {
@@ -571,9 +574,9 @@ bool KHttpManage::config() {
 #endif
 
 #ifndef _WIN32
-//		s << klang["lang_stack_size"]
-//				<< ":<input type=text name='stack_size' value="
-//				<< conf.stack_size << "><br>";
+		//		s << klang["lang_stack_size"]
+		//				<< ":<input type=text name='stack_size' value="
+		//				<< conf.stack_size << "><br>";
 #endif
 		s << klang["io_worker"] << ":<input type=text size=4 name='worker_io' value='" << conf.worker_io << "'><br>";
 		s << "max_io:<input type=text size=4 name='max_io' value='" << conf.max_io << "'><br>";
@@ -880,7 +883,7 @@ bool KHttpManage::parseUrlParam(char* param, size_t len) {
 		if (split == '=') {
 			name = msg;
 			split = '&';
-} else {//strtok_r(msg,"=",&ptr2);
+		} else {//strtok_r(msg,"=",&ptr2);
 			url_decode(msg, 0, rq->sink->data.url);
 			value = msg;//strtok_r(NULL,"=",&ptr2);
 			/*
@@ -1527,7 +1530,7 @@ bool KHttpManage::save_access(KVirtualHost* vh, std::string redirect_url) {
 		vh->saveAccess();
 #endif
 		vh->destroy();
-} else {
+	} else {
 		if (!saveConfig()) {
 			sendErrorSaveConfig();
 			return false;
@@ -1806,6 +1809,8 @@ bool KHttpManage::sendProcessInfo() {
 KGL_RESULT KHttpManage::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) {
 	this->rq = rq;
 	this->out = out;
+	return handle_request(handler, this, rq, in, out);
+#if 0	
 	bool hit = true;
 	if (!start(hit)) {
 		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
@@ -1814,6 +1819,7 @@ KGL_RESULT KHttpManage::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_
 		return send_error2(rq, STATUS_NOT_FOUND, "no such file");
 	}
 	return KGL_OK;
+#endif
 }
 bool KHttpManage::start(bool& hit) {
 
@@ -2225,3 +2231,75 @@ function sortrq(index)\
 	return start_listen(hit);
 }
 
+void init_manager_handler() {
+	KHttpManage::handler.add(_KS("/"), [](kgl_str_t* path, void* data, KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) -> KGL_RESULT {
+		KHttpManage* hm = (KHttpManage*)data;
+		if (path->len == 1 && *path->data == '/') {
+			hm->sendMainPage();
+			return KGL_OK;
+		}
+		bool hit = true;
+		if (!hm->start(hit)) {
+			KBIT_SET(hm->rq->sink->data.flags, RQ_CONNECTION_CLOSE);
+		}
+		if (!hit) {
+			return send_error2(hm->rq, STATUS_NOT_FOUND, "no such file");
+		}
+		return KGL_OK;
+		});
+	KHttpManage::handler.add(_KS("/cfg"), [](kgl_str_t* path, void* data, KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) -> KGL_RESULT {
+		if (rq->sink->data.meth == METH_GET) {
+			const char* orig_path = path->data;
+			size_t orig_len = path->len;
+			auto tree = kconfig::find((const char**)&path->data, &path->len);
+			if (!tree) {
+				return out->f->error(out->ctx, 404, _KS("not found"));
+			}
+			out->f->write_header(out->ctx, kgl_header_content_type, _KS("text/xml"));
+			KBodyWStream st;
+			auto result = out->f->write_header_finish(out->ctx, -1, &st.body);
+			if (result != KGL_OK) {
+				return result;
+			}
+			st.write_all(_KS("<result path='"));
+			if (*orig_path != '/') {
+				st.write_all(_KS("/"));
+			}
+			if (orig_len > path->len) {
+				st.write_all(orig_path, orig_len - path->len);
+			}
+			st.write_all(_KS("'>"));
+			auto node = tree->node;
+			while (node) {
+				st.write_all(_KS("<xml file='"));
+				st << node->file->filename;
+				st.write_all(_KS("'"));
+#ifndef NDEBUG
+				/*
+				st.write_all(_KS(" address = '"));
+				st.add_as_hex64((int64_t)node->xml);
+				st.write_all(_KS("'"));
+				*/
+#endif
+				st.write_all(_KS(">"));
+				node->xml->write(&st);
+				st.write_all(_KS("</xml>"));
+				node = node->next;
+			}
+			if (tree->child) {
+				st.write_all(_KS("<child>"));
+				for (auto it = tree->child->first(); it; it = it->next()) {
+					auto v = it->value();
+					if (v->name->len > 0) {
+						st.write_all(_KS("<"));
+						st.write_all(v->name->data, v->name->len);
+						st.write_all(_KS("/>"));
+					}
+				}
+				st.write_all(_KS("</child>"));
+			}
+			return st.write_end(st.write_all(_KS("</result>")));
+		}
+		return KGL_OK;
+		});
+}

@@ -21,10 +21,9 @@ public:
 	KRedirect();
 	virtual ~KRedirect();
 	virtual KRedirectSource*makeFetchObject(KHttpRequest *rq, KFileName *file) = 0;
-	//virtual kev_result connect(KHttpRequest *rq, KAsyncFetchObject *fo) = 0;
 	virtual KUpstream *GetUpstream(KHttpRequest *rq)
 	{
-		return NULL;
+		return nullptr;
 	}
 	void setEnable() {
 		enable = true;

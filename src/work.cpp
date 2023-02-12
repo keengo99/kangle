@@ -479,8 +479,7 @@ KGL_RESULT stageHttpManageLogin(KHttpRequest* rq)
 		"The default admin user is admin, password is kangle</body></html>";
 	return send_auth2(rq, &buffer);
 }
-KGL_RESULT stageHttpManage(KHttpRequest* rq)
-{
+KGL_RESULT stageHttpManage(KHttpRequest* rq) {
 
 	conf.admin_lock.Lock();
 	if (!checkManageLogin(rq)) {
@@ -497,6 +496,8 @@ KGL_RESULT stageHttpManage(KHttpRequest* rq)
 		ips, rq->sink->data.raw_url->path,
 		(rq->sink->data.raw_url->param ? "?" : ""), (rq->sink->data.raw_url->param ? rq->sink->data.raw_url->param : ""));
 	if (strstr(rq->sink->data.url->path, ".whm")
+		|| strstr(rq->sink->data.url->path, ".html")
+		|| strstr(rq->sink->data.url->path, ".js")
 		|| strcmp(rq->sink->data.url->path, "/logo.gif") == 0
 		|| strcmp(rq->sink->data.url->path, "/main.css") == 0) {
 		KBIT_CLR(rq->sink->data.flags, RQ_HAS_AUTHORIZATION);

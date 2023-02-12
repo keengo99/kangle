@@ -1030,3 +1030,4 @@ KGL_RESULT on_upstream_finished_header(KHttpRequest* rq, kgl_response_body* body
 	kassert(!kfiber_is_main());
 	return prepare_write_body(rq, body);
 }
+

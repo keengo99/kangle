@@ -1,8 +1,9 @@
 #ifndef KHTTPFIBER_H
 #define KHTTPFIBER_H
 #include "ksapi.h"
-#include "KHttpServer.h"
 #include "global.h"
+#include "KHttpServer.h"
+#include "KPathHandler.h"
 
 class KHttpRequest;
 class KAutoBuffer;
@@ -33,6 +34,7 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj);
 int stage_end_request(KHttpRequest* rq, KGL_RESULT result);
 KGL_RESULT prepare_request_fetchobj(KHttpRequest* rq,kgl_input_stream *in, kgl_output_stream *out);
 KGL_RESULT process_upstream_no_body(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out);
+
 /* merge obj precondition to sub_request */
 void merge_precondition(KHttpRequest* rq, KHttpObject* obj);
 /* return true 200/206 false 304/412 */
@@ -46,5 +48,18 @@ bool kgl_request_match_if_range(KHttpRequest* rq, KHttpObject* obj);
 bool kgl_match_if_range(kgl_precondition_flag flag, kgl_request_range* range, time_t last_modified);
 bool kgl_match_if_range(kgl_precondition_flag flag, kgl_request_range* range, kgl_len_str_t *etag);
 bool process_check_final_source(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out, KGL_RESULT* result);
+typedef KGL_RESULT(*kgl_request_handler)(kgl_str_t *path, void *data, KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out);
 
+template <typename CMP>
+KGL_RESULT handle_request(KPathHandler<kgl_request_handler, CMP>& handler, void *data, KHttpRequest* rq,  kgl_input_stream* in, kgl_output_stream* out) {
+	auto url = rq->sink->data.url;
+	kgl_str_t path;
+	path.data = url->path;
+	path.len = strlen(path.data);
+	auto h = handler.find((const char **)&path.data, &path.len);
+	if (!h) {
+		return send_error2(rq, 404, "no such file.");
+	}
+	return h(&path, data, rq, in, out);
+}
 #endif

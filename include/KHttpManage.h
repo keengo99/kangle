@@ -9,6 +9,10 @@
 #include "http.h"
 #include "KLastModify.h"
 #include "KUrlValue.h"
+#include "KPathHandler.h"
+#include "HttpFiber.h"
+#include "KHttpLib.h"
+
 enum {
 	USER_TYPE_UNAUTH, USER_TYPE_ADMIN, USER_TYPE_VIRTUALHOST, USER_TYPE_NORMAL
 };
@@ -27,6 +31,7 @@ public:
 	bool translate;
 	std::stringstream s;
 };
+
 bool kgl_connection_iterator(void* arg, KSink* rq);
 class KHttpManage : public KFetchObject {
 public:
@@ -34,6 +39,7 @@ public:
 	bool sendHttpHeader();
 	KHttpManage();
 	~KHttpManage();
+	static KPathHandler<kgl_request_handler> handler;
 	KGL_RESULT Open(KHttpRequest *rq, kgl_input_stream* in, kgl_output_stream* out);
 	//void process(KHttpRequest *rq);
 	bool start(bool &hit);
@@ -46,10 +52,11 @@ public:
 	bool sendHttp(const char *msg, INT64 content_length,
 			const char * content_type = NULL, const char *add_header = NULL,
 			int max_age = 0);
+	bool sendMainPage();
+	KHttpRequest* rq;
+	kgl_output_stream* out;
 private:
 	bool save_access(KVirtualHost *vh,std::string redirect_url);
-	KHttpRequest *rq;
-	kgl_output_stream* out;
 	std::map<std::string, std::string> urlParam;
 	KUrlValue urlValue;
 	char *postData;
@@ -69,7 +76,7 @@ private:
 	bool runCommand();
 	bool sendErrorSaveConfig(int file=0);
 	bool sendErrPage(const char *err_msg, int closed_flag = 0);
-	bool sendMainPage();
+
 	bool sendLeftMenu();
 	bool sendMainFrame();
 	bool sendProcessInfo();
@@ -85,5 +92,6 @@ private:
 };
 bool changeAdminPassword(KUrlValue *url,std::string &errMsg);
 bool checkManageLogin(KHttpRequest *rq) ;
+void init_manager_handler();
 #endif
 

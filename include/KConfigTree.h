@@ -18,42 +18,42 @@ namespace kconfig {
 		Update,
 		Remove
 	};
-	template <typename T>
+
 	class KStackName
 	{
 	public:
 		KStackName(int max_level) {
-			names = (T**)malloc(sizeof(T*) * (max_level + 1));
+			names = (kgl_ref_str_t**)malloc(sizeof(kgl_ref_str_t*) * (max_level + 1));
 			this->max_level = max_level;
 			cur_level = 0;
 		}
 		~KStackName() {
 			while (auto v = pop()) {
-				delete v;
+				kstring_release(v);
 			}
 			xfree(names);
 		}
-		bool push(T* name) {
+		bool push(kgl_ref_str_t* name) {
 			if (cur_level >= max_level) {
 				return false;
 			}
 			names[cur_level++] = name;
 			return true;
 		}
-		T* pop() {
+		kgl_ref_str_t* pop() {
 			if (cur_level == 0) {
 				return nullptr;
 			}
 			cur_level--;
 			return names[cur_level];
 		}
-		T** get() {
+		kgl_ref_str_t** get() {
 			names[cur_level] = nullptr;
 			return names;
 		}
 		int max_level;
 		int cur_level;
-		T** names;
+		kgl_ref_str_t** names;
 	};
 	class KConfigListen
 	{
@@ -65,7 +65,7 @@ namespace kconfig {
 			return false;
 		}
 	};
-
+	typedef void (*listen_callback)(KConfigTree* tree, KXmlNode* xml, KConfigEventType ev);
 	template <typename T>
 	class KConfigListenImp : public KConfigListen
 	{
@@ -89,31 +89,34 @@ namespace kconfig {
 	class KConfigTree
 	{
 	public:
-		KConfigTree(KConfigTree* parent, KXmlKey* key) :name(key->tag, key->vary) {
+		KConfigTree(KConfigTree* parent, kgl_ref_str_t* key) {
+			this->name = kstring_refs(key);
 			this->parent = parent;
 			init();
 		}
-		KConfigTree(KConfigTree* parent, const char* key, size_t len) :name(key, len) {
+		KConfigTree(KConfigTree* parent, const char* key, size_t len) {
+			this->name = kstring_from2(key, len);
 			this->parent = parent;
 			init();
 		}
 		~KConfigTree();
-		bool add(KXmlKey** names, KConfigListen* ev);
-		KConfigListen* remove(KXmlKey** names);
+		bool add(kgl_ref_str_t** names, KConfigListen* ev);
+		KConfigListen* remove(kgl_ref_str_t** names);
 		void remove_node(KMapNode<KConfigTree>* node);
-		KMapNode<KConfigTree>* find_child(KXmlKey* name, bool create_flag);
-		//void remove_child(KMapNode<KConfigTree>* node);
-		//bool add_child(KConfigTree* n);
-		int cmp(KXmlKey* a) {
-			return name.cmp(a);
+		KMapNode<KConfigTree>* find_child(kgl_ref_str_t* name, bool create_flag);
+		KConfigTree* find(const char** names, size_t* len);
+		int cmp(kgl_ref_str_t* key) {
+			return kgl_cmp(name->data, name->len, key->data, key->len);
+			//return name.cmp(a);
 		}
 		void clean();
 		bool empty() {
 			return !child && !ev && !wide_ev && !node;
 		}
+
 		void notice(KConfigListen* ev, KConfigFile* file, KXmlNode* xml, KConfigEventType ev_type);
-		KXmlKey name;
-		KMap<KXmlKey, KConfigTree>* child;
+		kgl_ref_str_t* name;
+		KMap<kgl_ref_str_t, KConfigTree>* child;
 		KConfigTree* parent;
 		KConfigListen* wide_ev;
 		KConfigListen* ev;
@@ -198,20 +201,22 @@ namespace kconfig {
 		uint32_t get_index() {
 			return index;
 		}
+		bool update(const char* name, size_t size, int index, KXmlNode* xml, KConfigEventType ev_type);
+		KXmlNode* nodes = nullptr;
+		KConfigTree* ev;
+		std::string filename;
 	private:
 		~KConfigFile() {
 			if (nodes) {
 				nodes->release();
 			}
 		}
+		bool save();
 		void update(KXmlNode* new_nodes);
 		KXmlNode* parse_xml(char* buf, size_t len);
-		KConfigTree* ev;
-		KXmlNode* nodes = nullptr;
 		uint32_t index = 50;
 		volatile uint32_t ref;
 		time_t last_modified = 0;
-		std::string filename;
 		bool diff(KConfigTree* name, KXmlNode* o, KXmlNode* n);
 		bool diff_nodes(KConfigTree* name, KMap<KXmlKey, KXmlNode>* o, KMap<KXmlKey, KXmlNode>* n);
 		void convert_nodes(KMap<KXmlKey, KXmlNode>* nodes, KIndexNode& index_nodes);
@@ -237,9 +242,12 @@ namespace kconfig {
 		KConfigEventNode* next = nullptr;
 	};
 	bool listen(const char* name, size_t size, KConfigListen* ls);
-	bool update(const char* name, size_t size, KXmlNode* xml, KConfigEventType ev_type);
+	bool update(const char* name, size_t size, int index, KConfigFile* file, KXmlNode* xml, KConfigEventType ev_type);
+	KConfigTree* find(const char** name, size_t* size);
 	void reload();
 	void init();
+	void lock();
+	void unlock();
 	void set_name_vary(const char* name, size_t len);
 	void set_name_index(const char* name, size_t len, int index);
 	void shutdown();
