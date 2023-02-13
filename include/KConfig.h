@@ -276,7 +276,7 @@ public:
 		//per_ip_head = NULL;
 		//per_ip_last = NULL;
 	}
-	~KConfig();
+	~KConfig();	
 	KAcserverManager *am;
 	KVirtualHostManage *vm;
 	std::string admin_passwd;

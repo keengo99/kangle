@@ -230,6 +230,7 @@ namespace kconfig {
 		KConfigEventNode* next = nullptr;
 	};
 	KConfigTree *listen(const char* name, size_t size, KConfigListen* ls);
+	KConfigListen* remove_listen(const char* name, size_t size);
 	bool update(const char* name, size_t size, int index, KConfigFile* file, KXmlNode* xml, KConfigEventType ev_type);
 	KConfigTree* find(const char** name, size_t* size);
 	void reload();

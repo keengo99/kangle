@@ -193,10 +193,6 @@ bool KConfigParser::startCharacter(KXmlContext* context, char* character,	int le
 			cconf->auth_delay = atoi(character);
 			return true;
 		}
-		if(context->qName == "lang"){
-			SAFE_STRCPY(cconf->lang , character);
-			return true;
-		}
 		if (context->qName == "max_connect_info") {
 			cconf->max_connect_info = atoi(character);
 			return true;
@@ -371,3 +367,16 @@ void KConfigParser::endXml(bool result) {
 }
 
 
+void KMainConfigListen::on_event(kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev) 	{
+	switch (ev) {
+	case kconfig::KConfigEventType::New:
+	case kconfig::KConfigEventType::Update:
+		if (kgl_cmp(xml->key.tag->data, xml->key.tag->len, _KS("lang")) == 0) {
+			SAFE_STRCPY(conf.lang, xml->character->data);
+			break;
+		}
+		break;
+	default:
+		break;
+	}
+}

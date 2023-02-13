@@ -251,7 +251,7 @@ namespace kconfig {
 		KConfigEventNode* file_node;
 		KConfigEventNode* last_node;
 		if (ev_type != KConfigEventType::None) {
-			klog(KLOG_ERR, "notice %s%s%s  [%d] tree=[%p] xml=[%p]\n",
+			klog(KLOG_NOTICE, "notice %s%s%s  [%d] tree=[%p] xml=[%p]\n",
 				xml->key.tag->data,
 				xml->key.vary ? "@" : "",
 				xml->key.vary ? xml->key.vary->data : "",
@@ -629,6 +629,9 @@ namespace kconfig {
 		}
 		return remove_listen(names.get(), ev_tree);
 	}
+	KConfigListen* remove_listen(const char* name, size_t size) {
+		return remove_listen(name, size, &events);
+	}
 	struct kgl_ext_config_context
 	{
 		KMap<kgl_ref_str_t, KConfigFileInfo> files;
@@ -768,13 +771,8 @@ namespace kconfig {
 		return key->tag->id;
 	}
 	void init() {
-		register_qname(_KS("vh@name"));
-		std::string configFile = conf.path + "/etc/test.xml";
-		auto listener = new KConfigListenImp<listen_callback>([](KConfigTree* tree, KXmlNode* xml, KConfigEventType ev) {
-
-		}, false);
-		listen(_KS("/*"), listener, &events);
-		listen(_KS("/vh/*"), listener, &events);
+		register_qname(_KS("dso_extend@name"));
+		register_qname(_KS("vh@name"));	
 	}
 	void shutdown() {
 		qname_config.iterator([](void* data, void* arg) {

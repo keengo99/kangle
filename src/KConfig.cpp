@@ -533,10 +533,10 @@ int do_config_thread(void* first_time, int argc) {
 			kaccess[i].setType(i);
 			kaccess[i].setGlobal(true);
 		}
-		KAccess::loadModel();
-		kconfig::register_qname(_KS("dso_extend@name"));
-		kconfig::listen(_KS("dso_extend/*"), new KDsoConfigListen);
+		KAccess::loadModel();		
 		kconfig::init();
+		kconfig::listen(_KS("dso_extend/*"), new KDsoConfigListen);
+		kconfig::listen(_KS("/*"), new KMainConfigListen);
 	}
 	assert(cconf == NULL);
 	cconf = new KConfig;
