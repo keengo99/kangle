@@ -213,24 +213,6 @@ inline bool parseWorkModel(const char *type, int &model) {
 	}
 	return true;
 }
-inline char *getPath(const char *file) {
-	char *path = strdup(file);
-	char *e = path + strlen(path);
-	while(e>path){
-		if(*e=='/'
-#ifdef _WIN32
-		|| *e=='\\'
-#endif
-			){
-				*e = '\0';
-				break;
-		}
-		e--;
-
-	}
-	return path;
-
-}
 inline void strip_path_end(std::string &path)
 {
 	size_t path_size = path.size();

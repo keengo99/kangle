@@ -46,6 +46,7 @@
 #include "kasync_worker.h"
 #include "kgl_ssl.h"
 #include "khttp.h"
+#include "KDynamicString.h"
 
 #define AUTOUPDATE_OFF    0
 #define AUTOUPDATE_ON   1
@@ -91,6 +92,50 @@ public:
 	std::string cipher;
 	std::string protocols;
 #endif
+};
+
+inline char* getPath(const char* file) {
+	char* path = strdup(file);
+	char* e = path + strlen(path);
+	while (e > path) {
+		if (*e == '/'
+#ifdef _WIN32
+			|| *e == '\\'
+#endif
+			) {
+			*e = '\0';
+			break;
+		}
+		e--;
+
+	}
+	return path;
+
+}
+class KExtConfigDynamicString : public KDynamicString
+{
+public:
+	KExtConfigDynamicString(const char* file) {
+		this->file = file;
+		path = getPath(file);
+	}
+	~KExtConfigDynamicString() {
+		if (path) {
+			xfree(path);
+		}
+	}
+	const char* getValue(const char* name) {
+		if (strcasecmp(name, "config_dir") == 0) {
+			return path;
+		}
+		if (strcasecmp(name, "config_file") == 0) {
+			return file;
+		}
+		return NULL;
+	}
+private:
+	char* path;
+	const char* file;
 };
 class KListenHost : public KSslConfig {
 public:
@@ -319,9 +364,5 @@ INT64 get_size(const char *size);
 std::string get_size(INT64 size);
 char *get_human_size(double size, char *buf,size_t buf_size);
 INT64 get_radio_size(const char *size,bool &is_radio);
-#define CONFIG_FILE_SIGN  "<!--configfileisok-->"
-#ifndef CONFIG_FILE
-#define CONFIG_FILE 		"/config.xml"
-#define CONFIG_DEFAULT_FILE "/config-default.xml"
-#endif
+
 #endif

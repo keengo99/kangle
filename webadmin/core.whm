@@ -43,12 +43,6 @@
 </call>
 <call name='del_server' extend='core'>
 </call>
-<call name='export_vh' extend='core'>
-</call>
-<call name='export_config' extend='core'>
-</call>
-<call name='save_config' extend='core'>
-</call>
 <call name='kill_process' extend='core'>
 </call>
 <call name='reboot' extend='core'>

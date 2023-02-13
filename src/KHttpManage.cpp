@@ -435,10 +435,14 @@ bool KHttpManage::config() {
 		//	s << "<td width=12% align=\"center\" bgcolor=\"";
 		s << "[";
 		if (item == i) {
-			s << config_header[i];
+			s << config_header[i];			
 		} else {
-			s << "<a href=/config?item=" << i << ">" << config_header[i]
-				<< "</a>";
+#if 0
+			if (i == 1) {
+				s << "<a href='/cache.html'>" << config_header[i]	<< "</a>";				
+			} else 
+#endif
+			s << "<a href=/config?item=" << i << ">" << config_header[i] << "</a>";
 		}
 		s << "] ";
 	}
@@ -1262,7 +1266,7 @@ error: return NULL;
 }
 void KHttpManage::parsePostData() {
 #define MAX_POST_SIZE	8388608 //8m
-	if (rq->sink->data.left_read <= 0 || rq->sink->data.meth != METH_POST) {
+	if (rq->sink->data.left_read <= 0) {
 		return;
 	}
 	char* buffer = NULL;
@@ -2272,7 +2276,7 @@ void init_manager_handler() {
 			auto node = tree->node;
 			while (node) {
 				st.write_all(_KS("<xml file='"));
-				st << node->file->filename;
+				st.write_all(node->file->filename->data, node->file->filename->len);
 				st.write_all(_KS("'"));
 #ifndef NDEBUG
 				/*

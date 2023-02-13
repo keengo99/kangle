@@ -132,31 +132,7 @@ KGlobalConfig::KGlobalConfig() {
 	dem = NULL;
 	select_count = 0;
 }
-class KExtConfigDynamicString : public KDynamicString
-{
-public:
-	KExtConfigDynamicString(const char* file) {
-		this->file = file;
-		path = getPath(file);
-	}
-	~KExtConfigDynamicString() {
-		if (path) {
-			xfree(path);
-		}
-	}
-	const char* getValue(const char* name) {
-		if (strcasecmp(name, "config_dir") == 0) {
-			return path;
-		}
-		if (strcasecmp(name, "config_file") == 0) {
-			return file;
-		}
-		return NULL;
-	}
-private:
-	char* path;
-	const char* file;
-};
+
 class KExtConfig
 {
 public:
@@ -558,6 +534,8 @@ int do_config_thread(void* first_time, int argc) {
 			kaccess[i].setGlobal(true);
 		}
 		KAccess::loadModel();
+		kconfig::register_qname(_KS("dso_extend@name"));
+		kconfig::listen(_KS("dso_extend/*"), new KDsoConfigListen);
 		kconfig::init();
 	}
 	assert(cconf == NULL);
@@ -649,7 +627,6 @@ void load_config(KConfig* cconf, bool firstTime) {
 	}
 	loadExtConfigFile();
 	KConfigParser parser;
-	KDsoConfigParser dso_parser;
 	KAccess access[2];
 	KAcserverManager am;
 	KWriteBackManager wm;
@@ -677,7 +654,6 @@ void load_config(KConfig* cconf, bool firstTime) {
 		cconf->am = conf.gam;
 		cconf->vm = &vm;
 		//dso配置只在启动时加载一次
-		xmlParser.addEvent(&dso_parser);
 	} else {
 		for (int i = 0; i < 2; i++) {
 			access[i].setType(i);

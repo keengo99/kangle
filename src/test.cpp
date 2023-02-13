@@ -405,7 +405,7 @@ bool test() {
 	INT64 t = 123;
 	char buf[INT2STRING_LEN];
 	int2string(t, buf);
-	//printf("sizeof(sockaddr_i)=%d\n",sizeof(sockaddr_i));
+	//printf("sizeof(KXmlNode)=%d\n",sizeof(KXmlNode));
 	if (strcmp(buf, "123") != 0) {
 		fprintf(stderr, "Warning int2string function is not correct\n");
 		assert(false);

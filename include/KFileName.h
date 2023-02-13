@@ -110,7 +110,7 @@ private:
 #endif
 	char *name;
 	char *ext;
-	char *index;	
+	char *index;
 	struct _stat64 buf;
 	//int name_len;	
 	//path_info时，url的长度
