@@ -8,7 +8,7 @@
 template <class _Ty = void>
 struct kgl_map_cmp
 {
-	_NODISCARD constexpr int operator()(const _Ty* _Left, const _Ty* _Right) const {
+	constexpr int operator()(const _Ty* _Left, const _Ty* _Right) const {
 		return kgl_file_cmp(_Left->data, _Left->len, _Right->data, _Right->len);
 	}
 };
@@ -18,13 +18,11 @@ class KPathHandler
 public:
 	KPathHandler(const char* name, size_t len) {
 		handler = nullptr;
-		//wide_handler = nullptr;
 		this->name = kstring_from2(name, len);
 	}
 	KPathHandler(kgl_ref_str_t* name) {
 		this->name = kstring_refs(name);
 		handler = nullptr;
-		//wide_handler = nullptr;
 	}
 	~KPathHandler() {
 		if (child) {
@@ -37,10 +35,7 @@ public:
 	}
 	int cmp(kgl_ref_str_t* key) {
 		CMP c;
-		//printf("sizeof(c)=[%d]\n", sizeof(c));
 		return c(name, key);
-		//return CMP(name->data, name->len, key->data, key->len);
-		//return CMP(name, key);
 	}
 	bool add(const char* name, size_t size, T handler) {
 		size_t name_len;
@@ -68,15 +63,6 @@ public:
 			this->handler = handler;
 			return true;
 		}
-#if 0
-		if (*name == '*') {
-			if (this->wide_handler) {
-				return false;
-			}
-			this->wide_handler = handler;
-			return true;
-		}
-#endif
 		kgl_ref_str_t key;
 		key.data = name;
 		key.len = name_len;
@@ -140,13 +126,6 @@ public:
 		} else {
 			name_len = size;
 		}
-#if 0
-		if (*name == '*') {
-			auto handler = this->wide_handler;
-			this->wide_handler = nullptr;
-			return handler;
-		}
-#endif
 		if (!child) {
 			return nullptr;
 		}
@@ -160,7 +139,7 @@ public:
 		auto child_handler = node->value();
 		auto handler = child_handler->remove(name + name_len, size - name_len);
 		if (handler) {
-			if (child_node->empty()) {
+			if (child_handler->empty()) {
 				delete child_handler;
 				child->erase(node);
 			}
@@ -177,7 +156,6 @@ public:
 private:
 	kgl_ref_str_t* name;
 	T handler;
-	//T wide_handler;
 	KMap<kgl_ref_str_t, KPathHandler> *child = nullptr;
 };
 #endif

@@ -4,8 +4,9 @@
 #include "global.h"
 #include "KHttpServer.h"
 #include "KPathHandler.h"
+#include "KHttpRequest.h"
 
-class KHttpRequest;
+
 class KAutoBuffer;
 class KHttpObject;
 class KFetchObject;
