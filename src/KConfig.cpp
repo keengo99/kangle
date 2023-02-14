@@ -533,11 +533,12 @@ int do_config_thread(void* first_time, int argc) {
 			kaccess[i].setType(i);
 			kaccess[i].setGlobal(true);
 		}
-		KAccess::loadModel();		
+		KAccess::loadModel();
 		kconfig::init();
 		kconfig::listen(_KS("dso_extend/*"), new KDsoConfigListen);
 		kconfig::listen(_KS("/*"), new KMainConfigListen);
 	}
+
 	assert(cconf == NULL);
 	cconf = new KConfig;
 	init_config(cconf);
@@ -545,7 +546,6 @@ int do_config_thread(void* first_time, int argc) {
 	post_load_config(first_time != NULL);
 	delete cconf;
 	cconf = NULL;
-	kconfig::reload();
 	katom_set((void*)&load_config_progress, 0);
 	return 0;
 }
@@ -625,6 +625,8 @@ void load_config(KConfig* cconf, bool firstTime) {
 	if (firstTime) {
 		init_program();
 	}
+	//ÐÂ°æÅäÖÃÎÄ¼þ
+	kconfig::reload();
 	loadExtConfigFile();
 	KConfigParser parser;
 	KAccess access[2];

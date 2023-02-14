@@ -775,6 +775,12 @@ namespace kconfig {
 		register_qname(_KS("vh@name"));	
 	}
 	void shutdown() {
+		config_files.iterator([](void* data, void* arg) {
+			KConfigFile* file = (KConfigFile*)data;
+			file->clear();
+			file->release();
+			return iterator_remove_continue;
+		}, NULL);
 		qname_config.iterator([](void* data, void* arg) {
 			delete (KXmlKey*)data;
 			return iterator_remove_continue;
