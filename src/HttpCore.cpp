@@ -709,15 +709,5 @@ int checkResponse(KHttpRequest* rq, KHttpObject* obj) {
 	}
 #endif
 #endif
-	if (action == JUMP_DENY) {
-		KMutex* lock = obj->getLock();
-		lock->Lock();
-		if (obj->refs == 1) {
-			destroy_kbuf(obj->data->bodys);
-			obj->data->bodys = NULL;
-			set_obj_size(obj, 0);
-		}
-		lock->Unlock();
-	}
 	return action;
 }

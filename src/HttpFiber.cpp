@@ -608,7 +608,7 @@ void merge_precondition(KHttpRequest* rq, KHttpObject* obj) {
 }
 KGL_RESULT load_object_from_source(KHttpRequest* rq) {
 	KHttpObject* old_obj = rq->ctx.old_obj;
-	if (old_obj && KBIT_TEST(old_obj->index.flags, OBJ_NOT_OK)) {
+	if (old_obj && !KBIT_TEST(old_obj->index.flags, OBJ_NOT_OK)) {
 		assert(old_obj->data);
 		kgl_sub_request* sub_request = rq->alloc_sub_request();
 		merge_precondition(rq, old_obj);
@@ -995,6 +995,7 @@ KGL_RESULT on_upstream_finished_header(KHttpRequest* rq, kgl_response_body* body
 		KBIT_SET(obj->index.flags, OBJ_NOT_OK);
 		break;
 	default:
+		//not cachable status_code.
 		KBIT_SET(obj->index.flags, FLAG_DEAD | OBJ_NOT_OK);
 		break;
 	}
@@ -1010,14 +1011,13 @@ KGL_RESULT on_upstream_finished_header(KHttpRequest* rq, kgl_response_body* body
 	}
 #ifdef ENABLE_BIG_OBJECT_206
 	if (obj->data->i.type == MEMORY_OBJECT) {
-		assert(obj->data->i.type == MEMORY_OBJECT);
-		//ÆÕÍ¨ÇëÇó
 		if (rq->sink->data.meth == METH_GET
 			&& conf.cache_part
 			&& obj_can_disk_cache(rq, obj)
 			&& objCanCache(rq, obj)
 			&& obj->getTotalContentSize() >= conf.max_cache_size) {
-			if (KBIT_TEST(rq->ctx.obj->index.flags, ANSW_HAS_CONTENT_LENGTH)) {
+			if (KBIT_TEST(obj->index.flags, ANSW_HAS_CONTENT_LENGTH | OBJ_NOT_OK) == ANSW_HAS_CONTENT_LENGTH) {
+				//obj has content-length and status_code is 200/206.
 				return turn_on_bigobject(rq, obj, body);
 			}
 		}
