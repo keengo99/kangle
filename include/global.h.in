@@ -192,7 +192,8 @@
 //#define FLAG_BIG_OBJECT          (1<<28)
 //#define OBJ_INDEX_SAVED          (1<<29)
 //#define OBJ_INDEX_UPDATE         (1<<30)
-//#define OBJ_NOT_OK               (1<<31)
+#define OBJ_NOT_OK               (1<<31)
+
 
 ///////////////////////////////////////////////
 //rq->filter_flag

@@ -233,3 +233,13 @@ func check_not_get_cache() {
 		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
 	})
 }
+func check_not_200_cache() {
+	common.Get("/force_cache/404", nil, func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 404)
+		common.Assert("x-cache-miss", strings.Contains(resp.Header.Get("X-Cache"), "MISS "))
+	})
+	common.Get("/force_cache/404", nil, func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 404)
+		common.Assert("x-cache-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT "))
+	})
+}

@@ -124,20 +124,6 @@ public:
 #endif
 	};
 };
-
-inline bool status_code_can_cache(u_short code) {
-	switch (code) {
-	case STATUS_OK:
-	case 301:
-	case 302:
-	case 307:
-	case 308:
-	case 404:
-		return true;
-	default:
-		return false;
-	}
-}
 /**
  * http物件。例如网页之类,缓存对象
  */
@@ -263,7 +249,7 @@ public:
 #ifdef ENABLE_FORCE_CACHE
 	//强制缓存
 	bool force_cache(bool static_flag) {
-		if (!status_code_can_cache(data->i.status_code)) {
+		if (KBIT_TEST(index.flags,FLAG_DEAD)) {
 			return false;
 		}
 		KBIT_CLR(index.flags, ANSW_NO_CACHE);

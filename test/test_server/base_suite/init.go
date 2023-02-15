@@ -100,7 +100,7 @@ func (b *base) Init() error {
 	<response action='allow' >
 		<table name='BEGIN'>
 			<chain  action='continue' >
-				<acl_path  path='/force_cache'></acl_path>
+				<acl_path  path='/force_cache/*'></acl_path>
 				<mark_cache_control   max_age='10' force='1'></mark_cache_control>
 			</chain>
 		</table>
@@ -148,6 +148,7 @@ func init() {
 	s.AddCase("if_range_forward", "if-range转发", check_if_range_forward)
 	s.AddCase("if_range_local", "if-range本地", check_if_range_local)
 	s.AddCase("not_get_cache", "not GET cache", check_not_get_cache)
+	s.AddCase("not_200_cache", "not 200 cache", check_not_200_cache)
 	s.AddCase("last_range", "大物件尾部缓存命中", check_last_range)
 	s.AddCase("sbo_not_enough_bug", "", check_sbo_not_enough_bug)
 	s.AddCase("nochange_if_range", "内容不变，客户端发送if-range支持", check_nochange_if_range)
