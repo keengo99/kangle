@@ -175,9 +175,6 @@ public:
 	unsigned int max_per_ip;
 	unsigned int per_ip_deny;
 	unsigned min_free_thread;
-	unsigned time_out;
-	unsigned connect_time_out;
-	unsigned keep_alive_count;
 	char hostname[32];
 	int log_event_id;
 	int log_level;
@@ -209,7 +206,6 @@ public:
 	bool path_info;
 	int worker_io;
 	int fiber_stack_size;
-	int io_timeout;
 	int max_io;
 	int worker_dns;
 	int auth_type;
@@ -295,19 +291,7 @@ public:
 	std::string apache_config_file;
 	//}}
 	void copy(KConfig* c);
-	void set_connect_time_out(unsigned val) {
-		connect_time_out = val;
-		if (connect_time_out > 0 && connect_time_out < 2) {
-			connect_time_out = 2;
-		}
-	}
-	void set_time_out(unsigned val) {
-		time_out = val;
-		if (time_out < 5) {
-			//最小超时为5秒
-			time_out = 5;
-		}
-	}
+
 	void setHostname(const char* hostname) {
 		SAFE_STRCPY(this->hostname, hostname);
 	}
@@ -325,7 +309,23 @@ public:
 	/////////////////////////////////////////////////////////
 	//以下是程序运行信息,只在程序启动前初始化一次...
 	std::list<std::string> mergeFiles;
-	char lang[8];
+	char lang[8] = { 0 };
+	unsigned keep_alive_count = 0;
+	unsigned time_out = 60;
+	unsigned connect_time_out = 0;
+	void set_connect_time_out(unsigned val) {
+		connect_time_out = val;
+		if (connect_time_out > 0 && connect_time_out < 2) {
+			connect_time_out = 2;
+		}
+	}
+	void set_time_out(unsigned val) {
+		time_out = val;
+		if (time_out < 5) {
+			//最小超时为5秒
+			time_out = 5;
+		}
+	}
 	std::string path;
 	std::string tmppath;
 	std::string program;

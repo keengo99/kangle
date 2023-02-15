@@ -584,7 +584,6 @@ bool KHttpManage::config() {
 #endif
 		s << klang["io_worker"] << ":<input type=text size=4 name='worker_io' value='" << conf.worker_io << "'><br>";
 		s << "max_io:<input type=text size=4 name='max_io' value='" << conf.max_io << "'><br>";
-		s << "io_timeout:<input type=text size=4 name='io_timeout' value='" << conf.io_timeout << "'><br>";
 		s << klang["dns_worker"] << ":<input type=text size=4 name='worker_dns' value='" << conf.worker_dns << "'><br>";
 		s << "fiber stack size:<input type=text name='fiber_stack_size' size=4 value='" << get_size(conf.fiber_stack_size) << "'><br>";
 	} else if (item == 4) {
@@ -768,7 +767,6 @@ bool KHttpManage::configsubmit() {
 		conf.worker_io = atoi(getUrlValue("worker_io").c_str());
 		conf.worker_dns = atoi(getUrlValue("worker_dns").c_str());
 		conf.max_io = atoi(getUrlValue("max_io").c_str());
-		conf.io_timeout = atoi(getUrlValue("io_timeout").c_str());
 		kasync_worker_set(conf.ioWorker, conf.worker_io, conf.max_io);
 		kasync_worker_set(conf.dnsWorker, conf.worker_dns, 512);
 		int fiber_stack_size = (int)get_size(getUrlValue("fiber_stack_size").c_str());

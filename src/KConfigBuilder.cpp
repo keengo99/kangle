@@ -139,8 +139,7 @@ void KConfigBuilder::build(std::stringstream &s) {
 #endif
 	s << "\t<lang>" << conf.lang << "</lang>\n";
 	s << "\t<keep_alive_count>" << conf.keep_alive_count << "</keep_alive_count>\n";
-	s << "\t<timeout>" << conf.time_out << "</timeout>\n";
-	s << "\t<connect_timeout>" << conf.connect_time_out << "</connect_timeout>\n";
+	s << "\t<timeout rw='" << conf.time_out << "' connect='" << conf.connect_time_out << "'/>\n";
 	s << "\t<min_free_thread>" << conf.min_free_thread << "</min_free_thread>\n";	
 //{{ent
 #ifdef ENABLE_ADPP
@@ -304,7 +303,6 @@ void KConfigBuilder::build(std::stringstream &s) {
 	}
 	s << "\t<worker_io>" << conf.worker_io << "</worker_io>\n";
 	s << "\t<max_io>" << conf.max_io << "</max_io>\n";
-	s << "\t<io_timeout>" << conf.io_timeout << "</io_timeout>\n";
 	s << "\t<worker_dns>" << conf.worker_dns << "</worker_dns>\n";	
 	conf.gam->buildXML(s, CHAIN_SKIP_EXT);	
 #ifdef ENABLE_WRITE_BACK

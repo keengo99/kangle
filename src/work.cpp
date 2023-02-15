@@ -169,8 +169,9 @@ namespace kangle {
 			ip_lock.Unlock();
 			return kgl_connection_too_many;
 		}
+		kgl_connection_result success_result = kgl_connection_success;
 		if (conf.keep_alive_count > 0 && total_connect >= conf.keep_alive_count) {
-			//SET(c->st_flags, STF_NO_KA);
+			KBIT_SET(success_result, kgl_connection_no_keep_alive);
 		}
 		if (max_per_ip == 0) {
 			total_connect++;
@@ -181,7 +182,7 @@ namespace kangle {
 			pt = kgl_pool_cleanup_add(c->pool, 0);
 			pt->handler = del_request;
 			pt->data = c;
-			return kgl_connection_success;
+			return success_result;
 		}
 		ksocket_ipaddr(&c->addr, &ip);
 		it2 = m_ip.find(ip);
@@ -201,7 +202,7 @@ namespace kangle {
 		pt = kgl_pool_cleanup_add(c->pool, 0);
 		pt->handler = del_request_per_ip;
 		pt->data = c;
-		return kgl_connection_success;
+		return success_result;
 	max_per_ip:
 		ip_lock.Unlock();
 #ifdef ENABLE_BLACK_LIST

@@ -243,8 +243,6 @@ void init_config(KConfig* conf) {
 #ifdef MALLOCDEBUG
 	conf->mallocdebug = true;
 #endif
-	conf->time_out = 60;
-	conf->keep_alive_count = 0;
 	conf->max = 50000;
 	conf->refresh = REFRESH_AUTO;
 	conf->refresh = 10;
@@ -263,7 +261,6 @@ void init_config(KConfig* conf) {
 	conf->max_post_size = 8388608;
 #endif	
 	conf->read_hup = true;
-	conf->io_timeout = 4;
 	conf->max_io = 0;
 	conf->worker_io = 16;
 	conf->worker_dns = 32;
