@@ -82,13 +82,12 @@ public:
 	virtual std::string get_cert_file();
 	virtual std::string get_key_file();
 
-	kgl_ssl_ctx *new_ssl_ctx(const char *certfile, const char *keyfile);
-	virtual kgl_ssl_ctx *refs_ssl_ctx()
-	{
+	kgl_ssl_ctx* new_ssl_ctx(const char* certfile, const char* keyfile);
+	virtual kgl_ssl_ctx* refs_ssl_ctx() {
 		return new_ssl_ctx(get_cert_file().c_str(), get_key_file().c_str());
 	}
 	u_char alpn = 0;
-	bool early_data =  false;
+	bool early_data = false;
 	std::string cipher;
 	std::string protocols;
 #endif
@@ -137,10 +136,10 @@ private:
 	char* path;
 	const char* file;
 };
-class KListenHost : public KSslConfig {
+class KListenHost : public KSslConfig
+{
 public:
-	KListenHost()
-	{
+	KListenHost() {
 		ext = cur_config_ext;
 		listened = false;
 	}
@@ -167,7 +166,7 @@ struct WorkerProcess
 	bool closed;
 	int worker_index;
 };
-class KConfigBase 
+class KConfigBase
 {
 public:
 	KConfigBase();
@@ -245,8 +244,7 @@ public:
 #ifdef ENABLE_VH_FLOW
 	//自动刷新流量时间(秒)
 	int flush_flow_time;
-#endif
-	char lang[8];
+#endif	
 	char disk_cache_dir2[512];
 	//{{ent
 	char error_url[64];
@@ -257,7 +255,7 @@ public:
 	char flush_ip_cmd[512];
 	char report_url[512];
 #endif
-//}}
+	//}}
 	char log_rotate[32];
 	char access_log[128];
 	char logHandle[512];
@@ -270,19 +268,18 @@ public:
 class KConfig : public KConfigBase
 {
 public:
-	KConfig()
-	{
-		memset(disk_cache_dir,0,sizeof(disk_cache_dir));
+	KConfig() {
+		memset(disk_cache_dir, 0, sizeof(disk_cache_dir));
 		//per_ip_head = NULL;
 		//per_ip_last = NULL;
 	}
-	~KConfig();	
-	KAcserverManager *am;
-	KVirtualHostManage *vm;
+	~KConfig();
+	KAcserverManager* am;
+	KVirtualHostManage* vm;
 	std::string admin_passwd;
 	std::string admin_user;
 	std::vector<std::string> admin_ips;
-	std::vector<KListenHost *> service;	
+	std::vector<KListenHost*> service;
 	//run_user,run_group为一次性使用，可以安全用string
 	std::string run_user;
 	std::string run_group;
@@ -297,28 +294,27 @@ public:
 	//{{ent
 	std::string apache_config_file;
 	//}}
-	void copy(KConfig *c);
-	void set_connect_time_out(unsigned val)
-	{
+	void copy(KConfig* c);
+	void set_connect_time_out(unsigned val) {
 		connect_time_out = val;
-		if (connect_time_out > 0 && connect_time_out<2) {
+		if (connect_time_out > 0 && connect_time_out < 2) {
 			connect_time_out = 2;
 		}
 	}
-	void set_time_out(unsigned val)
-	{
+	void set_time_out(unsigned val) {
 		time_out = val;
-		if(time_out < 5){
+		if (time_out < 5) {
 			//最小超时为5秒
 			time_out = 5;
 		}
 	}
-	void setHostname(const char *hostname) {
-		SAFE_STRCPY(this->hostname,hostname);
+	void setHostname(const char* hostname) {
+		SAFE_STRCPY(this->hostname, hostname);
 	}
 };
 //配置参数和程序运行信息
-class KGlobalConfig : public KConfig {
+class KGlobalConfig : public KConfig
+{
 public:
 	KGlobalConfig();
 	//////////////////////////////////////////////////////
@@ -329,30 +325,31 @@ public:
 	/////////////////////////////////////////////////////////
 	//以下是程序运行信息,只在程序启动前初始化一次...
 	std::list<std::string> mergeFiles;
+	char lang[8];
 	std::string path;
 	std::string tmppath;
 	std::string program;
 	std::string extworker;
-	kasync_worker *ioWorker;
-	kasync_worker *dnsWorker;
+	kasync_worker* ioWorker;
+	kasync_worker* dnsWorker;
 	int serverNameLength;
 	char serverName[32];
 	int select_count;
 #ifdef _WIN32
-		//kangle程序所在的盘符
+	//kangle程序所在的盘符
 	std::string diskName;
 #endif
-	KAcserverManager *gam;
-	KVirtualHostManage *gvm;
+	KAcserverManager* gam;
+	KVirtualHostManage* gvm;
 	//3311的内置虚拟主机
-	KVirtualHost *sysHost;
-	KDsoExtendManage *dem;
+	KVirtualHost* sysHost;
+	KDsoExtendManage* dem;
 };
 extern KGlobalConfig conf;
 extern int m_debug;
 extern bool need_reboot_flag;
-extern KConfig *cconf;
-int merge_apache_config(const char *file);
+extern KConfig* cconf;
+int merge_apache_config(const char* file);
 void LoadDefaultConfig();
 void do_config(bool first_time);
 //清除配置文件，用于内存泄漏检测时，才调用
@@ -360,9 +357,9 @@ void clean_config();
 void wait_load_config_done();
 bool saveConfig();
 void parse_server_software();
-INT64 get_size(const char *size);
+INT64 get_size(const char* size);
 std::string get_size(INT64 size);
-char *get_human_size(double size, char *buf,size_t buf_size);
-INT64 get_radio_size(const char *size,bool &is_radio);
+char* get_human_size(double size, char* buf, size_t buf_size);
+INT64 get_radio_size(const char* size, bool& is_radio);
 
 #endif
