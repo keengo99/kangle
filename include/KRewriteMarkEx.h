@@ -163,10 +163,9 @@ public:
 	std::string getDisplay();
 	static void getEnv(KHttpRequest *rq, char *env, KStringBuf &s);
 	void editHtml(std::map<std::string, std::string> &attribute,bool html);
-	bool startElement(KXmlContext *context,
-			std::map<std::string, std::string> &attribute);
-	bool startCharacter(KXmlContext *context, char *character, int len);
-	void buildXML(std::stringstream &s);
+	bool startElement(KXmlContext *context) override;
+	bool startCharacter(KXmlContext *context, char *character, int len) override;
+	void buildXML(std::stringstream &s) override;
 	static KStringBuf *getString(const char *prefix, const char *str,
 			KHttpRequest *rq, KRegSubString *s1, KRegSubString *s2);
 	static void getString(const char *prefix, const char *str,

@@ -478,7 +478,6 @@ bool check_request_final_source(KHttpRequest* rq, RequestError* error, bool& han
 #endif
 		}
 		KAccess* htresponse = NULL;
-		bool handled = false;
 		KFetchObject* fo = bindVirtualHost(rq, error, &htresponse, handled);
 		if (handled) {
 			//已经处理了

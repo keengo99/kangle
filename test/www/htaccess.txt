@@ -1,0 +1,3 @@
+RewriteEngine On
+RewriteCond %{HTTP_HOST} !^apache.localtest.me$ [NC]
+RewriteRule ^(.*)$ http://apache.localtest.me/$1 [L,R=301]

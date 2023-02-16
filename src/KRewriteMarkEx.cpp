@@ -365,14 +365,13 @@ void KRewriteMarkEx::buildXML(std::stringstream &s) {
 		s << "/>\n";
 	}
 }
-bool KRewriteMarkEx::startElement(KXmlContext *context, std::map<std::string,
-		std::string> &attribute) {
+bool KRewriteMarkEx::startElement(KXmlContext *context) {
 	if (context->qName == "mark_rewritex") {
-		prefix = attribute["prefix"];
-		rewriteBase = attribute["rewrite_base"];
+		prefix = context->attribute["prefix"];
+		rewriteBase = context->attribute["rewrite_base"];
 	} else if (context->qName == "rule") {
 		KRewriteRule *rule = new KRewriteRule;
-		rule->parse(attribute);
+		rule->parse(context->attribute);
 		rules.push_back(rule);
 	}
 	return true;

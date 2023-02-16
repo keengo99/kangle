@@ -102,7 +102,14 @@ func ReadHttpProtocol(reader *bufio.Reader, read_body bool) (map[string]string, 
 		}
 		request_line = false
 		kvs := strings.SplitN(string(line), splitChar, 2)
-		headers[strings.ToLower(kvs[0])] = strings.TrimSpace(kvs[1])
+		http_attr := strings.ToLower(kvs[0])
+		_, ok := headers[http_attr]
+		if ok {
+			if http_attr == "server" || http_attr == "content-length" {
+				panic(fmt.Sprintf("http_attr :[%v] already exsit.\n", http_attr))
+			}
+		}
+		headers[http_attr] = strings.TrimSpace(kvs[1])
 	}
 	if !read_body {
 		return headers, "", nil

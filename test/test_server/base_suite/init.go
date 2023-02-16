@@ -1,7 +1,6 @@
 package base_suite
 
 import (
-	"test_server/common"
 	"test_server/config"
 	"test_server/kangle"
 	"test_server/server"
@@ -42,29 +41,6 @@ func (b *base) Init() error {
 	server.Handle("/upstream_http_protocol", HandleUpstreamHttpProtocol)
 	str := `<!--#start 200-->
 <config>
-	<!-- 9998开启proxy protocol端口 -->
-	<listen ip='127.0.0.1' port='9998P' type='http' />
-	<!-- 9800中转到kangle的9998端口 -->
-	<listen ip='127.0.0.1' port='9800' type='tcp' />
-	<!-- 9801中转连接上游h2(test_server的4412端口) -->
-	<listen ip='127.0.0.1' port='9801' type='http' />
-	<!-- 9900中转连接kangle的h2(kangle的9443端口) -->
-	<listen ip='127.0.0.1' port='9900h' type='http' />
-	<!-- 9902 https中转上上游http(kangle的9999) -->
-	<listen ip='127.0.0.1' port='9902' type='https' certificate='etc/server.crt' certificate_key='etc/server.key' http2='1' />
-	<gzip only_gzip_cache='0' min_gzip_length='1' gzip_level='5' br_level='5'/>
-	<cache default='1' max_cache_size='256k' max_bigobj_size='1g' memory='1G' disk='1g' cache_part='1' refresh_time='30'/>
-	`
-	str += "<cmd name='fastcgi' proto='fastcgi' file='bin/test_child" + common.ExeExtendFile() + " f 9005' port='9005' type='sp' param='' life_time='280' idle_time='280'>"
-	str += `
-	</cmd>
-	<server name='localhost_proxy' proto='proxy' host='127.0.0.1' port='9998' life_time='5' />
-	<server name='localhost' proto='http' host='127.0.0.1' port='9999' life_time='5' />
-	<server name='localhost_https' proto='http' host='127.0.0.1' port='9943sp' life_time='2' />
-	<server name='upstream' host='127.0.0.1' port='4411' proto='http' life_time='10'/>
-	<server name='upstream_h2c' host='127.0.0.1' port='4411h' proto='http' life_time='10'/>
-	<server name='upstream_ssl' host='127.0.0.1' port='4412s' proto='http' life_time='10'/>	
-	<server name='upstream_h2' host='127.0.0.1' port='4412sp' proto='http' life_time='10'/>	
 	<request>
 		<table name='BEGIN'>			
 			<chain  action='continue' >
@@ -118,6 +94,10 @@ func (b *base) Init() error {
 	str += `' confirm_file='0' allow_method='*'/>
 		<host>127.0.0.1</host>
 		<host>localhost</host>
+	</vh>
+	<vh name='apache' doc_root='www' inherit='on' htaccess='htaccess.txt' app='1' >
+		<host>` + config.GetLocalhost("apache") + `</host>
+		<host>` + config.GetLocalhost("apache2") + `</host>
 	</vh>
 	</config>`
 	return kangle.CreateExtConfig(CONFIG_FILE_NAME, str)
@@ -182,5 +162,6 @@ func init() {
 	s.AddCase("obs_fold", "obs_fold测试", check_obs_fold)
 	s.AddCase("100_continue", "100-continue测试", check_100_continue)
 	s.AddCase("sub_status", "sub_status", test_stub_status)
+	s.AddCase("htaccess", "check apache htaccess", check_htaccess)
 	s.AddCase("bug", "bug", check_bug)
 }
