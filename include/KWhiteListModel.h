@@ -88,11 +88,10 @@ public:
 			free(host);
 		}
 	}
-	KMark *newInstance() {
+	KMark * new_instance() {
 		return new KWhiteListMark();
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,
-		const int chainJumpType, int &jumpType)
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)override
 	{
 		const char *host = this->host;
 		if (host == NULL) {
@@ -102,17 +101,17 @@ public:
 		wlm.add(host, (svh ? svh->vh->name.c_str() : NULL), rq->getClientIp(), false);
 		return true;
 	}
-	const char *getName() {
+	const char *getName()override {
 		return "white_list";
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		if (host) {
 			s << host;
 		}
 		return s.str();
 	}
-	std::string getHtml(KModel *m) {
+	std::string getHtml(KModel *m) override {
 		std::stringstream s;
 		s << "host:<input name='host' value='";
 		if (m) {
@@ -124,7 +123,7 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html){
+	void editHtml(std::map<std::string, std::string> &attribute,bool html)override {
 		if (host) {
 			free(host);
 			host = NULL;
@@ -133,7 +132,7 @@ public:
 			host = strdup(attribute["host"].c_str());
 		}
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s)override {
 		if (this->host) {
 			s << "host='" << host << "'";
 		}

@@ -138,8 +138,7 @@ KAuthMark::~KAuthMark() {
 		delete reg_user;
 	}
 }
-bool KAuthMark::mark(KHttpRequest *rq, KHttpObject *obj,
-		const int chainJumpType, int &jumpType) {
+bool KAuthMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) {
 	std::string path;
 #ifndef HTTP_PROXY
 	auto svh = rq->get_virtual_host();
@@ -152,7 +151,7 @@ bool KAuthMark::mark(KHttpRequest *rq, KHttpObject *obj,
 	if (!loadAuthFile(path)) {
 		klog(KLOG_ERR, "cann't load auth file[%s]\n", path.c_str());
 		if (failed_deny) {
-			jumpType = JUMP_DENY;
+			//jump_type = JUMP_DENY;
 			return true;
 		}
 		return false;
@@ -175,7 +174,7 @@ bool KAuthMark::mark(KHttpRequest *rq, KHttpObject *obj,
 		rq->auth = auth;
 #endif
 	}
-	jumpType = JUMP_DENY;
+	//jump_type = JUMP_DENY;
 	KBIT_SET(rq->ctx.filter_flags,RQ_SEND_AUTH);
 	return true;
 
@@ -265,7 +264,7 @@ bool KAuthMark::loadAuthFile(std::string &path) {
 	lock.Unlock();
 	return true;
 }
-KMark *KAuthMark::newInstance() {
+KMark *KAuthMark::new_instance() {
 	return new KAuthMark;
 }
 const char *KAuthMark::getName() {

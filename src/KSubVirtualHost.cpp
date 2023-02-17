@@ -290,17 +290,17 @@ void KSubVirtualHost::setDocRoot(const char *doc_root, const char *dir) {
 	}
 	KFileName::tripDir3(this->doc_root,PATH_SPLIT_CHAR);
 }
-bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KAccess **htresponse,bool &handled) {
+kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KAccess **htresponse, KFetchObject** fo) {
 	//	char *tripedDir = KFileName::tripDir2(rq->sink->data.url->path, '/');
 #ifdef _WIN32
 	int path_len = (int)strlen(rq->sink->data.url->path);
 	char *c = rq->sink->data.url->path + path_len - 1;
 	if(*c=='.' || *c==' '){
-		return false;
+		return JUMP_DENY;
 	}
 #endif
 	if (doc_root == NULL) {
-		return false;
+		return JUMP_DENY;
 	}
 	if (type == subdir_local) {
 		if (!rq->ctx.internal && !vh->htaccess.empty()) {
@@ -333,15 +333,16 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 					}
 					KAccess *htrequest = new KAccess;
 					htrequest->setType(REQUEST);
-					if (makeHtaccess(path, &htfile, htrequest, *htresponse)) {
-						if (htrequest->check(rq, obj) == JUMP_DENY) {
-							handled = true;
+					if (makeHtaccess(path, &htfile, htrequest, *htresponse)) {						
+						int jump_type = htrequest->check(rq, obj, fo);						
+						if (fo || jump_type==JUMP_DENY) {							
 							xfree(path);
 							delete htrequest;
-							delete (*htresponse);
-							*htresponse = NULL;
-							//handle_denied_request(rq);
-							return true;
+							if (jump_type == JUMP_DENY) {
+								delete (*htresponse);
+								*htresponse = NULL;
+							}
+							return jump_type;
 						}
 					}
 					delete htrequest;
@@ -356,18 +357,20 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 			delete rq->file;
 			rq->file = NULL;
 		}
-		return bindFile(rq, exsit, false, true);
+		bindFile(rq, exsit, false, true);
+		return JUMP_ALLOW;
 	}//end subdir_local
 	if (rq->has_final_source()) {
-		return true;
+		return JUMP_ALLOW;
 	}
 	if (type == subdir_http) {		
 		if (http->dst->host == NULL) {
-			return false;
+			return JUMP_DENY;
 		}
 		if (*(http->dst->host) == '-') {
-			rq->append_source(new KHttpProxyFetchObject());
-			return true;
+			*fo = new KHttpProxyFetchObject();
+			//rq->append_source(new KHttpProxyFetchObject());
+			return JUMP_ALLOW;
 		}
 		const char *tssl = NULL;
 		//{{ent
@@ -385,8 +388,8 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 			}
 #endif//}}
 		}
-		rq->append_source(server_container->get(http->ip, http->dst->host, tport, tssl, http->life_time));
-		return true;
+		*fo = server_container->get(http->ip, http->dst->host, tport, tssl, http->life_time);
+		return JUMP_ALLOW;
 	}//end subdir_http
 
 	KStringBuf tmp_str;
@@ -404,7 +407,7 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 		proxy = portmap->find(port);
 	}
 	if (proxy == NULL) {
-		return false;
+		return JUMP_DENY;
 	}
 	if (*proxy == '/') {
 		tmp_str << rq->sink->data.url->host << proxy;
@@ -412,14 +415,14 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KA
 	}
 	KRedirect *rd = server_container->refsRedirect(proxy);
 	if (rd == NULL) {
-		return false;
+		return JUMP_DENY;
 	}
-	KRedirectSource*fo = rd->makeFetchObject(rq, rq->file);
+	KRedirectSource*fo2 = rd->makeFetchObject(rq, rq->file);
 	KBaseRedirect *brd = new KBaseRedirect(rd, false);
-	fo->bindBaseRedirect(brd);
+	fo2->bindBaseRedirect(brd);
 	brd->release();
-	rq->append_source(fo);
-	return true;	
+	*fo = fo2;
+	return JUMP_ALLOW;
 }
 bool KSubVirtualHost::bindFile(KHttpRequest *rq,bool &exsit,bool searchDefaultFile,bool searchAlias)
 {

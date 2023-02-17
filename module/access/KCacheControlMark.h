@@ -31,7 +31,7 @@ public:
 	}
 	virtual ~KCacheControlMark() {
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,int &jumpType) {
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override {
 #ifdef ENABLE_FORCE_CACHE
 		if (force) {
 			if (!obj->force_cache(static_flag)) {
@@ -51,7 +51,7 @@ public:
 		}
 		return true;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		s << "max_age:" << max_age;
 		if (static_flag) {
@@ -64,7 +64,7 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html){
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
 		max_age = atoi(attribute["max_age"].c_str());
 		force = (attribute["force"] == "1");
 		if(attribute["static"]=="on" || attribute["static"]=="1"){
@@ -75,7 +75,7 @@ public:
 		}
 		must_revalidate = (attribute["must_revalidate"]=="1");
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		KCacheControlMark *mark = (KCacheControlMark *) model;
 		s << "max_age: <input type=text name=max_age size=6 value='";
@@ -101,14 +101,14 @@ public:
 		s << ">must_revalidate";
 		return s.str();
 	}
-	KMark *newInstance() {
+	KMark * new_instance() override {
 		return new KCacheControlMark();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "cache_control";
 	}
 public:
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << " max_age='" << max_age << "'";
 		if(force){
 			s << " force='1'";

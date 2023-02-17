@@ -28,6 +28,7 @@
 #include "KStringBuf.h"
 #include "http.h"
 #include "kmalloc.h"
+#include "KBufferFetchObject.h"
 
 using namespace std;
 KRedirectMark::KRedirectMark() {
@@ -40,22 +41,21 @@ KRedirectMark::~KRedirectMark() {
 		xfree(dst);
 	}
 }
-KMark* KRedirectMark::newInstance() {
+KMark* KRedirectMark::new_instance() {
 	return new KRedirectMark;
 }
-bool KRedirectMark::mark(KHttpRequest* rq, KHttpObject* obj,
-	const int chainJumpType, int& jumpType) {
-	if (dst == NULL) {
-		return true;
+bool KRedirectMark::mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) {
+	if (!dst || !fo) {
+		return false;
 	}
 	assert(rq->sink->data.url->path);
-	//std::stringstream ss;
 	if (internalRedirect) {
 		rq->rewrite_url(dst);
 	} else {
-		int status_code = code;
-		push_redirect_header(rq, dst, (int)strlen(dst), status_code);
-		jumpType = JUMP_DENY;
+		if (push_redirect_header(rq, dst, (int)strlen(dst), code)) {
+			*fo = new KBufferFetchObject(nullptr, 0);
+			//jump_type = JUMP_DROP;
+		}
 	}
 	return true;
 }

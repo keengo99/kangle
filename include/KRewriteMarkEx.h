@@ -137,8 +137,7 @@ class KRewriteRule {
 public:
 	KRewriteRule();
 	~KRewriteRule();
-	bool mark(KHttpRequest *rq, KHttpObject *obj, std::list<KRewriteCond *> *conds,
-			const std::string &prefix,const char *rewriteBase,int &jumpType);
+	bool mark(KHttpRequest *rq, KHttpObject *obj, std::list<KRewriteCond *> *conds, const std::string &prefix, const char* rewriteBase, KFetchObject** fo);
 	bool parse(std::map<std::string,std::string> &attribute);
 	void buildXml(std::stringstream &s);
 	bool revert;
@@ -154,15 +153,14 @@ class KRewriteMarkEx: public KMark {
 public:
 	KRewriteMarkEx(void);
 	~KRewriteMarkEx(void);
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
-			int &jumpType);
-	KMark *newInstance();
-	const char *getName();
-	std::string getHtml(KModel *model);
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override;
+	KMark * new_instance() override;
+	const char *getName() override;
+	std::string getHtml(KModel *model) override;
 
-	std::string getDisplay();
+	std::string getDisplay() override;
 	static void getEnv(KHttpRequest *rq, char *env, KStringBuf &s);
-	void editHtml(std::map<std::string, std::string> &attribute,bool html);
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override;
 	bool startElement(KXmlContext *context) override;
 	bool startCharacter(KXmlContext *context, char *character, int len) override;
 	void buildXML(std::stringstream &s) override;

@@ -17,7 +17,7 @@ public:
 			delete val;
 		}
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType)
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
 	{
 		if (header.empty()) {
 #ifdef ENABLE_PROXY_PROTOCOL
@@ -78,15 +78,15 @@ public:
 		}
 		return false;
 	}
-	KMark *newInstance()
+	KMark * new_instance()override
 	{
 		return new KReplaceIPMark;
 	}
-	const char *getName()
+	const char *getName()override
 	{
 		return "replace_ip";
 	}
-	std::string getHtml(KModel *model)
+	std::string getHtml(KModel *model)override
 	{
 		std::stringstream s;
 		s << "header:<input name='header' value='";
@@ -104,7 +104,7 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	std::string getDisplay()
+	std::string getDisplay()override
 	{
 		std::stringstream s;
 		s << header;
@@ -113,7 +113,7 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
+	void editHtml(std::map<std::string, std::string> &attribute,bool html)override
 	{
 		header = attribute["header"];
 		std::string val = attribute["val"];
@@ -126,7 +126,7 @@ public:
 			this->val->setModel(val.c_str(), PCRE_CASELESS);
 		}
 	}
-	void buildXML(std::stringstream &s)
+	void buildXML(std::stringstream &s)override
 	{
 		s << " header='" << header << "' ";
 		if (val) {
@@ -153,7 +153,7 @@ public:
 			}
 		}
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType)
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
 	{
 		KHttpHeader *h = rq->sink->data.remove(_KS("x-real-ip-sign"));
 		if (h == NULL) {
@@ -213,15 +213,15 @@ public:
 		xfree_header(h);
 		return matched;
 	}
-	KMark *newInstance()
+	KMark * new_instance()override
 	{
 		return new KParentMark;
 	}
-	const char *getName()
+	const char *getName()override
 	{
 		return "parent";
 	}
-	std::string getHtml(KModel *model)
+	std::string getHtml(KModel *model)override
 	{
 		std::stringstream s;
 		s << "sign:<input name='sign' value='";
@@ -239,7 +239,7 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	std::string getDisplay()
+	std::string getDisplay()override
 	{
 		std::stringstream s;
 		for (int i = 0; i < 2; i++) {
@@ -279,7 +279,7 @@ public:
 		}
 		free(upstream_sign);
 	}
-	void buildXML(std::stringstream &s)
+	void buildXML(std::stringstream &s)override
 	{
 		s << " sign='";
 		for (int i = 0; i < 2; i++) {

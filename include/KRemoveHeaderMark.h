@@ -19,8 +19,7 @@ public:
 			delete val;
 		}
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,
-				const int chainJumpType, int &jumpType)
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)override
 	{	
 		bool result = false;
 #if 0
@@ -72,15 +71,15 @@ public:
 #endif
 		return result;
 	}
-	KMark *newInstance()
+	KMark * new_instance() override
 	{
 		return new KRemoveHeaderMark;
 	}
-	const char *getName()
+	const char *getName()override
 	{
 		return "remove_header";
 	}
-	std::string getHtml(KModel *model)
+	std::string getHtml(KModel *model)override
 	{
 		std::stringstream s;
 		s << "attr:<input name='attr' value='";
@@ -101,7 +100,7 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	std::string getDisplay()
+	std::string getDisplay()override
 	{
 		std::stringstream s;
 		if(attr){
@@ -115,7 +114,7 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) 
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
 	{
 		if(attr){
 			free(attr);
@@ -140,7 +139,7 @@ public:
 			val->setModel(v,PCRE_CASELESS);
 		}
 	}
-	void buildXML(std::stringstream &s)
+	void buildXML(std::stringstream &s)override
 	{
 		s << " attr='" << (attr?attr:"") << "' val='" ;
 		if (revers) {

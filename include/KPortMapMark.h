@@ -21,12 +21,12 @@ public:
 	virtual ~KPortMapMark()
 	{
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,int &jumpType)
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
 	{
 		if (!KBIT_TEST(rq->sink->get_server_model(),WORK_MODEL_TCP) || rq->is_source_empty()) {
 			return false;
 		}
-		rq->append_source(new KTcpFetchObject(false));
+		//rq->append_source(new KTcpFetchObject(false));
 		free(rq->sink->data.url->host);
 		free(rq->sink->data.raw_url->host);
 		if (rq->sink->data.url->param) {
@@ -44,18 +44,18 @@ public:
 		}
 		rq->sink->data.raw_url->host = strdup(rq->sink->data.url->host);
 		rq->sink->data.raw_url->port = rq->sink->data.url->port;
-		jumpType = JUMP_ALLOW;
+		*fo = new KTcpFetchObject(false);
 		return true;
 	}
-	KMark *newInstance()
+	KMark * new_instance()override
 	{
 		return new KPortMapMark;
 	}
-	const char *getName()
+	const char *getName()override
 	{
 		return "port_map";
 	}
-	std::string getHtml(KModel *model)
+	std::string getHtml(KModel *model)override
 	{
 		std::stringstream s;
 		s << "host:<input name='host' value='";
@@ -74,7 +74,7 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	std::string getDisplay()
+	std::string getDisplay()override
 	{
 		std::stringstream s;
 		s << host << ":" << port;
@@ -83,14 +83,14 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
+	void editHtml(std::map<std::string, std::string> &attribute,bool html)override
 			
 	{
 		host = attribute["host"];
 		port = atoi(attribute["port"].c_str());
 		param = attribute["param"];
 	}
-	void buildXML(std::stringstream &s)
+	void buildXML(std::stringstream &s)override
 	{
 		s << "host='" << host << "' port='" << port << "' param='" << param << "'>";
 	}

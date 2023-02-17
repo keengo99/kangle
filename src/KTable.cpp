@@ -132,51 +132,45 @@ bool KTable::delChain(std::string name) {
 	 return true;
 }
 
-bool KTable::match(KHttpRequest *rq, KHttpObject *obj, int &jumpType,
-		KJump **jumpTable, unsigned &checked_table,
-		const char **hitTable, int *chainId) {
-	vector<KChain *>::iterator it;
+kgl_jump_type KTable::match(KHttpRequest* rq, KHttpObject* obj, unsigned& checked_table, KJump** jump, KFetchObject** fo) {
 	KTable *m_table = NULL;
 	KChain *matchChain = head;
-	int id = 0;
 	while (matchChain) {
-		id++;
-		if (matchChain->match(rq, obj, jumpType, jumpTable)) {
-			switch (jumpType) {
-			case JUMP_CONTINUE:
-				matchChain = matchChain->next;
-				continue;
-			case JUMP_TABLE:
-				m_table = (KTable *) (*jumpTable);
-				if(m_table){
-					assert(m_table);
-					if(checked_table++ > 32){
-						jumpType = JUMP_DENY;
-						//jump tableÌ«¶à
-						return true;
-					}
-					if (m_table->match(rq,
-						obj,
-						jumpType,
-						jumpTable,
-						checked_table,
-						hitTable,
-						chainId) &&
-						jumpType != JUMP_RETURN) {
-						return true;
-					}
-				}
-				matchChain = matchChain->next;
-				continue;
-			default:
-				*hitTable = name.c_str();
-				*chainId = id;
-				return true;
-			}
+		bool result = matchChain->match(rq, obj, fo);
+		if (fo && *fo) {
+			return matchChain->jumpType;
 		}
-		matchChain = matchChain->next;
+		if (!result) {
+			matchChain = matchChain->next;
+			continue;
+		}
+		switch (matchChain->jumpType) {
+		case JUMP_CONTINUE:
+			matchChain = matchChain->next;
+			break;
+		case JUMP_TABLE:
+		{
+			m_table = (KTable*)(matchChain->jump);
+			if (!m_table) {
+				return JUMP_DENY;
+			}
+			if (checked_table++ > 32) {
+				//jump tableÌ«¶à
+				return JUMP_DENY;
+			}
+			int jump_type = m_table->match(rq, obj, checked_table, jump, fo);
+			if (jump_type != JUMP_CONTINUE) {
+				return jump_type;
+			}
+			matchChain = matchChain->next;
+			break;
+		}
+		default:
+			*jump = matchChain->jump;
+			return matchChain->jumpType;
+		}
 	}
-	return false;
+	return JUMP_CONTINUE;
 }
 bool KTable::startCharacter(KXmlContext *context, char *character, int len) {
 	if (curChain) {

@@ -8,6 +8,7 @@
 #ifndef KSUBVIRTUALHOST_H_
 #define KSUBVIRTUALHOST_H_
 #include <string>
+#include "KMark.h"
 #include "KFileName.h"
 #include "KHttpRequest.h"
 #include "KVirtualHostContainer.h"
@@ -102,7 +103,7 @@ public:
 	* htresponse htaccess转换后的access对象
 	* handled 是否已经处理了rq,如htaccess已经发送数据给rq(重定向,拒绝等等)
 	*/
-	bool bindFile(KHttpRequest *rq,KHttpObject *obj,bool &exsit,KAccess **htresponse,bool &handled);
+	kgl_jump_type bindFile(KHttpRequest *rq,KHttpObject *obj,bool &exsit,KAccess **htresponse, KFetchObject **fo);
 	bool bindFile(KHttpRequest *rq,bool &exsit,bool searchDefaultFile,bool searchAlias);
 	char *mapFile(const char *path);
 	void free_subtype_data();

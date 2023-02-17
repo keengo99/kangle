@@ -12,8 +12,7 @@ KHostRewriteMark::KHostRewriteMark()
 KHostRewriteMark::~KHostRewriteMark()
 {
 }
-bool KHostRewriteMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
-			int &jumpType)
+bool KHostRewriteMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)
 {
 
 	KRegSubString* ss = regHost.matchSubString(rq->sink->data.url->host, (int)strlen(rq->sink->data.url->host), 0);
@@ -38,17 +37,14 @@ bool KHostRewriteMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJ
 		if (KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL)) {
 			ssl = "s";
 		}
-		KFetchObject *fo = server_container->get(NULL,(rewrite?rq->sink->data.url->host:cdn_host->getString()),(port>0?port:rq->sink->data.url->port),ssl,life_time);
-		if (fo) {
-			rq->append_source(fo);
-		}
-		jumpType = JUMP_ALLOW;
+		*fo = server_container->get(NULL,(rewrite?rq->sink->data.url->host:cdn_host->getString()),(port>0?port:rq->sink->data.url->port),ssl,life_time);
+		//jump_type = JUMP_ALLOW;
 	}
 	delete ss;
 	delete cdn_host;
 	return true;
 }
-KMark *KHostRewriteMark::newInstance()
+KMark *KHostRewriteMark::new_instance()
 {
 	return new KHostRewriteMark;
 }
@@ -131,7 +127,7 @@ KHostMark::KHostMark()
 KHostMark::~KHostMark()
 {
 }
-bool KHostMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType, int &jumpType)
+bool KHostMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject **fo)
 {
 	if (rewrite) {
 		free(rq->sink->data.url->host);
@@ -142,15 +138,11 @@ bool KHostMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType
 		KBIT_SET(rq->sink->data.raw_url->flags,KGL_URL_REWRITED);
 	}
 	if (proxy) {		
-		KFetchObject * fo = server_container->get(NULL,(rewrite?rq->sink->data.url->host:host.c_str()),(port>0?port:rq->sink->data.url->port),(ssl?"s":NULL),life_time);
-		if (fo) {
-			rq->append_source(fo);
-		}
-		jumpType = JUMP_ALLOW;
+		*fo = server_container->get(NULL,(rewrite?rq->sink->data.url->host:host.c_str()),(port>0?port:rq->sink->data.url->port),(ssl?"s":NULL),life_time);
 	}
 	return true;
 }
-KMark *KHostMark::newInstance()
+KMark *KHostMark::new_instance()
 {
 	return new KHostMark;
 }

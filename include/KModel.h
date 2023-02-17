@@ -23,6 +23,7 @@
 
 #define MODEL_ACL 	1
 #define MODEL_MARK	2
+typedef int kgl_jump_type;
 class KAccess;
 class WhmContext;
 /*
@@ -36,13 +37,6 @@ public:
 		is_or = false;
 	}
 	virtual ~KModel() {
-	}
-	/*
-	 * 加到chain的顺序，返回true加到后面,如果返回false就要加到前面
-	 */
-	virtual bool addEnd()
-	{
-		return true;
 	}
 	/*
 	* 是否有运行时信息?

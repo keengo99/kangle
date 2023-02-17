@@ -31,7 +31,7 @@ public:
 	}
 	virtual ~KFlagMark() {
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,int &jumpType) {
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override {
 		if (clear) {
 			KBIT_CLR(rq->ctx.filter_flags,flag);
 		} else {
@@ -39,7 +39,7 @@ public:
 		}
 		return true;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		if (clear) {
 			s << "clear ";
@@ -47,7 +47,7 @@ public:
 		getFlagString(s);
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html){
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
 		flag = 0;
 		clear = (attribute["clear"] == "1");
 		if (attribute["no_cache"] == "1") {
@@ -116,7 +116,7 @@ public:
 			flag |= RF_LOG_DRILL;
 		}
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		KFlagMark *m_chain = (KFlagMark *) model;
 		std::stringstream s;
 		s << "<input type=checkbox name='clear' value='1' ";
@@ -243,20 +243,19 @@ public:
 		s << ">log_drill";
 		return s.str();
 	}
-	KMark *newInstance() {
+	KMark * new_instance() override {
 		return new KFlagMark();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "flag";
 	}
 public:
-	bool startElement(KXmlContext *context,
-			std::map<std::string, std::string> &attribute) {
-		if (attribute["flag"].size()>0) {
+	bool startElement(KXmlContext *context) override {
+		if (!context->attribute["flag"].empty()) {
 			//@deprecated
-			flag = atoi(attribute["flag"].c_str());
+			flag = atoi(context->attribute["flag"].c_str());
 		} else {
-			editHtml(attribute, false);
+			editHtml(context->attribute, false);
 		}
 		return true;
 	}
@@ -328,7 +327,7 @@ public:
 			s << "log_drill='1' ";
 		}
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		if (clear) {
 			s << "clear='1' ";
 		}

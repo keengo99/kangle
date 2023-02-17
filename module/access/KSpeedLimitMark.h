@@ -30,21 +30,21 @@ public:
 	}	
 	virtual ~KSpeedLimitMark() {
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,int &jumpType) {
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override {
 		KSpeedLimit *sl = new KSpeedLimit;
 		sl->setSpeedLimit(speed_limit);
 		rq->pushSpeedLimit(sl);
 		return true;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		s << speed_limit;
 		return s.str();
 	}
-	void editHtml(std::map<std::string,std::string> &attribute,bool html){
+	void editHtml(std::map<std::string,std::string> &attribute,bool html)override {
 		speed_limit=(int)get_size(attribute["limit"].c_str());
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		KSpeedLimitMark *mark = (KSpeedLimitMark *)model;
 		std::stringstream s;
 		s << "limit:<input name='limit' size=10 value='";
@@ -54,14 +54,14 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	KMark *newInstance() {
+	KMark * new_instance()override {
 		return new KSpeedLimitMark();
 	}
-	const char *getName() {
+	const char *getName()override {
 		return "speed_limit";
 	}
 public:
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << " limit='" << speed_limit << "'>";
 	}
 private:

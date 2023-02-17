@@ -39,21 +39,20 @@ public:
 	{
 		return true;
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
-			int &jumpType) {
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)override {
 		gsl->addRef();
 		rq->pushSpeedLimit(gsl);
 		return true;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		s << "limit: " << gsl->getSpeedLimit() ;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html){
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
 		gsl->setSpeedLimit((int)get_size(attribute["limit"].c_str()));
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		s << "limit:<input name=limit size=10 value='";
 		KGSpeedLimitMark *mark = (KGSpeedLimitMark *) (model);
@@ -63,14 +62,14 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	KMark *newInstance() {
+	KMark * new_instance()override {
 		return new KGSpeedLimitMark();
 	}
-	const char *getName() {
+	const char *getName()override {
 		return "gspeed_limit";
 	}
 public:
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s)override {
 		s << " limit='" << gsl->getSpeedLimit() << "'>";
 	}
 private:

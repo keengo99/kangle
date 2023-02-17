@@ -82,7 +82,8 @@ func (b *base) Init() error {
 		</table>
 	</response>
 	<!--vh start-->
-	<vh name='base' doc_root='www'  inherit='on' app='1'>		
+	<vh name='base' doc_root='www'  inherit='on' app='1'>
+		<index id='100' file='index.html'/>
 		<map path='/static' extend='default' confirm_file='0' allow_method='*'/>
 		<map path='/fastcgi' extend='cmd:fastcgi' confirm_file='0' allow_method='*'/>
 		<map path='/' extend='server:`
@@ -163,5 +164,6 @@ func init() {
 	s.AddCase("100_continue", "100-continue测试", check_100_continue)
 	s.AddCase("sub_status", "sub_status", test_stub_status)
 	s.AddCase("htaccess", "check apache htaccess", check_htaccess)
+	s.AddCase("directory", "check directory", check_directory)
 	s.AddCase("bug", "bug", check_bug)
 }

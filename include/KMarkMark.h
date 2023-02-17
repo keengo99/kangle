@@ -10,21 +10,20 @@ public:
 	~KMarkMark()
 	{
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,
-				const int chainJumpType, int &jumpType)
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
 	{
 		rq->sink->data.mark = v;
 		return true;
 	}
-	KMark *newInstance()
+	KMark * new_instance() override
 	{
 		return new KMarkMark;
 	}
-	const char *getName()
+	const char *getName() override
 	{
 		return "mark";
 	}
-	std::string getHtml(KModel *model)
+	std::string getHtml(KModel *model)override
 	{
 		std::stringstream s;
 		s << "mark(0-255):<input name='v' value='";
@@ -35,17 +34,17 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	std::string getDisplay()
+	std::string getDisplay()override
 	{
 		std::stringstream s;
 		s << (int)v;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) 
+	void editHtml(std::map<std::string, std::string> &attribute,bool html)override
 	{
 		v = atoi(attribute["v"].c_str());
 	}
-	void buildXML(std::stringstream &s)
+	void buildXML(std::stringstream &s)override
 	{
 		s << " v='" << (int)v << "'>";
 	}

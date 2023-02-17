@@ -13,7 +13,7 @@ public:
 	~KStubStatusMark()
 	{
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,int &jumpType)
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
 	{
 		rq->response_status(STATUS_OK);
 		rq->response_header(kgl_expand_string("Content-Type"), kgl_expand_string("text/plain"));
@@ -24,30 +24,30 @@ public:
 		s << "server accepts handled requests\n";
 		s << " " <<(INT64)katom_get64((void *)&kgl_total_servers) << " " << (INT64)katom_get64((void *)&kgl_total_accepts) << " " << (INT64)katom_get64((void *)&kgl_total_requests) << " \n";
 		s << "Reading: " << (int)katom_get((void *)&kgl_reading) << " Writing: " << (int)katom_get((void *)&kgl_writing) << " Waiting: " << (int)katom_get((void *)&kgl_waiting) << " \n";
-		jumpType = JUMP_DENY;
-		rq->append_source(new KBufferFetchObject(s.getHead(),s.getLen()));
+		*fo = new KBufferFetchObject(s.getHead(), s.getLen());
+		//jump_type = JUMP_DROP;
 		return true;
 	}
-	KMark *newInstance()
+	KMark * new_instance() override
 	{
 		return new KStubStatusMark();
 	}
-	const char *getName()
+	const char *getName() override
 	{
 		return "stub_status";
 	}
-	std::string getHtml(KModel *model)
+	std::string getHtml(KModel *model) override
 	{
 		return "";
 	}
-	std::string getDisplay()
+	std::string getDisplay() override
 	{
 		return "";
 	}
-	void editHtml(std::map<std::string, std::string> &attribute, bool html)
+	void editHtml(std::map<std::string, std::string> &attribute, bool html) override
 	{
 	}
-	void buildXML(std::stringstream &s)
+	void buildXML(std::stringstream &s) override
 	{
 		s << ">";
 	}

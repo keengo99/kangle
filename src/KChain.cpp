@@ -58,8 +58,7 @@ void KChain::clear()
 	acls.clear();
 	marks.clear();
 }
-bool KChain::match(KHttpRequest *rq, KHttpObject *obj, int &jumpType,
-		KJump **jumpTable) {
+bool KChain::match(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) {
 	bool result = true;
 	bool last_or = false;
 	//OR NEXT
@@ -79,17 +78,13 @@ bool KChain::match(KHttpRequest *rq, KHttpObject *obj, int &jumpType,
 	}
 	last_or = false;
 	std::list<KMark *>::iterator it2;
-	jumpType = this->jumpType;
-	*jumpTable = this->jump;
 	for (it2 = marks.begin(); it2 != marks.end(); it2++) {
 		if (result && last_or) {
 			last_or = (*it2)->is_or;
 			continue;
 		}
-		result = ((*it2)->mark(rq, obj, this->jumpType, jumpType) != (*it2)->revers);
-		if (jumpType==JUMP_FINISHED) {
-			jumpType = JUMP_DENY;
-			result = true;
+		result = ((*it2)->mark(rq, obj, fo) != (*it2)->revers);
+		if (fo && *fo) {
 			break;
 		}
 		if (!result && !last_or) {
@@ -102,8 +97,7 @@ bool KChain::match(KHttpRequest *rq, KHttpObject *obj, int &jumpType,
 	}
 	return result;
 }
-void KChain::getModelHtml(KModel *model, std::stringstream &s, int type,
-		int index) {
+void KChain::getModelHtml(KModel *model, std::stringstream &s, int type, int index) {
 
 	s << "<tr><td>";
 	s << "<input type=hidden name='begin_sub_form' value='" << model->getName()
@@ -311,7 +305,7 @@ KMark *KChain::newMark(std::string mark,KAccess *kaccess)
 	std::map<std::string,KMark *>::iterator it;
 	it = KAccess::markFactorys[kaccess->type].find(mark);
 	if (it!=KAccess::markFactorys[kaccess->type].end()) {
-		KMark *macl = (*it).second->newInstance();
+		KMark *macl = (*it).second->new_instance();
 		if (macl) {
 			macl->isGlobal = kaccess->isGlobal();
 		}
@@ -325,12 +319,8 @@ KAcl *KChain::addAcl(std::string acl,std::string name,KAccess *kaccess)
 		KAcl *a = newAcl(acl,kaccess);
 		if (a==NULL) {
 			return NULL;
-		}
-		if (a->addEnd()) {
-			acls.push_back(a);
-		} else {
-			acls.push_front(a);
-		}
+		}	
+		acls.push_back(a);		
 		return a;
 	}
 	kfiber_mutex_lock(KAccess::runtimeLock);
@@ -350,12 +340,8 @@ KAcl *KChain::addAcl(std::string acl,std::string name,KAccess *kaccess)
 	kfiber_mutex_unlock(KAccess::runtimeLock);
 
 	KAcl *a = static_cast<KAcl *>(m);
-	if (a) {
-		if (a->addEnd()) {
-			acls.push_back(a);
-		} else {
-			acls.push_front(a);
-		}
+	if (a) {		
+		acls.push_back(a);
 	}
 	return a;
 }
@@ -365,12 +351,8 @@ KMark *KChain::addMark(std::string mark,std::string name,KAccess *kaccess)
 		KMark *a = newMark(mark,kaccess);
 		if (a==NULL) {
 			return NULL;
-		}
-		if (a->addEnd()) {
-			marks.push_back(a);
-		} else {
-			marks.push_front(a);
-		}
+		}	
+		marks.push_back(a);		
 		return a;
 	}
 	kfiber_mutex_lock(KAccess::runtimeLock);
@@ -388,12 +370,8 @@ KMark *KChain::addMark(std::string mark,std::string name,KAccess *kaccess)
 	}
 	kfiber_mutex_unlock(KAccess::runtimeLock);
 	KMark *a = static_cast<KMark *>(m);
-	if (a) {
-		if (a->addEnd()) {
-			marks.push_back(a);
-		} else {
-			marks.push_front(a);
-		}
+	if (a) {		
+		marks.push_back(a);		
 	}
 	return a;
 }

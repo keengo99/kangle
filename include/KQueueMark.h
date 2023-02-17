@@ -31,24 +31,23 @@ public:
 		queue = NULL;
 	}
 	~KQueueMark();
-	bool mark(KHttpRequest *rq, KHttpObject *obj,
-		const int chainJumpType, int &jumpType);
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override;
 	bool supportRuntime() override
 	{
 		return true;
 	}
-	KMark *newInstance()
+	KMark * new_instance()override
 	{
 		return new KQueueMark;
 	}
-	const char *getName()
+	const char *getName()override
 	{
 		return "queue";
 	}
-	std::string getHtml(KModel *model);
-	std::string getDisplay();
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) ;
-	void buildXML(std::stringstream &s);
+	std::string getHtml(KModel *model)override;
+	std::string getDisplay()override;
+	void editHtml(std::map<std::string, std::string> &attribute,bool html)override;
+	void buildXML(std::stringstream &s)override;
 private:
 	KRequestQueue *queue;
 };
@@ -63,23 +62,23 @@ public:
 		matcher = NULL;
 	}
 	~KPerQueueMark();
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType, int &jumpType);
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override;
 	bool supportRuntime() override
 	{
 		return true;
 	}
-	KMark *newInstance()
+	KMark * new_instance() override
 	{
 		return new KPerQueueMark;
 	}
-	const char *getName()
+	const char *getName() override
 	{
 		return "per_queue";
 	}
-	std::string getHtml(KModel *model);
-	std::string getDisplay();
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) ;
-	void buildXML(std::stringstream &s);
+	std::string getHtml(KModel *model) override;
+	std::string getDisplay() override;
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override;
+	void buildXML(std::stringstream &s) override;
 private:
 	void build_matcher(std::stringstream &s);
 	per_queue_matcher *matcher;

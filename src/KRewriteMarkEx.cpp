@@ -9,6 +9,8 @@
 #include "http.h"
 #include "KCdnContainer.h"
 #include "kmalloc.h"
+#include "KBufferFetchObject.h"
+
 bool check_path_info(const char *file,struct _stat64 *buf)
 {
 	bool result = false;
@@ -110,7 +112,7 @@ bool KRewriteRule::parse(std::map<std::string,std::string> &attribute)
 	return true;
 }
 bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
-						std::list<KRewriteCond *> *conds,const std::string &prefix,const char *rewriteBase, int &jumpType) {
+						std::list<KRewriteCond *> *conds,const std::string &prefix,const char *rewriteBase, KFetchObject** fo) {
 	size_t len = strlen(rq->sink->data.url->path);
 	if (len < prefix.size()) {
 		return false;
@@ -180,8 +182,7 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 			if (KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL)) {
 				ssl = "s";
 			}
-			rq->append_source(server_container->get(NULL, rq->sink->data.url->host, rq->sink->data.url->port, ssl, 0));
-			jumpType = JUMP_ALLOW;
+			*fo = server_container->get(NULL, rq->sink->data.url->host, rq->sink->data.url->port, ssl, 0);
 		} else {
 			bool internal_flag = internal;
 			char *u = url->getString();
@@ -204,14 +205,14 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 						subString
 						);
 					if (proxy_host) {
-						rq->append_source(server_container->get(proxy_host->getString()));
-						jumpType = JUMP_ALLOW;
+						*fo = server_container->get(proxy_host->getString());
 						delete proxy_host;
 					}
 				}
 			} else {
-				push_redirect_header(rq,u,(int)strlen(u),code);
-				jumpType = JUMP_DENY;
+				if (push_redirect_header(rq, u, (int)strlen(u), code)) {
+					*fo = new KBufferFetchObject(nullptr, 0);
+				}
 			}
 		}
 		delete url;
@@ -257,32 +258,36 @@ bool KFileAttributeTestor::test(const char *str, KRegSubString **lastSubString) 
 KRewriteMarkEx::KRewriteMarkEx(void) {
 }
 KRewriteMarkEx::~KRewriteMarkEx(void) {
-	std::list<KRewriteCond *>::iterator it;
-	for (it = conds.begin(); it != conds.end(); it++) {
+	for (auto it = conds.begin(); it != conds.end(); it++) {
 		delete (*it);
 	}
-	std::list<KRewriteRule *>::iterator it2;
-	for (it2 = rules.begin(); it2 != rules.end(); it2++) {
-		delete (*it2);
+	for (auto it = rules.begin(); it != rules.end(); it++) {
+		delete (*it);
 	}
 }
-bool KRewriteMarkEx::mark(KHttpRequest *rq, KHttpObject *obj,
-		const int chainJumpType, int &jumpType) {
+bool KRewriteMarkEx::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) {
 	bool result = true;
+	assert(fo);
+	if (!fo) {
+		return false;
+	}
 	std::list<KRewriteRule *>::iterator it2;
 	for (it2 = rules.begin(); it2 != rules.end(); it2++) {
 		std::list<KRewriteCond *> *conds = NULL;
 		if (it2==rules.begin()) {
 			conds = &this->conds;
 		}
-		if (!(*it2)->mark(rq, obj, conds, prefix,(rewriteBase.size()>0?rewriteBase.c_str():NULL),jumpType)) {
+		if (!(*it2)->mark(rq, obj, conds, prefix,(rewriteBase.size()>0?rewriteBase.c_str():NULL), fo)) {
 			result = false;
+			break;
+		}
+		if (*fo) {
 			break;
 		}
 	}
 	return result;
 }
-KMark *KRewriteMarkEx::newInstance() {
+KMark *KRewriteMarkEx::new_instance() {
 	return new KRewriteMarkEx();
 }
 const char *KRewriteMarkEx::getName() {
@@ -294,8 +299,7 @@ std::string KRewriteMarkEx::getHtml(KModel *model) {
 std::string KRewriteMarkEx::getDisplay() {
 	return "not support in manage model";
 }
-void KRewriteMarkEx::editHtml(std::map<std::string, std::string> &attribute,bool html)
-		 {
+void KRewriteMarkEx::editHtml(std::map<std::string, std::string> &attribute,bool html) {
 	
 }
 bool KRewriteMarkEx::startCharacter(KXmlContext *context, char *character,

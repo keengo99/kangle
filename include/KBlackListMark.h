@@ -1,18 +1,17 @@
 #ifndef KBLACKLISTMARK_H
 #define KBLACKLISTMARK_H
 #include "KWhiteList.h"
-//{{ent
 #ifdef ENABLE_BLACK_LIST
-class KBlackListMark: public KMark {
+class KBlackListMark : public KMark
+{
 public:
 	KBlackListMark() {
-		
+
 	}
 	virtual ~KBlackListMark() {
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
-			int &jumpType) {
-		KIpList *bls = NULL;
+	bool mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) override {
+		KIpList* bls = NULL;
 		if (isGlobal) {
 			bls = conf.gvm->globalVh.blackList;
 		} else {
@@ -24,22 +23,21 @@ public:
 		if (bls) {
 			bls->AddDynamic(rq->getClientIp());
 		}
-		jumpType = JUMP_DROP;
 		return true;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		return "";
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html){
-				/*
-		if (1== atoi(attribute["enable"].c_str())) {
-			enable = true;
-		} else {
-			enable = false;
-		}	
-		*/
+	void editHtml(std::map<std::string, std::string>& attribute, bool html) override {
+		/*
+if (1== atoi(attribute["enable"].c_str())) {
+	enable = true;
+} else {
+	enable = false;
+}
+*/
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel* model) override {
 		/*
 		KBlackListMark *m_chain = (KBlackListMark *) model;
 		std::stringstream s;
@@ -52,21 +50,22 @@ public:
 		*/
 		return "";
 	}
-	KMark *newInstance() {
+	KMark* new_instance() override {
 		return new KBlackListMark();
 	}
-	const char *getName() {
+	const char* getName() override {
 		return "black_list";
 	}
 public:
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream& s) override {
 		//s << " enable='" << (enable?1:0) << "'>";
 		s << ">";
 	}
 private:
 	//bool enable;
 };
-class KCheckBlackListMark: public KMark {
+class KCheckBlackListMark : public KMark
+{
 public:
 	KCheckBlackListMark() {
 		time_out = 1800;
@@ -74,9 +73,8 @@ public:
 	virtual ~KCheckBlackListMark() {
 
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
-			int &jumpType) {	
-		KIpList *bls = NULL;
+	bool mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) override {
+		KIpList* bls = NULL;
 		if (isGlobal) {
 			bls = conf.gvm->globalVh.blackList;
 		} else {
@@ -86,15 +84,15 @@ public:
 			}
 		}
 		if (bls) {
-			if (bls->find(rq->getClientIp(),time_out,bls!= conf.gvm->globalVh.blackList)) {
+			if (bls->find(rq->getClientIp(), time_out, bls != conf.gvm->globalVh.blackList)) {
 				//rq->buffer << "HTTP/1.1 403 FORBIDIN\r\nConnection: close\r\n\r\nip is block";
-				jumpType = JUMP_DROP;
+				//jump_type = JUMP_DROP;
 				return true;
 			}
-		}		
+		}
 		return false;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		if (isGlobal) {
 			return "";
 		}
@@ -102,12 +100,11 @@ public:
 		s << "time:" << time_out;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
-			 {
+	void editHtml(std::map<std::string, std::string>& attribute, bool html)	override {
 		time_out = atoi(attribute["time_out"].c_str());
 	}
-	std::string getHtml(KModel *model) {
-		KCheckBlackListMark *m_chain = (KCheckBlackListMark *) model;
+	std::string getHtml(KModel* model)override {
+		KCheckBlackListMark* m_chain = (KCheckBlackListMark*)model;
 		std::stringstream s;
 		if (!isGlobal) {
 			s << "block time(seconds):<input type=text name='time_out' value='";
@@ -120,14 +117,14 @@ public:
 		}
 		return s.str();
 	}
-	KMark *newInstance() {
+	KMark* new_instance() override {
 		return new KCheckBlackListMark();
 	}
-	const char *getName() {
+	const char* getName()override {
 		return "check_black_list";
 	}
 public:
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream& s) override {
 		if (!isGlobal) {
 			s << "time_out='" << time_out << "'";
 		}

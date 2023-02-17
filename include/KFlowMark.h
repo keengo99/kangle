@@ -18,7 +18,7 @@ public:
 	{
 		return true;
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType, int &jumpType) override
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
 	{
 		if (fi) {
 			fi->addRef();
@@ -27,7 +27,7 @@ public:
 		}
 		return false;
 	}
-	KMark *newInstance() override
+	KMark *new_instance() override
 	{
 		return new KFlowMark();
 	}

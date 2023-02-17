@@ -123,7 +123,12 @@ void KDynamicListen::Delete(KListenKey *key,KVirtualHost *vh)
 	delete key;
 	if (listen->IsEmpty()) {
 		kassert(kserver_is_empty(listen->server));
-		kserver_close(listen->server);		
+		kserver_close(listen->server);
+#ifdef ENABLE_HTTP3
+		if (listen->h3_server) {
+			listen->h3_server->shutdown();
+		}
+#endif
 		rbtree_remove(&listens, node);
 		delete listen;
 	} else {

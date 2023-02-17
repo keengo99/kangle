@@ -18,7 +18,7 @@ public:
 		set_url_param(np, rq->sink->data.url);
 		return result;
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType)
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
 	{
 		if (rq->sink->data.url->param==NULL) {
 			return false;
@@ -93,10 +93,10 @@ public:
 		}
 		return ReturnWithRewriteParam(rq, np, true);
 	}
-	const char *getName() {
+	const char *getName() override  {
 		return "path_sign";
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		KPathSignMark *m = (KPathSignMark *)model;
 		s << "sign:<input name='sign' value='";
@@ -121,10 +121,10 @@ public:
 		s << ">file";
 		return s.str();
 	}
-	KMark *newInstance() {
+	KMark * new_instance() override  {
 		return new KPathSignMark();
 	}
-	std::string getDisplay()
+	std::string getDisplay() override
 	{
 		std::stringstream s;
 		s << "sign=" << sign << ",expire=" << expire;
@@ -133,7 +133,7 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
 			
 	{
 		sign = attribute["sign"];
@@ -141,7 +141,7 @@ public:
 		key = attribute["key"];
 		file = (attribute["file"]=="1");
 	}
-	void buildXML(std::stringstream &s)
+	void buildXML(std::stringstream &s) override
 	{
 		s << "sign='" << sign << "' expire='" << expire << "' key='" << key << "' ";
 		if (file) {

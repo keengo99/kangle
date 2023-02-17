@@ -1,5 +1,6 @@
 #ifndef KURLREWRITEMARK_H
 #define KURLREWRITEMARK_H
+#include "KBufferFetchObject.h"
 class KUrlRewriteMark : public KMark
 {
 public:
@@ -8,8 +9,7 @@ public:
 		code = 0;
 		icase = true;
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
-			int &jumpType)
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)override
 	{
 		KStringBuf u;
 		rq->sink->data.url->GetUrl(u);
@@ -31,8 +31,10 @@ public:
 		delete subString;
 		if (nu) {
 			if (code>0) {
-				push_redirect_header(rq, nu->getString(),nu->getSize(),code);
-				jumpType = JUMP_DENY;
+				if (push_redirect_header(rq, nu->getString(), nu->getSize(), code)) {
+					*fo = new KBufferFetchObject(nullptr, 0);
+					//jump_type = JUMP_DROP;
+				}
 			} else {
 				rq->rewrite_url(nu->getString(),0,NULL);
 				delete nu;
@@ -41,15 +43,15 @@ public:
 		}
 		return false;
 	}
-	KMark *newInstance()
+	KMark * new_instance()override
 	{
 		return new KUrlRewriteMark;
 	}
-	const char *getName()
+	const char *getName()override
 	{
 		return "url_rewrite";
 	}
-	std::string getHtml(KModel *model)
+	std::string getHtml(KModel *model)override
 	{
 		std::stringstream s;
 		KUrlRewriteMark *m = (KUrlRewriteMark *)model;
@@ -76,7 +78,7 @@ public:
 		s << ">nc";
 		return s.str();
 	}
-	std::string getDisplay()
+	std::string getDisplay()override
 	{
 		std::stringstream s;
 		s << url.getModel() << "=>" << dst;
@@ -85,7 +87,7 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
+	void editHtml(std::map<std::string, std::string> &attribute,bool html)override
 	{
 		icase = (attribute["icase"]=="1");
 		if (attribute["nc"].size()>0) {
@@ -95,7 +97,7 @@ public:
 		dst = attribute["dst"];
 		code = atoi(attribute["code"].c_str());
 	}
-	void buildXML(std::stringstream &s)
+	void buildXML(std::stringstream &s)override
 	{
 		s << "url='" << KXml::param(url.getModel()) << "' dst='" << KXml::param(dst.c_str()) << "'";
 		if (icase) {

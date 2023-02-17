@@ -137,9 +137,9 @@ public:
 	 */
 	KTempleteVirtualHost *tvh;
 #ifdef ENABLE_USER_ACCESS	
-	int checkRequest(KHttpRequest *rq);
-	int checkResponse(KHttpRequest *rq);
-	int checkPostMap(KHttpRequest *rq);
+	int checkRequest(KHttpRequest *rq, KFetchObject **fo);
+	int checkResponse(KHttpRequest *rq, KFetchObject** fo);
+	int checkPostMap(KHttpRequest *rq, KFetchObject** fo);
 	std::string user_access;
 #endif
 	std::string doc_root;

@@ -373,17 +373,15 @@ bool push_redirect_header(KHttpRequest* rq, const char* url, int url_len, int co
 	rq->response_header(kgl_header_date, (char*)cachedDateTime, 29);
 	timeLock.Unlock();
 	rq->response_header(kgl_expand_string("Location"), url, url_len);
-	rq->response_header(kgl_expand_string("Content-Length"), 0);
 	rq->response_connection();
 	return true;
 }
 
 
-KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KAccess** htresponse, bool& handled) {
+KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KAccess** htresponse) {
 	assert(rq->file == NULL);
 	//file = new KFileName;
 	assert(!rq->has_final_source());
-	KFetchObject* redirect = NULL;
 	bool result = false;
 	bool redirect_result = false;
 	char* indexPath = NULL;
@@ -393,16 +391,23 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KAccess** h
 		error->set(STATUS_SERVICE_UNAVAILABLE, "virtual host is closed");
 		return NULL;
 	}
-	if (!svh->bindFile(rq, rq->ctx.obj, result, htresponse, handled)) {
+	KFetchObject* fo = nullptr;
+	int jump_type = svh->bindFile(rq, rq->ctx.obj, result, htresponse, &fo);
+	if (fo) {
+		return fo;
+	}
+	if (jump_type==JUMP_DENY) {
 		//bind错误.如非法url.
 		result = false;
-		error->set(STATUS_SERVER_ERROR, "cann't bind file.");
+		error->set(STATUS_SERVER_ERROR, "cann't bind file or denied by htaccess.");
 		return NULL;
 	}
+	/*
 	if (handled || rq->has_final_source()) {
 		//请求已经处理,或者数据源已确定.
 		return NULL;
 	}
+	*/
 	if (rq->file == NULL) {
 		error->set(STATUS_SERVER_ERROR, "cann't bind local file. file is NULL.");
 		return NULL;
@@ -416,13 +421,13 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KAccess** h
 			rq->file = newFile;
 		}
 	}
-	redirect = svh->vh->findPathRedirect(rq, rq->file, (indexPath ? indexPath : rq->sink->data.url->path), result, redirect_result);
+	fo = svh->vh->findPathRedirect(rq, rq->file, (indexPath ? indexPath : rq->sink->data.url->path), result, redirect_result);
 	if (indexPath) {
 		free(indexPath);
 	}
-	if (redirect) {
+	if (fo) {
 		//路径映射源确定
-		return redirect;
+		return fo;
 	}
 	if (result && rq->file->isDirectory()) {
 		//文件为目录处理
@@ -449,15 +454,15 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KAccess** h
 		}
 	}
 	//按文件扩展名查找扩展映射
-	redirect = svh->vh->findFileExtRedirect(rq, rq->file, result, redirect_result);
-	if (redirect) {
+	fo = svh->vh->findFileExtRedirect(rq, rq->file, result, redirect_result);
+	if (fo) {
 		//映射源确定
-		return redirect;
+		return fo;
 	}
 	//查找默认扩展
-	redirect = svh->vh->findDefaultRedirect(rq, rq->file, result);
-	if (redirect) {
-		return redirect;
+	fo = svh->vh->findDefaultRedirect(rq, rq->file, result);
+	if (fo) {
+		return fo;
 	}
 	if (result) {
 		if (rq->file->getPathInfoLength() > 0) {
@@ -475,8 +480,8 @@ done:
 		}
 		return NULL;
 	}
-	if (redirect) {
-		return redirect;
+	if (fo) {
+		return fo;
 	}
 	return new KStaticFetchObject;
 }
@@ -701,11 +706,23 @@ int checkResponse(KHttpRequest* rq, KHttpObject* obj) {
 		return JUMP_ALLOW;
 	}
 	rq->ctx.response_checked = 1;
-	int action = kaccess[RESPONSE].check(rq, obj);
+	KFetchObject* fo = nullptr;
+	int action = kaccess[RESPONSE].check(rq, obj, &fo);
+	assert(!fo);
+	if (fo) {
+		klog(KLOG_ERR, "response check not support new source\n");
+		delete fo;
+		fo = nullptr;
+	}
 #ifndef HTTP_PROXY
 #ifdef ENABLE_USER_ACCESS
 	if (action == JUMP_ALLOW && rq->sink->data.opaque) {
-		action = static_cast<KSubVirtualHost*>(rq->sink->data.opaque)->vh->checkResponse(rq);
+		action = static_cast<KSubVirtualHost*>(rq->sink->data.opaque)->vh->checkResponse(rq, &fo);
+		assert(!fo);
+		if (fo) {
+			klog(KLOG_ERR, "virtualhost response check not support new source\n");
+			delete fo;
+		}
 	}
 #endif
 #endif

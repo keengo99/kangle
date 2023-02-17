@@ -14,8 +14,7 @@ public:
 	~KRemoveParamMark()
 	{
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
-			int &jumpType) {
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override {
 		KUrl *url = (raw?rq->sink->data.raw_url:rq->sink->data.url);
 		char *param = url->param;
 		if (param==NULL) {
@@ -59,7 +58,7 @@ public:
 		}
 		return matched;
 	}
-	std::string getDisplay() {
+	std::string getDisplay()override {
 		std::stringstream s;
 		if (raw) {
 			s << "[raw]";
@@ -70,7 +69,7 @@ public:
 		s << params.getModel();
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html){
+	void editHtml(std::map<std::string, std::string> &attribute,bool html)override {
 		raw = (attribute["raw"]=="1");
 		nc = (attribute["nc"]=="1");
 		const char *param = attribute["params"].c_str();
@@ -82,7 +81,7 @@ public:
 		}
 		params.setModel(param,(nc?PCRE_CASELESS:0));
 	}
-	std::string getHtml(KModel *model)
+	std::string getHtml(KModel *model)override
 	{
 		KRemoveParamMark *m = (KRemoveParamMark *)model;
 		std::stringstream s;
@@ -106,14 +105,14 @@ public:
 		s << ">nc";
 		return s.str();		
 	}
-	KMark *newInstance() {
+	KMark * new_instance() override {
 		return new KRemoveParamMark();
 	}
-	const char *getName() {
+	const char *getName()override {
 		return "remove_param";
 	}
 public:
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << "params='";
 		if (revert) {
 			s << "!";

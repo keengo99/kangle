@@ -31,8 +31,7 @@ class KChain {
 public:
 	KChain();
 	virtual ~KChain();
-	bool match(KHttpRequest *rq, KHttpObject *obj, int &jumpType,
-			KJump **jumpTable);
+	bool match(KHttpRequest *rq, KHttpObject *obj, KFetchObject **fo);
 	uint32_t hit_count;
 	KAcl *addAcl(std::string acl,std::string name,KAccess *kaccess);
 	bool delAcl(std::string acl);
@@ -55,7 +54,6 @@ public:
 	friend class KAccess;
 	friend class KTable;
 	bool ext;
-	//	static void getModelHtml(std::string name,std::string &s,int type,int index);
 private:
 	bool editModel(KModel *model,std::map<std::string, std::string> &attribute);
 	bool editModel(KModel *model, KUrlValue *urlValue);
@@ -68,9 +66,9 @@ public:
 	KAcl *newAcl(std::string acl,KAccess *kaccess);
 	KMark *newMark(std::string mark,KAccess *kaccess);
 private:
-	KJump *jump;
-	int jumpType;
+	kgl_jump_type jumpType;
 	std::string jumpName;
+	KJump *jump;	
 	std::list<KAcl *> acls;
 	std::list<KMark *> marks;
 	std::string name;

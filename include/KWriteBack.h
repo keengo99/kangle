@@ -17,6 +17,7 @@
 #include "KConfig.h"
 #ifdef ENABLE_WRITE_BACK
 class KHttpRequest;
+class KFetchObject;
 class KWriteBack:public KJump
 {
 public:
@@ -25,7 +26,7 @@ public:
 		ext = cur_config_ext;
 		header = NULL;
 	}
-	void buildRequest(KHttpRequest *rq);
+	void buildRequest(KHttpRequest *rq, KFetchObject **fo);
 	std::string getMsg();
 	void setMsg(std::string msg);
 	bool startElement(KXmlContext* context) override {

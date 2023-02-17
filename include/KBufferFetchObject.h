@@ -15,7 +15,10 @@ public:
 	~KBufferFetchObject()
 	{
 	}
-	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out)
+	bool before_cache() override {
+		return true;
+	}
+	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) override
 	{
 		kgl_response_body body;
 		KGL_RESULT result = out->f->write_header_finish(out->ctx, length, &body);

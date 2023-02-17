@@ -8,14 +8,13 @@ class KHostRewriteMark : public KMark
 public:
 	KHostRewriteMark();
 	virtual ~KHostRewriteMark();
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
-			int &jumpType);
-	KMark *newInstance();
-	const char *getName();
-	std::string getHtml(KModel *model);
-	std::string getDisplay();
-	void editHtml(std::map<std::string, std::string> &attribute,bool html);
-	void buildXML(std::stringstream &s);
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject **fo) override;
+	KMark * new_instance() override;
+	const char *getName() override;
+	std::string getHtml(KModel *model) override;
+	std::string getDisplay() override;
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override;
+	void buildXML(std::stringstream &s) override;
 
 private:
 	KReg regHost;
@@ -30,14 +29,13 @@ class KHostMark : public KMark
 public:
 	KHostMark();
 	virtual ~KHostMark();
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
-			int &jumpType);
-	KMark *newInstance();
-	const char *getName();
-	std::string getHtml(KModel *model);
-	std::string getDisplay();
-	void editHtml(std::map<std::string, std::string> &attribute,bool html);
-	void buildXML(std::stringstream &s);
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override;
+	KMark * new_instance() override;
+	const char *getName() override;
+	std::string getHtml(KModel *model) override;
+	std::string getDisplay() override;
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override;
+	void buildXML(std::stringstream &s) override;
 
 private:
 	std::string host;

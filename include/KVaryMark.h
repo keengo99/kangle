@@ -13,7 +13,7 @@ public:
 			xfree(header);
 		}
 	}
-	bool mark(KHttpRequest* rq, KHttpObject* obj, const int chainJumpType, int& jumpType) {
+	bool mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) override {
 		if (header == NULL) {
 			return false;
 		}
@@ -26,21 +26,21 @@ public:
 		}
 		return true;
 	}
-	std::string getDisplay() {
+	std::string getDisplay()override {
 		std::stringstream s;
 		if (header) {
 			s << header;
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string>& attribute, bool html) {
+	void editHtml(std::map<std::string, std::string>& attribute, bool html) override {
 		if (header) {
 			xfree(header);
 		}
 		header = strdup(attribute["header"].c_str());
 		header_len = strlen(header);
 	}
-	std::string getHtml(KModel* model) {
+	std::string getHtml(KModel* model) override {
 		KVaryMark* m = (KVaryMark*)model;
 		std::stringstream s;
 		s << "header:<input name='header' value='";
@@ -50,13 +50,13 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	KMark* newInstance() {
+	KMark* new_instance() override {
 		return new KVaryMark;
 	}
-	const char* getName() {
+	const char* getName() override {
 		return "vary";
 	}
-	void buildXML(std::stringstream& s) {
+	void buildXML(std::stringstream& s) override {
 		if (header) {
 			s << " header='" << header << "' ";
 		}

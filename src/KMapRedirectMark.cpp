@@ -2,6 +2,8 @@
 #include "KHttpRequest.h"
 #include "KRewriteMarkEx.h"
 #include "http.h"
+#include "KBufferFetchObject.h"
+
 void map_redirect_iterator(void *arg, const char *domain, void *vh)
 {
 	std::stringstream *s = (std::stringstream *)arg;
@@ -24,7 +26,7 @@ KMapRedirectMark::~KMapRedirectMark()
 {
 	vhc.iterator(map_redirect_free_iterator,NULL);
 }
-bool KMapRedirectMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType, int &jumpType)
+bool KMapRedirectMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)
 {
 	KMapRedirectItem *item = (KMapRedirectItem *)vhc.find(rq->sink->data.url->host);
 	if (item == NULL) {
@@ -47,11 +49,13 @@ bool KMapRedirectMark::mark(KHttpRequest *rq, KHttpObject *obj, const int chainJ
 		s << item->rewrite;
 	}
 	rq->sink->data.url->GetPath(s);
-	push_redirect_header(rq, s.getBuf(), s.getSize(), item->code);	
-	jumpType = JUMP_DENY;
+	if (push_redirect_header(rq, s.getBuf(), s.getSize(), item->code)) {
+		*fo = new KBufferFetchObject(nullptr, 0);
+		//jump_type = JUMP_DROP;
+	}
 	return true;
 }
-KMark *KMapRedirectMark::newInstance()
+KMark *KMapRedirectMark::new_instance()
 {
 	return new KMapRedirectMark;
 }

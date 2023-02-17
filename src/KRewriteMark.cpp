@@ -35,12 +35,11 @@ KRewriteMark::KRewriteMark() {
 KRewriteMark::~KRewriteMark() {
 
 }
-KMark *KRewriteMark::newInstance() {
+KMark *KRewriteMark::new_instance() {
 	return new KRewriteMark;
 }
-bool KRewriteMark::mark(KHttpRequest *rq, KHttpObject *obj,
-		const int chainJumpType, int &jumpType) {
-	return rule.mark(rq, obj,NULL, prefix,NULL ,jumpType);
+bool KRewriteMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) {
+	return rule.mark(rq, obj,NULL, prefix,NULL , fo);
 }
 const char *KRewriteMark::getName() {
 	return "rewrite";

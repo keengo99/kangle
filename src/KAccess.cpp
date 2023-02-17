@@ -405,23 +405,20 @@ void KAccess::loadModel() {
 	addMarkModel(RESPONSE,new KMarkMark());
 	addMarkModel(REQUEST_RESPONSE,new KConnectionCloseMark());
 }
-int KAccess::checkPostMap(KHttpRequest *rq,KHttpObject *obj)
+kgl_jump_type KAccess::checkPostMap(KHttpRequest *rq,KHttpObject *obj, KFetchObject **fo)
 {
 	if (postMap==NULL) {
 		return JUMP_ALLOW;
 	}
-	int jumpType = default_jump_type;
+	kgl_jump_type jumpType = default_jump_type;
 	unsigned checked_table = 0;
 	KJump *jump = default_jump;
-	const char *hitTable = NULL;
-	int hitChain;
 	kfiber_rwlock_rlock(rwlock);
 	if (postMap) {
-		if (postMap->match(rq, obj, jumpType, &jump, checked_table, &hitTable,&hitChain) 
-				&& jumpType != JUMP_RETURN) {			
-		} else {
+		jumpType = postMap->match(rq, obj, checked_table, &jump, fo);
+		if (jumpType == JUMP_RETURN) {
 			jumpType = default_jump_type;
-		}
+		}		
 	}
 	kfiber_rwlock_runlock(rwlock);
 	if (jumpType==JUMP_ALLOW) {
@@ -429,62 +426,69 @@ int KAccess::checkPostMap(KHttpRequest *rq,KHttpObject *obj)
 	}
 	return JUMP_DENY;
 }
-int KAccess::check(KHttpRequest *rq, KHttpObject *obj) {
-	int jumpType = default_jump_type;
+kgl_jump_type KAccess::check(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) {
+	kgl_jump_type jumpType = default_jump_type;
 	unsigned checked_table = 0;
 	KJump *jump = default_jump;
-	KPoolableRedirect *as;
-	const char *hitTable = NULL;
-	int hitChain;
 	kfiber_rwlock_rlock(rwlock);
 	if (!actionParsed) {
 		setChainAction();
 	}
 	if (begin) {
-		if (begin->match(rq, obj, jumpType, &jump, checked_table, &hitTable,&hitChain)
-			&& jumpType != JUMP_RETURN) {
-		} else {
-			//reset jump to default
+		jumpType = begin->match(rq, obj, checked_table, &jump, fo);
+		if (fo && *fo) {
+			kfiber_rwlock_runlock(rwlock);
+			if ((*fo)->before_cache()) {
+				return JUMP_DENY;
+			}
+			return JUMP_ALLOW;
+		}
+		if (jumpType == JUMP_RETURN || jumpType==JUMP_CONTINUE) {
 			jumpType = default_jump_type;
 			jump = default_jump;
 		}
-	}
+	}	
 	switch (jumpType) {
 	case JUMP_SERVER:
 	{
-		assert(!rq->has_final_source());
-		as = (KPoolableRedirect *)jump;
-		KRedirectSource*fo = as->makeFetchObject(rq, NULL);
-		as->addRef();
-		fo->bindRedirect(as, KGL_CONFIRM_FILE_NEVER);
-		rq->append_source(fo);
-		jumpType = JUMP_ALLOW;
+		if (fo) {
+			assert(!rq->has_final_source());
+			KPoolableRedirect* as = (KPoolableRedirect*)jump;
+			KRedirectSource* fo2 = as->makeFetchObject(rq, NULL);
+			as->addRef();
+			fo2->bindRedirect(as, KGL_CONFIRM_FILE_NEVER);
+			jumpType = JUMP_ALLOW;
+			*fo = fo2;
+		}
 		break;
 	}
 #ifdef ENABLE_WRITE_BACK
 	case JUMP_WBACK:
-		if (jump) {
+		if (jump && fo) {
 			KWriteBack *wb = (KWriteBack *)jump;
-			wb->buildRequest(rq);
+			wb->buildRequest(rq, fo);
 		}
 		jumpType = JUMP_DENY;
 		break;
 #endif
 	case JUMP_PROXY:
+		jumpType = JUMP_ALLOW;
 		assert(!rq->has_final_source());
+		if (fo) {
 #ifdef HTTP_PROXY
-		if (rq->sink->data.meth == METH_CONNECT) {
-			rq->append_source(new KConnectProxyFetchObject());
-			break;
-		}
+			if (rq->sink->data.meth == METH_CONNECT) {
+				*fo = new KConnectProxyFetchObject();
+				break;
+			}
 #endif
 #ifdef ENABLE_PROXY_PROTOCOL
-		if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_PROXY|WORK_MODEL_SSL_PROXY)) {
-			rq->append_source(new KTcpFetchObject(false));
-			break;
-		}
+			if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_PROXY | WORK_MODEL_SSL_PROXY)) {
+				*fo = new KTcpFetchObject(false);
+				break;
+			}
 #endif
-		rq->append_source(new KHttpProxyFetchObject());
+			*fo = new KHttpProxyFetchObject();
+		}
 		break;
 	}
 	kfiber_rwlock_runlock(rwlock);
@@ -740,7 +744,7 @@ std::string KAccess::htmlAccess(const char *vh) {
 	//s << "<hr><center>" << PROGRAM_NAME << "(" << VER_ID << ")</center>";
 	return s.str();
 }
-bool KAccess::parseChainAction(std::string action, int &jumpType,
+bool KAccess::parseChainAction(std::string action, kgl_jump_type  &jumpType,
 		std::string &jumpName) {
 	if (strcasecmp(action.c_str(), "deny") == 0) {
 		jumpType = JUMP_DENY;
@@ -802,7 +806,7 @@ bool KAccess::parseChainAction(std::string action, int &jumpType,
 	}
 	return true;
 }
-void KAccess::buildChainAction(int jumpType, KJump *jump, std::stringstream &s) {
+void KAccess::buildChainAction(kgl_jump_type jumpType, KJump *jump, std::stringstream &s) {
 	bool jname = false;
 	s << " action='";
 	switch (jumpType) {
@@ -848,7 +852,7 @@ void KAccess::buildChainAction(int jumpType, KJump *jump, std::stringstream &s) 
 	}
 	s << "' ";
 }
-void KAccess::setChainAction(int &jump_type, KJump **jump, std::string name) {
+void KAccess::setChainAction(kgl_jump_type&jump_type, KJump **jump, std::string name) {
 	if (*jump) {
 		(*jump)->release();
 	}
@@ -866,31 +870,7 @@ void KAccess::setChainAction(int &jump_type, KJump **jump, std::string name) {
 		} else {
 			(*jump)->addRef();
 		}
-		break;	
-#if 0
-	case JUMP_TABLECHAIN: {
-		char *name2 = xstrdup(name.c_str());
-		char *p = strchr(name2, ':');
-		std::string chainname;
-		if (p) {
-			*p = 0;
-			chainname = p + 1;
-		}
-		KTable *jtable = getTable(name2);
-		if (jtable) {
-			int id = jtable->getChain(chainname.c_str());
-			if (id >= 0) {
-				KJumpTable *jjtable = new KJumpTable(jtable);				
-				jjtable->id = id;
-				*jump = jjtable;
-			}
-		}
-		if (*jump == NULL) {
-			jump_type = JUMP_DENY;
-		}
-	}
 		break;
-#endif
 #endif
 	case JUMP_SERVER:
 		*jump = (KJump *) conf.gam->refsAcserver(name);
@@ -899,15 +879,6 @@ void KAccess::setChainAction(int &jump_type, KJump **jump, std::string name) {
 			jump_type = JUMP_DENY;
 		}
 		break;
-		/*
-		 case JUMP_VHS:
-		 *jump = conf.gvm->refsNsVirtualHost(name);
-		 if (*jump == NULL) {
-		 klog(KLOG_ERR, "cann't get virtualHost name=[%s]\n", name.c_str());
-		 jump_type = JUMP_DENY;
-		 }
-		 break;
-		 */
 #ifdef ENABLE_WRITE_BACK
 	case JUMP_WBACK:
 		*jump = (KJump *) writeBackManager.refsWriteBack(name);
@@ -917,21 +888,20 @@ void KAccess::setChainAction(int &jump_type, KJump **jump, std::string name) {
 		}
 		break;
 #endif
-
 	default:
 		*jump = NULL;
 	}
 
 	return;
 }
-void KAccess::changeFirst(int jump_type, std::string name) {
+void KAccess::changeFirst(kgl_jump_type jump_type, std::string name) {
 
 	kfiber_rwlock_wlock(rwlock);
 	default_jump_type = jump_type;
 	setChainAction(default_jump_type, &default_jump, name);
 	kfiber_rwlock_wunlock(rwlock);
 }
-void KAccess::htmlChainAction(std::stringstream &s, int jump_type, KJump *jump,
+void KAccess::htmlChainAction(std::stringstream &s, kgl_jump_type jump_type, KJump *jump,
 		bool showTable, std::string skipTable) {
 	if (!actionParsed) {
 		setChainAction();
@@ -970,7 +940,7 @@ void KAccess::htmlChainAction(std::stringstream &s, int jump_type, KJump *jump,
 				<< klang["LANG_CONTINUE"];
 		jump_value++;
 	}
-	vector<string> table_names;
+	std::vector<std::string> table_names;
 
 #ifdef ENABLE_WRITE_BACK
 	//	if (show[WRITE_BACK]) {
@@ -1016,8 +986,8 @@ void KAccess::htmlChainAction(std::stringstream &s, int jump_type, KJump *jump,
 }
 
 void KAccess::htmlRadioAction(std::stringstream &s, int *jump_value,
-		int jump_type, KJump *jump, int my_jump_type, std::string my_type_name,
-		std::vector<std::string> table_names) {
+	kgl_jump_type jump_type, KJump *jump, int my_jump_type, std::string my_type_name,
+		std::vector<std::string> &table_names) {
 	if (table_names.size() > 0) {
 		s << "<input type=radio ";
 		if (jump_type == my_jump_type) {

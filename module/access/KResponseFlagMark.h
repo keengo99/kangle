@@ -30,7 +30,7 @@ public:
 	}
 	virtual ~KResponseFlagMark() {
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType) {
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)override {
 		bool result = false;
 		if (flag > 0) {
 			KBIT_SET(obj->index.flags, flag);
@@ -46,7 +46,7 @@ public:
 		}
 		return result;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		if (compress) {
 			s << "compress,";
@@ -65,7 +65,7 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string,std::string> &attribute,bool html){
+	void editHtml(std::map<std::string,std::string> &attribute,bool html)override {
 		flag=0;
 		compress = false;
 		identity_encoding = false;
@@ -101,7 +101,7 @@ public:
 		}
 		free(buf);
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		s << "<input type=text name=flagvalue value='";
 		if (model) {
@@ -111,14 +111,14 @@ public:
 		s << "'>(available:compress, nocache, nodiskcache, identity_encoding)";
 		return s.str();
 	}
-	KMark *newInstance() {
+	KMark * new_instance() override {
 		return new KResponseFlagMark();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "response_flag";
 	}
 public:
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << " flagvalue='" << getDisplay() << "'>";
 	}
 private:
@@ -135,7 +135,7 @@ public:
 	virtual ~KExtendFlagMark() {
 	}
 
-	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType) {
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override {
 		if (no_extend) {
 			KBIT_SET(rq->ctx.filter_flags,RQ_NO_EXTEND);
 		} else {
@@ -143,7 +143,7 @@ public:
 		}
 		return true;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		if(no_extend){
 			s << klang["no_extend"];
@@ -152,7 +152,7 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string,std::string> &attribute,bool html){
+	void editHtml(std::map<std::string,std::string> &attribute,bool html) override {
 		if(attribute["no_extend"]=="1"){
 			no_extend = true;
 		} else {
@@ -160,7 +160,7 @@ public:
 		}
 	
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model)override {
 		KExtendFlagMark *m_chain=(KExtendFlagMark *)model;
 		std::stringstream s;
 		s << "<input type=radio name='no_extend' value='1' ";
@@ -175,14 +175,14 @@ public:
 		s << ">" << klang["clear_no_extend"];
 		return s.str();
 	}
-	KMark *newInstance() {
+	KMark *new_instance() override {
 		return new KExtendFlagMark();
 	}
-	const char *getName() {
+	const char *getName()override {
 		return "extend_flag";
 	}
 public:
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << " no_extend='" << (no_extend?1:0) << "'>";
 	}
 private:

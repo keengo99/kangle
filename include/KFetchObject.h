@@ -78,7 +78,7 @@ public:
 		return false;
 	}
 #endif
-	KGL_RESULT PushBody(KHttpRequest *rq, kgl_response_body *out, const char *buf, int len);
+	static KGL_RESULT PushBody(KHttpRequest *rq, kgl_response_body *out, const char *buf, int len);
 	KFetchObject* next = nullptr;
 };
 class KRedirectSource : public KFetchObject
@@ -92,9 +92,9 @@ public:
 			brd->release();
 		}
 	}
-	void bindRedirect(KRedirect* rd, uint8_t confirmFile) {
+	void bindRedirect(KRedirect* rd, uint8_t confirm_file) {
 		kassert(this->brd == NULL);
-		this->brd = new KBaseRedirect(rd, confirmFile);
+		this->brd = new KBaseRedirect(rd, confirm_file);
 	}
 	void bindBaseRedirect(KBaseRedirect* brd) {
 		kassert(this->brd == NULL);

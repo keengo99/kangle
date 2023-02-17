@@ -45,9 +45,9 @@ public:
 	KAccess();
 	virtual ~KAccess();
 	void destroy();
-	int check(KHttpRequest *rq, KHttpObject *obj);
+	kgl_jump_type check(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo);
 	//POSTMAP 只在RESPONSE里有效，在映射完物理文件后调用
-	int checkPostMap(KHttpRequest *rq,KHttpObject *obj);
+	kgl_jump_type checkPostMap(KHttpRequest *rq,KHttpObject *obj, KFetchObject** fo);
 	static void loadModel();
 public:
 	//void checkExpireChain();
@@ -57,19 +57,19 @@ public:
 	
 	static int getType(int type);
 	static int32_t ShutdownMarkModule();
-	void htmlChainAction(std::stringstream &s, int jump_type, KJump *jump,
+	void htmlChainAction(std::stringstream &s, kgl_jump_type jump_type, KJump *jump,
 			bool showTable, std::string skipTable);
-	bool parseChainAction(std::string action, int &jumpType,
+	bool parseChainAction(std::string action, kgl_jump_type&jumpType,
 			std::string &jumpName);
-	static void buildChainAction(int jumpType, KJump *jump, std::stringstream &s);
-	void setChainAction(int &jump_type, KJump **jump, std::string name);
+	static void buildChainAction(kgl_jump_type jumpType, KJump *jump, std::stringstream &s);
+	void setChainAction(kgl_jump_type&jump_type, KJump **jump, std::string name);
 	std::string
 	addChainForm(const char *vh,std::string table_name, int index, bool add = true);
 	int newChain(std::string table_name, int index,KUrlValue *urlValue=NULL);
 	bool downChain(std::string table_name, int index);
 	bool delChain(std::string table_name, int index);
 	bool delChain(std::string table_name, std::string name);
-	void changeFirst(int jump_type, std::string name);
+	void changeFirst(kgl_jump_type jump_type, std::string name);
 	bool addAcl(std::string table_name, int index, std::string acl, bool mark);
 	bool delAcl(std::string table_name, int index, std::string acl, bool mark);
 	bool downModel(std::string table_name, int index, std::string acl, bool mark);
@@ -119,14 +119,14 @@ public:
 	static void releaseRunTimeModel(KModel *model);
 	static int whmCallRunTimeModel(std::string name,WhmContext *ctx);
 private:
-	void htmlRadioAction(std::stringstream &s, int *jump_value, int jump_type,
+	void htmlRadioAction(std::stringstream &s, int*jump_value, kgl_jump_type jump_type,
 		KJump *jump, int my_jump_type, std::string my_type_name,
-			std::vector<std::string> table_names);	
+			std::vector<std::string> &table_names);	
 private:
 	void setChainAction();
 	void inter_destroy();
 	kfiber_rwlock* rwlock;
-	int default_jump_type;
+	kgl_jump_type default_jump_type;
 	std::string jump_name;
 	KJump *default_jump;	
 	KTable *curTable;

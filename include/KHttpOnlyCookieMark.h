@@ -19,7 +19,7 @@ public:
 			delete cookie;
 		}
 	}
-	bool mark(KHttpRequest* rq, KHttpObject* obj, const int chainJumpType, int& jumpType)
+	bool mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) override
 	{
 		bool result = false;
 		if (obj == NULL || obj->data == NULL) {
@@ -54,15 +54,15 @@ public:
 		}//while
 		return result;
 	}
-	KMark* newInstance()
+	KMark* new_instance() override
 	{
 		return new KCookieMark;
 	}
-	const char* getName()
+	const char* getName() override
 	{
 		return "cookie";
 	}
-	std::string getHtml(KModel* model)
+	std::string getHtml(KModel* model) override
 	{
 		std::stringstream s;
 		s << "Cookie regex:<input name='cookie' value='";
@@ -83,7 +83,7 @@ public:
 		s << ">secure";
 		return s.str();
 	}
-	std::string getDisplay()
+	std::string getDisplay() override
 	{
 		std::stringstream s;
 		if (cookie) {

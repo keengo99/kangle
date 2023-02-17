@@ -30,16 +30,15 @@ class KRedirectMark: public KMark {
 public:
 	KRedirectMark();
 	virtual ~KRedirectMark();
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
-			int &jumpType);
-	KMark *newInstance();
-	const char *getName();
-	std::string getHtml(KModel *model);
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)override;
+	KMark * new_instance()override;
+	const char *getName()override;
+	std::string getHtml(KModel *model)override;
 
-	std::string getDisplay();
-	void editHtml(std::map<std::string, std::string> &attribute,bool html);
-	bool startCharacter(KXmlContext *context, char *character, int len);
-	void buildXML(std::stringstream &s);
+	std::string getDisplay()override;
+	void editHtml(std::map<std::string, std::string> &attribute,bool html)override;
+	bool startCharacter(KXmlContext *context, char *character, int len)override;
+	void buildXML(std::stringstream &s)override;
 private:
 	char *dst;
 	bool internalRedirect;

@@ -38,10 +38,7 @@ class KTable : public KJump {
 public:
 	~KTable();
 	KTable();
-	bool match(KHttpRequest *rq, KHttpObject *obj, int &jumpType,
-			KJump **jumpTable, unsigned &checked_table,
-			const char **hitTable, int *hitChain);
-	std::string addChain();
+	kgl_jump_type match(KHttpRequest *rq, KHttpObject *obj, unsigned& checked_table, KJump **jump, KFetchObject **fo);
 	std::string addChainForm(KChain *chain,u_short accessType);
 	void htmlTable(std::stringstream &s,const char *vh,u_short accessType);
 	int insertChain(int index, KChain *newChain);

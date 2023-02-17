@@ -39,7 +39,7 @@ public:
 	{
 		return false;
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType, int &jumpType) {
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override {
 		kfiber_rwlock_rlock(lock);
 		geo_lable *lable = (geo_lable *)im.find(rq->getClientIp());
 		if (lable == NULL) {
@@ -54,12 +54,12 @@ public:
 		kfiber_rwlock_runlock(lock);
 		return true;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		s << this->name << " " << total_item;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attr, bool html)	{
+	void editHtml(std::map<std::string, std::string> &attr, bool html)	override {
 		kfiber_rwlock_wlock(lock);
 		this->file = attr["file"];
 		this->name = attr["name"];
@@ -80,10 +80,10 @@ public:
 		this->load_data(file.c_str());
 		kfiber_rwlock_wunlock(lock);
 	}
-	bool startCharacter(KXmlContext *context, char *character, int len) {		
+	bool startCharacter(KXmlContext *context, char *character, int len) override {
 		return true;
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		KGeoMark *m = (KGeoMark *)model;
 		s << "name:<input name='name' value='";
@@ -108,13 +108,13 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	KMark *newInstance() {
+	KMark * new_instance() override {
 		return new KGeoMark;
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "geo";
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << " file='" << this->file << "'";
 		s << " name='" << this->name << "'";
 		if (url) {

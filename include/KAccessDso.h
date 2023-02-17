@@ -71,24 +71,24 @@ public:
 	{
 		ad->Init();
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType) override
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
 	{
 		KAccessContext cn;
 		uint32_t result = ad->process(rq, &cn, obj ? KF_NOTIFY_RESPONSE_MARK : KF_NOTIFY_REQUEST_MARK);
 		if (KBIT_TEST(result, KF_STATUS_REQ_FINISHED)) {
 			if (cn.buffer) {
 				kassert(KBIT_TEST(ad->notify_type, KF_NOTIFY_RESPONSE_MARK | KF_NOTIFY_RESPONSE_ACL) == 0);
-				rq->append_source(new KBufferFetchObject(cn.buffer->getHead(),cn.buffer->getLen()));
+				*fo = new KBufferFetchObject(cn.buffer->getHead(),cn.buffer->getLen());
 				if (rq->sink->data.status_code == 0) {
 					rq->response_status(STATUS_OK);
 				}
 			}
-			jumpType = JUMP_FINISHED;
+			//jump_type = JUMP_FINISHED;
 			return true;
 		}
 		return KBIT_TEST(result, KF_STATUS_REQ_TRUE);
 	}
-	KMark *newInstance() override
+	KMark * new_instance() override
 	{
 		return new KAccessDsoMark(ad->newInstance());
 	}

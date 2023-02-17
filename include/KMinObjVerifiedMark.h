@@ -12,7 +12,7 @@ public:
 	~KMinObjVerifiedMark()
 	{
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType)
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
 	{
 		rq->sink->data.min_obj_verified = v;
 		if (hard) {
@@ -22,15 +22,15 @@ public:
 		}
 		return true;
 	}
-	KMark *newInstance()
+	KMark * new_instance()override
 	{
 		return new KMinObjVerifiedMark;
 	}
-	const char *getName()
+	const char *getName()override
 	{
 		return "min_obj_verified";
 	}
-	std::string getHtml(KModel *model)
+	std::string getHtml(KModel *model)override
 	{
 		std::stringstream s;
 		s << "min_obj_verified:<input name='v' value='";
@@ -46,7 +46,7 @@ public:
 		s << ">hard";
 		return s.str();
 	}
-	std::string getDisplay()
+	std::string getDisplay()override
 	{
 		std::stringstream s;
 		s << (INT64)v;
@@ -55,7 +55,7 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
+	void editHtml(std::map<std::string, std::string> &attribute,bool html)override
 	{
 		v = (time_t)(string2int(attribute["v"].c_str()));
 		if (v > kgl_current_sec) {
@@ -63,7 +63,7 @@ public:
 		}
 		hard = atoi(attribute["hard"].c_str());
 	}
-	void buildXML(std::stringstream &s)
+	void buildXML(std::stringstream &s)override
 	{
 		s << " v='" << (INT64)v << "' hard='" << hard << "'>";
 	}

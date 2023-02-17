@@ -52,7 +52,7 @@ void KWriteBack::setMsg(std::string msg)
 	}
 	xfree(buf);
 }
-void KWriteBack::buildRequest(KHttpRequest* rq)
+void KWriteBack::buildRequest(KHttpRequest* rq, KFetchObject** fo)
 {
 	rq->response_status(status_code);
 	KHttpHeader* h = header;
@@ -66,8 +66,8 @@ void KWriteBack::buildRequest(KHttpRequest* rq)
 	if (rq->sink->data.meth != METH_HEAD) {
 		KAutoBuffer buffer(rq->sink->pool);
 		buffer.write_all(body.getBuf(), body.getSize());
-		rq->append_source(new KBufferFetchObject(buffer.getHead(),buffer.getLen()));
-	} else {
-		rq->append_source(new KBufferFetchObject(NULL, body.getSize()));
+		*fo = new KBufferFetchObject(buffer.getHead(),buffer.getLen());
+		return;
 	}
+	*fo = new KBufferFetchObject(NULL, body.getSize());
 }

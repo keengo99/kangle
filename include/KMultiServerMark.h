@@ -16,13 +16,10 @@ public:
 	{
 		return true;
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
-			int &jumpType) override  {
-		if (brd) {
-			KRedirectSource*fo = brd->rd->makeFetchObject(rq,rq->file);
-			fo->bindBaseRedirect(brd);
-			rq->append_source(fo);
-			jumpType = JUMP_ALLOW;
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override  {
+		if (brd && fo) {
+			assert(*fo == nullptr);
+			*fo = brd->rd->makeFetchObject(rq,rq->file);
 		}
 		return true;
 	}
@@ -52,7 +49,7 @@ public:
 		as->parseNode(nodes.c_str());
 		as->parse(attribute);
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		KMultiServerMark *m = static_cast<KMultiServerMark *>(model);
 		std::stringstream s;
 		KMultiAcserver::baseHtml((m && m->brd)?static_cast<KMultiAcserver *>(m->brd->rd):NULL,s);
@@ -60,13 +57,13 @@ public:
 		s << "<input name='nodes' size=40 value='" << (m?m->nodes:"") << "'/>";
 		return s.str();
 	}
-	KMark *newInstance() {
+	KMark * new_instance() override {
 		return new KMultiServerMark();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "multi_server";
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		if (brd) {
 			static_cast<KMultiAcserver *>(brd->rd)->buildAttribute(s);
 			s << " nodes='" << nodes << "'";

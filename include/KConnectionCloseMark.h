@@ -10,27 +10,27 @@ public:
 	~KConnectionCloseMark()
 	{
 	}
-	KMark *newInstance() {
+	KMark *new_instance()override {
 		return new KConnectionCloseMark();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "connection_close";
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType)
+	bool mark(KHttpRequest *rq, KHttpObject *obj,  KFetchObject** fo) override
 	{
 		KBIT_SET(rq->sink->data.flags,RQ_CONNECTION_CLOSE);
 		return true;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html){
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << ">";
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model)override {
 		return "";
 	}
 private:

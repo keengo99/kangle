@@ -14,14 +14,14 @@ public:
 	{
 		return true;
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType) override
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
 	{
 		lock.Lock();
 		counter++;
 		lock.Unlock();
 		return true;
 	}
-	KMark *newInstance() override
+	KMark * new_instance() override
 	{
 		return new KCounterMark();
 	}

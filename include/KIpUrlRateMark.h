@@ -24,26 +24,26 @@ public:
 	{
 		return true;
 	}
-	KMark *newInstance() {
+	KMark * new_instance() override {
 		return new KIpUrlRateMark();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "ip_url_rate";
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType) {
+	bool mark(KHttpRequest *rq, KHttpObject *obj,  KFetchObject** fo) override {
 		if (match(rq,obj)) {
-			jumpType = JUMP_DROP;
+			//jump_type = JUMP_DROP;
 			return true;
 		}
 		return false;
 	}	
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		s << "&gt;" << request << "/" << second << "s ";
 		s << rate.getCount();
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html){
+	void editHtml(std::map<std::string, std::string> &attribute,bool html)override {
 		request = atoi(attribute["request"].c_str());
 		second = atoi(attribute["second"].c_str());
 		block_time = atoi(attribute["block_time"].c_str());
@@ -51,10 +51,10 @@ public:
 			block_time = 60;
 		}
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << "request='" << request << "' second='" << second << "' block_time='" << block_time << "'>";
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		KIpUrlRateMark *m = (KIpUrlRateMark *)model;
 		s << "rate&gt;request:<input name='request' size=4 value='";

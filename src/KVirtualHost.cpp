@@ -515,25 +515,25 @@ bool KVirtualHost::saveAccess()
 	fp.close();
 	return true;
 }
-int KVirtualHost::checkRequest(KHttpRequest *rq) {
+int KVirtualHost::checkRequest(KHttpRequest *rq, KFetchObject **fo) {
 	if (!loadAccess()) {
 		return JUMP_ALLOW;
 	}
-	return access[REQUEST].check(rq, NULL);
+	return access[REQUEST].check(rq, NULL, fo);
 }
-int KVirtualHost::checkResponse(KHttpRequest *rq)
+int KVirtualHost::checkResponse(KHttpRequest *rq, KFetchObject** fo)
 {
 	if (user_access.empty()) {
 		return JUMP_ALLOW;
 	}
-	return access[RESPONSE].check(rq,rq->ctx.obj);
+	return access[RESPONSE].check(rq,rq->ctx.obj, fo);
 }
-int KVirtualHost::checkPostMap(KHttpRequest *rq)
+int KVirtualHost::checkPostMap(KHttpRequest *rq, KFetchObject** fo)
 {
 	if(user_access.size()==0){
 		return JUMP_ALLOW;
 	}
-	return access[RESPONSE].checkPostMap(rq,rq->ctx.obj);
+	return access[RESPONSE].checkPostMap(rq,rq->ctx.obj, fo);
 }
 void KVirtualHost::setAccess(std::string access_file)
 {

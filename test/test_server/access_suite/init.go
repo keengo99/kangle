@@ -57,5 +57,6 @@ func init() {
 	s.AddCase("footer", "footer测试", check_footer)
 	s.AddCase("redirect", "重定向测试", check_redirect)
 	s.AddCase("rewrite", "重写测试", check_rewrite)
+	s.AddCase("auth", "http auth", check_http_auth)
 	suite.Register(s)
 }

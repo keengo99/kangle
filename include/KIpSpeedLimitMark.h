@@ -42,7 +42,7 @@ public:
 		}
 		lock.Unlock();	
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,int &jumpType)
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
 	{	
 		const char *ip = rq->getClientIp();
 		lock.Lock();
@@ -66,15 +66,15 @@ public:
 		rq->registerRequestCleanHook(ip_speed_limit_clean,speed_limit_context);
 		return true;
 	}
-	KMark *newInstance()
+	KMark *new_instance()override
 	{
 		return new KIpSpeedLimitMark;
 	}
-	const char *getName()
+	const char *getName()override
 	{
 		return "ip_speed_limit";
 	}
-	std::string getHtml(KModel *model)
+	std::string getHtml(KModel *model)override
 	{
 		KIpSpeedLimitMark *m = (KIpSpeedLimitMark *)model;
 		std::stringstream s;
@@ -85,7 +85,7 @@ public:
 		s << "'> / second";
 		return s.str();
 	}
-	std::string getDisplay()
+	std::string getDisplay()override
 	{
 		std::stringstream s;
 		s << get_size(speed_limit) << "/second ,record:";
@@ -94,11 +94,11 @@ public:
 		lock.Unlock();
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
+	void editHtml(std::map<std::string, std::string> &attribute,bool html)override
 	{
 		speed_limit = (int)get_size(attribute["speed_limit"].c_str());
 	}
-	void buildXML(std::stringstream &s)
+	void buildXML(std::stringstream &s)override
 	{
 		s << "speed_limit='" << get_size(speed_limit) << "'>";
 	}

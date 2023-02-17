@@ -27,25 +27,23 @@ public:
 			u->relase();
 		}
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, const int chainJumpType,
-			int &jumpType) {
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override {
 		std::map<KUrl *,std::string,less_host_port>::iterator it;
 		KUrl *u = rq->sink->data.url;
 		it = m.find(u);
 		if (it!=m.end()) {
 			free(u->host);
 			u->host = strdup((*it).second.c_str());
-			u->port = 80;
 			return true;
 		}
 		return false;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		s << "total:" << m.size();
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html){
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
 		char *map = strdup(attribute["map"].c_str());
 		char *hot = map;
 		for (;;) {
@@ -82,7 +80,7 @@ public:
 		}
 		free(map);
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		s << "map(host:port=alias|...)<input size=40 name='map' value='";
 		KHostAliasMark *m = (KHostAliasMark *)model;
@@ -92,14 +90,14 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	KMark *newInstance() {
+	KMark * new_instance()override {
 		return new KHostAliasMark();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "host_alias";
 	}
 public:
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << "map='";
 		getMap(s);
 		s << "'";

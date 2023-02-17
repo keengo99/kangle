@@ -183,7 +183,7 @@ KGL_RESULT handle_denied_request(KHttpRequest* rq) {
 	}
 	return KGL_OK;
 }
-bool check_virtual_host_access_request(KHttpRequest* rq, int header_length) {
+bool check_virtual_host_access_request(KHttpRequest* rq,KFetchObject **fo, int header_length) {
 	auto svh = rq->get_virtual_host();
 	assert(svh);
 #ifdef ENABLE_VH_RS_LIMIT
@@ -205,11 +205,18 @@ bool check_virtual_host_access_request(KHttpRequest* rq, int header_length) {
 	}
 #ifndef HTTP_PROXY
 #ifdef ENABLE_USER_ACCESS
-	switch (svh->vh->checkRequest(rq)) {
+	switch (svh->vh->checkRequest(rq, fo)) {
 	case JUMP_DROP:
 		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
-		//return stageEndRequest(rq);
+		if (fo && *fo) {
+			delete *fo;
+			*fo = nullptr;
+		}
 	case JUMP_DENY:
+		if (fo && *fo) {
+			rq->append_source(*fo);
+			*fo = nullptr;
+		}
 		handle_denied_request(rq);
 		return true;
 	default:
@@ -252,9 +259,9 @@ KGL_RESULT handle_connect_method(KHttpRequest* rq) {
 }
 void start_request_fiber(KSink* sink, int header_length) {
 	KHttpRequest* rq = new KHttpRequest(sink);
-	KFetchObject* fo;
 	kgl_input_stream check_in;
 	kgl_output_stream check_out;
+	KFetchObject* fo = nullptr;
 	rq->beginRequest();
 #ifdef HTTP_PROXY
 	if (rq->sink->data.meth == METH_CONNECT) {
@@ -289,13 +296,18 @@ void start_request_fiber(KSink* sink, int header_length) {
 	if (rq->ctx.skip_access) {
 		goto skip_access;
 	}
-	switch (kaccess[REQUEST].check(rq, NULL)) {
+	int jump_type = kaccess[REQUEST].check(rq, NULL, &fo);
+	if (fo) {
+		rq->append_source(fo);
+	}
+	switch (jump_type) {
 	case JUMP_DROP:
 		goto clean;
 	case JUMP_DENY:
 		handle_denied_request(rq);
 		goto clean;
 	case JUMP_VHS: {
+		assert(fo == nullptr);
 		query_vh_result vh_result = query_virtual(rq, rq->sink->data.url->host, 0, header_length);
 		switch (vh_result) {
 		case query_vh_connect_limit:
@@ -307,9 +319,13 @@ void start_request_fiber(KSink* sink, int header_length) {
 		case query_vh_success: {
 			u_short flags = rq->sink->data.raw_url->flags;
 			rq->sink->data.raw_url->flags = 0;
-			if (check_virtual_host_access_request(rq, header_length)) {
+			fo = nullptr;
+			if (check_virtual_host_access_request(rq, &fo, header_length)) {
 				KBIT_SET(rq->sink->data.raw_url->flags, flags);
 				goto clean;
+			}
+			if (fo) {
+				rq->append_source(fo);
 			}
 			if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
 				//rewrite host
@@ -410,9 +426,9 @@ KGL_RESULT handle_error(KHttpRequest* rq, int code, const char* msg) {
 		std::stringstream s;
 		s << errorPage << "?" << obj->data->i.status_code << "," << rq->getInfo();
 		push_redirect_header(rq, s.str().c_str(), (int)s.str().size(), STATUS_FOUND);
+		rq->response_content_length(0);
 		rq->start_response_body(0);
 		return KGL_OK;
-		//return stageWriteRequest(rq, NULL);
 	}
 	//string path;
 	bool result = false;
@@ -462,7 +478,7 @@ KGL_RESULT handle_error(KHttpRequest* rq, int code, const char* msg) {
 	}
 	return send_error2(rq, code, msg);
 }
-bool check_request_final_source(KHttpRequest* rq, RequestError* error, bool& handled) {
+bool check_request_final_source(KHttpRequest* rq, RequestError* error) {
 	if (!rq->has_final_source()) {
 		if (rq->sink->data.opaque == NULL) {
 #ifdef ENABLE_VH_RS_LIMIT
@@ -478,20 +494,17 @@ bool check_request_final_source(KHttpRequest* rq, RequestError* error, bool& han
 #endif
 		}
 		KAccess* htresponse = NULL;
-		KFetchObject* fo = bindVirtualHost(rq, error, &htresponse, handled);
-		if (handled) {
-			//已经处理了
-			assert(fo == NULL);
-			assert(htresponse == NULL);
-			return false;
-		}
+		KFetchObject* fo = bindVirtualHost(rq, error, &htresponse);
 		if (!fo) {
+			if (htresponse) {
+				delete htresponse;
+			}
 			return false;
 		}
 		rq->append_source(fo);
 		//postmap
 		if (htresponse) {
-			if (!rq->ctx.internal && htresponse->checkPostMap(rq, rq->ctx.obj) == JUMP_DENY) {
+			if (!rq->ctx.internal && htresponse->checkPostMap(rq, rq->ctx.obj, NULL) == JUMP_DENY) {
 				delete htresponse;
 				if (KBIT_TEST(rq->ctx.filter_flags, RQ_SEND_AUTH)) {
 					error->code = AUTH_STATUS_CODE;
@@ -508,7 +521,13 @@ bool check_request_final_source(KHttpRequest* rq, RequestError* error, bool& han
 	if (!rq->ctx.internal && !rq->ctx.skip_access) {
 		KSubVirtualHost* svh = rq->get_virtual_host();
 		if (svh) {
-			if (svh->vh->checkPostMap(rq) == JUMP_DENY) {
+			KFetchObject* fo = nullptr;
+			int jump_type = svh->vh->checkPostMap(rq, &fo);
+			assert(!fo);
+			if (fo) {
+				delete fo;
+			}
+			if (jump_type== JUMP_DENY) {
 				if (KBIT_TEST(rq->ctx.filter_flags, RQ_SEND_AUTH)) {
 					error->code = AUTH_STATUS_CODE;
 					error->msg = "";
@@ -519,7 +538,7 @@ bool check_request_final_source(KHttpRequest* rq, RequestError* error, bool& han
 				return false;
 			}
 		}
-		if (kaccess[RESPONSE].checkPostMap(rq, rq->ctx.obj) == JUMP_DENY) {
+		if (kaccess[RESPONSE].checkPostMap(rq, rq->ctx.obj, NULL) == JUMP_DENY) {
 			if (KBIT_TEST(rq->ctx.filter_flags, RQ_SEND_AUTH)) {
 				error->code = AUTH_STATUS_CODE;
 				error->msg = "";
@@ -541,14 +560,9 @@ bool process_check_final_source(KHttpRequest* rq, kgl_input_stream* in, kgl_outp
 	RequestError error;
 	error.code = STATUS_SERVER_ERROR;
 	error.msg = "internal error";
-	bool handled = false;
-	if (check_request_final_source(rq, &error, handled)) {
+	if (check_request_final_source(rq, &error)) {
 		return true;
-	}
-	if (handled) {
-		*result = handle_denied_request(rq);
-		return false;
-	}
+	}	
 	if (error.code == AUTH_STATUS_CODE) {
 		*result = send_auth2(rq);
 		return false;
