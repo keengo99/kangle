@@ -262,6 +262,7 @@ void start_request_fiber(KSink* sink, int header_length) {
 	kgl_input_stream check_in;
 	kgl_output_stream check_out;
 	KFetchObject* fo = nullptr;
+	kgl_jump_type jump_type;
 	rq->beginRequest();
 #ifdef HTTP_PROXY
 	if (rq->sink->data.meth == METH_CONNECT) {
@@ -296,7 +297,7 @@ void start_request_fiber(KSink* sink, int header_length) {
 	if (rq->ctx.skip_access) {
 		goto skip_access;
 	}
-	int jump_type = kaccess[REQUEST].check(rq, NULL, &fo);
+	jump_type = kaccess[REQUEST].check(rq, NULL, &fo);
 	if (fo) {
 		rq->append_source(fo);
 	}
