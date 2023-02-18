@@ -15,6 +15,8 @@ type access struct {
 
 func (a *access) Init() error {
 	server.Handle("/footer", handleFooter)
+	server.Handle("/access/header", handle_header)
+
 	config := `<!--#start 300-->\r\n
 <config>
 <dso_extend name='filter' filename='bin/filter.${dso}'/>
@@ -22,14 +24,18 @@ func (a *access) Init() error {
 	<map path='/' extend='server:upstream' confirm_file='0' allow_method='*'/>
 	<request>
 		<table name='BEGIN'>
-			<table name='BEGIN'>
-				<chain  action='continue' >
+			<chain  action='continue' >
 					<mark_rewrite prefix='/' path='^rw(.*)$' dst='/wr$1' internal='0' nc='1' qsa='1' code='302'></mark_rewrite>
-				</chain>
-			</table>
+			</chain>
 			<chain  action='continue' >
 				<acl_path  path='/redirect'></acl_path>
 				<mark_redirect dst='http://redirect.localtest.me:9999/' code='302'></mark_redirect>
+			</chain>
+			<chain  action='continue' >
+				<mark_remove_header   attr='x-header' val='a' ></mark_remove_header>
+			</chain>
+			<chain  action='continue' >
+				<mark_replace_header   attr='x-header' val='(.*)c(.*)' replace='$1d$2'></mark_replace_header>
 			</chain>
 		</table>
 	</request>
@@ -57,6 +63,7 @@ func init() {
 	s.AddCase("footer", "footer测试", check_footer)
 	s.AddCase("redirect", "重定向测试", check_redirect)
 	s.AddCase("rewrite", "重写测试", check_rewrite)
+	s.AddCase("header", "header测试", check_header)
 	s.AddCase("auth", "http auth", check_http_auth)
 	suite.Register(s)
 }

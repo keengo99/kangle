@@ -1,45 +1,45 @@
 #ifndef KREMOVEHEADERMARK_H
 #define KREMOVEHEADERMARK_H
 #include "KMark.h"
-class KRemoveHeaderMark: public KMark
+#include "khttp.h"
+class KRemoveHeaderMark : public KMark
 {
 public:
-	KRemoveHeaderMark()
-	{
-		attr = NULL;
+	KRemoveHeaderMark() {
 		revers = false;
 		val = NULL;
 	}
-	~KRemoveHeaderMark()
-	{
-		if(attr){
-			free(attr);
-		}
+	~KRemoveHeaderMark() {
 		if (val) {
 			delete val;
 		}
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)override
-	{	
+	bool mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo)override {
 		bool result = false;
-#if 0
-		if (attr) {
-			KHttpHeader *h;
-			KHttpObjectBody *data = NULL;
+		if (!attr.empty()) {
+			KHttpHeader* h;
+			KHttpObjectBody* data = NULL;
 			if (obj) {
 				if (obj->in_cache) {
 					//如果已经在缓存中，则不重复操作
-					return true;
+					return false;
 				}
 				data = obj->data;
 				h = data->headers;
 			} else {
-				h = rq->sink->data.GetHeader();
+				h = rq->sink->data.get_header();
+				if (strcasecmp(attr.c_str(), "Range") == 0 && rq->sink->data.range) {
+					rq->sink->data.range = nullptr;
+					result = true;
+				} else if (strcasecmp(attr.c_str(), "Accept-Encoding") == 0 && rq->sink->data.raw_url->encoding != 0) {
+					rq->sink->data.raw_url->encoding = 0;
+					rq->sink->data.url->encoding = 0;
+				}
 			}
-			KHttpHeader *last = NULL;
+			KHttpHeader* last = NULL;
 			while (h) {
-				KHttpHeader *next = h->next;
-				if (is_attr(h,attr) && revers != (val==NULL || val->match(h->val,h->val_len,0)>0) ) {
+				KHttpHeader* next = h->next;
+				if (kgl_is_attr(h, attr.c_str(), attr.size()) && revers != (val == NULL || val->match(h->buf + h->val_offset, h->val_len, 0) > 0)) {
 					if (last) {
 						last->next = next;
 					} else {
@@ -49,17 +49,7 @@ public:
 							rq->sink->data.header = next;
 						}
 					}
-					if (!obj) {
-						if (strcasecmp(attr,"Range")==0) {
-							KBIT_CLR(rq->sink->data.flags,RQ_HAVE_RANGE);
-						} else if (strcasecmp(attr, "Accept-Encoding") == 0) {
-							rq->sink->data.raw_url->encoding = 0;
-							rq->sink->data.url->encoding = 0;
-						}
-					}
-					free(h->attr);
-					free(h->val);
-					free(h);
+					xfree_header(h);
 					h = next;
 					result = true;
 					continue;
@@ -68,23 +58,19 @@ public:
 				h = next;
 			}
 		}
-#endif
 		return result;
 	}
-	KMark * new_instance() override
-	{
+	KMark* new_instance() override {
 		return new KRemoveHeaderMark;
 	}
-	const char *getName()override
-	{
+	const char* getName()override {
 		return "remove_header";
 	}
-	std::string getHtml(KModel *model)override
-	{
+	std::string getHtml(KModel* model)override {
 		std::stringstream s;
 		s << "attr:<input name='attr' value='";
-		KRemoveHeaderMark *mark = (KRemoveHeaderMark *) (model);
-		if (mark && mark->attr) {
+		KRemoveHeaderMark* mark = (KRemoveHeaderMark*)(model);
+		if (mark) {
 			s << mark->attr;
 		}
 		s << "'>";
@@ -100,10 +86,9 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	std::string getDisplay()override
-	{
+	std::string getDisplay()override {
 		std::stringstream s;
-		if(attr){
+		if (!attr.empty()) {
 			s << attr << ":";
 		}
 		if (revers) {
@@ -114,21 +99,14 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
-	{
-		if(attr){
-			free(attr);
-			attr = NULL;
-		}
-		if(attribute["attr"].size()>0){
-			attr = strdup(attribute["attr"].c_str());
-		}
+	void editHtml(std::map<std::string, std::string>& attribute, bool html) override {
+		attr = attribute["attr"];
 		if (val) {
 			delete val;
 			val = NULL;
 		}
-		const char *v = attribute["val"].c_str();
-		if (*v=='!') {
+		const char* v = attribute["val"].c_str();
+		if (*v == '!') {
 			revers = true;
 			v++;
 		} else {
@@ -136,12 +114,11 @@ public:
 		}
 		if (*v) {
 			val = new KReg;
-			val->setModel(v,PCRE_CASELESS);
+			val->setModel(v, PCRE_CASELESS);
 		}
 	}
-	void buildXML(std::stringstream &s)override
-	{
-		s << " attr='" << (attr?attr:"") << "' val='" ;
+	void buildXML(std::stringstream& s)override {
+		s << " attr='" << attr << "' val='";
 		if (revers) {
 			s << "!";
 		}
@@ -151,8 +128,8 @@ public:
 		s << "' >";
 	}
 private:
-	char *attr;
-	KReg *val;
+	std::string attr;
+	KReg* val;
 	bool revers;
 };
 #endif
