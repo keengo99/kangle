@@ -10,10 +10,4 @@ public:
 		return false;
 	}
 };
-#if 0
-class KDsoConfigParser : public KXmlEvent {
-public:
-	bool startElement(KXmlContext *context) override;
-};
-#endif
 #endif

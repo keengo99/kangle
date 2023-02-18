@@ -40,6 +40,7 @@
 #define AUTH_HEADER_PROXY 2
 #include "KStream.h"
 #include "KHttpHeader.h"
+#include "KFetchObject.h"
 #include "global.h"
 #include "katom.h"
 
@@ -80,7 +81,7 @@ public:
 	const char *getRealm() {
 		return realm;
 	}
-	virtual void insertHeader(KWStream &s) = 0;
+	virtual KGL_RESULT response_header(kgl_output_stream* out) = 0;
 	virtual void insertHeader(KHttpRequest *rq) = 0;
 	virtual bool parse(KHttpRequest *rq, const char *str) = 0;
 	virtual bool verify(KHttpRequest *rq, const char *password, int passwordType) = 0;
@@ -121,5 +122,21 @@ protected:
 private:
 	uint16_t type;
 	uint16_t auth_header;
+};
+class KAuthSource : public KFetchObject
+{
+public:
+	KAuthSource(KHttpAuth *auth) {
+		this->auth = auth;
+	}
+	~KAuthSource() {
+		delete auth;
+	}
+	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) override;
+	bool before_cache() override {
+		return true;
+	}
+private:
+	KHttpAuth* auth;
 };
 #endif

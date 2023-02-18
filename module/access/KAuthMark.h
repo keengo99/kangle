@@ -55,7 +55,6 @@ private:
 	KReg *reg_user;
 	bool reg_user_revert;
 	bool all;
-	bool failed_deny;
 	bool file_sign;
 	time_t lastLoad;
 };

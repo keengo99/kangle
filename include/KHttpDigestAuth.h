@@ -36,12 +36,12 @@ class KHttpDigestAuth: public KHttpAuth {
 public:
 	KHttpDigestAuth();
 	virtual ~KHttpDigestAuth();
-	bool parse(KHttpRequest *rq, const char *str);
-	bool verify(KHttpRequest *rq, const char *password, int passwordType);
-	void insertHeader(KWStream &s);
+	bool parse(KHttpRequest *rq, const char *str) override;
+	bool verify(KHttpRequest *rq, const char *password, int passwordType) override;
+	KGL_RESULT response_header(kgl_output_stream* out) override;
 	void init(KHttpRequest *rq,const char *realm);
 	bool verifySession(KHttpRequest *rq);
-	void insertHeader(KHttpRequest *rq);
+	void insertHeader(KHttpRequest *rq) override;
 	static void flushSession(time_t nowTime);
 private:
 	char *nonce;

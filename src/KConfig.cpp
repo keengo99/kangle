@@ -252,7 +252,6 @@ void init_config(KConfig* conf) {
 	conf->gzip_level = 5;
 	conf->br_level = 5;
 	conf->min_compress_length = 512;
-	conf->auth_delay = 5;
 	conf->fiber_stack_size = 0;
 	conf->wl_time = 1800;
 	SAFE_STRCPY(conf->access_log, "access.log");

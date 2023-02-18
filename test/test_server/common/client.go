@@ -168,8 +168,12 @@ func Request(method string, path string, host string, header map[string]string, 
 		}
 		return
 	}
-
 	for k, v := range header {
+		if k == "AUTH_BASIC" {
+			strs := strings.Split(v, ",")
+			req.SetBasicAuth(strs[0], strs[1])
+			continue
+		}
 		req.Header.Add(k, v)
 	}
 

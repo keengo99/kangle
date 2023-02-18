@@ -16,6 +16,7 @@ type access struct {
 func (a *access) Init() error {
 	server.Handle("/footer", handleFooter)
 	server.Handle("/access/header", handle_header)
+	server.Handle("/access/auth", handle_auth)
 
 	config := `<!--#start 300-->\r\n
 <config>
@@ -36,6 +37,14 @@ func (a *access) Init() error {
 			</chain>
 			<chain  action='continue' >
 				<mark_replace_header   attr='x-header' val='(.*)c(.*)' replace='$1d$2'></mark_replace_header>
+			</chain>
+			<chain  action='continue' >
+				<acl_path path='/auth_load_failed'/>
+				<mark_auth   file='must_not_exsit_file' crypt_type='plain' auth_type='Basic' realm='kangle' require='*' failed_deny='1'></mark_auth>
+			</chain>
+			<chain  action='continue' >
+				<acl_path path='/access/auth'/>
+				<mark_auth   file='auth.txt' crypt_type='plain' auth_type='Basic' realm='kangle' require='*' failed_deny='1'></mark_auth>
 			</chain>
 		</table>
 	</request>

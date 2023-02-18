@@ -15,14 +15,14 @@ public:
 	KHttpBasicAuth();
 	KHttpBasicAuth(const char *realm);
 	virtual ~KHttpBasicAuth();
-	bool parse(KHttpRequest *rq,const char *str);
+	bool parse(KHttpRequest *rq,const char *str) override;
 	const char *getPassword()
 	{
 		return password;
 	}
-	bool verify(KHttpRequest *rq,const char *password,int passwordType);
-	void insertHeader(KWStream &s);
-	void insertHeader(KHttpRequest *rq);
+	bool verify(KHttpRequest *rq,const char *password,int passwordType) override;
+	KGL_RESULT response_header(kgl_output_stream* out) override;
+	void insertHeader(KHttpRequest *rq) override;
 private:
 	char *password;
 };

@@ -21,8 +21,7 @@ KHttpDigestSession::KHttpDigestSession(const char* realm) {
 	this->realm = xstrdup(realm);
 	lastActive = time(NULL);
 }
-KHttpDigestSession::~KHttpDigestSession()
-{
+KHttpDigestSession::~KHttpDigestSession() {
 	xfree(realm);
 }
 bool KHttpDigestSession::verify_rq(KHttpRequest* rq) {
@@ -106,8 +105,7 @@ KHttpDigestAuth::~KHttpDigestAuth() {
 		xfree(cnonce);
 	}
 }
-bool KHttpDigestAuth::verifySession(KHttpRequest* rq)
-{
+bool KHttpDigestAuth::verifySession(KHttpRequest* rq) {
 	if (uri == NULL || rq->sink->data.raw_url->path == NULL || rq->sink->data.raw_url->host == NULL) {
 		return false;
 	}
@@ -292,8 +290,7 @@ bool KHttpDigestAuth::verify(KHttpRequest* rq, const char* password,
 	//			hresponse);
 	return false;
 }
-void KHttpDigestAuth::insertHeader(KHttpRequest* rq)
-{
+void KHttpDigestAuth::insertHeader(KHttpRequest* rq) {
 	if (realm == NULL || nonce == NULL) {
 		return;
 	}
@@ -305,15 +302,17 @@ void KHttpDigestAuth::insertHeader(KHttpRequest* rq)
 	const char* auth_header = this->get_auth_header();
 	rq->response_header(auth_header, (hlen_t)strlen(auth_header), s.getBuf(), s.getSize());
 }
-void KHttpDigestAuth::insertHeader(KWStream& s) {
+KGL_RESULT KHttpDigestAuth::response_header(kgl_output_stream* out) {
 	if (realm == NULL || nonce == NULL) {
-		return;
+		return KGL_OK;
 	}
-	s << this->get_auth_header() << ": Digest ";
+	KStringBuf s;
+	s << "Digest ";
 	s << "realm=\"" << realm << "\"";
 	s << ", qop=\"auth\"";
 	s << ", nonce=\"" << nonce << "\"";
-	s << "\r\n";
+	const char* auth_header = this->get_auth_header();
+	return out->f->write_unknow_header(out->ctx, auth_header, (hlen_t)strlen(auth_header), s.getBuf(), s.getSize());
 }
 void KHttpDigestAuth::flushSession(time_t nowTime) {
 	map<char*, KHttpDigestSession*, lessp>::iterator it, it2;

@@ -209,7 +209,6 @@ public:
 	int max_io;
 	int worker_dns;
 	int auth_type;
-	int auth_delay;
 	int passwd_crypt;
 	//白名单时间
 	int wl_time;
@@ -313,6 +312,7 @@ public:
 	unsigned keep_alive_count = 0;
 	unsigned time_out = 60;
 	unsigned connect_time_out = 0;
+	int auth_delay = 5;
 	void set_connect_time_out(unsigned val) {
 		connect_time_out = val;
 		if (connect_time_out > 0 && connect_time_out < 2) {

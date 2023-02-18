@@ -11,11 +11,12 @@
 #include "kmalloc.h"
 KHttpBasicAuth::KHttpBasicAuth() :
 	KHttpAuth(AUTH_BASIC) {
-
+	password = nullptr;
 }
 KHttpBasicAuth::KHttpBasicAuth(const char *realm) :
 	KHttpAuth(AUTH_BASIC) {
 	this->realm = xstrdup(realm);
+	password = nullptr;
 }
 
 KHttpBasicAuth::~KHttpBasicAuth() {
@@ -35,11 +36,15 @@ void KHttpBasicAuth::insertHeader(KHttpRequest *rq)
 		rq->response_header(auth_header, (hlen_t)strlen(auth_header) , s.getBuf(), s.getSize());
 	}
 }
-void KHttpBasicAuth::insertHeader(KWStream &s)
+KGL_RESULT KHttpBasicAuth::response_header(kgl_output_stream* out)
 {
 	if (realm) {
-		s << this->get_auth_header() << ": Basic realm=\"" << realm  << "\"\r\n";
+		KStringBuf s;
+		s << "Basic realm=\"" << realm << "\"";
+		const char* auth_header = this->get_auth_header();
+		return out->f->write_unknow_header(out->ctx, auth_header, (hlen_t)strlen(auth_header), s.getBuf(), s.getSize());
 	}
+	return KGL_OK;
 }
 bool KHttpBasicAuth::parse(KHttpRequest *rq, const char *str) {
 	int str_len = (int)strlen(str);

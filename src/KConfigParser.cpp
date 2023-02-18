@@ -189,10 +189,7 @@ bool KConfigParser::startCharacter(KXmlContext* context, char* character, int le
 			cconf->http2https_code = atoi(character);
 			return true;
 		}
-		if (context->qName == "auth_delay") {
-			cconf->auth_delay = atoi(character);
-			return true;
-		}
+
 		if (context->qName == "max_connect_info") {
 			cconf->max_connect_info = atoi(character);
 			return true;
@@ -375,6 +372,10 @@ void KMainConfigListen::on_event(kconfig::KConfigTree* tree, KXmlNode* xml, kcon
 		}
 		if (xml->is_tag(_KS("connect_timeout"))) {
 			conf.set_connect_time_out(atoi(xml->get_text()));
+			return;
+		}
+		if (xml->is_tag(_KS("auth_delay"))) {
+			conf.auth_delay = atoi(xml->get_text());
 			return;
 		}
 		break;

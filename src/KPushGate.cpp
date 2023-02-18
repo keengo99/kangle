@@ -177,10 +177,6 @@ static kgl_response_body_function dechunk_body_function = {
 	unsupport_sendfile,
 	dechunk_close
 };
-
-
-
-
 bool new_dechunk_body(kgl_output_stream *out, kgl_response_body* down_gate) {
 	kgl_dechunk_body* gate = new kgl_dechunk_body;
 	pipe_response_body(gate, &dechunk_body_function, down_gate);
@@ -229,68 +225,15 @@ KGL_RESULT st_write_header_finish(kgl_output_stream_ctx* st,int64_t body_size, k
 	kgl_default_output_stream_ctx* g = (kgl_default_output_stream_ctx*)st;
 	g->parser_ctx.end_parse(g->rq, body_size);
 	return on_upstream_finished_header(g->rq, body);
-#if 0
-	if (result != KGL_OK) {
-		return result;
-	}
-
-	if (!g->rq->ctx.st.ctx) {
-		get_default_response_body(g->rq, &g->rq->ctx.st);
-		if (!kgl_load_response_body(g->rq, &g->rq->ctx.st)) {
-			g->rq->ctx.st.f->close(g->rq->ctx.st.ctx, KGL_ENOT_PREPARE);
-			return KGL_ENOT_PREPARE;
-		}
-		*body = g->rq->ctx.st;
-	}
-	return KGL_OK;
-#endif
+}
+KGL_RESULT check_write_message(kgl_output_stream_ctx* st, uint16_t status_code, const char* msg, size_t msg_len) {
+	KHttpRequest* rq = (KHttpRequest*)st;
+	return handle_error(rq, status_code, (const char*)msg);
 }
 KGL_RESULT st_write_message(kgl_output_stream_ctx* st, uint16_t status_code, const char* msg, size_t msg_len) {
 	kgl_default_output_stream_ctx* g = (kgl_default_output_stream_ctx*)st;
 	KHttpRequest* rq = g->rq;
 	return handle_error(rq, status_code, (const char*)msg);
-#if 0
-	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER)) {
-		return KGL_EHAS_SEND_HEADER;
-	}
-	WSABUF* buf = (WSABUF*)msg;
-	int64_t len;
-	switch (msg_type) {
-	case KGL_MSG_RAW:
-	{
-		len = (int64_t)msg_flag;
-		break;
-	}
-	case KGL_MSG_VECTOR:
-	{
-		len = 0;
-		for (int i = 0; i < msg_flag; i++) {
-			len += buf[i].iov_len;
-		}
-		break;
-	}
-	default:
-		len = -1;
-		break;
-	}
-	if (len < 0) {
-		return KGL_EINVALID_PARAMETER;
-	}
-	if (rq->sink->data.status_code == 0) {
-		rq->response_status(200);
-	}
-	rq->response_content_length(len);
-	rq->response_connection();
-	rq->start_response_body(len);
-	switch (msg_type) {
-	case KGL_MSG_RAW:
-		return rq->write_all((char*)msg, (int)len);
-	case KGL_MSG_VECTOR:
-		return rq->write_all(buf, msg_flag);
-	default:
-		return KGL_ENOT_SUPPORT;
-	}
-#endif
 }
 KGL_RESULT common_write_trailer(KHttpRequest* rq, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
 	if (rq->ctx.body.ctx) {
@@ -563,16 +506,18 @@ KGL_RESULT check_write_header_finish(kgl_output_stream_ctx* st, int64_t body_siz
 	if (rq->sink->data.meth == METH_HEAD || is_status_code_no_body(rq->sink->data.status_code)) {
 		return KGL_NO_BODY;
 	}
-	assert(rq->ctx.body.ctx == nullptr);
-	get_default_response_body(rq, &rq->ctx.body);
-	*body = rq->ctx.body;
+	if (body) {
+		assert(rq->ctx.body.ctx == nullptr);
+		get_default_response_body(rq, &rq->ctx.body);
+		*body = rq->ctx.body;
+	}
 	return KGL_OK;
 }
 static kgl_output_stream_function check_stream_function = {
 	check_write_status,
 	check_write_header,
 	check_write_unknow_header,
-	st_write_message,
+	check_write_message,
 	check_write_header_finish,
 	check_write_trailer,
 	check_release

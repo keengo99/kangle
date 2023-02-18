@@ -80,7 +80,7 @@ func CreateMainConfig(malloc_debug int) (err error) {
 	<server name='upstream_h2c' host='127.0.0.1' port='4411h' proto='http' life_time='10'/>
 	<server name='upstream_ssl' host='127.0.0.1' port='4412s' proto='http' life_time='10'/>	
 	<server name='upstream_h2' host='127.0.0.1' port='4412sp' proto='http' life_time='10'/>	
-
+	<auth_delay>0</auth_delay>
 	<timeout>60</timeout>
 	<connect_timeout>20</connect_timeout>
 	<admin user='admin' password='kangle' crypt='plain' auth_type='Basic' admin_ips='~127.0.0.1'/>

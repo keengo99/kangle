@@ -109,4 +109,26 @@ public:
 protected:
 	KBaseRedirect* brd;
 };
+class KDeniedSource : public KFetchObject
+{
+public:
+	KDeniedSource(uint16_t status_code, const char *reason, size_t reason_len) {
+		this->status_code = status_code;
+		this->reason = reason;
+		this->reason_len = int(reason_len);
+	}
+	KDeniedSource(const char* reason, size_t reason_len) : KDeniedSource(STATUS_FORBIDEN, reason, reason_len) {
+	
+	}
+	bool before_cache() override {
+		return true;
+	}
+	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) override {
+		return out->f->error(out->ctx, status_code, reason, reason_len);
+	}
+private:
+	const char* reason;
+	int reason_len;
+	uint16_t status_code;
+};
 #endif /* KFETCHOBJECT_H_ */

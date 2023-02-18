@@ -125,7 +125,6 @@ KAuthMark::KAuthMark() {
 	all = true;
 	reg_user = NULL;
 	reg_user_revert = false;
-	failed_deny = true;
 	file_sign = false;
 	lastLoad = 0;
 }
@@ -150,33 +149,26 @@ bool KAuthMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) {
 
 	if (!loadAuthFile(path)) {
 		klog(KLOG_ERR, "cann't load auth file[%s]\n", path.c_str());
-		if (failed_deny) {
-			//jump_type = JUMP_DENY;
-			return true;
-		}
+		*fo = new KDeniedSource(STATUS_SERVER_ERROR,_KS("failed load auth file"));
 		return false;
 	}
 	if (checkLogin(rq)) {
 		return true;
 	}
-	if (rq->auth) {
-		delete rq->auth;
-		rq->auth = NULL;
-	}
 	if (auth_type == AUTH_BASIC) {
 		KHttpBasicAuth *auth = new KHttpBasicAuth();		
 		auth->realm = xstrdup(realm?realm:PROGRAM_NAME);
-		rq->auth = auth;
+		*fo = new KAuthSource(auth);
+		//rq->auth = auth;
 	} else if (auth_type == AUTH_DIGEST) {
 #ifdef ENABLE_DIGEST_AUTH
 		KHttpDigestAuth *auth = new KHttpDigestAuth();
 		auth->init(rq,realm?realm:PROGRAM_NAME);
-		rq->auth = auth;
+		*fo = new KAuthSource(auth);
 #endif
 	}
-	//jump_type = JUMP_DENY;
-	KBIT_SET(rq->ctx.filter_flags,RQ_SEND_AUTH);
-	return true;
+	//KBIT_SET(rq->ctx.filter_flags,RQ_SEND_AUTH);
+	return false;
 
 }
 bool KAuthMark::checkLogin(KHttpRequest *rq) {
@@ -297,12 +289,7 @@ std::string KAuthMark::getHtml(KModel *model) {
 	}
 	s << "<br>realm:<input name='realm' value='" << (realm?realm:PROGRAM_NAME) << "'>";
 	s << "<br>Require:<input name='require' value='" << getRequireUsers() << "'>";
-	s << "<br><input type='checkbox' name='failed_deny' value='1' ";
-	if (acl && acl->failed_deny) {
-		s << "checked";
-	}
-	s << ">failed_deny";
-	s << "<input type='checkbox' name='file_sign' value='1' ";
+	s << "<br><input type='checkbox' name='file_sign' value='1' ";
 	if (acl && acl->file_sign) {
 		s << "checked";
 	}
@@ -362,7 +349,6 @@ void KAuthMark::editHtml(std::map<std::string, std::string> &attribute,bool html
 	cryptType = parseCryptType(attribute["crypt_type"].c_str());
 	lastModified = 0;
 	auth_type = KHttpAuth::parseType(attribute["auth_type"].c_str());
-	failed_deny = (attribute["failed_deny"]=="1");
 	file_sign = (attribute["file_sign"]=="1");
 	if(realm){
 		xfree(realm);
@@ -416,7 +402,6 @@ void KAuthMark::buildXML(std::stringstream &s) {
 	s << " auth_type='" << KHttpAuth::buildType(auth_type) << "'";
 	s << " realm='" << (realm?realm:PROGRAM_NAME) << "'";
 	s << " require='" << getRequireUsers() << "'";
-	s << " failed_deny='" << (failed_deny?1:0) << "'";
 	if (file_sign) {
 		s << " file_sign='1'";
 	}
