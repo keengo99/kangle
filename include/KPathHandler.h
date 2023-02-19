@@ -166,8 +166,8 @@ public:
 		if (!name->push(this->name)) {
 			return;
 		}
-		if (handle) {
-			cb(name, handle, arg);
+		if (handler) {
+			cb(name, handler, arg);
 		}
 		if (child) {
 			for (auto it = child->first(); it; it = it->next()) {
