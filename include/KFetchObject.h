@@ -33,7 +33,7 @@
 #define SEND_HEAD_FAILED		0
 #define SEND_HEAD_SUCCESS		1
 #define SEND_HEAD_PULL_MODEL	2
-//#define SEND_HEAD_ASYNC_MODEL   3
+ //#define SEND_HEAD_ASYNC_MODEL   3
 #define SEND_HEAD_SYNC_MODEL    4
 #define SEND_HEAD_ERROR         5
 #ifdef ENABLE_REQUEST_QUEUE
@@ -47,10 +47,10 @@ class KUpstream;
 数据源类(静态数据，动态数据，除缓存的数据外，所有请求的数据均来源于数据源)
 所有数据源的基类
 */
-class KFetchObject {
+class KFetchObject
+{
 public:
-	KFetchObject()
-	{
+	KFetchObject() {
 		flags = 0;
 	}
 	virtual ~KFetchObject();
@@ -59,10 +59,12 @@ public:
 	}
 	virtual KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) = 0;
 
-	virtual bool NeedTempFile(bool upload, KHttpRequest *rq);
+	virtual bool NeedTempFile(bool upload, KHttpRequest* rq);
 
-	union {
-		struct {
+	union
+	{
+		struct
+		{
 			uint32_t filter : 1;
 		};
 		uint32_t flags;
@@ -73,12 +75,11 @@ public:
 #ifdef ENABLE_REQUEST_QUEUE
 	//此数据源是否需要队列功能。对于本地数据不用该功能。
 	//对于上游数据和动态的则返回true
-	virtual bool needQueue(KHttpRequest *rq)
-	{
+	virtual bool needQueue(KHttpRequest* rq) {
 		return false;
 	}
 #endif
-	static KGL_RESULT PushBody(KHttpRequest *rq, kgl_response_body *out, const char *buf, int len);
+	static KGL_RESULT PushBody(KHttpRequest* rq, kgl_response_body* out, const char* buf, int len);
 	KFetchObject* next = nullptr;
 };
 class KRedirectSource : public KFetchObject
@@ -92,19 +93,9 @@ public:
 			brd->release();
 		}
 	}
-	void bindRedirect(KRedirect* rd, uint8_t confirm_file) {
-		kassert(this->brd == NULL);
-		this->brd = new KBaseRedirect(rd, confirm_file);
-	}
-	void bindBaseRedirect(KBaseRedirect* brd) {
+	void bind_base_redirect(KBaseRedirect* brd) {
 		kassert(this->brd == NULL);
 		this->brd = brd;
-		if (brd) {
-			brd->addRef();
-		}
-	}
-	KBaseRedirect* getBaseRedirect() {
-		return brd;
 	}
 protected:
 	KBaseRedirect* brd;
@@ -112,13 +103,13 @@ protected:
 class KDeniedSource : public KFetchObject
 {
 public:
-	KDeniedSource(uint16_t status_code, const char *reason, size_t reason_len) {
+	KDeniedSource(uint16_t status_code, const char* reason, size_t reason_len) {
 		this->status_code = status_code;
 		this->reason = reason;
 		this->reason_len = int(reason_len);
 	}
 	KDeniedSource(const char* reason, size_t reason_len) : KDeniedSource(STATUS_FORBIDEN, reason, reason_len) {
-	
+
 	}
 	bool before_cache() override {
 		return true;

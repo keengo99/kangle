@@ -2234,7 +2234,7 @@ function sortrq(index)\
 }
 
 void init_manager_handler() {
-	KHttpManage::handler.add(_KS("/"), [](kgl_str_t* path, void* data, KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) -> KGL_RESULT {
+	KHttpManage::handler.add(_KS("/*"), [](kgl_str_t* path, void* data, KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) -> KGL_RESULT {
 		KHttpManage* hm = (KHttpManage*)data;
 		if (path->len == 1 && *path->data == '/') {
 			hm->sendMainPage();
@@ -2249,7 +2249,10 @@ void init_manager_handler() {
 		}
 		return KGL_OK;
 		});
-	KHttpManage::handler.add(_KS("/cfg"), [](kgl_str_t* path, void* data, KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) -> KGL_RESULT {
+	KHttpManage::handler.add(_KS("/cfg/*"), [](kgl_str_t* path, void* data, KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) -> KGL_RESULT {
+		if (path->len == 0) {
+			return response_redirect(out, _KS("/cfg/"), 308);
+		}
 		if (rq->sink->data.meth == METH_GET) {
 			const char* orig_path = path->data;
 			size_t orig_len = path->len;

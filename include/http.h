@@ -67,6 +67,7 @@ KGL_RESULT send_auth2(KHttpRequest *rq, KAutoBuffer *body = NULL);
 char *find_content_type(KHttpRequest *rq,KHttpObject *obj);
 bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, bool build_status = true);
 bool push_redirect_header(KHttpRequest *rq,const char *url,int url_len,int code);
+KGL_RESULT response_redirect(kgl_output_stream* out, const char* url, size_t url_len, uint16_t code=302);
 void insert_via(KHttpRequest *rq, KWStream &s, char *old_via = NULL,size_t len = 0);
 bool make_http_env(KHttpRequest *rq,kgl_input_stream *gate, KBaseRedirect *rd,KFileName *file,KEnvInterface *env, bool chrooted=false);
 bool stored_obj(KHttpObject *obj,int list_state);

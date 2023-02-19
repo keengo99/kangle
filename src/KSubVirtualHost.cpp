@@ -418,9 +418,8 @@ kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool 
 		return JUMP_DENY;
 	}
 	KRedirectSource*fo2 = rd->makeFetchObject(rq, rq->file);
-	KBaseRedirect *brd = new KBaseRedirect(rd, false);
-	fo2->bindBaseRedirect(brd);
-	brd->release();
+	KBaseRedirect *brd = new KBaseRedirect(rd, KGL_CONFIRM_FILE_NEVER);
+	fo2->bind_base_redirect(brd);
 	*fo = fo2;
 	return JUMP_ALLOW;
 }

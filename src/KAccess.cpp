@@ -456,7 +456,7 @@ kgl_jump_type KAccess::check(KHttpRequest *rq, KHttpObject *obj, KFetchObject** 
 			KPoolableRedirect* as = (KPoolableRedirect*)jump;
 			KRedirectSource* fo2 = as->makeFetchObject(rq, NULL);
 			as->addRef();
-			fo2->bindRedirect(as, KGL_CONFIRM_FILE_NEVER);
+			fo2->bind_base_redirect(new KBaseRedirect(as, KGL_CONFIRM_FILE_NEVER));
 			jumpType = JUMP_ALLOW;
 			*fo = fo2;
 		}

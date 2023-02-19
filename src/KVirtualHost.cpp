@@ -191,7 +191,8 @@ KFetchObject *KVirtualHost::findDefaultRedirect(KHttpRequest *rq,
 		}
 	}
 	if (fo) {
-		fo->bindBaseRedirect(defaultRedirect);
+		defaultRedirect->addRef();
+		fo->bind_base_redirect(defaultRedirect);
 	}
 	lock.Unlock();
 	return fo;
@@ -219,7 +220,8 @@ KFetchObject *KVirtualHost::findPathRedirect(KHttpRequest *rq, KFileName *file,c
 				result = true;
 				if ((*it2)->rd) {
 					fo = (*it2)->rd->makeFetchObject(rq, file);
-					fo->bindBaseRedirect((*it2));
+					(*it2)->addRef();
+					fo->bind_base_redirect((*it2));
 				}
 				break;
 			}
@@ -231,17 +233,17 @@ KFetchObject *KVirtualHost::findFileExtRedirect(KHttpRequest *rq,
 		KFileName *file, bool fileExsit, bool &result) {
 	KRedirectSource*fo = NULL;
 	char *file_ext = (char *) file->getExt();
+	if (!file_ext) {
+		return nullptr;
+	}
 	lock.Lock();
-	if (file_ext) {
-		std::map<char *, KBaseRedirect *, lessf>::iterator it = redirects.find((char *) file->getExt());
-		if (it != redirects.end() && (*it).second->allowMethod.matchMethod(rq->sink->data.meth)) {
-			if ((*it).second->MatchConfirmFile(fileExsit)) {
-				result = true;
-				if ((*it).second->rd) {
-					fo = (*it).second->rd->makeFetchObject(rq, file);
-					fo->bindBaseRedirect((*it).second);
-				}
-			}
+	auto it = redirects.find(file_ext);
+	if (it != redirects.end() && (*it).second->allowMethod.matchMethod(rq->sink->data.meth) && (*it).second->MatchConfirmFile(fileExsit)) {
+		result = true;
+		if ((*it).second->rd) {
+			fo = (*it).second->rd->makeFetchObject(rq, file);
+			(*it).second->addRef();
+			fo->bind_base_redirect((*it).second);
 		}
 	}
 	lock.Unlock();

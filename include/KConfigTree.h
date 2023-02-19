@@ -5,6 +5,7 @@
 #include "krbtree.h"
 #include "kmalloc.h"
 #include "KXmlDocument.h"
+#include "KStackName.h"
 #define CONFIG_FILE_SIGN  "<!--configfileisok-->"
 #ifndef CONFIG_FILE
 #define CONFIG_FILE 		"/config.xml"
@@ -21,43 +22,6 @@ namespace kconfig {
 		New,
 		Update,
 		Remove
-	};
-
-	class KStackName
-	{
-	public:
-		KStackName(int max_level) {
-			names = (kgl_ref_str_t**)malloc(sizeof(kgl_ref_str_t*) * (max_level + 1));
-			this->max_level = max_level;
-			cur_level = 0;
-		}
-		~KStackName() {
-			while (auto v = pop()) {
-				kstring_release(v);
-			}
-			xfree(names);
-		}
-		bool push(kgl_ref_str_t* name) {
-			if (cur_level >= max_level) {
-				return false;
-			}
-			names[cur_level++] = name;
-			return true;
-		}
-		kgl_ref_str_t* pop() {
-			if (cur_level == 0) {
-				return nullptr;
-			}
-			cur_level--;
-			return names[cur_level];
-		}
-		kgl_ref_str_t** get() {
-			names[cur_level] = nullptr;
-			return names;
-		}
-		int max_level;
-		int cur_level;
-		kgl_ref_str_t** names;
 	};
 	class KConfigListen
 	{
@@ -104,7 +68,7 @@ namespace kconfig {
 			init();
 		}
 		~KConfigTree();
-		KConfigTree *add(kgl_ref_str_t** names, KConfigListen* ev);
+		KConfigTree* add(kgl_ref_str_t** names, KConfigListen* ev);
 		KConfigListen* remove(kgl_ref_str_t** names);
 		void remove_node(KMapNode<KConfigTree>* node);
 		KMapNode<KConfigTree>* find_child(kgl_ref_str_t* name, bool create_flag);
@@ -142,7 +106,7 @@ namespace kconfig {
 			this->ref = 1;
 			this->ev = ev;
 		}
-		KConfigFile(KConfigTree* ev, kgl_ref_str_t *filename) {
+		KConfigFile(KConfigTree* ev, kgl_ref_str_t* filename) {
 			this->filename = kstring_refs(filename);
 			this->ref = 1;
 			this->ev = ev;
@@ -150,7 +114,7 @@ namespace kconfig {
 		void release() {
 			if (katom_dec((void*)&ref) == 0) {
 				delete this;
-			}			
+			}
 		}
 		int cmp(kgl_ref_str_t* key) {
 			return kgl_cmp(filename->data, filename->len, key->data, key->len);
@@ -229,7 +193,7 @@ namespace kconfig {
 		KXmlNode* xml;
 		KConfigEventNode* next = nullptr;
 	};
-	KConfigTree *listen(const char* name, size_t size, KConfigListen* ls);
+	KConfigTree* listen(const char* name, size_t size, KConfigListen* ls);
 	KConfigListen* remove_listen(const char* name, size_t size);
 	bool update(const char* name, size_t size, int index, KConfigFile* file, KXmlNode* xml, KConfigEventType ev_type);
 	KConfigTree* find(const char** name, size_t* size);

@@ -359,6 +359,15 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, boo
 	rq->response_connection();
 	return rq->start_response_body(content_len);
 }
+KGL_RESULT response_redirect(kgl_output_stream* out, const char* url, size_t url_len, uint16_t code) {
+	out->f->write_status(out->ctx, code);
+	timeLock.Lock();
+	out->f->write_header(out->ctx,kgl_header_server, conf.serverName, conf.serverNameLength);
+	out->f->write_header(out->ctx, kgl_header_date, (char*)cachedDateTime, 29);
+	timeLock.Unlock();
+	out->f->write_header(out->ctx, kgl_header_location, url, url_len);
+	return out->f->write_header_finish(out->ctx, 0, nullptr);
+}
 bool push_redirect_header(KHttpRequest* rq, const char* url, int url_len, int code) {
 	if (code == 0) {
 		code = STATUS_FOUND;
