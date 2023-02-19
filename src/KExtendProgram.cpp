@@ -84,12 +84,12 @@ const char *KExtendProgramString::interGetValue(const char *name) {
 		if (strcasecmp(name, "uid") == 0) {
 			s.clean();
 			s << vh->id[0];
-			return s.getString();
+			return s.c_str();
 		}
 		if (strcasecmp(name, "gid") == 0) {
 			s.clean();
 			s << vh->id[1];
-			return s.getString();
+			return s.c_str();
 		}
 #else
 		if(strcasecmp(name,"user")==0) {
@@ -276,10 +276,10 @@ bool KExtendProgramConfig::handle(KExtendProgramString *ds) {
 				bool token_result = false;
 				Token_t token = ds->getToken(token_result);
 				if(token_result && token){
-					chown(dst_tmp.getString(),token[0],token[1]);
+					chown(dst_tmp.c_str(),token[0],token[1]);
 				}
 			}
-			result = (0==rename(dst_tmp.getString(),dst_file_name));
+			result = (0==rename(dst_tmp.c_str(),dst_file_name));
 #else
 			result = (TRUE == MoveFileEx(dst_tmp.c_str(),dst_file_name,MOVEFILE_REPLACE_EXISTING));
 #endif

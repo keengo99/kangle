@@ -630,7 +630,7 @@ bool get_disk_size(INT64& total_size, INT64& free_size) {
 	return true;
 #elif defined(LINUX)
 	struct statfs buf;
-	if (statfs(path.getString(), &buf) != 0) {
+	if (statfs(path.c_str(), &buf) != 0) {
 		return false;
 	}
 	total_size = (INT64)buf.f_blocks * (INT64)buf.f_bsize;
