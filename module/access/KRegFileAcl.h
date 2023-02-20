@@ -115,7 +115,7 @@ public:
 	KAcl *new_instance() override {
 		return new KRegFileNameAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "reg_filename";
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) override {

@@ -45,7 +45,7 @@ public:
 		return KMultiAcl::match(rq->file->getName());
 	}
 protected:
-	char *transferItem(char *file)
+	char *transferItem(char *file) override
 	{
 		KFileName::tripDir3(file,PATH_SPLIT_CHAR);
 		return file;

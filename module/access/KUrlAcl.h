@@ -53,7 +53,7 @@ public:
 	KAcl *new_instance() override {
 		return new KUrlAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "url";
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) override {
@@ -68,7 +68,7 @@ public:
 		}
 		return false;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override{
 		std::stringstream s;
 		if (raw) {
 			s << "raw:";
@@ -76,7 +76,7 @@ public:
 		s << reg.getModel();
 		return s.str();
 	}
-	void editHtml(std::map<std::string,std::string> &attribute,bool html){
+	void editHtml(std::map<std::string,std::string> &attribute,bool html) override{
 		nc = (attribute["nc"]=="1");
 		if(attribute["url"].size()>0){
 			reg.setModel(attribute["url"].c_str(), (nc?PCRE_CASELESS:0));
@@ -87,13 +87,13 @@ public:
 			raw = false;
 		}		
 	}
-	bool startCharacter(KXmlContext *context, char *character, int len) {
+	bool startCharacter(KXmlContext *context, char *character, int len) override {
 		if(len>0){
 			reg.setModel(character, 0);
 		}
 		return true;
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s)  override{
 		if (raw) {
 			s << " raw='1'";
 		}

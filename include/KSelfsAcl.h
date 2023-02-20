@@ -23,7 +23,7 @@ public:
 		return KMultiAcl::match(ip);
 	}
 protected:
-	char *transferItem(char *file)
+	char *transferItem(char *file) override
 	{
 		return file;
 	}

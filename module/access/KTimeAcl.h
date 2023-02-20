@@ -29,7 +29,7 @@ public:
 	}
 	virtual ~KTimeAcl() {
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		s << "<input name='time' value='";
 		KTimeAcl *urlAcl = (KTimeAcl *) (model);

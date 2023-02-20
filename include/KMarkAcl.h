@@ -16,7 +16,7 @@ public:
 	~KMarkAcl()
 	{
 	}
-	KAcl *new_instance() {
+	KAcl *new_instance() override {
 		return new KMarkAcl();
 	}
 	const char *getName() override {
