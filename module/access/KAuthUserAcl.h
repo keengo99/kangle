@@ -29,13 +29,13 @@ public:
 	}
 	virtual ~KAuthUserAcl() {
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KAuthUserAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "auth_user";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		if(rq->auth==NULL){
 			return false;
 		}
@@ -55,13 +55,13 @@ public:
 	~KRegAuthUserAcl()
 	{
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "reg_auth_user";
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KRegAuthUserAcl();
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		if(rq->auth==NULL){
 			return false;
 		}
@@ -71,7 +71,7 @@ public:
 		}
 		return user.match(auth_user,strlen(auth_user),0)>0;
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		KRegAuthUserAcl *m = (KRegAuthUserAcl *)model;
 		std::stringstream s;
 		s << "user regex:<input name='user' value='";
@@ -81,15 +81,15 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		s << user.getModel();
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attibute,bool html){
+	void editHtml(std::map<std::string, std::string> &attibute,bool html) override {
 		user.setModel(attibute["user"].c_str(),0);
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << "user='" << user.getModel() << "'>";
 	}
 private:

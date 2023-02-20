@@ -12,7 +12,7 @@ public:
 	~KRandAcl()
 	{
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		s << "<input name='rand' value='";
 		KRandAcl *urlAcl = (KRandAcl *) (model);
@@ -22,24 +22,24 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KRandAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "rand";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		return (rand() % total) < count;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		s << count << "/" << total;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html){
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
 		setRand(attribute["rand"].c_str());
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << " rand='" << getDisplay() << "'>";
 	}
 private:

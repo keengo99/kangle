@@ -26,28 +26,28 @@ public:
 	}
 	virtual ~KObjAlwaysOnAcl() {
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		return "";
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KObjAlwaysOnAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "obj_always_on";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		return rq->ctx.always_on_model;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		return "";
 	}
-	bool startCharacter(KXmlContext *context, char *character, int len) {		
+	bool startCharacter(KXmlContext *context, char *character, int len) override {
 		return true;
 	}
-	void editHtml(std::map<std::string, std::string> &attibute,bool html){
+	void editHtml(std::map<std::string, std::string> &attibute,bool html) override {
 		
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << " >";
 	}
 private:

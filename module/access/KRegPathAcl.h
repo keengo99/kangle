@@ -30,7 +30,7 @@ public:
 	}
 	virtual ~KRegPathAcl() {
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		s << "<input name=path value='";
 		KRegPathAcl *urlAcl = (KRegPathAcl *) (model);
@@ -50,19 +50,19 @@ public:
 		s << ">nc";
 		return s.str();
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KRegPathAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "reg_path";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		if (raw) {
 			return path.match(rq->sink->data.raw_url->path,strlen(rq->sink->data.raw_url->path),0)>0;
 		}
 		return path.match(rq->sink->data.url->path,strlen(rq->sink->data.url->path),0)>0;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		if (raw) {
 			s << "raw:";
@@ -78,7 +78,7 @@ public:
 		path.setModel(value,flag);
 		return true;
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html){
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
 		nc = (attribute["nc"]=="1");
 		if (attribute["path"].size() > 0) {
 			setPath(attribute["path"].c_str());
@@ -89,13 +89,13 @@ public:
 			raw = false;
 		}
 	}
-	bool startCharacter(KXmlContext *context, char *character, int len) {
+	bool startCharacter(KXmlContext *context, char *character, int len) override {
 		if (strlen(path.getModel()) == 0) {
 			setPath(character);
 		}
 		return true;
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		if (raw) {
 			s << " raw='1'";
 		}
@@ -117,7 +117,7 @@ public:
 	}
 	virtual ~KRegParamAcl() {
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		s << "<input name='param' value='";
 		KRegParamAcl *urlAcl = (KRegParamAcl *) (model);
@@ -137,20 +137,20 @@ public:
 		s << ">nc";
 		return s.str();
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KRegParamAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "reg_param";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		char *param = (raw?rq->sink->data.raw_url->param:rq->sink->data.url->param);
 		if (param==NULL || *param=='\0') {
 			return false;
 		}
 		return path.match(param,strlen(param),0)>0;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		if (raw) {
 			s << "raw:";
@@ -166,7 +166,7 @@ public:
 		path.setModel(value,flag);
 		return true;
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) {
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
 		nc = (attribute["nc"]=="1");
 		if (attribute["param"].size() > 0) {
 			setPath(attribute["param"].c_str());
@@ -177,13 +177,13 @@ public:
 			raw = false;
 		}
 	}
-	bool startCharacter(KXmlContext *context, char *character, int len) {
+	bool startCharacter(KXmlContext *context, char *character, int len) override {
 		if (strlen(path.getModel()) == 0) {
 			setPath(character);
 		}
 		return true;
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << " param='" << path.getModel() << "'";
 		if (raw) {
 			s << " raw='1'";

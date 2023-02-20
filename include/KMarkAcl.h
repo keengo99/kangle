@@ -16,13 +16,13 @@ public:
 	~KMarkAcl()
 	{
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() {
 		return new KMarkAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "mark";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override  {
 		switch (op) {
 		case MARKACL_OP_EQ:
 			return rq->sink->data.mark==mark;
@@ -33,7 +33,7 @@ public:
 		}
 		return false;
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		KMarkAcl *m = (KMarkAcl *)model;
 		s << "mark:<select name='op'>";
@@ -52,17 +52,17 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		s << getMarkOp2(op) << (int)mark;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
-			 {
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
+	{
 		op = getMarkOp(attribute["op"].c_str());
 		mark = atoi(attribute["v"].c_str());
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << "op='" << getMarkOp(op) << "' v='" << (int)mark << "'>";
 	}
 private:

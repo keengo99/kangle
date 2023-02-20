@@ -29,7 +29,7 @@ public:
 	}
 	virtual ~KRegFileAcl() {
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		s << "<input name='file' value='";
 		KRegFileAcl *urlAcl = (KRegFileAcl *) (model);
@@ -44,20 +44,20 @@ public:
 		s << ">nc";
 		return s.str();
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KRegFileAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "reg_file";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		if(rq->file==NULL){
 			return false;
 		}
 		const char *filename = rq->file->getName();
 		return path.match(filename,strlen(filename),0)>0;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		return path.getModel();
 	}
 	bool setPath(const char *value) {
@@ -68,19 +68,19 @@ public:
 		path.setModel(value,flag);
 		return true;
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html){
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
 		nc = (attribute["nc"]=="1");
 		if (attribute["file"].size() > 0) {
 			setPath(attribute["file"].c_str());
 		}
 	}
-	bool startCharacter(KXmlContext *context, char *character, int len) {
+	bool startCharacter(KXmlContext *context, char *character, int len)  override {
 		if (strlen(path.getModel()) == 0) {
 			setPath(character);
 		}
 		return true;
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		if (nc) {
 			s << " nc='1'";
 		}
@@ -97,7 +97,7 @@ public:
 	}
 	virtual ~KRegFileNameAcl() {
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		s << "<input name='filename' value='";
 		KRegFileNameAcl *urlAcl = (KRegFileNameAcl *) (model);
@@ -112,13 +112,13 @@ public:
 		s << ">nc";
 		return s.str();
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KRegFileNameAcl();
 	}
 	const char *getName() {
 		return "reg_filename";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		if(rq->file==NULL){
 			return false;
 		}
@@ -130,7 +130,7 @@ public:
 		}
 		return path.match(filename,strlen(filename),0)>0;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		return path.getModel();
 	}
 	bool setPath(const char *value) {
@@ -141,19 +141,19 @@ public:
 		path.setModel(value,flag);
 		return true;
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html){
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
 		nc = (attribute["nc"]=="1");
 		if (attribute["filename"].size() > 0) {
 			setPath(attribute["filename"].c_str());
 		}
 	}
-	bool startCharacter(KXmlContext *context, char *character, int len) {
+	bool startCharacter(KXmlContext *context, char *character, int len) override {
 		if (strlen(path.getModel()) == 0) {
 			setPath(character);
 		}
 		return true;
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		if (nc) {
 			s << " nc='1'";
 		}

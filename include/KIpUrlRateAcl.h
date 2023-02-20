@@ -20,7 +20,7 @@ public:
 	{
 		return true;
 	}
-	KAcl *newInstance() override {
+	KAcl *new_instance() override {
 		return new KIpUrlRateAcl();
 	}
 	const char *getName() override {

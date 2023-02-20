@@ -29,7 +29,7 @@ public:
 	int32_t shutdown();
 	void Init();
 	uint32_t process(KHttpRequest *rq, KAccessContext *cn,DWORD notify);
-	KAccessDso *newInstance()
+	KAccessDso *new_instance()
 	{
 		return new KAccessDso(access,dso,notify_type);
 	}
@@ -90,7 +90,7 @@ public:
 	}
 	KMark * new_instance() override
 	{
-		return new KAccessDsoMark(ad->newInstance());
+		return new KAccessDsoMark(ad->new_instance());
 	}
 	const char *getName() override
 	{
@@ -129,41 +129,41 @@ public:
 	{
 		delete ad;
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj)
+	bool match(KHttpRequest *rq, KHttpObject *obj) override
 	{
 		KAccessContext cn;
 		uint32_t ret = ad->process(rq, &cn, obj ? KF_NOTIFY_RESPONSE_ACL : KF_NOTIFY_REQUEST_ACL);
 		return KBIT_TEST(ret, KF_STATUS_REQ_TRUE);
 	}
-	KAcl *newInstance()
+	KAcl *new_instance() override
 	{
-		return new KAccessDsoAcl(ad->newInstance());
+		return new KAccessDsoAcl(ad->new_instance());
 	}
-	const char *getName()
+	const char *getName() override
 	{
 		return ad->getName();
 	}
-	std::string getHtml(KModel *model)
+	std::string getHtml(KModel *model) override
 	{
 		return ad->getHtml(model);
 	}
-	std::string getDisplay()
+	std::string getDisplay() override
 	{
 		return ad->getDisplay();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
 	{
 		ad->editHtml(attribute,html);
 	}
-	void buildXML(std::stringstream &s)
+	void buildXML(std::stringstream &s) override
 	{
 		ad->buildXML(s);
 	}
-	bool startCharacter(KXmlContext *context, char *character, int len)
+	bool startCharacter(KXmlContext *context, char *character, int len) override
 	{
 		return ad->startCharacter(context, character, len);
 	}
-	bool endElement(KXmlContext *context)
+	bool endElement(KXmlContext *context) override
 	{
 		return ad->endElement(context);
 	}

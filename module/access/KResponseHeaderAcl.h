@@ -19,10 +19,10 @@
 #define KRESPONSEHEADERACL_H_
 #include "KHeaderAcl.h"
 class KResponseHeaderAcl : public KHeaderAcl {
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KResponseHeaderAcl();
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		if(obj->data==NULL){
 			return false;
 		}

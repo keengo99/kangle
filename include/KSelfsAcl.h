@@ -11,13 +11,13 @@ public:
 	}
 	virtual ~KSelfsAcl() {
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KSelfsAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "selfs";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		char ip[MAXIPLEN];
 		rq->sink->get_self_ip(ip,sizeof(ip));
 		return KMultiAcl::match(ip);

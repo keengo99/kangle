@@ -9,13 +9,13 @@ public:
 	}
 	virtual ~KSelfPortsAcl() {
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KSelfPortsAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "self_ports";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		return KMultiIntAcl::match(rq->sink->get_self_port());
 	}
 };
@@ -26,13 +26,13 @@ public:
 	}
 	virtual ~KListenPortsAcl() {
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KListenPortsAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "listen_ports";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		sockaddr_i addr = { 0 };
 		rq->sink->get_self_addr(&addr);
 		return KMultiIntAcl::match(ksocket_addr_port(&addr));

@@ -18,7 +18,7 @@ public:
 	{
 		return true;
 	}
-	KAcl *newInstance() override{
+	KAcl *new_instance() override{
 		return new KIpRateAcl();
 	}
 	const char *getName() override{

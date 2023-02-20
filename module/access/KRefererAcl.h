@@ -24,10 +24,10 @@ public:
 			delete vhc;
 		}
 	}
-	KAcl* newInstance() {
+	KAcl* new_instance() override {
 		return new KRefererAcl();
 	}
-	bool match(KHttpRequest* rq, KHttpObject* obj) {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		kgl_str_t value;
 		if (!rq->get_http_value(_KS("Referer"), &value)) {
 			return this->host_null;
@@ -41,7 +41,7 @@ public:
 		}
 		return  (vhc->find(referer.u->host) != NULL);
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		int count = 0;
 		std::stringstream s;
 		s << "Host:";
@@ -54,7 +54,7 @@ public:
 		s << count;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string>& attribute, bool html)
+	void editHtml(std::map<std::string, std::string>& attribute, bool html) override
 	{
 		if (vhc) {
 			delete vhc;
@@ -84,10 +84,10 @@ public:
 		}
 		free(buf);
 	}
-	const char* getName() {
+	const char* getName() override {
 		return "referer";
 	}
-	std::string getHtml(KModel* model) {
+	std::string getHtml(KModel* model) override {
 		std::stringstream s;
 		s << "<input type='text' name='host' value='";
 		if (this->host_null) {
@@ -99,7 +99,7 @@ public:
 		s << "' placeHolder='-|abc.com|*.abc.com'>";
 		return s.str();
 	}
-	void buildXML(std::stringstream& s) {
+	void buildXML(std::stringstream& s) override {
 		s << " host='";
 		if (this->host_null) {
 			s << "-|";

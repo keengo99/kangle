@@ -29,7 +29,7 @@ public:
 	}
 	virtual ~KUrlAcl() {
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		s << "<input name=url value='";
 		KUrlAcl *urlAcl=(KUrlAcl *)(model);
@@ -50,13 +50,13 @@ public:
 		s << ">nc";
 		return s.str();
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KUrlAcl();
 	}
 	const char *getName() {
 		return "url";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		KStringBuf url;
 		if (raw) {
 			rq->sink->data.raw_url->GetUrl(url);

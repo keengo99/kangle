@@ -32,13 +32,13 @@ public:
 	}
 	virtual ~KFileAcl() {
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KFileAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "file";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		if (rq->file==NULL) {
 			return false;
 		}

@@ -90,7 +90,7 @@ public:
 		return s.str();
 	}
 	void callBack(KPerIpCallBackData *data);
-	KAcl *newInstance() override {
+	KAcl *new_instance() override {
 		return new KPerIpAcl();
 	}
 	const char *getName() override {

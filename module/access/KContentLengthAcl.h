@@ -28,7 +28,7 @@ public:
 	}
 	virtual ~KContentLengthAcl() {
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		s << "min:<input name=min value='";
 		KContentLengthAcl *acl=(KContentLengthAcl *)(model);
@@ -47,13 +47,13 @@ public:
 		s << ">content range";
 		return s.str();
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KContentLengthAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "content_length";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		INT64 content_length = obj->getTotalContentSize();
 		if (content_length < minlen) {
 			return false;
@@ -63,7 +63,7 @@ public:
 		}
 		return true;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		s << get_size(minlen) << "," << get_size(maxlen);
 		if (contentRange) {
@@ -71,12 +71,12 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string,std::string> &attribute,bool html){
+	void editHtml(std::map<std::string,std::string> &attribute,bool html) override {
 		minlen = get_size(attribute["min"].c_str());
 		maxlen = get_size(attribute["max"].c_str());
 		contentRange = (attribute["content_range"] == "1");
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << " min='" << get_size(minlen) << "' max='" << get_size(maxlen) << "' ";
 		if (contentRange) {
 			s << "content_range='1'";

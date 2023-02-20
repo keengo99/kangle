@@ -25,13 +25,13 @@ public:
 	}
 	virtual ~KTryFileAcl() {
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KTryFileAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "try_file";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		auto svh = rq->get_virtual_host();
 		if (svh==NULL) {
 			return false;
@@ -51,16 +51,16 @@ public:
 		}
 		return exsit;
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		return "";
 	}	
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		return "";
 	}
-	void editHtml(std::map<std::string, std::string> &attibute,bool html){
+	void editHtml(std::map<std::string, std::string> &attibute,bool html) override {
 		
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << " >";
 	}
 };

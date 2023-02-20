@@ -37,13 +37,13 @@ public:
 	}
 	virtual ~KHostAcl() {
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override  {
 		return new KHostAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "host";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		return KMultiAcl::match(rq->sink->data.url->host);
 	}
 };
@@ -54,16 +54,16 @@ public:
 	}
 	virtual ~KWideHostAcl() {
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KWideHostAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "wide_host";
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		return this->getValList();
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		s << "<input name=v size=40 placeholder='abc.com|*.abc.com' value='";
 		KWideHostAcl *acl = (KWideHostAcl *) (model);
@@ -73,10 +73,10 @@ public:
 		s << "'>";		
 		return s.str();
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		return vhc.find(rq->sink->data.url->host)!=NULL;		
 	}
-	void editHtml(std::map<std::string,std::string> &attribute, bool html) {
+	void editHtml(std::map<std::string,std::string> &attribute, bool html) override {
 		vhc.clear();
 		char *buf = strdup(attribute["v"].c_str());
 		char *hot = buf;
@@ -93,7 +93,7 @@ public:
 		}
 		free(buf);
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << "v='" << this->getValList() << "'>";
 	}
 private:

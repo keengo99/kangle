@@ -30,7 +30,7 @@ public:
 	}
 	virtual ~KPathAcl() {
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		s << "<input name=path value='";
 		KPathAcl *urlAcl = (KPathAcl *) (model);
@@ -45,13 +45,13 @@ public:
 		s << ">raw";
 		return s.str();
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KPathAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "path";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		KUrl *url;
 		if (raw) {
 			url = rq->sink->data.raw_url;
@@ -63,7 +63,7 @@ public:
 		}
 		return filecmp(url->path, path.c_str()) == 0;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		if (raw) {
 			s << "raw:";
@@ -92,7 +92,7 @@ public:
 		xfree(t);
 		return true;
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html){
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
 		if (attribute["path"].size() > 0) {
 			setPath(attribute["path"].c_str());
 		}
@@ -103,13 +103,13 @@ public:
 		}
 
 	}
-	bool startCharacter(KXmlContext *context, char *character, int len) {
+	bool startCharacter(KXmlContext *context, char *character, int len) override {
 		if (path.size() == 0) {
 			setPath(character);
 		}
 		return true;
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		if (raw) {
 			s << " raw='1'";
 		}

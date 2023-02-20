@@ -21,17 +21,17 @@
 
 class KSrcAcl : public KIpAclBase {
 public:
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		ip_addr addr;
 		if (!ksocket_get_ipaddr(rq->getClientIp(), &addr)) {
 			return false;
 		}
 		return matchIP(addr);
 	}
-	void editHtml(std::map<std::string,std::string> &attribute,bool html) {
+	void editHtml(std::map<std::string,std::string> &attribute,bool html) override {
 		addIpModel(attribute["ip"].c_str(), ip);
 	}
-	std::string getHtml(KModel *acl) {
+	std::string getHtml(KModel *acl) override {
 		std::stringstream s;
 		s << "<input name=ip value='";
 		KSrcAcl *acl2=(KSrcAcl *)(acl);
@@ -41,10 +41,10 @@ public:
 		s << "'>(cidr format)";
 		return s.str();
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KSrcAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "src";
 	}
 };

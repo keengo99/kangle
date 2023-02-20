@@ -112,7 +112,7 @@ std::string KCloudIpAcl::getHtml(KModel *model)
 	s << "'>";
 	return s.str();
 }
-KAcl *KCloudIpAcl::newInstance()
+KAcl *KCloudIpAcl::new_instance()
 {
 	return new KCloudIpAcl;
 }

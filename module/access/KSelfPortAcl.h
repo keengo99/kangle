@@ -28,7 +28,7 @@ public:
 	}
 	virtual ~KSelfPortAcl() {
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		s << "<input name=port value='";
 		KSelfPortAcl *urlAcl = (KSelfPortAcl *) (model);
@@ -38,32 +38,32 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KSelfPortAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "self_port";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		return rq->sink->get_self_port() == port;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		s << port;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) {
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
 		if(attribute["port"].size()>0){
 			port = atoi(attribute["port"].c_str());
 		}
 	}
-	bool startCharacter(KXmlContext *context, char *character, int len) {
+	bool startCharacter(KXmlContext *context, char *character, int len) override {
 		if (character && isdigit(character[0])) {
 			port = atoi(character);
 		}
 		return true;
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << ">" << port ;
 	}
 private:

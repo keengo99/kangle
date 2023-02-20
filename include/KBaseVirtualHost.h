@@ -11,6 +11,7 @@
 #include "global.h"
 #include "KXml.h"
 #include "KContentType.h"
+#include "KPathHandler.h"
 //{{ent
 #ifdef ENABLE_BLACK_LIST
 #include "KIpList.h"
@@ -139,7 +140,6 @@ public:
 	KBaseVirtualHost();
 	virtual ~KBaseVirtualHost();
 	void swap(KBaseVirtualHost *a);
-	//std::vector<KBaseString> indexFiles;
 	std::list<KIndexItem> indexFiles;
 	std::map<int, KBaseString> errorPages;
 	std::map<char *, KBaseRedirect *, lessf> redirects;

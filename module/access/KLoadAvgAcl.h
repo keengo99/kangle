@@ -28,7 +28,7 @@ public:
 	}
 	virtual ~KLoadAvgAcl() {
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		s << "&gt;<input name=maxavg value='";
 		KLoadAvgAcl *acl=(KLoadAvgAcl *)(model);
@@ -38,28 +38,28 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KLoadAvgAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "loadavg";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		readAvg();
 		if(loadavg>maxavg){
 			return true;
 		}
 		return false;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		s << "&gt;" << maxavg << "(cur:" << loadavg << ")";
 		return s.str();
 	}
-	void editHtml(std::map<std::string,std::string> &attribute,bool html){
+	void editHtml(std::map<std::string,std::string> &attribute,bool html) override {
 		maxavg = atoi(attribute["maxavg"].c_str());
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << " maxavg='" << maxavg << "'>";
 	}
 	void readAvg()

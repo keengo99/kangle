@@ -15,13 +15,13 @@ public:
 	}
 	virtual ~KDirAcl() {
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KDirAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "dir";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		if (rq->file==NULL) {
 			return false;
 		}

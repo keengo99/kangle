@@ -16,13 +16,13 @@ public:
 	~KStatusCodeAcl()
 	{
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KStatusCodeAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "status_code";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		if (obj && obj->data) {
 			switch (op) {
 			case ACL_OP_EQ:
@@ -35,7 +35,7 @@ public:
 		}
 		return false;
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		KStatusCodeAcl *m = (KStatusCodeAcl *)model;
 		s << "code:<select name='op'>";
@@ -54,17 +54,17 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		s << getMarkOp2(op) << code;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
-			 {
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
+	{
 		op = getMarkOp(attribute["op"].c_str());
 		code = atoi(attribute["code"].c_str());
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << "op='" << getMarkOp(op) << "' code='" << code << "'>";
 	}
 private:

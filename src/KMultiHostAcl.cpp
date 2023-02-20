@@ -45,7 +45,7 @@ void KMultiHostAcl::freeMap() {
 	}
 	m.clear();
 }
-KAcl *KMultiHostAcl::newInstance() {
+KAcl *KMultiHostAcl::new_instance() {
 	return new KMultiHostAcl();
 }
 const char *KMultiHostAcl::getName() {

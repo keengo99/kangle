@@ -16,27 +16,27 @@ public:
 			free(host);
 		}
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override  {
 		return new KWhiteListAcl();
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		const char *host = this->host;
 		if (host == NULL) {
 			host = rq->sink->data.url->host;
 		}
 		return wlm.find(host, rq->getClientIp(),this->flush);
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "white_list";
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		if (host) {
 			s << host;
 		}
 		return s.str();
 	}
-	std::string getHtml(KModel *m) {
+	std::string getHtml(KModel *m) override {
 		std::stringstream s;
 		s << "host:<input name='host' value='";
 		if (m) {
@@ -53,8 +53,8 @@ public:
 		s << ">flush";
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
-		 {
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
+	{
 		if (host) {
 			free(host);
 			host = NULL;
@@ -64,7 +64,7 @@ public:
 		}
 		flush = attribute["flush"] == "1";
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		if (this->host) {
 			s << "host='" << host << "'";
 		}

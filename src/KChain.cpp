@@ -292,7 +292,7 @@ KAcl *KChain::newAcl(std::string acl,KAccess *kaccess)
 	std::map<std::string,KAcl *>::iterator it;
 	it = KAccess::aclFactorys[kaccess->type].find(acl);
 	if (it!=KAccess::aclFactorys[kaccess->type].end()) {
-		KAcl *macl = (*it).second->newInstance();
+		KAcl *macl = (*it).second->new_instance();
 		if (macl) {
 			macl->isGlobal = kaccess->isGlobal();
 		}

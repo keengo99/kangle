@@ -32,13 +32,13 @@ public:
 	}
 	virtual ~KFileExeAcl() {
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KFileExeAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "file_ext";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		if (rq->file) {
 			return KMultiAcl::match(rq->file->getExt());
 		}
@@ -68,13 +68,13 @@ public:
 	}
 	virtual ~KFileNameAcl() {
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KFileNameAcl();
 	}
-	const char *getName() {
+	const char *getName() override  {
 		return "filename";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		if (rq->file==NULL) {
 			return false;
 		}

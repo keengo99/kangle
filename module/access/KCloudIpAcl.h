@@ -9,13 +9,13 @@ class KCloudIpAcl: public KAcl {
 public:
 	KCloudIpAcl();
 	virtual ~KCloudIpAcl();
-	std::string getHtml(KModel *model);
-	KAcl *newInstance();
-	const char *getName();
-	bool match(KHttpRequest *rq, KHttpObject *obj);
-	std::string getDisplay();
-	void editHtml(std::map<std::string, std::string> &attribute,bool html);
-	void buildXML(std::stringstream &s);
+	std::string getHtml(KModel *model) override;
+	KAcl *new_instance() override;
+	const char *getName() override;
+	bool match(KHttpRequest *rq, KHttpObject *obj) override;
+	std::string getDisplay() override;
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override;
+	void buildXML(std::stringstream &s) override;
 	void start();
 	void start_http();
 	void http_body_hook(const char *data, int len);

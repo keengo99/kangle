@@ -39,32 +39,32 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KTimeAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "time";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		return t.checkTime(kgl_current_sec);
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		s << ts;
 		return s.str();
 	}
-	bool startCharacter(KXmlContext *context, char *character, int len) {
+	bool startCharacter(KXmlContext *context, char *character, int len) override {
 		if (character) {
 			ts = character;
 			t.set(character);
 		}
 		return true;
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html){
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
 		ts = attribute["time"];
 		t.set(ts.c_str());
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << " time='" << ts << "'>";
 	}
 private:

@@ -51,6 +51,9 @@ public:
 				return false;
 			}
 			this->handler = handler;
+			if (size == 0) {
+				this->name->id = FILE_KEY;
+			}
 			return true;
 		}
 		if (*name == '*') {
@@ -86,7 +89,13 @@ public:
 			(*name)++;
 			(*size)--;
 		}
-		if (*size <= 0 || **name == '/') {
+		if (*size <= 0) {
+			return this->handler;
+		}
+		if (**name == '/') {
+			if (this->name->id == FILE_KEY) {
+				return nullptr;
+			}
 			return this->handler;
 		}
 		auto path = (const char*)memchr(*name, '/', *size);
@@ -182,6 +191,7 @@ public:
 
 private:
 	static constexpr uint16_t WIDE_KEY = 1;
+	static constexpr uint16_t FILE_KEY = 2;
 	kgl_ref_str_t* name;
 	T handler;
 	KMap<kgl_ref_str_t, KPathHandler>* child = nullptr;

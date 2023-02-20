@@ -19,10 +19,10 @@
 #define KREQUESTHEADERACL_H_
 #include "KHeaderAcl.h"
 class KRequestHeaderAcl : public KHeaderAcl {
-	KAcl *newInstance() {
+	KAcl *new_instance() override {
 		return new KRequestHeaderAcl();
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		return match_header(rq->sink->data.get_header());
 	}
 };

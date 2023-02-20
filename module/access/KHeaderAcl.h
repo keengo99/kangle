@@ -21,6 +21,7 @@
 #include "KReg.h"
 #include "KXml.h"
 #include "KMultiAcl.h"
+
 class KHeaderAcl : public KAcl
 {
 public:
@@ -29,7 +30,7 @@ public:
 	}
 	virtual ~KHeaderAcl() {
 	}
-	std::string getHtml(KModel* model) {
+	std::string getHtml(KModel* model) override {
 		std::stringstream s;
 		s << "attr:<input name=header value='";
 		KHeaderAcl* urlAcl = (KHeaderAcl*)(model);
@@ -48,7 +49,7 @@ public:
 		s << ">nc";
 		return s.str();
 	}
-	const char* getName() {
+	const char* getName() override {
 		return "header";
 	}
 	bool match_header(KHttpHeader* next) {
@@ -62,7 +63,7 @@ public:
 		}
 		return false;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		s << header << "/" << reg.getModel();
 		if (nc) {
@@ -70,20 +71,20 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string>& attribute, bool html) {
+	void editHtml(std::map<std::string, std::string>& attribute, bool html) override {
 		header = attribute["header"];
 		nc = attribute["nc"] == "1";
 		reg.setModel(attribute["val"].c_str(), nc ? PCRE_CASELESS : 0);
 		regLen = strlen(reg.getModel());
 	}
-	bool startCharacter(KXmlContext* context, char* character, int len) {
+	bool startCharacter(KXmlContext* context, char* character, int len) override {
 		if (len > 0) {
 			reg.setModel(character, nc ? PCRE_CASELESS : 0);
 			regLen = strlen(reg.getModel());
 		}
 		return true;
 	}
-	void buildXML(std::stringstream& s) {
+	void buildXML(std::stringstream& s) override {
 		s << "header='" << KXml::param(header.c_str()) << "' nc='" << (nc ? 1 : 0) << "'";
 		s << ">" << CDATA_START << reg.getModel() << CDATA_END;
 	}
@@ -93,6 +94,7 @@ private:
 	int regLen;
 	bool nc;
 };
+
 class KHeaderMapAcl : public KMultiAcl
 {
 public:
@@ -101,7 +103,7 @@ public:
 	}
 	virtual ~KHeaderMapAcl() {
 	}
-	std::string getHtml(KModel* model) {
+	std::string getHtml(KModel* model) override {
 		std::stringstream s;
 		s << "name:<input name=name value='";
 		KHeaderMapAcl* urlAcl = (KHeaderMapAcl*)(model);
@@ -111,14 +113,14 @@ public:
 		s << "'>value:" << KMultiAcl::getHtml(model);
 		return s.str();
 	}
-	KAcl* newInstance()
+	KAcl* new_instance() override
 	{
 		return new KHeaderMapAcl;
 	}
-	const char* getName() {
+	const char* getName() override {
 		return "header_map";
 	}
-	bool match(KHttpRequest* rq, KHttpObject* obj) {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		KHttpHeader* header = rq->sink->data.get_header();
 		std::map<std::string, bool>::iterator it;
 		while (header) {
@@ -131,17 +133,17 @@ public:
 		}
 		return false;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		s << name << ":" << KMultiAcl::getDisplay();
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string>& attribute, bool html) {
+	void editHtml(std::map<std::string, std::string>& attribute, bool html) override {
 		name = attribute["name"];
 		KMultiAcl::editHtml(attribute, html);
 	}
 
-	void buildXML(std::stringstream& s) {
+	void buildXML(std::stringstream& s) override {
 		s << "name='" << KXml::param(name.c_str()) << "' ";
 		KMultiAcl::buildXML(s);
 	}

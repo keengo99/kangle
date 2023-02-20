@@ -15,7 +15,7 @@ public:
 	virtual ~KMultiIntAcl() {
 		freeMap();
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		s << "<input name=v size=40 value='";
 		KMultiIntAcl *acl = (KMultiIntAcl *) (model);
@@ -45,12 +45,12 @@ public:
 		}
 		return s.str();
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		s << getValList();
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html){
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
 		freeMap();
 		if (attribute["split"].size() > 0) {
 			split = attribute["split"][0];
@@ -61,7 +61,7 @@ public:
 			explode(attribute["v"].c_str());
 		}
 	}
-	bool startCharacter(KXmlContext *context, char *character, int len) {
+	bool startCharacter(KXmlContext *context, char *character, int len) override {
 		if (len > 0) {
 			freeMap();
 			explode(character);
@@ -69,7 +69,7 @@ public:
 		return true;
 	}
 
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << " split='" << split << "'>" << getValList();
 	}
 protected:

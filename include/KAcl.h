@@ -36,12 +36,11 @@
 class KAcl : public KModel {
 public:
 	KAcl() {
-
 	}
 	virtual ~KAcl() {
 	}
-	virtual KAcl *newInstance()=0;
-	virtual bool match(KHttpRequest *rq,KHttpObject *obj)=0;
+	virtual KAcl* new_instance() = 0;
+	virtual bool match(KHttpRequest* rq, KHttpObject* obj) = 0;
 };
 
 #endif /*KACL_H_*/
