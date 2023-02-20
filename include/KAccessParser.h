@@ -35,8 +35,8 @@ public:
 	bool endElement(KXmlContext *context) override;
 	bool parseFile(std::string file, KAccess *access);
 	bool parseString(const char *str,KAccess *access);
-	void startXml(const std::string &encoding);
-	void endXml(bool success);
+	void startXml(const std::string &encoding) override;
+	void endXml(bool success) override;
 private:
 	KAccess *access;
 };

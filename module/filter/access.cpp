@@ -88,6 +88,8 @@ static KGL_RESULT parse(kgl_access_parse *parse_ctx, KF_ACCESS_PARSE_TYPE parse_
 		kstring_release(mark->data);
 		mark->data = kstring_from(parse_ctx->get_value(parse_ctx->cn, NULL));
 		break;
+	default:
+		break;
 	}
 	return KGL_OK;
 }

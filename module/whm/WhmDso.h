@@ -17,9 +17,9 @@ class WhmDso: public WhmExtend {
 public:
 	WhmDso(std::string &file);
 	virtual ~WhmDso();
-	bool init(std::string &whmFile);
-	int call(const char *callName, const char *eventType, WhmContext *context);
-	const char *getType()
+	bool init(std::string &whmFile) override;
+	int call(const char *callName, const char *eventType, WhmContext *context) override;
+	const char *getType() override
 	{
 		return "dso";
 	}

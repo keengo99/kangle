@@ -44,7 +44,7 @@ public:
 	void editHtml(std::map<std::string, std::string> &attribute,bool html)  override
 	{
 	}
-	int whmCall(WhmContext *ctx)
+	int whmCall(WhmContext *ctx) override
 	{
 		const char *op = ctx->getUrlValue()->getx("op");
 		if (op==NULL) {
@@ -66,7 +66,7 @@ public:
 		}
 		return 400;
 	}
-	void buildXML(std::stringstream &s,int flag)
+	void buildXML(std::stringstream &s,int flag) override
 	{
 		s << ">";
 	}

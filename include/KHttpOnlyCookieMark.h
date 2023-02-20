@@ -97,7 +97,7 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string>& attribute, bool html)
+	void editHtml(std::map<std::string, std::string>& attribute, bool html) override
 	{
 		if (cookie) {
 			delete cookie;
@@ -110,7 +110,7 @@ public:
 		http_only = (attribute["http_only"] == "1");
 		secure = (attribute["secure"] == "1");
 	}
-	void buildXML(std::stringstream& s)
+	void buildXML(std::stringstream& s) override
 	{
 		if (cookie) {
 			s << " cookie='" << KXml::param(cookie->getModel()) << "'";

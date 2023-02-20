@@ -252,7 +252,7 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
 	{
 		
 		for (int i = 0; i < 2; i++) {
@@ -279,7 +279,7 @@ public:
 		}
 		free(upstream_sign);
 	}
-	void buildXML(std::stringstream &s)override
+	void buildXML(std::stringstream &s) override
 	{
 		s << " sign='";
 		for (int i = 0; i < 2; i++) {

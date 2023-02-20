@@ -26,7 +26,7 @@ public:
 		kassert(false);
 		return kev_err;
 	}
-	const char *getType() {
+	const char *getType() override {
 		return "dso";
 	}
 

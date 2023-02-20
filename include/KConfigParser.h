@@ -30,8 +30,8 @@ public:
 };
 class KConfigParser : public KXmlEvent{
 public:
-	void startXml(const std::string &encoding);
-	void endXml(bool result);	
+	void startXml(const std::string &encoding) override;
+	void endXml(bool result) override;	
 	KConfigParser();
 	virtual ~KConfigParser();
 	bool startElement(KXmlContext *context) override;

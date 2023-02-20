@@ -140,7 +140,7 @@ public:
 	{
 		return "add_response_header";
 	}
-	std::string getHtml(KModel *model)
+	std::string getHtml(KModel *model) override
 	{
 		std::stringstream s;
 		s << "attr:<input name='attr' value='";
@@ -156,7 +156,7 @@ public:
 		s << "'>\n";
 		return s.str();
 	}
-	std::string getDisplay()
+	std::string getDisplay() override
 	{
 		std::stringstream s;
 		if (attr) {
@@ -168,7 +168,7 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
 	{
 		if (attr) {
 			free(attr);
@@ -187,7 +187,7 @@ public:
 			val = strdup(attribute["val"].c_str());
 		}
 	}
-	void buildXML(std::stringstream &s)
+	void buildXML(std::stringstream &s) override
 	{
 		s << " attr='" << (attr ? attr : "") << "' val='" << (val ? val : "") << "'>";
 	}

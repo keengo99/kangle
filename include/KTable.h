@@ -62,7 +62,7 @@ public:
 	/*
 
 	*/
-	void buildXML(std::stringstream &s,int flag);
+	void buildXML(std::stringstream &s,int flag) override;
 	bool buildXML(const char *chain_name,std::stringstream &s,int flag);
 
 private:

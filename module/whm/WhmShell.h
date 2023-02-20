@@ -26,11 +26,11 @@ public:
 	bool endElement(KXmlContext *context) override;
 	void asyncRun(WhmShellContext *sc);
 	void run(WhmShellContext *sc);
-	const char *getType()
+	const char *getType() override
 	{
 		return "shell";
 	}
-	void flush();
+	void flush() override;
 	WhmShellContext *refsContext(std::string session);
 	bool removeContext(WhmShellContext *sc);
 	void endContext(WhmShellContext *sc);
@@ -39,7 +39,7 @@ public:
 	bool async;
 	bool merge;
 protected:
-	int call(const char *callName,const char *eventType,WhmContext *context);
+	int call(const char *callName,const char *eventType,WhmContext *context) override;
 private:
 	void initContext(WhmShellContext *sc,WhmContext *context);
 	void readStdin(WhmShellContext *sc,WhmContext *context);

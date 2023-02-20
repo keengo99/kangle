@@ -12,7 +12,7 @@ public:
 	~KReplaceHeaderMark() {
 
 	}
-	bool mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) {
+	bool mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) override {
 		bool result = false;
 		KHttpHeader* header;
 		if (attr.empty()) {

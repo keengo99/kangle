@@ -14,14 +14,14 @@ class WhmUrl: public WhmExtend {
 public:
 	WhmUrl(std::string &file);
 	virtual ~WhmUrl();
-	bool init(std::string &whmFile) {
+	bool init(std::string &whmFile) override {
 		return true;
 	}
 	bool startElement(KXmlContext* context) override {
 		return true;
 	}
-	int call(const char *callName,const char *eventType, WhmContext *context);
-	const char *getType()
+	int call(const char *callName,const char *eventType, WhmContext *context) override;
+	const char *getType() override
 	{
 		return "url";
 	}

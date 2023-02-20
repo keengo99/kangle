@@ -88,10 +88,10 @@ public:
 			free(host);
 		}
 	}
-	KMark * new_instance() {
+	KMark * new_instance() override {
 		return new KWhiteListMark();
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)override
+	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
 	{
 		const char *host = this->host;
 		if (host == NULL) {

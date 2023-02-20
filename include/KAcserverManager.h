@@ -119,7 +119,7 @@ public:
 public:
 	bool startElement(KXmlContext* context) override;
 	bool endElement(KXmlContext *context) override;
-	void buildXML(std::stringstream& s, int flag);
+	void buildXML(std::stringstream& s, int flag) override;
 private:
 	bool newApiRedirect(std::string name, std::string file, std::string type, std::string flag, std::string& err_msg);
 	KSingleAcserver* getSingleAcserver(std::string table_name);

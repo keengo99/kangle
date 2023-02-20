@@ -49,7 +49,7 @@ public:
 		addRef();
 		rq->registerConnectCleanHook(per_ip_mark_call_back,cd);
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		const char *ip = rq->getClientIp();
 		std::map<char *, unsigned,lessp>::iterator it_ip;
 		bool matched = false;
@@ -74,36 +74,34 @@ public:
 		ip_lock.Unlock();
 		return matched;
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		s << ">" << max_per_ip;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
-			 {
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
+	{
 		max_per_ip = atoi(attribute["max"].c_str());
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		KPerIpAcl *mark = (KPerIpAcl *) (model);
 		s << "><input type=text name=max value='" << (mark ? mark->max_per_ip : 0) << "'>";
 		return s.str();
 	}
 	void callBack(KPerIpCallBackData *data);
-	KAcl *newInstance() {
+	KAcl *newInstance() override {
 		return new KPerIpAcl();
 	}
-	const char *getName() {
+	const char *getName() override {
 		return "per_ip";
 	}
 public:
-	bool startElement(KXmlContext *context,
-			std::map<std::string, std::string> &attribute) {
-		//		if (context->getParentName()==ACL_CONTEXT && context->qName==getName()) {
-		max_per_ip = atoi(attribute["max"].c_str());
+	bool startElement(KXmlContext *context) override {
+		max_per_ip = atoi(context->attribute["max"].c_str());
 		return true;
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override {
 		s << " max='" << max_per_ip << "'>";
 	}
 

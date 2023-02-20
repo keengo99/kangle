@@ -32,14 +32,14 @@ public:
 		s << rate.getCount();
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) {
+	void editHtml(std::map<std::string, std::string> &attribute,bool html) override{
 		request = atoi(attribute["request"].c_str());
 		second = atoi(attribute["second"].c_str());
 	}
-	void buildXML(std::stringstream &s) {
+	void buildXML(std::stringstream &s) override{
 		s << "request='" << request << "' second='" << second << "'>";
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		KUrlRateAcl *m = (KUrlRateAcl *)model;
 		s << "rate&gt;request:<input name='request' size=4 value='";
@@ -54,7 +54,7 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) {
+	bool match(KHttpRequest *rq, KHttpObject *obj) override{
 		if (kgl_current_sec - lastFlushTime > 5) {
 			rate.flush(kgl_current_sec,second);
 			lastFlushTime = kgl_current_sec;

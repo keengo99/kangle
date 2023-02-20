@@ -101,7 +101,7 @@ public:
 	}
 	~KIpAclBase() {
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		char ips[MAXIPLEN];
 		ksocket_ipaddr_ip(&ip.addr,ips,sizeof(ips));

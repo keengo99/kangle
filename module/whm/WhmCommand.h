@@ -13,11 +13,11 @@ class WhmCommand: public WhmExtend {
 public:
 	WhmCommand(std::string &file);
 	virtual ~WhmCommand();
-	bool init(std::string &whmFile);
+	bool init(std::string &whmFile) override;
 
-	int call(const char *callName,const char *eventType,WhmContext *context);
+	int call(const char *callName,const char *eventType,WhmContext *context) override;
 	bool runAsUser;
-	const char *getType()
+	const char *getType() override
 	{
 		return "command";
 	}

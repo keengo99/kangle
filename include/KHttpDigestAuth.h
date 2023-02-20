@@ -40,7 +40,7 @@ public:
 	bool verify(KHttpRequest *rq, const char *password, int passwordType) override;
 	KGL_RESULT response_header(kgl_output_stream* out) override;
 	void init(KHttpRequest *rq,const char *realm);
-	bool verifySession(KHttpRequest *rq);
+	bool verifySession(KHttpRequest *rq) override;
 	void insertHeader(KHttpRequest *rq) override;
 	static void flushSession(time_t nowTime);
 private:

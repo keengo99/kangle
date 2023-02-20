@@ -45,7 +45,6 @@ namespace kconfig {
 				return false;
 			}
 			defer(kfiber_file_close(fp));
-			this->last_modified = last_modified;
 			auto size = (int)kfiber_file_size(fp);
 			if (size > max_file_size) {
 				klog(KLOG_ERR, "config file [%s] is too big. size=[%d]\n", file->filename->data, size);
@@ -356,7 +355,7 @@ namespace kconfig {
 			return nullptr;
 		}
 		defer(kfiber_file_close(fp));
-		this->last_modified = last_modified;
+		this->last_modified = kftime(kasync_file_get_handle(fp));
 		auto size = (int)kfiber_file_size(fp);
 		if (size > max_file_size) {
 			klog(KLOG_ERR, "config file [%s] is too big. size=[%d]\n", this->filename->data, size);
