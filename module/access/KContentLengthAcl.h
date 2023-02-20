@@ -24,7 +24,6 @@ public:
 	KContentLengthAcl() {
 		minlen=0;
 		maxlen=-1;
-		contentRange = false;
 	}
 	virtual ~KContentLengthAcl() {
 	}
@@ -40,11 +39,6 @@ public:
 			s << get_size(acl->maxlen);
 		}
 		s << "'>";
-		s << "<input type=checkbox name='content_range' value='1' ";
-		if (acl && acl->contentRange) {
-			s << "checked";
-		}
-		s << ">content range";
 		return s.str();
 	}
 	KAcl *new_instance() override {
@@ -66,27 +60,19 @@ public:
 	std::string getDisplay() override {
 		std::stringstream s;
 		s << get_size(minlen) << "," << get_size(maxlen);
-		if (contentRange) {
-			s << "[r]";
-		}
 		return s.str();
 	}
 	void editHtml(std::map<std::string,std::string> &attribute,bool html) override {
 		minlen = get_size(attribute["min"].c_str());
 		maxlen = get_size(attribute["max"].c_str());
-		contentRange = (attribute["content_range"] == "1");
 	}
 	void buildXML(std::stringstream &s) override {
-		s << " min='" << get_size(minlen) << "' max='" << get_size(maxlen) << "' ";
-		if (contentRange) {
-			s << "content_range='1'";
-		}
+		s << " min='" << get_size(minlen) << "' max='" << get_size(maxlen) << "'";
 		s << ">";
 	}
 private:
 	INT64 minlen;
 	INT64 maxlen;
-	bool contentRange;
 };
 
 #endif /*KCONTENTLENGTHACL_H_*/
