@@ -32,15 +32,3 @@ KXmlSupport::~KXmlSupport()
 {
 }
 
-bool KXmlParser::parse(string file,KStream *err)
-{
-	KXml xml;
-	xml.setEvent(this);
-	try{
-		xml.parseFile(file);
-	}catch(KXmlException e){
-		err->operator <<(e.what());
-		return false;
-	}
-	return true;
-}

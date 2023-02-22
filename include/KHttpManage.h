@@ -57,7 +57,7 @@ public:
 	kgl_output_stream* out;
 private:
 	bool save_access(KVirtualHost *vh,std::string redirect_url);
-	std::map<std::string, std::string> urlParam;
+	KXmlAttribute urlParam;
 	KUrlValue urlValue;
 	char *postData;
 	int postLen;

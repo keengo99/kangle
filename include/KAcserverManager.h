@@ -24,12 +24,14 @@
 #include "KCmdPoolableRedirect.h"
 #include "KRWLock.h"
 #include "KExtendProgram.h"
+#include "KConfigTree.h"
 #include <string>
 class KAcserverManager : public KXmlSupport
 {
 public:
 	KAcserverManager();
 	virtual ~KAcserverManager();
+	void on_event(kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev);
 	std::string acserverList(std::string name = "");
 	std::string apiList(std::string name = "");
 #ifdef ENABLE_VH_RUN_AS	
@@ -51,11 +53,11 @@ public:
 #endif
 	void copy(KAcserverManager& a);
 	void unloadAllApi();
+	bool remove_server(std::string &name, std::string& err_msg);
 #ifdef ENABLE_MULTI_SERVER
-	std::string macserverList(std::string name = "");
-	bool delMAcserver(std::string name, std::string& err_msg);
+	std::string macserverList(std::string name = "");	
 	std::string macserver_node_form(std::string name, std::string action, unsigned nodeIndex);
-	bool macserver_node(std::map<std::string, std::string>& attribute, std::string& errMsg);
+	bool macserver_node(KXmlAttribute& attribute, std::string& errMsg);
 	KMultiAcserver* refsMultiAcserver(std::string name)
 	{
 		lock.RLock();
@@ -81,7 +83,7 @@ public:
 #endif
 	std::vector<std::string> getAcserverNames(bool onlyHttp);
 	std::vector<std::string> getAllTarget();
-	bool newSingleAcserver(bool overFlag, std::map<std::string, std::string>& attr, std::string& err_msg);
+	bool new_server(bool overFlag, KXmlAttribute& attr, std::string& err_msg);
 #ifdef ENABLE_VH_RUN_AS
 	bool cmdForm(std::map<std::string, std::string>& attribute,
 		std::string& errMsg);
@@ -103,14 +105,11 @@ public:
 		return true;
 	}
 #endif
-
-	bool delAcserver(std::string name, std::string& err_msg);
 	bool apiEnable(std::string name, bool enable);
 	bool delApi(std::string name, std::string& err_msg);
 	bool apiForm(std::map<std::string, std::string>& attribute, std::string& errMsg);
 	KSingleAcserver* refsSingleAcserver(std::string name);
 	KPoolableRedirect* refsAcserver(std::string name);
-
 	KRedirect* refsRedirect(std::string target);
 	KApiRedirect* refsApiRedirect(std::string name);
 	void clearImportConfig();
@@ -126,7 +125,6 @@ private:
 #ifdef ENABLE_MULTI_SERVER
 	KMultiAcserver* getMultiAcserver(std::string table_name);
 	std::map<std::string, KMultiAcserver*> mservers;
-	KMultiAcserver* cur_mserver;
 #endif
 	KPoolableRedirect* getAcserver(std::string table_name);
 	KApiRedirect* getApiRedirect(std::string name);
@@ -141,4 +139,5 @@ private:
 	KRWLock lock;
 
 };
+void on_server_event(void* data, kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev);
 #endif /*KACSERVERMANAGER_H_*/

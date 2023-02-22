@@ -2,6 +2,7 @@
 #define KURLVALUE_H_
 #include<map>
 #include<string>
+#include "KXmlAttribute.h"
 /* @deprecated ”√KUrlParser */
 class KUrlValue
 {
@@ -28,7 +29,7 @@ public:
 	bool add(std::string name,std::string value);
 	void add(KUrlValue *subform);
 	bool parse(const char *param);
-	std::map<std::string,std::string> attribute;
+	KXmlAttribute attribute;
 	std::string operator[](std::string name)
 	{
 		return attribute[name];

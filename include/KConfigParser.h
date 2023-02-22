@@ -23,11 +23,7 @@
 #include "kmalloc.h"
 #include "KConfigTree.h"
 
-class KMainConfigListen : public kconfig::KConfigListen
-{
-public:
-	void on_event(kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev);
-};
+void on_main_event(void *data, kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev);
 class KConfigParser : public KXmlEvent{
 public:
 	void startXml(const std::string &encoding) override;

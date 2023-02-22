@@ -26,6 +26,8 @@
 #include "KAcserver.h"
 #include "global.h"
 #include "KSockPoolHelper.h"
+#include "KConfigTree.h"
+
 class KMultiAcserver: public KPoolableRedirect {
 public:
 	KMultiAcserver();
@@ -35,8 +37,10 @@ public:
 	void shutdown() override;
 	KUpstream* GetUpstream(KHttpRequest* rq) override;
 	unsigned getPoolSize();
-	bool editNode(std::map<std::string,std::string> &attr);
+	void on_event(kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev);
+	bool editNode(KXmlAttribute&attr);
 	void buildXML(std::stringstream &s) override;
+	bool parse_config(KXmlNode* xml) override;
 	void buildAttribute(std::stringstream &s);
 	static void baseHtml(KMultiAcserver *mserver,std::stringstream &s);
 	void getHtml(std::stringstream &s);
@@ -67,8 +71,8 @@ protected:
 private:
 	void removeAllNode();
 	void init();
-	bool addNode(std::map<std::string, std::string> &attr);
-	bool addNode(std::map<std::string, std::string> &attr, char *self_ip);
+	bool addNode(const KXmlAttribute&attr);
+	bool addNode(KXmlAttribute&attr, char *self_ip);
 	void addNode(KSockPoolHelper *sockHelper);
 	uint16_t getNodeIndex(KHttpRequest *rq,int *set_cookie_stick);
 	int getCookieStick(const char *attr, size_t len, const char *cookie_stick_name);

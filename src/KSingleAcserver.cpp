@@ -19,6 +19,12 @@ KSingleAcserver::KSingleAcserver() {
 KSingleAcserver::~KSingleAcserver() {
 	sockHelper->release();
 }
+bool KSingleAcserver::parse_config(KXmlNode* node) {
+	if (!KPoolableRedirect::parse_config(node)) {
+		return false;
+	}
+	return sockHelper->parse(node->attributes);
+}
 void KSingleAcserver::set_proto(Proto_t proto)
 {
 	this->proto = proto;

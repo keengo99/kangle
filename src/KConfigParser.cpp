@@ -346,12 +346,11 @@ void KConfigParser::startXml(const std::string& encoding) {
 }
 void KConfigParser::endXml(bool result) {
 }
-
-
-void KMainConfigListen::on_event(kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev) {
+void on_main_event(void* data, kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev) {
+	KBIT_CLR(ev, kconfig::EvSubDir);
 	switch (ev) {
-	case kconfig::KConfigEventType::New:
-	case kconfig::KConfigEventType::Update:
+	case kconfig::EvNew:
+	case kconfig::EvUpdate:
 		if (xml->is_tag(_KS("lang"))) {
 			SAFE_STRCPY(conf.lang, xml->get_text());
 			return;

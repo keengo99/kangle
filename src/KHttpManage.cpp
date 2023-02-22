@@ -1920,40 +1920,16 @@ bool KHttpManage::start(bool& hit) {
 #endif
 #ifdef ENABLE_MULTI_SERVER
 	if (strcmp(rq->sink->data.url->path, "/macserveradd") == 0) {
-		string err_msg;
+		std::string err_msg;
 		bool edit = getUrlValue("action") == "edit";
-		string name = getUrlValue("name");
-		if (edit) {
-			KMultiAcserver* as = conf.gam->refsMultiAcserver(name);
-			if (as == NULL) {
-				return sendErrPage("cann't find server");
-			}
-			as->parse(urlValue.attribute);
-			as->release();
-			saveConfig();
+		if (conf.gam->new_server(edit, urlValue.attribute, err_msg)) {
 			return sendRedirect("/macserver");
 		}
-		KPoolableRedirect* rd = conf.gam->refsAcserver(name);
-		if (rd) {
-			rd->release();
-			return sendErrPage("server name already used");
-		}
-		KMultiAcserver* as = new KMultiAcserver;
-
-		as->name = name;
-		as->parse(urlValue.attribute);
-		if (!conf.gam->addMultiAcserver(as)) {
-			as->release();
-		}
-		saveConfig();
-		return sendRedirect("/macserver");
+		return sendErrPage(err_msg.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/del_macserver") == 0) {
 		string err_msg;
-		if (conf.gam->delMAcserver(getUrlValue("name"), err_msg)) {
-			if (!saveConfig()) {
-				return sendErrorSaveConfig();
-			}
+		if (conf.gam->remove_server(getUrlValue("name"), err_msg)) {
 			return sendRedirect("/macserver");
 		}
 		return sendErrPage(err_msg.c_str());
@@ -1976,30 +1952,21 @@ bool KHttpManage::start(bool& hit) {
 #endif
 	if (strcmp(rq->sink->data.url->path, "/acserveradd") == 0) {
 		string err_msg;
-		if (conf.gam->newSingleAcserver(false, urlValue.attribute, err_msg)) {
-			if (!saveConfig()) {
-				return sendErrorSaveConfig();
-			}
+		if (conf.gam->new_server(false, urlValue.attribute, err_msg)) {			
 			return sendRedirect("/acserver");
 		}
 		return sendErrPage(err_msg.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/acserveredit") == 0) {
 		string err_msg;
-		if (conf.gam->newSingleAcserver(true, urlValue.attribute, err_msg)) {
-			if (!saveConfig()) {
-				return sendErrorSaveConfig();
-			}
+		if (conf.gam->new_server(true, urlValue.attribute, err_msg)) {			
 			return sendRedirect("/acserver");
 		}
 		return sendErrPage(err_msg.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/acserverdelete") == 0) {
 		string err_msg;
-		if (conf.gam->delAcserver(getUrlValue("name"), err_msg)) {
-			if (!saveConfig()) {
-				return sendErrorSaveConfig();
-			}
+		if (conf.gam->remove_server(getUrlValue("name"), err_msg)) {
 			return sendRedirect("/acserver");
 		}
 		return sendErrPage(err_msg.c_str());

@@ -29,9 +29,10 @@ public:
 	}
 	KUpstream* GetUpstream(KHttpRequest* rq) override;
 	bool setHostPort(std::string host, const char *port);
-	const char *getType() override{
+	const char* getType() override {
 		return "server";
 	}
+	bool parse_config(KXmlNode* node) override;
 	void set_proto(Proto_t proto) override;
 	void shutdown() override {
 		sockHelper->shutdown();

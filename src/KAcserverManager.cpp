@@ -32,12 +32,118 @@
 #include "KCdnContainer.h"
 #include "kselector_manager.h"
 #include "KDsoExtendManage.h"
+#include "KDefer.h"
 
 using namespace std;
+void on_server_event(void* data, kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev) {
+	KAcserverManager* am = (KAcserverManager*)data;
+	am->on_event(tree, xml, ev);
+}
+void KAcserverManager::on_event(kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev) {
+	if (xml->is_tag(_KS("server"))) {
+		auto name = xml->attributes["name"];
+		switch (ev) {
+		case kconfig::EvNew | kconfig::EvSubDir:
+		{
+			auto host = xml->attributes.get_string("host");
+			if (!host) {
+				//multi acserver
+				KMultiAcserver* server = new KMultiAcserver;
+				server->name = name;
+				if (!server->parse_config(xml)) {
+					klog(KLOG_ERR, "cann't parse server [%s] config\n", name.c_str());
+					server->release();
+					return;
+				}
+				lock.WLock();
+				auto it = mservers.find(name);
+				if (it != mservers.end()) {
+					server->release();
+					server = (*it).second;
+				} else {
+					mservers.emplace(name, server);
+				}
+				server->addRef();				
+				lock.WUnlock();
+				if (!tree->bind(server, [](void* data, kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev) {
+					KMultiAcserver* server = (KMultiAcserver*)data;
+					server->on_event(tree, xml, ev);
+					}, kconfig::ev_subdir)) {
+					server->release();
+					assert(false);
+				}
+			} else {
+				auto server = new KSingleAcserver;
+				server->name = name;
+				if (!server->parse_config(xml)) {
+					klog(KLOG_ERR, "cann't parse server [%s] config\n", name.c_str());
+					server->release();
+					return;
+				}
+				lock.WLock();
+				auto it = acservers.find(name);
+				if (it != acservers.end()) {
+					server->release();
+				} else {
+					acservers.emplace(name, server);
+				}
+				lock.WUnlock();
+			}
+			break;
+		}
+		case kconfig::EvUpdate | kconfig::EvSubDir:
+			if (tree->data) {
+				//multi server
+				KMultiAcserver* mserver = (KMultiAcserver*)tree->data;
+				if (!mserver->parse_config(xml)) {
+					klog(KLOG_ERR, "cann't parse server [%s] config\n", mserver->name.c_str());
+					return;
+				}
+				return;
+			} else {
+				KSingleAcserver* sa = refsSingleAcserver(name);
+				if (!sa) {
+					klog(KLOG_ERR, "cann't find server [%s]\n", name.c_str());
+					return;
+				}
+				if (!sa->parse_config(xml)) {
+					klog(KLOG_ERR, "cann't parse server [%s] config\n", sa->name.c_str());
+					sa->release();
+					return;
+				}
+				sa->release();
+			}
+			break;
+		case kconfig::EvRemove | kconfig::EvSubDir:
+			if (tree->data) {
+				KMultiAcserver* mserver = (KMultiAcserver*)tree->data;
+				assert(mserver->name == name);
+				lock.WLock();
+				auto it = mservers.find(mserver->name);
+				if (it != mservers.end()) {
+					mservers.erase(it);
+					mserver->release();
+				}
+				lock.WUnlock();
+				mserver->release();
+				tree->data = nullptr;
+			} else {
+				lock.WLock();
+				auto it = acservers.find(name);
+				if (it != acservers.end()) {
+					(*it).second->release();
+					acservers.erase(it);
+				}
+				lock.WUnlock();
+			}
+			break;
+		default:
+			break;
+		}
+		return;
+	}
+}
 KAcserverManager::KAcserverManager() {
-#ifdef ENABLE_MULTI_SERVER
-	cur_mserver = NULL;
-#endif
 	cur_extend = NULL;
 #ifdef ENABLE_VH_RUN_AS
 	cur_cmd = NULL;
@@ -70,9 +176,6 @@ void KAcserverManager::shutdown() {
 		(*it4).second->release();
 	}
 	apis.clear();
-	if (cur_mserver) {
-		cur_mserver->remove();
-	}
 #ifdef ENABLE_VH_RUN_AS
 	if (cur_cmd) {
 		cur_cmd->remove();
@@ -131,8 +234,7 @@ void KAcserverManager::flushCpuUsage(ULONG64 cpuTime) {
 
 }
 #endif
-int KAcserverManager::getCmdPortMap(KVirtualHost* vh, std::string cmd, std::string name, int app)
-{
+int KAcserverManager::getCmdPortMap(KVirtualHost* vh, std::string cmd, std::string name, int app) {
 	KCmdPoolableRedirect* rd = refsCmdRedirect(cmd);
 	if (rd == NULL) {
 		return -1;
@@ -188,7 +290,7 @@ std::string KAcserverManager::macserverList(std::string name) {
 		<< "<td>self</td>"
 		<< "<td>up/hit</td>"
 		<< "<td>err/avg</td>"
-		<< "<td>" << klang["status"] << "</td>"	
+		<< "<td>" << klang["status"] << "</td>"
 		<< "</tr>";
 
 	for (it = mservers.begin(); it != mservers.end(); it++) {
@@ -256,8 +358,8 @@ std::string KAcserverManager::apiList(std::string name) {
 		<< "' " << (m_a ? "readonly" : "") << "><br>\n";
 	s << klang["file"] << ": <input name='file' size='80' value='" << (m_a ? m_a->apiFile
 		: "") << "'><br>\n";
-	if (m_a  && m_a->type == WORK_TYPE_MT) {
-		s << "<input type=hidden name='mt' value='1'>";		
+	if (m_a && m_a->type == WORK_TYPE_MT) {
+		s << "<input type=hidden name='mt' value='1'>";
 	}
 	s << "<input type='submit' value='" << LANG_SUBMIT << "'>";
 	s << "</form>";
@@ -584,7 +686,7 @@ std::string KAcserverManager::macserver_node_form(std::string name,
 	return KMultiAcserver::nodeForm(name, as, nodeIndex);
 }
 bool KAcserverManager::macserver_node(
-	std::map<std::string, std::string>& attribute, std::string& errMsg) {
+	KXmlAttribute& attribute, std::string& errMsg) {
 	string name = attribute["name"];
 	string action = attribute["action"];
 	if (name.size() == 0) {
@@ -608,8 +710,7 @@ bool KAcserverManager::macserver_node(
 	return true;
 }
 #endif
-void KAcserverManager::unloadAllApi()
-{
+void KAcserverManager::unloadAllApi() {
 	std::map<std::string, KApiRedirect*>::iterator it3;
 	for (it3 = apis.begin(); it3 != apis.end(); it3++) {
 		(*it3).second->dso.unload();
@@ -676,8 +777,7 @@ std::vector<std::string> KAcserverManager::getAcserverNames(bool onlyHttp) {
 	lock.RUnlock();
 	return table_names;
 }
-KSingleAcserver* KAcserverManager::refsSingleAcserver(std::string name)
-{
+KSingleAcserver* KAcserverManager::refsSingleAcserver(std::string name) {
 	lock.RLock();
 	KSingleAcserver* ac = getSingleAcserver(name);
 	if (ac) {
@@ -723,66 +823,35 @@ KSingleAcserver* KAcserverManager::getSingleAcserver(std::string table_name) {
 	}
 	return NULL;
 }
-bool KAcserverManager::newSingleAcserver(
-	bool overFlag,
-	std::map<std::string, std::string>& attr,
+bool KAcserverManager::new_server(
+	bool is_update,
+	KXmlAttribute& attr,
 	std::string& err_msg) {
-	std::string proto = attr["proto"];
-	if (proto.size() == 0) {
-		proto = attr["type"];
-	}
 	std::string name = attr["name"];
-	bool result = false;
-	if (name.size() <= 0) {
-		err_msg = LANG_TABLE_NAME_LENGTH_ERROR;
+	err_msg = LANG_TABLE_NAME_ERR;
+	kconfig::KConfigResult result;
+	auto xml = kconfig::new_xml(_KS("server"), name.c_str(), name.size());
+	xml->attributes.swap(attr);
+	KStringBuf s;
+	s << "server@" << name;
+	if (is_update) {
+		result = kconfig::update(s.getBuf(), s.getSize(), kxml_no_brother, xml, true);
+	} else {
+		result = kconfig::add(s.getBuf(), s.getSize(), kxml_no_brother, xml);
+	}
+	switch (result) {
+	case kconfig::KConfigResult::Success:
+		return true;
+	case kconfig::KConfigResult::ErrSaveFile:
+		err_msg = "cann't save config file";
+		return false;
+	case kconfig::KConfigResult::ErrNotFound:
+		err_msg = "not found";
+		return false;
+	default:
+		err_msg = "unknow";
 		return false;
 	}
-	KSingleAcserver* sa = conf.gam->refsSingleAcserver(name);
-	if (this == conf.gam && sa) {
-		//http manage edit
-		lock.WLock();
-		sa->set_proto(KPoolableRedirect::parseProto(proto.c_str()));
-		sa->sockHelper->parse(attr);
-		lock.WUnlock();
-		sa->release();
-		return true;
-	}
-	KSingleAcserver* m_a = new KSingleAcserver;
-	m_a->name = name;
-	m_a->set_proto(KPoolableRedirect::parseProto(proto.c_str()));
-	m_a->sockHelper->parse(attr);
-	if (sa) {
-		if (sa->isChanged(m_a)) {
-			sa->release();
-		} else {
-			m_a->release();
-			m_a = sa;
-		}
-	}
-	lock.WLock();
-	std::map<std::string, KSingleAcserver*>::iterator it = acservers.find(name);
-	if (it != acservers.end()) {
-		if (!overFlag) {
-			goto done;
-		}
-		(*it).second->release();
-		acservers.erase(it);
-	}
-#ifdef ENABLE_MULTI_SERVER
-	if (!overFlag && getMultiAcserver(name)) {
-		goto done;
-	}
-#endif
-	acservers.insert(std::pair<std::string, KSingleAcserver*>(m_a->name, m_a));
-	m_a->addRef();
-	result = true;
-done:
-	lock.WUnlock();
-	m_a->release();
-	if (!result) {
-		err_msg = LANG_TABLE_NAME_IS_USED;
-	}
-	return result;
 }
 bool KAcserverManager::delApi(std::string name, std::string& err_msg) {
 	err_msg = LANG_TABLE_NAME_ERR;
@@ -823,43 +892,24 @@ bool KAcserverManager::delCmd(std::string name, std::string& err_msg) {
 }
 #endif
 #ifdef ENABLE_MULTI_SERVER
-bool KAcserverManager::delMAcserver(std::string name, std::string& err_msg) {
-	err_msg = LANG_TABLE_NAME_ERR;
-	lock.WLock();
-	std::map<std::string, KMultiAcserver*>::iterator it = mservers.find(name);
-	if (it == mservers.end()) {
-		lock.WUnlock();
+bool KAcserverManager::remove_server(std::string &name, std::string& err_msg) {
+	KStringBuf s;
+	s << "server@" << name;
+	switch (kconfig::remove(s.getBuf(), s.getSize(), 0)) {
+	case kconfig::KConfigResult::Success:
+		return true;
+	case kconfig::KConfigResult::ErrSaveFile:
+		err_msg = "cann't save config file";
+		return false;
+	case kconfig::KConfigResult::ErrNotFound:
+		err_msg = "not found";
+		return false;
+	default:
+		err_msg = "unknow";
 		return false;
 	}
-	if ((*it).second->refs > 1) {
-		err_msg = LANG_TABLE_REFS_ERR;
-		lock.WUnlock();
-		return false;
-	}
-	(*it).second->remove();
-	mservers.erase(it);
-	lock.WUnlock();
-	return true;
 }
 #endif
-bool KAcserverManager::delAcserver(std::string name, std::string& err_msg) {
-	err_msg = LANG_TABLE_NAME_ERR;
-	lock.WLock();
-	std::map<std::string, KSingleAcserver*>::iterator it = acservers.find(name);
-	if (it == acservers.end()) {
-		lock.WUnlock();
-		return false;
-	}
-	if ((*it).second->getRef() > 1) {
-		err_msg = LANG_TABLE_REFS_ERR;
-		lock.WUnlock();
-		return false;
-	}
-	(*it).second->remove();
-	acservers.erase(it);
-	lock.WUnlock();
-	return true;
-}
 KRedirect* KAcserverManager::refsRedirect(std::string target) {
 	int jumpType;
 	string name;
@@ -943,8 +993,7 @@ bool KAcserverManager::newApiRedirect(std::string name, std::string file, std::s
 	return true;
 }
 #ifdef ENABLE_VH_RUN_AS	
-void KAcserverManager::loadAllApi()
-{
+void KAcserverManager::loadAllApi() {
 	std::map<std::string, KApiRedirect*>::iterator it;
 	lock.WLock();
 	for (it = apis.begin(); it != apis.end(); it++) {
@@ -1033,9 +1082,9 @@ KApiRedirect* KAcserverManager::getApiRedirect(std::string name) {
 	}
 	return NULL;
 }
-bool KAcserverManager::startElement(KXmlContext* context)
-{
+bool KAcserverManager::startElement(KXmlContext* context) {
 	string errMsg;
+#if 0
 	if (context->qName == "server") {
 		string name = context->attribute["name"];
 		/*
@@ -1043,8 +1092,8 @@ bool KAcserverManager::startElement(KXmlContext* context)
 			fprintf(stderr, "server name=[%s] is used\n", name.c_str());
 			return false;
 		}
-		
-		
+
+
 		string proto = context->attribute["proto"];
 		if (proto.size() == 0) {
 			//¼æÈÝÐÔ
@@ -1066,6 +1115,8 @@ bool KAcserverManager::startElement(KXmlContext* context)
 #endif
 		return true;
 	}
+#endif
+#if 0
 #ifdef ENABLE_MULTI_SERVER
 	if (context->qName == "node") {
 		if (cur_mserver == NULL) {
@@ -1074,6 +1125,7 @@ bool KAcserverManager::startElement(KXmlContext* context)
 		}
 		cur_mserver->editNode(context->attribute);
 	}
+#endif
 #endif
 #ifndef HTTP_PROXY
 	if (context->qName == "api") {
@@ -1115,6 +1167,7 @@ bool KAcserverManager::startElement(KXmlContext* context)
 	return true;
 }
 bool KAcserverManager::endElement(KXmlContext* context) {
+#if 0
 #ifdef ENABLE_MULTI_SERVER
 	if (context->qName == "server" && cur_mserver) {
 		KMultiAcserver* mac = conf.gam->refsMultiAcserver(cur_mserver->name);
@@ -1124,13 +1177,14 @@ bool KAcserverManager::endElement(KXmlContext* context) {
 				cur_mserver = mac;
 			} else {
 				mac->release();
-			}
-		}
+	}
+}
 		if (!addMultiAcserver(cur_mserver)) {
 			cur_mserver->release();
 		}
 		cur_mserver = NULL;
 	}
+#endif
 #endif
 #ifdef ENABLE_VH_RUN_AS
 	if (context->qName == "cmd" && cur_cmd) {
@@ -1200,12 +1254,11 @@ void KAcserverManager::buildXML(std::stringstream& s, int flag) {
 #endif
 	lock.RUnlock();
 }
-void KAcserverManager::copy(KAcserverManager& a)
-{
+void KAcserverManager::copy(KAcserverManager& a) {
 	lock.WLock();
 	apis.swap(a.apis);
-	mservers.swap(a.mservers);
-	acservers.swap(a.acservers);
+	//mservers.swap(a.mservers);
+	//acservers.swap(a.acservers);
 #ifdef ENABLE_VH_RUN_AS
 	cmds.swap(a.cmds);
 #endif

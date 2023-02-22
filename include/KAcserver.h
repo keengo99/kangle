@@ -46,6 +46,14 @@ public:
 	bool startElement(KXmlContext* context) override {
 		return true;
 	}
+	virtual bool parse_config(KXmlNode* node) {
+		auto proto = node->attributes["proto"];
+		if (proto.empty()) {
+			proto = node->attributes["type"];
+		}
+		set_proto(parseProto(proto.c_str()));
+		return true;
+	}
 	static void build_xml(std::map<std::string, std::string> &param, std::stringstream& s);
 	static void build_proto_html(KPoolableRedirect *m_a, std::stringstream &s);
 	static KSockPoolHelper *parse_nodes(const char *node_string);

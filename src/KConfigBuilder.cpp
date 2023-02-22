@@ -83,14 +83,14 @@ void KConfigBuilder::build(std::stringstream &s) {
 	unsigned i;
 	s << "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
 	s << "<config>\n";
+	if (conf.select_count > 0) {
+		s << "\t<worker_thread>" << conf.select_count << "</worker_thread>\n";
+	}
 #ifdef MALLOCDEBUG
 	if(!conf.mallocdebug){
 		s << "\t<mallocdebug>0</mallocdebug>\n";
 	}
 #endif
-	if(conf.select_count>0){
-		s << "\t<worker_thread>" << conf.select_count << "</worker_thread>\n";
-	}
 	s << "\t<!--listen start-->\n";
 	for (i = 0; i < conf.service.size(); i++) {
 		if(conf.service[i]->ext){

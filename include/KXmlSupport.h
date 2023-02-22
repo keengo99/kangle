@@ -21,6 +21,7 @@
 #include<string>
 #include<sstream>
 #include "KXmlEvent.h"
+#include "KXmlDocument.h"
 #include "KStream.h"
 
 class KXmlParser : public KXmlEvent {
@@ -29,7 +30,6 @@ public:
 	{
 
 	}
-	virtual bool parse(std::string file,KStream *err);
 };
 class KXmlBuilder {
 public:

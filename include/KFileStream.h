@@ -2,6 +2,7 @@
 #define KFILESTREAM_H
 #include "KHttpStream.h"
 #include "KFileName.h"
+#include "kfiber.h"
 class KFileStream : public KWStream {
 public:
 	bool open(const char *str,fileModel model=fileWrite)
@@ -25,4 +26,27 @@ public:
 private:
 	KFile fp;
 };
+class KAsyncFileStream : public KWStream
+{
+public:
+	~KAsyncFileStream() {
+		if (fp) {
+			kfiber_file_close(fp);
+		}
+	}
+	KAsyncFileStream(kasync_file* fp) {
+		this->fp = fp;
+	}
+	int write(const char* buf, int len) override {
+		return kfiber_file_write(fp, buf, len);
+	}
+	KGL_RESULT write_end(KGL_RESULT result) override {
+		kfiber_file_close(fp);
+		fp = nullptr;
+		return result;
+	}
+private:
+	kasync_file* fp;
+};
+
 #endif

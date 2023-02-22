@@ -1117,7 +1117,7 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 	}
 	if(cmd==CALL_ADD_SERVER){
 		std::string err_msg;
-		bool result = conf.gam->newSingleAcserver(
+		bool result = conf.gam->new_server(
 			atoi(uv->get("over_flag").c_str())==1,
 			uv->attribute,
 			err_msg);
@@ -1129,7 +1129,7 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 	}
 	if(cmd==CALL_DEL_SERVER){
 		std::string err_msg;
-		bool result = conf.gam->delAcserver(uv->get("name"),err_msg);
+		bool result = conf.gam->remove_server(uv->get("name"),err_msg);
 		if(!result){
 			ctx->setStatus(err_msg.c_str());
 			return WHM_CALL_FAILED;

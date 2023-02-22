@@ -30,6 +30,32 @@
 #include "HttpFiber.h"
 using namespace std;
 #ifdef ENABLE_MULTI_SERVER
+void KMultiAcserver::on_event(kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev) {
+	if (!xml->is_tag(_KS("node"))) {
+		klog(KLOG_NOTICE, "Warning unknow xml tag [%s]\n", xml->key.tag->data);
+		return;
+	}
+	switch (ev) {
+	case kconfig::EvNew | kconfig::EvSubDir:
+	case kconfig::EvUpdate | kconfig::EvSubDir:
+		lock.Lock();
+		removeAllNode();
+		while (xml) {
+			KSockPoolHelper* node = new KSockPoolHelper;
+			if (node->parse(xml->attributes)) {
+				addNode(node);
+			} else {
+				node->release();
+			}
+			xml = xml->next;
+		}
+		buildVNode();
+		lock.Unlock();
+		return;
+	default:
+		break;
+	}
+}
 void KMultiAcserver::init() {
 	nodes = NULL;
 	nodesCount = 0;
@@ -271,22 +297,19 @@ KSockPoolHelper* KMultiAcserver::nextActiveNode(KSockPoolHelper* node, unsigned 
 unsigned KMultiAcserver::getPoolSize() {
 	return 0;
 }
-bool KMultiAcserver::addNode(std::map<std::string, std::string>& attr) {
+bool KMultiAcserver::addNode(const KXmlAttribute& attr) {
 	KSockPoolHelper* sockHelper = new KSockPoolHelper;
 	if (!sockHelper->parse(attr)) {
 		delete sockHelper;
 		return false;
 	}
-	unsigned weight = atoi(attr["weight"].c_str());
-	sockHelper->weight = weight;
-	sockHelper->setErrorTryTime(max_error_count, errorTryTime);
 	lock.Lock();
 	addNode(sockHelper);
 	buildVNode();
 	lock.Unlock();
 	return true;
 }
-bool KMultiAcserver::addNode(std::map<std::string, std::string>& attr, char* self_ip) {
+bool KMultiAcserver::addNode(KXmlAttribute& attr, char* self_ip) {
 	char* to_ip = strchr(self_ip, '-');
 	if (to_ip) {
 		*to_ip = '\0';
@@ -307,14 +330,14 @@ bool KMultiAcserver::addNode(std::map<std::string, std::string>& attr, char* sel
 			char ips[MAXIPLEN];
 			ksocket_sockaddr_ip(&min_addr, ips, sizeof(ips));
 			//KSocket::make_ip(&min_addr, ips, MAXIPLEN);
-			attr["self_ip"] = ips;
+			attr.emplace("self_ip",ips);
 			addNode(attr);
 		}
 		return true;
 	}
 	return false;
 }
-bool KMultiAcserver::editNode(std::map<std::string, std::string>& attr) {
+bool KMultiAcserver::editNode(KXmlAttribute& attr) {
 	string action = attr["action"];
 	if (action == "edit") {
 		int id = atoi(attr["id"].c_str());
@@ -342,6 +365,7 @@ bool KMultiAcserver::editNode(std::map<std::string, std::string>& attr) {
 }
 void KMultiAcserver::addNode(KSockPoolHelper* sockHelper) {
 	sockHelper->set_tcp(kangle::is_upstream_tcp(proto));
+	sockHelper->setErrorTryTime(max_error_count, errorTryTime);
 	if (nodes == NULL) {
 		sockHelper->next = sockHelper;
 		sockHelper->prev = sockHelper;
@@ -426,6 +450,25 @@ KSockPoolHelper* KMultiAcserver::getIndexNode(int index) {
 		helper = n;
 	}
 	return NULL;
+}
+bool KMultiAcserver::parse_config(KXmlNode* xml) {
+	if (!KPoolableRedirect::parse_config(xml)) {
+		return false;
+	}
+#ifdef ENABLE_MSERVER_ICP
+	setIcp(xml->attributes["icp"].c_str());
+#endif
+	lock.Lock();
+	url_hash = xml->attributes.get_int(_KS("url_hash")) == 1;
+	if (!url_hash) {
+		ip_hash = xml->attributes["ip_hash"] == "1";
+	} else {
+		ip_hash = false;
+	}
+	cookie_stick = xml->attributes["cookie_stick"] == "1";
+	lock.Unlock();
+	setErrorTryTime(xml->attributes.get_int("max_error_count"), xml->attributes.get_int("error_try_time"));
+	return true;
 }
 void KMultiAcserver::shutdown() {
 	lock.Lock();
@@ -627,9 +670,6 @@ void KMultiAcserver::parse(std::map<std::string, std::string>& attribute) {
 	setIcp(attribute["icp"].c_str());
 #endif
 	lock.Lock();
-	if (name.size() == 0) {
-		name = attribute["name"];
-	}
 	url_hash = attribute["url_hash"] == "1";
 	if (!url_hash) {
 		ip_hash = attribute["ip_hash"] == "1";

@@ -16,49 +16,31 @@ namespace kconfig {
 	class KConfigEvent;
 	class KConfigTree;
 	class KConfigEventNode;
-	enum class KConfigEventType
+
+	using KConfigEventFlag = uint16_t;
+	constexpr KConfigEventFlag ev_subdir = 1;
+	constexpr KConfigEventFlag ev_self = 2;
+	//constexpr KConfigEventFlag ev_merge = 4;
+
+	using KConfigEventType = int;
+	constexpr KConfigEventType EvNone = 0;
+	constexpr KConfigEventType EvNew = 1;
+	constexpr KConfigEventType EvUpdate = 2;
+	constexpr KConfigEventType EvRemove = 3;
+	constexpr KConfigEventType EvSubDir = (1 << 4);
+	enum class KConfigResult
 	{
-		None,
-		New,
-		Update,
-		Remove
+		Success,
+		ErrSaveFile,
+		ErrNotFound,
+		ErrUnknow
 	};
-	class KConfigListen
-	{
-	public:
-		virtual ~KConfigListen() {
-		}
-		virtual void on_event(KConfigTree* tree, KXmlNode* xml, KConfigEventType ev) = 0;
-		virtual bool is_merge() {
-			return false;
-		}
-	};
-	typedef void (*listen_callback)(KConfigTree* tree, KXmlNode* xml, KConfigEventType ev);
-	template <typename T>
-	class KConfigListenImp : public KConfigListen
-	{
-	public:
-		KConfigListenImp(T f, bool merge_flag) : f(f) {
-			this->merge_flag = merge_flag;
-		}
-		void on_event(KConfigTree* tree, KXmlNode* xml, KConfigEventType ev) override {
-			f(tree, xml, ev);
-		}
-		bool is_merge()  override {
-			return merge_flag;
-		}
-		T f;
-		bool merge_flag;
-	};
-	template <typename F>
-	KConfigListenImp<F> config_listen(F f, bool merge_flag = false) {
-		return KConfigListenImp<F>(f, merge_flag);
-	}
+	typedef void (*on_event_f)(void* data, KConfigTree* tree, KXmlNode* xml, KConfigEventType ev);
 	class KConfigTree
 	{
 	public:
 		KConfigTree(KConfigTree* parent, kgl_ref_str_t* key) {
-			this->name = kstring_refs(key);
+			this->name = kstring_clone(key);
 			this->parent = parent;
 			init();
 		}
@@ -68,35 +50,46 @@ namespace kconfig {
 			init();
 		}
 		~KConfigTree();
-		KConfigTree* add(kgl_ref_str_t** names, KConfigListen* ev);
-		KConfigListen* remove(kgl_ref_str_t** names);
+		bool bind(void* data, on_event_f on_event, KConfigEventFlag flags);
+		KConfigTree* add(const char *name, size_t len, void *data, on_event_f on_event, KConfigEventFlag flags);
+		void* remove(const char* name, size_t len);
 		void remove_node(KMapNode<KConfigTree>* node);
-		KMapNode<KConfigTree>* find_child(kgl_ref_str_t* name, bool create_flag);
+		KMapNode<KConfigTree>* find_child(kgl_ref_str_t* name);
 		KConfigTree* find(const char** names, size_t* len);
 		int cmp(kgl_ref_str_t* key) {
 			return kgl_cmp(name->data, name->len, key->data, key->len);
-			//return name.cmp(a);
 		}
 		void clean();
 		bool empty() {
-			return !child && !ev && !wide_ev && !node;
+			return !child && !data && !node;
 		}
-
-		void notice(KConfigListen* ev, KConfigFile* file, KXmlNode* xml, KConfigEventType ev_type);
+		bool is_subdir() {
+			return name->flags & ev_subdir;
+		}
+#if 0
+		bool is_merge() {
+			return on_event & ev_merge;
+		}
+#endif
+		bool is_self() {
+			return name->flags & ev_self;
+		}
+		bool notice(KConfigFile* file, KXmlNode* xml, KConfigEventType ev_type);
+		
 		kgl_ref_str_t* name;
 		KMap<kgl_ref_str_t, KConfigTree>* child;
 		KConfigTree* parent;
-		KConfigListen* wide_ev;
-		KConfigListen* ev;
+		void* data;
+		on_event_f on_event;
 		KConfigEventNode* node;
 	private:
+		void notice(KConfigTree *ev_tree, KConfigFile* file, KXmlNode* xml, KConfigEventType ev_type);
 		void init() {
 			child = nullptr;
-			this->ev = nullptr;
-			this->wide_ev = nullptr;
+			this->on_event = 0;
+			this->data = nullptr;
 			this->node = nullptr;
 		}
-
 	};
 	class KConfigFile
 	{
@@ -112,6 +105,7 @@ namespace kconfig {
 			this->ev = ev;
 		}
 		void release() {
+			assert(katom_get((void*)&ref) < 0xfffffff);
 			if (katom_dec((void*)&ref) == 0) {
 				delete this;
 			}
@@ -144,6 +138,7 @@ namespace kconfig {
 		void set_default_config() {
 			is_default_config = 1;
 		}
+		bool save();
 		void update(KXmlNode* new_nodes);
 		bool update(const char* name, size_t size, int index, KXmlNode* xml, KConfigEventType ev_type);
 		KXmlNode* nodes = nullptr;
@@ -169,7 +164,7 @@ namespace kconfig {
 			}
 			kstring_release(filename);
 		}
-		bool save();
+		
 		bool diff(KConfigTree* name, KXmlNode* o, KXmlNode* n);
 		bool diff_nodes(KConfigTree* name, KMap<KXmlKey, KXmlNode>* o, KMap<KXmlKey, KXmlNode>* n);
 	};
@@ -193,15 +188,22 @@ namespace kconfig {
 		KXmlNode* xml;
 		KConfigEventNode* next = nullptr;
 	};
-	KConfigTree* listen(const char* name, size_t size, KConfigListen* ls);
-	KConfigListen* remove_listen(const char* name, size_t size);
+	KConfigTree* listen(const char* name, size_t size, void *data, on_event_f on_event, KConfigEventFlag flags);
+	void* remove_listen(const char* name, size_t size);
 	bool update(const char* name, size_t size, int index, KConfigFile* file, KXmlNode* xml, KConfigEventType ev_type);
+
+	KConfigResult remove(const char* path, size_t path_len, int index);
+	KConfigResult add(const char* path, size_t path_len, int index, KXmlNode *xml);
+	KConfigResult update(const char* path, size_t path_len, int index, KXmlNode* xml, bool copy_childs=true);
+
 	KConfigTree* find(const char** name, size_t* size);
 	void reload();
 	void init();
 	void lock();
 	void unlock();
 	uint16_t register_qname(const char* name, size_t len);
+	KXmlNode* new_xml(const char* name, size_t len);
+	KXmlNode* new_xml(const char* name, size_t len, const char *vary, size_t vary_len);
 	KXmlNode* find_child(KXmlNode* node, const char* name, size_t len);
 	KXmlNode* find_child(KXmlNode* node, uint16_t name_id, const char* vary, size_t len);
 	KXmlNode* parse_xml(char* buf);

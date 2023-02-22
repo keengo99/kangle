@@ -529,8 +529,9 @@ int do_config_thread(void* first_time, int argc) {
 		}
 		KAccess::loadModel();
 		kconfig::init();
-		kconfig::listen(_KS("dso_extend/*"), new KDsoConfigListen);
-		kconfig::listen(_KS("/*"), new KMainConfigListen);
+		kconfig::listen(_KS("dso_extend"), nullptr, on_dso_event, kconfig::ev_subdir);
+		kconfig::listen(_KS(""), &conf,on_main_event,kconfig::ev_subdir);
+		kconfig::listen(_KS("server"), conf.gam, on_server_event, kconfig::ev_subdir);
 	}
 
 	assert(cconf == NULL);
