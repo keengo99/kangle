@@ -35,17 +35,17 @@
 #include "KDefer.h"
 
 using namespace std;
-void on_server_event(void* data, kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev) {
+void on_server_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	KAcserverManager* am = (KAcserverManager*)data;
-	am->on_event(tree, xml, ev);
+	am->on_event(tree, ev->xml, ev->type);
 }
 void KAcserverManager::on_event(kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev) {
 	if (xml->is_tag(_KS("server"))) {
-		auto name = xml->attributes["name"];
+		auto name = xml->attributes()["name"];
 		switch (ev) {
 		case kconfig::EvNew | kconfig::EvSubDir:
 		{
-			auto host = xml->attributes.get_string("host");
+			auto host = xml->attributes().get_string("host");
 			if (!host) {
 				//multi acserver
 				KMultiAcserver* server = new KMultiAcserver;
@@ -65,9 +65,9 @@ void KAcserverManager::on_event(kconfig::KConfigTree* tree, KXmlNode* xml, kconf
 				}
 				server->addRef();				
 				lock.WUnlock();
-				if (!tree->bind(server, [](void* data, kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev) {
+				if (!tree->bind(server, [](void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 					KMultiAcserver* server = (KMultiAcserver*)data;
-					server->on_event(tree, xml, ev);
+					server->on_event(tree, ev->xml, ev->type);
 					}, kconfig::ev_subdir)) {
 					server->release();
 					assert(false);
@@ -831,14 +831,10 @@ bool KAcserverManager::new_server(
 	err_msg = LANG_TABLE_NAME_ERR;
 	kconfig::KConfigResult result;
 	auto xml = kconfig::new_xml(_KS("server"), name.c_str(), name.size());
-	xml->attributes.swap(attr);
+	xml->get_first()->attributes.swap(attr);
 	KStringBuf s;
-	s << "server@" << name;
-	if (is_update) {
-		result = kconfig::update(s.getBuf(), s.getSize(), kxml_no_brother, xml, true);
-	} else {
-		result = kconfig::add(s.getBuf(), s.getSize(), kxml_no_brother, xml);
-	}
+	s << "server@" << name;	
+	result = kconfig::update(s.getBuf(), s.getSize(), 0, xml, is_update?kconfig::EvUpdate:kconfig::EvUpdate|kconfig::FlagCreate);
 	switch (result) {
 	case kconfig::KConfigResult::Success:
 		return true;

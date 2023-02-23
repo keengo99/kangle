@@ -1125,7 +1125,6 @@ void init_program() {
 			select_count = 1;
 		}
 	}
-
 	selector_manager_init(select_count, false);
 }
 

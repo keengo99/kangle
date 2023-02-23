@@ -138,7 +138,7 @@ bool kgl_connection_iterator(void* arg, KSink* rq) {
 }
 string endTag() {
 	std::stringstream s;
-	if (need_reboot_flag) {
+	if (kconfig::need_reboot()) {
 		s << "<font color='red'>" << klang["need_reboot"] << "</font> <a href=\"javascript:if(confirm('really reboot')){ window.parent.location='/reboot';}\">" << klang["reboot"] << "</a>";
 	}
 	s << "<hr>";
@@ -487,7 +487,7 @@ bool KHttpManage::config() {
 		s << "</tr></table>";
 	} else if (item == 1) {
 		//default
-		s << klang["lang_default_cache"] << "<select name=default_cache><option value=1 ";
+		s << klang["lang_default_cache"] << "<select name='default'><option value=1 ";
 		if (conf.default_cache > 0) {
 			s << "selected";
 		}
@@ -498,8 +498,8 @@ bool KHttpManage::config() {
 		s << " >" << LANG_OFF << "</option></select><br>";
 		s << "" << LANG_TOTAL_MEM_CACHE << ":<input type=text name=mem_cache size=8 value='" << get_size(conf.mem_cache) << "'><br>";
 #ifdef ENABLE_DISK_CACHE
-		s << LANG_TOTAL_DISK_CACHE << ":<input type=text name=disk_cache size=8 value='" << get_size(conf.disk_cache) << (conf.disk_cache_is_radio ? "%" : "") << "'><br>";
-		s << klang["disk_cache_dir"] << ":<input type=text name=disk_cache_dir value='" << conf.disk_cache_dir2 << "'>[<a href='/format_disk_cache_dir.km'>" << klang["format_disk_cache"] << "</a>]<br>";
+		s << LANG_TOTAL_DISK_CACHE << ":<input type=text name=disk size=8 value='" << get_size(conf.disk_cache) << (conf.disk_cache_is_radio ? "%" : "") << "'><br>";
+		s << klang["disk_cache_dir"] << ":<input type=text name=disk_dir value='" << conf.disk_cache_dir2 << "'>[<a href='/format_disk_cache_dir.km'>" << klang["format_disk_cache"] << "</a>]<br>";
 		s << klang["disk_work_time"] << ":<input type=text name=disk_work_time value='" << conf.disk_work_time << "'><br>";
 #endif
 		s << LANG_MAX_CACHE_SIZE << ":<input type=text name=max_cache_size size=6 value='" << get_size(conf.max_cache_size) << "'><br>";
@@ -690,7 +690,7 @@ bool KHttpManage::config() {
 }
 bool KHttpManage::configsubmit() {
 	//	size_t i;
-
+	std::stringstream url;
 	size_t item = atoi(getUrlValue("item").c_str());
 	conf.admin_lock.Lock();
 	if (item == 0) {
@@ -700,11 +700,16 @@ bool KHttpManage::configsubmit() {
 		int worker_thread = atoi(getUrlValue("worker_thread").c_str());
 		if (worker_thread != conf.select_count) {
 			conf.select_count = worker_thread;
-			need_reboot_flag = true;
+			kconfig::set_need_reboot();
 		}
 		selector_manager_set_timeout(conf.connect_time_out, conf.time_out);
 		http_config.time_out = conf.time_out;
 	} else if (item == 1) {
+		auto xml = kconfig::new_xml(_KS("cache"));
+		xml->attributes().swap(urlParam);
+		kconfig::update(_KS("cache"), 0, xml, kconfig::EvUpdate | kconfig::FlagCreate);
+		goto skip_save;
+#if 0
 #ifdef ENABLE_DISK_CACHE
 		conf.disk_cache = get_radio_size(getUrlValue("disk_cache").c_str(), conf.disk_cache_is_radio);
 		string disk_cache_dir = getUrlValue("disk_cache_dir");
@@ -724,6 +729,7 @@ bool KHttpManage::configsubmit() {
 		conf.refresh_time = atoi(getUrlValue("refresh_time").c_str());
 		conf.max_cache_size = (unsigned)get_size(getUrlValue("max_cache_size").c_str());
 		conf.default_cache = atoi(getUrlValue("default_cache").c_str());
+#endif
 	} else if (item == 2) {
 		string access_log = getUrlValue("access_log");
 		SAFE_STRCPY(conf.log_rotate, getUrlValue("log_rotate_time").c_str());
@@ -837,7 +843,7 @@ bool KHttpManage::configsubmit() {
 		return sendErrorSaveConfig();
 	}
 	conf.admin_lock.Unlock();
-	stringstream url;
+	skip_save:
 	url << "/config?item=" << item;
 	//	url+=item;
 	return sendRedirect(url.str().c_str());
@@ -963,8 +969,7 @@ void KHttpManage::sendTest() {
 	}
 }
 bool KHttpManage::reboot() {
-	stringstream s;
-	need_reboot_flag = false;
+	stringstream s;	
 	s
 		<< "<html><head><meta http-equiv=\"Refresh\" content=\"3;url=/\"></head><body>";
 	s << "<img border='0' width='0' height='0' src='/reboot_submit?s=" << kgl_current_sec << "&r=" << rand() << "'/>";

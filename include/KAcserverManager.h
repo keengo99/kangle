@@ -139,5 +139,5 @@ private:
 	KRWLock lock;
 
 };
-void on_server_event(void* data, kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev);
+void on_server_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent *ev);
 #endif /*KACSERVERMANAGER_H_*/

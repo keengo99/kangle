@@ -40,14 +40,17 @@ void KMultiAcserver::on_event(kconfig::KConfigTree* tree, KXmlNode* xml, kconfig
 	case kconfig::EvUpdate | kconfig::EvSubDir:
 		lock.Lock();
 		removeAllNode();
-		while (xml) {
+		for (uint32_t index = 0;; index++) {
+			auto body = xml->get_body(index);
+			if (!body) {
+				break;
+			}
 			KSockPoolHelper* node = new KSockPoolHelper;
-			if (node->parse(xml->attributes)) {
+			if (node->parse(body->attributes)) {
 				addNode(node);
 			} else {
 				node->release();
 			}
-			xml = xml->next;
 		}
 		buildVNode();
 		lock.Unlock();
@@ -330,7 +333,7 @@ bool KMultiAcserver::addNode(KXmlAttribute& attr, char* self_ip) {
 			char ips[MAXIPLEN];
 			ksocket_sockaddr_ip(&min_addr, ips, sizeof(ips));
 			//KSocket::make_ip(&min_addr, ips, MAXIPLEN);
-			attr.emplace("self_ip",ips);
+			attr.emplace("self_ip", ips);
 			addNode(attr);
 		}
 		return true;
@@ -455,19 +458,20 @@ bool KMultiAcserver::parse_config(KXmlNode* xml) {
 	if (!KPoolableRedirect::parse_config(xml)) {
 		return false;
 	}
+	auto attributes = xml->attributes();
 #ifdef ENABLE_MSERVER_ICP
-	setIcp(xml->attributes["icp"].c_str());
+	setIcp(attributes["icp"].c_str());
 #endif
 	lock.Lock();
-	url_hash = xml->attributes.get_int(_KS("url_hash")) == 1;
+	url_hash = attributes.get_int(_KS("url_hash")) == 1;
 	if (!url_hash) {
-		ip_hash = xml->attributes["ip_hash"] == "1";
+		ip_hash = attributes["ip_hash"] == "1";
 	} else {
 		ip_hash = false;
 	}
-	cookie_stick = xml->attributes["cookie_stick"] == "1";
+	cookie_stick = attributes["cookie_stick"] == "1";
 	lock.Unlock();
-	setErrorTryTime(xml->attributes.get_int("max_error_count"), xml->attributes.get_int("error_try_time"));
+	setErrorTryTime(attributes.get_int("max_error_count"), attributes.get_int("error_try_time"));
 	return true;
 }
 void KMultiAcserver::shutdown() {

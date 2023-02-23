@@ -334,13 +334,13 @@ bool KWebDavService::doLock() {
 		return send(STATUS_BAD_REQUEST);
 	}
 	//printf("node tag=[%s]\n",node->getTag().c_str());
-	if (node->getTag() != "lockinfo") {
+	if (node->get_tag() != "lockinfo") {
 		return send(STATUS_BAD_REQUEST);
 	}
 	Lock_type type = Lock_none;
-	if (node->getChild("lockscope/exclusive")) {
+	if (node->find_child("lockscope/exclusive")) {
 		type = Lock_exclusive;
-	} else if (node->getChild("lockscope/shared")) {
+	} else if (node->find_child("lockscope/shared")) {
 		type = Lock_share;
 	}
 	if (type == Lock_none) {

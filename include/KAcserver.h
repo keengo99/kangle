@@ -47,11 +47,11 @@ public:
 		return true;
 	}
 	virtual bool parse_config(KXmlNode* node) {
-		auto proto = node->attributes["proto"];
-		if (proto.empty()) {
-			proto = node->attributes["type"];
+		auto proto = node->get_body(0)->attributes("proto", "");
+		if (!*proto) {
+			proto = node->get_body(0)->attributes("type","");
 		}
-		set_proto(parseProto(proto.c_str()));
+		set_proto(parseProto(proto));
 		return true;
 	}
 	static void build_xml(std::map<std::string, std::string> &param, std::stringstream& s);

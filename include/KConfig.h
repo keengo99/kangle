@@ -181,20 +181,7 @@ public:
 	int http2https_code;
 	INT64 log_rotate_size;
 	INT64 error_rotate_size;
-	//默认是否缓存,1=是,其它=不
-	int default_cache;
-	unsigned max_cache_size;
-	INT64 mem_cache;
-#ifdef ENABLE_DISK_CACHE
-	INT64 disk_cache;
-	bool disk_cache_is_radio;
-#ifdef ENABLE_BIG_OBJECT_206
-	bool cache_part;
-#endif
-	INT64 max_bigobj_size;
-#endif
-	int refresh;
-	int refresh_time;
+
 	unsigned max_connect_info;
 	//只压缩可以cache的物件
 	int only_compress_cache;
@@ -239,9 +226,8 @@ public:
 #ifdef ENABLE_VH_FLOW
 	//自动刷新流量时间(秒)
 	int flush_flow_time;
-#endif	
-	char disk_cache_dir2[512];
-	//{{ent
+#endif
+
 	char error_url[64];
 #ifdef ENABLE_BLACK_LIST
 	int bl_time;
@@ -250,7 +236,6 @@ public:
 	char flush_ip_cmd[512];
 	char report_url[512];
 #endif
-	//}}
 	char log_rotate[32];
 	char access_log[128];
 	char logHandle[512];
@@ -263,11 +248,6 @@ public:
 class KConfig : public KConfigBase
 {
 public:
-	KConfig() {
-		memset(disk_cache_dir, 0, sizeof(disk_cache_dir));
-		//per_ip_head = NULL;
-		//per_ip_last = NULL;
-	}
 	~KConfig();
 	KAcserverManager* am;
 	KVirtualHostManage* vm;
@@ -281,14 +261,10 @@ public:
 	std::string ssl_client_protocols;
 	std::string ssl_client_chiper;
 	std::string ca_path;
-	//disk_cache_dir2是可以修改的。保存设置用的。
-	//实际用的时候用disk_cahce_dir.
-	char disk_cache_dir[512];
-	//KPerIpConnect *per_ip_head;
-	//KPerIpConnect *per_ip_last;
-	//{{ent
+
+
 	std::string apache_config_file;
-	//}}
+
 	void copy(KConfig* c);
 
 	void setHostname(const char* hostname) {
@@ -308,6 +284,25 @@ public:
 	/////////////////////////////////////////////////////////
 	//以下是程序运行信息,只在程序启动前初始化一次...
 	std::list<std::string> mergeFiles;
+
+	//默认是否缓存,1=是,其它=不
+	int default_cache = 1;
+	unsigned max_cache_size = 1048576;
+	INT64 mem_cache = 100 * 1024 * 1024;
+#ifdef ENABLE_DISK_CACHE
+	INT64 disk_cache = 0;
+	bool disk_cache_is_radio = false;
+#ifdef ENABLE_BIG_OBJECT_206
+	bool cache_part = true;
+#endif
+	INT64 max_bigobj_size = 1024 * 1024 * 1024;
+#endif
+	int refresh_time = 30;
+	//实际用的时候用disk_cahce_dir.
+	char disk_cache_dir2[512] = { 0 };
+	char disk_cache_dir[512] = { 0 };
+
+
 	char lang[8] = { 0 };
 	unsigned keep_alive_count = 0;
 	unsigned time_out = 60;
@@ -347,7 +342,6 @@ public:
 };
 extern KGlobalConfig conf;
 extern int m_debug;
-extern bool need_reboot_flag;
 extern KConfig* cconf;
 int merge_apache_config(const char* file);
 void LoadDefaultConfig();

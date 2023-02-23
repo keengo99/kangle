@@ -72,40 +72,6 @@ bool KConfigParser::startElement(KXmlContext* context) {
 		}
 		return true;
 	}
-	if (context->qName == "cache") {
-		if (!context->attribute["default"].empty()) {
-			cconf->default_cache = atoi(context->attribute["default"].c_str());
-		}
-		if (!context->attribute["max_cache_size"].empty()) {
-			cconf->max_cache_size = (unsigned)get_size(context->attribute["max_cache_size"].c_str());
-		}
-		if (context->attribute["memory"].size() > 0) {
-			cconf->mem_cache = get_size(context->attribute["memory"].c_str());
-		}
-		if (context->attribute["refresh_time"].size() > 0) {
-			cconf->refresh_time = atoi(context->attribute["refresh_time"].c_str());
-		}
-#ifdef ENABLE_DISK_CACHE
-		if (!context->attribute["max_bigobj_size"].empty()) {
-			cconf->max_bigobj_size = get_size(context->attribute["max_bigobj_size"].c_str());
-		}
-		if (context->attribute["disk"].size() > 0) {
-			cconf->disk_cache = get_radio_size(context->attribute["disk"].c_str(), cconf->disk_cache_is_radio);
-		}
-		if (context->attribute["disk_dir"].size() > 0) {
-			SAFE_STRCPY(cconf->disk_cache_dir2, context->attribute["disk_dir"].c_str());
-		}
-		if (context->attribute["disk_work_time"].size() > 0) {
-			SAFE_STRCPY(cconf->disk_work_time, context->attribute["disk_work_time"].c_str());
-		}
-#ifdef ENABLE_BIG_OBJECT_206
-		if (!context->attribute["cache_part"].empty()) {
-			cconf->cache_part = context->attribute["cache_part"] == "1";
-		}
-#endif
-#endif
-		return true;
-	}
 	if (context->qName == "connect") {
 		cconf->max_per_ip = atoi(context->attribute["max_per_ip"].c_str());
 		cconf->max = atoi(context->attribute["max"].c_str());
@@ -153,27 +119,6 @@ bool KConfigParser::startCharacter(KXmlContext* context, char* character, int le
 			cconf->admin_ips.push_back(character);
 			return true;
 		}
-	}
-	if (context->path == "config/cache") {
-		if (context->qName == "memory") {
-			cconf->mem_cache = get_size(character);
-			return true;
-		}
-		if (context->qName == "refresh_time") {
-			cconf->refresh_time = atoi(character);
-			return true;
-		}
-#ifdef ENABLE_DISK_CACHE
-		if (context->qName == "disk") {
-			cconf->disk_cache = get_size(character);
-		}
-		if (context->qName == "disk_dir") {
-			SAFE_STRCPY(cconf->disk_cache_dir2, character);
-		}
-		if (context->qName == "disk_work_time") {
-			SAFE_STRCPY(cconf->disk_work_time, character);
-		}
-#endif
 	}
 	if (context->path == "config") {
 #ifdef MALLOCDEBUG
@@ -346,9 +291,10 @@ void KConfigParser::startXml(const std::string& encoding) {
 }
 void KConfigParser::endXml(bool result) {
 }
-void on_main_event(void* data, kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev) {
-	KBIT_CLR(ev, kconfig::EvSubDir);
-	switch (ev) {
+void on_main_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent * ev) {
+	auto xml = ev->xml;
+	KBIT_CLR(ev->type, kconfig::EvSubDir);
+	switch (ev->type) {
 	case kconfig::EvNew:
 	case kconfig::EvUpdate:
 		if (xml->is_tag(_KS("lang"))) {
@@ -360,13 +306,16 @@ void on_main_event(void* data, kconfig::KConfigTree* tree, KXmlNode* xml, kconfi
 			return;
 		}
 		if (xml->is_tag(_KS("timeout"))) {
-			auto it = xml->attributes.find("rw");
-			if (it != xml->attributes.end()) {
+			auto attributes = xml->attributes();
+			auto it = attributes.find("rw");
+			if (it != attributes.end()) {
 				conf.set_time_out(atoi((*it).second.c_str()));
-				conf.set_connect_time_out(atoi(xml->attributes["connect"].c_str()));
+				conf.set_connect_time_out(atoi(xml->attributes()["connect"].c_str()));
 			} else {
 				conf.set_time_out(atoi(xml->get_text()));
 			}
+			selector_manager_set_timeout(conf.connect_time_out, conf.time_out);
+			http_config.time_out = conf.time_out;
 			return;
 		}
 		if (xml->is_tag(_KS("connect_timeout"))) {

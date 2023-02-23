@@ -39,7 +39,6 @@
 #else
 #include <sys/mman.h>
 #endif
-bool need_reboot_flag = false;
 volatile bool cur_config_ext = false;
 static volatile int32_t load_config_progress = 0;
 volatile bool configReload = false;
@@ -244,8 +243,6 @@ void init_config(KConfig* conf) {
 	conf->mallocdebug = true;
 #endif
 	conf->max = 50000;
-	conf->refresh = REFRESH_AUTO;
-	conf->refresh = 10;
 	conf->log_level = 2;
 	conf->path_info = true;
 	conf->passwd_crypt = CRYPT_TYPE_PLAIN;
@@ -532,6 +529,49 @@ int do_config_thread(void* first_time, int argc) {
 		kconfig::listen(_KS("dso_extend"), nullptr, on_dso_event, kconfig::ev_subdir);
 		kconfig::listen(_KS(""), &conf,on_main_event,kconfig::ev_subdir);
 		kconfig::listen(_KS("server"), conf.gam, on_server_event, kconfig::ev_subdir);
+		kconfig::listen(_KS("listen"), nullptr, on_listen_event, kconfig::ev_self | kconfig::ev_merge);
+		kconfig::listen(_KS("cache"), nullptr, [](void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+			auto xml = ev->xml;
+			switch (ev->type) {
+			case kconfig::EvNew:
+			case kconfig::EvUpdate:
+			{
+				conf.default_cache = xml->get_first()->attributes.get_int("default", 1);
+				conf.max_cache_size = (unsigned)get_size(xml->get_first()->attributes.get_string("max_cache_size", "10M"));
+				conf.mem_cache = get_size(xml->get_first()->attributes.get_string("memory", "100M"));
+				conf.refresh_time = xml->get_first()->attributes.get_int("refresh_time", 30);
+#ifdef ENABLE_DISK_CACHE
+				conf.max_bigobj_size = get_size(xml->get_first()->attributes("memory", "1G"));
+				conf.disk_cache = get_radio_size(xml->get_first()->attributes("disk", "0"), conf.disk_cache_is_radio);
+				SAFE_STRCPY(conf.disk_cache_dir2, xml->get_first()->attributes("disk_dir", ""));
+				if (!kconfig::is_first()) {
+					if (strcasecmp(conf.disk_cache_dir2, conf.disk_cache_dir)!=0) {
+						kconfig::set_need_reboot();
+					}
+				} else {
+					//生成disk_cache_dir
+					if (*conf.disk_cache_dir2) {
+						string disk_cache_dir = conf.disk_cache_dir2;
+						pathEnd(disk_cache_dir);
+						SAFE_STRCPY(conf.disk_cache_dir, disk_cache_dir.c_str());
+					}
+				}
+				SAFE_STRCPY(conf.disk_work_time, xml->get_first()->attributes("disk_work_time", ""));
+				if (*conf.disk_work_time) {
+					conf.diskWorkTime.set(conf.disk_work_time);
+				} else {
+					conf.diskWorkTime.set(NULL);
+				}
+#ifdef ENABLE_BIG_OBJECT_206
+				conf.cache_part = xml->get_first()->attributes.get_int("cache_part", 1) == 1;
+#endif
+#endif
+				break;
+			}
+			default:
+				break;
+			}
+			}, kconfig::ev_self);
 	}
 
 	assert(cconf == NULL);
@@ -758,24 +798,9 @@ void post_load_config(bool firstTime) {
 	} else {
 		kasync_worker_set(conf.dnsWorker, conf.worker_dns, 512);
 	}
-	if (*conf.disk_work_time) {
-		conf.diskWorkTime.set(conf.disk_work_time);
-	} else {
-		conf.diskWorkTime.set(NULL);
-	}
 	parse_server_software();
-	if (firstTime) {
-		//第一次才生效
-		//生成disk_cache_dir
-		if (*conf.disk_cache_dir2) {
-			string disk_cache_dir = conf.disk_cache_dir2;
-			pathEnd(disk_cache_dir);
-			SAFE_STRCPY(conf.disk_cache_dir, disk_cache_dir.c_str());
-		}
-	}
-	selector_manager_set_timeout(conf.connect_time_out, conf.time_out);
+	
 	http_config.fiber_stack_size = conf.fiber_stack_size;
-	http_config.time_out = conf.time_out;
 	khttp_server_set_ssl_config(conf.ca_path.c_str(), conf.ssl_client_chiper.c_str(), conf.ssl_client_protocols.c_str());
 	cache.init(firstTime);
 #ifdef ENABLE_BLACK_LIST
@@ -786,5 +811,4 @@ void post_load_config(bool firstTime) {
 	conf.gvm->globalVh.blackList->setReportIp(*conf.report_url != '\0');
 #endif
 	::logHandle.setLogHandle(conf.logHandle);
-	//BOOL result = SetProcessWorkingSetSize(GetCurrentProcess(),-2,-2);
 }

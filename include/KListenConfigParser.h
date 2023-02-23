@@ -20,6 +20,9 @@
 #include <string>
 #include "KXmlEvent.h"
 #include "do_config.h"
+#include "KConfigTree.h"
+
+void on_listen_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent *ev);
 class KListenConfigParser : public KXmlEvent {
 public:
 	bool parse(std::string file);

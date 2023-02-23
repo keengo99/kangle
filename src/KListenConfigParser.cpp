@@ -28,6 +28,15 @@
 using namespace std;
 KListenConfigParser listenConfigParser;
 KWorkerConfigParser worker_config_parser;
+
+void on_listen_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+	assert(ev->xml->is_tag(_KS("listen")));
+	assert(!KBIT_TEST(ev->type, kconfig::EvSubDir));
+	if (!ev->xml->is_tag(_KS("listen"))) {
+		return;
+	}
+	auto xml_node = tree->node;
+}
 bool KWorkerConfigParser::startCharacter(KXmlContext *context, char *character, int len)
 {
 	if (context->path == "config" && context->qName == "worker_thread") {
