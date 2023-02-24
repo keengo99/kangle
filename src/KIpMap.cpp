@@ -3,7 +3,7 @@
 #include "katom.h"
 #include "kmalloc.h"
 #include <sstream>
-static int ip_addr_cmp(ip_addr *a1,ip_addr *a2)
+static int ip_addr_cmp(const ip_addr *a1,const ip_addr *a2)
 {
 #ifdef KSOCKET_IPV6
 	int ret = (int)a1->sin_family - (int)a2->sin_family;
@@ -36,7 +36,7 @@ static int ip_addr_cmp(ip_addr *a1,ip_addr *a2)
 #endif
 }
 /* ipv4的插入比较函数 */
-static int range_addr_find_cmp(void *k1,void *k2)
+static int range_addr_find_cmp(const void *k1,const void *k2)
 {
 	ip_addr *addr = (ip_addr *)k1;
 	struct dns_range_addr *a2 = (struct dns_range_addr *)k2;
@@ -51,7 +51,7 @@ static int range_addr_find_cmp(void *k1,void *k2)
 	return 0;
 }
 /* ipv4的插入比较函数 */
-static int range_addr_insert_cmp(void *k1,void *k2)
+static int range_addr_insert_cmp(const void *k1,const void *k2)
 {
 	struct dns_range_addr *a1 = (struct dns_range_addr *)k1;
 	struct dns_range_addr *a2 = (struct dns_range_addr *)k2;

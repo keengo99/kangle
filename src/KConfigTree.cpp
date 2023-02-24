@@ -38,7 +38,7 @@ namespace kconfig {
 				node->release();
 			}
 		}
-		int cmp(kgl_ref_str_t* a) {
+		int cmp(const kgl_ref_str_t* a) const {
 			int result = (int)a->id - (int)file->filename->id;
 			if (result != 0) {
 				return result;

@@ -73,20 +73,20 @@ namespace kconfig {
 		void remove_node(KMapNode<KConfigTree>* node);
 		KMapNode<KConfigTree>* find_child(kgl_ref_str_t* name);
 		KConfigTree* find(const char** names, size_t* len);
-		int cmp(kgl_ref_str_t* key) {
+		int cmp(const kgl_ref_str_t* key) const {
 			return kgl_cmp(name->data, name->len, key->data, key->len);
 		}
 		void clean();
-		bool empty() {
+		bool empty() const {
 			return !child && !data && !node;
 		}
-		bool is_subdir() {
+		bool is_subdir() const {
 			return name->flags & ev_subdir;
 		}
-		bool is_merge() {
+		bool is_merge() const {
 			return name->flags & ev_merge;
 		}
-		bool is_self() {
+		bool is_self() const {
 			return name->flags & ev_self;
 		}
 		bool notice(KConfigFile* file, KXmlNode* xml, KConfigEventType ev_type, KXmlBodyDiff *diff);
@@ -125,14 +125,14 @@ namespace kconfig {
 				delete this;
 			}
 		}
-		int cmp(kgl_ref_str_t* key) {
+		int cmp(const kgl_ref_str_t* key) const {
 			return kgl_cmp(filename->data, filename->len, key->data, key->len);
 		}
 		KConfigFile* add_ref() {
 			katom_inc((void*)&ref);
 			return this;
 		}
-		bool is_removed() {
+		bool is_removed() const {
 			return remove_flag;
 		}
 		KXmlNode* load();
@@ -141,19 +141,19 @@ namespace kconfig {
 		}
 		bool reload();
 		bool reload(const char* str, size_t len);
-		uint16_t get_index() {
+		uint16_t get_index() const {
 			return filename->id;
 		}
 		void set_remove_flag(bool flag) {
 			this->remove_flag = flag;
 		}
-		int get_source() {
+		int get_source() const {
 			return (int)source;
 		}
 		void set_default_config() {
 			default_config = 1;
 		}
-		bool is_default() {
+		bool is_default() const {
 			return default_config;
 		}
 		bool save();

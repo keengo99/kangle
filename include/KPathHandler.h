@@ -36,7 +36,7 @@ public:
 		}
 		kstring_release(name);
 	}
-	int cmp(kgl_ref_str_t* key) {
+	int cmp(const kgl_ref_str_t* key) const {
 		CMP c;
 		return c(name, key);
 	}
@@ -83,7 +83,7 @@ public:
 		}
 		return node->value()->add(name + name_len, size - name_len, handler);
 	}
-	T find(const char** name, size_t* size) {
+	T find(const char** name, size_t* size) const {
 		size_t name_len;
 		while (*size > 1 && **name == '/') {
 			(*name)++;

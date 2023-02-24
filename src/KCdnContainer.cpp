@@ -7,9 +7,9 @@
 #endif
 KCdnContainer* server_container = NULL;
 using namespace std;
-static int redirect_node_cmp(void* k1, void* k2) {
+static int redirect_node_cmp(const void* k1, const void* k2) {
 	const char* name = (const char*)k1;
-	KRedirectNode* rd = (KRedirectNode*)k2;
+	const KRedirectNode* rd = (const KRedirectNode*)k2;
 	return strcasecmp(name, rd->name);
 }
 KCdnContainer::KCdnContainer() {

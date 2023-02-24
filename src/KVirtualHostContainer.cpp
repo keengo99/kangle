@@ -3,7 +3,7 @@
 #include "KVirtualHost.h"
 #include "klist.h"
 
-static int vh_container_find_cmp(void *k, void *k2)
+static int vh_container_find_cmp(const void *k, const void *k2)
 {
 	domain_t s1 = (domain_t)k;
 	KDomainMap*s2 = (KDomainMap*)k2;

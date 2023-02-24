@@ -98,7 +98,7 @@ public:
 		this->h3 -= a->h3;
 #endif
 	}
-	int cmp(const KListenKey *a)
+	int cmp(const KListenKey *a) const
 	{
 		int ret = port - a->port;
 		if (ret > 0) {

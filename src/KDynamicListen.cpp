@@ -11,7 +11,7 @@
 #define DEFAULT_IPV4_IP  "0.0.0.0"
 #define DEFAULT_IPV6_IP  "::"
 
-static int listen_key_cmp(void *key, void *data)
+static int listen_key_cmp(const void *key, const void *data)
 {
 	KListenKey *lk = (KListenKey *)key;
 	KListen *listen = (KListen *)data;
