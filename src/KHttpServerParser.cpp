@@ -180,6 +180,10 @@ bool KHttpServerParser::startElement(KXmlContext *context) {
 			bv->addIndexFile(context->attribute["file"],atoi(context->attribute["id"].c_str()));
 			return true;
 		}
+		if (context->qName == "error") {
+			bv->addErrorPage(context->attribute.get_int("code"), context->attribute["file"]);
+			return true;
+		}
 		if (strcasecmp(context->qName.c_str(), "alias") == 0) {
 			string errMsg;
 			if (!bv->addAlias(context->attribute["path"], context->attribute["to"],(virtualHost?virtualHost->doc_root.c_str():conf.path.c_str()), context->attribute["internal"]=="1",0, errMsg)) {

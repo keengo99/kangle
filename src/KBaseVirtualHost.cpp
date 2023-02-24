@@ -524,13 +524,13 @@ bool KBaseVirtualHost::delErrorPage(int code) {
 	return result;
 }
 void KBaseVirtualHost::buildBaseXML(std::stringstream& s) {
+	s << ">\n";
 	for (auto it = errorPages.begin(); it != errorPages.end(); it++) {
 		if ((*it).second.inherited) {
 			continue;
 		}
-		s << " error_" << (*it).first << "='" << (*it).second.s << "'";
+		s << "<error code='" << (*it).first << "' file='" << (*it).second.s << "'/>\n";
 	}
-	s << ">\n";
 	for (auto iit = indexFiles.begin(); iit != indexFiles.end(); iit++) {
 		if ((*iit).index.inherited) {
 			continue;

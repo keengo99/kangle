@@ -85,7 +85,7 @@ class KVirtualHost: public KBaseVirtualHost,public KSslConfig, public KCountable
 public:
 	KVirtualHost();
 	virtual ~KVirtualHost();
-	bool setDocRoot(std::string &docRoot);
+	bool setDocRoot(const std::string &docRoot);
 	KSubVirtualHost *getFirstSubVirtualHost() {
 		if (hosts.size() == 0) {
 			return NULL;
@@ -153,9 +153,6 @@ public:
 #ifdef ENABLE_VH_LOG_FILE
 	KLogElement *logger;
 	std::string logFile;
-	//·ÏÆú
-	void setLogFile(std::string &path,
-			std::map<std::string, std::string>&attribute);
 	void setLogFile(KAttributeHelper *ah,KVirtualHost *tm=NULL);
 #endif
 #ifdef ENABLE_VH_RUN_AS
@@ -305,7 +302,7 @@ public:
 	std::list<KSubVirtualHost *> hosts;
 #ifdef ENABLE_VH_RUN_AS
 	//std::string add_dir;
-	bool setRunAs(std::string user, std::string group);
+	bool setRunAs(const std::string &user, const std::string &group);
 
 
 	int id[2];
@@ -347,12 +344,12 @@ public:
 	virtual void buildXML(std::stringstream &s);	
 	bool loadApiRedirect(KApiPipeStream *st,int workType);
 	bool saveAccess();
-	void setAccess(std::string access_file);
+	void setAccess(const std::string &access_file);
 	std::string htaccess;
 	KAccess access[2];
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
 	kgl_ssl_ctx *ssl_ctx;
-	bool setSSLInfo(std::string certfile,std::string keyfile,std::string cipher,std::string protocols);
+	bool setSSLInfo(const std::string &certfile, const std::string &keyfile, const std::string &cipher,const std::string &protocols);
 	std::string get_cert_file() override;
 	std::string get_key_file() override;
 	kgl_ssl_ctx* refs_ssl_ctx() override {
