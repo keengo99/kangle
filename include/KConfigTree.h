@@ -36,15 +36,23 @@ namespace kconfig {
 		ErrNotFound,
 		ErrUnknow
 	};
+	struct KXmlBodyDiff
+	{
+		uint32_t from;
+		uint32_t old_to;
+		uint32_t new_to;
+	};
 	struct KConfigEvent
 	{
 		KConfigFile* file;
 		/* only type is update have old. */
 		KXmlNode* old;
 		KXmlNode* xml;
+		KXmlBodyDiff *detail;
 		KConfigEventType type;
 	};
 	typedef void (*on_event_f)(void* data, KConfigTree* tree, KConfigEvent* ev);
+	typedef bool (*on_begin_parse_f)(KConfigFile* file, KXmlNode* node);
 	class KConfigTree
 	{
 	public:
@@ -81,7 +89,7 @@ namespace kconfig {
 		bool is_self() {
 			return name->flags & ev_self;
 		}
-		bool notice(KConfigFile* file, KXmlNode* xml, KConfigEventType ev_type);
+		bool notice(KConfigFile* file, KXmlNode* xml, KConfigEventType ev_type, KXmlBodyDiff *diff);
 
 		kgl_ref_str_t* name;
 		KMap<kgl_ref_str_t, KConfigTree>* child;
@@ -90,7 +98,7 @@ namespace kconfig {
 		on_event_f on_event;
 		KConfigEventNode* node;
 	private:
-		void notice(KConfigTree* ev_tree, KConfigFile* file, KXmlNode* xml, KConfigEventType ev_type);
+		void notice(KConfigTree* ev_tree, KConfigFile* file, KXmlNode* xml,KConfigEventType ev_type, KXmlBodyDiff* diff);
 		void init() {
 			child = nullptr;
 			this->on_event = 0;
@@ -143,7 +151,10 @@ namespace kconfig {
 			return (int)source;
 		}
 		void set_default_config() {
-			is_default_config = 1;
+			default_config = 1;
+		}
+		bool is_default() {
+			return default_config;
 		}
 		bool save();
 		void update(KXmlNode* new_nodes);
@@ -162,7 +173,7 @@ namespace kconfig {
 			struct
 			{
 				uint32_t remove_flag : 1;
-				uint32_t is_default_config : 1;
+				uint32_t default_config : 1;
 				uint32_t readonly : 1;
 				uint32_t need_save : 1;
 				uint32_t source : 4;
@@ -211,7 +222,7 @@ namespace kconfig {
 
 	KConfigTree* find(const char** name, size_t* size);
 	void reload();
-	void init();
+	void init(on_begin_parse_f cb);
 	void lock();
 	void unlock();
 	uint16_t register_qname(const char* name, size_t len);

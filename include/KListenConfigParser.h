@@ -30,14 +30,5 @@ public:
 	bool startCharacter(KXmlContext* context,
 			char *character, int len) override;
 };
-class KWorkerConfigParser : public KXmlEvent {
-public:
-	bool parse(std::string file);
-	bool startElement(KXmlContext* context) override {
-		return true;
-	}
-	bool startCharacter(KXmlContext *context, char *character, int len) override;
-};
 extern KListenConfigParser listenConfigParser;
-extern KWorkerConfigParser worker_config_parser;
 #endif

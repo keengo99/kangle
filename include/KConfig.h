@@ -202,9 +202,6 @@ public:
 #ifdef ENABLE_ADPP
 	int process_cpu_usage;
 #endif
-#ifdef MALLOCDEBUG
-	bool mallocdebug;
-#endif
 	unsigned maxLogHandle;
 	unsigned logs_day;
 	bool log_sub_request;
@@ -327,9 +324,12 @@ public:
 	std::string extworker;
 	kasync_worker* ioWorker;
 	kasync_worker* dnsWorker;
-	int serverNameLength;
-	char serverName[32];
-	int select_count;
+	int serverNameLength = 0;
+	char serverName[32] = { 0 };
+	int select_count = 0;
+#ifdef MALLOCDEBUG
+	bool mallocdebug = false;
+#endif
 #ifdef _WIN32
 	//kangle程序所在的盘符
 	std::string diskName;
@@ -342,6 +342,7 @@ public:
 };
 extern KGlobalConfig conf;
 extern int m_debug;
+extern int kgl_cpu_number;
 extern KConfig* cconf;
 int merge_apache_config(const char* file);
 void LoadDefaultConfig();

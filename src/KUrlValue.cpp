@@ -177,11 +177,11 @@ bool KUrlValue::add(std::string name, std::string value) {
 	}
 	std::map<std::string,std::string>::iterator it2 =  attribute.find(name);
 	if(it2==attribute.end()){
-		attribute.insert(pair<string,string>(name , value));
+		attribute.emplace(name, value);
 	}else{
 		stringstream s;
 		s << (*it2).second << ", " << value;
-		attribute[name] = s.str();
+		attribute.emplace(name, s.str());
 	}
 	return true;
 }

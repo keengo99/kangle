@@ -18,7 +18,7 @@
 ULONG64 KProcess::lastQueryTime = 0;
 #endif
 //}}
-int numberCpu = 1;
+int kgl_cpu_number = 1;
 #ifdef SOLARIS
 int GetNumberOfProcessors()
 {
@@ -302,8 +302,8 @@ int KProcess::getCpuUsage(ULONG64 cpuTime) {
 	if (lastUsedTime > 0) {
 		cpuTime /= 100;
 #ifdef _WIN32
-		if(numberCpu>0) {
-			cpuTime*=numberCpu;
+		if(kgl_cpu_number>0) {
+			cpuTime*=kgl_cpu_number;
 		}
 #endif
 		//printf("usedTime=%I64d,lastUsedTime=%I64d,totalTime=%I64d\n",usedTime,lastUsedTime,totalTime);

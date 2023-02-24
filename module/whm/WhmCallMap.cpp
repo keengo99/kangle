@@ -10,7 +10,7 @@
 #include "kmalloc.h"
 
 using namespace std;
-WhmCallMap::WhmCallMap(WhmExtend *callable, std::string &callName) {
+WhmCallMap::WhmCallMap(WhmExtend *callable, const std::string &callName) {
 	this->callable = new WhmExtendCall;
 	this->callable->callName = callName;
 	this->callable->extend = callable;

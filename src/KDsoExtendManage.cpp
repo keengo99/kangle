@@ -95,8 +95,7 @@ KRedirect *KDsoExtendManage::RefsRedirect(std::string &name)
 }
 void KDsoExtendManage::shutdown()
 {
-	std::map<const char *, KDsoExtend *, lessp>::iterator it;
-	for (it = dsos.begin();it != dsos.end();it++) {
+	for (auto it = dsos.begin();it != dsos.end();it++) {
 		(*it).second->shutdown();
 	}
 }

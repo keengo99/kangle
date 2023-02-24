@@ -273,7 +273,6 @@ bool saveCacheIndex()
 		while (!dci->allWorkedDone()) {
 			my_msleep(100);			
 		}
-		
 	}
 #endif
 	klog(KLOG_ERR,"save cache index done.\n");

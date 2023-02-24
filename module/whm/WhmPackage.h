@@ -33,9 +33,9 @@ public:
 	bool endElement(KXmlContext *context) override;
 private:
 //	WhmContext *whmContext;
-	WhmCallMap *newCallMap(std::string &name,std::string &callName);
-	WhmExtend *findExtend(std::string &name);
-	WhmCallMap *findCallMap(std::string &name);
+	WhmCallMap *newCallMap(const std::string &name, const std::string &callName);
+	WhmExtend *findExtend(const std::string &name);
+	WhmCallMap *findCallMap(const std::string &name);
 	/*
 	 * µ˜”√”≥…‰
 	 */

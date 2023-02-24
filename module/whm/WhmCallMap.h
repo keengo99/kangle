@@ -22,7 +22,7 @@ struct WhmExtendCall{
 };
 class WhmCallMap {
 public:
-	WhmCallMap(WhmExtend *callable,std::string &callName);
+	WhmCallMap(WhmExtend *callable, const std::string &callName);
 	virtual ~WhmCallMap();
 	int call(WhmContext *context);
 	void addBeforeEvent(WhmExtend *event,std::map<std::string,std::string> &attribute);

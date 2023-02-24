@@ -239,9 +239,6 @@ INT64 get_size(const char* size) {
 	return get_radio_size(size, is_radio);
 }
 void init_config(KConfig* conf) {
-#ifdef MALLOCDEBUG
-	conf->mallocdebug = true;
-#endif
 	conf->max = 50000;
 	conf->log_level = 2;
 	conf->path_info = true;
@@ -505,6 +502,10 @@ void clean_config() {
 	kaccess[REQUEST].destroy();
 	kaccess[RESPONSE].destroy();
 	conf.admin_ips.clear();
+	conf.admin_passwd.clear();
+	conf.admin_user.clear();
+	conf.ssl_client_protocols.clear();
+	conf.ssl_client_chiper.clear();
 	for (size_t i = 0; i < conf.service.size(); i++) {
 		delete conf.service[i];
 	}
@@ -525,9 +526,41 @@ int do_config_thread(void* first_time, int argc) {
 			kaccess[i].setGlobal(true);
 		}
 		KAccess::loadModel();
-		kconfig::init();
+		kconfig::init([](kconfig::KConfigFile* file, KXmlNode* node) -> bool {
+			if (!kconfig::is_first()) {
+				return true;
+			}
+			if (file->is_default()) {
+#ifdef MALLOCDEBUG
+				auto malloc_debug = node->find_child("mallocdebug");
+				if (malloc_debug) {
+					conf.mallocdebug = atoi(malloc_debug->get_text()) == 1;
+				}
+				if (conf.mallocdebug) {
+					start_hook_alloc();
+				}
+#endif
+				auto worker_thread = node->find_child("worker_thread");
+				if (worker_thread) {
+					conf.select_count = atoi(worker_thread->get_text());
+				}
+				int select_count = conf.select_count;
+				if (select_count <= 0) {
+					select_count = kgl_cpu_number;
+				}
+				if (select_count > 1) {
+					if (!selector_manager_grow(select_count)) {
+						fprintf(stderr, "cann't grow worker thread..\n");
+					} else {
+						fprintf(stderr, "worker thread grow to [%d] success.\n", get_selector_count());
+					}
+				}
+
+			}
+			return true;
+			});
 		kconfig::listen(_KS("dso_extend"), nullptr, on_dso_event, kconfig::ev_subdir);
-		kconfig::listen(_KS(""), &conf,on_main_event,kconfig::ev_subdir);
+		kconfig::listen(_KS(""), &conf, on_main_event, kconfig::ev_subdir);
 		kconfig::listen(_KS("server"), conf.gam, on_server_event, kconfig::ev_subdir);
 		kconfig::listen(_KS("listen"), nullptr, on_listen_event, kconfig::ev_self | kconfig::ev_merge);
 		kconfig::listen(_KS("cache"), nullptr, [](void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
@@ -545,7 +578,7 @@ int do_config_thread(void* first_time, int argc) {
 				conf.disk_cache = get_radio_size(xml->get_first()->attributes("disk", "0"), conf.disk_cache_is_radio);
 				SAFE_STRCPY(conf.disk_cache_dir2, xml->get_first()->attributes("disk_dir", ""));
 				if (!kconfig::is_first()) {
-					if (strcasecmp(conf.disk_cache_dir2, conf.disk_cache_dir)!=0) {
+					if (strcasecmp(conf.disk_cache_dir2, conf.disk_cache_dir) != 0) {
 						kconfig::set_need_reboot();
 					}
 				} else {
@@ -589,12 +622,14 @@ void do_config(bool first_time) {
 		assert(!first_time);
 		return;
 	}
+	/*
 	if (first_time) {
 		//first time load must not use thread
 		do_config_thread((void*)&first_time, 0);
 		return;
 	}
-	if (kfiber_create(do_config_thread, NULL, 0, conf.fiber_stack_size, NULL) != 0) {
+	*/
+	if (kfiber_create(do_config_thread, (void*)&first_time, 0, conf.fiber_stack_size, NULL) != 0) {
 		katom_set((void*)&load_config_progress, 0);
 	}
 }
@@ -652,14 +687,6 @@ void load_config(KConfig* cconf, bool firstTime) {
 	std::string configFileDir = conf.path + "/etc";
 #endif
 	std::string configFile = configFileDir + CONFIG_FILE;
-	bool parse_result = worker_config_parser.parse(configFile);
-	if (!parse_result && kfile_last_modified(configFile.c_str()) == 0) {
-		configFile = configFileDir + CONFIG_DEFAULT_FILE;
-		worker_config_parser.parse(configFile);
-	}
-	if (firstTime) {
-		init_program();
-	}
 	//新版配置文件
 	kconfig::reload();
 	loadExtConfigFile();
@@ -707,7 +734,7 @@ void load_config(KConfig* cconf, bool firstTime) {
 		xmlParser.addEvent(&wm);
 		cconf->am = &am;
 		cconf->vm = &vm;
-	}
+		}
 
 	for (it = extconfigs.begin(); it != extconfigs.end(); it++) {
 		if (!main_config_loaded && (*it).first >= 100) {
@@ -764,7 +791,7 @@ void load_config(KConfig* cconf, bool firstTime) {
 	}
 #endif
 	cur_config_ext = false;
-}
+		}
 void parse_server_software() {
 	//生成serverName
 	timeLock.Lock();
@@ -799,7 +826,7 @@ void post_load_config(bool firstTime) {
 		kasync_worker_set(conf.dnsWorker, conf.worker_dns, 512);
 	}
 	parse_server_software();
-	
+
 	http_config.fiber_stack_size = conf.fiber_stack_size;
 	khttp_server_set_ssl_config(conf.ca_path.c_str(), conf.ssl_client_chiper.c_str(), conf.ssl_client_protocols.c_str());
 	cache.init(firstTime);

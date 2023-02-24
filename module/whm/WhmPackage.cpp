@@ -121,7 +121,7 @@ int WhmPackage::process(const char *callName,WhmContext *context) {
 	//*out << "<result status=\"" << WHM_CALL_NOT_FOUND << "\"/>";
 	return WHM_CALL_NOT_FOUND;
 }
-WhmExtend *WhmPackage::findExtend(std::string &name) {
+WhmExtend *WhmPackage::findExtend(const std::string &name) {
 	std::map<string, WhmExtend *>::iterator it;
 	it = extends.find(name);
 	if (it == extends.end()) {
@@ -129,15 +129,12 @@ WhmExtend *WhmPackage::findExtend(std::string &name) {
 	}
 	return (*it).second;
 }
-WhmCallMap *WhmPackage::newCallMap(std::string &name, std::string &callName) {
-	if (callName.size() == 0) {
-		callName = name;
-	}
+WhmCallMap *WhmPackage::newCallMap(const std::string &name, const std::string &callName) {
 	WhmExtend *extend = findExtend(name);
 	if (extend == NULL) {
 		return NULL;
 	}
-	return new WhmCallMap(extend, callName);
+	return new WhmCallMap(extend, callName.empty()?name:callName);
 }
 bool WhmPackage::startElement(KXmlContext *context) {
 	if(context->parent == NULL){
@@ -281,7 +278,7 @@ bool WhmPackage::endElement(KXmlContext *context) {
 	}
 	return true;
 }
-WhmCallMap *WhmPackage::findCallMap(std::string &name) {
+WhmCallMap *WhmPackage::findCallMap(const std::string &name) {
 	std::map<std::string, WhmCallMap *>::iterator it;
 	it = callmap.find(name);
 	if (it != callmap.end()) {

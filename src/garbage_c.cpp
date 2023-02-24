@@ -172,12 +172,6 @@ KTHREAD_FUNCTION time_thread(void* arg) {
 #endif
 	//assert(test_timer());
 	unsigned i = rand();
-#ifdef MALLOCDEBUG
-	void start_hook_alloc();
-	if (conf.mallocdebug) {
-		start_hook_alloc();
-	}
-#endif
 	time_t nowTime;
 	INT64 now_msec;
 	INT64 last_msec = katom_get64((void*)&kgl_current_msec);

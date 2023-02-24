@@ -113,7 +113,6 @@ bool nofork = false;
 int open_file_limit = 0;
 bool test();
 int GetNumberOfProcessors();
-extern int numberCpu;
 #ifdef _WIN32
 HANDLE active_event = INVALID_HANDLE_VALUE;
 HANDLE shutdown_event = INVALID_HANDLE_VALUE;
@@ -184,6 +183,9 @@ int clean_memory_leak_fiber(void* arg, int argc) {
 	delete conf.gvm;
 	delete conf.gam;
 #endif
+	if (conf.dem) {
+		delete conf.dem;
+	}
 #ifdef ENABLE_WRITE_BACK
 	writeBackManager.destroy();
 #endif
@@ -193,7 +195,6 @@ int clean_memory_leak_fiber(void* arg, int argc) {
 #endif
 	server_container->Clean();
 	klang.clear();
-	conf.admin_ips.clear();
 	if (conf.dnsWorker) {
 		kasync_worker_release(conf.dnsWorker);
 		conf.dnsWorker = NULL;
@@ -245,6 +246,10 @@ int shutdown_fiber(void* arg, int got) {
 #ifdef ENABLE_DISK_CACHE
 	if (conf.disk_cache > 0) {
 		saveCacheIndex();
+		if (dci) {
+			delete dci;
+			dci = nullptr;
+		}
 	}
 #endif
 #ifdef ENABLE_VH_RUN_AS
@@ -264,8 +269,8 @@ int shutdown_fiber(void* arg, int got) {
 	quit_program_flag = PROGRAM_QUIT_SHUTDOWN;
 #ifndef MALLOCDEBUG
 	/**
-	 *  malloc debug model. do not exit right now. 
-	 *  program will free all know memory and log leak memory. 
+	 *  malloc debug model. do not exit right now.
+	 *  program will free all know memory and log leak memory.
 	 * */
 	exit(0);
 #endif
@@ -286,10 +291,10 @@ void shutdown_signal(int sig) {
 #ifndef _WIN32
 	/**
 	* on unix from signal do not call any function. only can set flag.
-	* this cause main selector call create_shutdown_fiber.	
+	* this cause main selector call create_shutdown_fiber.
 	*/
 	if (workerProcess.empty()) {
-		if (quit_program_flag>0) {
+		if (quit_program_flag > 0) {
 			return;
 		}
 		quit_program_flag = PROGRAM_QUIT_PREPARE;
@@ -1117,15 +1122,9 @@ unsigned getpagesize() {
 }
 #endif
 void init_program() {
-	//printf("sizeof (rq) = %d\n",sizeof(KHttpRequest));
-	int select_count = conf.select_count;
-	if (select_count <= 0) {
-		select_count = numberCpu;
-		if (select_count == 0) {
-			select_count = 1;
-		}
-	}
-	selector_manager_init(select_count, false);
+	kasync_init();
+	init_http_server_callback(kangle::kgl_on_new_connection, start_request_fiber);
+	selector_manager_init(1, false);
 }
 
 #ifndef _WIN32
@@ -1225,17 +1224,15 @@ int main_fiber(void* arg, int argc) {
 		save_pid();
 	}
 #endif
-	kselector_update_time();
 	kgl_update_http_time();
 #ifdef KSOCKET_SSL
-	kssl_init2();
 	kssl_set_sni_callback(kgl_lookup_sni_ssl_ctx, kgl_free_ssl_sni);
 #endif
-	init_http_server_callback(kangle::kgl_on_new_connection, start_request_fiber);
+
 	do_config(true);
 	m_pid = getpid();
 	init_core_limit();
-	for (int i = numberCpu; i > 0; i--) {
+	for (int i = kgl_cpu_number; i > 0; i--) {
 		if (init_resource_limit(i)) {
 			break;
 		}
@@ -1288,8 +1285,11 @@ void StartAll() {
 	initFastcgiData();
 	kgl_pagesize = getpagesize();
 	server_container = new KCdnContainer;
-	kgl_addr_init();
-	kasync_main(main_fiber, NULL, 0);
+	init_program();
+	selector_manager_on_ready([](KOPAQUE data, void* arg, int got) {
+		kfiber_create(main_fiber, nullptr, 0, 0, nullptr);
+		return kev_ok;
+		}, nullptr);
 	selector_manager_start(kgl_update_http_time, true);
 	time_thread(NULL);
 #ifdef MALLOCDEBUG
@@ -1386,10 +1386,10 @@ int main(int argc, char** argv) {
 	SetUnhandledExceptionFilter(CustomUnhandledExceptionFilter);
 #endif
 	//}}
-	numberCpu = GetNumberOfProcessors();
+	kgl_cpu_number = GetNumberOfProcessors();
 	//printf("number of cpus %d\n",numberCpu);
-	if (numberCpu <= 0) {
-		numberCpu = 1;
+	if (kgl_cpu_number <= 0) {
+		kgl_cpu_number = 1;
 	}
 	//	printf("using LANG %s\n",lang);
 	if (parse_args(argc, argv)) {

@@ -121,15 +121,6 @@ bool KConfigParser::startCharacter(KXmlContext* context, char* character, int le
 		}
 	}
 	if (context->path == "config") {
-#ifdef MALLOCDEBUG
-		if (context->qName == "mallocdebug") {
-			if (atoi(character) == 0) {
-				cconf->mallocdebug = false;
-			} else {
-				cconf->mallocdebug = true;
-			}
-		}
-#endif
 		if (context->qName == "http2https_code") {
 			cconf->http2https_code = atoi(character);
 			return true;

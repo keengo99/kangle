@@ -15,7 +15,10 @@ public:
 	}
 	~KDsoExtendManage()
 	{
-
+		for (auto it = dsos.begin(); it != dsos.end(); it++) {
+			delete (*it).second;
+		}
+		dsos.clear();
 	}
 	void html(std::stringstream &s);
 	void whm(WhmContext *ctx);

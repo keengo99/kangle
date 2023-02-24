@@ -27,8 +27,35 @@
 #include "do_config.h"
 using namespace std;
 KListenConfigParser listenConfigParser;
-KWorkerConfigParser worker_config_parser;
 
+KListenHost* parse_listen(const KXmlAttribute& attribute) {
+	KListenHost* m_host = new KListenHost;
+	//m_host->name = attribute["name"];
+	m_host->ip = attribute["ip"];
+	m_host->port = attribute["port"];
+#ifdef KSOCKET_SSL
+	m_host->cert_file = attribute["certificate"];
+	m_host->key_file = attribute["certificate_key"];
+	if (!attribute["alpn"].empty()) {
+		m_host->alpn = (u_char)atoi(attribute["alpn"].c_str());
+	} else {
+		m_host->alpn = 0;
+	}
+#ifdef ENABLE_HTTP2
+	if (!attribute["http2"].empty()) {
+		m_host->alpn = attribute["http2"] == "1";
+	}
+#endif
+	m_host->early_data = attribute["early_data"] == "1";
+	m_host->cipher = attribute["cipher"];
+	m_host->protocols = attribute["protocols"];
+#endif
+	if (!parseWorkModel(attribute["type"].c_str(), m_host->model)) {
+		delete m_host;
+		return nullptr;
+	}
+	return m_host;
+}
 void on_listen_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	assert(ev->xml->is_tag(_KS("listen")));
 	assert(!KBIT_TEST(ev->type, kconfig::EvSubDir));
@@ -36,25 +63,6 @@ void on_listen_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEve
 		return;
 	}
 	auto xml_node = tree->node;
-}
-bool KWorkerConfigParser::startCharacter(KXmlContext *context, char *character, int len)
-{
-	if (context->path == "config" && context->qName == "worker_thread") {
-		conf.select_count = atoi(character);
-		return true;
-	}
-	return false;
-}
-bool KWorkerConfigParser::parse(std::string file) {
-	KXml xmlParser;
-	xmlParser.setEvent(this);
-	bool result = false;
-	try {
-		result = xmlParser.parseFile(file);
-	}catch(KXmlException e) {
-		return false;
-	}
-	return result;
 }
 bool KListenConfigParser::startElement(KXmlContext *context) {
 	if (context->getParentName()!="config") {
