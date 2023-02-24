@@ -9,6 +9,8 @@
 #include "KVirtualHost.h"
 #include "KDsoModule.h"
 #include "kfiber_sync.h"
+#include "KXmlAttribute.h"
+
 #define VH_INFO_HOST       0
 #define VH_INFO_ERROR_PAGE 1
 #define VH_INFO_INDEX      2
@@ -27,7 +29,7 @@ public:
 	bool flushVirtualHost(const char *vhName,bool initEvent,KVirtualHostEvent *ctx);
 	bool loadVirtualHost(KVirtualHostManage *vm,std::string &errMsg);
 
-	bool parseAttribute(std::map<std::string,std::string> &attribute);
+	bool parseAttribute(KXmlAttribute &attribute);
 	//检查数据库连接是否正常
 	bool check();
 	bool isSuccss()
@@ -42,7 +44,7 @@ private:
 	kgl_vh_connection createConnection();
 	void freeConnection(kgl_vh_connection cn);
 	bool loadInfo(KVirtualHost *vh, kgl_vh_connection cn);
-	KVirtualHost *newVirtualHost(kgl_vh_connection cn, std::map<std::string,std::string> &attribute, KVirtualHostManage *vm, KVirtualHost *ov);
+	KVirtualHost *newVirtualHost(kgl_vh_connection cn, KXmlAttribute &attribute, KVirtualHostManage *vm, KVirtualHost *ov);
 	kfiber_mutex* lock;
 	vh_module vhm;
 	bool lastStatus;

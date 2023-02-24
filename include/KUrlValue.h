@@ -3,34 +3,34 @@
 #include<map>
 #include<string>
 #include "KXmlAttribute.h"
-/* @deprecated 用KUrlParser */
 class KUrlValue
 {
 public:
 	KUrlValue();
 	virtual ~KUrlValue();
-	KUrlValue *getSub(std::string name,int index);
-	KUrlValue *getNextSub(std::string name,int &index);
-	std::string get(const std::string name);
+	KUrlValue *getSub(const std::string &name,int index) const;
+	KUrlValue *getNextSub(const std::string &name,int &index) const;
+	const std::string &get(const std::string &name) const;
 	/*
 	得到一个值，不会返回NULL,不存在则返回""
 	*/
-	std::string get(const char *name);
+	const std::string& get(const char *name) const;
 	/*
 	得到一个值，不存在返回NULL
 	*/
-	const char *getx(const char *name);
-	bool get(const std::string name,std::string &value);
-	void get(std::map<std::string,std::string> &values);
-	std::map<std::string,std::string> *get()
+	const char *getx(const char *name) const;
+	bool get(const std::string name,std::string &value) const;
+	void get(std::map<std::string,std::string> &values) const;
+	const KXmlAttribute &get() const
 	{
-		return &attribute;
+		return attribute;
 	}
-	bool add(std::string name,std::string value);
+	bool add(const std::string &name,const std::string &value);
+	void put(const std::string& name, const std::string& value);
 	void add(KUrlValue *subform);
 	bool parse(const char *param);
 	KXmlAttribute attribute;
-	std::string operator[](std::string name)
+	const std::string &operator[](const std::string &name) const
 	{
 		return attribute[name];
 	}

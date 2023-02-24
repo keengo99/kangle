@@ -68,15 +68,14 @@ static int thread_vhd_connect(void* arg, int argc)
 KVirtualHostDatabase vhd;
 static void set_vh_data(void *ctx,const char *name,const char *value)
 {
-	std::map<std::string,std::string> *attribute = (std::map<std::string,std::string> *)ctx;
-	attribute->insert(std::pair<std::string,std::string>(name,value));
+	KXmlAttribute* attribute = (KXmlAttribute*)ctx;
+	attribute->emplace(name, value);
 	return;
 }
 static const char *getx_vh_data(void *ctx,const char *name)
 {
-	std::map<std::string,std::string> *attribute = (std::map<std::string,std::string> *)ctx;
-	std::map<std::string,std::string>::iterator it;
-	it = attribute->find(name);
+	KXmlAttribute*attribute = (KXmlAttribute*)ctx;
+	auto it = attribute->find(name);
 	if(it==attribute->end()){
 		return NULL;
 	}
@@ -90,7 +89,7 @@ static const char *get_vh_data(void *ctx,const char *name)
 	}
 	return "";
 }
-void init_vh_data(vh_data *vd,std::map<std::string,std::string> *attribute)
+void init_vh_data(vh_data *vd, KXmlAttribute *attribute)
 {
 	vd->set = set_vh_data;
 	vd->get = get_vh_data;
@@ -164,7 +163,7 @@ bool KVirtualHostDatabase::flushVirtualHost(const char *vhName,bool initEvent,KV
 		return false;
 	}
 	vh_data vd;
-	std::map<std::string,std::string> attribute;
+	KXmlAttribute attribute;
 	init_vh_data(&vd,&attribute);
 	vhd_query_param query_param;
 	query_param.vhm = &vhm;
@@ -231,7 +230,7 @@ bool KVirtualHostDatabase::loadVirtualHost(KVirtualHostManage *vm,std::string &e
 		return true;
 	}
 	vh_data vd;
-	std::map<std::string,std::string> attribute;
+	KXmlAttribute attribute;
 	init_vh_data(&vd,&attribute);
 	vhd_query_param query_param;
 	query_param.vhm = &vhm;
@@ -293,7 +292,7 @@ bool KVirtualHostDatabase::loadVirtualHost(KVirtualHostManage *vm,std::string &e
 	vhm.freeConnection(cn);
 	return true;
 }
-bool KVirtualHostDatabase::parseAttribute(std::map<std::string,std::string> &attribute)
+bool KVirtualHostDatabase::parseAttribute(KXmlAttribute&attribute)
 {
 	bool result = false;
 	kfiber_mutex_lock(lock);
@@ -331,7 +330,7 @@ bool KVirtualHostDatabase::parseAttribute(std::map<std::string,std::string> &att
 	kfiber_mutex_unlock(lock);
 	return result;
 }
-KVirtualHost *KVirtualHostDatabase::newVirtualHost(kgl_vh_connection cn,std::map<std::string,std::string> &attribute,KVirtualHostManage *vm,KVirtualHost *ov)
+KVirtualHost *KVirtualHostDatabase::newVirtualHost(kgl_vh_connection cn, KXmlAttribute &attribute,KVirtualHostManage *vm,KVirtualHost *ov)
 {
 	KTempleteVirtualHost *tm = NULL;
 	KVirtualHost *vh = NULL;
@@ -373,7 +372,7 @@ bool KVirtualHostDatabase::loadInfo(KVirtualHost *vh, kgl_vh_connection cn)
 	if(vhm.loadInfo == NULL){
 		return false;
 	}
-	std::map<std::string,std::string> attribute;
+	KXmlAttribute attribute;
 	vh_data vd;
 	init_vh_data(&vd,&attribute);
 	vhd_load_info_param param;

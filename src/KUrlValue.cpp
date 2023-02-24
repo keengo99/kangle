@@ -38,8 +38,8 @@ KUrlValue::~KUrlValue() {
 		delete next;
 	}
 }
-KUrlValue *KUrlValue::getNextSub(std::string name, int &index) {
-	map<string, KUrlValue *>::iterator it = subs.find(name);
+KUrlValue *KUrlValue::getNextSub(const std::string &name, int &index)  const {
+	auto it = subs.find(name);
 	if (it == subs.end())
 		return NULL;
 	index = 0;
@@ -54,8 +54,8 @@ KUrlValue *KUrlValue::getNextSub(std::string name, int &index) {
 	last->flag = true;
 	return last;
 }
-KUrlValue *KUrlValue::getSub(std::string name, int index) {
-	map<string, KUrlValue *>::iterator it = subs.find(name);
+KUrlValue *KUrlValue::getSub(const std::string &name, int index) const {
+	auto it = subs.find(name);
 	if (it == subs.begin())
 		return NULL;
 	KUrlValue *last = (*it).second;
@@ -68,27 +68,23 @@ KUrlValue *KUrlValue::getSub(std::string name, int index) {
 	}
 	return last;
 }
-std::string KUrlValue::get(const std::string name) {
-	std::string value;
-	get(name, value);
-	return value;
+const std::string &KUrlValue::get(const std::string &name) const {
+	return attribute[name];
 }
-const char *KUrlValue::getx(const char *name)
+const char *KUrlValue::getx(const char *name) const
 {
-	map<string, string>::iterator it = attribute.find(name);
+	auto it = attribute.find(name);
 	if (it == attribute.end()) {
 		return NULL;
 	}
 	return (*it).second.c_str();
 }
-std::string KUrlValue::get(const char *name)
+const std::string &KUrlValue::get(const char *name) const
 {
-	std::string value;
-	get(name, value);
-	return value;
+	return attribute[name];
 }
-bool KUrlValue::get(const std::string name, std::string &value) {
-	map<string, string>::iterator it = attribute.find(name);
+bool KUrlValue::get(const std::string name, std::string &value) const {
+	auto it = attribute.find(name);
 	if (it == attribute.end()) {
 		return false;
 	}
@@ -96,7 +92,7 @@ bool KUrlValue::get(const std::string name, std::string &value) {
 	return true;
 }
 
-void KUrlValue::get(std::map<std::string, std::string> &values) {
+void KUrlValue::get(std::map<std::string, std::string> &values) const {
 	values = attribute;
 }
 
@@ -154,28 +150,32 @@ bool KUrlValue::parse(const char *param) {
 	xfree(buf);
 	return true;
 }
-bool KUrlValue::add(std::string name, std::string value) {
+void KUrlValue::put(const std::string& name, const std::string& value) {
+	attribute.emplace(name, value);
+}
+bool KUrlValue::add(const std::string& name, const std::string& value) {
 	if (sub) {
 		if (sub->add(name, value))
 			return true;
 	}
 	if (name == "begin_sub_form") {
 		sub = new KUrlValue;
-		map<string, KUrlValue *>::iterator it = subs.find(value);
+		auto it = subs.find(value);
 		if (it == subs.end()) {
-			subs.insert(pair<string, KUrlValue *> (value, sub));
+			subs.emplace(value, sub);
 		} else {
 			(*it).second->add(sub);
 		}
 		return true;
 	}
 	if (name == "end_sub_form") {
-		if (sub == NULL)
+		if (sub == NULL) {
 			return false;
+		}
 		sub = NULL;
 		return true;
 	}
-	std::map<std::string,std::string>::iterator it2 =  attribute.find(name);
+	auto it2 =  attribute.find(name);
 	if(it2==attribute.end()){
 		attribute.emplace(name, value);
 	}else{

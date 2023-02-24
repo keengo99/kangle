@@ -82,7 +82,7 @@ bool KHttpServerParser::startElement(KXmlContext *context) {
 		return vhd.parseAttribute(context->attribute);
 	}
 	if (strcasecmp(context->qName.c_str(), "vhs") == 0) {
-		buildBaseVirtualHost(&context->attribute, &vhm->globalVh);
+		buildBaseVirtualHost(context->attribute, &vhm->globalVh);
 		return true;
 	} else if (strcasecmp(context->qName.c_str(), "vh") == 0) {
 		assert(virtualHost==NULL);
@@ -113,7 +113,7 @@ bool KHttpServerParser::startElement(KXmlContext *context) {
 			}
 		}
 		cur_tvh = new KTempleteVirtualHost;
-		KAttributeHelper helper(&context->attribute);
+		KAttributeHelper helper(context->attribute);
 		if (!buildVirtualHost(&helper,cur_tvh,&vhm->globalVh,  tvh,NULL)) {
 			delete cur_tvh;
 			cur_tvh = NULL;
@@ -307,16 +307,13 @@ bool KHttpServerParser::endElement(KXmlContext *context) {
 	}
 	return true;
 }
-bool KHttpServerParser::buildBaseVirtualHost(std::map<std::string, std::string> *attribute, KBaseVirtualHost *bv) {
-	if (attribute == NULL) {
-		return false;
-	}
+bool KHttpServerParser::buildBaseVirtualHost(KXmlAttribute &attribute, KBaseVirtualHost *bv) {
 	//兼容老的index 处理
 	map<string, string>::iterator it;
 	std::vector<std::string> indexFiles;
 	std::vector<KBaseString> indexFiles2;
-	it = attribute->find("index");
-	if (it != attribute->end()) {
+	it = attribute.find("index");
+	if (it != attribute.end()) {
 		explode((*it).second.c_str(), ',', indexFiles);
 		for (size_t i = 0; i < indexFiles.size(); i++) {
 			//indexFiles2.push_back(indexFiles[i]);
@@ -324,7 +321,7 @@ bool KHttpServerParser::buildBaseVirtualHost(std::map<std::string, std::string> 
 		}
 	}
 	map<int, KBaseString> errorPages;
-	for (it = attribute->begin(); it != attribute->end(); it++) {
+	for (it = attribute.begin(); it != attribute.end(); it++) {
 		if (strncasecmp((*it).first.c_str(), "error_", 6) == 0) {
 			//errorPages[atoi((*it).first.c_str() + 6)] = (*it).second;
 			bv->addErrorPage(atoi((*it).first.c_str() + 6),(*it).second);
@@ -593,9 +590,8 @@ bool KHttpServerParser::buildVirtualHost(KAttributeHelper *ah,
 	}
 	return true;
 }
-KVirtualHost *KHttpServerParser::buildVirtualHost(std::map<std::string,
-		std::string> &attribute,KBaseVirtualHost *gvh, KTempleteVirtualHost *tm,KVirtualHost *ov) {
-	KAttributeHelper helper(&attribute);
+KVirtualHost *KHttpServerParser::buildVirtualHost(KXmlAttribute&attribute,KBaseVirtualHost *gvh, KTempleteVirtualHost *tm,KVirtualHost *ov) {
+	KAttributeHelper helper(attribute);
 	return buildVirtualHost(&helper,gvh, tm,ov);
 }
 KVirtualHost *KHttpServerParser::buildVirtualHost(KAttributeHelper *ah,KBaseVirtualHost *gvh,

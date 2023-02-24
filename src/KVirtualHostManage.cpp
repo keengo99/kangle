@@ -415,13 +415,13 @@ bool KVirtualHostManage::vhBaseAction(KUrlValue& attribute, std::string& errMsg)
 				tvh->destroy();
 			}
 		} else if (action == "indexadd") {
-			attribute["id"] = "1";
+			attribute.put("id", "1");
 			result = bvh->addIndexFile(attribute["index"], atoi(attribute["index_id"].c_str()));
 		} else if (action == "indexdelete") {
-			attribute["id"] = "1";
+			attribute.put("id","1");
 			result = bvh->delIndexFile(attribute["index"]);
 		} else if (action == "redirectadd") {
-			attribute["id"] = "2";
+			attribute.put("id", "2");
 			bool file_ext = false;
 			if (attribute["type"] == "file_ext") {
 				file_ext = true;
@@ -430,21 +430,21 @@ bool KVirtualHostManage::vhBaseAction(KUrlValue& attribute, std::string& errMsg)
 				attribute["extend"], attribute["allow_method"],
 				(uint8_t)atoi(attribute["confirm_file"].c_str()), attribute["params"]);
 		} else if (action == "redirectdelete") {
-			attribute["id"] = "2";
+			attribute.put("id", "2");
 			bool file_ext = false;
 			if (attribute["type"] == "file_ext") {
 				file_ext = true;
 			}
 			result = bvh->delRedirect(file_ext, attribute["value"]);
 		} else if (action == "errorpageadd") {
-			attribute["id"] = "3";
+			attribute.put("id", "3");
 			result = bvh->addErrorPage(atoi(attribute["code"].c_str()),
 				attribute["url"]);
 		} else if (action == "errorpagedelete") {
-			attribute["id"] = "3";
+			attribute.put("id", "3");
 			result = bvh->delErrorPage(atoi(attribute["code"].c_str()));
 		} else if (action == "aliasadd") {
-			attribute["id"] = "5";
+			attribute.put("id", "5");
 			bool internal = false;
 			if (attribute["internal"] == "1" || attribute["internal"] == "on") {
 				internal = true;
@@ -456,17 +456,17 @@ bool KVirtualHostManage::vhBaseAction(KUrlValue& attribute, std::string& errMsg)
 				atoi(attribute["index"].c_str()),
 				errMsg);
 		} else if (action == "aliasdelete") {
-			attribute["id"] = "5";
+			attribute.put("id", "5");
 			result = bvh->delAlias(attribute["path"].c_str());
 		} else if (action == "mimetypeadd") {
-			attribute["id"] = "8";
+			attribute.put("id", "8");
 			kgl_compress_type compress = (kgl_compress_type)atoi(attribute["compress"].c_str());
 			int max_age = atoi(attribute["max_age"].c_str());
 			bvh->addMimeType(attribute["ext"].c_str(), attribute["type"].c_str(), compress, max_age);
 			result = true;
 			reinherit = false;
 		} else if (action == "mimetypedelete") {
-			attribute["id"] = "8";
+			attribute.put("id", "8");
 			result = bvh->delMimeType(attribute["ext"].c_str());
 			reinherit = false;
 		} else {
@@ -512,8 +512,8 @@ void KVirtualHostManage::inheriteAll() {
 }
 bool KVirtualHostManage::vhAction(KVirtualHost* ov, KTempleteVirtualHost* tm,
 	KUrlValue& attribute, std::string& errMsg) {
-	attribute["from_web_console"] = 1;
-	KAttributeHelper ah(attribute.get());
+	attribute.put("from_web_console", "1");
+	KAttributeHelper ah(attribute.attribute);
 	bool isTemplate = atoi(attribute["t"].c_str()) > 0;
 	KTempleteVirtualHost* tvh = NULL;
 	KVirtualHost* vh;

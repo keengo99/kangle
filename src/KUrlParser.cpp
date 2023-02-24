@@ -1,5 +1,5 @@
 #include "KUrlParser.h"
-
+#if 0
 bool KUrlParser::parse(const char *param)
 {
 	if (param == NULL || buf) {
@@ -31,3 +31,4 @@ bool KUrlParser::parse(const char *param)
 	}
 	return true;
 }
+#endif

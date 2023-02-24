@@ -21,6 +21,7 @@
 #include "KXmlEvent.h"
 #include "KVirtualHost.h"
 #include "KAccess.h"
+#include "KXmlAttribute.h"
 #ifndef HTTP_PROXY
 
 class KHttpServerParser : public KXmlEvent {
@@ -35,9 +36,9 @@ public:
 	void startXml(const std::string &encoding) override;
 	void endXml(bool result) override;
 	static bool buildVirtualHost(KAttributeHelper *ah,KVirtualHost *virtualHost,KBaseVirtualHost *gvh,KTempleteVirtualHost *tm,KVirtualHost *ov = NULL);
-	static KVirtualHost *buildVirtualHost(std::map<std::string,std::string> &attribute,KBaseVirtualHost *gvh,KTempleteVirtualHost *tm,KVirtualHost *ov);
+	static KVirtualHost *buildVirtualHost(KXmlAttribute&attribute,KBaseVirtualHost *gvh,KTempleteVirtualHost *tm,KVirtualHost *ov);
 	static KVirtualHost *buildVirtualHost(KAttributeHelper *ah,KBaseVirtualHost *gvh,KTempleteVirtualHost *tm,KVirtualHost *ov = NULL);
-	static bool buildBaseVirtualHost(std::map<std::string,std::string> *attribute,KBaseVirtualHost *vh);
+	static bool buildBaseVirtualHost(KXmlAttribute &attribute,KBaseVirtualHost *vh);
 	KAccess *kaccess[2];
 private:
 	bool ParseSsl(KVirtualHostManage *vhm, std::map<std::string, std::string> &attribute);

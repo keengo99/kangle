@@ -45,6 +45,7 @@
 #include "extern.h"
 #include "KFlowInfo.h"
 #include "KConnectionLimit.h"
+#include "KXmlAttribute.h"
 //由vh的引用，计算连接数的差异
 #define VH_REFS_CONNECT_DELTA 1
 class KTempleteVirtualHost;
@@ -54,22 +55,17 @@ class KTempleteVirtualHost;
 class KAttributeHelper
 {
 public:
-	KAttributeHelper(std::map<std::string,std::string> *attribute)
-	{
-		this->attribute = attribute;
+	KAttributeHelper(KXmlAttribute &attr): attribute(attr)
+	{		
 	}
-	std::map<std::string,std::string> *getAttribute()
+	KXmlAttribute &getAttribute()
 	{
 		return attribute;
 	}
-	bool getValue(const char *name,std::string &value)
+	bool getValue(const char *name,std::string &value) const 
 	{
-		if(attribute==NULL){
-			return false;
-		}
-		std::map<std::string,std::string>::iterator it;
-		it = attribute->find(name);
-		if(it==attribute->end()){
+		auto it = attribute.find(name);
+		if(it==attribute.end()){
 			return false;
 		}
 		value = (*it).second;
@@ -77,10 +73,10 @@ public:
 	}
 	void setValue(const char *name,const char *value)
 	{
-		attribute->insert(std::pair<std::string,std::string>(name,value));
+		attribute.emplace(name, value);
 	}
 private:
-	std::map<std::string,std::string> *attribute;
+	KXmlAttribute &attribute;
 };
 /**
 * 虚拟主机类

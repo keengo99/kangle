@@ -888,7 +888,7 @@ bool KAcserverManager::delCmd(std::string name, std::string& err_msg) {
 }
 #endif
 #ifdef ENABLE_MULTI_SERVER
-bool KAcserverManager::remove_server(std::string &name, std::string& err_msg) {
+bool KAcserverManager::remove_server(const std::string &name, std::string& err_msg) {
 	KStringBuf s;
 	s << "server@" << name;
 	switch (kconfig::remove(s.getBuf(), s.getSize(), 0)) {

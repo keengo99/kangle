@@ -5,6 +5,7 @@
 #include "kforwin32.h"
 #include "KUrl.h"
 #include "kmalloc.h"
+#if 0
 struct lessp_url_name {
 	bool operator()(const char * __x, const char * __y) const {
 		return strcasecmp(__x, __y) < 0;
@@ -76,5 +77,6 @@ private:
 	char *buf;
 	std::map<const char *,KParamValue *,lessp_url_name> m;
 };
+#endif
 int url_decode(char *url_msg, int url_len = 0,KUrl *url=NULL,bool space2plus=true);
 #endif

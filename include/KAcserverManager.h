@@ -53,7 +53,7 @@ public:
 #endif
 	void copy(KAcserverManager& a);
 	void unloadAllApi();
-	bool remove_server(std::string &name, std::string& err_msg);
+	bool remove_server(const std::string &name, std::string& err_msg);
 #ifdef ENABLE_MULTI_SERVER
 	std::string macserverList(std::string name = "");	
 	std::string macserver_node_form(std::string name, std::string action, unsigned nodeIndex);
