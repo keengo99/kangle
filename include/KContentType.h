@@ -82,7 +82,7 @@ struct mime_type
 			s << " max_age='" << max_age << "'";
 		}
 	}
-	void buildHtml(const char *ext,std::string &url,std::stringstream &s)
+	void buildHtml(const char *ext, const std::string&url,std::stringstream &s)
 	{
 		s << "<tr><td>";
 		s << "[<a href=\"javascript:if(confirm('really delete?')){ window.location='/vhbase?action=mimetypedelete&ext=";

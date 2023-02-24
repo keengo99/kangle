@@ -130,7 +130,7 @@ public:
 			s << (*it).name << "=\"" << (*it).value << "\"";
 		}
 	}
-	void parseParams(std::string &s)
+	void parseParams(const std::string &s)
 	{
 		char *buf = xstrdup(s.c_str());
 		parseParams(buf);

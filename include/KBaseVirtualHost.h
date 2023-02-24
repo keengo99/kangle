@@ -12,26 +12,24 @@
 #include "KXml.h"
 #include "KContentType.h"
 #include "KPathHandler.h"
-//{{ent
 #ifdef ENABLE_BLACK_LIST
 #include "KIpList.h"
 #endif
-//}}
 class KApiPipeStream;
 class KVirtualHost;
 class KHttpFilterManage;
 class KVirtualHostEvent
 {
 public:
-	virtual ~KVirtualHostEvent()
-	{
+	virtual ~KVirtualHostEvent() {
 	};
-	virtual void setStatus(const char *errMsg) = 0;
-	virtual void redirect(const char *event) = 0;
-	virtual void buildVh(KVirtualHost *vh) = 0;
-	virtual void add(const char *name, const char *value,bool encode=false) = 0;
+	virtual void setStatus(const char* errMsg) = 0;
+	virtual void redirect(const char* event) = 0;
+	virtual void buildVh(KVirtualHost* vh) = 0;
+	virtual void add(const char* name, const char* value, bool encode = false) = 0;
 };
-class KBaseString {
+class KBaseString
+{
 public:
 	KBaseString() {
 		inherited = false;
@@ -49,11 +47,12 @@ struct KIndexItem
 	KBaseString index;
 };
 
-class KBaseAlias {
+class KBaseAlias
+{
 public:
-	KBaseAlias(const char *path, const char *to,const char *doc_root) {
+	KBaseAlias(const char* path, const char* to, const char* doc_root) {
 		inherited = false;
-		set(path, to,doc_root);
+		set(path, to, doc_root);
 		hit_count = 0;
 	}
 	KBaseAlias() {
@@ -73,22 +72,22 @@ public:
 	/*
 	 深度克隆
 	 */
-	void cloneTo(KBaseAlias *toAlias,const char *doc_root) {
-		toAlias->set(orig_path.c_str(),orig_to.c_str(),doc_root);
+	void cloneTo(KBaseAlias* toAlias, const char* doc_root) {
+		toAlias->set(orig_path.c_str(), orig_to.c_str(), doc_root);
 		toAlias->inherited = inherited;
 		toAlias->hit_count = hit_count;
 		toAlias->internal = internal;
 	}
-	bool equalPath(KBaseAlias *a) {
+	bool equalPath(KBaseAlias* a) {
 		return filecmp(a->path, path) == 0;
 	}
-	const char *getPath() {
+	const char* getPath() {
 		return orig_path.c_str();
 	}
-	const char *getTo() {
+	const char* getTo() {
 		return orig_to.c_str();
 	}
-	bool match(const char *value, int len) {
+	bool match(const char* value, int len) {
 		if (len < path_len) {
 			return false;
 		}
@@ -97,13 +96,13 @@ public:
 			return true;
 		}
 		return false;
-	}	
-	char *matched(const char *value, int len) {
+	}
+	char* matched(const char* value, int len) {
 		hit_count++;
-		assert(len>=path_len);
+		assert(len >= path_len);
 		int left_len = len - path_len;
 		int new_len = left_len + to_len;
-		char *new_value = (char *) xmalloc(new_len+1);
+		char* new_value = (char*)xmalloc(new_len + 1);
 		new_value[new_len] = '\0';
 		kgl_memcpy(new_value, to, to_len);
 		if (left_len <= 0) {
@@ -120,13 +119,13 @@ public:
 	char* path;
 	char* to;
 private:
-	void set(const char *path, const char *to,const char *doc_root) {
+	void set(const char* path, const char* to, const char* doc_root) {
 		orig_path = path;
 		orig_to = to;
 		this->path = KFileName::tripDir2(path, '/');
 		path_len = (int)strlen(this->path);
 		if (!isAbsolutePath(to)) {
-			this->to = KFileName::concatDir(doc_root,to);
+			this->to = KFileName::concatDir(doc_root, to);
 		} else {
 			this->to = KFileName::tripDir2(to, PATH_SPLIT_CHAR);
 		}
@@ -135,57 +134,57 @@ private:
 	std::string orig_to;
 	std::string orig_path;
 };
-class KBaseVirtualHost {
+class KBaseVirtualHost
+{
 public:
 	KBaseVirtualHost();
 	virtual ~KBaseVirtualHost();
-	void swap(KBaseVirtualHost *a);
+	void swap(KBaseVirtualHost* a);
 	std::list<KIndexItem> indexFiles;
 	std::map<int, KBaseString> errorPages;
-	std::map<char *, KBaseRedirect *, lessf> redirects;
-	std::list<KPathRedirect *> pathRedirects;
-	KBaseRedirect *defaultRedirect;
-	std::list<KBaseAlias *> aliass;
-	void getRedirectItemHtml(std::string url,std::string value,bool file_ext,KBaseRedirect *brd,std::stringstream &s);
-	void getIndexHtml(std::string url, std::stringstream &s);
-	void getErrorPageHtml(std::string url, std::stringstream &s);
-	void getRedirectHtml(std::string url, std::stringstream &s);
-	void getAliasHtml(std::string url, std::stringstream &s);
-	bool delAlias(const char *path);
-	bool addAlias(std::string path, std::string to,const char *doc_root, bool internal,int id,std::string &errMsg);
-	bool addIndexFile(std::string index,int id=100);
-	void listIndex(KVirtualHostEvent *ev);
+	std::map<char*, KBaseRedirect*, lessf> redirects;
+	std::list<KPathRedirect*> pathRedirects;
+	KBaseRedirect* defaultRedirect;
+	std::list<KBaseAlias*> aliass;
+	void getRedirectItemHtml(const std::string& url, const std::string& value, bool file_ext, KBaseRedirect* brd, std::stringstream& s);
+	void getIndexHtml(const std::string& url, std::stringstream& s);
+	void getErrorPageHtml(const std::string& url, std::stringstream& s);
+	void getRedirectHtml(const std::string& url, std::stringstream& s);
+	void getAliasHtml(const std::string& url, std::stringstream& s);
+	bool delAlias(const char* path);
+	bool addAlias(const std::string& path, const std::string& to, const char* doc_root, bool internal, int id, std::string& errMsg);
+	bool addIndexFile(const std::string& index, int id = 100);
+	void listIndex(KVirtualHostEvent* ev);
 	//bool delIndexFile(size_t index);
-	bool delIndexFile(std::string index);
-	void getParsedFileExt(KVirtualHostEvent *ctx);
-	bool addRedirect(bool file_ext,std::string value,KRedirect *rd,std::string allowMethod, uint8_t confirmFile,std::string params);
-	bool addRedirect(bool file_ext, std::string value, std::string target,std::string allowMethod, uint8_t confirmFile,std::string params);
-	bool delRedirect(bool file_ext, std::string value);
-	bool addErrorPage(int code, std::string url);
+	bool delIndexFile(const std::string& index);
+	void getParsedFileExt(KVirtualHostEvent* ctx);
+	bool addRedirect(bool file_ext, const std::string& value, KRedirect* rd, const std::string& allowMethod, uint8_t confirmFile, const std::string& params);
+	bool addRedirect(bool file_ext, const std::string& value, const std::string& target, const std::string& allowMethod, uint8_t confirmFile, const std::string& params);
+	bool delRedirect(bool file_ext, const std::string& value);
+	bool addErrorPage(int code, const std::string& url);
 	bool delErrorPage(int code);
-	bool getErrorPage(int code, std::string &errorPage);
-	bool alias(bool internal,const char *path,KFileName *file,bool &exsit,int flag);
-	char *alias(bool internal,const char *path);
-	bool getIndexFile(KHttpRequest *rq,KFileName *file,KFileName **newFile,char **newPath);
-	void buildBaseXML(std::stringstream &s);
+	bool getErrorPage(int code, std::string& errorPage);
+	bool alias(bool internal, const char* path, KFileName* file, bool& exsit, int flag);
+	char* alias(bool internal, const char* path);
+	bool getIndexFile(KHttpRequest* rq, KFileName* file, KFileName** newFile, char** newPath);
+	void buildBaseXML(std::stringstream& s);
 	/**
 	* 继承给vh,clearFlag标识是否先清除继承的设置再继承(用于重新继承)
 	*/
-	void inheriTo(KVirtualHost *vh, bool clearFlag = false);
+	void inheriTo(KVirtualHost* vh, bool clearFlag = false);
 	void changeInherit(bool remove);
-	char *getMimeType(KHttpObject *obj,const char *ext)
-	{
-		char *type = NULL;
+	char* getMimeType(KHttpObject* obj, const char* ext) {
+		char* type = NULL;
 		lock.Lock();
-		if (mimeType) {	
-			type = mimeType->get(obj,ext);			
+		if (mimeType) {
+			type = mimeType->get(obj, ext);
 		}
 		lock.Unlock();
 		return type;
 	}
-	void addMimeType(const char *ext,const char *type, kgl_compress_type compress,int max_age);
-	bool delMimeType(const char *ext);
-	void getMimeTypeHtml(std::string url, std::stringstream &s);
+	void addMimeType(const char* ext, const char* type, kgl_compress_type compress, int max_age);
+	bool delMimeType(const char* ext);
+	void getMimeTypeHtml(const std::string& url, std::stringstream& s);
 	friend class KNsVirtualHost;
 	friend class KHttpServerParser;
 	friend class KVirtualHostManage;
@@ -194,42 +193,37 @@ public:
 	 copyInherit 是否复制继承的设置
 	 changeInherit 复制设置时inherit改变情况，2=不改变，0=变成不继承，1=变成继承
 	 */
-	void cloneTo(KVirtualHost *vh, bool copyInherit, int changeInherit);
+	void cloneTo(KVirtualHost* vh, bool copyInherit, int changeInherit);
 	/*
 		变量
 	*/
-	std::map<char *,char *,lessp_icase> envs;
-	bool getEnvValue(const char *name,std::string &value);
-	bool addEnvValue(const char *name,const char *value);
-	void buildEnv(std::stringstream &s)
-	{
-		std::map<char *, char *, lessp_icase>::iterator it5;
+	std::map<char*, char*, lessp_icase> envs;
+	bool getEnvValue(const char* name, std::string& value);
+	bool addEnvValue(const char* name, const char* value);
+	void buildEnv(std::stringstream& s) {
+		std::map<char*, char*, lessp_icase>::iterator it5;
 		for (it5 = envs.begin(); it5 != envs.end(); it5++) {
 			s << (*it5).first << "='" << (*it5).second << "' ";
 		}
 	}
-	void parseEnv(const char *str)
-	{
-		std::map<char *,char *,lessp_icase> attr;
-		char *buf = strdup(str);
-		buildAttribute(buf,attr);
-		std::map<char *,char *,lessp_icase>::iterator it;
-		for(it = attr.begin();it!=attr.end();it++) {
-			addEnvValue((*it).first,(*it).second);
+	void parseEnv(const char* str) {
+		std::map<char*, char*, lessp_icase> attr;
+		char* buf = strdup(str);
+		buildAttribute(buf, attr);
+		std::map<char*, char*, lessp_icase>::iterator it;
+		for (it = attr.begin(); it != attr.end(); it++) {
+			addEnvValue((*it).first, (*it).second);
 		}
 		free(buf);
 	}
-	void getErrorEnv(const char *split,KStringBuf &s);
-	void getIndexFileEnv(const char *split,KStringBuf &s);
-	//void buildEnvXml(std::stringstream &s);
-	KMimeType *mimeType;
-	//{{ent
+	void getErrorEnv(const char* split, KStringBuf& s);
+	void getIndexFileEnv(const char* split, KStringBuf& s);
+	KMimeType* mimeType;
 #ifdef ENABLE_BLACK_LIST
-	KIpList *blackList;
+	KIpList* blackList;
 #endif
-	//}}
 private:
-	void copyTo(KVirtualHost *vh, bool copyInherit, int changeInherit);
+	void copyTo(KVirtualHost* vh, bool copyInherit, int changeInherit);
 	/*
 	 改变 继承变量,remove是否删除继承.
 	 */
