@@ -627,7 +627,7 @@ static iterator_ret query_domain_iterator(void *data, void *argv)
 			s << "*";
 		}
 		s << svh->host << "\t" << svh->vh->name;
-		param->ctx->add("vh", s.getString());
+		param->ctx->add("vh", s.c_str());
 	}
 	return iterator_continue;
 }

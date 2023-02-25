@@ -102,7 +102,7 @@ public:
 	}
 	void redirect(const char *call)
 	{
-		if(redirectCalls.getSize()>0){
+		if(redirectCalls.size()>0){
 			redirectCalls << ",";
 		}
 		redirectCalls << call;		

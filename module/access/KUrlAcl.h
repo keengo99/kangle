@@ -63,7 +63,7 @@ public:
 		} else {
 			rq->sink->data.url->GetUrl(url);
 		}
-		if (reg.match(url.getString(), url.getSize(), 0)>=0){
+		if (reg.match(url.c_str(), url.size(), 0)>=0){
 			return true;
 		}
 		return false;

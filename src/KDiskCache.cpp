@@ -215,7 +215,7 @@ char* getCacheIndexFile()
 		s << conf.path << "cache" << PATH_SPLIT_CHAR;
 	}
 	s << "index";
-	return s.stealString();
+	return s.steal();
 }
 void get_index_scan_state_filename(KStringBuf& s)
 {
@@ -231,7 +231,7 @@ bool save_index_scan_state()
 	KStringBuf s;
 	get_index_scan_state_filename(s);
 	KFile fp;
-	if (!fp.open(s.getString(), fileWrite)) {
+	if (!fp.open(s.c_str(), fileWrite)) {
 		return false;
 	}
 	bool result = true;
@@ -246,7 +246,7 @@ bool load_index_scan_state()
 	KStringBuf s;
 	get_index_scan_state_filename(s);
 	KFile fp;
-	if (!fp.open(s.getString(), fileRead)) {
+	if (!fp.open(s.c_str(), fileRead)) {
 		return false;
 	}
 	bool result = true;
@@ -369,10 +369,10 @@ int create_file_index(const char* file, void* param)
 	s << (char*)param << PATH_SPLIT_CHAR << file;
 	unsigned f1 = 0;
 	unsigned f2 = 0;
-	char* file_name = s.getString();
+	const char* file_name = s.c_str();
 	KFile fp;
-	if (!fp.open(s.getString(), fileRead)) {
-		fprintf(stderr, "cann't open file[%s]\n", s.getString());
+	if (!fp.open(file_name, fileRead)) {
+		fprintf(stderr, "cann't open file[%s]\n", file_name);
 		return 0;
 	}
 	if (recreate_start_time > 0) {
@@ -451,8 +451,8 @@ void clean_disk_orphan_files(const char* cache_dir)
 		if (it2 == partobjs.end()) {
 			KStringBuf p;
 			p << cache_dir << PATH_SPLIT_CHAR << (*it).c_str() << ".part";
-			klog(KLOG_DEBUG, "part file [%s] is orphan,now delete it.\n", p.getString());
-			unlink(p.getString());
+			klog(KLOG_DEBUG, "part file [%s] is orphan,now delete it.\n", p.c_str());
+			unlink(p.c_str());
 		}
 	}
 	partfiles.clear();
@@ -482,7 +482,7 @@ bool recreate_index(const char* path, int& first_dir_index, int& second_dir_inde
 			s.add_as_hex(first_dir_index);
 			s << PATH_SPLIT_CHAR;
 			s.add_as_hex(second_dir_index);
-			recreate_index_dir(s.getString());
+			recreate_index_dir(s.c_str());
 			s.clean();
 			save_index_scan_state();
 		}
@@ -533,7 +533,7 @@ void init_disk_cache(bool firstTime)
 		if (i > 1) {
 			sqliteIndex << i;
 		}
-		if (0 == unlink(sqliteIndex.getString())) {
+		if (0 == unlink(sqliteIndex.c_str())) {
 			remove_old_index = true;
 		}
 		sqliteIndex.clean();
@@ -544,19 +544,19 @@ void init_disk_cache(bool firstTime)
 	sqliteIndex << file_name << ".sqt" << CACHE_DISK_VERSION;
 	free(file_name);
 	KFile fp;
-	if (fp.open(sqliteIndex.getString(), fileRead)) {
+	if (fp.open(sqliteIndex.c_str(), fileRead)) {
 		fp.close();
-		if (dci->open(sqliteIndex.getString())) {
+		if (dci->open(sqliteIndex.c_str())) {
 			dci->start(ci_load, NULL);
 		} else {
 			klog(KLOG_ERR, "recreate the disk cache index database\n");
 			dci->close();
-			unlink(sqliteIndex.getString());
-			dci->create(sqliteIndex.getString());
+			unlink(sqliteIndex.c_str());
+			dci->create(sqliteIndex.c_str());
 			rescan_disk_cache();
 		}
 	} else {
-		if (!dci->create(sqliteIndex.getString())) {
+		if (!dci->create(sqliteIndex.c_str())) {
 			delete dci;
 			dci = NULL;
 		}
@@ -622,7 +622,7 @@ bool get_disk_size(INT64& total_size, INT64& free_size) {
 	get_disk_base_dir(path);
 #if defined(_WIN32)
 	ULARGE_INTEGER FreeBytesAvailable, TotalNumberOfBytes, TotalNumberOfFreeBytes;
-	if (!GetDiskFreeSpaceEx(path.getString(), &FreeBytesAvailable, &TotalNumberOfBytes, &TotalNumberOfFreeBytes)) {
+	if (!GetDiskFreeSpaceEx(path.c_str(), &FreeBytesAvailable, &TotalNumberOfBytes, &TotalNumberOfFreeBytes)) {
 		return false;
 	}
 	total_size = TotalNumberOfBytes.QuadPart;

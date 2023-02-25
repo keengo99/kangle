@@ -104,7 +104,7 @@ BOOL WINAPI GetServerVariable(HCONN hConn, LPSTR lpszVariableName,LPVOID lpvBuff
 		s << "http://" << fo->env.getEnv("SERVER_NAME") << ":"
 				<< fo->env.getEnv("SERVER_PORT") << fo->env.getEnv(
 				"SCRIPT_NAME");
-		result = setVariable(lpvBuffer, lpdwSize, s.getString(), unicode);
+		result = setVariable(lpvBuffer, lpdwSize, s.c_str(), unicode);
 		goto done;
 	}
 	if (strcasecmp(lpszVariableName, "ALL_HTTP") == 0) {
@@ -118,7 +118,7 @@ BOOL WINAPI GetServerVariable(HCONN hConn, LPSTR lpszVariableName,LPVOID lpvBuff
 
 	if (strcasecmp(lpszVariableName, "ALL_RAW") == 0) {
 		fo->env.getAllRaw(s);
-		result = setVariable(lpvBuffer, lpdwSize, s.getString(), unicode);
+		result = setVariable(lpvBuffer, lpdwSize, s.c_str(), unicode);
 		goto done;
 	}
 	for (int i = 0;; i++) {

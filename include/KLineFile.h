@@ -28,7 +28,7 @@
 #include "global.h"
 #include "zlib.h"
 #include "KFileName.h"
-#define KGL_STREAM_FILE_SIZE 16384
+#define KGL_STREAM_FILE_SIZE 8192
 enum OpenState
 {
 	OPEN_NOT_MODIFIED,
@@ -58,18 +58,24 @@ public:
 	KStreamFile()
 	{
 		gzfp = NULL;
+		hot = nullptr;
+		split_char = '\n';
+		buf = (char*)malloc(KGL_STREAM_FILE_SIZE);
 	}
 	~KStreamFile()
 	{
 		if (gzfp) {
 			gzclose(gzfp);
 		}
+		if (buf) {
+			free(buf);
+		}
 	}
 	bool open(const char *file,const char split_char='\n');
 	char *read();
 private:
 	char *internelRead();
-	char buf[KGL_STREAM_FILE_SIZE];
+	char *buf;
 	char *hot;
 	char split_char;
 	gzFile gzfp;

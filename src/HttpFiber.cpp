@@ -465,7 +465,7 @@ KGL_RESULT handle_error(KHttpRequest* rq, int code, const char* msg) {
 		}
 		result = rq->file->setName(svh->doc_root, errorPage, rq->getFollowLink());
 		if (result) {
-			result = rq->rewrite_url(errorUrl.getString(), code);
+			result = rq->rewrite_url(errorUrl.c_str(), code);
 		}
 	}
 	if (result && !rq->file->isDirectory()) {

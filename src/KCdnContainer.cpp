@@ -39,7 +39,7 @@ KRedirect* KCdnContainer::refsRedirect(const char* ip, const char* host, int por
 	}
 	s << "_" << (int)proto;
 	lock.Lock();
-	KRedirect* rd = findRedirect(s.getString());
+	KRedirect* rd = findRedirect(s.c_str());
 	if (rd) {
 		rd->addRef();
 		lock.Unlock();
@@ -51,7 +51,7 @@ KRedirect* KCdnContainer::refsRedirect(const char* ip, const char* host, int por
 	server->sockHelper->setLifeTime(life_time);
 	server->sockHelper->setIp(ip);
 	KRedirectNode* rn = new KRedirectNode;
-	rn->name = s.stealString();
+	rn->name = s.steal();
 	rn->rd = server;
 	addRedirect(rn);
 	server->addRef();

@@ -265,7 +265,7 @@ bool KHttpServerParser::startCharacter(KXmlContext *context, char *character,
 		} else if(isdigit(*character)) {
 			KStringBuf s;
 			s << "!*:" << character;
-			virtualHost->binds.push_back(s.getString());
+			virtualHost->binds.push_back(s.c_str());
 		}
 		return true;
 	}

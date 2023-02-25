@@ -40,11 +40,11 @@ bool KISAPIServiceProvider::getEnv(const char *name, char *value, int *len) {
 void KISAPIServiceProvider::checkHeaderSend() {
 	if (!headSended) {
 		headSended = true;
-		if (s.getSize() > 0 || status.getSize() > 0) {
+		if (s.size() > 0 || status.size() > 0) {
 			s << "\r\n";
 			pECB->ServerSupportFunction(pECB->ConnID,
-					HSE_REQ_SEND_RESPONSE_HEADER, (LPVOID) status.getString(),
-					0, (LPDWORD) s.getString());
+					HSE_REQ_SEND_RESPONSE_HEADER, (LPVOID) status.c_str(),
+					0, (LPDWORD) s.c_str());
 		}
 	}
 }

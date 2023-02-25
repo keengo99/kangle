@@ -28,9 +28,9 @@ char *get_obj_url_key(KHttpObject *obj, int *len)
 		lock->Unlock();
 	}
 	if (len) {
-		*len = s.getSize();
+		*len = s.size();
 	}
-	return s.stealString();
+	return s.steal();
 }
 void update_url_vary_key(KUrlKey *uk, const char *key)
 {
@@ -62,7 +62,7 @@ bool register_vary_extend(kgl_vary *vary)
 static void vary_response(KCONN cn, const char *str, int len)
 {
 	kgl_vary_request *vary_rq = (kgl_vary_request *)cn;
-	if (vary_rq->s->getSize() > 0) {
+	if (vary_rq->s->size() > 0) {
 		vary_rq->s->write_all(kgl_expand_string(", "));
 	}
 	vary_rq->s->write_all(str, len);

@@ -411,7 +411,7 @@ bool KHttpRequest::rewrite_url(const char* newUrl, int errorCode, const char* pr
 			free(basepath);
 			nu << newUrl;
 		}
-		if (!parse_url(nu.getString(), url2.u)) {
+		if (!parse_url(nu.c_str(), url2.u)) {
 			return false;
 		}
 	}
@@ -449,7 +449,7 @@ bool KHttpRequest::rewrite_url(const char* newUrl, int errorCode, const char* pr
 		if (sink->data.url->param) {
 			xfree(sink->data.url->param);
 		}
-		sink->data.url->param = s.stealString();
+		sink->data.url->param = s.steal();
 	}
 	KBIT_SET(sink->data.raw_url->flags, KGL_URL_REWRITED);
 	return true;
@@ -472,7 +472,7 @@ std::string KHttpRequest::getInfo() {
 	}
 #endif
 	sink->data.raw_url->GetUrl(s, true);
-	return s.getString();
+	return s.c_str();
 }
 
 KHttpRequest::~KHttpRequest() {
@@ -578,7 +578,7 @@ void KHttpRequest::response_vary(const char* vary) {
 	http_field_t* head = field.getHeader();
 	while (head) {
 		if (*head->attr != KGL_VARY_EXTEND_CHAR) {
-			if (s.getSize() > 0) {
+			if (s.size() > 0) {
 				s.write_all(kgl_expand_string(", "));
 			}
 			s << head->attr;
@@ -594,9 +594,9 @@ void KHttpRequest::response_vary(const char* vary) {
 		}
 		head = head->next;
 	}
-	int len = s.getSize();
+	int len = s.size();
 	if (len > 0) {
-		response_header(kgl_expand_string("Vary"), s.getString(), len);
+		response_header(kgl_expand_string("Vary"), s.c_str(), len);
 	}
 }
 char* KHttpRequest::build_vary(const char* vary) {
@@ -629,10 +629,10 @@ char* KHttpRequest::build_vary(const char* vary) {
 		}
 		head = head->next;
 	}
-	if (s.getSize() == 0) {
+	if (s.size() == 0) {
 		return NULL;
 	}
-	return s.stealString();
+	return s.steal();
 }
 KGL_RESULT KHttpRequest::write_buf(kbuf* buf, int length) {
 #define KGL_RQ_WRITE_BUF_COUNT 16
@@ -696,7 +696,7 @@ bool KHttpRequest::response_content_range(kgl_request_range* range, int64_t cont
 		s.WSTR("*/");
 	}	
 	s.add(content_length, INT64_FORMAT);
-	return response_header(kgl_header_content_range, s.getBuf(), s.getSize());
+	return response_header(kgl_header_content_range, s.buf(), s.size());
 }
 bool KHttpRequest::response_header(KHttpHeader* header, bool lock_header) {
 	if (header->name_is_know) {

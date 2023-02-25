@@ -40,7 +40,7 @@ void KDsoExtendManage::whm(WhmContext *ctx)
 		const char *orign_filename = dso->GetOrignFileName();
 		s << "<name>" << dso->GetName() << "</name><version>" << HIWORD(dso->version.module_version) << "." << LOWORD(dso->version.module_version) << "</version>";
 		s << "<filename>" << (orign_filename ? orign_filename : "") << "</filename>";
-		ctx->add("dso", s.getString());
+		ctx->add("dso", s.c_str());
 	}
 	lock.Unlock();
 }

@@ -33,8 +33,8 @@ bool KWinCgiEnv::addEnv(const char *attr, const char *val) {
 	*s << attr << "=" << val;
 	return s->write_all("\0", 1) == STREAM_WRITE_SUCCESS;
 }
-char *KWinCgiEnv::dump_env() {
-	return s->getBuf();
+const char *KWinCgiEnv::dump_env() {
+	return s->c_str();
 }
 bool KWinCgiEnv::addEnv(const char *env) {
 	*s << env;

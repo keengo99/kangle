@@ -42,7 +42,7 @@ public:
 			} else if (strcmp(hot,expire.c_str())==0) {
 				expire_value = value;
 			} else {
-				if (np.getSize()>0) {
+				if (np.size()>0) {
 					np.write_all("&",1);
 				}
 				np << hot;
@@ -87,7 +87,7 @@ public:
 			s << rq->getClientIp();
 		}
 		char expected_sign[33];
-		KMD5(s.getBuf(), s.getSize(), expected_sign);
+		KMD5(s.buf(), s.size(), expected_sign);
 		if (strncasecmp(expected_sign,sign_value,32)!=0) {
 			return ReturnWithRewriteParam(rq, np, false);
 		}
@@ -152,8 +152,8 @@ public:
 private:
 	void set_url_param(KStringBuf &np,KUrl *url) {
 		free(url->param);
-		if (np.getSize()>0) {
-			url->param = np.stealString();
+		if (np.size()>0) {
+			url->param = np.steal();
 		} else {
 			url->param = NULL;
 		}

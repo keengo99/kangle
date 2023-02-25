@@ -20,7 +20,7 @@ public:
 #ifdef ENABLE_CMD_DPORT
 		if (extendName) {
 			s << extendName << "_port";
-			listenName = s.getString();
+			listenName = s.c_str();
 		}
 		listenPort = 0;
 #endif
@@ -43,7 +43,7 @@ public:
 		//s.str("");
 		s.clean();
 		s << listenPort;
-		return s.getString();
+		return s.c_str();
 	}
 #endif
 	//}}
@@ -99,7 +99,7 @@ public:
 			s.clean();
 			char ch[2] = { vh->name[index], 0 };
 			s << ch;
-			return s.getString();
+			return s.c_str();
 		}
 		if (strcasecmp(name, "doc_root") == 0) {
 			if (index < 0 || index >= (int) vh->doc_root.size()) {
@@ -107,7 +107,7 @@ public:
 			}
 			char ch[2] = { vh->doc_root[index], 0 };
 			s << ch;
-			return s.getString();
+			return s.c_str();
 		}
 		return NULL;
 	}

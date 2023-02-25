@@ -819,7 +819,7 @@ BOOL StartInteractiveClientProcess (
 			KStringBuf read_file(64),write_file(64);
 			read_file << "\\\\.\\pipe\\kangle" << (int)pi.dwProcessId << "r";
 			write_file << "\\\\.\\pipe\\kangle" << (int)pi.dwProcessId << "w";
-			st->create_name(read_file.getString(),write_file.getString());
+			st->create_name(read_file.c_str(),write_file.c_str());
 			bResult = FALSE;
 			if(ResumeThread(pi.hThread)!=-1){
 				OVERLAPPED ol;
@@ -1499,7 +1499,7 @@ bool createProcess(Token_t token, char * args[],KCmdEnv *envs,char *curdir,PIPE_
 		append_cmd_arg(arg,args[i]);
 		arg << "\"";
 	}
-	klog(KLOG_NOTICE,"now create process [%s]\n",arg.getString());
+	klog(KLOG_NOTICE,"now create process [%s]\n",arg.c_str());
 	//{{ent
 #ifdef _WIN32
 	kgl_process_std std;
@@ -1507,7 +1507,7 @@ bool createProcess(Token_t token, char * args[],KCmdEnv *envs,char *curdir,PIPE_
 	std.hstdin = in;
 	std.hstdout = out;
 	std.hstderr = err;
-	if(!StartInteractiveClientProcess2(token,args[0],arg.getString(),curdir,&std,(envs?envs->dump_env():NULL),pid)) {
+	if(!StartInteractiveClientProcess2(token,args[0], arg.c_str(),curdir,&std,(char *)(envs?envs->dump_env():NULL),pid)) {
 		return false;
 	}
 #else
@@ -1599,10 +1599,10 @@ bool createProcess(KPipeStream *st, Token_t token, char * args[],KCmdEnv *envs, 
 		append_cmd_arg(arg,args[i]);
 		arg << "\"";
 	}
-	klog(KLOG_NOTICE,"now create process [%s]\n",arg.getString());
+	klog(KLOG_NOTICE,"now create process [%s]\n",arg.c_str());
 	//{{ent
 #ifdef _WIN32
-	if(!StartInteractiveClientProcess(token,args[0],arg.getString(),st,rdstd,(envs?envs->dump_env():NULL))) {
+	if(!StartInteractiveClientProcess(token, args[0], (char *)arg.c_str(),st,rdstd,(char *)(envs?envs->dump_env():NULL))) {
 		return false;
 	}
 #else

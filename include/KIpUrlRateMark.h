@@ -82,7 +82,7 @@ private:
 		}
 		KStringBuf target(2048);
 		target << rq->getClientIp() << rq->sink->data.url->host << ":" << rq->sink->data.url->port << rq->sink->data.url->path;
-		char *ip_url = target.getString();
+		const char *ip_url = target.c_str();
 		if (iplist->find(ip_url,block_time,true)) {
 			return true;
 		}

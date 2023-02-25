@@ -318,8 +318,8 @@ void KHttpObject::unlinkDiskFile()
 		if (KBIT_TEST(index.flags, FLAG_BIG_OBJECT_PROGRESS)) {
 			KStringBuf partfile;
 			partfile << name << ".part";
-			if (0 != unlink(partfile.getString())) {
-				klog(KLOG_ERR, "cann't unlink file[%s] errno=%d\n", partfile.getString(), errno);
+			if (0 != unlink(partfile.c_str())) {
+				klog(KLOG_ERR, "cann't unlink file[%s] errno=%d\n", partfile.c_str(), errno);
 			}
 		}
 #endif
@@ -344,7 +344,7 @@ char* KHttpObject::get_filename(bool part)
 	if (part) {
 		s << ".part";
 	}
-	return s.stealString();
+	return s.steal();
 }
 void KHttpObject::write_file_header(KHttpObjectFileHeader* dci_header)
 {

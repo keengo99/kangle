@@ -942,7 +942,7 @@ void KBaseVirtualHost::clearEnv() {
 void KBaseVirtualHost::getErrorEnv(const char* split, KStringBuf& s) {
 	lock.Lock();
 	for (auto it2 = errorPages.begin(); it2 != errorPages.end(); it2++) {
-		if (s.getSize() > 0) {
+		if (s.size() > 0) {
 			s << split;
 		}
 		s << (*it2).first << "=" << (*it2).second.s;
@@ -952,7 +952,7 @@ void KBaseVirtualHost::getErrorEnv(const char* split, KStringBuf& s) {
 void KBaseVirtualHost::getIndexFileEnv(const char* split, KStringBuf& s) {
 	lock.Lock();
 	for (auto it = indexFiles.begin(); it != indexFiles.end(); it++) {
-		if (s.getSize() > 0) {
+		if (s.size() > 0) {
 			s << split;
 		}
 		s << (*it).index.s;

@@ -26,7 +26,7 @@ bool KHostRewriteMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** f
 	}
 	if (rewrite) {
 		free(rq->sink->data.url->host);
-		rq->sink->data.url->host = cdn_host->stealString();
+		rq->sink->data.url->host = cdn_host->steal();
 		if (port>0) {
 			rq->sink->data.url->port = port;
 		}
@@ -37,7 +37,7 @@ bool KHostRewriteMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** f
 		if (KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL)) {
 			ssl = "s";
 		}
-		*fo = server_container->get(NULL,(rewrite?rq->sink->data.url->host:cdn_host->getString()),(port>0?port:rq->sink->data.url->port),ssl,life_time);
+		*fo = server_container->get(NULL,(rewrite?rq->sink->data.url->host:cdn_host->c_str()),(port>0?port:rq->sink->data.url->port),ssl,life_time);
 		//jump_type = JUMP_ALLOW;
 	}
 	delete ss;

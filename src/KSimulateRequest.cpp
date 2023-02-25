@@ -44,7 +44,7 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 		ss->data.raw_url = new KUrl;
 		KStringBuf nu;
 		nu << ctx->url << "/";
-		if (!parse_url(nu.getString(), ss->data.raw_url)) {
+		if (!parse_url(nu.c_str(), ss->data.raw_url)) {
 			delete rq;
 			return NULL;
 		}
@@ -214,7 +214,7 @@ int WINAPI async_download_header_hook(void *arg, int code, KHttpHeader *header)
 		fs->last_modified = 0;
 		KStringBuf filename;
 		filename << dw->save_file << ASYNC_DOWNLOAD_TMP_EXT;
-		if (!fs->open(filename.getString())) {
+		if (!fs->open(filename.c_str())) {
 			delete fs;
 			return 1;
 		}
@@ -245,11 +245,11 @@ int WINAPI async_download_body_hook(void *arg, const char *data, int len)
 			filename << dw->save_file << ASYNC_DOWNLOAD_TMP_EXT;
 			if (ret==KGL_OK && len == 1 && (dw->code==200 || dw->code==206)) {
 				unlink(dw->save_file);
-				if (0 != rename(filename.getString(), dw->save_file)) {
+				if (0 != rename(filename.c_str(), dw->save_file)) {
 					dw->code += 2000;
 				}
 			} else {
-				unlink(filename.getString());
+				unlink(filename.c_str());
 			}
 		}
 		if (len == 0 && (dw->code>=200 && dw->code<300)) {

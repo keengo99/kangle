@@ -134,9 +134,9 @@ KTHREAD_FUNCTION check_autoupdate(void* param)
 		action = "install";
 	}
 	char* args[] = {
-		s.getString(),
+		(char *)s.c_str(),
 		(char*)conf.path.c_str(),
-		(method < 2 ? au_url.getString() : service.getString()),
+		(char *)(method < 2 ? au_url.c_str() : service.c_str()),
 		(char*)action,
 		NULL
 	};

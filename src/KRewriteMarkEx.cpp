@@ -139,7 +139,7 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 				break;
 			}
 			KStringBuf *str = KRewriteMarkEx::getString(NULL, (*it)->str, rq, NULL, subString);
-			result = (*it)->testor->test(str->getString(), &lastCond);
+			result = (*it)->testor->test(str->c_str(), &lastCond);
 			if ((*it)->revert) {
 				result = !result;
 			}
@@ -167,17 +167,17 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 		if (param) {
 			if (qsa) {
 				//append the query string
-				if (strchr(url->getString(), '?')) {
+				if (strchr(url->c_str(), '?')) {
 					*url << "&" << param;
 				} else {
 					*url << "?" << param;
 				}
-			} else if (strchr(url->getString(), '?')==NULL) {
+			} else if (strchr(url->c_str(), '?')==NULL) {
 				*url << "?" << param;
 			}
 		}
 		if (proxy && *proxy=='-') {
-			rq->rewrite_url(url->getString(),0,(rewriteBase?rewriteBase:prefix.c_str()));
+			rq->rewrite_url(url->c_str(),0,(rewriteBase?rewriteBase:prefix.c_str()));
 			const char *ssl = NULL;
 			if (KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL)) {
 				ssl = "s";
@@ -185,7 +185,7 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 			*fo = server_container->get(NULL, rq->sink->data.url->host, rq->sink->data.url->port, ssl, 0);
 		} else {
 			bool internal_flag = internal;
-			char *u = url->getString();
+			const char *u = url->c_str();
 			if (internal_flag && proxy==NULL) {
 				if (strncasecmp(u,"http://",7)==0
 					|| strncasecmp(u,"https://",8)==0
@@ -205,7 +205,7 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 						subString
 						);
 					if (proxy_host) {
-						*fo = server_container->get(proxy_host->getString());
+						*fo = server_container->get(proxy_host->c_str());
 						delete proxy_host;
 					}
 				}

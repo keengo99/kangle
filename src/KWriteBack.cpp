@@ -23,8 +23,8 @@ std::string KWriteBack::getMsg()
 		s << "\r\nConnection: keep-alive";
 	}
 	s << "\r\n\r\n";
-	if (body.getSize()) {
-		s << body.getString();
+	if (body.size()) {
+		s << body.c_str();
 	}
 	return s.str();
 }
@@ -65,9 +65,9 @@ void KWriteBack::buildRequest(KHttpRequest* rq, KFetchObject** fo)
 	}
 	if (rq->sink->data.meth != METH_HEAD) {
 		KAutoBuffer buffer(rq->sink->pool);
-		buffer.write_all(body.getBuf(), body.getSize());
+		buffer.write_all(body.buf(), body.size());
 		*fo = new KBufferFetchObject(buffer.getHead(),buffer.getLen());
 		return;
 	}
-	*fo = new KBufferFetchObject(NULL, body.getSize());
+	*fo = new KBufferFetchObject(NULL, body.size());
 }

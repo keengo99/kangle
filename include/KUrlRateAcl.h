@@ -61,7 +61,7 @@ public:
 		}
 		KStringBuf target(2048);
 		target << (int)rq->sink->data.url->flags << "_" << rq->sink->data.url->host << ":" << rq->sink->data.url->port << rq->sink->data.url->path;
-		char *ip_url = target.getString();
+		const char *ip_url = target.c_str();
 		int r = request;
 		int s;
 		bool result = rate.getRate(ip_url,r,s,true);

@@ -170,7 +170,7 @@ void KLogElement::rotateLog() {
 		nf << "." << (p + 1);
 	}
 	close();
-	int ret = rename(path.c_str(), nf.getString());
+	int ret = rename(path.c_str(), nf.c_str());
 	int err = GetLastError();
 	open();
 	xfree(t);
@@ -178,10 +178,10 @@ void KLogElement::rotateLog() {
 	CTIME_R(&now_tm, tms, sizeof(tms));
 	tms[19] = 0;
 	if (ret == 0) {
-		errorLogger.log("%s|rotate log file [%s] to [%s] success\n", tms, path.c_str(), nf.getString());
-		logHandle.handle(this, nf.getString());
+		errorLogger.log("%s|rotate log file [%s] to [%s] success\n", tms, path.c_str(), nf.c_str());
+		logHandle.handle(this, nf.c_str());
 	} else {
-		errorLogger.log("%s|cann't rotate log file [%s] to [%s],error=[%d]\n", tms, path.c_str(), nf.getString(), err);
+		errorLogger.log("%s|cann't rotate log file [%s] to [%s],error=[%d]\n", tms, path.c_str(), nf.c_str(), err);
 	}
 }
 

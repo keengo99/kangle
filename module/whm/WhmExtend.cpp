@@ -39,7 +39,7 @@ int WhmExtend::whmCall(const char *callName,const char *eventType,WhmContext *co
 	int ret = call(callName,eventType,context);
 	KStringBuf *rd = context->getRedirectCalls();
 	if(ret == WHM_OK){
-		if(rd && rd->getSize()>0){
+		if(rd && rd->size()>0){
 			//检查是否重定向
 			ret = WHM_REDIRECT;
 		}
@@ -59,12 +59,12 @@ int WhmExtend::whmCall(const char *callName,const char *eventType,WhmContext *co
 		return WHM_CALL_FAILED;
 	}
 	char *buf = NULL;
-	if(rd==NULL || rd->getSize()<=0){
+	if(rd==NULL || rd->size()<=0){
 		ret = WHM_CALL_FAILED;
 	}else{
-		buf = rd->stealString();
+		buf = rd->steal();
 		char *hot = buf;
-		rd->init(256);		
+		//rd->init(256);
 		for(;;){
 			char *p = strchr(hot,',');
 			if(p != NULL){

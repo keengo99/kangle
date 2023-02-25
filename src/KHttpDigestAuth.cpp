@@ -267,7 +267,7 @@ bool KHttpDigestAuth::verify(KHttpRequest* rq, const char* password,
 		KStringBuf a1;
 		a1 << user << ":" << realm << ":" << password;
 		//		printf("a1=[%s]\n", a1.getString());
-		KMD5(a1.getString(), a1.getSize(), ha1);
+		KMD5(a1.c_str(), a1.size(), ha1);
 	} else {
 		strncpy(ha1, password, sizeof(ha1));
 		ha1[32] = '\0';
@@ -276,12 +276,12 @@ bool KHttpDigestAuth::verify(KHttpRequest* rq, const char* password,
 	a2 << rq->get_method() << ":" << uri;
 	//	printf("a2=[%s]\n", a2.getString());
 	char ha2[33];
-	KMD5(a2.getString(), a2.getSize(), ha2);
+	KMD5(a2.c_str(), a2.size(), ha2);
 	KStringBuf ar;
 	ar << ha1 << ":" << nonce << ":" << nc << ":" << cnonce << ":" << qop << ":" << ha2;
 	//	printf("response=[%s]\n", ar.getString());
 	char hresponse[33];
-	KMD5(ar.getString(), ar.getSize(), hresponse);
+	KMD5(ar.c_str(), ar.size(), hresponse);
 	if (this->response && strcmp(this->response, hresponse) == 0) {
 		//		debug("verified success\n");
 		return true;
@@ -300,7 +300,7 @@ void KHttpDigestAuth::insertHeader(KHttpRequest* rq) {
 	s << ", qop=\"auth\"";
 	s << ", nonce=\"" << nonce << "\"";
 	const char* auth_header = this->get_auth_header();
-	rq->response_header(auth_header, (hlen_t)strlen(auth_header), s.getBuf(), s.getSize());
+	rq->response_header(auth_header, (hlen_t)strlen(auth_header), s.buf(), s.size());
 }
 KGL_RESULT KHttpDigestAuth::response_header(kgl_output_stream* out) {
 	if (realm == NULL || nonce == NULL) {
@@ -312,7 +312,7 @@ KGL_RESULT KHttpDigestAuth::response_header(kgl_output_stream* out) {
 	s << ", qop=\"auth\"";
 	s << ", nonce=\"" << nonce << "\"";
 	const char* auth_header = this->get_auth_header();
-	return out->f->write_unknow_header(out->ctx, auth_header, (hlen_t)strlen(auth_header), s.getBuf(), s.getSize());
+	return out->f->write_unknow_header(out->ctx, auth_header, (hlen_t)strlen(auth_header), s.buf(), s.size());
 }
 void KHttpDigestAuth::flushSession(time_t nowTime) {
 	map<char*, KHttpDigestSession*, lessp>::iterator it, it2;
@@ -335,7 +335,7 @@ void KHttpDigestAuth::init(KHttpRequest* rq, const char* realm) {
 	KStringBuf s(64);
 	s.add((int)time(NULL), "%x");
 	s.add(rand(), "%x");
-	this->nonce = s.stealString();
+	this->nonce = s.steal();
 	KHttpDigestSession* session = new KHttpDigestSession(realm);
 	kgl_memcpy(&session->addr, rq->sink->get_peer_addr(), sizeof(sockaddr_i));
 	lock.Lock();

@@ -39,15 +39,15 @@ public:
 				KStringBuf* replaced = KRewriteMarkEx::getString(NULL, replace.c_str(), rq, NULL, subString);
 				delete subString;
 				if (replaced) {
-					int new_buf_len = header->val_offset + replaced->getSize();
+					int new_buf_len = header->val_offset + replaced->size();
 					char* new_buf = (char*)malloc(new_buf_len + 1);
 					new_buf[new_buf_len] = '\0';
 					if (header->val_offset > 0) {
 						//copy attr
 						memcpy(new_buf, header->buf, header->val_offset);
 					}
-					memcpy(new_buf + header->val_offset, replaced->getBuf(), replaced->getSize());
-					header->val_len = replaced->getSize();
+					memcpy(new_buf + header->val_offset, replaced->buf(), replaced->size());
+					header->val_len = replaced->size();
 					free(header->buf);
 					header->buf = new_buf;
 					delete replaced;

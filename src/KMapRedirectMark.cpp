@@ -49,7 +49,7 @@ bool KMapRedirectMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** f
 		s << item->rewrite;
 	}
 	rq->sink->data.url->GetPath(s);
-	if (push_redirect_header(rq, s.getBuf(), s.getSize(), item->code)) {
+	if (push_redirect_header(rq, s.buf(), s.size(), item->code)) {
 		*fo = new KBufferFetchObject(nullptr, 0);
 		//jump_type = JUMP_DROP;
 	}

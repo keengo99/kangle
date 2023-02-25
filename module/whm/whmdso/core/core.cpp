@@ -518,7 +518,7 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 					ctx->add("disk_free", free_size);
 				}
 			}
-			ctx->add("disk_cache_dir", s.getString());
+			ctx->add("disk_cache_dir", s.c_str());
 #endif
 			int vh_count = conf.gvm->getCount();
 			ctx->add("vh",vh_count);

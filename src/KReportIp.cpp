@@ -83,9 +83,9 @@ void start_report_worker(std::list<char *> &items) {
 		}
 		xfree((*it));
 	}
-	ctx.post_len = (int64_t)post.getSize();
+	ctx.post_len = (int64_t)post.size();
 	report_ip_context *arg = new report_ip_context;
-	arg->set_post(post.stealString(),post.getSize());
+	arg->set_post(post.steal(),post.size());
 	arg->header = new_http_header(kgl_expand_string("Content-Type"),kgl_expand_string("application/x-www-form-urlencoded"));
 	ctx.arg = arg;
 	ctx.post = report_http_post_hook;

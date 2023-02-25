@@ -260,12 +260,12 @@ char* KDynamicString::parseDirect(char* str) {
 	if (dst) {
 		delete dst;
 	}
-	dst = new KStringBuf(2 * (int)strlen(str));
+	dst = new KStringBuf();
 	clean();
 	buf = str;
 	hot = buf;
 	parseString();
-	char* result = dst->stealString();
+	char* result = dst->steal();
 	buf = NULL;
 	return result;
 }
@@ -279,14 +279,12 @@ char* KDynamicString::parseString(const char* str) {
 	if (dst) {
 		delete dst;
 	}
-	dst = new KStringBuf(2 * (int)strlen(str));
-	//dst.clean();
-	//dst.init(2048);
+	dst = new KStringBuf();
 	clean();
 	buf = xstrdup(str);
 	hot = buf;
 	parseString();
-	return dst->stealString();
+	return dst->steal();
 }
 int KDynamicString::getControlIndex(const char* value) {
 	int index;

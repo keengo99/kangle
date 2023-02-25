@@ -45,7 +45,7 @@ void upstream_sign_request(KHttpRequest *rq, KHttpEnv *s)
 	KMD5_CTX context;
 	unsigned char digest[17];
 	KMD5Init(&context);
-	KMD5Update(&context, (unsigned char *)v.getBuf(), v.getSize());
+	KMD5Update(&context, (unsigned char *)v.buf(), v.size());
 	int upstream_sign_len = conf.upstream_sign_len;
 	if (upstream_sign_len > (int)sizeof(conf.upstream_sign)) {
 		upstream_sign_len = sizeof(conf.upstream_sign);
@@ -55,7 +55,7 @@ void upstream_sign_request(KHttpRequest *rq, KHttpEnv *s)
 	make_digest(buf, digest);
 	v.WSTR("|");
 	v.write_all(buf, 32);
-	s->add(kgl_expand_string(X_REAL_IP_SIGN), v.getBuf(), v.getSize());
+	s->add(kgl_expand_string(X_REAL_IP_SIGN), v.buf(), v.size());
 }
 KGL_RESULT KHttpProxyFetchObject::buildHead(KHttpRequest *rq)
 {	
@@ -115,7 +115,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE) && client->IsMultiStream()) {
 		meth = METH_CONNECT;
 	}
-	client->send_method_path(meth, s.getBuf(), (hlen_t)s.getSize());
+	client->send_method_path(meth, s.buf(), (hlen_t)s.size());
 	if (path != url->path) {
 		xfree(path);
 		path = NULL;
@@ -126,7 +126,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 		s.WSTR(":");
 		s << url->port;
 	}
-	client->send_host(s.getBuf(), (hlen_t)s.getSize());
+	client->send_host(s.buf(), (hlen_t)s.size());
 	if (client->IsMultiStream()) {
 		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
 			client->send_header(kgl_expand_string(":scheme"), kgl_expand_string("https"));
@@ -163,7 +163,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 			s.write_all(av->buf+av->val_offset, av->val_len);
 			s.write_all(_KS(","));
 			s << ips;
-			if (!client->send_header(kgl_expand_string("X-Forwarded-For"), s.getBuf(), (hlen_t)s.getSize())) {
+			if (!client->send_header(kgl_expand_string("X-Forwarded-For"), s.buf(), (hlen_t)s.size())) {
 				return false;
 			}
 			goto do_not_insert;
@@ -175,7 +175,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 			via_inserted = true;
 			s.clean();
 			insert_via(rq, s, av->buf+av->val_offset, av->val_len);
-			if (!client->send_header(kgl_expand_string("Via"), s.getBuf(), (hlen_t)s.getSize())) {
+			if (!client->send_header(kgl_expand_string("Via"), s.buf(), (hlen_t)s.size())) {
 				return false;
 			}
 			goto do_not_insert;
@@ -236,7 +236,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 		} else {
 			s << range->from;
 		}
-		client->send_header(kgl_header_range, s.getBuf(), s.getSize());
+		client->send_header(kgl_header_range, s.buf(), s.size());
 		if (range->if_range_entity) {
 			if (KBIT_TEST(flag, kgl_precondition_if_range_date)) {
 				char* end = make_http_time(range->if_range_date, tmpbuff, sizeof(tmpbuff));
@@ -275,7 +275,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 	if (KBIT_TEST(rq->ctx.filter_flags, RF_VIA) && !via_inserted) {
 		s.clean();
 		insert_via(rq, s, NULL);
-		if (!client->send_header(kgl_expand_string("Via"), s.getBuf(), (hlen_t)s.getSize())) {
+		if (!client->send_header(kgl_expand_string("Via"), s.buf(), (hlen_t)s.size())) {
 			return false;
 		}
 	}

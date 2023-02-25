@@ -168,7 +168,7 @@ KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest* rq)
 			s << range->from;
 		}
 		b.putString(_KS("Range"));
-		b.putString(s.getBuf(), s.getSize());
+		b.putString(s.buf(), s.size());
 		if (range->if_range_entity) {
 			b.putString(_KS("If-Range"));
 			if (KBIT_TEST(flag, kgl_precondition_if_range_date)) {

@@ -130,7 +130,7 @@ KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, const char *name
 	{
 		KStringBuf s;
 		rq->sink->data.url->GetUrl(s);
-		return add_api_var(buffer, size, s.getString(), s.getSize());
+		return add_api_var(buffer, size, s.c_str(), s.size());
 	}
 	case KGL_VAR_REQUEST_URI:
 		if (rq->sink->data.raw_url->param == NULL) {

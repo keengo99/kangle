@@ -566,7 +566,7 @@ bool KVirtualHostManage::vhAction(KVirtualHost* ov, KTempleteVirtualHost* tm,
 		if (isdigit(*line)) {
 			KStringBuf s;
 			s << "!*:" << line;
-			vh->binds.push_back(s.getString());
+			vh->binds.push_back(s.c_str());
 		}
 	}
 #endif
@@ -1212,7 +1212,7 @@ void KVirtualHostManage::dumpLoad(KVirtualHostEvent* ctx, bool revers, const cha
 		s2 << "\n";
 	}
 	lock.Unlock();
-	ctx->add("load", s2.getString());
+	ctx->add("load", s2.c_str());
 }
 //extend=4,导出上下行，及缓存流量
 void KVirtualHostManage::dumpFlow(KVirtualHostEvent* ctx, bool revers, const char* prefix, int prefix_len, int extend)
@@ -1277,9 +1277,9 @@ void KVirtualHostManage::dumpFlow(KVirtualHostEvent* ctx, bool revers, const cha
 	}
 #endif//}}
 	lock.Unlock();
-	ctx->add("flow", s.getString());
-	if (extend > 0 && s2.getSize() > 0) {
-		ctx->add("stat", s2.getString());
+	ctx->add("flow", s.c_str());
+	if (extend > 0 && s2.size() > 0) {
+		ctx->add("stat", s2.c_str());
 	}
 }
 void KVirtualHostManage::dumpFlow()

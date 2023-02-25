@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
 	KStringBuf rf(64), wf(64);
 	wf << "\\\\.\\pipe\\kangle" << pid << "r";
 	rf << "\\\\.\\pipe\\kangle" << pid << "w";
-	if (!st.connect_name(rf.getString(), wf.getString())) {
+	if (!st.connect_name(rf.c_str(), wf.c_str())) {
 		int error = GetLastError();
 		//LogEvent("cann't connect to name last error=%d\n",error);
 		return 1;

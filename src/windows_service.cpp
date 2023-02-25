@@ -127,7 +127,7 @@ void create_worker_process(const char *cmd,WorkerProcess *process,int index)
 	si.lpDesktop = TEXT("winsta0\\default");
 	bResult = CreateProcess(
 	  conf.program.c_str(),              // file to execute
-	  s.getString(),     // command line
+	  (char *)s.c_str(),     // command line
 	  NULL,              // pointer to process SECURITY_ATTRIBUTES
 	  NULL,              // pointer to thread SECURITY_ATTRIBUTES
 	  TRUE,             // handles are not inheritable
@@ -235,7 +235,7 @@ void start_safe_service()
 					if (create_process_sleep) {
 						Sleep(2000);
 					}
-					create_worker_process(s.getString(),(*it2),(int)i);
+					create_worker_process(s.c_str(),(*it2),(int)i);
 				}
 			}
 			it2++;

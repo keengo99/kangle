@@ -313,7 +313,7 @@ void shutdown_signal(int sig) {
 char* get_signal_pipe_name(int pid) {
 	KStringBuf spipe;
 	spipe << "\\\\.\\pipe\\kangle_signal_" << pid;
-	return spipe.stealString();
+	return spipe.steal();
 }
 int kill(int pid, char sig) {
 	char* spipe = get_signal_pipe_name(pid);
@@ -451,7 +451,7 @@ void create_cache_dir(const char* disk_dir) {
 	for (int i = 0; i <= CACHE_DIR_MASK1; i++) {
 		s << path.c_str();
 		s.add_as_hex(i);
-		if (!create_dir(s.getString())) {
+		if (!create_dir(s.c_str())) {
 			return;
 		}
 		s.clean();
@@ -460,7 +460,7 @@ void create_cache_dir(const char* disk_dir) {
 			s.add_as_hex(i);
 			s << PATH_SPLIT_CHAR;
 			s.add_as_hex(j);
-			if (!create_dir(s.getString())) {
+			if (!create_dir(s.c_str())) {
 				return;
 			}
 			s.clean();

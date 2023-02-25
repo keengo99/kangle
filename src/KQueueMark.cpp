@@ -84,7 +84,7 @@ bool KPerQueueMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)
 				url = new KStringBuf;
 				rq->sink->data.url->GetUrl(*url);
 			}
-			ss = matcher->reg.matchSubString(url->getString(), url->getSize(), 0);
+			ss = matcher->reg.matchSubString(url->c_str(), url->size(), 0);
 		} else {
 			KHttpHeader *av = rq->sink->data.get_header();
 			while (av) {

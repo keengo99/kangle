@@ -112,8 +112,8 @@ const char *KExtendProgramString::interGetValue(const char *name) {
 			}
 			s.clean();
 			s << vh->tvh->name.c_str();
-			char *subname = s.getString();
-			char *p = strchr(subname,':');
+			const char *subname = s.c_str();
+			const char *p = strchr(subname,':');
 			if (p==NULL) {
 				return NULL;
 			}
@@ -122,17 +122,17 @@ const char *KExtendProgramString::interGetValue(const char *name) {
 		if (strcasecmp(name, "time") == 0) {
 			s.clean();
 			s << (INT64) time(NULL);
-			return s.getString();
+			return s.c_str();
 		}
 		if (strcasecmp(name, "rand") == 0) {
 			s.clean();
 			s << rand();
-			return s.getString();
+			return s.c_str();
 		}
 		if (strcasecmp(name, "pid") == 0) {
 			s.clean();
 			s << pid;
-			return s.getString();
+			return s.c_str();
 		}
 		if (vh->getEnvValue(name, vh_value)) {
 			return vh_value.c_str();
@@ -152,7 +152,7 @@ const char *KExtendProgramString::interGetValue(const char *name) {
 				if (!(*it)->allSuccess) {
 					continue;
 				}
-				if (s.getSize()>0) {
+				if (s.size()>0) {
 					s << split_char;
 				}
 				if (strcasecmp(tbuf,"host_dir")==0) {
@@ -177,7 +177,7 @@ const char *KExtendProgramString::interGetValue(const char *name) {
 				vh->getIndexFileEnv(split_char,s);
 			}
 			free(tbuf);
-			return s.getString();		
+			return s.c_str();		
 		}
 		free(tbuf);
 		//}}
@@ -244,7 +244,7 @@ bool KExtendProgramConfig::handle(KExtendProgramString *ds) {
 		klog(KLOG_ERR, "cann't read complete src file [%s] readed=[%d],fileSize=[%d]\n", file.getName(),len,file.get_file_size());
 		goto done;
 	}
-	if (!dst_fp.open(dst_tmp.getString(),fileWrite)) {
+	if (!dst_fp.open(dst_tmp.c_str(),fileWrite)) {
 		klog(KLOG_ERR, "cann't open dst file [%s] for write\n", dst_file_name);
 		goto done;
 	}
@@ -281,14 +281,14 @@ bool KExtendProgramConfig::handle(KExtendProgramString *ds) {
 			}
 			result = (0==rename(dst_tmp.getString(),dst_file_name));
 #else
-			result = (TRUE == MoveFileEx(dst_tmp.getString(),dst_file_name,MOVEFILE_REPLACE_EXISTING));
+			result = (TRUE == MoveFileEx(dst_tmp.c_str(),dst_file_name,MOVEFILE_REPLACE_EXISTING));
 #endif
 
 		} 
 		if (!result) {
-			klog(KLOG_NOTICE,"now remove tmp file [%s]\n",dst_tmp.getString());
+			klog(KLOG_NOTICE,"now remove tmp file [%s]\n",dst_tmp.c_str());
 			//如果没有成功，则删除临时文件			
-			unlink(dst_tmp.getString());
+			unlink(dst_tmp.c_str());
 		}
 	}
 	if (src_file_name) {

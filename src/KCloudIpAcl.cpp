@@ -40,8 +40,8 @@ void KCloudIpAcl::http_body_hook(const char *data, int len)
 }
 bool KCloudIpAcl::parse_data()
 {
-	char *buf = data.stealString();
-	data.init(512);
+	char *buf = data.steal();
+	//data.init(512);
 	char *hot = strchr(buf, '\n');
 	if (hot == NULL) {
 		free(buf);

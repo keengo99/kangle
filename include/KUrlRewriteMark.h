@@ -17,7 +17,7 @@ public:
 		int len = url_decode(u.getBuf(),u.getSize());
 		KRegSubString *subString = url.matchSubString(u.getBuf(),len,0);
 		*/
-		KRegSubString *subString = url.matchSubString(u.getBuf(),u.getSize(),0);
+		KRegSubString *subString = url.matchSubString(u.buf(),u.size(),0);
 		if (subString==NULL) {
 			return false;
 		}
@@ -31,12 +31,12 @@ public:
 		delete subString;
 		if (nu) {
 			if (code>0) {
-				if (push_redirect_header(rq, nu->getString(), nu->getSize(), code)) {
+				if (push_redirect_header(rq, nu->c_str(), nu->size(), code)) {
 					*fo = new KBufferFetchObject(nullptr, 0);
 					//jump_type = JUMP_DROP;
 				}
 			} else {
-				rq->rewrite_url(nu->getString(),0,NULL);
+				rq->rewrite_url(nu->c_str(),0,NULL);
 				delete nu;
 			}
 			return true;

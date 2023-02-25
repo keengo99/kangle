@@ -444,7 +444,7 @@ void log_access(KHttpRequest* rq) {
 	//*/
 	if (s->place != LOG_NONE) {
 		s->startLog();
-		s->write(l.getString(), l.getSize());
+		s->write(l.c_str(), l.size());
 		s->endLog(false);
 	}
 #ifdef ENABLE_LOG_DRILL

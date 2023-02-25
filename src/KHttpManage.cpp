@@ -100,8 +100,8 @@ bool kgl_connection_iterator(void* arg, KSink* rq) {
 	ctx->s << "','";
 	KStringBuf url;
 	get_url_info(rq, url);
-	if (url.getSize() > 0 && strchr(url.getString(), '\'') == NULL) {
-		ctx->s << url.getString();
+	if (url.size() > 0 && strchr(url.c_str(), '\'') == NULL) {
+		ctx->s << url.c_str();
 	}
 	ctx->s << "','";
 	if (!ctx->translate) {
@@ -935,7 +935,7 @@ bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* co
 		out->f->write_unknow_header(out->ctx, kgl_expand_string("Cache-control"), kgl_expand_string("no-cache,no-store"));
 	} else {
 		s << "public,max_age=" << max_age;
-		out->f->write_unknow_header(out->ctx, kgl_expand_string("Cache-control"), s.getBuf(), s.getSize());
+		out->f->write_unknow_header(out->ctx, kgl_expand_string("Cache-control"), s.buf(), s.size());
 	}
 	out->f->write_unknow_header(out->ctx, _KS("x-gzip"), _KS("1"));
 	kgl_response_body body;

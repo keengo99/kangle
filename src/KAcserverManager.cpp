@@ -834,7 +834,7 @@ bool KAcserverManager::new_server(
 	xml->get_first()->attributes.swap(attr);
 	KStringBuf s;
 	s << "server@" << name;	
-	result = kconfig::update(s.getBuf(), s.getSize(), 0, xml, is_update?kconfig::EvUpdate:kconfig::EvUpdate|kconfig::FlagCreate);
+	result = kconfig::update(s.buf(), s.size(), 0, xml, is_update?kconfig::EvUpdate:kconfig::EvUpdate|kconfig::FlagCreate);
 	switch (result) {
 	case kconfig::KConfigResult::Success:
 		return true;
@@ -891,7 +891,7 @@ bool KAcserverManager::delCmd(std::string name, std::string& err_msg) {
 bool KAcserverManager::remove_server(const std::string &name, std::string& err_msg) {
 	KStringBuf s;
 	s << "server@" << name;
-	switch (kconfig::remove(s.getBuf(), s.getSize(), 0)) {
+	switch (kconfig::remove(s.buf(), s.size(), 0)) {
 	case kconfig::KConfigResult::Success:
 		return true;
 	case kconfig::KConfigResult::ErrSaveFile:

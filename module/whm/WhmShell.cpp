@@ -150,7 +150,7 @@ int WhmShell::result(WhmShellContext *sc,WhmContext *context)
 	}
 	sc->out_buffer.destroy();
 	sc->lock.Unlock();
-	context->add("out",s.getString(),false);
+	context->add("out",s.c_str(),false);
 	return ret;
 }
 void WhmShell::run(WhmShellContext *sc)

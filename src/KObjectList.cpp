@@ -289,7 +289,7 @@ int KObjectList::clean_cache(KReg *reg,int flag)
 	while (obj) {
 		if (!KBIT_TEST(obj->index.flags,FLAG_DEAD)) {
 			KStringBuf url;
-			if (obj->uk.url->GetUrl(url) && reg->match(url.getString(),url.getSize(),flag)>0) {
+			if (obj->uk.url->GetUrl(url) && reg->match(url.c_str(),url.size(),flag)>0) {
 				result++;
 				obj->Dead();
 			}			

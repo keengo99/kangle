@@ -17,8 +17,9 @@ class http_field_t
 public:
 	http_field_t()
 	{
-		attr = NULL;
-		val = NULL;
+		attr = nullptr;
+		val = nullptr;
+		next = nullptr;
 	}
 	char *parse(char *attr, const u_char split)
 	{
@@ -88,6 +89,7 @@ public:
 	{
 		this->attr = attr;
 		this->val = val;
+		next = nullptr;
 	}
 	~http_field_t()
 	{

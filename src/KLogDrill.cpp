@@ -159,8 +159,8 @@ void add_log_drill(KHttpRequest *rq,KStringBuf &s)
 	drill_count++;
 	klog_drill *ld = new klog_drill;
 	memset(ld,0,sizeof(klog_drill));
-	ld->len = s.getSize();
-	ld->buf = s.stealString();
+	ld->len = s.size();
+	ld->buf = s.steal();
 	/*
 	kgl_memcpy(ld->magic1,CHECK_MAGIC_STR,sizeof(CHECK_MAGIC_STR)-1);
 	kgl_memcpy(ld->magic2,CHECK_MAGIC_STR,sizeof(CHECK_MAGIC_STR)-1);
@@ -190,8 +190,8 @@ void flush_log_drill()
 	klog(KLOG_NOTICE, "flush_log_drill now\n");
 	drill_log_file << conf.path << PATH_SPLIT_CHAR << "var" << PATH_SPLIT_CHAR << "drill.log";
 	KFile fp;
-	if (!fp.open(drill_log_file.getString(), fileWrite)) {
-		klog(KLOG_ERR, "cann't open drill_log_file [%s] for write\n", drill_log_file.getString());
+	if (!fp.open(drill_log_file.c_str(), fileWrite)) {
+		klog(KLOG_ERR, "cann't open drill_log_file [%s] for write\n", drill_log_file.c_str());
 		return;
 	}
 	drill_lock.Lock();
@@ -228,7 +228,7 @@ void flush_log_drill()
 	drill_sign << ",\"cache_verified\":" << drill_stat.cache_verified;
 	drill_sign << ",\"total_count\":" << drill_stat.total_count;
 	drill_sign << "}";
-	fp.write(drill_sign.getString(), drill_sign.getSize());
+	fp.write(drill_sign.c_str(), drill_sign.size());
 	drill_count = 0;
 	memset(&drill_stat, 0, sizeof(drill_stat));
 #ifndef NDEBUG

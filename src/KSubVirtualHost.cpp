@@ -411,7 +411,7 @@ kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool 
 	}
 	if (*proxy == '/') {
 		tmp_str << rq->sink->data.url->host << proxy;
-		proxy = tmp_str.getString();
+		proxy = tmp_str.c_str();
 	}
 	KRedirect *rd = server_container->refsRedirect(proxy);
 	if (rd == NULL) {

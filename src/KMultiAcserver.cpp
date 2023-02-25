@@ -197,7 +197,7 @@ static KUpstream* connect_result(KHttpRequest* rq, KSockPoolHelper* sa, int cook
 		b.WSTR("=");
 		b << cookie_stick;
 		b.WSTR("; path=/");
-		rq->response_header(_KS("Set-Cookie"), b.getBuf(), b.getSize());
+		rq->response_header(_KS("Set-Cookie"), b.buf(), b.size());
 	}
 	rq->ctx.upstream_sign = sa->sign;
 	KUpstream* us = sa->get_upstream(rq->get_upstream_flags(), rq->sink->data.raw_url->host);

@@ -34,7 +34,7 @@ public:
 				value ++;
 			}
 			if (revert == matchParam(hot)) {
-				if (np.getSize()>0) {
+				if (np.size()>0) {
 					np.write_all("&",1);
 				}
 				np << hot;
@@ -51,8 +51,8 @@ public:
 			hot = p+1;
 		}
 		free(url->param);
-		if (np.getSize()>0) {
-			url->param = np.stealString();
+		if (np.size()>0) {
+			url->param = np.steal();
 		} else {
 			url->param = NULL;
 		}

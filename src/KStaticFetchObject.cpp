@@ -97,7 +97,7 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_input_strea
 			b << int2string(range->to, buf);
 			b.WSTR("/");
 			b << int2string(rq->file->get_file_size(), buf);
-			out->f->write_header(out->ctx, kgl_header_content_range, b.getBuf(), b.getSize());
+			out->f->write_header(out->ctx, kgl_header_content_range, b.buf(), b.size());
 			status_code = STATUS_CONTENT_PARTIAL;
 		} else {
 			//url range的本地不缓存

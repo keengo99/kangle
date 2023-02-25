@@ -33,7 +33,7 @@ void KHttpBasicAuth::insertHeader(KHttpRequest *rq)
 		KStringBuf s;
 		s << "Basic realm=\"" << realm  << "\"";
 		const char *auth_header = this->get_auth_header();
-		rq->response_header(auth_header, (hlen_t)strlen(auth_header) , s.getBuf(), s.getSize());
+		rq->response_header(auth_header, (hlen_t)strlen(auth_header) , s.buf(), s.size());
 	}
 }
 KGL_RESULT KHttpBasicAuth::response_header(kgl_output_stream* out)
@@ -42,7 +42,7 @@ KGL_RESULT KHttpBasicAuth::response_header(kgl_output_stream* out)
 		KStringBuf s;
 		s << "Basic realm=\"" << realm << "\"";
 		const char* auth_header = this->get_auth_header();
-		return out->f->write_unknow_header(out->ctx, auth_header, (hlen_t)strlen(auth_header), s.getBuf(), s.getSize());
+		return out->f->write_unknow_header(out->ctx, auth_header, (hlen_t)strlen(auth_header), s.buf(), s.size());
 	}
 	return KGL_OK;
 }

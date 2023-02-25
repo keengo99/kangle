@@ -424,7 +424,7 @@ void loadExtConfigFile(KFileName* file) {
 	if (!load_config_file(file, 0, s, id, merge)) {
 		return;
 	}
-	KExtConfig* extconf = new KExtConfig(s.stealString());
+	KExtConfig* extconf = new KExtConfig(s.steal());
 	extconf->file = file->getName();
 	extconf->merge = merge;
 	map<int, KExtConfig*>::iterator it;

@@ -29,10 +29,10 @@ public:
 			if (obj) {
 				//如果是缓存物件，则不再重复增加header
 				if (!obj->in_cache && (this->force || obj->find_header(attr,attr_len)==NULL)) {
-					obj->insert_http_header((const char *)attr,attr_len,s->getString(),s->getSize());
+					obj->insert_http_header((const char *)attr,attr_len,s->c_str(),s->size());
 				}
 			} else if (this->force || rq->sink->data.find(attr, attr_len) ==NULL) {
-				rq->sink->data.add_header((const char *)attr,attr_len,s->getString(),s->getSize());
+				rq->sink->data.add_header((const char *)attr,attr_len,s->c_str(),s->size());
 			}
 			delete s;
 		}
@@ -128,7 +128,7 @@ public:
 			if (s == NULL) {
 				return true;
 			}
-			rq->response_header((const char *)attr, attr_len, s->getString(), s->getSize());
+			rq->response_header((const char *)attr, attr_len, s->c_str(), s->size());
 		}
 		return true;
 	}

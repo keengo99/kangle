@@ -19,7 +19,7 @@ int WhmUrl::call(const char *callName, const char *eventType,
 	KStringBuf s;
 	s << file.c_str() << "?whm_event=" << eventType << "&"
 			<< provider->getQueryString();
-	if (provider->execUrl(s.getString())) {
+	if (provider->execUrl(s.c_str())) {
 		return WHM_OK;
 	}
 	return WHM_CALL_FAILED;

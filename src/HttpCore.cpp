@@ -114,7 +114,7 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 			b.WSTR("MISS from ");
 		}
 		b << conf.hostname;
-		rq->response_header(kgl_expand_string("X-Cache"), b.getBuf(), b.getSize());
+		rq->response_header(kgl_expand_string("X-Cache"), b.buf(), b.size());
 	}
 	INT64 send_len = 0;
 	if (!is_status_code_no_body(status_code)) {
@@ -237,7 +237,7 @@ KGL_RESULT send_error2(KHttpRequest* rq, int code, const char* reason) {
 	var msg = '" << url_encode(reason).c_str() << "';\n\
     var hostname='" << conf.hostname << "';\n\
 	var event_id='";
-		s.write_all(event_id.getBuf(), event_id.getSize());
+		s.write_all(event_id.buf(), event_id.size());
 		s << "';\n\
 	document.write('<scr'+'ipt language=\"javascript\" src=\"";
 		s << conf.error_url;
@@ -339,7 +339,7 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, boo
 			b.WSTR("MISS from ");
 		}
 		b << conf.hostname;
-		rq->response_header(kgl_expand_string("X-Cache"), b.getBuf(), b.getSize());
+		rq->response_header(kgl_expand_string("X-Cache"), b.buf(), b.size());
 	}
 	if (!KBIT_TEST(obj->index.flags, FLAG_NO_BODY)) {
 		/*
@@ -541,7 +541,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 	}
 	KStringBuf host;
 	rq->sink->data.url->GetHost(host);
-	env->add_http_header(_KS("Host"), host.getString(), host.getSize());
+	env->add_http_header(_KS("Host"), host.c_str(), host.size());
 	int64_t content_length;
 	assert(in);
 	if (in) {
@@ -583,7 +583,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 		} else {
 			s << range->from;
 		}
-		env->add_http_header(_KS("Range"), s.getString(), s.getSize());
+		env->add_http_header(_KS("Range"), s.c_str(), s.size());
 		if (range->if_range_entity) {
 			if (KBIT_TEST(flag, kgl_precondition_if_range_date)) {
 				char* end = make_http_time(range->if_range_date, tmpbuff, sizeof(tmpbuff));
@@ -609,9 +609,9 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 	} else {
 		KStringBuf request_uri;
 		request_uri << rq->sink->data.raw_url->path << "?" << param;
-		env->addEnv("REQUEST_URI", request_uri.getString());
+		env->addEnv("REQUEST_URI", request_uri.c_str());
 		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
-			env->addEnv("HTTP_X_REWRITE_URL", request_uri.getString());
+			env->addEnv("HTTP_X_REWRITE_URL", request_uri.c_str());
 		}
 	}
 	if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
@@ -636,9 +636,9 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 			//有index文件情况下。
 			KStringBuf s;
 			s << rq->sink->data.url->path << file->getIndex();
-			env->addEnv("SCRIPT_NAME", s.getString());
+			env->addEnv("SCRIPT_NAME", s.c_str());
 			if (KBIT_TEST(rq->ctx.filter_flags, RQ_FULL_PATH_INFO)) {
-				env->addEnv("PATH_INFO", s.getString());
+				env->addEnv("PATH_INFO", s.c_str());
 			}
 		} else {
 			if (pathInfoLength > 0) {
@@ -662,7 +662,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 			if (pathInfoLength > 0) {
 				KStringBuf s;
 				s << file->getName() + skip_length << rq->sink->data.url->path + pathInfoLength;
-				env->addEnv("PATH_TRANSLATED", s.getString());
+				env->addEnv("PATH_TRANSLATED", s.c_str());
 			} else {
 				env->addEnv("PATH_TRANSLATED", file->getName() + skip_length);
 			}
@@ -700,7 +700,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 		for (it = brd->params.begin(); it != brd->params.end(); it++) {
 			KStringBuf* s = KRewriteMarkEx::getString(NULL, (*it).value.c_str(), rq, NULL, NULL);
 			if (s) {
-				env->add_env((*it).name.c_str(), (*it).name.size(), (const char*)s->getString(), s->getSize());
+				env->add_env((*it).name.c_str(), (*it).name.size(), (const char*)s->c_str(), s->size());
 				delete s;
 			}
 		}

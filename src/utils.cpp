@@ -336,7 +336,7 @@ void change_admin_password_crypt_type() {
 					<< conf.admin_passwd.c_str();
 		}
 		char md5result[33];
-		KMD5(s.getString(), s.getSize(),md5result);
+		KMD5(s.c_str(), s.size(),md5result);
 		conf.admin_passwd = md5result;
 	}
 }
@@ -369,7 +369,7 @@ pid_t createProcess(Token_t token,const char *cmd,KCmdEnv *envs,const char *curd
 	pid_t pid;
 	//{{ent
 #ifdef _WIN32
-	if(!StartInteractiveClientProcess2(token,NULL,cmd,curdir,std,(envs?envs->dump_env():NULL),pid)) {
+	if(!StartInteractiveClientProcess2(token,NULL,cmd,curdir,std,(char *)(envs?envs->dump_env():NULL),pid)) {
 		return INVALID_HANDLE_VALUE;
 	}
 #else

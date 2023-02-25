@@ -58,49 +58,47 @@
 #include "KVirtualHostContainer.h"
 #ifndef NDEBUG
 using namespace std;
-char *getString(char *str, char **substr);
+char* getString(char* str, char** substr);
 
-void test_file()
-{
-	const char *test_file = "c:\\windows\\temp\\test.txt";
+void test_file() {
+	const char* test_file = "c:\\windows\\temp\\test.txt";
 	KFile file;
-	assert(file.open(test_file,fileWrite));
-	assert(file.write("test",4));
+	assert(file.open(test_file, fileWrite));
+	assert(file.write("test", 4));
 	file.close();
-	assert(file.open(test_file,fileRead));
+	assert(file.open(test_file, fileRead));
 	char buf[8];
-	int len = file.read(buf,8);
-	assert(len==4);
-	assert(strncmp(buf,"test",4)==0);
-	file.seek(1,seekBegin);
-	len = file.read(buf,8);
-	assert(len==3);
+	int len = file.read(buf, 8);
+	assert(len == 4);
+	assert(strncmp(buf, "test", 4) == 0);
+	file.seek(1, seekBegin);
+	len = file.read(buf, 8);
+	assert(len == 3);
 	file.close();
-	file.open(test_file,fileAppend);
-	file.write("t2",2);
+	file.open(test_file, fileAppend);
+	file.write("t2", 2);
 	file.close();
-	file.open(test_file,fileRead);
-	assert(file.read(buf,8)==6);
+	file.open(test_file, fileRead);
+	assert(file.read(buf, 8) == 6);
 	file.close();
 }
 bool test_pipe() {
 	return true;
 }
-void test_vh_container()
-{
-	KDomainMap *vhc = new KDomainMap;
-	vhc->bind("*.a.com", (void *)1, kgl_bind_unique);
-	vhc->bind("a.com", (void *)2, kgl_bind_unique);
-	void *result = vhc->find("*.a.com");
+void test_vh_container() {
+	KDomainMap* vhc = new KDomainMap;
+	vhc->bind("*.a.com", (void*)1, kgl_bind_unique);
+	vhc->bind("a.com", (void*)2, kgl_bind_unique);
+	void* result = vhc->find("*.a.com");
 	intptr_t ret = (intptr_t)result;
 	kassert(ret == 1);
 	delete vhc;
 }
 void test_regex() {
 	KReg reg;
-	reg.setModel("s",0);
+	reg.setModel("s", 0);
 	int ovector[6];
-	int ret = reg.match("sjj",-1,PCRE_PARTIAL,ovector,6);
+	int ret = reg.match("sjj", -1, PCRE_PARTIAL, ovector, 6);
 	//printf("ret=%d\n",ret);
 	//KRegSubString *ss = reg.matchSubString("t", 1, 0);
 	//assert(ss);
@@ -134,20 +132,18 @@ void test_htaccess() {
 	//file.setName("/","/home/keengo/");
 	//printf("result=%d\n",htaccess.load("/","/home/keengo/"));
 }
-void test_file(const char *path)
-{
+void test_file(const char* path) {
 #if 0
 	KFileName file;
 	std::string doc_root = "d:\\project\\kangle\\www\\";
-	bool result = file.setName(doc_root.c_str(), path, FOLLOW_LINK_NO|FOLLOW_PATH_INFO);
-	printf("triped_path=[%s],result=%d\n",path,result);
-	if(result){
-		printf("pre_dir=%d,is_dir=%d,path_info=[%d],filename=[%s]\n",file.isPrevDirectory(),file.isDirectory(),file.getPathInfoLength(),file.getName());
+	bool result = file.setName(doc_root.c_str(), path, FOLLOW_LINK_NO | FOLLOW_PATH_INFO);
+	printf("triped_path=[%s],result=%d\n", path, result);
+	if (result) {
+		printf("pre_dir=%d,is_dir=%d,path_info=[%d],filename=[%s]\n", file.isPrevDirectory(), file.isDirectory(), file.getPathInfoLength(), file.getName());
 	}
 #endif
 }
-void test_files()
-{
+void test_files() {
 	test_file("/test.php");
 	test_file("/test.php/a/b");
 	test_file("/");
@@ -156,9 +152,8 @@ void test_files()
 	test_file("/b");
 
 }
-void test_timematch()
-{
-	KTimeMatch *t = new KTimeMatch;
+void test_timematch() {
+	KTimeMatch* t = new KTimeMatch;
 	t->set("* * * * *");
 	t->Show();
 	delete t;
@@ -173,45 +168,42 @@ void test_timematch()
 }
 //{{ent
 #ifdef ENABLE_INPUT_FILTER
-void test_multipart_filter()
-{
-	const char *str = "--AaB03x\r\nContent-Disposition: form-data; name=\"name\"\r\n\r\nLy\r\n--AaB03x\r\nContent-Disposition: form-data; name=\"files\"; filename=\"file1.txt\"\r\nContent-Type: text/plain\r\n\r\n... contents of file1.txt ...\r\n--AaB03x--";
+void test_multipart_filter() {
+	const char* str = "--AaB03x\r\nContent-Disposition: form-data; name=\"name\"\r\n\r\nLy\r\n--AaB03x\r\nContent-Disposition: form-data; name=\"files\"; filename=\"file1.txt\"\r\nContent-Type: text/plain\r\n\r\n... contents of file1.txt ...\r\n--AaB03x--";
 	KInputFilterContext ctx(NULL);
 	ctx.parse_boundary(_KS("multipart/form-data; boundary=AaB03x"));
 	ctx.filter = new KMultiPartInputFilter;
 	int len = (int)strlen(str);
-	for (int i=0;i<len;i++) {
-		ctx.check(str+i,1,false);
+	for (int i = 0; i < len; i++) {
+		ctx.check(str + i, 1, false);
 	}
 }
 #endif
-kev_result test_kgl_addr_timer(KOPAQUE data, void *arg, int got) {
+kev_result test_kgl_addr_timer(KOPAQUE data, void* arg, int got) {
 	printf("test timer..\n");
-	kselector *selector = (kselector *)arg;
-	kselector_add_timer(selector,test_kgl_addr_timer, arg, 2000, NULL);
+	kselector* selector = (kselector*)arg;
+	kselector_add_timer(selector, test_kgl_addr_timer, arg, 2000, NULL);
 	return kev_ok;
 }
-void WINAPI when_selector_manager_ready(void *arg) {
-	kselector *selector = get_perfect_selector();
-	kgl_selector_module.next(selector,NULL, test_kgl_addr_timer,selector,0);
+void WINAPI when_selector_manager_ready(void* arg) {
+	kselector* selector = get_perfect_selector();
+	kgl_selector_module.next(selector, NULL, test_kgl_addr_timer, selector, 0);
 }
-void test_map()
-{
-	std::map<char *,bool,lessp> m;
-	for(int i=0;i<100;i++){
+void test_map() {
+	std::map<char*, bool, lessp> m;
+	for (int i = 0; i < 100; i++) {
 		std::stringstream s;
 		s.str("");
 		s << i;
-		m.insert(std::pair<char *,bool>(strdup(s.str().c_str()),true));
+		m.insert(std::pair<char*, bool>(strdup(s.str().c_str()), true));
 	}
 
-	std::map<char *,bool,lessp>::iterator it;
-	for(it=m.begin();it!=m.end();it++){
+	std::map<char*, bool, lessp>::iterator it;
+	for (it = m.begin(); it != m.end(); it++) {
 		free((*it).first);
 	}
 }
-void test_bigobject()
-{
+void test_bigobject() {
 	/*
 	KSharedBigObject sbo;
 	bool newobj;
@@ -238,49 +230,45 @@ void test_bigobject()
 	}
 	*/
 }
-void test_atom()
-{
+void test_atom() {
 #ifdef ENABLE_ATOM
 	KAtomLock lock;
 	assert(lock.lock());
 	assert(!lock.lock());
 	assert(lock.unlock());
-	assert(!lock.unlock());	
+	assert(!lock.unlock());
 #endif
 }
-void test_xml()
-{
-	
-	char *s = strdup("&&&");
+void test_xml() {
+
+	char* s = strdup("&&&");
 	int len = (int)strlen(s);
-	char *dst = KXml::htmlEncode(s,len,NULL);
-	printf("len=%d,s=[%s]\n",len,dst);
+	char* dst = KXml::htmlEncode(s, len, NULL);
+	printf("len=%d,s=[%s]\n", len, dst);
 	s = strdup("&lt;!-- JiaThis Button BEGIN --&gt;&#13;&#10;&lt;script type=&quot;text/javascript&quot; src=&quot;http://v3.jiathis.com/code/jiathis_r.js?uid=1355687902433269&amp;move=0&quot; charset=&quot;utf-8&quot;&gt;&lt;/script&gt;&#13;&#10;&lt;!-- JiaThis Button END --&gt;&#10;&lt;/html&gt;");
 	len = 0;
-	dst = KXml::htmlDecode(s,len);
-	printf("dst=[%s]\n",dst);
+	dst = KXml::htmlDecode(s, len);
+	printf("dst=[%s]\n", dst);
 }
-void test_config()
-{
+void test_config() {
 	kconfig::test();
 }
 //}}
 void test_url_decode() {
 	char buf2[5];
-    //strcpy(buf2,"test");
-    kgl_memcpy(buf2,"test",4);
-    buf2[4] = '*';
-    url_decode(buf2, 4,NULL,true);
-   // printf("buf=[%s]\n",buf2);
-    assert(buf2[4]=='*');
-    //strcpy(buf2,"test");
-    kgl_memcpy(buf2,"%20t",4);
-    url_decode(buf2, 4,NULL,true);
-    //printf("buf=[%s]\n",buf2);
-    assert(buf2[2]=='\0');
+	//strcpy(buf2,"test");
+	kgl_memcpy(buf2, "test", 4);
+	buf2[4] = '*';
+	url_decode(buf2, 4, NULL, true);
+	// printf("buf=[%s]\n",buf2);
+	assert(buf2[4] == '*');
+	//strcpy(buf2,"test");
+	kgl_memcpy(buf2, "%20t", 4);
+	url_decode(buf2, 4, NULL, true);
+	//printf("buf=[%s]\n",buf2);
+	assert(buf2[2] == '\0');
 }
-static void test_dechunk2()
-{
+static void test_dechunk2() {
 	//printf("sizeof(KDechunkEngine2)=[%d],sizeof(KDechunkEngine)=[%d]\n", sizeof(KDechunkEngine2), sizeof(KDechunkEngine));
 	KDechunkEngine engine;
 	ks_buffer* buffer = ks_buffer_new(512);
@@ -299,8 +287,8 @@ static void test_dechunk2()
 }
 #ifdef ENABLE_INPUT_FILTER
 void test_dechunk() {
-	KDechunkEngine *engine = new KDechunkEngine;
-	const char *piece;
+	KDechunkEngine* engine = new KDechunkEngine;
+	const char* piece;
 	int piece_length = KHTTPD_MAX_CHUNK_SIZE;
 	/*
 	* 1\r\n
@@ -310,10 +298,10 @@ void test_dechunk() {
 	* 10\raaa\n
 	* x
 	*/
-	const char *buf = "1\r\na\r\n";
+	const char* buf = "1\r\na\r\n";
 	const char* end = buf + strlen(buf);
 	assert(engine->dechunk(&buf, end, &piece, &piece_length) == dechunk_success);
-	assert(strncmp(piece, "a",piece_length) == 0);
+	assert(strncmp(piece, "a", piece_length) == 0);
 	piece_length = KHTTPD_MAX_CHUNK_SIZE;
 	assert(engine->dechunk(&buf, end, &piece, &piece_length) == dechunk_continue);
 	buf = "1";
@@ -324,12 +312,12 @@ void test_dechunk() {
 	end = buf + strlen(buf);
 	piece_length = KHTTPD_MAX_CHUNK_SIZE;
 	assert(engine->dechunk(&buf, end, &piece, &piece_length) == dechunk_success);
-	assert(piece_length==6 && strncmp(piece, "012345", piece_length) == 0);
+	assert(piece_length == 6 && strncmp(piece, "012345", piece_length) == 0);
 	buf = "6789abcdef";
 	end = buf + strlen(buf);
 	piece_length = KHTTPD_MAX_CHUNK_SIZE;
 	assert(engine->dechunk(&buf, end, &piece, &piece_length) == dechunk_success);
-	assert(piece_length==10 && strncmp(piece, "6789abcdef", piece_length) == 0);
+	assert(piece_length == 10 && strncmp(piece, "6789abcdef", piece_length) == 0);
 	buf = "\r\na\r";
 	end = buf + strlen(buf);
 	assert(engine->dechunk(&buf, end, &piece, &piece_length) == dechunk_continue);
@@ -346,37 +334,36 @@ void test_white_list() {
 	wlm.add(".", NULL, "1");
 	wlm.add(".", NULL, "2");
 	wlm.add(".", NULL, "3");
-	wlm.flush(time(NULL)+100, 10);
+	wlm.flush(time(NULL) + 100, 10);
 #endif
 }
-void test_line_file()
-{
+void test_string() {
+}
+void test_line_file() {
 	KStreamFile lf;
 	lf.open("d:\\line.txt");
 	for (;;) {
-		char *line = lf.read();
+		char* line = lf.read();
 		if (line == NULL) {
 			break;
 		}
 		printf("line=[%s]\n", line);
 	}
 }
-void test_http_parser()
-{
-	char *buf = strdup("HTTP/1.1 200 OK\r\na: bsssssssssssssddddd\r\n ttt");
-	char *hot = buf;
+void test_http_parser() {
+	char* buf = strdup("HTTP/1.1 200 OK\r\na: bsssssssssssssddddd\r\n ttt");
+	char* hot = buf;
 	int len = (int)strlen("HTTP/1.1 200 OK\r\na: bsssssssssssssddddd\r\n ttt");
 	khttp_parser parser;
 	khttp_parse_result rs;
-	memset(&parser, 0, sizeof(parser));	
+	memset(&parser, 0, sizeof(parser));
 	char* end = hot + len;
 	kassert(kgl_parse_continue == khttp_parse(&parser, &hot, end, &rs));
 	kassert(kgl_parse_continue == khttp_parse(&parser, &hot, end, &rs));
 }
-void test_mem_function()
-{
+void test_mem_function() {
 	assert(kgl_ncasecmp(_KS("AABB"), _KS("aA")) == 0);
-	assert(kgl_ncasecmp( _KS("aA"), _KS("AABB")) != 0);
+	assert(kgl_ncasecmp(_KS("aA"), _KS("AABB")) != 0);
 	assert(kgl_ncmp(_KS("AABB"), _KS("AA")) == 0);
 	assert(kgl_ncmp(_KS("AA"), _KS("AABB")) != 0);
 	assert(kgl_casecmp("aaa", _KS("aAA")) == 0);
@@ -397,15 +384,14 @@ bool test() {
 #endif
 	test_dechunk2();
 	test_white_list();
+	test_string();
 	time_t nowTime = time(NULL);
 	char timeStr[41];
 	mk1123time(nowTime, timeStr, sizeof(timeStr) - 1);
-	//printf("parse1123=%d\n",parse1123time(timeStr));
-	assert(kgl_parse_http_time((u_char *)timeStr,40)==nowTime);
+	assert(kgl_parse_http_time((u_char*)timeStr, 40) == nowTime);
 	INT64 t = 123;
 	char buf[INT2STRING_LEN];
 	int2string(t, buf);
-	//printf("sizeof(KXmlNode)=%d\n",sizeof(KXmlNode));
 	if (strcmp(buf, "123") != 0) {
 		fprintf(stderr, "Warning int2string function is not correct\n");
 		assert(false);
@@ -414,8 +400,8 @@ bool test() {
 		assert(false);
 	}
 	KHttpField field;
-//	test_files();
-	
+	//	test_files();
+
 	return true;
 }
 #endif
