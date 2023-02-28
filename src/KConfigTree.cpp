@@ -12,6 +12,7 @@
 #include "KFileStream.h"
 #include "KConfig.h"
 #include "KHttpLib.h"
+#include "KFiberLocker.h"
 
 namespace kconfig {
 	bool is_first_config = true;
@@ -21,6 +22,7 @@ namespace kconfig {
 	constexpr kgl_str_t default_file_name{ _KS("default") };
 	static KConfigTree events(nullptr, _KS("config"));
 	static uint16_t cur_know_qname_id = 0xffff;
+	static kfiber_mutex* locker = nullptr;
 	KMap<kgl_ref_str_t, khttpd::KXmlKey> qname_config;
 	KMap<kgl_ref_str_t, KConfigFile> config_files;
 	static on_begin_parse_f begin_parse_cb = nullptr;
@@ -596,34 +598,6 @@ namespace kconfig {
 				break;
 			}
 		}
-
-#if 0
-		if (o->get_body_count() != n->get_body_count()) {
-			if (ev_node) {
-				if (!diff_nodes(ev_node, &o->get_first()->childs, &n->get_first()->childs, notice_count)) {
-					//last_same_index = 0;
-				}
-			}
-			is_diff = true;
-		} else {
-			for (uint32_t index = 0;; index++) {
-				auto o_body = o->get_body(index);
-				if (!o_body) {
-					break;
-				}
-				auto n_body = n->get_body(index);
-				if (diff_nodes(index == 0 ? ev_node : nullptr, &o_body->childs, &n_body->childs, notice_count)) {
-					is_diff = true;
-					break;
-				}
-				if (!o_body->is_same(n_body)) {
-					is_diff = true;
-					break;
-				}
-				//last_same_index = index;
-			}
-		}
-#endif
 		if (ev_node) {
 			assert(ev_node);
 			if (ev_node->notice(this, n, is_diff ? EvUpdate : EvNone, diff)) {
@@ -665,7 +639,6 @@ namespace kconfig {
 		}
 		auto nodes = this->nodes->clone();
 		if (!update_xml_node(nodes, name, size, index, xml, ev_type)) {
-			nodes->release();
 			return false;
 		}
 		update(nodes);
@@ -959,6 +932,7 @@ namespace kconfig {
 		return key->tag->id;
 	}
 	void init(on_begin_parse_f cb) {
+		locker = kfiber_mutex_init();
 		register_qname(_KS("worker_thread"));
 		register_qname(_KS("dso_extend@name"));
 		register_qname(_KS("server@name"));
@@ -980,6 +954,7 @@ namespace kconfig {
 			return iterator_remove_continue;
 			}, NULL);
 		events.clean();
+		kfiber_mutex_destroy(locker);
 	}
 	KConfigResult remove(KConfigFile* file, const kgl_str_t& path, uint32_t index) {
 		const char* name = (const char*)kgl_memrchr(path.data, '/', path.len);
@@ -999,8 +974,7 @@ namespace kconfig {
 		return KConfigResult::Success;
 	}
 	KConfigResult remove(const std::string& file_name, const kgl_str_t& path, uint32_t index) {
-		kconfig::lock();
-		defer(kconfig::unlock());
+		KFiberLocker lock(locker);
 		kgl_str_t file2{ (char *)file_name.c_str(),file_name.size() };
 		auto file = find_file(file2);
 		if (!file) {
@@ -1009,8 +983,7 @@ namespace kconfig {
 		return remove(file, path, index);
 	}
 	KConfigResult remove(const kgl_str_t& path, uint32_t index) {
-		kconfig::lock();
-		defer(kconfig::unlock());
+		KFiberLocker lock(locker);
 		const char* tree_path = path.data;
 		size_t tree_len = path.len;
 		auto tree = kconfig::find(&tree_path, &tree_len);
@@ -1055,7 +1028,6 @@ namespace kconfig {
 		}
 		size_t path_len = name - path.data;
 		if (!file->update(path.data, path_len, index, xml, ev_type)) {
-			xml->release();
 			return KConfigResult::ErrNotFound;
 		}
 		if (!file->save()) {
@@ -1064,8 +1036,7 @@ namespace kconfig {
 		return KConfigResult::Success;
 	}
 	KConfigResult update(const kgl_str_t& path, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type) {
-		kconfig::lock();
-		defer(kconfig::unlock());
+		KFiberLocker lock(locker);
 		const char* tree_path = path.data;
 		size_t tree_len = path.len;
 		auto tree = kconfig::find(&tree_path, &tree_len);
@@ -1078,22 +1049,35 @@ namespace kconfig {
 				file = find_file(default_file_name);
 			}
 			if (!file) {
-				xml->release();
 				return KConfigResult::ErrNotFound;
 			}
 		}
-		return update(file, path, index, xml, ev_type);		
+		return update(file, path, index, xml, ev_type);	
+	}
+	KConfigResult update(const kgl_str_t& path, uint32_t index, const std::string &text, KXmlAttribute *attribute, KConfigEventType ev_type) {
+		const char* name = (const char*)kgl_memrchr(path.data, '/', path.len);
+		if (!name) {
+			name = path.data;
+		}
+		size_t path_len = name - path.data;
+		auto xml = kconfig::new_xml(name, path.len - path_len);
+		if (!text.empty()) {
+			xml->get_last()->character = kstring_from2(text.c_str(),text.size());
+		}
+		if (attribute) {
+			xml->get_last()->attributes.swap(*attribute);
+		}
+		defer(xml->release());
+		return update(path, index, xml, ev_type);
 	}
 	KConfigResult add(const std::string& file, const kgl_str_t& path, uint32_t index, khttpd::KXmlNode* xml) {
 		return update(file, path, index, xml, EvNew);
 	}
 	KConfigResult update(const std::string& file_name, const kgl_str_t& path, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type) {
-		kconfig::lock();
-		defer(kconfig::unlock());
+		KFiberLocker lock(locker);
 		kgl_str_t file2{ (char*)file_name.c_str(),file_name.size() };
 		auto file = find_file(file2);
 		if (!file) {
-			xml->release();
 			return KConfigResult::ErrNotFound;
 		}
 		return update(file, path, index, xml, ev_type);

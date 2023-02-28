@@ -158,22 +158,6 @@ bool KConfigParser::startCharacter(KXmlContext* context, char* character, int le
 		if (context->qName == "apache_config_file") {
 			cconf->apache_config_file = character;
 		}
-		//}}
-		if (context->qName == "access_log") {
-			SAFE_STRCPY(cconf->access_log, character);
-		}
-		if (context->qName == "access_log_handle") {
-			SAFE_STRCPY(cconf->logHandle, character);
-		}
-		if (context->qName == "log_handle_concurrent") {
-			cconf->maxLogHandle = atoi(character);
-			return true;
-		}
-		if (context->qName == "log_event_id") {
-			cconf->log_event_id = atoi(character);
-			return true;
-		}
-
 #ifdef ENABLE_LOG_DRILL
 		if (context->qName == "log_drill") {
 			cconf->log_drill = atoi(character);
@@ -185,15 +169,7 @@ bool KConfigParser::startCharacter(KXmlContext* context, char* character, int le
 			}
 		}
 #endif
-		if (context->qName == "server_software") {
-			SAFE_STRCPY(cconf->server_software, character);
-		}
-		if (context->qName == "cookie_stick_name") {
-			SAFE_STRCPY(cconf->cookie_stick_name, character);
-		}
-		if (context->qName == "hostname") {
-			cconf->setHostname(character);
-		}
+
 #ifdef ENABLE_TF_EXCHANGE
 		if (context->qName == "max_post_size") {
 			cconf->max_post_size = get_size(character);
@@ -259,15 +235,6 @@ bool KConfigParser::startCharacter(KXmlContext* context, char* character, int le
 			cconf->worker_dns = atoi(character);
 			return true;
 		}
-		if (context->qName == "ssl_client_protocols") {
-			cconf->ssl_client_protocols = character;
-		}
-		if (context->qName == "ssl_client_chiper") {
-			cconf->ssl_client_chiper = character;
-		}
-		if (context->qName == "ca_path") {
-			cconf->ca_path = character;
-		}
 	}
 	return false;
 
@@ -281,6 +248,20 @@ void KConfigParser::startXml(const std::string& encoding) {
 
 }
 void KConfigParser::endXml(bool result) {
+}
+void on_ssl_client_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+	auto attr = ev->get_xml()->attributes();
+	switch (ev->type) {
+	case kconfig::EvNew:
+	case kconfig::EvUpdate:
+		khttp_server_set_ssl_config(attr.get_string("ca_path"), attr.get_string("chiper"), attr.get_string("protocols"));
+		break;
+	case kconfig::EvRemove:
+		khttp_server_set_ssl_config("", "", "");
+		break;
+	default:
+		break;
+	}
 }
 void on_main_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent * ev) {
 	auto xml = ev->get_xml();
@@ -315,6 +296,34 @@ void on_main_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent
 		}
 		if (xml->is_tag(_KS("auth_delay"))) {
 			conf.auth_delay = atoi(xml->get_text());
+			return;
+		}
+		if (xml->is_tag(_KS("access_log"))) {
+			SAFE_STRCPY(conf.access_log, xml->get_text());
+			return;
+		}
+		if (xml->is_tag(_KS("access_log_handle"))) {
+			SAFE_STRCPY(conf.logHandle, xml->get_text());
+			return;
+		}
+		if (xml->is_tag(_KS("log_handle_concurrent"))) {
+			conf.maxLogHandle = atoi(xml->get_text());
+			return;
+		}
+		if (xml->is_tag(_KS("log_event_id"))) {
+			conf.log_event_id = atoi(xml->get_text());
+			return;
+		}
+		if (xml->is_tag(_KS("server_software"))) {
+			SAFE_STRCPY(conf.server_software, xml->get_text());
+			return;
+		}
+		if (xml->is_tag(_KS("cookie_stick_name"))) {
+			SAFE_STRCPY(conf.cookie_stick_name, xml->get_text());
+			return;
+		}
+		if (xml->is_tag(_KS("hostname"))) {
+			SAFE_STRCPY(conf.hostname, xml->get_text());
 			return;
 		}
 		break;

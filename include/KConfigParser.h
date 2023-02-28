@@ -24,6 +24,7 @@
 #include "KConfigTree.h"
 
 void on_main_event(void *data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_ssl_client_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
 class KConfigParser : public KXmlEvent{
 public:
 	void startXml(const std::string &encoding) override;

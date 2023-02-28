@@ -176,8 +176,7 @@ public:
 	unsigned int max_per_ip;
 	unsigned int per_ip_deny;
 	unsigned min_free_thread;
-	char hostname[32];
-	int log_event_id;
+
 	int log_level;
 	int http2https_code;
 	INT64 log_rotate_size;
@@ -203,7 +202,7 @@ public:
 #ifdef ENABLE_ADPP
 	int process_cpu_usage;
 #endif
-	unsigned maxLogHandle;
+
 	unsigned logs_day;
 	bool log_sub_request;
 	bool log_handle;
@@ -235,10 +234,10 @@ public:
 	char report_url[512];
 #endif
 	char log_rotate[32];
-	char access_log[128];
-	char logHandle[512];
-	char cookie_stick_name[16];
-	char server_software[32];
+
+
+
+
 	char disk_work_time[32];
 	char upstream_sign[32];
 	int upstream_sign_len;
@@ -252,21 +251,14 @@ public:
 	std::string admin_passwd;
 	std::string admin_user;
 	std::vector<std::string> admin_ips;
-	
-	
+
+
 	//run_user,run_group为一次性使用，可以安全用string
 	std::string run_user;
 	std::string run_group;
-	std::string ssl_client_protocols;
-	std::string ssl_client_chiper;
-	std::string ca_path;
 	std::string apache_config_file;
 
 	void copy(KConfig* c);
-
-	void setHostname(const char* hostname) {
-		SAFE_STRCPY(this->hostname, hostname);
-	}
 };
 //配置参数和程序运行信息
 class KGlobalConfig : public KConfig
@@ -294,12 +286,17 @@ public:
 #endif
 	INT64 max_bigobj_size = 1024 * 1024 * 1024;
 #endif
+	char access_log[128] = { "access.log" };
+	char logHandle[512] = { 0 };
+	char server_software[32] = { 0 };
+	unsigned maxLogHandle = 0;
+	int log_event_id = 0;
 	int refresh_time = 30;
 	//实际用的时候用disk_cahce_dir.
 	char disk_cache_dir2[512] = { 0 };
 	char disk_cache_dir[512] = { 0 };
-
-
+	char cookie_stick_name[16] = { 0 };
+	char hostname[32] = { 0 };
 	char lang[8] = { 0 };
 	unsigned keep_alive_count = 0;
 	unsigned time_out = 60;

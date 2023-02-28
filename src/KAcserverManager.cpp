@@ -831,6 +831,7 @@ bool KAcserverManager::new_server(
 	err_msg = LANG_TABLE_NAME_ERR;
 	kconfig::KConfigResult result;
 	auto xml = kconfig::new_xml(_KS("server"), name.c_str(), name.size());
+	defer(xml->release());
 	xml->get_first()->attributes.swap(attr);
 	KStringBuf s;
 	s << "server@" << name;	

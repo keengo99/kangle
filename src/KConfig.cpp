@@ -109,9 +109,6 @@ void KConfig::copy(KConfig* c) {
 	this->admin_passwd = c->admin_passwd;
 	//this->service.swap(c->service);
 	conf.admin_lock.Unlock();
-	this->ssl_client_chiper = c->ssl_client_chiper;
-	this->ssl_client_protocols = c->ssl_client_protocols;
-	this->ca_path = c->ca_path;
 	this->run_user = c->run_user;
 	this->run_group = c->run_group;
 	this->apache_config_file = c->apache_config_file;
@@ -244,8 +241,6 @@ void init_config(KConfig* conf) {
 	conf->min_compress_length = 512;
 	conf->fiber_stack_size = 0;
 	conf->wl_time = 1800;
-	SAFE_STRCPY(conf->access_log, "access.log");
-	conf->maxLogHandle = 2;
 #ifdef ENABLE_TF_EXCHANGE
 	conf->max_post_size = 8388608;
 #endif	
@@ -500,8 +495,6 @@ void clean_config() {
 	conf.admin_ips.clear();
 	conf.admin_passwd.clear();
 	conf.admin_user.clear();
-	conf.ssl_client_protocols.clear();
-	conf.ssl_client_chiper.clear();
 	for (auto it = conf.services.begin(); it != conf.services.end(); ++it) {
 		for (uint32_t index = 0;; ++index) {
 			auto lh = (*it).second.get(index);
@@ -534,7 +527,7 @@ int do_config_thread(void* first_time, int argc) {
 			}
 			if (file->is_default()) {
 #ifdef MALLOCDEBUG
-				auto malloc_debug = node->find_child("mallocdebug");
+				auto malloc_debug = kconfig::find_child(node, _KS("mallocdebug"));
 				if (malloc_debug) {
 					conf.mallocdebug = atoi(malloc_debug->get_text()) == 1;
 				}
@@ -542,7 +535,7 @@ int do_config_thread(void* first_time, int argc) {
 					start_hook_alloc();
 				}
 #endif
-				auto worker_thread = node->find_child("worker_thread");
+				auto worker_thread = kconfig::find_child(node,_KS("worker_thread"));
 				if (worker_thread) {
 					conf.select_count = atoi(worker_thread->get_text());
 				}
@@ -565,6 +558,7 @@ int do_config_thread(void* first_time, int argc) {
 		kconfig::listen(_KS(""), &conf, on_main_event, kconfig::ev_subdir);
 		kconfig::listen(_KS("server"), conf.gam, on_server_event, kconfig::ev_subdir);
 		kconfig::listen(_KS("listen"), nullptr, on_listen_event, kconfig::ev_self | kconfig::ev_merge);
+		kconfig::listen(_KS("ssl_client"), nullptr, on_ssl_client_event, kconfig::ev_self);
 		kconfig::listen(_KS("cache"), nullptr, [](void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 			auto xml = ev->get_xml();
 			switch (ev->type) {
@@ -830,7 +824,7 @@ void post_load_config(bool firstTime) {
 	parse_server_software();
 
 	http_config.fiber_stack_size = conf.fiber_stack_size;
-	khttp_server_set_ssl_config(conf.ca_path.c_str(), conf.ssl_client_chiper.c_str(), conf.ssl_client_protocols.c_str());
+	//khttp_server_set_ssl_config(conf.ca_path.c_str(), conf.ssl_client_chiper.c_str(), conf.ssl_client_protocols.c_str());
 	cache.init(firstTime);
 #ifdef ENABLE_BLACK_LIST
 	if (firstTime && *conf.flush_ip_cmd) {

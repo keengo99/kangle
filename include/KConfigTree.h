@@ -6,6 +6,7 @@
 #include "kmalloc.h"
 #include "KXmlDocument.h"
 #include "KStackName.h"
+#include "KStringBuf.h"
 #define CONFIG_FILE_SIGN  "<!--configfileisok-->"
 #ifndef CONFIG_FILE
 #define CONFIG_FILE 		"/config.xml"
@@ -237,6 +238,8 @@ namespace kconfig {
 	KConfigResult remove(const kgl_str_t& path, uint32_t index);
 	KConfigResult add(const kgl_str_t& path, uint32_t index, khttpd::KXmlNode* xml);
 	KConfigResult update(const kgl_str_t &path, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type);
+	KConfigResult update(const kgl_str_t& path, uint32_t index, const std::string &text, KXmlAttribute *attribute, KConfigEventType ev_type);
+
 	KConfigResult add(const std::string& file, const kgl_str_t& path, uint32_t index, khttpd::KXmlNode* xml);
 	KConfigResult update(const std::string& file, const kgl_str_t& path, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type);
 	KConfigTree* find(const char** name, size_t* size);

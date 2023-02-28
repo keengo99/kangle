@@ -436,14 +436,14 @@ bool KHttpManage::config() {
 		//	s << "<td width=12% align=\"center\" bgcolor=\"";
 		s << "[";
 		if (item == i) {
-			s << config_header[i];			
+			s << config_header[i];
 		} else {
 #if 0
 			if (i == 1) {
-				s << "<a href='/cache.html'>" << config_header[i]	<< "</a>";				
-			} else 
+				s << "<a href='/cache.html'>" << config_header[i] << "</a>";
+			} else
 #endif
-			s << "<a href=/config?item=" << i << ">" << config_header[i] << "</a>";
+				s << "<a href=/config?item=" << i << ">" << config_header[i] << "</a>";
 		}
 		s << "] ";
 	}
@@ -701,42 +701,21 @@ bool KHttpManage::configsubmit() {
 	size_t item = atoi(getUrlValue("item").c_str());
 	conf.admin_lock.Lock();
 	if (item == 0) {
-		conf.set_time_out(atoi(getUrlValue("time_out").c_str()));
-		conf.set_connect_time_out(atoi(getUrlValue("connect_time_out").c_str()));
-		conf.keep_alive_count = atoi(getUrlValue("keep_alive_count").c_str());
+		KXmlAttribute attr;
+		attr.emplace("rw", getUrlValue("time_out"));
+		attr.emplace("connect", getUrlValue("connect_time_out"));
+		kconfig::update("timeout"_CS, 0, "", &attr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("keep_alive_count"_CS, 0, getUrlValue("keep_alive_count"), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("worker_thread"_CS, 0, getUrlValue("worker_thread"), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 		int worker_thread = atoi(getUrlValue("worker_thread").c_str());
 		if (worker_thread != conf.select_count) {
 			conf.select_count = worker_thread;
 			kconfig::set_need_reboot();
 		}
-		selector_manager_set_timeout(conf.connect_time_out, conf.time_out);
-		http_config.time_out = conf.time_out;
-	} else if (item == 1) {
-		auto xml = kconfig::new_xml(_KS("cache"));
-		xml->attributes().swap(urlValue.attribute);
-		kconfig::update("cache"_CS, 0, xml, kconfig::EvUpdate | kconfig::FlagCreate);
 		goto skip_save;
-#if 0
-#ifdef ENABLE_DISK_CACHE
-		conf.disk_cache = get_radio_size(getUrlValue("disk_cache").c_str(), conf.disk_cache_is_radio);
-		string disk_cache_dir = getUrlValue("disk_cache_dir");
-		if (disk_cache_dir != conf.disk_cache_dir2) {
-			SAFE_STRCPY(conf.disk_cache_dir2, disk_cache_dir.c_str());
-			need_reboot_flag = true;
-		}
-		SAFE_STRCPY(conf.disk_work_time, getUrlValue("disk_work_time").c_str());
-		conf.diskWorkTime.set(conf.disk_work_time);
-		cache.init();
-		conf.max_bigobj_size = get_size(getUrlValue("max_bigobj_size").c_str());
-#ifdef ENABLE_BIG_OBJECT_206
-		conf.cache_part = getUrlValue("cache_part") == "1";
-#endif
-#endif
-		conf.mem_cache = get_size(getUrlValue("mem_cache").c_str());
-		conf.refresh_time = atoi(getUrlValue("refresh_time").c_str());
-		conf.max_cache_size = (unsigned)get_size(getUrlValue("max_cache_size").c_str());
-		conf.default_cache = atoi(getUrlValue("default_cache").c_str());
-#endif
+	} else if (item == 1) {
+		kconfig::update("cache"_CS, 0, "", &urlValue.attribute, kconfig::EvUpdate | kconfig::FlagCreate);
+		goto skip_save;
 	} else if (item == 2) {
 		string access_log = getUrlValue("access_log");
 		SAFE_STRCPY(conf.log_rotate, getUrlValue("log_rotate_time").c_str());
@@ -798,64 +777,64 @@ bool KHttpManage::configsubmit() {
 		conf.max_post_size = get_size(getUrlValue("max_post_size").c_str());
 #endif
 		//conf.async_io = (getUrlValue("async_io")=="1");
-	} else if (item == 5) {
+		} else if (item == 5) {
 #ifdef MALLOCDEBUG
-		if (getUrlValue("mallocdebug") == "1") {
-			conf.mallocdebug = true;
-		} else {
-			conf.mallocdebug = false;
-		}
+			if (getUrlValue("mallocdebug") == "1") {
+				conf.mallocdebug = true;
+			} else {
+				conf.mallocdebug = false;
+			}
 #endif
 #ifdef KSOCKET_UNIX	
-		if (getUrlValue("unix_socket") == "1") {
-			conf.unix_socket = true;
-		} else {
-			conf.unix_socket = false;
-		}
+			if (getUrlValue("unix_socket") == "1") {
+				conf.unix_socket = true;
+			} else {
+				conf.unix_socket = false;
+			}
 #endif
-		if (getUrlValue("path_info") == "1") {
-			conf.path_info = true;
-		} else {
-			conf.path_info = false;
-		}
-		conf.gzip_level = atoi(getUrlValue("gzip_level").c_str());
+			if (getUrlValue("path_info") == "1") {
+				conf.path_info = true;
+			} else {
+				conf.path_info = false;
+			}
+			conf.gzip_level = atoi(getUrlValue("gzip_level").c_str());
 #ifdef ENABLE_BROTLI
-		conf.br_level = atoi(getUrlValue("br_level").c_str());
+			conf.br_level = atoi(getUrlValue("br_level").c_str());
 #endif
-		conf.only_compress_cache = atoi(getUrlValue("only_compress_cache").c_str());
-		if (conf.gzip_level > 9 || conf.gzip_level < -1) {
-			conf.gzip_level = -1;
-		}
-		conf.min_compress_length = atoi(getUrlValue("min_compress_length").c_str());
-		conf.setHostname(getUrlValue("hostname").c_str());
-		//{{ent
+			conf.only_compress_cache = atoi(getUrlValue("only_compress_cache").c_str());
+			if (conf.gzip_level > 9 || conf.gzip_level < -1) {
+				conf.gzip_level = -1;
+			}
+			conf.min_compress_length = atoi(getUrlValue("min_compress_length").c_str());
+			//conf.setHostname(getUrlValue("hostname").c_str());
+			//{{ent
 #ifdef KANGLE_ENT
-		std::string server_software = getUrlValue("server_software");
-		if (server_software != conf.server_software) {
-			SAFE_STRCPY(conf.server_software, server_software.c_str());
-			parse_server_software();
+			std::string server_software = getUrlValue("server_software");
+			if (server_software != conf.server_software) {
+				SAFE_STRCPY(conf.server_software, server_software.c_str());
+				parse_server_software();
 
-		}
+			}
 #endif
-		//}}
-	} else if (item == 6) {
-		string errMsg;
-		if (!changeAdminPassword(&urlValue, errMsg)) {
-			conf.admin_lock.Unlock();
-			return sendErrPage(errMsg.c_str());
+			//}}
+		} else if (item == 6) {
+			string errMsg;
+			if (!changeAdminPassword(&urlValue, errMsg)) {
+				conf.admin_lock.Unlock();
+				return sendErrPage(errMsg.c_str());
+			}
 		}
-	}
-	if (!saveConfig()) {
+		if (!saveConfig()) {
+			conf.admin_lock.Unlock();
+			return sendErrorSaveConfig();
+		}
 		conf.admin_lock.Unlock();
-		return sendErrorSaveConfig();
-	}
-	conf.admin_lock.Unlock();
 	skip_save:
-	url << "/config?item=" << item;
-	//	url+=item;
-	return sendRedirect(url.str().c_str());
-	//return true;
-}
+		url << "/config?item=" << item;
+		//	url+=item;
+		return sendRedirect(url.str().c_str());
+		//return true;
+	}
 
 KHttpManage::KHttpManage() {
 	userType = USER_TYPE_UNAUTH;
@@ -878,7 +857,7 @@ std::string KHttpManage::removeUrlValue(const std::string& name) {
 	urlValue.attribute.erase(it);
 	return value;
 }
-const std::string &KHttpManage::getUrlValue(const string &name) {
+const std::string& KHttpManage::getUrlValue(const string& name) {
 	return urlValue.attribute[name];
 }
 #if 0
@@ -975,7 +954,7 @@ void KHttpManage::sendTest() {
 #endif
 }
 bool KHttpManage::reboot() {
-	stringstream s;	
+	stringstream s;
 	s
 		<< "<html><head><meta http-equiv=\"Refresh\" content=\"3;url=/\"></head><body>";
 	s << "<img border='0' width='0' height='0' src='/reboot_submit?s=" << kgl_current_sec << "&r=" << rand() << "'/>";
@@ -984,7 +963,7 @@ bool KHttpManage::reboot() {
 	s << "</body></html>";
 	bool result = sendHttp(s.str());
 	return result;
-}
+	}
 bool KHttpManage::sendErrorSaveConfig(int file) {
 	stringstream s;
 	s << "Warning: Cann't write file ";
@@ -1320,7 +1299,7 @@ bool checkManageLogin(KHttpRequest* rq) {
 			rq->sink->shutdown();
 			return false;
 		}
-	}
+}
 	if (!conf.admin_ips.empty()) {
 		std::string matched_ip;
 		if (!matchManageIP(ips, conf.admin_ips, matched_ip)) {
@@ -1360,7 +1339,8 @@ bool KHttpManage::start_listen(bool& hit) {
 		}
 		auto id = removeUrlValue("id");
 		auto xml = kconfig::new_xml(_KS("listen"));
-		xml->attributes().swap(urlValue.attribute);		
+		defer(xml->release());
+		xml->attributes().swap(urlValue.attribute);
 		if (action == "edit") {
 			kconfig::update(file, "listen"_CS, atoi(id.c_str()), xml, kconfig::EvUpdate);
 		} else {
@@ -1382,7 +1362,7 @@ bool KHttpManage::start_listen(bool& hit) {
 			host = (*it).second.get(id);
 			if (!host) {
 				return sendErrPage("cann't find such listen");
-			}		
+			}
 		}
 		s
 			<< "<html><head><LINK href=/main.css type='text/css' rel=stylesheet></head><body>";
@@ -1482,10 +1462,10 @@ bool KHttpManage::start_listen(bool& hit) {
 		s << "</table>";
 		s << "</body></html>";
 		return sendHttp(s.str());
-	}
+		}
 
 	return false;
-}
+		}
 bool KHttpManage::save_access(KVirtualHost* vh, std::string redirect_url) {
 	if (vh) {
 #ifndef HTTP_PROXY
@@ -1910,14 +1890,14 @@ bool KHttpManage::start(bool& hit) {
 #endif
 	if (strcmp(rq->sink->data.url->path, "/acserveradd") == 0) {
 		string err_msg;
-		if (conf.gam->new_server(false, urlValue.attribute, err_msg)) {			
+		if (conf.gam->new_server(false, urlValue.attribute, err_msg)) {
 			return sendRedirect("/acserver");
 		}
 		return sendErrPage(err_msg.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/acserveredit") == 0) {
 		string err_msg;
-		if (conf.gam->new_server(true, urlValue.attribute, err_msg)) {			
+		if (conf.gam->new_server(true, urlValue.attribute, err_msg)) {
 			return sendRedirect("/acserver");
 		}
 		return sendErrPage(err_msg.c_str());
@@ -2156,7 +2136,7 @@ function sortrq(index)\
 		return result;
 	}
 	return start_listen(hit);
-}
+	}
 
 void init_manager_handler() {
 	KHttpManage::handler.add(_KS("/*"), [](kgl_str_t* path, void* data, KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) -> KGL_RESULT {
