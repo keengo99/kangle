@@ -7,6 +7,7 @@
 #include "KXmlDocument.h"
 #include "KStackName.h"
 #include "KStringBuf.h"
+#include "KFiberLocker.h"
 #define CONFIG_FILE_SIGN  "<!--configfileisok-->"
 #ifndef CONFIG_FILE
 #define CONFIG_FILE 		"/config.xml"
@@ -252,6 +253,7 @@ namespace kconfig {
 	khttpd::KXmlNode* find_child(khttpd::KXmlNode* node, const char* name, size_t len);
 	khttpd::KXmlNode* find_child(khttpd::KXmlNode* node, uint16_t name_id, const char* vary, size_t len);
 	khttpd::KXmlNode* parse_xml(char* buf);
+	KFiberLocker lock();
 	bool is_first();
 	bool need_reboot();
 	void set_need_reboot();

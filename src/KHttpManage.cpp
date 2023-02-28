@@ -191,42 +191,13 @@ bool killProcess(std::string process, std::string user, int pid) {
 	return true;
 }
 bool changeAdminPassword(KUrlValue* url, std::string& errMsg) {
-	stringstream s;
-	string admin_passwd = url->get("admin_passwd");
-	string admin_user = url->get("admin_user");
-	int auth_type = KHttpAuth::parseType(url->get("auth_type").c_str());
-	if (admin_passwd.size() == 0) {
-		if (auth_type != conf.auth_type) {
-			errMsg = "change auth_type must reset password.please enter admin password";
-			return false;
-			//return sendErrPage(
-			//		"change auth_type must reset password.please enter admin password");
-		}
-		if (auth_type == AUTH_DIGEST && conf.admin_user != admin_user) {
-			errMsg = "use Digest auth when you change admin user you must reset the password.Please enter admin password";
-			return false;
-			//	return sendErrPage(
-		//			"use Digest auth when you change admin user you must reset the password.Please enter admin password");
-		}
+	std::string admin_passwd = url->attribute["password"];
+	if (admin_passwd.empty()) {
+		errMsg = "change auth_type must reset password.please enter admin password";
+		return false;
 	}
-	conf.admin_user = admin_user;
-	if (admin_passwd.size() > 0) {
-		conf.admin_passwd = admin_passwd;
-		conf.passwd_crypt = CRYPT_TYPE_PLAIN;
-	}
-	conf.auth_type = auth_type;
-	change_admin_password_crypt_type();
-	explode(url->get("admin_ips").c_str(), '|', conf.admin_ips);
-	//		m_config.setValue("admin_user",conf.admin_user.c_str());
-/*	for (i = 0; i < conf.admin_ips.size(); i++) {
-		s << conf.admin_ips[i] << "|";
-	}
-	*/
+	kconfig::update("admin"_CS, 0, "", &url->attribute, kconfig::EvUpdate | kconfig::FlagCreate);
 	return true;
-}
-
-string chanagePasswordForm() {
-	return "<html><LINK href=/main.css type='text/css' rel=stylesheet><body><form action=chanage_password method=get>old password:<input type=password name=old_password><br>new password:<input type=password name=new_password><br>retype new password:<input type=password name=re_new_password><br><input type=submit value=submit></form></body></html>";
 }
 bool KHttpManage::runCommand() {
 	string cmd = getUrlValue("cmd");
@@ -672,10 +643,10 @@ bool KHttpManage::config() {
 #endif
 		//}}
 	} else if (item == 6) {
-		s << LANG_ADMIN_USER << ":<input name=admin_user value='"
+		s << LANG_ADMIN_USER << ":<input name=user value='"
 			<< conf.admin_user << "'><br>";
 		s << LANG_ADMIN_PASS
-			<< ":<input name=admin_passwd autocomplete='off' type=password value=''><br>";
+			<< ":<input name=password autocomplete='off' type=password value=''><br>";
 		s << klang["auth_type"];
 		for (i = 0; i < TOTAL_AUTH_TYPE; i++) {
 			s << "<input type=radio name='auth_type' value='" << KHttpAuth::buildType((int)i) << "' ";
@@ -698,8 +669,7 @@ bool KHttpManage::config() {
 bool KHttpManage::configsubmit() {
 	//	size_t i;
 	std::stringstream url;
-	size_t item = atoi(getUrlValue("item").c_str());
-	conf.admin_lock.Lock();
+	size_t item = atoi(removeUrlValue("item").c_str());
 	if (item == 0) {
 		KXmlAttribute attr;
 		attr.emplace("rw", getUrlValue("time_out"));
@@ -777,64 +747,60 @@ bool KHttpManage::configsubmit() {
 		conf.max_post_size = get_size(getUrlValue("max_post_size").c_str());
 #endif
 		//conf.async_io = (getUrlValue("async_io")=="1");
-		} else if (item == 5) {
+	} else if (item == 5) {
 #ifdef MALLOCDEBUG
-			if (getUrlValue("mallocdebug") == "1") {
-				conf.mallocdebug = true;
-			} else {
-				conf.mallocdebug = false;
-			}
+		if (getUrlValue("mallocdebug") == "1") {
+			conf.mallocdebug = true;
+		} else {
+			conf.mallocdebug = false;
+		}
 #endif
 #ifdef KSOCKET_UNIX	
-			if (getUrlValue("unix_socket") == "1") {
-				conf.unix_socket = true;
-			} else {
-				conf.unix_socket = false;
-			}
+		if (getUrlValue("unix_socket") == "1") {
+			conf.unix_socket = true;
+		} else {
+			conf.unix_socket = false;
+		}
 #endif
-			if (getUrlValue("path_info") == "1") {
-				conf.path_info = true;
-			} else {
-				conf.path_info = false;
-			}
-			conf.gzip_level = atoi(getUrlValue("gzip_level").c_str());
+		if (getUrlValue("path_info") == "1") {
+			conf.path_info = true;
+		} else {
+			conf.path_info = false;
+		}
+		conf.gzip_level = atoi(getUrlValue("gzip_level").c_str());
 #ifdef ENABLE_BROTLI
-			conf.br_level = atoi(getUrlValue("br_level").c_str());
+		conf.br_level = atoi(getUrlValue("br_level").c_str());
 #endif
-			conf.only_compress_cache = atoi(getUrlValue("only_compress_cache").c_str());
-			if (conf.gzip_level > 9 || conf.gzip_level < -1) {
-				conf.gzip_level = -1;
-			}
-			conf.min_compress_length = atoi(getUrlValue("min_compress_length").c_str());
-			//conf.setHostname(getUrlValue("hostname").c_str());
-			//{{ent
+		conf.only_compress_cache = atoi(getUrlValue("only_compress_cache").c_str());
+		if (conf.gzip_level > 9 || conf.gzip_level < -1) {
+			conf.gzip_level = -1;
+		}
+		conf.min_compress_length = atoi(getUrlValue("min_compress_length").c_str());
+		//conf.setHostname(getUrlValue("hostname").c_str());
+		//{{ent
 #ifdef KANGLE_ENT
-			std::string server_software = getUrlValue("server_software");
-			if (server_software != conf.server_software) {
-				SAFE_STRCPY(conf.server_software, server_software.c_str());
-				parse_server_software();
+		std::string server_software = getUrlValue("server_software");
+		if (server_software != conf.server_software) {
+			SAFE_STRCPY(conf.server_software, server_software.c_str());
+			parse_server_software();
 
-			}
+		}
 #endif
-			//}}
-		} else if (item == 6) {
-			string errMsg;
-			if (!changeAdminPassword(&urlValue, errMsg)) {
-				conf.admin_lock.Unlock();
-				return sendErrPage(errMsg.c_str());
-			}
+		//}}
+	} else if (item == 6) {
+		string errMsg;
+		if (!changeAdminPassword(&urlValue, errMsg)) {
+			return sendErrPage(errMsg.c_str());
 		}
-		if (!saveConfig()) {
-			conf.admin_lock.Unlock();
-			return sendErrorSaveConfig();
-		}
-		conf.admin_lock.Unlock();
-	skip_save:
-		url << "/config?item=" << item;
-		//	url+=item;
-		return sendRedirect(url.str().c_str());
-		//return true;
+		goto skip_save;
 	}
+	if (!saveConfig()) {
+		return sendErrorSaveConfig();
+	}
+skip_save:
+	url << "/config?item=" << item;
+	return sendRedirect(url.str().c_str());
+}
 
 KHttpManage::KHttpManage() {
 	userType = USER_TYPE_UNAUTH;
@@ -963,7 +929,7 @@ bool KHttpManage::reboot() {
 	s << "</body></html>";
 	bool result = sendHttp(s.str());
 	return result;
-	}
+}
 bool KHttpManage::sendErrorSaveConfig(int file) {
 	stringstream s;
 	s << "Warning: Cann't write file ";
@@ -1299,7 +1265,7 @@ bool checkManageLogin(KHttpRequest* rq) {
 			rq->sink->shutdown();
 			return false;
 		}
-}
+	}
 	if (!conf.admin_ips.empty()) {
 		std::string matched_ip;
 		if (!matchManageIP(ips, conf.admin_ips, matched_ip)) {
@@ -1320,7 +1286,7 @@ bool checkManageLogin(KHttpRequest* rq) {
 		return true;
 	}
 	return false;
-}
+	}
 bool KHttpManage::start_listen(bool& hit) {
 	string err_msg;
 	if (strcmp(rq->sink->data.url->path, "/deletelisten") == 0) {
@@ -1462,10 +1428,10 @@ bool KHttpManage::start_listen(bool& hit) {
 		s << "</table>";
 		s << "</body></html>";
 		return sendHttp(s.str());
-		}
+	}
 
 	return false;
-		}
+}
 bool KHttpManage::save_access(KVirtualHost* vh, std::string redirect_url) {
 	if (vh) {
 #ifndef HTTP_PROXY
@@ -2136,7 +2102,7 @@ function sortrq(index)\
 		return result;
 	}
 	return start_listen(hit);
-	}
+}
 
 void init_manager_handler() {
 	KHttpManage::handler.add(_KS("/*"), [](kgl_str_t* path, void* data, KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) -> KGL_RESULT {
@@ -2178,6 +2144,7 @@ void init_manager_handler() {
 			return response_redirect(out, _KS("/cfg/"), 308);
 		}
 		if (rq->sink->data.meth == METH_GET) {
+			auto locker = kconfig::lock();
 			const char* orig_path = path->data;
 			size_t orig_len = path->len;
 			auto tree = kconfig::find((const char**)&path->data, &path->len);

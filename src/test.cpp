@@ -338,9 +338,7 @@ void test_white_list() {
 	wlm.flush(time(NULL) + 100, 10);
 #endif
 }
-
 void test_string() {
-	
 }
 void test_line_file() {
 	KStreamFile lf;

@@ -29,6 +29,7 @@
 #include "do_config.h"
 #include "KListenConfigParser.h"
 #include "kselector_manager.h"
+#include "KDefer.h"
 #include "KDsoExtendManage.h"
 using namespace std;
 KConfigParser::KConfigParser() {
@@ -44,15 +45,6 @@ bool KConfigParser::startElement(KXmlContext* context) {
 		cconf->run_group = context->attribute["group"];
 	}
 #endif
-	if (context->qName == "admin") {
-		cconf->admin_user = context->attribute["user"];
-		cconf->passwd_crypt = parseCryptType(context->attribute["crypt"].c_str());
-		cconf->auth_type = KHttpAuth::parseType(context->attribute["auth_type"].c_str());
-		cconf->admin_passwd = context->attribute["password"];
-		explode(context->attribute["admin_ips"].c_str(), '|', cconf->admin_ips);
-		change_admin_password_crypt_type();
-		return true;
-	}
 	if (context->qName == "gzip" || context->qName == "compress") {
 		if (!context->attribute["only_compress_cache"].empty()) {
 			cconf->only_compress_cache = atoi(context->attribute["only_compress_cache"].c_str());
@@ -114,12 +106,6 @@ bool KConfigParser::startElement(KXmlContext* context) {
 }
 
 bool KConfigParser::startCharacter(KXmlContext* context, char* character, int len) {
-	if (context->path == "config/admin") {
-		if (context->qName == "allowip") {
-			cconf->admin_ips.push_back(character);
-			return true;
-		}
-	}
 	if (context->path == "config") {
 		if (context->qName == "http2https_code") {
 			cconf->http2https_code = atoi(character);
@@ -248,6 +234,24 @@ void KConfigParser::startXml(const std::string& encoding) {
 
 }
 void KConfigParser::endXml(bool result) {
+}
+void on_admin_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+	conf.admin_lock.Lock();
+	defer(conf.admin_lock.Unlock());
+	auto attr = ev->get_xml()->attributes();
+	switch (ev->type) {
+	case kconfig::EvNew:
+	case kconfig::EvUpdate:
+		conf.admin_user = attr["user"];
+		conf.passwd_crypt = parseCryptType(attr["crypt"].c_str());
+		conf.auth_type = KHttpAuth::parseType(attr["auth_type"].c_str());
+		conf.admin_passwd = attr["password"];
+		explode(attr["admin_ips"].c_str(), '|', conf.admin_ips);
+		//change_admin_password_crypt_type();
+		break;
+	default:
+		break;
+	}
 }
 void on_ssl_client_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	auto attr = ev->get_xml()->attributes();

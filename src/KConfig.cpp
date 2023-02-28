@@ -103,12 +103,7 @@ void KConfig::copy(KConfig* c) {
 	//把cconf赋值到conf中
 	KConfigBase* bc = static_cast<KConfigBase*>(this);
 	kgl_memcpy(bc, static_cast<KConfigBase*>(c), sizeof(KConfigBase));
-	conf.admin_lock.Lock();
-	this->admin_ips.swap(c->admin_ips);
-	this->admin_user = c->admin_user;
-	this->admin_passwd = c->admin_passwd;
-	//this->service.swap(c->service);
-	conf.admin_lock.Unlock();
+
 	this->run_user = c->run_user;
 	this->run_group = c->run_group;
 	this->apache_config_file = c->apache_config_file;
@@ -559,6 +554,7 @@ int do_config_thread(void* first_time, int argc) {
 		kconfig::listen(_KS("server"), conf.gam, on_server_event, kconfig::ev_subdir);
 		kconfig::listen(_KS("listen"), nullptr, on_listen_event, kconfig::ev_self | kconfig::ev_merge);
 		kconfig::listen(_KS("ssl_client"), nullptr, on_ssl_client_event, kconfig::ev_self);
+		kconfig::listen(_KS("admin"), nullptr, on_admin_event, kconfig::ev_self);
 		kconfig::listen(_KS("cache"), nullptr, [](void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 			auto xml = ev->get_xml();
 			switch (ev->type) {

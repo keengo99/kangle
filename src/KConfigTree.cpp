@@ -28,12 +28,6 @@ namespace kconfig {
 	static on_begin_parse_f begin_parse_cb = nullptr;
 	KConfigFile* find_file(const kgl_str_t& name);
 	KConfigFile* add_file(kgl_ref_str_t* name, kgl_ref_str_t* filename);
-	void lock() {
-
-	}
-	void unlock() {
-
-	}
 	class KConfigFileInfo
 	{
 	public:
@@ -788,8 +782,7 @@ namespace kconfig {
 		return 0;
 	}
 	bool reload_config(kgl_ref_str_t* name, bool force) {
-		lock();
-		defer(unlock());
+		auto locker = lock();
 		auto it = config_files.find(name);
 		if (!it) {
 			config_files.iterator([](void* data, void* arg) {
@@ -818,8 +811,7 @@ namespace kconfig {
 		return true;
 	}
 	void reload() {
-		lock();
-		defer(unlock());
+		auto locker = lock();
 		kgl_ext_config_context ctx;
 		config_files.iterator([](void* data, void* arg) {
 			KConfigFile* file = (KConfigFile*)data;
@@ -1081,6 +1073,9 @@ namespace kconfig {
 			return KConfigResult::ErrNotFound;
 		}
 		return update(file, path, index, xml, ev_type);
+	}
+	KFiberLocker lock() {
+		return KFiberLocker(locker);
 	}
 	void test() {
 		return;
