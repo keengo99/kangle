@@ -34,7 +34,7 @@ private:
 	bool writeXmlHeader();
 	bool response_lock_body(KLockToken* token);
 	KISAPIServiceProvider *provider;
-	bool parseDocument(KXmlDocument &document);
+	bool parseDocument(khttpd::KXmlDocument &document);
 	uint16_t check_file_locked(KLockToken* lock_token);
 	const char *getIfToken();
 	char *if_token;

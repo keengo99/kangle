@@ -2,9 +2,11 @@ package common
 
 import (
 	"fmt"
+	"net"
 	"runtime"
 	"strings"
 	"test_server/config"
+	"time"
 )
 
 var success_count, failed_count int
@@ -26,6 +28,17 @@ func AssertSame(a interface{}, b interface{}) {
 }
 func my_assert(expression bool) bool {
 	return Assert("", expression)
+}
+func AssertPort(port int, opened bool) {
+	cn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%v", port), 100*time.Millisecond)
+	if cn != nil {
+		defer cn.Close()
+	}
+	if opened {
+		Assert("port must open", err == nil)
+	} else {
+		Assert("port must close", err != nil)
+	}
 }
 func Assert(test_name string, expression bool) bool {
 	if !expression {

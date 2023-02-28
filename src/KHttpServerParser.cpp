@@ -71,7 +71,6 @@ bool KHttpServerParser::parse(std::string file) {
 	return result;
 }
 bool KHttpServerParser::startElement(KXmlContext *context) {
-	KXmlException e;
 	KConfig *c = (KConfig *)context->getData();
 	KVirtualHostManage *vhm = (c?c->vm:conf.gvm);
 	if (context->path == "config" && context->qName == "ssl") {

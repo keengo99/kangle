@@ -30,7 +30,7 @@
 #include "HttpFiber.h"
 using namespace std;
 #ifdef ENABLE_MULTI_SERVER
-void KMultiAcserver::on_event(kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev) {
+void KMultiAcserver::on_event(kconfig::KConfigTree* tree, khttpd::KXmlNode* xml, kconfig::KConfigEventType ev) {
 	if (!xml->is_tag(_KS("node"))) {
 		klog(KLOG_NOTICE, "Warning unknow xml tag [%s]\n", xml->key.tag->data);
 		return;
@@ -454,7 +454,7 @@ KSockPoolHelper* KMultiAcserver::getIndexNode(int index) {
 	}
 	return NULL;
 }
-bool KMultiAcserver::parse_config(KXmlNode* xml) {
+bool KMultiAcserver::parse_config(khttpd::KXmlNode* xml) {
 	if (!KPoolableRedirect::parse_config(xml)) {
 		return false;
 	}

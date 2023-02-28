@@ -56,7 +56,7 @@ public:
 	const wchar_t *getNameW();
 #endif
 
-	//size_t getNameLen();
+	const char* get_base();
 	CheckLinkState checkLink(const char *path, int follow_link);
 	bool operator ==(KFileName &a);
 	static bool tripDir(std::string &dir);

@@ -283,7 +283,7 @@ void KConfigParser::startXml(const std::string& encoding) {
 void KConfigParser::endXml(bool result) {
 }
 void on_main_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent * ev) {
-	auto xml = ev->xml;
+	auto xml = ev->get_xml();
 	KBIT_CLR(ev->type, kconfig::EvSubDir);
 	switch (ev->type) {
 	case kconfig::EvNew:

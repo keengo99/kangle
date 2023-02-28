@@ -158,6 +158,7 @@ void KDynamicListen::add(KListenKey *key, KSslConfig *ssl_config, KVirtualHost *
 		listen = new KListen(key, server);
 		node->data = listen;
 		if (key->global>0) {
+			assert(conf.gvm != nullptr);
 			conf.gvm->BindGlobalVirtualHost(server);
 		}
 		need_load_ssl = key->ssl > 0;

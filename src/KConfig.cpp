@@ -107,7 +107,7 @@ void KConfig::copy(KConfig* c) {
 	this->admin_ips.swap(c->admin_ips);
 	this->admin_user = c->admin_user;
 	this->admin_passwd = c->admin_passwd;
-	this->service.swap(c->service);
+	//this->service.swap(c->service);
 	conf.admin_lock.Unlock();
 	this->ssl_client_chiper = c->ssl_client_chiper;
 	this->ssl_client_protocols = c->ssl_client_protocols;
@@ -118,11 +118,7 @@ void KConfig::copy(KConfig* c) {
 	return;
 }
 KConfig::~KConfig() {
-	//todo:Çå³ýÄÚ´æ
-	std::vector<KListenHost*>::iterator it;
-	for (it = service.begin(); it != service.end(); it++) {
-		delete (*it);
-	}
+	
 }
 KGlobalConfig::KGlobalConfig() {
 	gam = new KAcserverManager;
@@ -506,10 +502,16 @@ void clean_config() {
 	conf.admin_user.clear();
 	conf.ssl_client_protocols.clear();
 	conf.ssl_client_chiper.clear();
-	for (size_t i = 0; i < conf.service.size(); i++) {
-		delete conf.service[i];
+	for (auto it = conf.services.begin(); it != conf.services.end(); ++it) {
+		for (uint32_t index = 0;; ++index) {
+			auto lh = (*it).second.get(index);
+			if (!lh) {
+				break;
+			}
+			conf.gvm->UnBindGlobalListen(lh);
+		}
 	}
-	conf.service.clear();
+	conf.services.clear();
 #ifdef ENABLE_WRITE_BACK
 	writeBackManager.destroy();
 #endif
@@ -526,7 +528,7 @@ int do_config_thread(void* first_time, int argc) {
 			kaccess[i].setGlobal(true);
 		}
 		KAccess::loadModel();
-		kconfig::init([](kconfig::KConfigFile* file, KXmlNode* node) -> bool {
+		kconfig::init([](kconfig::KConfigFile* file, khttpd::KXmlNode* node) -> bool {
 			if (!kconfig::is_first()) {
 				return true;
 			}
@@ -564,7 +566,7 @@ int do_config_thread(void* first_time, int argc) {
 		kconfig::listen(_KS("server"), conf.gam, on_server_event, kconfig::ev_subdir);
 		kconfig::listen(_KS("listen"), nullptr, on_listen_event, kconfig::ev_self | kconfig::ev_merge);
 		kconfig::listen(_KS("cache"), nullptr, [](void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
-			auto xml = ev->xml;
+			auto xml = ev->get_xml();
 			switch (ev->type) {
 			case kconfig::EvNew:
 			case kconfig::EvUpdate:
@@ -629,7 +631,7 @@ void do_config(bool first_time) {
 		return;
 	}
 	*/
-	if (kfiber_create(do_config_thread, (void*)&first_time, 0, conf.fiber_stack_size, NULL) != 0) {
+	if (kfiber_create(do_config_thread, first_time?(void*)&first_time:nullptr, 0, conf.fiber_stack_size, NULL) != 0) {
 		katom_set((void*)&load_config_progress, 0);
 	}
 }
@@ -698,7 +700,7 @@ void load_config(KConfig* cconf, bool firstTime) {
 	KXml xmlParser;
 	xmlParser.setData(cconf);
 	xmlParser.addEvent(&parser);
-	xmlParser.addEvent(&listenConfigParser);
+	//xmlParser.addEvent(&listenConfigParser);
 #ifndef HTTP_PROXY
 	KHttpServerParser vhParser;
 	xmlParser.addEvent(&vhParser);
@@ -767,8 +769,8 @@ void load_config(KConfig* cconf, bool firstTime) {
 		}
 	}
 #endif
-	conf.gvm->BindGlobalListens(cconf->service);
-	conf.gvm->UnBindGlobalListens(conf.service);
+	//conf.gvm->BindGlobalListens(cconf->service);
+	//conf.gvm->UnBindGlobalListens(conf.service);
 	load_db_vhost(cconf->vm);
 	conf.copy(cconf);
 	conf.gvm->copy(&vm);

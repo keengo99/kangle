@@ -101,6 +101,8 @@ func (b *base) Init() error {
 		<host>` + config.GetLocalhost("apache2") + `</host>
 	</vh>
 	</config>`
+	kangle.CreateExtConfig("10", "<!--# start 10 -->\r\n<config></config>")
+	kangle.CreateExtConfig("100", "<!--# start 100 -->\r\n<config></config>")
 	return kangle.CreateExtConfig(CONFIG_FILE_NAME, str)
 }
 func (b *base) Clean() {
@@ -165,5 +167,6 @@ func init() {
 	s.AddCase("sub_status", "sub_status", test_stub_status)
 	s.AddCase("htaccess", "check apache htaccess", check_htaccess)
 	s.AddCase("directory", "check directory", check_directory)
+	s.AddCase("config", "check config reload", check_config)
 	s.AddCase("bug", "bug", check_bug)
 }

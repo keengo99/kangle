@@ -48,6 +48,7 @@
 #include "KSockPoolHelper.h"
 #include "KAsyncFetchObject.h"
 #include "KConfigTree.h"
+#include "KAutoArray.h"
 #ifdef ENABLE_ATOM
 #include "KAtomLock.h"
 #endif
@@ -337,7 +338,9 @@ void test_white_list() {
 	wlm.flush(time(NULL) + 100, 10);
 #endif
 }
+
 void test_string() {
+	
 }
 void test_line_file() {
 	KStreamFile lf;
@@ -401,7 +404,6 @@ bool test() {
 	}
 	KHttpField field;
 	//	test_files();
-
 	return true;
 }
 #endif

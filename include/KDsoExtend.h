@@ -16,7 +16,7 @@ class KDsoExtend
 public:
 	KDsoExtend(const char *name);
 	~KDsoExtend();
-	bool load(const char *filename,std::map<std::string,std::string> &attribute);
+	bool load(const char *filename,const KXmlAttribute &attribute);
 	const char *GetName()
 	{
 		return name;
@@ -38,7 +38,7 @@ public:
 	kgl_dso_finit_f kgl_dso_finit;
 	kgl_dso_version version;
 	bool cur_config_ext;
-	std::map<std::string, std::string> attribute;
+	KXmlAttribute attribute;
 private:
 	std::map<const char *, KDsoRedirect *, lessp> upstream;	
 	char *name;

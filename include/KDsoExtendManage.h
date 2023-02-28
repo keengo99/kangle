@@ -23,7 +23,7 @@ public:
 	void html(std::stringstream &s);
 	void whm(WhmContext *ctx);
 	bool add(KDsoExtend *dso);
-	bool add(std::map<std::string, std::string> &attribute);
+	bool add(const KXmlAttribute &attribute);
 	void ListTarget(std::vector<std::string> &target);
 	KRedirect *RefsRedirect(std::string &name);
 	void shutdown();

@@ -19,7 +19,7 @@ KSingleAcserver::KSingleAcserver() {
 KSingleAcserver::~KSingleAcserver() {
 	sockHelper->release();
 }
-bool KSingleAcserver::parse_config(KXmlNode* node) {
+bool KSingleAcserver::parse_config(khttpd::KXmlNode* node) {
 	if (!KPoolableRedirect::parse_config(node)) {
 		return false;
 	}

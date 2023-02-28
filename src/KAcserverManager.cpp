@@ -37,9 +37,9 @@
 using namespace std;
 void on_server_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	KAcserverManager* am = (KAcserverManager*)data;
-	am->on_event(tree, ev->xml, ev->type);
+	am->on_event(tree, ev->get_xml(), ev->type);
 }
-void KAcserverManager::on_event(kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev) {
+void KAcserverManager::on_event(kconfig::KConfigTree* tree, khttpd::KXmlNode* xml, kconfig::KConfigEventType ev) {
 	if (xml->is_tag(_KS("server"))) {
 		auto name = xml->attributes()["name"];
 		switch (ev) {
@@ -67,7 +67,7 @@ void KAcserverManager::on_event(kconfig::KConfigTree* tree, KXmlNode* xml, kconf
 				lock.WUnlock();
 				if (!tree->bind(server, [](void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 					KMultiAcserver* server = (KMultiAcserver*)data;
-					server->on_event(tree, ev->xml, ev->type);
+					server->on_event(tree, ev->get_xml(), ev->type);
 					}, kconfig::ev_subdir)) {
 					server->release();
 					assert(false);
@@ -834,7 +834,7 @@ bool KAcserverManager::new_server(
 	xml->get_first()->attributes.swap(attr);
 	KStringBuf s;
 	s << "server@" << name;	
-	result = kconfig::update(s.buf(), s.size(), 0, xml, is_update?kconfig::EvUpdate:kconfig::EvUpdate|kconfig::FlagCreate);
+	result = kconfig::update(s.str().str(), 0, xml, is_update?kconfig::EvUpdate:kconfig::EvUpdate|kconfig::FlagCreate);
 	switch (result) {
 	case kconfig::KConfigResult::Success:
 		return true;
@@ -891,7 +891,7 @@ bool KAcserverManager::delCmd(std::string name, std::string& err_msg) {
 bool KAcserverManager::remove_server(const std::string &name, std::string& err_msg) {
 	KStringBuf s;
 	s << "server@" << name;
-	switch (kconfig::remove(s.buf(), s.size(), 0)) {
+	switch (kconfig::remove(s.str().str(), 0)) {
 	case kconfig::KConfigResult::Success:
 		return true;
 	case kconfig::KConfigResult::ErrSaveFile:

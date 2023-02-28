@@ -240,7 +240,8 @@ int shutdown_fiber(void* arg, int got) {
 	quit_program_flag = PROGRAM_QUIT_IMMEDIATE;
 	KAccess::ShutdownMarkModule();
 	cache.shutdown_disk(true);
-	conf.gvm->UnBindGlobalListens(conf.service);
+
+	//conf.gvm->UnBindGlobalListens(conf.service);
 	conf.gvm->shutdown();
 	conf.default_cache = 0;
 #ifdef ENABLE_DISK_CACHE
@@ -1048,7 +1049,7 @@ void init_safe_process() {
 	KXml::fclose = (kxml_fclose)kfclose;
 	KXml::fsize = (kxml_fsize)kfsize;
 	KXml::fread = (kxml_fread)kfread;
-	listenConfigParser.parse(configFile.c_str());
+	//listenConfigParser.parse(configFile.c_str());
 }
 void init_stderr() {
 #ifdef ENABLE_TCMALLOC

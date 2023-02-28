@@ -4,7 +4,7 @@
 #include "kstring.h"
 
 struct kgl_footer {
-	kgl_refs_string* data;
+	kgl_ref_str_t* data;
 	bool head;
 	bool replace;
 	bool added;

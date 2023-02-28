@@ -42,9 +42,9 @@ bool KConfigBuilder::saveConfig() {
 	string tmpfile = configFile + ".tmp";
 	string lstfile = configFile + ".lst";
 	KFile fp;
-	if(!fp.open(tmpfile.c_str(),fileWrite)){
+	if (!fp.open(tmpfile.c_str(), fileWrite)) {
 		fprintf(stderr, "cann't open configfile[%s] for write\n",
-				tmpfile.c_str());
+			tmpfile.c_str());
 		return false;
 	}
 	stringstream s;
@@ -56,16 +56,16 @@ bool KConfigBuilder::saveConfig() {
 	}
 	fp.close();
 	if (!result) {
-		fprintf(stderr,"cann't write sign string\n");
+		fprintf(stderr, "cann't write sign string\n");
 		return false;
 	}
 	unlink(lstfile.c_str());
-	rename(configFile.c_str(),lstfile.c_str());
-	rename(tmpfile.c_str(),configFile.c_str());
-	if (conf.mergeFiles.size()>0) {
+	rename(configFile.c_str(), lstfile.c_str());
+	rename(tmpfile.c_str(), configFile.c_str());
+	if (conf.mergeFiles.size() > 0) {
 		//remove the merge config files.
 		std::list<std::string>::iterator it;
-		for(it=conf.mergeFiles.begin();it!=conf.mergeFiles.end();it++){
+		for (it = conf.mergeFiles.begin(); it != conf.mergeFiles.end(); it++) {
 			unlink((*it).c_str());
 		}
 		conf.mergeFiles.clear();
@@ -76,10 +76,10 @@ bool KConfigBuilder::saveConfig() {
 	string file = conf.path;
 	file += VH_CONFIG_FILE;
 	string oldfile = file + ".old";
-	rename(file.c_str(),oldfile.c_str());
+	rename(file.c_str(), oldfile.c_str());
 	return true;
 }
-void KConfigBuilder::build(std::stringstream &s) {
+void KConfigBuilder::build(std::stringstream& s) {
 	unsigned i;
 	s << "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
 	s << "<config>\n";
@@ -87,13 +87,53 @@ void KConfigBuilder::build(std::stringstream &s) {
 		s << "\t<worker_thread>" << conf.select_count << "</worker_thread>\n";
 	}
 #ifdef MALLOCDEBUG
-	if(!conf.mallocdebug){
-		s << "\t<mallocdebug>0</mallocdebug>\n";
+	if (conf.mallocdebug) {
+		s << "\t<mallocdebug>1</mallocdebug>\n";
 	}
 #endif
 	s << "\t<!--listen start-->\n";
+	for (auto it = conf.services.begin(); it != conf.services.end(); ++it) {
+		s << "\t<!-- " << (*it).first << " -->\n";
+		for (uint32_t index = 0;; ++index) {
+			auto lh = (*it).second.get(index);
+			if (!lh || lh->ext) {
+				break;
+			}
+			s << "\t<listen ";
+			/*
+			if (conf.service[i]->name.size()>0) {
+				s << "name='" << conf.service[i]->name << "' ";
+			}
+			*/
+			s << "ip='" << lh->ip << "' ";
+			s << "port='" << lh->port << "' type='"
+				<< getWorkModelName(lh->model) << "' ";
+#ifdef KSOCKET_SSL
+			if (KBIT_TEST(lh->model, WORK_MODEL_SSL)) {
+				if (!lh->cert_file.empty()) {
+					s << "certificate='" << lh->cert_file << "' ";
+				}
+				if (!lh->key_file.empty()) {
+					s << "certificate_key='" << lh->key_file << "' ";
+				}
+				if (!lh->cipher.empty()) {
+					s << "cipher='" << lh->cipher << "' ";
+				}
+				if (!lh->protocols.empty()) {
+					s << "protocols='" << lh->protocols << "' ";
+				}
+#ifdef ENABLE_HTTP2
+				s << "alpn='" << (int)lh->alpn << "' ";
+#endif
+				s << "early_data='" << (lh->early_data ? "1" : "0") << "' ";
+			}
+#endif
+			s << "/>\n";
+		}
+	}
+#if 0
 	for (i = 0; i < conf.service.size(); i++) {
-		if(conf.service[i]->ext){
+		if (conf.service[i]->ext) {
 			continue;
 		}
 		s << "\t<listen ";
@@ -104,9 +144,9 @@ void KConfigBuilder::build(std::stringstream &s) {
 		*/
 		s << "ip='" << conf.service[i]->ip << "' ";
 		s << "port='" << conf.service[i]->port << "' type='"
-				<< getWorkModelName(conf.service[i]->model) << "' ";		
+			<< getWorkModelName(conf.service[i]->model) << "' ";
 #ifdef KSOCKET_SSL
-		if(KBIT_TEST(conf.service[i]->model,WORK_MODEL_SSL)){
+		if (KBIT_TEST(conf.service[i]->model, WORK_MODEL_SSL)) {
 			if (!conf.service[i]->cert_file.empty()) {
 				s << "certificate='" << conf.service[i]->cert_file << "' ";
 			}
@@ -127,11 +167,12 @@ void KConfigBuilder::build(std::stringstream &s) {
 #endif
 		s << "/>\n";
 	}
+#endif
 	s << "\t<!--listen end-->\n";
 #ifndef _WIN32
-	if (conf.run_user.size()>0) {
+	if (conf.run_user.size() > 0) {
 		s << "\t<run user='" << conf.run_user << "'";
-		if(conf.run_group.size()>0) {
+		if (conf.run_group.size() > 0) {
 			s << " group='" << conf.run_group << "'";
 		}
 		s << "/>\n";
@@ -140,18 +181,18 @@ void KConfigBuilder::build(std::stringstream &s) {
 	s << "\t<lang>" << conf.lang << "</lang>\n";
 	s << "\t<keep_alive_count>" << conf.keep_alive_count << "</keep_alive_count>\n";
 	s << "\t<timeout rw='" << conf.time_out << "' connect='" << conf.connect_time_out << "'/>\n";
-	s << "\t<min_free_thread>" << conf.min_free_thread << "</min_free_thread>\n";	
-//{{ent
+	s << "\t<min_free_thread>" << conf.min_free_thread << "</min_free_thread>\n";
+	//{{ent
 #ifdef ENABLE_ADPP
 	s << "\t<process_cpu_usage>" << conf.process_cpu_usage << "</process_cpu_usage>\n";
 #endif
-//}}
+	//}}
 	s << "\t<admin user='" << conf.admin_user << "' password='"
-			<< conf.admin_passwd << "' crypt='" << buildCryptType(
+		<< conf.admin_passwd << "' crypt='" << buildCryptType(
 			conf.passwd_crypt) << "' auth_type='" << KHttpAuth::buildType(
-			conf.auth_type) << "' admin_ips='";
+				conf.auth_type) << "' admin_ips='";
 	for (i = 0; i < conf.admin_ips.size(); i++) {
-		if (i>0) {
+		if (i > 0) {
 			s << "|";
 		}
 		s << conf.admin_ips[i];
@@ -163,7 +204,7 @@ void KConfigBuilder::build(std::stringstream &s) {
 		<< "br_level='" << conf.br_level << "'"
 		<< "/>\n";
 	s << "\t<cache default='" << conf.default_cache << "' max_cache_size='" << get_size(conf.max_cache_size) << "'";
-	s << " memory='" <<  get_size(conf.mem_cache) << "'";
+	s << " memory='" << get_size(conf.mem_cache) << "'";
 #ifdef ENABLE_DISK_CACHE
 	s << " max_bigobj_size='" << get_size(conf.max_bigobj_size) << "'";
 	s << " disk='" << get_size(conf.disk_cache);
@@ -189,29 +230,29 @@ void KConfigBuilder::build(std::stringstream &s) {
 #ifndef _WIN32
 	//s << "stack_size='" << conf.stack_size << "'";
 #endif
-	if (conf.per_ip_deny>0) {
+	if (conf.per_ip_deny > 0) {
 		s << " per_ip_deny='1'";
 	}
 	s << ">\n";
 #if 0
 	ipLock.Lock();
-	KPerIpConnect *per_ip = conf.per_ip_head;
+	KPerIpConnect* per_ip = conf.per_ip_head;
 	while (per_ip) {
 		s << "\t\t<per_ip src='";
 		char ips[MAXIPLEN];
-		ksocket_ipaddr_ip(&per_ip->src.addr,ips,sizeof(ips));
+		ksocket_ipaddr_ip(&per_ip->src.addr, ips, sizeof(ips));
 		s << ips;
 		if (per_ip->src.mask_num > 0) {
-			s << "/" << (int) per_ip->src.mask_num;
+			s << "/" << (int)per_ip->src.mask_num;
 		}
-		s << "' max='" ;
+		s << "' max='";
 		if (per_ip->deny) {
 			s << "deny";
 		} else {
 			s << per_ip->max;
 		}
 		s << "'/>\n";
-		per_ip = per_ip->next;		
+		per_ip = per_ip->next;
 	}
 	ipLock.Unlock();
 #endif
@@ -223,9 +264,9 @@ void KConfigBuilder::build(std::stringstream &s) {
 
 
 #ifdef ENABLE_BLACK_LIST
-	if (conf.bl_time>0) {
-           s << "\t<bl_time>" << conf.bl_time << "</bl_time>\n";
-    }
+	if (conf.bl_time > 0) {
+		s << "\t<bl_time>" << conf.bl_time << "</bl_time>\n";
+	}
 	if (*conf.block_ip_cmd) {
 		s << "\t<block_ip_cmd>" << conf.block_ip_cmd << "</block_ip_cmd>\n";
 	}
@@ -236,28 +277,28 @@ void KConfigBuilder::build(std::stringstream &s) {
 		s << "\t<flush_ip_cmd>" << conf.flush_ip_cmd << "</flush_ip_cmd>\n";
 	}
 #endif
-	if(conf.apache_config_file.size()>0){
+	if (conf.apache_config_file.size() > 0) {
 		s << "\t<apache_config_file>" << conf.apache_config_file << "</apache_config_file>\n";
 	}
 #ifdef ENABLE_VH_FLOW
-	if (conf.flush_flow_time>0) {
+	if (conf.flush_flow_time > 0) {
 		s << "\t<flush_flow_time>" << conf.flush_flow_time << "</flush_flow_time>\n";
 	}
 #endif
 
 #ifdef KSOCKET_UNIX	
-	if(conf.unix_socket){
-		 s << "\t<unix_socket>1</unix_socket>\n";
+	if (conf.unix_socket) {
+		s << "\t<unix_socket>1</unix_socket>\n";
 	}
 #endif
-	s << "\t<path_info>" << (conf.path_info?1:0) << "</path_info>\n";
+	s << "\t<path_info>" << (conf.path_info ? 1 : 0) << "</path_info>\n";
 	s << "\t<access_log>" << conf.access_log << "</access_log>\n";
 	if (*conf.logHandle) {
 		s << "\t<access_log_handle>";
 		s << CDATA_START << conf.logHandle << CDATA_END;
-		s <<  "</access_log_handle>\n";
+		s << "</access_log_handle>\n";
 	}
-	if(conf.maxLogHandle>0){
+	if (conf.maxLogHandle > 0) {
 		s << "\t<log_handle_concurrent>" << conf.maxLogHandle << "</log_handle_concurrent>\n";
 	}
 	s << "\t<log level='" << conf.log_level << "'";
@@ -270,10 +311,10 @@ void KConfigBuilder::build(std::stringstream &s) {
 	if (conf.error_rotate_size > 0) {
 		s << " error_rotate_size='" << get_size(conf.error_rotate_size) << "'";
 	}
-	if (conf.logs_day>0) {
+	if (conf.logs_day > 0) {
 		s << " logs_day='" << conf.logs_day << "'";
 	}
-	if(conf.logs_size>0){
+	if (conf.logs_size > 0) {
 		s << " logs_size='" << get_size(conf.logs_size) << "'";
 	}
 	if (conf.log_handle) {
@@ -292,7 +333,7 @@ void KConfigBuilder::build(std::stringstream &s) {
 	if (conf.auth_delay > 0) {
 		s << "\t<auth_delay>" << conf.auth_delay << "</auth_delay>\n";
 	}
-	if(*conf.server_software){
+	if (*conf.server_software) {
 		s << "\t<server_software>" << conf.server_software << "</server_software>\n";
 	}
 	if (*conf.hostname) {
@@ -303,14 +344,14 @@ void KConfigBuilder::build(std::stringstream &s) {
 	}
 	s << "\t<worker_io>" << conf.worker_io << "</worker_io>\n";
 	s << "\t<max_io>" << conf.max_io << "</max_io>\n";
-	s << "\t<worker_dns>" << conf.worker_dns << "</worker_dns>\n";	
-	conf.gam->buildXML(s, CHAIN_SKIP_EXT);	
+	s << "\t<worker_dns>" << conf.worker_dns << "</worker_dns>\n";
+	conf.gam->buildXML(s, CHAIN_SKIP_EXT);
 #ifdef ENABLE_WRITE_BACK
 	writeBackManager.buildXML(s, CHAIN_SKIP_EXT);
 #endif
 	s << "\t<!--access start-->\n";
-	kaccess[REQUEST].buildXML(s, (CHAIN_XML_DETAIL|CHAIN_SKIP_EXT));
-	kaccess[RESPONSE].buildXML(s, (CHAIN_XML_DETAIL|CHAIN_SKIP_EXT));
+	kaccess[REQUEST].buildXML(s, (CHAIN_XML_DETAIL | CHAIN_SKIP_EXT));
+	kaccess[RESPONSE].buildXML(s, (CHAIN_XML_DETAIL | CHAIN_SKIP_EXT));
 	s << "\t<!--access end-->\n";
 	conf.gvm->build(s);
 	s << "</config>\n";

@@ -16,10 +16,10 @@ bool KDsoExtendManage::add(KDsoExtend *dso)
 	lock.Unlock();
 	return true;
 }
-bool KDsoExtendManage::add(std::map<std::string, std::string> &attribute)
+bool KDsoExtendManage::add(const KXmlAttribute &attribute)
 {
 	KDsoExtend *dso = new KDsoExtend(attribute["name"].c_str());
-	if (!dso->load(attribute["filename"].c_str(),attribute)) {
+	if (!dso->load(attribute("filename"),attribute)) {
 		delete dso;
 		return false;
 	}

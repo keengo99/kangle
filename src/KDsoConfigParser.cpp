@@ -9,7 +9,7 @@ void on_dso_event(void* data, kconfig::KConfigTree* tree,kconfig::KConfigEvent *
 		if (conf.dem == NULL) {
 			conf.dem = new KDsoExtendManage;
 		}
-		conf.dem->add(ev->xml->attributes());
+		conf.dem->add(ev->new_xml->attributes());
 		break;
 	default:
 		klog(KLOG_ERR, "dso_extend do not support ev=[%d]\n", ev->type);

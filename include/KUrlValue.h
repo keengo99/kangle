@@ -29,6 +29,7 @@ public:
 	void put(const std::string& name, const std::string& value);
 	void add(KUrlValue *subform);
 	bool parse(const char *param);
+	bool parse(char* param);
 	KXmlAttribute attribute;
 	const std::string &operator[](const std::string &name) const
 	{

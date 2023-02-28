@@ -26,7 +26,6 @@
 #include "KRequestQueue.h"
 #include "do_config.h"
 using namespace std;
-KListenConfigParser listenConfigParser;
 
 KListenHost* parse_listen(const KXmlAttribute& attribute) {
 	KListenHost* m_host = new KListenHost;
@@ -45,6 +44,9 @@ KListenHost* parse_listen(const KXmlAttribute& attribute) {
 	if (!attribute["http2"].empty()) {
 		m_host->alpn = attribute["http2"] == "1";
 	}
+	if (attribute["http3"] == "1") {
+		KBIT_SET(m_host->alpn, KGL_ALPN_HTTP3);
+	}
 #endif
 	m_host->early_data = attribute["early_data"] == "1";
 	m_host->cipher = attribute["cipher"];
@@ -56,14 +58,53 @@ KListenHost* parse_listen(const KXmlAttribute& attribute) {
 	}
 	return m_host;
 }
+void on_file_event(khttpd::KAutoArray<KListenHost>& listen, kconfig::KConfigEvent* ev) {
+	auto locker = KVirtualHostManage::locker();
+	auto dlisten = KVirtualHostManage::get_listen();
+	uint32_t old_count = ev->diff.old_to - ev->diff.from;
+	for (uint32_t index = ev->diff.from; index < ev->diff.new_to; ++index) {
+		auto lh = parse_listen(ev->new_xml->get_body(index)->attributes);		
+		if (lh == nullptr) {
+			continue;
+		}
+		lh->ext = !ev->file->is_default();
+		bool result = listen.insert(lh, index + old_count);
+		assert(result);
+		if (!result) {
+			delete lh;
+			continue;
+		}
+		dlisten->AddGlobal(lh);
+	}
+	//remove
+	for (uint32_t index = ev->diff.from; index < ev->diff.old_to; ++index) {
+		auto lh = listen.remove(index);
+		if (lh==nullptr) {
+			continue;
+		}
+		dlisten->RemoveGlobal(lh);
+		delete lh;
+	}
+}
 void on_listen_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
-	assert(ev->xml->is_tag(_KS("listen")));
+	
+	assert(ev->get_xml()->is_tag(_KS("listen")));
 	assert(!KBIT_TEST(ev->type, kconfig::EvSubDir));
-	if (!ev->xml->is_tag(_KS("listen"))) {
+	if (!ev->get_xml()->is_tag(_KS("listen"))) {
 		return;
 	}
-	auto xml_node = tree->node;
+	auto file_name = ev->file->get_name();
+	auto it = conf.services.find(file_name->data);
+	if (it == conf.services.end()) {
+		auto result = conf.services.emplace(file_name->data, nullptr);
+		it = result.first;
+	}
+	on_file_event((*it).second, ev);
+	if ((*it).second.size()==0) {
+		conf.services.erase(it);
+	}
 }
+#if 0
 bool KListenConfigParser::startElement(KXmlContext *context) {
 	if (context->getParentName()!="config") {
 		return true;
@@ -117,3 +158,4 @@ bool KListenConfigParser::parse(std::string file) {
 	result = xmlParser.parseFile(file);
 	return result;
 }
+#endif

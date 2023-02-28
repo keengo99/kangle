@@ -107,7 +107,7 @@ bool KWebDavService::doGet(bool head) {
 	return send(STATUS_OK);
 }
 bool KWebDavService::doCopy() {
-	KXmlDocument document;
+	khttpd::KXmlDocument document;
 	if (!parseDocument(document)) {
 	}
 	char destination[1024];
@@ -230,7 +230,7 @@ bool KWebDavService::doPut() {
 	}
 	return result;
 }
-bool KWebDavService::parseDocument(KXmlDocument& document) {
+bool KWebDavService::parseDocument(khttpd::KXmlDocument& document) {
 	int64_t content_length = provider->getContentLength();
 	if (content_length > MAX_DOCUMENT_SIZE) {
 		return false;
@@ -307,7 +307,7 @@ bool KWebDavService::response_lock_body(KLockToken* token)
 	return true;
 }
 bool KWebDavService::doLock() {
-	KXmlDocument document;
+	khttpd::KXmlDocument document;
 	char ips[255];
 	int len = sizeof(ips);
 	provider->getEnv("REMOTE_ADDR", ips, &len);
@@ -329,7 +329,7 @@ bool KWebDavService::doLock() {
 		send(STATUS_OK);
 		return response_lock_body(lock_token);
 	}
-	KXmlNode* node = document.getRootNode();
+	auto node = document.getRootNode();
 	if (node == NULL) {
 		return send(STATUS_BAD_REQUEST);
 	}
@@ -410,9 +410,9 @@ bool KWebDavService::doMkcol() {
 	return true;
 }
 bool KWebDavService::doProppatch() {
-	KXmlDocument document;
+	khttpd::KXmlDocument document;
 	parseDocument(document);
-	KXmlNode* node = document.getNode("propertyupdate/set/prop");
+	auto node = document.getNode("propertyupdate/set/prop");
 	if (node != NULL) {
 		//todo for set;
 	}
@@ -463,7 +463,7 @@ bool KWebDavService::listResourceProp(KResource* rs, int depth) {
 	return result;
 }
 bool KWebDavService::doPropfind() {
-	KXmlDocument document;
+	khttpd::KXmlDocument document;
 	parseDocument(document);
 
 	char* depth_header = provider->getHttpHeader("Depth");
@@ -539,7 +539,7 @@ bool KWebDavService::writeResourceProp(KResource* rs) {
 	return true;
 }
 bool KWebDavService::doMove() {
-	KXmlDocument document(true);
+	khttpd::KXmlDocument document(true);
 	if (!parseDocument(document)) {
 	}
 	char destination[1024];

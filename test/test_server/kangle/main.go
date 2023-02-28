@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -16,6 +17,10 @@ import (
 var kangleCommand string
 var kangle_cmd *exec.Cmd
 
+func Reload(filename string) *http.Response {
+	resp, _ := common.Http1Client.Get("http://127.0.0.1:9911/reload?file=" + filename)
+	return resp
+}
 func CleanAllCache() {
 	resp, err := common.Http1Client.Get("http://127.0.0.1:9911/clean_all_cache")
 	if err != nil {

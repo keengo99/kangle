@@ -31,7 +31,7 @@ class KAcserverManager : public KXmlSupport
 public:
 	KAcserverManager();
 	virtual ~KAcserverManager();
-	void on_event(kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev);
+	void on_event(kconfig::KConfigTree* tree, khttpd::KXmlNode* xml, kconfig::KConfigEventType ev);
 	std::string acserverList(std::string name = "");
 	std::string apiList(std::string name = "");
 #ifdef ENABLE_VH_RUN_AS	

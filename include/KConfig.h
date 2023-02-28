@@ -47,6 +47,7 @@
 #include "kgl_ssl.h"
 #include "khttp.h"
 #include "KDynamicString.h"
+#include "KAutoArray.h"
 
 #define AUTOUPDATE_OFF    0
 #define AUTOUPDATE_ON   1
@@ -251,15 +252,14 @@ public:
 	std::string admin_passwd;
 	std::string admin_user;
 	std::vector<std::string> admin_ips;
-	std::vector<KListenHost*> service;
+	
+	
 	//run_user,run_group为一次性使用，可以安全用string
 	std::string run_user;
 	std::string run_group;
 	std::string ssl_client_protocols;
 	std::string ssl_client_chiper;
 	std::string ca_path;
-
-
 	std::string apache_config_file;
 
 	void copy(KConfig* c);
@@ -281,7 +281,7 @@ public:
 	/////////////////////////////////////////////////////////
 	//以下是程序运行信息,只在程序启动前初始化一次...
 	std::list<std::string> mergeFiles;
-
+	std::map<std::string, khttpd::KAutoArray<KListenHost>> services;
 	//默认是否缓存,1=是,其它=不
 	int default_cache = 1;
 	unsigned max_cache_size = 1048576;

@@ -167,7 +167,7 @@ static kgl_kfiber_function fiber_function = {
 	(void (*)(KFIBER, void*, int))kfiber_wakeup,
 	(int (*)(void*))kfiber_wait
 };
-bool KDsoExtend::load(const char* filename, std::map<std::string, std::string>& attribute)
+bool KDsoExtend::load(const char* filename, const KXmlAttribute& attribute)
 {
 	this->attribute = attribute;
 	orign_filename = strdup(filename);

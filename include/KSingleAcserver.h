@@ -32,7 +32,7 @@ public:
 	const char* getType() override {
 		return "server";
 	}
-	bool parse_config(KXmlNode* node) override;
+	bool parse_config(khttpd::KXmlNode* node) override;
 	void set_proto(Proto_t proto) override;
 	void shutdown() override {
 		sockHelper->shutdown();

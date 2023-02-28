@@ -47,8 +47,8 @@ public:
 	bool start_listen(bool &hit);
 	//bool start_obj(bool &hit);
 	bool start_access(bool &hit);
-
-	std::string getUrlValue(std::string name);
+	std::string removeUrlValue(const std::string& name);
+	const std::string &getUrlValue(const std::string &name);
 	bool sendHttp(const char *msg, INT64 content_length,
 			const char * content_type = NULL, const char *add_header = NULL,
 			int max_age = 0);
@@ -57,15 +57,15 @@ public:
 	kgl_output_stream* out;
 private:
 	bool save_access(KVirtualHost *vh,std::string redirect_url);
-	KXmlAttribute urlParam;
+	//KXmlAttribute urlParam;
 	KUrlValue urlValue;
 	char *postData;
 	int postLen;
 	int userType;
 	bool sendHttp(const std::string &msg);
 	void sendTest();
-	bool parseUrlParam(char *param,size_t len);
-	bool parseUrl(char *url);
+	//bool parseUrlParam(char *param,size_t len);
+	bool parseUrl(const char *url);
 	void parsePostData();
 	char *parsePostFile(int &len, std::string &fileName);
 #if 0

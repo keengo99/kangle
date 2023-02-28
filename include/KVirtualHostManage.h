@@ -75,6 +75,12 @@ public:
 	friend class KHttpServerParser;
 	friend class KHttpManage;
 	friend class KDynamicListen;
+	static KDynamicListen* get_listen() {
+		return &dlisten;
+	}
+	static KLocker locker() {
+		return KLocker(&lock);
+	}
 private:
 	void getVhIndex(std::stringstream &s,KVirtualHost *vh,int id,int t);
 	void inheriteAll();
@@ -105,6 +111,7 @@ private:
 	*/
 	void BindGlobalVirtualHost(kserver *server);
 	void UnBindGlobalVirtualHost(kserver *server);
+
 #ifdef ENABLE_SVH_SSL
 	KDomainMap *ssl_config;
 #endif

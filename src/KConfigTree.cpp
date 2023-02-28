@@ -18,18 +18,26 @@ namespace kconfig {
 	bool need_reboot_flag = false;
 	constexpr int default_file_index = 50;
 	constexpr int max_file_size = 1048576;
+	constexpr kgl_str_t default_file_name{ _KS("default") };
 	static KConfigTree events(nullptr, _KS("config"));
 	static uint16_t cur_know_qname_id = 0xffff;
-	KMap<kgl_ref_str_t, KXmlKey> qname_config;
+	KMap<kgl_ref_str_t, khttpd::KXmlKey> qname_config;
 	KMap<kgl_ref_str_t, KConfigFile> config_files;
-	KConfigFile* default_file = nullptr;
 	static on_begin_parse_f begin_parse_cb = nullptr;
+	KConfigFile* find_file(const kgl_str_t& name);
+	KConfigFile* add_file(kgl_ref_str_t* name, kgl_ref_str_t* filename);
+	void lock() {
+
+	}
+	void unlock() {
+
+	}
 	class KConfigFileInfo
 	{
 	public:
-		KConfigFileInfo(KConfigFile* file) {
+		KConfigFileInfo(KConfigFile* file, time_t last_modified) {
 			this->file = file->add_ref();
-			last_modified = 0;
+			this->last_modified = last_modified;
 			node = nullptr;
 		}
 		~KConfigFileInfo() {
@@ -39,39 +47,37 @@ namespace kconfig {
 			}
 		}
 		int cmp(const kgl_ref_str_t* a) const {
-			int result = (int)a->id - (int)file->filename->id;
+			int result = (int)a->id - (int)file->get_name()->id;
 			if (result != 0) {
 				return result;
 			}
 			return file->cmp(a);
 		}
 		bool load() {
-			auto fp = kfiber_file_open(file->filename->data, fileRead, KFILE_ASYNC);
+			auto fp = kfiber_file_open(file->get_filename()->data, fileRead, KFILE_ASYNC);
 			if (!fp) {
 				return false;
 			}
 			defer(kfiber_file_close(fp));
 			auto size = (int)kfiber_file_size(fp);
 			if (size > max_file_size) {
-				klog(KLOG_ERR, "config file [%s] is too big. size=[%d]\n", file->filename->data, size);
+				klog(KLOG_ERR, "config file [%s %s] is too big. size=[%d]\n", file->get_name()->data, file->get_filename()->data, size);
 				return false;
 			}
 			char* buf = (char*)malloc(size + 1);
 			if (!buf) {
 				return false;
 			}
+			defer(free(buf));
 			buf[size] = '\0';
 			if (!kfiber_file_read_full(fp, buf, &size)) {
-				free(buf);
 				return false;
 			}
-			KExtConfigDynamicString ds(file->filename->data);
+			KExtConfigDynamicString ds(file->get_filename()->data);
 			ds.dimModel = false;
 			ds.blockModel = false;
 			ds.envChar = '%';
 			char* content = ds.parseDirect(buf);
-			free(buf);
-
 			defer(free(content));
 			char* hot = content;
 			while (*hot && isspace((unsigned char)*hot)) {
@@ -96,7 +102,7 @@ namespace kconfig {
 					id = atoi(hot);
 				}
 			}
-			file->filename->id = id;
+			file->set_index(id);
 			file->set_remove_flag(false);
 			assert(!node);
 			node = parse_xml(content);
@@ -109,15 +115,16 @@ namespace kconfig {
 			return true;
 		}
 		void parse() {
+			klog(KLOG_ERR, "now parse config [%s %s]\n", file->get_name()->data, file->get_filename()->data);
 			file->update(node);
 			node = nullptr;
 			file->set_last_modified(last_modified);
 		}
 		KConfigFile* file;
 		time_t last_modified;
-		KXmlNode* node;
+		khttpd::KXmlNode* node;
 	};
-	KConfigTree::~KConfigTree() {
+	KConfigTree::~KConfigTree() noexcept {
 		clean();
 		if (node) {
 			delete node;
@@ -125,7 +132,7 @@ namespace kconfig {
 		kstring_release(name);
 	}
 
-	bool update_xml_node(KXmlNode* nodes, const char* name, size_t size, int index, KXmlNode* xml, KConfigEventType ev_type) {
+	bool update_xml_node(khttpd::KXmlNode* nodes, const char* name, size_t size, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type) {
 		size_t name_len;
 		while (size > 1 && *name == '/') {
 			name++;
@@ -285,11 +292,11 @@ namespace kconfig {
 		}
 		return ret;
 	}
-	void KConfigTree::notice(KConfigTree* ev_tree, KConfigFile* file, KXmlNode* xml, KConfigEventType ev_type, KXmlBodyDiff* diff) {
+	void KConfigTree::notice(KConfigTree* ev_tree, KConfigFile* file, khttpd::KXmlNode* xml, KConfigEventType ev_type, KXmlBodyDiff& diff) {
 		assert(xml);
 		KConfigEventNode* file_node;
 		KConfigEventNode* last_node;
-		KConfigEvent ev = { file,nullptr, xml, diff, ev_type };
+		KConfigEvent ev = {file, nullptr, nullptr, diff, ev_type};
 		if (ev_type != EvNone) {
 			klog(KLOG_NOTICE, "notice %s%s%s  [%d] ev_tree=[%p] xml=[%p]\n",
 				xml->key.tag->data,
@@ -314,12 +321,14 @@ namespace kconfig {
 			}
 			if (ev_type == EvRemove) {
 				//remove
+				ev.old_xml = xml;
+				defer(delete file_node);
 				if (!last_node) {
 					node = file_node->next;
 					if (node && !ev_tree->is_merge()) {
 						ev.file = node->file;
-						ev.xml = node->xml;
-						ev.old = xml;
+						ev.new_xml = node->xml;
+						ev.diff.new_to = ev.new_xml->get_body_count();
 						ev.type = EvUpdate;
 					}
 				} else {
@@ -330,16 +339,16 @@ namespace kconfig {
 						ev.type |= EvSubDir;
 					}
 					ev_tree->on_event(ev_tree->data, this, &ev);
-				}
-				delete file_node;
+				}				
 				return;
 			}
 			//update
-			ev.old = file_node->update(xml);
-			defer(ev.old->release());
+			ev.old_xml = file_node->update(xml);
+			defer(ev.old_xml->release());
 			if (ev_type == EvNone) {
 				return;
 			}
+			ev.new_xml = xml;
 			assert(ev_type == EvUpdate);
 			if (!last_node || ev_tree->is_merge()) {
 				if (this != ev_tree) {
@@ -351,6 +360,7 @@ namespace kconfig {
 		}
 		last_node = node;
 		//new
+		ev.new_xml = xml;
 		assert(ev_type == EvNew);
 		while (last_node && file->get_index() > last_node->file->get_index()) {
 			last_node = last_node->next;
@@ -361,7 +371,8 @@ namespace kconfig {
 			file_node->next = node;
 			if (node && !ev_tree->is_merge()) {
 				ev.type = EvUpdate;
-				ev.old = node->xml;
+				ev.old_xml = node->xml;
+				ev.diff.old_to = ev.old_xml->get_body_count();
 			}
 			node = file_node;
 		} else {
@@ -376,7 +387,7 @@ namespace kconfig {
 		}
 		return;
 	}
-	bool KConfigTree::notice(KConfigFile* file, KXmlNode* xml, KConfigEventType ev_type, KXmlBodyDiff* diff) {
+	bool KConfigTree::notice(KConfigFile* file, khttpd::KXmlNode* xml, KConfigEventType ev_type, KXmlBodyDiff& diff) {
 		if (is_self()) {
 			notice(this, file, xml, ev_type, diff);
 			return true;
@@ -413,7 +424,7 @@ namespace kconfig {
 		}
 		return child->find(name);
 	}
-	KXmlNode* KConfigFile::load() {
+	khttpd::KXmlNode* KConfigFile::load() {
 		auto fp = kfiber_file_open(this->filename->data, fileRead, KFILE_ASYNC);
 		if (!fp) {
 			return nullptr;
@@ -436,7 +447,7 @@ namespace kconfig {
 		}
 		return parse_xml(buf);
 	}
-	bool KConfigFile::diff_nodes(KConfigTree* name, KMap<KXmlKey, KXmlNode>* o, KMap<KXmlKey, KXmlNode>* n, int* notice_count) {
+	bool KConfigFile::diff_nodes(KConfigTree* name, KMap<khttpd::KXmlKey, khttpd::KXmlNode>* o, KMap<khttpd::KXmlKey, khttpd::KXmlNode>* n, int* notice_count) {
 		bool result = false;
 		if (!o) {
 			assert(n != nullptr);
@@ -451,7 +462,6 @@ namespace kconfig {
 		}
 		if (!n) {
 			assert(o != nullptr);
-			assert(name);
 			for (auto it = o->last(); it; it = it->prev()) {
 				auto node = it->value();
 				if (diff(name, node, nullptr, notice_count)) {
@@ -494,10 +504,12 @@ namespace kconfig {
 		}
 		return result;
 	}
-	bool KConfigFile::diff(KConfigTree* ev_node, KXmlNode* o, KXmlNode* n, int* notice_count) {
+	bool KConfigFile::diff(KConfigTree* ev_node, khttpd::KXmlNode* o, khttpd::KXmlNode* n, int* notice_count) {
 		KMapNode<KConfigTree>* child_node = nullptr;
+		KXmlBodyDiff diff = { 0 };
+
 		if (ev_node) {
-			KXmlKey* xml = o ? &o->key : &n->key;
+			khttpd::KXmlKey* xml = o ? &o->key : &n->key;
 			kgl_ref_str_t* key;
 			if (xml->vary) {
 				child_node = ev_node->find_child(xml->tag);
@@ -513,7 +525,8 @@ namespace kconfig {
 		}
 		if (!o) {
 			if (ev_node) {
-				bool notice_result = ev_node->notice(this, n, EvNew, nullptr);
+				diff.new_to = n->get_body_count();
+				bool notice_result = ev_node->notice(this, n, EvNew, diff);
 				if (notice_result) {
 					(*notice_count)++;
 				}
@@ -525,7 +538,8 @@ namespace kconfig {
 		if (!n) {
 			if (ev_node) {
 				diff_nodes(ev_node, &o->get_first()->childs, nullptr, notice_count);
-				bool notice_result = ev_node->notice(this, o, EvRemove, nullptr);
+				diff.old_to = o->get_body_count();
+				bool notice_result = ev_node->notice(this, o, EvRemove, diff);
 				if (notice_result) {
 					(*notice_count)++;
 				}
@@ -542,7 +556,48 @@ namespace kconfig {
 			return true;
 		}
 		bool is_diff = false;
-		KXmlBodyDiff diff = { KXmlNode::last_pos ,KXmlNode::last_pos ,KXmlNode::last_pos };
+		//from start
+		for (;; ++diff.from) {
+			auto o_body = o->get_body(diff.from);
+			if (!o_body) {
+				break;
+			}
+			auto n_body = n->get_body(diff.from);
+			if (!n_body) {
+				break;
+			}
+			if (diff_nodes(diff.from == 0 ? ev_node : nullptr, &o_body->childs, &n_body->childs, notice_count)) {
+				is_diff = true;
+				break;
+			}
+			if (!o_body->is_same(n_body)) {
+				is_diff = true;
+				break;
+			}
+		}
+		//from last
+		diff.new_to = n->get_body_count();
+		diff.old_to = o->get_body_count();
+		if (diff.new_to != diff.old_to) {
+			is_diff = true;
+		}
+		for (; (diff.new_to > diff.from + 1 || diff.old_to > diff.from + 1); --diff.old_to, --diff.new_to) {
+			if (diff.old_to == 0 || diff.new_to == 0) {
+				break;
+			}
+			auto o_body = o->get_body(diff.old_to - 1);
+			auto n_body = n->get_body(diff.new_to - 1);
+			if (diff_nodes(nullptr, &o_body->childs, &n_body->childs, notice_count)) {
+				is_diff = true;
+				break;
+			}
+			if (!o_body->is_same(n_body)) {
+				is_diff = true;
+				break;
+			}
+		}
+
+#if 0
 		if (o->get_body_count() != n->get_body_count()) {
 			if (ev_node) {
 				if (!diff_nodes(ev_node, &o->get_first()->childs, &n->get_first()->childs, notice_count)) {
@@ -568,9 +623,10 @@ namespace kconfig {
 				//last_same_index = index;
 			}
 		}
+#endif
 		if (ev_node) {
 			assert(ev_node);
-			if (ev_node->notice(this, n, is_diff ? EvUpdate : EvNone, &diff)) {
+			if (ev_node->notice(this, n, is_diff ? EvUpdate : EvNone, diff)) {
 				if (is_diff) {
 					(*notice_count)++;
 				}
@@ -579,8 +635,8 @@ namespace kconfig {
 		}
 		return is_diff;
 	}
-	KXmlNode* parse_xml(char* buf) {
-		KXmlDocument document;
+	khttpd::KXmlNode* parse_xml(char* buf) {
+		khttpd::KXmlDocument document;
 		document.set_qname_config(&qname_config);
 		auto nodes = document.parse(buf);
 		if (nodes) {
@@ -603,7 +659,7 @@ namespace kconfig {
 		update(tree_node);
 		return true;
 	}
-	bool KConfigFile::update(const char* name, size_t size, int index, KXmlNode* xml, KConfigEventType ev_type) {
+	bool KConfigFile::update(const char* name, size_t size, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type) {
 		if (readonly) {
 			return false;
 		}
@@ -653,7 +709,7 @@ namespace kconfig {
 		set_last_modified(kfile_last_modified(filename->data));
 		return true;
 	}
-	void KConfigFile::update(KXmlNode* new_nodes) {
+	void KConfigFile::update(khttpd::KXmlNode* new_nodes) {
 		int notice_count = 0;
 		diff_nodes(ev, nodes ? &nodes->get_first()->childs : nullptr, new_nodes ? &new_nodes->get_first()->childs : nullptr, &notice_count);
 		if (nodes) {
@@ -694,18 +750,25 @@ namespace kconfig {
 	{
 		KMap<kgl_ref_str_t, KConfigFileInfo> files;
 		std::string dir;
+		std::string prefix;
 	};
-	void load_config_file(KFileName* file, kgl_ext_config_context* ctx, bool is_default = false) {
+	void load_config_file(KStringBuf &name, KFileName* file, kgl_ext_config_context* ctx, bool is_default = false) {
 		time_t last_modified = file->getLastModified();
-		kgl_ref_str_t* name = kstring_from(file->getName());
-		defer(kstring_release(name));
+		auto name2 = name.ref_str();
+		if (!name2) {
+			klog(KLOG_ERR, "cann't ref_str\n");
+			return;
+		}
+		defer(kstring_release(name2));
+		auto filename = kstring_from(file->getName());
+		defer(kstring_release(filename));
 		int new_flag;
-		auto it = config_files.insert(name, &new_flag);
+		auto it = config_files.insert(name2, &new_flag);
 		//printf("file [%s] new_flag=[%d]\n",name->data,new_flag);
 		KConfigFileInfo* info;
 		KConfigFile* cfg_file;
 		if (new_flag) {
-			cfg_file = new KConfigFile(&events, name);
+			cfg_file = new KConfigFile(&events, name2, filename);
 			cfg_file->set_remove_flag(!is_default);
 			if (is_default) {
 				cfg_file->set_default_config();
@@ -713,23 +776,16 @@ namespace kconfig {
 			it->value(cfg_file);
 		} else {
 			cfg_file = it->value();
-		}
-		if (is_default) {
-			if (default_file) {
-				default_file->release();
-			}
-			default_file = cfg_file->add_ref();
-		}
+		}		
 		//printf("file last_modified old=[" INT64_FORMAT_HEX "] new =[" INT64_FORMAT_HEX "]\n", cfg_file->last_modified, last_modified);
 		if (cfg_file->last_modified != last_modified) {
 			//changed
-			info = new KConfigFileInfo(cfg_file);
+			info = new KConfigFileInfo(cfg_file, last_modified);
 			if (!info->load()) {
 				delete info;
 				return;
 			}
-			info->last_modified = last_modified;
-			ctx->files.add(info->file->filename, info);
+			ctx->files.add(info->file->get_name(), info);
 		} else {
 			cfg_file->set_remove_flag(false);
 		}
@@ -737,21 +793,60 @@ namespace kconfig {
 	int handle_ext_config_dir(const char* file, void* param) {
 		kgl_ext_config_context* ctx = (kgl_ext_config_context*)param;
 		KFileName configFile;
+		KStringBuf name;
 		if (!configFile.setName(ctx->dir.c_str(), file, FOLLOW_LINK_ALL)) {
 			return 0;
+		}	
+		if (!ctx->prefix.empty()) {
+			name << ctx->prefix << "|"_CS;
 		}
+		name << file;
 		if (configFile.isDirectory()) {
+			name << "|"_CS;
 			KFileName dirConfigFile;
 			if (!dirConfigFile.setName(configFile.getName(), "config.xml", FOLLOW_LINK_ALL)) {
 				return 0;
 			}
-			load_config_file(&dirConfigFile, ctx);
+			load_config_file(name, &dirConfigFile, ctx);
 			return 0;
 		}
-		load_config_file(&configFile, ctx);
+		name << "_"_CS;
+		load_config_file(name, &configFile, ctx);
 		return 0;
 	}
+	bool reload_config(kgl_ref_str_t* name, bool force) {
+		lock();
+		defer(unlock());
+		auto it = config_files.find(name);
+		if (!it) {
+			config_files.iterator([](void* data, void* arg) {
+				KConfigFile* file = (KConfigFile*)data;
+				printf("config [%s %s]\n", file->get_name()->data, file->get_filename()->data);
+				return iterator_continue;
+				},NULL);
+			return false;
+		}
+		auto file = it->value();
+		auto last_modified = kfile_last_modified(file->get_filename()->data);
+		if (last_modified == file->last_modified && !force) {
+			return true;
+		}
+		KConfigFileInfo info(file, last_modified);
+		if (!info.load()) {
+			if (!file->is_default()) {
+				//remove config
+				file->clear();
+				config_files.erase(it);
+				file->release();
+			}
+			return true;
+		}
+		info.parse();
+		return true;
+	}
 	void reload() {
+		lock();
+		defer(unlock());
 		kgl_ext_config_context ctx;
 		config_files.iterator([](void* data, void* arg) {
 			KConfigFile* file = (KConfigFile*)data;
@@ -769,8 +864,10 @@ namespace kconfig {
 		if (!file.setName(config_dir.c_str(), CONFIG_FILE, FOLLOW_LINK_ALL)) {
 			file.setName(config_dir.c_str(), CONFIG_DEFAULT_FILE, FOLLOW_LINK_ALL);
 		}
-		load_config_file(&file, &ctx, true);
-
+		KStringBuf default_name;
+		default_name << default_file_name;
+		load_config_file(default_name, &file, &ctx, true);
+		ctx.prefix = "ext";
 #ifdef KANGLE_EXT_DIR
 		ctx.dir = KANGLE_EXT_DIR;
 #else
@@ -778,6 +875,7 @@ namespace kconfig {
 #endif		
 		list_dir(ctx.dir.c_str(), handle_ext_config_dir, (void*)&ctx);
 		ctx.dir = conf.path + "etc/vh.d/";
+		ctx.prefix = "vh_d";
 		list_dir(ctx.dir.c_str(), handle_ext_config_dir, (void*)&ctx);
 		ctx.files.iterator([](void* data, void* arg) {
 			KConfigFileInfo* info = (KConfigFileInfo*)data;
@@ -788,7 +886,7 @@ namespace kconfig {
 		config_files.iterator([](void* data, void* arg) {
 			KConfigFile* file = (KConfigFile*)data;
 			if (file->is_removed()) {
-				//printf("file [%s] is removed\n", file->filename->data);
+				klog(KLOG_ERR, "remove config file [%s %s]\n", file->get_name()->data, file->get_filename()->data);
 				file->clear();
 				file->release();
 				return iterator_remove_continue;
@@ -797,8 +895,8 @@ namespace kconfig {
 			}, NULL);
 		is_first_config = false;
 	}
-	KXmlNode* find_child(KXmlNode* node, uint16_t name_id, const char* vary, size_t len) {
-		KXmlKey key;
+	khttpd::KXmlNode* find_child(khttpd::KXmlNode* node, uint16_t name_id, const char* vary, size_t len) {
+		khttpd::KXmlKey key;
 		kgl_ref_str_t tag = { 0 };
 		tag.id = name_id;
 		tag.ref = 2;
@@ -812,7 +910,7 @@ namespace kconfig {
 		}
 		return it->value();
 	}
-	KXmlNode* new_xml(const char* name, size_t len, const char* vary, size_t vary_len) {
+	khttpd::KXmlNode* new_xml(const char* name, size_t len, const char* vary, size_t vary_len) {
 		auto key_tag = kstring_from2(name, len);
 		auto it = qname_config.find(key_tag);
 		if (it) {
@@ -824,20 +922,20 @@ namespace kconfig {
 		if (vary) {
 			key_vary = kstring_from2(vary, vary_len);
 		}
-		return new KXmlNode(key_tag, key_vary);
+		return new khttpd::KXmlNode(key_tag, key_vary);
 	}
-	KXmlNode* new_xml(const char* name, size_t len) {
-		KXmlKey key(name, len);
+	khttpd::KXmlNode* new_xml(const char* name, size_t len) {
+		khttpd::KXmlKey key(name, len);
 		auto it = qname_config.find(key.tag);
 		if (it) {
 			auto tag = it->value();
 			kstring_release(key.tag);
 			key.tag = kstring_refs(tag->tag);
 		}
-		return new KXmlNode(&key);
+		return new khttpd::KXmlNode(&key);
 	}
-	KXmlNode* find_child(KXmlNode* node, const char* name, size_t len) {
-		KXmlKey key(name, len);
+	khttpd::KXmlNode* find_child(khttpd::KXmlNode* node, const char* name, size_t len) {
+		khttpd::KXmlKey key(name, len);
 		auto it2 = qname_config.find(key.tag);
 		if (it2) {
 			auto tag = it2->value();
@@ -850,7 +948,7 @@ namespace kconfig {
 		return it->value();
 	}
 	uint16_t register_qname(const char* name, size_t len) {
-		auto key = new KXmlKey(name, len);
+		auto key = new khttpd::KXmlKey(name, len);
 		auto old_key = qname_config.add(key->tag, key);
 		if (old_key) {
 			key->tag->id = old_key->tag->id;
@@ -878,22 +976,43 @@ namespace kconfig {
 			return iterator_remove_continue;
 			}, NULL);
 		qname_config.iterator([](void* data, void* arg) {
-			delete (KXmlKey*)data;
+			delete (khttpd::KXmlKey*)data;
 			return iterator_remove_continue;
 			}, NULL);
 		events.clean();
 	}
-	void lock() {
+	KConfigResult remove(KConfigFile* file, const kgl_str_t& path, uint32_t index) {
+		const char* name = (const char*)kgl_memrchr(path.data, '/', path.len);
+		if (!name) {
+			name = path.data;
+		}
+		size_t path_len = name - path.data;
 
+		auto xml = kconfig::new_xml(name, path.len - path_len);
+		defer(xml->release());
+		if (!file->update(path.data, path_len, index, xml, kconfig::EvRemove)) {
+			return KConfigResult::ErrNotFound;
+		}
+		if (!file->save()) {
+			return KConfigResult::ErrSaveFile;
+		}
+		return KConfigResult::Success;
 	}
-	void unlock() {
-
-	}
-	KConfigResult remove(const char* path, size_t len, int index) {
+	KConfigResult remove(const std::string& file_name, const kgl_str_t& path, uint32_t index) {
 		kconfig::lock();
 		defer(kconfig::unlock());
-		const char* tree_path = path;
-		size_t tree_len = len;
+		kgl_str_t file2{ (char *)file_name.c_str(),file_name.size() };
+		auto file = find_file(file2);
+		if (!file) {
+			return KConfigResult::ErrNotFound;
+		}
+		return remove(file, path, index);
+	}
+	KConfigResult remove(const kgl_str_t& path, uint32_t index) {
+		kconfig::lock();
+		defer(kconfig::unlock());
+		const char* tree_path = path.data;
+		size_t tree_len = path.len;
 		auto tree = kconfig::find(&tree_path, &tree_len);
 		if (!tree || !tree->node) {
 			return KConfigResult::ErrNotFound;
@@ -902,27 +1021,10 @@ namespace kconfig {
 		if (!file) {
 			return KConfigResult::ErrNotFound;
 		}
-		file->add_ref();
-		defer(file->release());
-		const char* name = (const char*)kgl_memrchr(path, '/', len);
-
-		if (!name) {
-			name = path;
-		}
-		size_t path_len = name - path;
-
-		auto xml = kconfig::new_xml(name, len - path_len);
-		defer(xml->release());
-		if (!file->update(path, path_len, 0, xml, kconfig::EvRemove)) {
-			return KConfigResult::ErrNotFound;
-		}
-		if (!file->save()) {
-			return KConfigResult::ErrSaveFile;
-		}
-		return KConfigResult::Success;
+		return remove(file, path, index);
 	}
-	KConfigResult add(const char* path, size_t len, int index, KXmlNode* xml) {
-		return update(path, len, index, xml, EvNew);
+	KConfigResult add(const kgl_str_t& path, uint32_t index, khttpd::KXmlNode* xml) {
+		return update(path, index, xml, EvNew);
 	}
 	bool is_first() {
 		return is_first_config;
@@ -933,33 +1035,26 @@ namespace kconfig {
 	void set_need_reboot() {
 		need_reboot_flag = true;
 	}
-	KConfigResult update(const char* path, size_t len, int index, KXmlNode* xml, KConfigEventType ev_type) {
-		kconfig::lock();
-		defer(kconfig::unlock());
-		const char* tree_path = path;
-		size_t tree_len = len;
-		auto tree = kconfig::find(&tree_path, &tree_len);
-		KConfigFile* file = nullptr;
-		if (tree && tree->node) {
-			file = tree->node->file;
+	KConfigFile* find_file(const kgl_str_t& name) {
+		kgl_ref_str_t name2;
+		name2.data = name.data;
+		name2.len = (uint16_t)name.len;
+		auto it = config_files.find(&name2);
+		if (!it) {
+			return nullptr;
 		}
-		if (!file) {
-			if (KBIT_TEST(ev_type, FlagCreate | EvNew)) {
-				file = default_file;
-			}
-			if (!file) {
-				xml->release();
-				return KConfigResult::ErrNotFound;
-			}
-		}
-		file->add_ref();
-		defer(file->release());
-		const char* name = (const char*)kgl_memrchr(path, '/', len);
+		return it->value();
+	}
+	KConfigFile* add_file(kgl_ref_str_t* name, kgl_ref_str_t* filename) {
+		return nullptr;
+	}
+	KConfigResult update(KConfigFile *file, const kgl_str_t& path, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type) {
+		const char* name = (const char*)kgl_memrchr(path.data, '/', path.len);
 		if (!name) {
-			name = path;
+			name = path.data;
 		}
-		size_t path_len = name - path;
-		if (!file->update(path, path_len, index, xml, ev_type)) {
+		size_t path_len = name - path.data;
+		if (!file->update(path.data, path_len, index, xml, ev_type)) {
 			xml->release();
 			return KConfigResult::ErrNotFound;
 		}
@@ -967,6 +1062,41 @@ namespace kconfig {
 			return KConfigResult::ErrSaveFile;
 		}
 		return KConfigResult::Success;
+	}
+	KConfigResult update(const kgl_str_t& path, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type) {
+		kconfig::lock();
+		defer(kconfig::unlock());
+		const char* tree_path = path.data;
+		size_t tree_len = path.len;
+		auto tree = kconfig::find(&tree_path, &tree_len);
+		KConfigFile* file = nullptr;
+		if (tree && tree->node) {
+			file = tree->node->file;
+		}
+		if (!file) {
+			if (KBIT_TEST(ev_type, FlagCreate | EvNew)) {
+				file = find_file(default_file_name);
+			}
+			if (!file) {
+				xml->release();
+				return KConfigResult::ErrNotFound;
+			}
+		}
+		return update(file, path, index, xml, ev_type);		
+	}
+	KConfigResult add(const std::string& file, const kgl_str_t& path, uint32_t index, khttpd::KXmlNode* xml) {
+		return update(file, path, index, xml, EvNew);
+	}
+	KConfigResult update(const std::string& file_name, const kgl_str_t& path, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type) {
+		kconfig::lock();
+		defer(kconfig::unlock());
+		kgl_str_t file2{ (char*)file_name.c_str(),file_name.size() };
+		auto file = find_file(file2);
+		if (!file) {
+			xml->release();
+			return KConfigResult::ErrNotFound;
+		}
+		return update(file, path, index, xml, ev_type);
 	}
 	void test() {
 		return;
@@ -976,6 +1106,7 @@ namespace kconfig {
 			int int_value;
 			int vh_count;
 			int attr_value;
+			KXmlBodyDiff diff;
 		};
 		int prev_ev;
 		register_qname(_KS("a"));
@@ -984,11 +1115,11 @@ namespace kconfig {
 		KConfigTree test_ev(nullptr, _KS("config"));
 		test_config_context ctx;
 		memset(&ctx, 0, sizeof(ctx));
-		KConfigFile* t = new KConfigFile(&test_ev, "");
+		KConfigFile* t = new KConfigFile(&test_ev, nullptr, nullptr);
 		defer(t->release());
 
 		assert(listen(_KS("int"), &ctx, [](void* data, KConfigTree* tree, KConfigEvent* ev) {
-			auto xml = ev->xml;
+			auto xml = ev->get_xml();
 			test_config_context* ctx = (test_config_context*)data;
 			ctx->ev_count++;
 			if (ev->type != EvRemove) {
@@ -1047,7 +1178,7 @@ namespace kconfig {
 		assert(remove_listen(_KS(""), &test_ev));
 		ctx.vh_count = 0;
 		assert(listen(_KS("/vh"), &ctx, [](void* data, KConfigTree* tree, KConfigEvent* ev) {
-			auto xml = ev->xml;
+			auto xml = ev->get_xml();
 			test_config_context* ctx = (test_config_context*)data;
 			ctx->ev_count++;
 			assert(xml);
@@ -1067,5 +1198,73 @@ namespace kconfig {
 		assert(ctx.vh_count == 2);
 		t->reload(_KS("<config><vh name='c'/><vh name='a'/><vh/></config>"));
 		assert(ctx.vh_count == 3);
+		//test diff
+		ctx.int_value = 0;
+		assert(listen(_KS("listen"), &ctx, [](void* data, KConfigTree* tree, KConfigEvent* ev) {
+			test_config_context* ctx = (test_config_context*)data;
+			ctx->ev_count++;
+			auto xml = ev->new_xml;
+			int int_value = ctx->int_value;
+			ctx->int_value = 0;
+			if (xml) {
+				for (uint32_t index = 0;; ++index) {
+					auto body = xml->get_body(index);
+					if (!body) {
+						break;
+					}
+					int id = body->attributes.get_int("id");
+					ctx->int_value += id;
+				}
+			}
+			ctx->diff = ev->diff;
+			for (uint32_t index = ev->diff.from; index < ev->diff.old_to; ++index) {
+				auto body = ev->old_xml->get_body(index);
+				assert(body);
+				int id = body->attributes.get_int("id");
+				int_value -= id;
+			}
+			for (uint32_t index = ev->diff.from; index < ev->diff.new_to; ++index) {
+				auto body = ev->new_xml->get_body(index);
+				assert(body);
+				int id = body->attributes.get_int("id");
+				int_value += id;
+			}
+			assert(int_value == ctx->int_value);
+			assert(ev->get_xml()->is_tag(_KS("listen")));
+			}, ev_self, &test_ev));
+		t->reload(_KS("<config><listen id='1'/></config>"));
+		assert(ctx.int_value == 1);
+		prev_ev = ctx.ev_count;
+
+		t->reload(_KS("<config><listen id='2'/></config>"));
+		assert(ctx.int_value == 2);
+		assert(ctx.ev_count == ++prev_ev);
+
+
+		t->reload(_KS("<config><listen id='1'/><listen id='2'/></config>"));
+		assert(ctx.int_value == 3);
+		assert(ctx.ev_count == ++prev_ev);
+		t->reload(_KS("<config><listen id='2'/><listen id='1'/></config>"));
+		assert(ctx.int_value == 3);
+		assert(ctx.ev_count == ++prev_ev);
+		t->reload(_KS("<config><listen id='3'/><listen id='2'/><listen id='1'/></config>"));
+		assert(ctx.int_value == 6);
+		assert(ctx.ev_count == ++prev_ev);
+		t->reload(_KS("<config><listen id='4'/><listen id='2'/><listen id='1'/></config>"));
+		assert(ctx.int_value == 7);
+		assert(ctx.ev_count == ++prev_ev);
+		t->reload(_KS("<config><listen id='4'/><listen id='3'/><listen id='1'/></config>"));
+		assert(ctx.int_value == 8);
+		assert(ctx.ev_count == ++prev_ev);
+		t->reload(_KS("<config><listen id='4'/></config>"));
+		assert(ctx.int_value == 4);
+		assert(ctx.ev_count == ++prev_ev);
+
+		t->reload(_KS("<config><listen id='4'/><listen id='3'/><listen id='1'/></config>"));
+		assert(ctx.int_value == 8 && ctx.ev_count == ++prev_ev);
+		t->reload(_KS("<config><listen id='1'/></config>"));
+		assert(ctx.int_value == 1 && ctx.ev_count == ++prev_ev);
+		t->reload(_KS("<config></config>"));
+		assert(ctx.int_value == 0 && ctx.ev_count == ++prev_ev);
 	}
 }

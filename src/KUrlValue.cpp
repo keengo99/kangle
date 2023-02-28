@@ -21,6 +21,7 @@
 #include "KUrlValue.h"
 #include "KUrlParser.h"
 #include "kmalloc.h"
+#include "KDefer.h"
 
 using namespace std;
 KUrlValue::KUrlValue() {
@@ -107,16 +108,16 @@ void KUrlValue::add(KUrlValue *subform) {
 	}
 	last->next = subform;
 }
-bool KUrlValue::parse(const char *param) {
-	if (param == NULL) {
+bool KUrlValue::parse(char* buf) {
+	if (buf == NULL) {
 		return false;
 	}
-	char *buf = xstrdup(param);
-	char *name;
-	char *value;
-	char *tmp;
-	char *msg;
-	char *ptr;
+
+	char* name;
+	char* value;
+	char* tmp;
+	char* msg;
+	char* ptr;
 	for (size_t i = 0; i < strlen(buf); i++) {
 		if (buf[i] == '\r' || buf[i] == '\n') {
 			buf[i] = 0;
@@ -147,8 +148,15 @@ bool KUrlValue::parse(const char *param) {
 		}
 
 	}
-	xfree(buf);
 	return true;
+}
+bool KUrlValue::parse(const char *param) {
+	if (param == NULL) {
+		return false;
+	}
+	char *buf = xstrdup(param);
+	defer(free(buf));
+	return parse(buf);
 }
 void KUrlValue::put(const std::string& name, const std::string& value) {
 	attribute.emplace(name, value);
@@ -181,7 +189,7 @@ bool KUrlValue::add(const std::string& name, const std::string& value) {
 	}else{
 		stringstream s;
 		s << (*it2).second << ", " << value;
-		attribute.emplace(name, s.str());
+		(*it2).second.swap(s.str());
 	}
 	return true;
 }

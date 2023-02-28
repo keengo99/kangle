@@ -37,10 +37,10 @@ public:
 	void shutdown() override;
 	KUpstream* GetUpstream(KHttpRequest* rq) override;
 	unsigned getPoolSize();
-	void on_event(kconfig::KConfigTree* tree, KXmlNode* xml, kconfig::KConfigEventType ev);
+	void on_event(kconfig::KConfigTree* tree, khttpd::KXmlNode* xml, kconfig::KConfigEventType ev);
 	bool editNode(KXmlAttribute&attr);
 	void buildXML(std::stringstream &s) override;
-	bool parse_config(KXmlNode* xml) override;
+	bool parse_config(khttpd::KXmlNode* xml) override;
 	void buildAttribute(std::stringstream &s);
 	static void baseHtml(KMultiAcserver *mserver,std::stringstream &s);
 	void getHtml(std::stringstream &s);

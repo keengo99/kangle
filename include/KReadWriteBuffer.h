@@ -42,13 +42,6 @@ public:
 	}
 	inline void insertBuffer(kbuf *buf)
 	{
-		/*
-		kassert(buffer.write_hot_buf);
-		buf->next = buffer.head;
-		buffer.head = buf;
-		buffer.total_len += buf->used;
-		buffer.read_hot = buffer.head->data;
-		*/
 		krw_insert(&this->buffer, buf);
 	}
 	int getReadBuffer(LPWSABUF buffer, int bc)
@@ -92,11 +85,11 @@ public:
 			tmp = tmp->next;
 		}
 	}
-	unsigned getLen()
+	unsigned getLen() const
 	{
 		return buffer.total_len;
 	}
-	kbuf *getHead()
+	kbuf *getHead() const
 	{
 		return buffer.head;
 	}

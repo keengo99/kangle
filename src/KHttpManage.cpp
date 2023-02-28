@@ -42,6 +42,7 @@
 #include "KConfigTree.h"
 #include "extern.h"
 #include "lang.h"
+#include "KDefer.h"
 #include "kmd5.h"
 namespace kangle {
 	std::string get_connect_per_ip();
@@ -454,14 +455,20 @@ bool KHttpManage::config() {
 		s << klang["config_listen"] << ":";
 		s << "<table border=1>";
 		s << "<tr><td>" << LANG_OPERATOR << "</td><td>" << LANG_IP << "</td><td>" << LANG_PORT << "</td><td>" << klang["listen_type"] << "</td></tr>";
-		for (size_t i = 0; i < conf.service.size(); i++) {
-			s << "<tr><td>";
-			s << "[<a href=\"javascript:if(confirm('really delete')){ window.location='/deletelisten?id=";
-			s << i << "';}\">" << LANG_DELETE << "</a>][<a href='/newlistenform?action=edit&id=" << i << "'>" << LANG_EDIT << "</a>]</td>";
-			s << "<td>" << conf.service[i]->ip << "</td>";
-			s << "<td>" << conf.service[i]->port << "</td>";
-			s << "<td>" << getWorkModelName(conf.service[i]->model) << "</td>";
-			s << "</tr>";
+		for (auto it = conf.services.begin(); it != conf.services.end(); ++it) {
+			for (uint32_t index = 0;; ++index) {
+				auto lh = (*it).second.get(index);
+				if (!lh) {
+					break;
+				}
+				s << "<tr><td>";
+				s << "[<a href=\"javascript:if(confirm('really delete')){ window.location='/deletelisten?file=" << (*it).first << "&id=";
+				s << index << "';}\">" << LANG_DELETE << "</a>][<a href='/newlistenform?action=edit&file=" << (*it).first << "&id=" << index << "'>" << LANG_EDIT << "</a>]</td>";
+				s << "<td>" << lh->ip << "</td>";
+				s << "<td>" << lh->port << "</td>";
+				s << "<td>" << getWorkModelName(lh->model) << "</td>";
+				s << "</tr>";
+			}
 		}
 		s << "</table>";
 		s << "[<a href='/newlistenform'>" << klang["new_listen"] << "</a>]<br>";
@@ -706,8 +713,8 @@ bool KHttpManage::configsubmit() {
 		http_config.time_out = conf.time_out;
 	} else if (item == 1) {
 		auto xml = kconfig::new_xml(_KS("cache"));
-		xml->attributes().swap(urlParam);
-		kconfig::update(_KS("cache"), 0, xml, kconfig::EvUpdate | kconfig::FlagCreate);
+		xml->attributes().swap(urlValue.attribute);
+		kconfig::update("cache"_CS, 0, xml, kconfig::EvUpdate | kconfig::FlagCreate);
 		goto skip_save;
 #if 0
 #ifdef ENABLE_DISK_CACHE
@@ -862,15 +869,19 @@ KHttpManage::~KHttpManage() {
 		free(postData);
 	}
 }
-string KHttpManage::getUrlValue(string name) {
-
-	map<string, string>::iterator it;
-	it = urlParam.find(name);
-	if (it == urlParam.end())
+std::string KHttpManage::removeUrlValue(const std::string& name) {
+	auto it = urlValue.attribute.find(name);
+	if (it == urlValue.attribute.end()) {
 		return "";
-	return (*it).second;
-
+	}
+	std::string value(std::move((*it).second));
+	urlValue.attribute.erase(it);
+	return value;
 }
+const std::string &KHttpManage::getUrlValue(const string &name) {
+	return urlValue.attribute[name];
+}
+#if 0
 bool KHttpManage::parseUrlParam(char* param, size_t len) {
 	char* name;
 	char* value;
@@ -903,24 +914,17 @@ bool KHttpManage::parseUrlParam(char* param, size_t len) {
 				name[i] = tolower(name[i]);
 			}
 			url_decode(name, 0, rq->sink->data.url);
-			urlParam.insert(pair<string, string>(name, value));
+			//urlParam.emplace(name, value);
+			//urlParam.insert(pair<string, string>(name, value));
 			urlValue.add(name, value);
 		}
 
 	}
 	return true;
 }
-
-bool KHttpManage::parseUrl(char* url) {
-
-	if (url) {
-		char* buf = xstrdup(url);
-		bool result = parseUrlParam(buf, strlen(buf));
-		xfree(buf);
-		return result;
-	}
-	return false;
-
+#endif
+bool KHttpManage::parseUrl(const char* url) {
+	return 	urlValue.parse(url);
 }
 bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* content_type, const char* add_header, int max_age) {
 	KStringBuf s;
@@ -959,6 +963,7 @@ bool KHttpManage::sendHttp(const string& msg) {
 	return sendHttp(msg.c_str(), msg.size());
 }
 void KHttpManage::sendTest() {
+#if 0
 	map<string, string>::iterator it;
 	for (it = urlParam.begin(); it != urlParam.end(); it++) {
 		printf("name:");
@@ -967,6 +972,7 @@ void KHttpManage::sendTest() {
 		printf("%s", (*it).second.c_str());
 		printf("\n");
 	}
+#endif
 }
 bool KHttpManage::reboot() {
 	stringstream s;	
@@ -1341,89 +1347,42 @@ bool KHttpManage::start_listen(bool& hit) {
 	if (strcmp(rq->sink->data.url->path, "/deletelisten") == 0) {
 		hit = true;
 		int id = atoi(getUrlValue("id").c_str());
-		conf.admin_lock.Lock();
-		if (id >= 0 && id < (int)conf.service.size()) {
-			vector<KListenHost*>::iterator it = conf.service.begin() + id;
-			conf.gvm->UnBindGlobalListen((*it));
-			delete (*it);
-			conf.service.erase(it);
-			if (!saveConfig()) {
-				conf.admin_lock.Unlock();
-				return sendErrorSaveConfig();
-			}
-		}
-		conf.admin_lock.Unlock();
-		//conf.gvm->flush_static_listens(conf.service);
+		auto file = getUrlValue("file");
+		kconfig::remove(file, "listen"_CS, id);
 		return sendRedirect("/config");
 	}
 	if (strcmp(rq->sink->data.url->path, "/newlisten") == 0) {
 		hit = true;
-		string ip = getUrlValue("ip");
-		if (ip.size() == 0) {
-			ip = "*";
+		auto action = removeUrlValue("action");
+		auto file = removeUrlValue("file");
+		if (file.empty()) {
+			file = "default";
 		}
-		int model;
-		if (!parseWorkModel(getUrlValue("type").c_str(), model)) {
-			return sendErrPage("type is error");
-		}
-		KListenHost* host = new KListenHost;;
-		string action = getUrlValue("action");
-		conf.admin_lock.Lock();
-		/*
-
-		*/
-		//need_reboot_flag = true;
-#ifdef KSOCKET_SSL
-		if (KBIT_TEST(model, WORK_MODEL_SSL)) {
-			host->cert_file = getUrlValue("certificate");
-			host->key_file = getUrlValue("certificate_key");
-			host->cipher = getUrlValue("cipher");
-			host->protocols = getUrlValue("protocols");
-			host->early_data = getUrlValue("early_data") == "1";
-#ifdef ENABLE_HTTP2
-			host->alpn = 0;
-			if (getUrlValue("http2") == "1") {
-				KBIT_SET(host->alpn, KGL_ALPN_HTTP2);
-			}
-			if (getUrlValue("http3") == "1") {
-				KBIT_SET(host->alpn, KGL_ALPN_HTTP3);
-			}
-#endif
-		}
-#endif
-		host->ip = ip;
-		host->port = getUrlValue("port");
-		host->model = model;
-		conf.gvm->BindGlobalListen(host);
+		auto id = removeUrlValue("id");
+		auto xml = kconfig::new_xml(_KS("listen"));
+		xml->attributes().swap(urlValue.attribute);		
 		if (action == "edit") {
-			int id = atoi(getUrlValue("id").c_str());
-			if (id >= 0 && id < (int)conf.service.size()) {
-				conf.gvm->UnBindGlobalListen(conf.service[id]);
-				delete conf.service[id];
-				conf.service[id] = host;
-			} else {
-				conf.service.push_back(host);
-			}
+			kconfig::update(file, "listen"_CS, atoi(id.c_str()), xml, kconfig::EvUpdate);
 		} else {
-			conf.service.push_back(host);
-		}
-		conf.admin_lock.Unlock();
-		if (!saveConfig()) {
-			return sendErrorSaveConfig();
+			kconfig::add(file, "listen"_CS, khttpd::last_pos, xml);
 		}
 		return sendRedirect("/config");
-
 	}
 	if (strcmp(rq->sink->data.url->path, "/newlistenform") == 0) {
 		hit = true;
 		stringstream s;
 		int id = atoi(getUrlValue("id").c_str());
 		KListenHost* host = NULL;
+		auto file = getUrlValue("file");
 		if (getUrlValue("action") == "edit") {
-			if (id < 0 || id >= (int)conf.service.size()) {
+			auto it = conf.services.find(file);
+			if (it == conf.services.end()) {
 				return sendErrPage("cann't find such listen");
 			}
-			host = conf.service[id];
+			host = (*it).second.get(id);
+			if (!host) {
+				return sendErrPage("cann't find such listen");
+			}		
 		}
 		s
 			<< "<html><head><LINK href=/main.css type='text/css' rel=stylesheet></head><body>";
@@ -1448,12 +1407,8 @@ bool KHttpManage::start_listen(bool& hit) {
 			"</script>";
 #endif
 		s << "<form name='listen' action='/newlisten?action=" << getUrlValue("action")
-			<< "&id=" << id << "' method='post'>\n";
+			<< "&id=" << id << "&file=" << file << "' method='post'>\n";
 		s << "<table>";
-		/*
-		s << "<tr><td>" << LANG_NAME << ":</td><td><input name='name' value='"
-				<< (host ? host->name : "") << "'></td></tr>";
-		*/
 		s << "<tr><td>" << LANG_IP << ":</td><td><input name='ip' value='"
 			<< (host ? host->ip : "*") << "'></td></tr>";
 		s << "<tr><td>" << LANG_PORT << ":</td><td><input name='port' value='"
@@ -1777,8 +1732,7 @@ bool KHttpManage::start_vhs(bool& hit) {
 		do_config(false);
 		hit = true;
 		s << klang["reload_vh_msg"] << "<br>";
-		conf.gvm->getHtml(s, getUrlValue("name"), atoi(getUrlValue(
-			"id").c_str()), urlValue);
+		conf.gvm->getHtml(s, getUrlValue("name"), atoi(getUrlValue("id").c_str()), urlValue);
 		return sendHttp(s.str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/vhbase") == 0) {
@@ -1829,7 +1783,6 @@ KGL_RESULT KHttpManage::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_
 #endif
 }
 bool KHttpManage::start(bool& hit) {
-
 	parseUrl(rq->sink->data.url->param);
 	if (getUrlValue("xml") == "1") {
 		xml = true;
@@ -1839,7 +1792,7 @@ bool KHttpManage::start(bool& hit) {
 		return runCommand();
 	}
 	if (postData) {
-		parseUrlParam(postData, strlen(postData));
+		urlValue.parse(postData);
 	}
 	if (strcmp(rq->sink->data.url->path, "/test") == 0) {
 		sendTest();
@@ -1946,7 +1899,7 @@ bool KHttpManage::start(bool& hit) {
 	}
 	if (strcmp(rq->sink->data.url->path, "/macserver_node") == 0) {
 		string err_msg;
-		if (conf.gam->macserver_node(urlParam, err_msg)) {
+		if (conf.gam->macserver_node(urlValue.attribute, err_msg)) {
 			if (!saveConfig()) {
 				return sendErrorSaveConfig();
 			}
@@ -2102,7 +2055,7 @@ function sortrq(index)\
 	}
 	if (strcmp(rq->sink->data.url->path, "/cmdform") == 0) {
 		std::string errMsg;
-		if (conf.gam->cmdForm(urlParam, errMsg)) {
+		if (conf.gam->cmdForm(urlValue.attribute, errMsg)) {
 			if (!saveConfig()) {
 				return sendErrorSaveConfig();
 			}
@@ -2124,7 +2077,7 @@ function sortrq(index)\
 #endif
 	if (strcmp(rq->sink->data.url->path, "/apiform") == 0) {
 		std::string errMsg;
-		if (conf.gam->apiForm(urlParam, errMsg)) {
+		if (conf.gam->apiForm(urlValue.attribute, errMsg)) {
 			if (!saveConfig()) {
 				return sendErrorSaveConfig();
 			}
@@ -2221,6 +2174,25 @@ void init_manager_handler() {
 		}
 		return KGL_OK;
 		});
+	KHttpManage::handler.add(_KS("/reload"), [](kgl_str_t* path, void* data, KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) -> KGL_RESULT {
+		KUrlValue url;
+		if (rq->sink->data.url->param) {
+			url.parse((const char*)rq->sink->data.url->param);
+		}
+		auto file = url.attribute["file"];
+		if (file == KXmlAttribute::empty) {
+			kconfig::reload();
+			return send_http2(rq, nullptr, STATUS_NO_CONTENT, nullptr);
+		}
+		auto name = kstring_from2(file.c_str(), file.size());
+		defer(kstring_release(name));
+		auto result = kconfig::reload_config(name, true);
+		if (result) {
+			return send_http2(rq, nullptr, STATUS_NO_CONTENT, nullptr);
+		} else {
+			return send_http2(rq, nullptr, STATUS_NOT_FOUND, nullptr);
+		}
+		});
 	KHttpManage::handler.add(_KS("/cfg/*"), [](kgl_str_t* path, void* data, KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) -> KGL_RESULT {
 		if (path->len == 0) {
 			return response_redirect(out, _KS("/cfg/"), 308);
@@ -2249,18 +2221,15 @@ void init_manager_handler() {
 			auto node = tree->node;
 			while (node) {
 				st.write_all(_KS("<xml file='"));
-				st.write_all(node->file->filename->data, node->file->filename->len);
+				auto name = node->file->get_name();
+				st.write_all(name->data, name->len);
 				st.write_all(_KS("'"));
-#ifndef NDEBUG
-				/*
-				st.write_all(_KS(" address = '"));
-				st.add_as_hex64((int64_t)node->xml);
-				st.write_all(_KS("'"));
-				*/
-#endif
 				st.write_all(_KS(">"));
 				node->xml->write(&st);
 				st.write_all(_KS("</xml>"));
+				if (!tree->is_merge()) {
+					break;
+				}
 				node = node->next;
 			}
 			if (tree->child) {
