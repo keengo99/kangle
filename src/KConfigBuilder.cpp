@@ -320,9 +320,6 @@ void KConfigBuilder::build(std::stringstream& s) {
 	if (conf.log_handle) {
 		s << " log_handle='1'";
 	}
-	if (conf.log_sub_request) {
-		s << " log_sub_request='1'";
-	}
 	if (conf.log_radio > 0) {
 		s << " radio='" << conf.log_radio << "'";
 	}

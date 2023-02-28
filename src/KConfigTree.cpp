@@ -167,6 +167,18 @@ namespace kconfig {
 		delete rn;
 		return iterator_remove_continue;
 	}
+	void KConfigTree::check_at_once() {
+		if (is_at_once() && !node && on_event) {
+			on_event(data, this, nullptr);
+		}
+		if (child) {
+			child->iterator([](void* data, void* arg) {
+				KConfigTree* rn = (KConfigTree*)data;
+				rn->check_at_once();
+				return iterator_continue;
+				}, nullptr);
+		}
+	}
 	void KConfigTree::clean() {
 		if (child) {
 			child->iterator(config_tree_clean_iterator, NULL);
@@ -292,7 +304,7 @@ namespace kconfig {
 		assert(xml);
 		KConfigEventNode* file_node;
 		KConfigEventNode* last_node;
-		KConfigEvent ev = {file, nullptr, nullptr, diff, ev_type};
+		KConfigEvent ev = { file, nullptr, nullptr, diff, ev_type };
 		if (ev_type != EvNone) {
 			klog(KLOG_NOTICE, "notice %s%s%s  [%d] ev_tree=[%p] xml=[%p]\n",
 				xml->key.tag->data,
@@ -335,7 +347,7 @@ namespace kconfig {
 						ev.type |= EvSubDir;
 					}
 					ev_tree->on_event(ev_tree->data, this, &ev);
-				}				
+				}
 				return;
 			}
 			//update
@@ -719,7 +731,7 @@ namespace kconfig {
 		std::string dir;
 		std::string prefix;
 	};
-	void load_config_file(KStringBuf &name, KFileName* file, kgl_ext_config_context* ctx, bool is_default = false) {
+	void load_config_file(KStringBuf& name, KFileName* file, kgl_ext_config_context* ctx, bool is_default = false) {
 		time_t last_modified = file->getLastModified();
 		auto name2 = name.ref_str();
 		if (!name2) {
@@ -743,7 +755,7 @@ namespace kconfig {
 			it->value(cfg_file);
 		} else {
 			cfg_file = it->value();
-		}		
+		}
 		//printf("file last_modified old=[" INT64_FORMAT_HEX "] new =[" INT64_FORMAT_HEX "]\n", cfg_file->last_modified, last_modified);
 		if (cfg_file->last_modified != last_modified) {
 			//changed
@@ -763,7 +775,7 @@ namespace kconfig {
 		KStringBuf name;
 		if (!configFile.setName(ctx->dir.c_str(), file, FOLLOW_LINK_ALL)) {
 			return 0;
-		}	
+		}
 		if (!ctx->prefix.empty()) {
 			name << ctx->prefix << "|"_CS;
 		}
@@ -789,7 +801,7 @@ namespace kconfig {
 				KConfigFile* file = (KConfigFile*)data;
 				printf("config [%s %s]\n", file->get_name()->data, file->get_filename()->data);
 				return iterator_continue;
-				},NULL);
+				}, NULL);
 			return false;
 		}
 		auto file = it->value();
@@ -858,7 +870,10 @@ namespace kconfig {
 			}
 			return iterator_continue;
 			}, NULL);
-		is_first_config = false;
+		if (is_first_config) {
+			events.check_at_once();
+			is_first_config = false;
+		}
 	}
 	khttpd::KXmlNode* find_child(khttpd::KXmlNode* node, uint16_t name_id, const char* vary, size_t len) {
 		khttpd::KXmlKey key;
@@ -967,7 +982,7 @@ namespace kconfig {
 	}
 	KConfigResult remove(const std::string& file_name, const kgl_str_t& path, uint32_t index) {
 		KFiberLocker lock(locker);
-		kgl_str_t file2{ (char *)file_name.c_str(),file_name.size() };
+		kgl_str_t file2{ (char*)file_name.c_str(),file_name.size() };
 		auto file = find_file(file2);
 		if (!file) {
 			return KConfigResult::ErrNotFound;
@@ -1013,7 +1028,7 @@ namespace kconfig {
 	KConfigFile* add_file(kgl_ref_str_t* name, kgl_ref_str_t* filename) {
 		return nullptr;
 	}
-	KConfigResult update(KConfigFile *file, const kgl_str_t& path, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type) {
+	KConfigResult update(KConfigFile* file, const kgl_str_t& path, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type) {
 		const char* name = (const char*)kgl_memrchr(path.data, '/', path.len);
 		if (!name) {
 			name = path.data;
@@ -1044,9 +1059,9 @@ namespace kconfig {
 				return KConfigResult::ErrNotFound;
 			}
 		}
-		return update(file, path, index, xml, ev_type);	
+		return update(file, path, index, xml, ev_type);
 	}
-	KConfigResult update(const kgl_str_t& path, uint32_t index, const std::string &text, KXmlAttribute *attribute, KConfigEventType ev_type) {
+	KConfigResult update(const kgl_str_t& path, uint32_t index, const std::string& text, KXmlAttribute* attribute, KConfigEventType ev_type) {
 		const char* name = (const char*)kgl_memrchr(path.data, '/', path.len);
 		if (!name) {
 			name = path.data;
@@ -1054,7 +1069,7 @@ namespace kconfig {
 		size_t path_len = name - path.data;
 		auto xml = kconfig::new_xml(name, path.len - path_len);
 		if (!text.empty()) {
-			xml->get_last()->character = kstring_from2(text.c_str(),text.size());
+			xml->get_last()->character = kstring_from2(text.c_str(), text.size());
 		}
 		if (attribute) {
 			xml->get_last()->attributes.swap(*attribute);

@@ -31,6 +31,8 @@
 #include "kselector_manager.h"
 #include "KDefer.h"
 #include "KDsoExtendManage.h"
+#include "KLogHandle.h"
+#include "KCache.h"
 using namespace std;
 KConfigParser::KConfigParser() {
 
@@ -79,28 +81,6 @@ bool KConfigParser::startElement(KXmlContext* context) {
 		}
 		return true;
 	}
-	if (context->qName == "log") {
-		if (context->attribute["level"].size() > 0) {
-			cconf->log_level = atoi(context->attribute["level"].c_str());
-		}
-		SAFE_STRCPY(cconf->log_rotate, context->attribute["rotate_time"].c_str());
-		if (context->attribute["rotate_size"].size() > 0) {
-			cconf->log_rotate_size = get_size(context->attribute["rotate_size"].c_str());
-		}
-		cconf->logs_day = atoi(context->attribute["logs_day"].c_str());
-		if (context->attribute["logs_size"].size() > 0) {
-			cconf->logs_size = get_size(context->attribute["logs_size"].c_str());
-		}
-		if (context->attribute["error_rotate_size"].size() > 0) {
-			cconf->error_rotate_size = get_size(context->attribute["error_rotate_size"].c_str());
-		}
-		if (!context->attribute["radio"].empty()) {
-			cconf->log_radio = atoi(context->attribute["radio"].c_str());
-		}
-		cconf->log_handle = context->attribute["log_handle"] == "1";
-		cconf->log_sub_request = context->attribute["log_sub_request"] == "1";
-		return true;
-	}
 	return false;
 
 }
@@ -144,17 +124,7 @@ bool KConfigParser::startCharacter(KXmlContext* context, char* character, int le
 		if (context->qName == "apache_config_file") {
 			cconf->apache_config_file = character;
 		}
-#ifdef ENABLE_LOG_DRILL
-		if (context->qName == "log_drill") {
-			cconf->log_drill = atoi(character);
-			if (cconf->log_drill > 65536) {
-				cconf->log_drill = 65536;
-			}
-			if (cconf->log_drill < 0) {
-				cconf->log_drill = 0;
-			}
-		}
-#endif
+
 
 #ifdef ENABLE_TF_EXCHANGE
 		if (context->qName == "max_post_size") {
@@ -223,7 +193,6 @@ bool KConfigParser::startCharacter(KXmlContext* context, char* character, int le
 		}
 	}
 	return false;
-
 }
 
 bool KConfigParser::endElement(KXmlContext* context) {
@@ -234,6 +203,82 @@ void KConfigParser::startXml(const std::string& encoding) {
 
 }
 void KConfigParser::endXml(bool result) {
+}
+void on_cache_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+	if (ev == nullptr || ev->type == kconfig::EvRemove) {
+		//default
+		conf.default_cache = 1;
+		conf.max_cache_size = (unsigned)get_size("10M");
+		conf.mem_cache = get_size("1G");
+		conf.disk_cache = 0;
+		cache.init(kconfig::is_first());
+		return;
+	}
+	auto xml = ev->get_xml();
+
+	conf.default_cache = xml->get_first()->attributes.get_int("default", 1);
+	conf.max_cache_size = (unsigned)get_size(xml->get_first()->attributes.get_string("max_cache_size", "10M"));
+	conf.mem_cache = get_size(xml->get_first()->attributes.get_string("memory", "1G"));
+	conf.refresh_time = xml->get_first()->attributes.get_int("refresh_time", 30);
+#ifdef ENABLE_DISK_CACHE
+	conf.max_bigobj_size = get_size(xml->get_first()->attributes("memory", "1G"));
+	conf.disk_cache = get_radio_size(xml->get_first()->attributes("disk", "0"), conf.disk_cache_is_radio);
+	SAFE_STRCPY(conf.disk_cache_dir2, xml->get_first()->attributes("disk_dir", ""));
+	if (!kconfig::is_first()) {
+		if (strcasecmp(conf.disk_cache_dir2, conf.disk_cache_dir) != 0) {
+			kconfig::set_need_reboot();
+		}
+	} else {
+		//Éú³Édisk_cache_dir
+		if (*conf.disk_cache_dir2) {
+			string disk_cache_dir = conf.disk_cache_dir2;
+			pathEnd(disk_cache_dir);
+			SAFE_STRCPY(conf.disk_cache_dir, disk_cache_dir.c_str());
+		}
+	}
+	SAFE_STRCPY(conf.disk_work_time, xml->get_first()->attributes("disk_work_time", ""));
+	if (*conf.disk_work_time) {
+		conf.diskWorkTime.set(conf.disk_work_time);
+	} else {
+		conf.diskWorkTime.set(NULL);
+	}
+#ifdef ENABLE_BIG_OBJECT_206
+	conf.cache_part = xml->get_first()->attributes.get_int("cache_part", 1) == 1;
+#endif
+#endif
+	cache.init(kconfig::is_first());
+
+}
+void on_log_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+	if (ev == nullptr || ev->type == kconfig::EvRemove) {
+		//default
+		conf.log_level = 2;
+		*conf.log_rotate = '\0';
+		conf.logs_size = get_size("1G");
+		conf.log_rotate_size = get_size("100M");
+		conf.error_rotate_size = get_size("100M");
+		klog_start();
+		::logHandle.setLogHandle(conf.logHandle);
+		return;
+	}
+	auto attr = ev->get_xml()->attributes();
+	switch (ev->type) {
+	case kconfig::EvNew:
+	case kconfig::EvUpdate:
+		conf.log_level = attr.get_int("level", 2);
+		SAFE_STRCPY(conf.log_rotate, attr["rotate_time"].c_str());
+		conf.log_rotate_size = get_size(attr.get_string("rotate_size", "100M"));
+		conf.logs_day = attr.get_int("logs_day");
+		conf.logs_size = get_size(attr.get_string("logs_size", "1G"));
+		conf.error_rotate_size = get_size(attr.get_string("error_rotate_size", "100M"));
+		conf.log_radio = attr.get_int("radio");
+		conf.log_handle = attr.get_int("log_handle") == 1;
+		klog_start();
+		::logHandle.setLogHandle(conf.logHandle);
+		break;
+	default:
+		break;
+	}
 }
 void on_admin_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	conf.admin_lock.Lock();
@@ -267,7 +312,7 @@ void on_ssl_client_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfi
 		break;
 	}
 }
-void on_main_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent * ev) {
+void on_main_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	auto xml = ev->get_xml();
 	KBIT_CLR(ev->type, kconfig::EvSubDir);
 	switch (ev->type) {
@@ -330,6 +375,18 @@ void on_main_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent
 			SAFE_STRCPY(conf.hostname, xml->get_text());
 			return;
 		}
+#ifdef ENABLE_LOG_DRILL
+		if (xml->is_tag(_KS("log_drill"))) {
+			conf.log_drill = atoi(xml->get_text());
+			if (conf.log_drill > 65536) {
+				conf.log_drill = 65536;
+			}
+			if (conf.log_drill < 0) {
+				conf.log_drill = 0;
+			}
+			return;
+		}
+#endif
 		break;
 	default:
 		break;

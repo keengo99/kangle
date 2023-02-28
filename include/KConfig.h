@@ -176,11 +176,8 @@ public:
 	unsigned int max_per_ip;
 	unsigned int per_ip_deny;
 	unsigned min_free_thread;
-
-	int log_level;
 	int http2https_code;
-	INT64 log_rotate_size;
-	INT64 error_rotate_size;
+
 
 	unsigned max_connect_info;
 	//只压缩可以cache的物件
@@ -203,14 +200,6 @@ public:
 	int process_cpu_usage;
 #endif
 
-	unsigned logs_day;
-	bool log_sub_request;
-	bool log_handle;
-	INT64 logs_size;
-#ifdef ENABLE_LOG_DRILL
-	int log_drill;
-#endif
-	int log_radio;
 
 	unsigned io_buffer;
 #ifdef ENABLE_TF_EXCHANGE
@@ -233,7 +222,7 @@ public:
 	char flush_ip_cmd[512];
 	char report_url[512];
 #endif
-	char log_rotate[32];
+
 
 
 
@@ -251,7 +240,6 @@ public:
 	std::string admin_passwd;
 	std::string admin_user;
 	std::vector<std::string> admin_ips;
-
 
 	//run_user,run_group为一次性使用，可以安全用string
 	std::string run_user;
@@ -287,10 +275,22 @@ public:
 	INT64 max_bigobj_size = 1024 * 1024 * 1024;
 #endif
 	char access_log[128] = { "access.log" };
+	char log_rotate[32] = { 0 };
 	char logHandle[512] = { 0 };
 	char server_software[32] = { 0 };
 	unsigned maxLogHandle = 0;
 	int log_event_id = 0;
+	int log_level = 2;
+	INT64 log_rotate_size = 0;
+	INT64 error_rotate_size = 0;
+	unsigned logs_day = 0;
+	//bool log_sub_request;
+	bool log_handle = false;
+	INT64 logs_size = 90;
+#ifdef ENABLE_LOG_DRILL
+	int log_drill = 0;
+#endif
+	int log_radio = 0;
 	int refresh_time = 30;
 	//实际用的时候用disk_cahce_dir.
 	char disk_cache_dir2[512] = { 0 };

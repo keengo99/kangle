@@ -34,6 +34,7 @@
 #include "KHttpServer.h"
 #include "KConfigTree.h"
 #include "KHttpManage.h"
+#include "KDefer.h"
 #ifdef _WIN32
 #include <direct.h>
 #else
@@ -103,14 +104,13 @@ void KConfig::copy(KConfig* c) {
 	//把cconf赋值到conf中
 	KConfigBase* bc = static_cast<KConfigBase*>(this);
 	kgl_memcpy(bc, static_cast<KConfigBase*>(c), sizeof(KConfigBase));
-
 	this->run_user = c->run_user;
 	this->run_group = c->run_group;
 	this->apache_config_file = c->apache_config_file;
 	return;
 }
 KConfig::~KConfig() {
-	
+
 }
 KGlobalConfig::KGlobalConfig() {
 	gam = new KAcserverManager;
@@ -228,7 +228,6 @@ INT64 get_size(const char* size) {
 }
 void init_config(KConfig* conf) {
 	conf->max = 50000;
-	conf->log_level = 2;
 	conf->path_info = true;
 	conf->passwd_crypt = CRYPT_TYPE_PLAIN;
 	conf->gzip_level = 5;
@@ -283,8 +282,7 @@ void loadExtConfigFile(int index, KExtConfig* config, KXml& xmlParser) {
 		klog(KLOG_NOTICE, "[%d] load config file [%s]\n", index, config->file.c_str());
 		try {
 			xmlParser.startParse(config->content);
-		}
-		catch (KXmlException& e) {
+		} catch (KXmlException& e) {
 			fprintf(stderr, "%s in file[%s]\n", e.what(), config->file.c_str());
 		}
 		config = config->next;
@@ -458,8 +456,7 @@ void load_main_config(KConfig* cconf, std::string& configFile, KXml& xmlParser, 
 		try {
 			xmlParser.parseFile(configFile);
 			break;
-		}
-		catch (KXmlException& e) {
+		} catch (KXmlException& e) {
 			fprintf(stderr, "%s\n", e.what());
 			if (i > 0) {
 				exit(0);
@@ -478,8 +475,7 @@ void load_main_config(KConfig* cconf, std::string& configFile, KXml& xmlParser, 
 		configFile += "/lang.xml";
 		klog(KLOG_NOTICE, "load config file [%s]\n", configFile.c_str());
 		klang.load(configFile.c_str());
-	}
-	catch (KXmlException& e) {
+	} catch (KXmlException& e) {
 		fprintf(stderr, "%s\n", e.what());
 	}
 }
@@ -504,6 +500,39 @@ void clean_config() {
 	writeBackManager.destroy();
 #endif
 }
+bool on_begin_parse(kconfig::KConfigFile* file, khttpd::KXmlNode* node) {
+	if (!kconfig::is_first()) {
+		return true;
+	}
+	if (file->is_default()) {
+#ifdef MALLOCDEBUG
+		auto malloc_debug = kconfig::find_child(node, _KS("mallocdebug"));
+		if (malloc_debug) {
+			conf.mallocdebug = atoi(malloc_debug->get_text()) == 1;
+		}
+		if (conf.mallocdebug) {
+			start_hook_alloc();
+		}
+#endif
+		auto worker_thread = kconfig::find_child(node, _KS("worker_thread"));
+		if (worker_thread) {
+			conf.select_count = atoi(worker_thread->get_text());
+		}
+		int select_count = conf.select_count;
+		if (select_count <= 0) {
+			select_count = kgl_cpu_number;
+		}
+		if (select_count > 1) {
+			if (!selector_manager_grow(select_count)) {
+				fprintf(stderr, "cann't grow worker thread..\n");
+			} else {
+				fprintf(stderr, "worker thread grow to [%d] success.\n", get_selector_count());
+			}
+		}
+
+	}
+	return true;
+}
 int do_config_thread(void* first_time, int argc) {
 	assert(kfiber_self());
 	cur_config_ext = false;
@@ -516,96 +545,24 @@ int do_config_thread(void* first_time, int argc) {
 			kaccess[i].setGlobal(true);
 		}
 		KAccess::loadModel();
-		kconfig::init([](kconfig::KConfigFile* file, khttpd::KXmlNode* node) -> bool {
-			if (!kconfig::is_first()) {
-				return true;
-			}
-			if (file->is_default()) {
-#ifdef MALLOCDEBUG
-				auto malloc_debug = kconfig::find_child(node, _KS("mallocdebug"));
-				if (malloc_debug) {
-					conf.mallocdebug = atoi(malloc_debug->get_text()) == 1;
-				}
-				if (conf.mallocdebug) {
-					start_hook_alloc();
-				}
-#endif
-				auto worker_thread = kconfig::find_child(node,_KS("worker_thread"));
-				if (worker_thread) {
-					conf.select_count = atoi(worker_thread->get_text());
-				}
-				int select_count = conf.select_count;
-				if (select_count <= 0) {
-					select_count = kgl_cpu_number;
-				}
-				if (select_count > 1) {
-					if (!selector_manager_grow(select_count)) {
-						fprintf(stderr, "cann't grow worker thread..\n");
-					} else {
-						fprintf(stderr, "worker thread grow to [%d] success.\n", get_selector_count());
-					}
-				}
-
-			}
-			return true;
-			});
+		kconfig::init(on_begin_parse);
 		kconfig::listen(_KS("dso_extend"), nullptr, on_dso_event, kconfig::ev_subdir);
 		kconfig::listen(_KS(""), &conf, on_main_event, kconfig::ev_subdir);
 		kconfig::listen(_KS("server"), conf.gam, on_server_event, kconfig::ev_subdir);
 		kconfig::listen(_KS("listen"), nullptr, on_listen_event, kconfig::ev_self | kconfig::ev_merge);
 		kconfig::listen(_KS("ssl_client"), nullptr, on_ssl_client_event, kconfig::ev_self);
 		kconfig::listen(_KS("admin"), nullptr, on_admin_event, kconfig::ev_self);
-		kconfig::listen(_KS("cache"), nullptr, [](void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
-			auto xml = ev->get_xml();
-			switch (ev->type) {
-			case kconfig::EvNew:
-			case kconfig::EvUpdate:
-			{
-				conf.default_cache = xml->get_first()->attributes.get_int("default", 1);
-				conf.max_cache_size = (unsigned)get_size(xml->get_first()->attributes.get_string("max_cache_size", "10M"));
-				conf.mem_cache = get_size(xml->get_first()->attributes.get_string("memory", "100M"));
-				conf.refresh_time = xml->get_first()->attributes.get_int("refresh_time", 30);
-#ifdef ENABLE_DISK_CACHE
-				conf.max_bigobj_size = get_size(xml->get_first()->attributes("memory", "1G"));
-				conf.disk_cache = get_radio_size(xml->get_first()->attributes("disk", "0"), conf.disk_cache_is_radio);
-				SAFE_STRCPY(conf.disk_cache_dir2, xml->get_first()->attributes("disk_dir", ""));
-				if (!kconfig::is_first()) {
-					if (strcasecmp(conf.disk_cache_dir2, conf.disk_cache_dir) != 0) {
-						kconfig::set_need_reboot();
-					}
-				} else {
-					//生成disk_cache_dir
-					if (*conf.disk_cache_dir2) {
-						string disk_cache_dir = conf.disk_cache_dir2;
-						pathEnd(disk_cache_dir);
-						SAFE_STRCPY(conf.disk_cache_dir, disk_cache_dir.c_str());
-					}
-				}
-				SAFE_STRCPY(conf.disk_work_time, xml->get_first()->attributes("disk_work_time", ""));
-				if (*conf.disk_work_time) {
-					conf.diskWorkTime.set(conf.disk_work_time);
-				} else {
-					conf.diskWorkTime.set(NULL);
-				}
-#ifdef ENABLE_BIG_OBJECT_206
-				conf.cache_part = xml->get_first()->attributes.get_int("cache_part", 1) == 1;
-#endif
-#endif
-				break;
-			}
-			default:
-				break;
-			}
-			}, kconfig::ev_self);
+		kconfig::listen(_KS("log"), nullptr, on_log_event, kconfig::ev_self | kconfig::ev_at_once);
+		kconfig::listen(_KS("cache"), nullptr, on_cache_event, kconfig::ev_self | kconfig::ev_at_once);
 	}
-
 	assert(cconf == NULL);
 	cconf = new KConfig;
+	defer(delete cconf; cconf = NULL);
 	init_config(cconf);
+	//new version config
+	kconfig::reload();
 	load_config(cconf, first_time != NULL);
 	post_load_config(first_time != NULL);
-	delete cconf;
-	cconf = NULL;
 	katom_set((void*)&load_config_progress, 0);
 	return 0;
 }
@@ -614,14 +571,7 @@ void do_config(bool first_time) {
 		assert(!first_time);
 		return;
 	}
-	/*
-	if (first_time) {
-		//first time load must not use thread
-		do_config_thread((void*)&first_time, 0);
-		return;
-	}
-	*/
-	if (kfiber_create(do_config_thread, first_time?(void*)&first_time:nullptr, 0, conf.fiber_stack_size, NULL) != 0) {
+	if (kfiber_create(do_config_thread, first_time ? (void*)&first_time : nullptr, 0, conf.fiber_stack_size, NULL) != 0) {
 		katom_set((void*)&load_config_progress, 0);
 	}
 }
@@ -630,7 +580,7 @@ void wait_load_config_done() {
 		if (0 == katom_get((void*)&load_config_progress)) {
 			break;
 		}
-		kfiber_msleep(50);
+		kfiber_msleep(10);
 	}
 }
 int merge_apache_config(const char* filename) {
@@ -679,8 +629,6 @@ void load_config(KConfig* cconf, bool firstTime) {
 	std::string configFileDir = conf.path + "/etc";
 #endif
 	std::string configFile = configFileDir + CONFIG_FILE;
-	//新版配置文件
-	kconfig::reload();
 	loadExtConfigFile();
 	KConfigParser parser;
 	KAccess access[2];
@@ -726,7 +674,7 @@ void load_config(KConfig* cconf, bool firstTime) {
 		xmlParser.addEvent(&wm);
 		cconf->am = &am;
 		cconf->vm = &vm;
-		}
+	}
 
 	for (it = extconfigs.begin(); it != extconfigs.end(); it++) {
 		if (!main_config_loaded && (*it).first >= 100) {
@@ -783,7 +731,7 @@ void load_config(KConfig* cconf, bool firstTime) {
 	}
 #endif
 	cur_config_ext = false;
-		}
+}
 void parse_server_software() {
 	//生成serverName
 	timeLock.Lock();
@@ -800,7 +748,6 @@ void parse_server_software() {
 }
 
 void post_load_config(bool firstTime) {
-	klog_start();
 	if (conf.worker_io < 2) {
 		conf.worker_io = 2;
 	}
@@ -818,9 +765,7 @@ void post_load_config(bool firstTime) {
 		kasync_worker_set(conf.dnsWorker, conf.worker_dns, 512);
 	}
 	parse_server_software();
-
 	http_config.fiber_stack_size = conf.fiber_stack_size;
-	//khttp_server_set_ssl_config(conf.ca_path.c_str(), conf.ssl_client_chiper.c_str(), conf.ssl_client_protocols.c_str());
 	cache.init(firstTime);
 #ifdef ENABLE_BLACK_LIST
 	if (firstTime && *conf.flush_ip_cmd) {
@@ -829,5 +774,4 @@ void post_load_config(bool firstTime) {
 	conf.gvm->globalVh.blackList->setRunFwCmd(*conf.block_ip_cmd != '\0');
 	conf.gvm->globalVh.blackList->setReportIp(*conf.report_url != '\0');
 #endif
-	::logHandle.setLogHandle(conf.logHandle);
 }

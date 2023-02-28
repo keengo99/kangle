@@ -22,6 +22,7 @@ namespace kconfig {
 	constexpr KConfigEventFlag ev_subdir = 1;
 	constexpr KConfigEventFlag ev_self = 2;
 	constexpr KConfigEventFlag ev_merge = 4;
+	constexpr KConfigEventFlag ev_at_once = 8;
 
 	using KConfigEventType = int;
 	constexpr KConfigEventType EvNone = 0;
@@ -94,6 +95,10 @@ namespace kconfig {
 		bool is_self() const {
 			return name->flags & ev_self;
 		}
+		bool is_at_once() const {
+			return (name->flags & (ev_self | ev_at_once)) == (ev_self | ev_at_once);
+		}
+		void check_at_once();
 		bool notice(KConfigFile* file, khttpd::KXmlNode* xml, KConfigEventType ev_type, KXmlBodyDiff& diff);
 
 		kgl_ref_str_t* name;
@@ -103,7 +108,7 @@ namespace kconfig {
 		on_event_f on_event;
 		KConfigEventNode* node;
 	private:
-		void notice(KConfigTree* ev_tree, KConfigFile* file, khttpd::KXmlNode* xml,KConfigEventType ev_type, KXmlBodyDiff &diff);
+		void notice(KConfigTree* ev_tree, KConfigFile* file, khttpd::KXmlNode* xml, KConfigEventType ev_type, KXmlBodyDiff& diff);
 		void init() {
 			child = nullptr;
 			this->on_event = 0;
@@ -121,7 +126,7 @@ namespace kconfig {
 			this->ev = ev;
 		}
 #endif
-		KConfigFile(KConfigTree* ev, kgl_ref_str_t *name, kgl_ref_str_t* filename) {
+		KConfigFile(KConfigTree* ev, kgl_ref_str_t* name, kgl_ref_str_t* filename) {
 			this->name = kstring_refs(name);
 			this->filename = kstring_refs(filename);
 			this->ref = 1;
@@ -235,11 +240,11 @@ namespace kconfig {
 	KConfigTree* listen(const char* name, size_t size, void* data, on_event_f on_event, KConfigEventFlag flags);
 	void* remove_listen(const char* name, size_t size);
 
-	KConfigResult remove(const std::string &file, const kgl_str_t& path, uint32_t index);
+	KConfigResult remove(const std::string& file, const kgl_str_t& path, uint32_t index);
 	KConfigResult remove(const kgl_str_t& path, uint32_t index);
 	KConfigResult add(const kgl_str_t& path, uint32_t index, khttpd::KXmlNode* xml);
-	KConfigResult update(const kgl_str_t &path, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type);
-	KConfigResult update(const kgl_str_t& path, uint32_t index, const std::string &text, KXmlAttribute *attribute, KConfigEventType ev_type);
+	KConfigResult update(const kgl_str_t& path, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type);
+	KConfigResult update(const kgl_str_t& path, uint32_t index, const std::string& text, KXmlAttribute* attribute, KConfigEventType ev_type);
 
 	KConfigResult add(const std::string& file, const kgl_str_t& path, uint32_t index, khttpd::KXmlNode* xml);
 	KConfigResult update(const std::string& file, const kgl_str_t& path, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type);
