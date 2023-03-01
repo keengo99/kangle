@@ -1140,10 +1140,12 @@ int create_worker_process(int index) {
 			delete (*it).second;
 		}
 		workerProcess.clear();
+		/*
 		for (size_t i = 0; i < conf.service.size(); i++) {
 			delete conf.service[i];
 		}
 		conf.service.clear();
+		*/
 	}
 	return pid;
 }

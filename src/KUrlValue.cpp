@@ -189,7 +189,7 @@ bool KUrlValue::add(const std::string& name, const std::string& value) {
 	}else{
 		stringstream s;
 		s << (*it2).second << ", " << value;
-		(*it2).second.swap(s.str());
+		s.str().swap((*it2).second);//.swap(s.str());
 	}
 	return true;
 }

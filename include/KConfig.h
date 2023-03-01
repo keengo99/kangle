@@ -267,7 +267,7 @@ public:
 #endif
 	INT64 max_bigobj_size = 1024 * 1024 * 1024;
 #endif
-	char access_log[128] = { "access.log" };
+	char access_log[128] = {0 };
 	char log_rotate[32] = { 0 };
 	char logHandle[512] = { 0 };
 	char server_software[32] = { 0 };

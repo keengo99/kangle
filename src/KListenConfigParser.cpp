@@ -15,7 +15,6 @@
  *
  * See COPYING file for detail.
  */
-#include <iostream>
 #include "KListenConfigParser.h"
 #include "KXml.h"
 #include "KAccess.h"
