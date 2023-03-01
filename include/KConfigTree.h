@@ -96,7 +96,7 @@ namespace kconfig {
 			return name->flags & ev_self;
 		}
 		bool is_at_once() const {
-			return (name->flags & (ev_self | ev_at_once)) == (ev_self | ev_at_once);
+			return name->flags & ev_at_once;
 		}
 		void check_at_once();
 		bool notice(KConfigFile* file, khttpd::KXmlNode* xml, KConfigEventType ev_type, KXmlBodyDiff& diff);

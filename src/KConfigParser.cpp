@@ -34,175 +34,109 @@
 #include "KLogHandle.h"
 #include "KCache.h"
 using namespace std;
-KConfigParser::KConfigParser() {
-
-}
-
-KConfigParser::~KConfigParser() {
-}
-bool KConfigParser::startElement(KXmlContext* context) {
-#ifndef _WIN32
-	if (context->qName == "run") {
-		cconf->run_user = context->attribute["user"];
-		cconf->run_group = context->attribute["group"];
-	}
-#endif
-	if (context->qName == "gzip" || context->qName == "compress") {
-		if (!context->attribute["only_compress_cache"].empty()) {
-			cconf->only_compress_cache = atoi(context->attribute["only_compress_cache"].c_str());
-		} else if (!context->attribute["only_gzip_cache"].empty()) {
-			cconf->only_compress_cache = atoi(context->attribute["only_gzip_cache"].c_str());
-		}
-		if (!context->attribute["min_compress_length"].empty()) {
-			cconf->min_compress_length = atoi(context->attribute["min_compress_length"].c_str());
-		} else if (!context->attribute["min_gzip_length"].empty()) {
-			cconf->min_compress_length = atoi(context->attribute["min_gzip_length"].c_str());
-		}
-		if (!context->attribute["gzip_level"].empty()) {
-			cconf->gzip_level = atoi(context->attribute["gzip_level"].c_str());
-		}
-		if (!context->attribute["br_level"].empty()) {
-			cconf->br_level = atoi(context->attribute["br_level"].c_str());
-		}
-		return true;
-	}
-	if (context->qName == "connect") {
-		cconf->max_per_ip = atoi(context->attribute["max_per_ip"].c_str());
-		cconf->max = atoi(context->attribute["max"].c_str());
-		cconf->per_ip_deny = atoi(context->attribute["per_ip_deny"].c_str());
-		return true;
-	}
-
-	if (context->qName == "cdnbest") {
-		std::map<string, string>::iterator it;
-		it = context->attribute.find("error");
-		if (it != context->attribute.end()) {
-			SAFE_STRCPY(cconf->error_url, (*it).second.c_str());
-		}
-		return true;
-	}
-	return false;
-
-}
-
-bool KConfigParser::startCharacter(KXmlContext* context, char* character, int len) {
-	if (context->path == "config") {
-		if (context->qName == "http2https_code") {
-			cconf->http2https_code = atoi(character);
-			return true;
-		}
-
-		if (context->qName == "max_connect_info") {
-			cconf->max_connect_info = atoi(character);
-			return true;
-		}
-#ifdef KSOCKET_UNIX	
-		if (context->qName == "unix_socket") {
-			if (strcmp(character, "1") == 0 || strcmp(character, "on") == 0) {
-				cconf->unix_socket = true;
-			} else {
-				cconf->unix_socket = false;
-			}
-		}
-#endif
-		if (context->qName == "path_info") {
-			if (strcmp(character, "1") == 0 || strcmp(character, "on") == 0) {
-				cconf->path_info = true;
-			} else {
-				cconf->path_info = false;
-			}
-		}
-		if (context->qName == "min_free_thread") {
-			cconf->min_free_thread = atoi(character);
-		}
-		//{{ent
-#ifdef ENABLE_ADPP
-		if (context->qName == "process_cpu_usage") {
-			cconf->process_cpu_usage = atoi(character);
-		}
-#endif
-		if (context->qName == "apache_config_file") {
-			cconf->apache_config_file = character;
-		}
-
-
-#ifdef ENABLE_TF_EXCHANGE
-		if (context->qName == "max_post_size") {
-			cconf->max_post_size = get_size(character);
-		}
-#endif
-		//{{ent
-#ifdef ENABLE_VH_FLOW
-		if (context->qName == "flush_flow_time") {
-			cconf->flush_flow_time = atoi(character);
-		}
-#endif
-		if (context->qName == "upstream_sign") {
-			SAFE_STRCPY(cconf->upstream_sign, character);
-			cconf->upstream_sign_len = (int)strlen(cconf->upstream_sign);
-			return true;
-		}
+void on_firewall_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 #ifdef ENABLE_BLACK_LIST
-		if (context->qName == "bl_time") {
-			int t = atoi(character);
-			if (t > 0) {
-				cconf->bl_time = t;
-			}
-		}
-		if (context->qName == "block_ip_cmd") {
-			SAFE_STRCPY(cconf->block_ip_cmd, character);
-		}
-		if (context->qName == "unblock_ip_cmd") {
-			SAFE_STRCPY(cconf->unblock_ip_cmd, character);
-		}
-		if (context->qName == "flush_ip_cmd") {
-			SAFE_STRCPY(cconf->flush_ip_cmd, character);
-		}
-		if (context->qName == "report_url") {
-			SAFE_STRCPY(cconf->report_url, character);
-		}
-#endif
-		//}}
-		if (context->qName == "read_hup") {
-			cconf->read_hup = (atoi(character) == 1);
-			return true;
-		}
-		if (context->qName == "io_buffer") {
-			cconf->io_buffer = (unsigned)get_size(character);
-			cconf->io_buffer = kgl_align(cconf->io_buffer, 1024);
-			return true;
-		}
-		if (context->qName == "fiber_stack_size") {
-			int fiber_stack_size = (int)get_size(character);
-			fiber_stack_size = kgl_align(fiber_stack_size, 4096);
-			if (fiber_stack_size > 0) {
-				cconf->fiber_stack_size = fiber_stack_size;
-			}
-		}
-		if (context->qName == "worker_io") {
-			cconf->worker_io = atoi(character);
-			return true;
-		}
-		if (context->qName == "max_io") {
-			cconf->max_io = atoi(character);
-			return true;
-		}
-		if (context->qName == "worker_dns") {
-			cconf->worker_dns = atoi(character);
-			return true;
-		}
+	if (ev == nullptr || ev->type == kconfig::EvRemove) {
+		conf.bl_time = 0;
+		*conf.block_ip_cmd = '\0';
+		*conf.unblock_ip_cmd = '\0';
+		*conf.flush_ip_cmd = '\0';
+	} else {
+		auto attr = ev->get_xml()->attributes();
+		conf.bl_time = attr.get_int("bl_time");
+		SAFE_STRCPY(conf.block_ip_cmd, attr("block_ip_cmd"));
+		SAFE_STRCPY(conf.unblock_ip_cmd, attr("unblock_ip_cmd"));
+		SAFE_STRCPY(conf.flush_ip_cmd, attr("flush_ip_cmd"));
+		SAFE_STRCPY(conf.report_url, attr("report_url"));
 	}
-	return false;
+	if (kconfig::is_first() && *conf.flush_ip_cmd) {
+		run_fw_cmd(conf.flush_ip_cmd, NULL);
+	}
+	conf.gvm->globalVh.blackList->setRunFwCmd(*conf.block_ip_cmd != '\0');
+	conf.gvm->globalVh.blackList->setReportIp(*conf.report_url != '\0');
+#endif
 }
-
-bool KConfigParser::endElement(KXmlContext* context) {
-
-	return false;
+void on_compress_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+	if (ev == nullptr || ev->type == kconfig::EvRemove) {
+		conf.only_compress_cache = 0;
+		conf.min_compress_length = 512;
+		conf.gzip_level = 5;
+		conf.br_level = 5;
+	} else {
+		auto attr = ev->get_xml()->attributes();
+		conf.only_compress_cache = attr.get_int("only_cache", 0);
+		conf.min_compress_length = attr.get_int("min_length", 512);
+		conf.gzip_level = attr.get_int("gzip_level", 5);
+		conf.br_level = attr.get_int("br_level", 5);
+	}
 }
-void KConfigParser::startXml(const std::string& encoding) {
-
+void on_connect_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+	if (ev == nullptr || ev->type == kconfig::EvRemove) {
+		conf.max = 0;
+		conf.max_per_ip = 0;
+		conf.keep_alive_count = 0;
+		conf.per_ip_deny = 0;
+	} else {
+		auto attr = ev->get_xml()->attributes();
+		conf.max = attr.get_int("max");
+		conf.max_per_ip = attr.get_int("max_per_ip");
+		conf.keep_alive_count = attr.get_int("max_keep_alive");
+		conf.per_ip_deny = attr.get_int("per_ip_deny");
+	}
 }
-void KConfigParser::endXml(bool result) {
+void on_run_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+	if (ev == nullptr || ev->type == kconfig::EvRemove) {
+		conf.run_user = "";
+		conf.run_group = "";
+	} else {
+		auto attr = ev->get_xml()->attributes();
+		conf.run_user = attr["user"];
+		conf.run_group = attr["group"];
+	}
+}
+void on_fiber_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+	if (ev == nullptr || ev->type == kconfig::EvRemove) {
+		conf.fiber_stack_size = 0;
+		http_config.fiber_stack_size = conf.fiber_stack_size;
+		return;
+	}
+	auto attr = ev->get_xml()->attributes();
+	conf.fiber_stack_size = get_size(attr.get_string("stack_size", ""));
+	if (conf.fiber_stack_size > 0) {
+		conf.fiber_stack_size = kgl_align(conf.fiber_stack_size, 4096);
+	}
+	http_config.fiber_stack_size = conf.fiber_stack_size;
+}
+void on_dns_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+	if (ev == nullptr || ev->type == kconfig::EvRemove) {
+		conf.worker_dns = 8;
+	} else {
+		auto attr = ev->get_xml()->attributes();
+		conf.worker_dns = attr.get_int("worker", 8);
+	}
+	if (conf.dnsWorker == NULL) {
+		conf.dnsWorker = kasync_worker_init(conf.worker_dns, 512);
+	} else {
+		kasync_worker_set(conf.dnsWorker, conf.worker_dns, 512);
+	}
+}
+void on_io_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+	if (ev == nullptr || ev->type == kconfig::EvRemove) {
+		conf.worker_io = 2;
+		conf.max_io = 0;
+		conf.io_buffer = 262144;
+	} else {
+		auto attr = ev->get_xml()->attributes();
+		conf.worker_io = attr.get_int("worker", 2);
+		conf.max_io = attr.get_int("max", 0);
+		conf.io_buffer = attr.get_int("buffer", 262144);
+	}
+	conf.io_buffer = kgl_align(conf.io_buffer, 1024);
+	if (conf.ioWorker == NULL) {
+		conf.ioWorker = kasync_worker_init(conf.worker_io, conf.max_io);
+	} else {
+		kasync_worker_set(conf.ioWorker, conf.worker_io, conf.max_io);
+	}
 }
 void on_cache_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	if (ev == nullptr || ev->type == kconfig::EvRemove) {
@@ -210,12 +144,18 @@ void on_cache_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEven
 		conf.default_cache = 1;
 		conf.max_cache_size = (unsigned)get_size("10M");
 		conf.mem_cache = get_size("1G");
+#ifdef ENABLE_DISK_CACHE
 		conf.disk_cache = 0;
+		*conf.disk_work_time = '\0';
+		conf.diskWorkTime.set(NULL);
+#ifdef ENABLE_BIG_OBJECT_206
+		conf.cache_part = true;
+#endif
+#endif
 		cache.init(kconfig::is_first());
 		return;
 	}
 	auto xml = ev->get_xml();
-
 	conf.default_cache = xml->get_first()->attributes.get_int("default", 1);
 	conf.max_cache_size = (unsigned)get_size(xml->get_first()->attributes.get_string("max_cache_size", "10M"));
 	conf.mem_cache = get_size(xml->get_first()->attributes.get_string("memory", "1G"));
@@ -365,6 +305,7 @@ void on_main_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent
 		}
 		if (xml->is_tag(_KS("server_software"))) {
 			SAFE_STRCPY(conf.server_software, xml->get_text());
+			parse_server_software();
 			return;
 		}
 		if (xml->is_tag(_KS("cookie_stick_name"))) {
@@ -373,6 +314,60 @@ void on_main_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent
 		}
 		if (xml->is_tag(_KS("hostname"))) {
 			SAFE_STRCPY(conf.hostname, xml->get_text());
+			return;
+		}
+		if (xml->is_tag(_KS("cdnbest"))) {
+			auto attr = xml->attributes();
+			SAFE_STRCPY(conf.error_url, attr("error"));
+			return;
+		}
+		if (xml->is_tag(_KS("http2https_code"))) {
+			conf.http2https_code = atoi(xml->get_text());
+			return;
+		}
+		if (xml->is_tag(_KS("max_connect_info"))) {
+			conf.max_connect_info = atoi(xml->get_text());
+			return;
+		}
+#ifdef KSOCKET_UNIX	
+		if (xml->is_tag(_KS("unix_socket"))) {
+			conf.unix_socket = (atoi(xml->get_text()) == 1 || strcmp(xml->get_text(), "on") == 0);
+			return;
+		}
+#endif
+		if (xml->is_tag(_KS("path_info"))) {
+			conf.path_info = (atoi(xml->get_text()) == 1 || strcmp(xml->get_text(), "on") == 0);
+			return;
+		}
+		if (xml->is_tag(_KS("min_free_thread"))) {
+			conf.min_free_thread = atoi(xml->get_text());
+			return;
+		}
+#ifdef ENABLE_ADPP
+		if (xml->is_tag(_KS("process_cpu_usage"))) {
+			conf.process_cpu_usage = atoi(xml->get_text());
+			return;
+		}
+#endif
+#ifdef ENABLE_TF_EXCHANGE
+		if (xml->is_tag(_KS("max_post_size"))) {
+			conf.max_post_size = get_size(xml->get_text());
+			return;
+		}
+#endif
+#ifdef ENABLE_VH_FLOW
+		if (xml->is_tag(_KS("flush_flow_time"))) {
+			conf.flush_flow_time = atoi(xml->get_text());
+			return;
+		}
+#endif
+		if (xml->is_tag(_KS("upstream_sign"))) {
+			SAFE_STRCPY(conf.upstream_sign, xml->get_text());
+			conf.upstream_sign_len = (int)strlen(conf.upstream_sign);
+			return;
+		}
+		if (xml->is_tag(_KS("read_hup"))) {
+			conf.read_hup = (atoi(xml->get_text()) == 1);
 			return;
 		}
 #ifdef ENABLE_LOG_DRILL
@@ -387,6 +382,12 @@ void on_main_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent
 			return;
 		}
 #endif
+		break;
+	case kconfig::EvRemove:
+		if (xml->is_tag(_KS("cdnbest"))) {
+			*conf.error_url = '\0';
+			return;
+		}
 		break;
 	default:
 		break;

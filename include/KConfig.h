@@ -176,7 +176,7 @@ public:
 	unsigned int max_per_ip;
 	unsigned int per_ip_deny;
 	unsigned min_free_thread;
-	int http2https_code;
+	int http2https_code = 0;
 
 
 	unsigned max_connect_info;
@@ -188,12 +188,7 @@ public:
 	int gzip_level;
 	int br_level;
 	bool path_info;
-	int worker_io;
-	int fiber_stack_size;
-	int max_io;
-	int worker_dns;
-	int auth_type;
-	int passwd_crypt;
+
 	//白名单时间
 	int wl_time;
 #ifdef ENABLE_ADPP
@@ -201,20 +196,20 @@ public:
 #endif
 
 
-	unsigned io_buffer;
+
 #ifdef ENABLE_TF_EXCHANGE
 	INT64 max_post_size;
 #endif
-	bool read_hup;
+	bool read_hup = true;
 #ifdef KSOCKET_UNIX	
-	bool unix_socket;
+	bool unix_socket = true;
 #endif
 #ifdef ENABLE_VH_FLOW
 	//自动刷新流量时间(秒)
 	int flush_flow_time;
 #endif
 
-	char error_url[64];
+	char error_url[64] = { 0 };
 #ifdef ENABLE_BLACK_LIST
 	int bl_time;
 	char block_ip_cmd[512];
@@ -222,11 +217,6 @@ public:
 	char flush_ip_cmd[512];
 	char report_url[512];
 #endif
-
-
-
-
-
 	char disk_work_time[32];
 	char upstream_sign[32];
 	int upstream_sign_len;
@@ -237,16 +227,9 @@ public:
 	~KConfig();
 	KAcserverManager* am;
 	KVirtualHostManage* vm;
-	std::string admin_passwd;
-	std::string admin_user;
-	std::vector<std::string> admin_ips;
-
 	//run_user,run_group为一次性使用，可以安全用string
 	std::string run_user;
 	std::string run_group;
-	std::string apache_config_file;
-
-	void copy(KConfig* c);
 };
 //配置参数和程序运行信息
 class KGlobalConfig : public KConfig
@@ -255,6 +238,11 @@ public:
 	KGlobalConfig();
 	//////////////////////////////////////////////////////
 	KMutex admin_lock;
+	int auth_type;
+	int passwd_crypt;
+	std::string admin_passwd;
+	std::string admin_user;
+	std::vector<std::string> admin_ips;
 	/////////////////////////////////////////////////////////
 	//以下是配置的编译结果，每次配置文件更改，都要重新生成
 	KTimeMatch diskWorkTime;
@@ -262,6 +250,11 @@ public:
 	//以下是程序运行信息,只在程序启动前初始化一次...
 	std::list<std::string> mergeFiles;
 	std::map<std::string, khttpd::KAutoArray<KListenHost>> services;
+	int worker_dns;
+	int worker_io;
+	int fiber_stack_size;
+	int max_io;
+	unsigned io_buffer;
 	//默认是否缓存,1=是,其它=不
 	int default_cache = 1;
 	unsigned max_cache_size = 1048576;

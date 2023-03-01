@@ -72,7 +72,7 @@ func CreateMainConfig(malloc_debug int) (err error) {
 	<listen ip='127.0.0.1' port='9900h' type='http' />
 	<!-- 9902 https中转上上游http(kangle的9999) -->
 	<listen ip='127.0.0.1' port='9902' type='https' certificate='etc/server.crt' certificate_key='etc/server.key' http2='1' />
-	<gzip only_gzip_cache='0' min_gzip_length='1' gzip_level='5' br_level='5'/>
+	<compress only_cache='0' min_length='1' gzip_level='5' br_level='5'/>
 	<cache default='1' max_cache_size='256k' max_bigobj_size='1g' memory='1G' disk='1g' cache_part='1' refresh_time='30'/>
 	`
 	str += "<cmd name='fastcgi' proto='fastcgi' file='bin/test_child" + common.ExeExtendFile() + " f 9005' port='9005' type='sp' param='' life_time='280' idle_time='280'>"
@@ -86,8 +86,7 @@ func CreateMainConfig(malloc_debug int) (err error) {
 	<server name='upstream_ssl' host='127.0.0.1' port='4412s' proto='http' life_time='10'/>	
 	<server name='upstream_h2' host='127.0.0.1' port='4412sp' proto='http' life_time='10'/>	
 	<auth_delay>0</auth_delay>
-	<timeout>60</timeout>
-	<connect_timeout>20</connect_timeout>
+	<timeout rw='60' connect='20'/>
 	<admin user='admin' password='kangle' crypt='plain' auth_type='Basic' admin_ips='~127.0.0.1'/>
 	<request action='vhs'></request>
 	<vhs >

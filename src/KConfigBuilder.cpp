@@ -131,55 +131,15 @@ void KConfigBuilder::build(std::stringstream& s) {
 			s << "/>\n";
 		}
 	}
-#if 0
-	for (i = 0; i < conf.service.size(); i++) {
-		if (conf.service[i]->ext) {
-			continue;
-		}
-		s << "\t<listen ";
-		/*
-		if (conf.service[i]->name.size()>0) {
-			s << "name='" << conf.service[i]->name << "' ";
-		}
-		*/
-		s << "ip='" << conf.service[i]->ip << "' ";
-		s << "port='" << conf.service[i]->port << "' type='"
-			<< getWorkModelName(conf.service[i]->model) << "' ";
-#ifdef KSOCKET_SSL
-		if (KBIT_TEST(conf.service[i]->model, WORK_MODEL_SSL)) {
-			if (!conf.service[i]->cert_file.empty()) {
-				s << "certificate='" << conf.service[i]->cert_file << "' ";
-			}
-			if (!conf.service[i]->key_file.empty()) {
-				s << "certificate_key='" << conf.service[i]->key_file << "' ";
-			}
-			if (!conf.service[i]->cipher.empty()) {
-				s << "cipher='" << conf.service[i]->cipher << "' ";
-			}
-			if (!conf.service[i]->protocols.empty()) {
-				s << "protocols='" << conf.service[i]->protocols << "' ";
-			}
-#ifdef ENABLE_HTTP2
-			s << "alpn='" << (int)conf.service[i]->alpn << "' ";
-#endif
-			s << "early_data='" << (conf.service[i]->early_data ? "1" : "0") << "' ";
-		}
-#endif
-		s << "/>\n";
-	}
-#endif
 	s << "\t<!--listen end-->\n";
-#ifndef _WIN32
 	if (conf.run_user.size() > 0) {
-		s << "\t<run user='" << conf.run_user << "'";
+		s << "\t<run_as user='" << conf.run_user << "'";
 		if (conf.run_group.size() > 0) {
 			s << " group='" << conf.run_group << "'";
 		}
 		s << "/>\n";
 	}
-#endif
 	s << "\t<lang>" << conf.lang << "</lang>\n";
-	s << "\t<keep_alive_count>" << conf.keep_alive_count << "</keep_alive_count>\n";
 	s << "\t<timeout rw='" << conf.time_out << "' connect='" << conf.connect_time_out << "'/>\n";
 	s << "\t<min_free_thread>" << conf.min_free_thread << "</min_free_thread>\n";
 	//{{ent
@@ -198,8 +158,8 @@ void KConfigBuilder::build(std::stringstream& s) {
 		s << conf.admin_ips[i];
 	}
 	s << "'/>\n";
-	s << "\t<compress only_compress_cache='" << conf.only_compress_cache << "' "
-		<< "min_compress_length='" << conf.min_compress_length << "' "
+	s << "\t<compress only_cache='" << conf.only_compress_cache << "' "
+		<< "min_length='" << conf.min_compress_length << "' "
 		<< "gzip_level = '" << conf.gzip_level << "' "
 		<< "br_level='" << conf.br_level << "'"
 		<< "/>\n";
@@ -226,37 +186,11 @@ void KConfigBuilder::build(std::stringstream& s) {
 #endif
 	s << " refresh_time='" << conf.refresh_time << "'";
 	s << "/>\n";
-	s << "\t<connect max_per_ip='" << conf.max_per_ip << "' max='" << conf.max << "' ";
-#ifndef _WIN32
-	//s << "stack_size='" << conf.stack_size << "'";
-#endif
+	s << "\t<connect max_per_ip='" << conf.max_per_ip << "' max='" << conf.max << "' max_keep_alive='" << conf.keep_alive_count << "' ";
 	if (conf.per_ip_deny > 0) {
 		s << " per_ip_deny='1'";
 	}
-	s << ">\n";
-#if 0
-	ipLock.Lock();
-	KPerIpConnect* per_ip = conf.per_ip_head;
-	while (per_ip) {
-		s << "\t\t<per_ip src='";
-		char ips[MAXIPLEN];
-		ksocket_ipaddr_ip(&per_ip->src.addr, ips, sizeof(ips));
-		s << ips;
-		if (per_ip->src.mask_num > 0) {
-			s << "/" << (int)per_ip->src.mask_num;
-		}
-		s << "' max='";
-		if (per_ip->deny) {
-			s << "deny";
-		} else {
-			s << per_ip->max;
-		}
-		s << "'/>\n";
-		per_ip = per_ip->next;
-	}
-	ipLock.Unlock();
-#endif
-	s << "\t</connect>\n";
+	s << "/>\n";
 #ifdef ENABLE_TF_EXCHANGE
 	//s << "\t<tempfile>" << conf.tmpfile << "</tempfile>\n";
 	s << "\t<max_post_size>" << get_size(conf.max_post_size) << "</max_post_size>\n";
@@ -264,22 +198,21 @@ void KConfigBuilder::build(std::stringstream& s) {
 
 
 #ifdef ENABLE_BLACK_LIST
-	if (conf.bl_time > 0) {
-		s << "\t<bl_time>" << conf.bl_time << "</bl_time>\n";
-	}
+	s << "\t<firewall bl_time='" << conf.bl_time << "'";
 	if (*conf.block_ip_cmd) {
-		s << "\t<block_ip_cmd>" << conf.block_ip_cmd << "</block_ip_cmd>\n";
+		s << " block_ip_cmd='" << conf.block_ip_cmd << "'";
 	}
 	if (*conf.unblock_ip_cmd) {
-		s << "\t<unblock_ip_cmd>" << conf.unblock_ip_cmd << "</unblock_ip_cmd>\n";
+		s << " unblock_ip_cmd='" << conf.unblock_ip_cmd << "'";
 	}
 	if (*conf.flush_ip_cmd) {
-		s << "\t<flush_ip_cmd>" << conf.flush_ip_cmd << "</flush_ip_cmd>\n";
+		s << " flush_ip_cmd='" << conf.flush_ip_cmd << "'";
 	}
+	if (*conf.report_url) {
+		s << " report_url='" << conf.report_url << "'";
+	}
+	s << "/>\n";
 #endif
-	if (conf.apache_config_file.size() > 0) {
-		s << "\t<apache_config_file>" << conf.apache_config_file << "</apache_config_file>\n";
-	}
 #ifdef ENABLE_VH_FLOW
 	if (conf.flush_flow_time > 0) {
 		s << "\t<flush_flow_time>" << conf.flush_flow_time << "</flush_flow_time>\n";
@@ -336,12 +269,9 @@ void KConfigBuilder::build(std::stringstream& s) {
 	if (*conf.hostname) {
 		s << "\t<hostname>" << conf.hostname << "</hostname>\n";
 	}
-	if (conf.fiber_stack_size > 0) {
-		s << "\t<fiber_stack_size>" << get_size(conf.fiber_stack_size) << "</fiber_stack_size>\n";
-	}
-	s << "\t<worker_io>" << conf.worker_io << "</worker_io>\n";
-	s << "\t<max_io>" << conf.max_io << "</max_io>\n";
-	s << "\t<worker_dns>" << conf.worker_dns << "</worker_dns>\n";
+	s << "\t<fiber stack_size='" << get_size(conf.fiber_stack_size) << "'/>\n";
+	s << "\t<io worker='" << conf.worker_io << "' max='" << conf.max_io << "'/>\n";
+	s << "\t<dns worker='" << conf.worker_dns << "'/>\n";
 	conf.gam->buildXML(s, CHAIN_SKIP_EXT);
 #ifdef ENABLE_WRITE_BACK
 	writeBackManager.buildXML(s, CHAIN_SKIP_EXT);

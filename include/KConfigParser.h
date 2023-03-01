@@ -23,21 +23,16 @@
 #include "kmalloc.h"
 #include "KConfigTree.h"
 
-void on_main_event(void *data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_main_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
 void on_ssl_client_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
 void on_admin_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
 void on_log_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
 void on_cache_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
-class KConfigParser : public KXmlEvent{
-public:
-	void startXml(const std::string &encoding) override;
-	void endXml(bool result) override;	
-	KConfigParser();
-	virtual ~KConfigParser();
-	bool startElement(KXmlContext *context) override;
-	bool startCharacter(KXmlContext *context,
-				char *character, int len) override;
-	bool endElement(KXmlContext *context) override;
-};
-
+void on_io_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_fiber_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_dns_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_run_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_connect_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_compress_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_firewall_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
 #endif /*KCONFIGPARSER_H_*/

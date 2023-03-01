@@ -100,15 +100,7 @@ std::string KSslConfig::get_key_file() {
 KConfigBase::KConfigBase() {
 	memset(this, 0, sizeof(KConfigBase));
 }
-void KConfig::copy(KConfig* c) {
-	//把cconf赋值到conf中
-	KConfigBase* bc = static_cast<KConfigBase*>(this);
-	kgl_memcpy(bc, static_cast<KConfigBase*>(c), sizeof(KConfigBase));
-	this->run_user = c->run_user;
-	this->run_group = c->run_group;
-	this->apache_config_file = c->apache_config_file;
-	return;
-}
+
 KConfig::~KConfig() {
 
 }
@@ -229,20 +221,14 @@ INT64 get_size(const char* size) {
 void init_config(KConfig* conf) {
 	conf->max = 50000;
 	conf->path_info = true;
-	conf->passwd_crypt = CRYPT_TYPE_PLAIN;
 	conf->gzip_level = 5;
 	conf->br_level = 5;
 	conf->min_compress_length = 512;
-	conf->fiber_stack_size = 0;
 	conf->wl_time = 1800;
 #ifdef ENABLE_TF_EXCHANGE
 	conf->max_post_size = 8388608;
 #endif	
 	conf->read_hup = true;
-	conf->max_io = 0;
-	conf->worker_io = 16;
-	conf->worker_dns = 32;
-	conf->io_buffer = 262144;
 }
 void LoadDefaultConfig() {
 	init_config(&conf);
@@ -554,6 +540,15 @@ int do_config_thread(void* first_time, int argc) {
 		kconfig::listen(_KS("admin"), nullptr, on_admin_event, kconfig::ev_self);
 		kconfig::listen(_KS("log"), nullptr, on_log_event, kconfig::ev_self | kconfig::ev_at_once);
 		kconfig::listen(_KS("cache"), nullptr, on_cache_event, kconfig::ev_self | kconfig::ev_at_once);
+		kconfig::listen(_KS("io"), nullptr, on_io_event, kconfig::ev_self | kconfig::ev_at_once);
+		kconfig::listen(_KS("fiber"), nullptr, on_fiber_event, kconfig::ev_self | kconfig::ev_at_once);
+		kconfig::listen(_KS("dns"), nullptr, on_dns_event, kconfig::ev_self | kconfig::ev_at_once);
+		kconfig::listen(_KS("connect"), nullptr, on_connect_event, kconfig::ev_self | kconfig::ev_at_once);
+		kconfig::listen(_KS("run_as"), nullptr, on_run_event, kconfig::ev_self | kconfig::ev_at_once);
+		kconfig::listen(_KS("compress"), nullptr, on_compress_event, kconfig::ev_self);
+#ifdef ENABLE_BLACK_LIST
+		kconfig::listen(_KS("firewall"), nullptr, on_firewall_event, kconfig::ev_self | kconfig::ev_at_once);
+#endif
 	}
 	assert(cconf == NULL);
 	cconf = new KConfig;
@@ -630,15 +625,12 @@ void load_config(KConfig* cconf, bool firstTime) {
 #endif
 	std::string configFile = configFileDir + CONFIG_FILE;
 	loadExtConfigFile();
-	KConfigParser parser;
 	KAccess access[2];
 	KAcserverManager am;
 	KWriteBackManager wm;
 	KVirtualHostManage vm;
 	KXml xmlParser;
 	xmlParser.setData(cconf);
-	xmlParser.addEvent(&parser);
-	//xmlParser.addEvent(&listenConfigParser);
 #ifndef HTTP_PROXY
 	KHttpServerParser vhParser;
 	xmlParser.addEvent(&vhParser);
@@ -691,6 +683,7 @@ void load_config(KConfig* cconf, bool firstTime) {
 	if (!main_config_loaded) {
 		load_main_config(cconf, configFile, xmlParser, firstTime);
 	}
+#if 0
 #ifndef KANGLE_FREE
 	if (conf.apache_config_file.size() > 0) {
 		KFileName file;
@@ -707,10 +700,8 @@ void load_config(KConfig* cconf, bool firstTime) {
 		}
 	}
 #endif
-	//conf.gvm->BindGlobalListens(cconf->service);
-	//conf.gvm->UnBindGlobalListens(conf.service);
+#endif
 	load_db_vhost(cconf->vm);
-	conf.copy(cconf);
 	conf.gvm->copy(&vm);
 	if (!firstTime) {
 		conf.gam->copy(am);
@@ -748,30 +739,4 @@ void parse_server_software() {
 }
 
 void post_load_config(bool firstTime) {
-	if (conf.worker_io < 2) {
-		conf.worker_io = 2;
-	}
-	if (conf.worker_dns < 2) {
-		conf.worker_dns = 2;
-	}
-	if (conf.ioWorker == NULL) {
-		conf.ioWorker = kasync_worker_init(conf.worker_io, conf.max_io);
-	} else {
-		kasync_worker_set(conf.ioWorker, conf.worker_io, conf.max_io);
-	}
-	if (conf.dnsWorker == NULL) {
-		conf.dnsWorker = kasync_worker_init(conf.worker_dns, 512);
-	} else {
-		kasync_worker_set(conf.dnsWorker, conf.worker_dns, 512);
-	}
-	parse_server_software();
-	http_config.fiber_stack_size = conf.fiber_stack_size;
-	cache.init(firstTime);
-#ifdef ENABLE_BLACK_LIST
-	if (firstTime && *conf.flush_ip_cmd) {
-		run_fw_cmd(conf.flush_ip_cmd, NULL);
-	}
-	conf.gvm->globalVh.blackList->setRunFwCmd(*conf.block_ip_cmd != '\0');
-	conf.gvm->globalVh.blackList->setReportIp(*conf.report_url != '\0');
-#endif
 }
