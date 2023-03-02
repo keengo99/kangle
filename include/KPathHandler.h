@@ -82,29 +82,28 @@ public:
 		if (*size <= 0) {
 			return this->handler;
 		}
-		if (**name == '/') {
-			goto done;
-		}
-		auto path = (const char*)memchr(*name, '/', *size);
-		if (path) {
-			name_len = path - (*name);
-		} else {
-			name_len = *size;
-		}
-		kgl_ref_str_t key;
-		KMapNode<KPathHandler>* node;
-		T value;
-		key.data = (char *)*name;
-		key.len = name_len;
-		node = child.find(&key);
-		if (!node) {
-			goto done;
-		}
-		*name += name_len;
-		*size -= name_len;
-		value = node->value()->find(name, size);
-		if (value) {
-			return value;
+		if (**name != '/') {
+			auto path = (const char*)memchr(*name, '/', *size);
+			if (path) {
+				name_len = path - (*name);
+			} else {
+				name_len = *size;
+			}
+			kgl_ref_str_t key;
+			KMapNode<KPathHandler>* node;
+			T value;
+			key.data = (char *)*name;
+			key.len = name_len;
+			node = child.find(&key);
+			if (!node) {
+				goto done;
+			}
+			*name += name_len;
+			*size -= name_len;
+			value = node->value()->find(name, size);
+			if (value) {
+				return value;
+			}
 		}
 	done:
 		if (is_wide_handler()) {

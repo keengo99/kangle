@@ -115,7 +115,7 @@ void KTable::htmlTable(std::stringstream &s,const char *vh,u_short accessType) {
 #endif
 	s << "<table border=1 cellspacing=0 width=100%><tr>";
 #if 0
-	<td> " << LANG_OPERATOR
+	<td> << LANG_OPERATOR
 		<< "</td><td>" << klang["id"] << "</td>";
 #endif
 	s << "<td>" << LANG_ACTION << "</td><td>" << klang["acl"] << "</td><td>" << klang["mark"] << "</td><td>";

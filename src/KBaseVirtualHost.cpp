@@ -26,14 +26,14 @@ KBaseVirtualHost::KBaseVirtualHost() {
 #endif
 }
 KFetchObject* KBaseVirtualHost::find_file_redirect(KHttpRequest* rq, KFileName* file, const char* file_ext, bool fileExsit, bool& result) {
-	decltype (redirects.find("")) it;
+	decltype (redirects.find((char *)"")) it;
 	auto locker = get_locker();
 	if (!file_ext) {
-		it = redirects.find("*");
+		it = redirects.find((char *)"*");
 	} else {
 		it = redirects.find((char *)file_ext);
 		if (it == redirects.end()) {
-			it = redirects.find("*");
+			it = redirects.find((char *)"*");
 		}
 	}
 	if (it != redirects.end() && (*it).second->allowMethod.matchMethod(rq->sink->data.meth) && (*it).second->MatchConfirmFile(fileExsit)) {

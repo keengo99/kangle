@@ -192,6 +192,7 @@ namespace kconfig {
 			this->name = kstring_refs(name);
 			this->filename = kstring_refs(filename);
 			this->ev = ev;
+			this->source = KConfigFileSource::System;
 		}
 		void release() {
 			assert(katom_get((void*)&ref) < 0xfffffff);

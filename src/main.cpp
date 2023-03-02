@@ -930,8 +930,6 @@ int parse_args(int argc, char** argv) {
 			create_cache_dir(optarg);
 			my_exit(0);
 #endif
-		case 'a':
-			my_exit(merge_apache_config(optarg));
 		case 'h':
 		case '?':
 			Usage();
