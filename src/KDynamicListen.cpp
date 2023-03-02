@@ -226,29 +226,17 @@ void KDynamicListen::RemoveDynamic(const char *str,KVirtualHost *vh)
 }
 void KDynamicListen::RemoveGlobal(KListenHost *lh)
 {
-	if (!lh->listened) {
-		return;
-	}
 	std::list<KListenKey *> lk;
 	parseListen(lh, lk);
-	kassert(!lk.empty());
-	lh->listened = false;
-	std::list<KListenKey *>::iterator it2;
-	for (it2 = lk.begin(); it2 != lk.end(); it2++) {
+	for (auto it2 = lk.begin(); it2 != lk.end(); it2++) {
 		Delete((*it2),NULL);
 	}
 }
 bool KDynamicListen::AddGlobal(KListenHost *lh)
 {
 	std::list<KListenKey *> lk;
-	kassert(!lh->listened);
 	parseListen(lh,lk);
-	if (lk.empty()) {
-		return false;
-	}
-	lh->listened = true;
-	std::list<KListenKey *>::iterator it2;
-	for (it2=lk.begin();it2!=lk.end();it2++) {
+	for (auto it2=lk.begin();it2!=lk.end();it2++) {
 		add((*it2), lh, nullptr);
 	}
 	return true;

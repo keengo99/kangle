@@ -24,8 +24,14 @@
 class KJump : public KXmlSupport,public KCountableEx
 {
 public:
+	KJump() {}
+	KJump(const std::string &a): name(a) {
+	}
+	KJump(std::string&& a) noexcept : name(a) {
+
+	}
 	std::string name;
-	KJump(){}
+protected:
 	virtual ~KJump();
 };
 #endif /*KJUMP_H_*/

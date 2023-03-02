@@ -19,7 +19,7 @@ public:
 	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override  {
 		if (brd && fo) {
 			assert(*fo == nullptr);
-			*fo = brd->rd->makeFetchObject(rq,rq->file);
+			*fo = brd->rd->makeFetchObject(rq, rq->file);
 		}
 		return true;
 	}
@@ -40,7 +40,7 @@ public:
 	void editHtml(std::map<std::string, std::string> &attribute,bool html) override  {
 		KMultiAcserver *as = NULL;
 		if (brd==NULL) {
-			as = new KMultiAcserver;
+			as = new KMultiAcserver("");
 			brd = new KBaseRedirect(as,KGL_CONFIRM_FILE_NEVER);
 		} else {
 			as = static_cast<KMultiAcserver *>(brd->rd);

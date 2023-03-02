@@ -77,8 +77,9 @@ void KApiDso::unload() {
 		GetExtensionVersion = NULL;
 		HttpExtensionProc = NULL;
 	}
+	state = STATE_LOAD_UNKNOW;
 }
-bool KApiDso::load(std::string file) {
+bool KApiDso::load(const std::string &file) {
 	//apiFile = file;
 	assert(handle == NULL);
 	assert(GetExtensionVersion == NULL);
@@ -123,7 +124,7 @@ bool KApiDso::load() {
 	char* filename = ds.parseString(path.c_str());
 	handle = LoadLibrary(filename);
 	if (handle == NULL) {
-		klog(KLOG_ERR, "cann't LoadLibrary %s %s\n", filename, getError());
+		klog(KLOG_ERR, "cann't LoadLibrary [%s] %s\n", filename, getError());
 		xfree(filename);
 		return false;
 	}

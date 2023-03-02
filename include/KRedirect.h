@@ -11,6 +11,7 @@
 #include "KJump.h"
 #include "ksocket.h"
 #include "kselector.h"
+#include "extern.h"
 
 class KHttpRequest;
 class KAsyncFetchObject;
@@ -19,7 +20,15 @@ class KUpstream;
 class KRedirect: public KJump {
 public:
 	KRedirect();
-	virtual ~KRedirect();
+	KRedirect(const std::string& name) : KJump(name) {
+		enable = true;
+		ext = cur_config_ext;
+	}
+	KRedirect(std::string&& name) : KJump(name) {
+		enable = true;
+		ext = cur_config_ext;
+	}
+	
 	virtual KRedirectSource*makeFetchObject(KHttpRequest *rq, KFileName *file) = 0;
 	virtual KUpstream *GetUpstream(KHttpRequest *rq)
 	{
@@ -44,6 +53,8 @@ public:
 	 * 是否外来扩展，如果是就不用保存在config.xml
 	 */
 	bool ext;
+protected:
+	virtual ~KRedirect();
 };
 
 #endif /* KREDIRECT_H_ */

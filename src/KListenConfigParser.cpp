@@ -57,7 +57,7 @@ KListenHost* parse_listen(const KXmlAttribute& attribute) {
 	}
 	return m_host;
 }
-void on_file_event(khttpd::KAutoArray<KListenHost>& listen, kconfig::KConfigEvent* ev) {
+void on_listen_file_event(khttpd::KAutoArray<KListenHost>& listen, kconfig::KConfigEvent* ev) {
 	auto locker = KVirtualHostManage::locker();
 	auto dlisten = KVirtualHostManage::get_listen();
 	uint32_t old_count = ev->diff.old_to - ev->diff.from;
@@ -66,7 +66,6 @@ void on_file_event(khttpd::KAutoArray<KListenHost>& listen, kconfig::KConfigEven
 		if (lh == nullptr) {
 			continue;
 		}
-		lh->ext = !ev->file->is_default();
 		bool result = listen.insert(lh, index + old_count);
 		assert(result);
 		if (!result) {
@@ -98,7 +97,7 @@ void on_listen_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEve
 		auto result = conf.services.emplace(file_name->data, nullptr);
 		it = result.first;
 	}
-	on_file_event((*it).second, ev);
+	on_listen_file_event((*it).second, ev);
 	if ((*it).second.size()==0) {
 		conf.services.erase(it);
 	}

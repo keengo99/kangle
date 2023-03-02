@@ -1286,7 +1286,7 @@ bool checkManageLogin(KHttpRequest* rq) {
 		return true;
 	}
 	return false;
-	}
+}
 bool KHttpManage::start_listen(bool& hit) {
 	string err_msg;
 	if (strcmp(rq->sink->data.url->path, "/deletelisten") == 0) {
@@ -2002,9 +2002,6 @@ function sortrq(index)\
 	if (strcmp(rq->sink->data.url->path, "/cmdform") == 0) {
 		std::string errMsg;
 		if (conf.gam->cmdForm(urlValue.attribute, errMsg)) {
-			if (!saveConfig()) {
-				return sendErrorSaveConfig();
-			}
 			return sendRedirect("/extends?item=3");
 		}
 		return sendErrPage(errMsg.c_str());
@@ -2012,9 +2009,6 @@ function sortrq(index)\
 	if (strcmp(rq->sink->data.url->path, "/delcmd") == 0) {
 		std::string errMsg;
 		if (conf.gam->delCmd(getUrlValue("name"), errMsg)) {
-			if (!saveConfig()) {
-				return sendErrorSaveConfig();
-			}
 			return extends(3);
 		}
 		return sendErrPage(errMsg.c_str());
@@ -2024,9 +2018,6 @@ function sortrq(index)\
 	if (strcmp(rq->sink->data.url->path, "/apiform") == 0) {
 		std::string errMsg;
 		if (conf.gam->apiForm(urlValue.attribute, errMsg)) {
-			if (!saveConfig()) {
-				return sendErrorSaveConfig();
-			}
 			return sendRedirect("/extends?item=2");
 		}
 		return sendErrPage(errMsg.c_str());
@@ -2034,9 +2025,6 @@ function sortrq(index)\
 	if (strcmp(rq->sink->data.url->path, "/delapi") == 0) {
 		std::string errMsg;
 		if (conf.gam->delApi(getUrlValue("name"), errMsg)) {
-			if (!saveConfig()) {
-				return sendErrorSaveConfig();
-			}
 			return extends(2);
 		}
 		return sendErrPage(errMsg.c_str());

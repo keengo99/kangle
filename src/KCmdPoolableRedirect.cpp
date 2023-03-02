@@ -12,7 +12,7 @@
 
 using namespace std;
 #ifdef ENABLE_VH_RUN_AS
-KCmdPoolableRedirect::KCmdPoolableRedirect() {
+KCmdPoolableRedirect::KCmdPoolableRedirect(const std::string &name) : KPoolableRedirect(name) {
 	//lifeTime = EXTENDPROGRAM_DEFAULT_LIFETIME;
 	type = WORK_TYPE_SP;
 	chuser = true; 
@@ -61,6 +61,30 @@ void KCmdPoolableRedirect::buildXML(std::stringstream &s) {
 		s << "/>\n";
 	}
 	s << "\t</cmd>\n";
+}
+bool KCmdPoolableRedirect::parse_config(khttpd::KXmlNode* node) {
+	auto attr = node->attributes();
+	auto proto = KPoolableRedirect::parseProto(attr("proto"));
+	if (this->proto != proto) {
+		this->proto = proto;
+	}
+	set_proto(proto);
+	cmd = attr["file"];
+	worker = atoi(attr("worker"));	
+	this->chuser = (attr["chuser"] != "0");
+	this->port = attr.get_int("port");
+	int sig = attr.get_int("sig");
+#ifndef _WIN32
+	if (sig == 0) {
+		sig = SIGKILL;
+	}
+#endif
+	if (this->sig != sig) {
+		this->sig = sig;
+	}
+	pm.param = attr["param"];
+	setWorkType(attr("type"), true);
+	return KExtendProgram::parse_config(node);
 }
 bool KCmdPoolableRedirect::Exec(KVirtualHost* vh, KListenPipeStream* st,bool isSameRunning)
 {
@@ -367,7 +391,7 @@ bool KCmdPoolableRedirect::setWorkType(const char *typeStr,bool changed) {
 	pm.setName(s.str().c_str());
 	return true;
 }
-bool KCmdPoolableRedirect::parseEnv(std::map<std::string, std::string> &attribute)
+bool KCmdPoolableRedirect::parseEnv(const KXmlAttribute &attribute)
 {
 	if (KExtendProgram::parseEnv(attribute)) {
 		pm.clean();

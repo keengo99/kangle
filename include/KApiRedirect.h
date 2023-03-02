@@ -19,11 +19,9 @@
 #include "KApiDso.h"
 #include <string>
 
-class KApiRedirect: public KRedirect,public KExtendProgram {
+class KApiRedirect final: public KRedirect,public KExtendProgram {
 public:
-	KApiRedirect();
-	virtual ~KApiRedirect();
-
+	KApiRedirect(const std::string &name);
 	const char *getName()
 	{
 		return name.c_str();
@@ -31,12 +29,12 @@ public:
 	bool startElement(KXmlContext* context) override {
 		return true;
 	}
+	bool parse_config(khttpd::KXmlNode* node) override;
 	KRedirectSource*makeFetchObject(KHttpRequest *rq, KFileName *file) override;
-	bool load();
-	void setFile(std::string file);
-	bool load(std::string file);
-	KUpstream* GetUpstream(KHttpRequest* rq) override;	
-
+	bool unload();
+	
+	//bool load(const std::string &file);
+	KUpstream* GetUpstream(KHttpRequest* rq) override;
 	const char *getType() override {
 		return "api";
 	}
@@ -46,11 +44,15 @@ public:
 		//todo:当前api不支持重新加载。
 		return false;
 	}
+	bool load();
+	void setFile(const std::string& file);
 public:
 	void buildXML(std::stringstream &s) override;
 public:
 	std::string apiFile;
 	KApiDso dso;
+protected:
+	~KApiRedirect();
 private:
 	KMutex lock;
 };

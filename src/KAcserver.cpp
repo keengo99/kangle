@@ -27,7 +27,7 @@
 using namespace std;
 KJump::~KJump() {
 }
-KPoolableRedirect::KPoolableRedirect() {
+KPoolableRedirect::KPoolableRedirect(const std::string& name) : KRedirect(name) {
 	proto = Proto_http;
 }
 KPoolableRedirect::~KPoolableRedirect() {

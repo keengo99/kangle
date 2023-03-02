@@ -96,7 +96,7 @@ void KConfigBuilder::build(std::stringstream& s) {
 		s << "\t<!-- " << (*it).first << " -->\n";
 		for (uint32_t index = 0;; ++index) {
 			auto lh = (*it).second.get(index);
-			if (!lh || lh->ext) {
+			if (!lh) {
 				break;
 			}
 			s << "\t<listen ";
@@ -199,6 +199,7 @@ void KConfigBuilder::build(std::stringstream& s) {
 
 #ifdef ENABLE_BLACK_LIST
 	s << "\t<firewall bl_time='" << conf.bl_time << "'";
+	s << " wl_time='" << conf.wl_time << "'";
 	if (*conf.block_ip_cmd) {
 		s << " block_ip_cmd='" << conf.block_ip_cmd << "'";
 	}
@@ -225,7 +226,6 @@ void KConfigBuilder::build(std::stringstream& s) {
 	}
 #endif
 	s << "\t<path_info>" << (conf.path_info ? 1 : 0) << "</path_info>\n";
-	s << "\t<access_log>" << conf.access_log << "</access_log>\n";
 	if (*conf.logHandle) {
 		s << "\t<access_log_handle>";
 		s << CDATA_START << conf.logHandle << CDATA_END;
@@ -256,6 +256,7 @@ void KConfigBuilder::build(std::stringstream& s) {
 	if (conf.log_radio > 0) {
 		s << " radio='" << conf.log_radio << "'";
 	}
+	s << " access='" << conf.access_log << "'";
 	s << "/>\n";
 	if (conf.http2https_code > 0) {
 		s << "\t<http2https_code>" << conf.http2https_code << "</http2https_code>\n";

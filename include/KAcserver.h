@@ -31,8 +31,7 @@ class KSockPoolHelper;
 class KPoolableRedirect: public KRedirect {
 
 public:
-	KPoolableRedirect();
-	virtual ~KPoolableRedirect();
+	KPoolableRedirect(const std::string& name);
 	KRedirectSource*makeFetchObject(KHttpRequest *rq, KFileName *file) override;
 	virtual bool isChanged(KPoolableRedirect *rd)
 	{
@@ -118,6 +117,7 @@ public:
 	}
 	virtual void set_proto(Proto_t proto) = 0;
 protected:
+	virtual ~KPoolableRedirect();
 	Proto_t proto;
 };
 #endif

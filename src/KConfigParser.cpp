@@ -38,12 +38,14 @@ void on_firewall_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigE
 #ifdef ENABLE_BLACK_LIST
 	if (ev == nullptr || ev->type == kconfig::EvRemove) {
 		conf.bl_time = 0;
+		conf.wl_time = 1800;
 		*conf.block_ip_cmd = '\0';
 		*conf.unblock_ip_cmd = '\0';
 		*conf.flush_ip_cmd = '\0';
 	} else {
 		auto attr = ev->get_xml()->attributes();
 		conf.bl_time = attr.get_int("bl_time");
+		conf.wl_time = attr.get_int("wl_time", 1800);
 		SAFE_STRCPY(conf.block_ip_cmd, attr("block_ip_cmd"));
 		SAFE_STRCPY(conf.unblock_ip_cmd, attr("unblock_ip_cmd"));
 		SAFE_STRCPY(conf.flush_ip_cmd, attr("flush_ip_cmd"));
@@ -197,6 +199,7 @@ void on_log_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 		conf.logs_size = get_size("1G");
 		conf.log_rotate_size = get_size("100M");
 		conf.error_rotate_size = get_size("100M");
+		SAFE_STRCPY(conf.access_log, "access.log");
 		klog_start();
 		::logHandle.setLogHandle(conf.logHandle);
 		return;
@@ -213,6 +216,9 @@ void on_log_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 		conf.error_rotate_size = get_size(attr.get_string("error_rotate_size", "100M"));
 		conf.log_radio = attr.get_int("radio");
 		conf.log_handle = attr.get_int("log_handle") == 1;
+		if (*conf.access_log == '\0') {
+			SAFE_STRCPY(conf.access_log, attr.get_string("access", "access.log"));
+		}
 		klog_start();
 		::logHandle.setLogHandle(conf.logHandle);
 		break;

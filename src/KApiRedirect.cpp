@@ -156,8 +156,7 @@ static BOOL WINAPI apiServerSupportFunction(HCONN hConn, DWORD dwHSERequest,
 	}
 	return FALSE;
 }
-KApiRedirect::KApiRedirect() {
-
+KApiRedirect::KApiRedirect(const std::string &a): KRedirect(a) {
 	life_time = 60;
 	max_error_count = 5;
 	type = WORK_TYPE_SP;
@@ -168,16 +167,34 @@ KApiRedirect::KApiRedirect() {
 KApiRedirect::~KApiRedirect() {
 	
 }
-void KApiRedirect::setFile(std::string file)
+void KApiRedirect::setFile(const std::string &file)
 {
 	apiFile = file;
-	dso.path = dso.path + apiFile;
+	if (!isAbsolutePath(apiFile.c_str())) {
+		dso.path = conf.path + apiFile;
+	} else {
+		dso.path = apiFile;
+	}
 }
-bool KApiRedirect::load(std::string file)
+#if 0
+bool KApiRedirect::load(const std::string &file)
 {
 	apiFile = file;
 	dso.path = dso.path + apiFile;
 	return load();
+}
+#endif
+bool KApiRedirect::parse_config(khttpd::KXmlNode* node) {
+	auto attr = node->attributes();
+	auto type = attr("type",nullptr);
+	if (type!=nullptr) {
+		this->type = KApiRedirect::getTypeValue(type);
+	}
+	if (attr["flag"]=="disable") {
+		this->enable = false;
+	}
+	this->setFile(attr["file"]);
+	return KExtendProgram::parse_config(node);
 }
 bool KApiRedirect::load()
 {
@@ -267,7 +284,10 @@ bool KApiRedirect::createProcess(KVirtualHost *vh, KPipeStream *st) {
 }
 KUpstream* KApiRedirect::GetUpstream(KHttpRequest* rq)
 {
-
 	return spProcessManage.GetUpstream(rq, this);
-
+}
+bool KApiRedirect::unload() {
+	KLocker locker(&lock);
+	dso.unload();
+	return true;
 }

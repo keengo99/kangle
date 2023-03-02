@@ -30,7 +30,7 @@
 
 class KMultiAcserver: public KPoolableRedirect {
 public:
-	KMultiAcserver();
+	KMultiAcserver(const std::string &name);
 	KMultiAcserver(KSockPoolHelper *nodes);
 	virtual ~KMultiAcserver();
 public:

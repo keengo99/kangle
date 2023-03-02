@@ -71,10 +71,10 @@ void KMultiAcserver::init() {
 	icp = NULL;
 #endif
 }
-KMultiAcserver::KMultiAcserver() {
+KMultiAcserver::KMultiAcserver(const std::string &name) : KPoolableRedirect(name) {
 	init();
 }
-KMultiAcserver::KMultiAcserver(KSockPoolHelper* nodes) {
+KMultiAcserver::KMultiAcserver(KSockPoolHelper* nodes) : KPoolableRedirect(""){
 	init();
 	while (nodes) {
 		KSockPoolHelper* next = nodes->next;

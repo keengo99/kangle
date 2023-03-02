@@ -21,7 +21,7 @@ public:
 public:
 	
 	const char *getError();
-	bool load(std::string file);
+	bool load(const std::string &file);
 	bool load();
 	bool reload();
 	void unload();

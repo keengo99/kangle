@@ -9,11 +9,11 @@
 #include "KAsyncFetchObject.h"
 #include "HttpFiber.h"
 
-KSingleAcserver::KSingleAcserver(KSockPoolHelper *nodes)
+KSingleAcserver::KSingleAcserver(KSockPoolHelper *nodes) : KPoolableRedirect("")
 {
 	sockHelper = nodes;
 }
-KSingleAcserver::KSingleAcserver() {
+KSingleAcserver::KSingleAcserver(const std::string &name) : KPoolableRedirect(name) {
 	sockHelper = new KSockPoolHelper;
 }
 KSingleAcserver::~KSingleAcserver() {

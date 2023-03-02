@@ -140,15 +140,9 @@ private:
 class KListenHost : public KSslConfig
 {
 public:
-	KListenHost() {
-		ext = cur_config_ext;
-		listened = false;
-	}
 	std::string ip;
 	std::string port;
 	int model = 0;
-	bool listened;
-	bool ext;
 };
 struct WorkerProcess
 {
@@ -189,8 +183,7 @@ public:
 	int br_level;
 	bool path_info;
 
-	//白名单时间
-	int wl_time;
+
 #ifdef ENABLE_ADPP
 	int process_cpu_usage;
 #endif
@@ -198,7 +191,7 @@ public:
 
 
 #ifdef ENABLE_TF_EXCHANGE
-	INT64 max_post_size;
+	INT64 max_post_size = 8388608;
 #endif
 	bool read_hup = true;
 #ifdef KSOCKET_UNIX	
@@ -211,6 +204,8 @@ public:
 
 	char error_url[64] = { 0 };
 #ifdef ENABLE_BLACK_LIST
+	//白名单时间
+	int wl_time = 1800;
 	int bl_time;
 	char block_ip_cmd[512];
 	char unblock_ip_cmd[512];
@@ -225,7 +220,6 @@ class KConfig : public KConfigBase
 {
 public:
 	~KConfig();
-	KAcserverManager* am;
 	KVirtualHostManage* vm;
 	//run_user,run_group为一次性使用，可以安全用string
 	std::string run_user;
@@ -312,8 +306,8 @@ public:
 	std::string tmppath;
 	std::string program;
 	std::string extworker;
-	kasync_worker* ioWorker;
-	kasync_worker* dnsWorker;
+	kasync_worker* ioWorker = nullptr;
+	kasync_worker* dnsWorker = nullptr;
 	int serverNameLength = 0;
 	char serverName[32] = { 0 };
 	int select_count = 0;

@@ -26,12 +26,14 @@
 #include "KExtendProgram.h"
 #include "KConfigTree.h"
 #include <string>
-class KAcserverManager : public KXmlSupport
+class KAcserverManager: public KXmlBuilder
 {
 public:
 	KAcserverManager();
 	virtual ~KAcserverManager();
-	void on_event(kconfig::KConfigTree* tree, khttpd::KXmlNode* xml, kconfig::KConfigEventType ev);
+	void on_server_event(kconfig::KConfigTree* tree, khttpd::KXmlNode* xml, kconfig::KConfigEventType ev);
+	void on_cmd_event(kconfig::KConfigTree* tree, khttpd::KXmlNode* xml, kconfig::KConfigEventType ev);
+	void on_api_event(kconfig::KConfigTree* tree, khttpd::KXmlNode* xml, kconfig::KConfigEventType ev);
 	std::string acserverList(std::string name = "");
 	std::string apiList(std::string name = "");
 #ifdef ENABLE_VH_RUN_AS	
@@ -51,7 +53,6 @@ public:
 	/* 全部准备好了，可以加载所有的api了。*/
 	void loadAllApi();
 #endif
-	void copy(KAcserverManager& a);
 	void unloadAllApi();
 	bool remove_server(const std::string &name, std::string& err_msg);
 #ifdef ENABLE_MULTI_SERVER
@@ -85,13 +86,14 @@ public:
 	std::vector<std::string> getAllTarget();
 	bool new_server(bool overFlag, KXmlAttribute& attr, std::string& err_msg);
 #ifdef ENABLE_VH_RUN_AS
-	bool cmdForm(std::map<std::string, std::string>& attribute,
-		std::string& errMsg);
+	bool cmdForm(KXmlAttribute& attribute, std::string& errMsg);
 	KCmdPoolableRedirect* newCmdRedirect(std::map<std::string, std::string>& attribute,
 		std::string& errMsg);
 	KCmdPoolableRedirect* refsCmdRedirect(std::string name);
 	bool cmdEnable(std::string name, bool enable);
-	bool delCmd(std::string name, std::string& err_msg);
+	bool delCmd(const std::string& name, std::string& err_msg) {
+		return remove_item("cmd", name, err_msg);
+	}
 	bool addCmd(KCmdPoolableRedirect* as)
 	{
 		lock.WLock();
@@ -106,21 +108,19 @@ public:
 	}
 #endif
 	bool apiEnable(std::string name, bool enable);
-	bool delApi(std::string name, std::string& err_msg);
-	bool apiForm(std::map<std::string, std::string>& attribute, std::string& errMsg);
+	bool delApi(const std::string& name, std::string& err_msg) {
+		return remove_item("api", name, err_msg);
+	}
+	bool apiForm(KXmlAttribute& attribute, std::string& errMsg);
 	KSingleAcserver* refsSingleAcserver(std::string name);
 	KPoolableRedirect* refsAcserver(std::string name);
 	KRedirect* refsRedirect(std::string target);
 	KApiRedirect* refsApiRedirect(std::string name);
 	void clearImportConfig();
+	void buildXML(std::stringstream& s, int flag) override;
 	friend class KAccess;
 	friend class KHttpManage;
-public:
-	bool startElement(KXmlContext* context) override;
-	bool endElement(KXmlContext *context) override;
-	void buildXML(std::stringstream& s, int flag) override;
 private:
-	bool newApiRedirect(std::string name, std::string file, std::string type, std::string flag, std::string& err_msg);
 	KSingleAcserver* getSingleAcserver(std::string table_name);
 #ifdef ENABLE_MULTI_SERVER
 	KMultiAcserver* getMultiAcserver(std::string table_name);
@@ -128,16 +128,23 @@ private:
 #endif
 	KPoolableRedirect* getAcserver(std::string table_name);
 	KApiRedirect* getApiRedirect(std::string name);
-	KExtendProgram* cur_extend;
 #ifdef ENABLE_VH_RUN_AS
-	KCmdPoolableRedirect* cur_cmd;
 	KCmdPoolableRedirect* getCmdRedirect(std::string name);
 	std::map<std::string, KCmdPoolableRedirect*> cmds;
 #endif
 	std::map<std::string, KSingleAcserver*> acservers;
 	std::map<std::string, KApiRedirect*> apis;
+	bool remove_item(const std::string& scope, const std::string& name, std::string& err_msg);
+	bool new_item(const std::string& scope, bool is_update, KXmlAttribute& attr, std::string& err_msg);
 	KRWLock lock;
-
+	KRLocker get_rlocker() {
+		return KRLocker(&lock);
+	}
+	KWLocker get_wlocker() {
+		return KWLocker(&lock);
+	}
 };
 void on_server_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent *ev);
+void on_api_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_cmd_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
 #endif /*KACSERVERMANAGER_H_*/

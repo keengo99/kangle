@@ -219,21 +219,14 @@ INT64 get_size(const char* size) {
 	return get_radio_size(size, is_radio);
 }
 void init_config(KConfig* conf) {
-	conf->max = 50000;
 	conf->path_info = true;
-	conf->gzip_level = 5;
-	conf->br_level = 5;
-	conf->min_compress_length = 512;
 	conf->wl_time = 1800;
 #ifdef ENABLE_TF_EXCHANGE
 	conf->max_post_size = 8388608;
 #endif	
-	conf->read_hup = true;
 }
 void LoadDefaultConfig() {
 	init_config(&conf);
-	conf.ioWorker = NULL;
-	conf.dnsWorker = NULL;
 #ifdef ENABLE_DISK_CACHE
 	conf.diskWorkTime.set(NULL);
 #endif
@@ -535,6 +528,8 @@ int do_config_thread(void* first_time, int argc) {
 		kconfig::listen(_KS("dso_extend"), nullptr, on_dso_event, kconfig::ev_subdir);
 		kconfig::listen(_KS(""), &conf, on_main_event, kconfig::ev_subdir);
 		kconfig::listen(_KS("server"), conf.gam, on_server_event, kconfig::ev_subdir);
+		kconfig::listen(_KS("cmd"), conf.gam, on_cmd_event, kconfig::ev_subdir);
+		kconfig::listen(_KS("api"), conf.gam, on_api_event, kconfig::ev_subdir);
 		kconfig::listen(_KS("listen"), nullptr, on_listen_event, kconfig::ev_self | kconfig::ev_merge);
 		kconfig::listen(_KS("ssl_client"), nullptr, on_ssl_client_event, kconfig::ev_self);
 		kconfig::listen(_KS("admin"), nullptr, on_admin_event, kconfig::ev_self);
@@ -626,7 +621,6 @@ void load_config(KConfig* cconf, bool firstTime) {
 	std::string configFile = configFileDir + CONFIG_FILE;
 	loadExtConfigFile();
 	KAccess access[2];
-	KAcserverManager am;
 	KWriteBackManager wm;
 	KVirtualHostManage vm;
 	KXml xmlParser;
@@ -639,7 +633,6 @@ void load_config(KConfig* cconf, bool firstTime) {
 #ifdef ENABLE_BLACK_LIST
 		init_run_fw_cmd();
 #endif
-		xmlParser.addEvent(conf.gam);
 #ifdef ENABLE_WRITE_BACK
 		xmlParser.addEvent(&writeBackManager);
 #endif
@@ -647,7 +640,6 @@ void load_config(KConfig* cconf, bool firstTime) {
 		xmlParser.addEvent(&kaccess[0]);
 		xmlParser.addEvent(&kaccess[1]);
 #endif
-		cconf->am = conf.gam;
 		cconf->vm = &vm;
 		//dso配置只在启动时加载一次
 	} else {
@@ -662,9 +654,7 @@ void load_config(KConfig* cconf, bool firstTime) {
 		xmlParser.addEvent(&access[0]);
 		xmlParser.addEvent(&access[1]);
 #endif
-		xmlParser.addEvent(&am);
 		xmlParser.addEvent(&wm);
-		cconf->am = &am;
 		cconf->vm = &vm;
 	}
 
@@ -704,7 +694,6 @@ void load_config(KConfig* cconf, bool firstTime) {
 	load_db_vhost(cconf->vm);
 	conf.gvm->copy(&vm);
 	if (!firstTime) {
-		conf.gam->copy(am);
 		writeBackManager.copy(wm);
 		for (int i = 0; i < 2; i++) {
 			//access[i].setChainAction();

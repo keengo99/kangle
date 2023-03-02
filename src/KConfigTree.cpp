@@ -396,13 +396,19 @@ namespace kconfig {
 		return;
 	}
 	bool KConfigTree::notice(KConfigFile* file, khttpd::KXmlNode* xml, KConfigEventType ev_type, KXmlBodyDiff& diff) {
-		if (is_self()) {
-			notice(this, file, xml, ev_type, diff);
-			return true;
-		}
-		if (parent->is_subdir()) {
-			notice(parent, file, xml, ev_type, diff);
-			return true;
+		try {
+			if (is_self()) {
+				notice(this, file, xml, ev_type, diff);
+				return true;
+			}
+			if (parent->is_subdir()) {
+				notice(parent, file, xml, ev_type, diff);
+				return true;
+			}
+		} catch (std::exception& a) {
+			klog(KLOG_ERR, "config event exception happend [%s]\n", a.what());
+		} catch (...) {
+			klog(KLOG_ERR, "config event unknow exception happend\n");
 		}
 		return false;
 	}
@@ -941,10 +947,15 @@ namespace kconfig {
 	void init(on_begin_parse_f cb) {
 		locker = kfiber_mutex_init();
 		register_qname(_KS("worker_thread"));
+		register_qname(_KS("access_log"));
+		register_qname(_KS("log"));
 		register_qname(_KS("dso_extend@name"));
 		register_qname(_KS("server@name"));
 		register_qname(_KS("api@name"));
 		register_qname(_KS("cmd@name"));
+		register_qname(_KS("request"));
+		register_qname(_KS("response"));
+		register_qname(_KS("table@name"));
 		register_qname(_KS("vhs"));
 		register_qname(_KS("vh@name"));
 		begin_parse_cb = cb;

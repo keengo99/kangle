@@ -45,7 +45,7 @@ KRedirect* KCdnContainer::refsRedirect(const char* ip, const char* host, int por
 		lock.Unlock();
 		return rd;
 	}
-	KSingleAcserver* server = new KSingleAcserver;
+	KSingleAcserver* server = new KSingleAcserver("");
 	server->set_proto(proto);
 	server->sockHelper->setHostPort(host, port, ssl);
 	server->sockHelper->setLifeTime(life_time);

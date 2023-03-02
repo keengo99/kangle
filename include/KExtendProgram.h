@@ -153,8 +153,7 @@ public:
 	virtual ~KExtendProgramEvent() {
 	}
 	;
-	static KExtendProgramEvent *buildEvent(
-			std::map<std::string, std::string> &attribute);
+	static KExtendProgramEvent *buildEvent(const KXmlAttribute &attribute);
 };
 class KExtendProgramConfig: public KExtendProgramEvent {
 public:
@@ -247,9 +246,10 @@ public:
 	}
 	bool isChanged(KExtendProgram *ep);
 	std::string getEnv();
+	virtual bool parse_config(khttpd::KXmlNode* xml);
 	virtual void parseConfig(std::map<std::string, std::string> &attribute);
-	virtual bool parseEnv(std::map<std::string, std::string> &attribute);
-	bool addEvent(bool preEvent, std::map<std::string, std::string> &attribute);
+	virtual bool parseEnv(const KXmlAttribute&attribute);
+	bool addEvent(bool preEvent, const KXmlAttribute& attribute);
 	bool preLoad(KExtendProgramString *ds);
 	bool postLoad(KExtendProgramString *ds);
 	int type;
@@ -264,6 +264,7 @@ protected:
 	std::map<std::string,std::string> envs;
 	KCmdEnv *makeEnv(KExtendProgramString *ds);
 private:
+	void clean_event();
 	std::list<KExtendProgramEvent *> preEvents;
 	std::list<KExtendProgramEvent *> postEvents;
 };

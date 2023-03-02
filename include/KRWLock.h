@@ -111,9 +111,17 @@ public:
 		lock->WLock();
 		this->lock = lock;
 	}
+	KWLocker(const KWLocker& a) = delete;
+	KWLocker(KWLocker&& a) noexcept {
+		this->lock = a.lock;
+		a.lock = nullptr;
+	}
+	KWLocker& operator=(const KWLocker& a) = delete;
 	~KWLocker()
 	{
-		lock->WUnlock();
+		if (lock!=nullptr) {
+			lock->WUnlock();
+		}
 	}
 private:
 	KRWLock *lock;
@@ -126,9 +134,17 @@ public:
 		lock->RLock();
 		this->lock = lock;
 	}
+	KRLocker(const KRLocker& a) = delete;
+	KRLocker(KRLocker&& a) noexcept {
+		this->lock = a.lock;
+		a.lock = nullptr;
+	}
+	KRLocker& operator=(const KRLocker& a) = delete;
 	~KRLocker()
 	{
-		lock->RUnlock();
+		if (lock != nullptr) {
+			lock->RUnlock();
+		}
 	}
 private:
 	KRWLock *lock;

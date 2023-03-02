@@ -25,10 +25,10 @@
  * 支持多种协议，HTTP,AJP,FASTCGI等等。
  *
  */
-class KCmdPoolableRedirect: public KPoolableRedirect, public KExtendProgram {
+class KCmdPoolableRedirect final: public KPoolableRedirect, public KExtendProgram {
 public:
-	KCmdPoolableRedirect();
-	virtual ~KCmdPoolableRedirect();
+	KCmdPoolableRedirect(const std::string &name);
+
 	unsigned getPoolSize() {
 		return 0;
 	}
@@ -46,7 +46,8 @@ public:
 	}
 	bool Exec(KVirtualHost* vh, KListenPipeStream* st, bool isSameRunning);
 	//KTcpUpstream *createPipeStream(KVirtualHost *vh, KListenPipeStream *st, std::string &unix_path,bool isSameRunning);
-	bool parseEnv(std::map<std::string, std::string> &attribute) override;
+	bool parseEnv(const KXmlAttribute &attribute) override;
+	bool parse_config(khttpd::KXmlNode* node) override;
 	void buildXML(std::stringstream &s) override;
 	const char *getType() override {
 		return "cmd";
@@ -67,6 +68,8 @@ public:
 	int sig;
 	friend class KSPCmdGroupConnection;	
 	std::string cmd;
+protected:
+	~KCmdPoolableRedirect();
 private:
 	bool setWorkType(const char *typeStr,bool changed);
 	kfiber_mutex* lock;

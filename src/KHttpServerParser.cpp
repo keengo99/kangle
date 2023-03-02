@@ -136,7 +136,7 @@ bool KHttpServerParser::startElement(KXmlContext *context) {
 			std::string extend = context->attribute["extend"];
 			KRedirect *ac = NULL;
 			if (strcasecmp(extend.c_str(), "default") != 0) {
-				KAcserverManager *am = (c ? c->am : conf.gam);
+				KAcserverManager *am = conf.gam;
 				ac = am->refsRedirect(extend);
 				if (ac == NULL) {
 					fprintf(stderr, "cann't find extend [%s]\n",
