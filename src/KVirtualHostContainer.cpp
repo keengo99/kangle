@@ -155,12 +155,14 @@ bool convert(const char *domain,bool &wide,domain_t buf,int buf_size) {
 }
 void KVirtualHostContainer::bind_vh(KVirtualHost* vh, bool high)
 {
+	auto lock = get_locker();
 	for (auto it2 = vh->hosts.begin(); it2 != vh->hosts.end(); ++it2) {
 		root.add((*it2)->bind_host, (*it2)->wide, high ? kgl_bind_high : kgl_bind_low, (*it2));
 	}
 }
 void KVirtualHostContainer::unbind_vh(KVirtualHost* vh)
 {
+	auto lock = get_locker();
 	for (auto it2 = vh->hosts.begin(); it2 != vh->hosts.end(); ++it2) {
 		root.del((*it2)->bind_host, (*it2)->wide, (*it2));
 	}

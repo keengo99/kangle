@@ -6,6 +6,7 @@
 #include "KHttpLib.h"
 #include "KAtomCountable.h"
 #include "KConfigTree.h"
+#include "KMutex.h"
 
 class KSubVirtualHost;
 class KHttpRequest;
@@ -82,6 +83,7 @@ public:
 	KBindVirtualHost()
 	{
 		this->svh = NULL;
+		next = NULL;
 	}
 	void *svh;
 	KBindVirtualHost *next;
@@ -140,19 +142,28 @@ class KVirtualHostContainer : public KAtomCountable
 {
 public:
 	KVirtualHostContainer();
-	KDomainMap* get_root()
+	KDomainMap* get_root(const KLocker &locker)
 	{
 		return &root;
 	}
+	bool empty() {
+		auto lock = get_locker();
+		return root.is_empty();
+	}
 	void* find(const char* domain)
 	{
+		auto lock = get_locker();
 		return root.find(domain);
 	}
 	void bind_vh(KVirtualHost* vh, bool high = false);
 	void unbind_vh(KVirtualHost* vh);
+	KLocker get_locker() {
+		return KLocker(&lock);
+	}
 protected:
 	~KVirtualHostContainer();
 private:
 	KDomainMap root;
+	KMutex lock;
 };
 #endif

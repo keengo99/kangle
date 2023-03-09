@@ -54,7 +54,7 @@ public:
 	 * É¾³ýÐéÄâÖ÷»ú
 	 */
 	bool removeVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh);
-	query_vh_result queryVirtualHost(KVirtualHostContainer* vhc, KSubVirtualHost** rq_svh, const char* site, int site_len);
+	static query_vh_result queryVirtualHost(KVirtualHostContainer* vhc, KSubVirtualHost** rq_svh, const char* site, int site_len);
 	int find_domain(const char* domain, WhmContext* ctx);
 	void getAllVh(std::list<std::string>& vhs, bool status, bool onlydb);
 	KVirtualHost* refsVirtualHostByName(const std::string& name);

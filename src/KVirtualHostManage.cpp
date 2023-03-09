@@ -382,8 +382,8 @@ query_vh_result KVirtualHostManage::queryVirtualHost(KVirtualHostContainer* vhc,
 	if (!revert_hostname(site, site_len, bind_site, sizeof(bind_site))) {
 		return result;
 	}
-	auto lock = locker();
-	KSubVirtualHost* svh = (KSubVirtualHost*)vhc->get_root()->find(bind_site);
+	auto locker = vhc->get_locker();
+	KSubVirtualHost* svh = (KSubVirtualHost*)vhc->get_root(locker)->find(bind_site);
 	if (svh) {
 		result = query_vh_success;
 		if ((*rq_svh) != svh) {

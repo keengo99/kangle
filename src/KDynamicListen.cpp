@@ -57,7 +57,7 @@ kgl_ssl_ctx *kserver_load_ssl(uint32_t *flags,KSslConfig *ssl_config)
 static bool kserver_is_empty(kserver *server)
 {
 	KVirtualHostContainer *vhc = (KVirtualHostContainer *)kserver_get_opaque(server);
-	return vhc->get_root()->is_empty();
+	return vhc->empty();
 }
 static kserver *kserver_new(KVirtualHostContainer* vhc)
 {
@@ -595,7 +595,8 @@ static iterator_ret query_domain_iterator(void *data, void *argv)
 	}
 	KVirtualHostContainer* vhc = (KVirtualHostContainer*)kserver_get_opaque(server);
 	assert(vhc != NULL);
-	KSubVirtualHost *svh = (KSubVirtualHost *)vhc->get_root()->find(param->host);
+	auto locker = vhc->get_locker();
+	KSubVirtualHost *svh = (KSubVirtualHost *)vhc->get_root(locker)->find(param->host);
 	if (svh) {
 		KStringBuf s;
 		if (!listen->key->ipv4) {
