@@ -456,7 +456,7 @@ namespace kconfig {
 		child.erase(node);
 	}
 	KMapNode<KConfigTree>* KConfigTree::find_child(khttpd::KXmlKey* name) {
-		static kgl_ref_str_t empty_tag = { 0 };
+		static kgl_ref_str_t empty_tag{ nullptr ,0,1};
 		decltype(child.find(nullptr)) it;
 		if (is_subdir()) {
 			int new_flag;
