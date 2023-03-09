@@ -311,15 +311,14 @@ void shutdown_signal(int sig) {
 }
 
 #ifdef _WIN32
-char* get_signal_pipe_name(int pid) {
+kgl_auto_cstr get_signal_pipe_name(int pid) {
 	KStringBuf spipe;
 	spipe << "\\\\.\\pipe\\kangle_signal_" << pid;
 	return spipe.steal();
 }
 int kill(int pid, char sig) {
-	char* spipe = get_signal_pipe_name(pid);
-	HANDLE fd = CreateFile(spipe, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-	free(spipe);
+	auto spipe = get_signal_pipe_name(pid);
+	HANDLE fd = CreateFile(spipe.get(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 	if (!kflike(fd)) {
 		return -1;
 	}
@@ -362,9 +361,9 @@ bool signal_recved_pipe() {
 	return true;
 }
 void create_signal_pipe() {
-	char* spipe = get_signal_pipe_name((int)getpid());
+	auto spipe = get_signal_pipe_name((int)getpid());
 	signal_pipe = CreateNamedPipe(
-		spipe, // pipe name
+		spipe.get(), // pipe name
 		PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED, // read/write access
 		PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | // message-read mode
 		PIPE_WAIT, // blocking mode
@@ -373,7 +372,6 @@ void create_signal_pipe() {
 		1024, // input buffer size
 		0,//conf.time_out*1000, // client time-out
 		NULL);
-	free(spipe);
 }
 KTHREAD_FUNCTION signal_thread(void* arg) {
 	if (!kflike(signal_pipe)) {

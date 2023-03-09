@@ -12,7 +12,7 @@ struct kgl_vary_request {
 	KHttpRequest *rq;
 	KStringBuf *s;
 };
-char *get_obj_url_key(KHttpObject *obj, int *len)
+kgl_auto_cstr get_obj_url_key(KHttpObject *obj, int *len)
 {
 	KStringBuf s;
 	obj->uk.url->GetUrl(s);

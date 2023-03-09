@@ -426,9 +426,9 @@ KGL_RESULT handle_error(KHttpRequest* rq, int code, const char* msg) {
 	}
 	const char* errorPage = errorPage2.c_str();
 	if (strncasecmp(errorPage, "http://", 7) == 0 || strncasecmp(errorPage, "https://", 8) == 0) {
-		std::stringstream s;
+		KStringBuf s;
 		s << errorPage << "?" << obj->data->i.status_code << "," << rq->getInfo();
-		push_redirect_header(rq, s.str().c_str(), (int)s.str().size(), STATUS_FOUND);
+		push_redirect_header(rq, s.c_str(), (int)s.size(), STATUS_FOUND);
 		rq->response_content_length(0);
 		rq->start_response_body(0);
 		return KGL_OK;
@@ -915,9 +915,10 @@ KGL_RESULT process_cache_request(KHttpRequest* rq) {
 		//swap in failed.
 #ifdef ENABLE_DISK_CACHE
 	//不能swap in就从源上去取
-		char* filename = obj->get_filename();
-		klog(KLOG_ERR, "obj swap in failed cache file [%s] error=[%d].\n", filename, result);
-		free(filename);
+		{
+			auto filename = obj->get_filename();
+			klog(KLOG_ERR, "obj swap in failed cache file [%s] error=[%d].\n", filename.get(), result);
+		}
 #endif
 		rq->clean_obj();
 		rq->ctx.obj = new KHttpObject(rq);

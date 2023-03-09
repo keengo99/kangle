@@ -94,7 +94,7 @@ public:
 #endif
 };
 
-inline char* getPath(const char* file) {
+inline kgl_auto_cstr getPath(const char* file) {
 	char* path = strdup(file);
 	char* e = path + strlen(path);
 	while (e > path) {
@@ -109,7 +109,7 @@ inline char* getPath(const char* file) {
 		e--;
 
 	}
-	return path;
+	return kgl_auto_cstr(path);
 
 }
 class KExtConfigDynamicString : public KDynamicString
@@ -120,13 +120,10 @@ public:
 		path = getPath(file);
 	}
 	~KExtConfigDynamicString() {
-		if (path) {
-			xfree(path);
-		}
 	}
 	const char* getValue(const char* name) {
 		if (strcasecmp(name, "config_dir") == 0) {
-			return path;
+			return path.get();
 		}
 		if (strcasecmp(name, "config_file") == 0) {
 			return file;
@@ -134,7 +131,7 @@ public:
 		return NULL;
 	}
 private:
-	char* path;
+	kgl_auto_cstr path;
 	const char* file;
 };
 class KListenHost : public KSslConfig

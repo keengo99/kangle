@@ -171,7 +171,7 @@ bool KDsoExtend::load(const char* filename, const KXmlAttribute& attribute)
 	this->attribute = attribute;
 	orign_filename = strdup(filename);
 	KDynamicString ds;
-	this->filename = ds.parseString(filename);
+	this->filename = ds.parseString(filename).release();
 	if (!dso.load(this->filename)) {
 		klog(KLOG_ERR, "cann't load dso extend [%s]\n", name);
 		return false;

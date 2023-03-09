@@ -449,18 +449,18 @@ bool KHttpRequest::rewrite_url(const char* newUrl, int errorCode, const char* pr
 		if (sink->data.url->param) {
 			xfree(sink->data.url->param);
 		}
-		sink->data.url->param = s.steal();
+		sink->data.url->param = s.steal().release();
 	}
 	KBIT_SET(sink->data.raw_url->flags, KGL_URL_REWRITED);
 	return true;
 }
-char* KHttpRequest::getUrl() {
+kgl_auto_cstr KHttpRequest::getUrl() {
 	if (sink->data.url == NULL) {
-		return strdup("");
+		return kgl_auto_cstr(strdup(""));
 	}
 	return sink->data.url->getUrl();
 }
-std::string KHttpRequest::getInfo() {
+KString KHttpRequest::getInfo() {
 	KStringBuf s;
 #ifdef HTTP_PROXY
 	if (sink->data.meth == METH_CONNECT) {
@@ -472,7 +472,7 @@ std::string KHttpRequest::getInfo() {
 	}
 #endif
 	sink->data.raw_url->GetUrl(s, true);
-	return s.c_str();
+	return KString(std::move(s));
 }
 
 KHttpRequest::~KHttpRequest() {
@@ -599,7 +599,7 @@ void KHttpRequest::response_vary(const char* vary) {
 		response_header(kgl_expand_string("Vary"), s.c_str(), len);
 	}
 }
-char* KHttpRequest::build_vary(const char* vary) {
+kgl_auto_cstr KHttpRequest::build_vary(const char* vary) {
 	KHttpField field;
 	field.parse(vary, ',');
 	KStringBuf s;
@@ -617,7 +617,7 @@ char* KHttpRequest::build_vary(const char* vary) {
 				if (!build_vary_extend(this, &s, name, value)) {
 					//如果存在不能识别的扩展vary，则不缓存
 					KBIT_SET(this->ctx.filter_flags, RF_NO_CACHE);
-					return NULL;
+					return nullptr;
 				}
 			} else {
 				KHttpHeader* rq_header = sink->data.find(head->attr, (int)strlen(head->attr));
@@ -630,7 +630,7 @@ char* KHttpRequest::build_vary(const char* vary) {
 		head = head->next;
 	}
 	if (s.size() == 0) {
-		return NULL;
+		return nullptr;
 	}
 	return s.steal();
 }

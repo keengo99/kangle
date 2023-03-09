@@ -199,10 +199,9 @@ bool WhmDso::init(std::string &whmFile) {
 		return false;
 	}
 #ifdef _WIN32
-	char *file_path = getPath(file.c_str());
-	if (file_path != NULL) {
-		SetDllDirectory(file_path);
-		xfree(file_path);
+	auto file_path = getPath(file.c_str());
+	if (file_path) {
+		SetDllDirectory(file_path.get());
 	}
 	file += ".dll";
 #else

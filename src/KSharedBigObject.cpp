@@ -131,15 +131,12 @@ bool KSharedBigObject::open_file_handle(KHttpObject* obj) {
 	if (fp) {
 		return true;
 	}
-	char* filename = obj->get_filename();
+	auto filename = obj->get_filename();
 	if (!filename) {
 		return false;
 	}
-	if (filename) {
-		fp = kfiber_file_open(filename, fileReadWrite, 0);
-		free(filename);
-	}
-	return true;
+	fp = kfiber_file_open(filename.get(), fileReadWrite, 0);
+	return fp != nullptr;
 }
 void KSharedBigObject::open_read(KHttpObject* obj) {
 	kfiber_mutex_lock(lock);
@@ -353,14 +350,13 @@ void KSharedBigObject::close_write(KHttpObject* obj, int64_t write_from) {
 }
 bool KSharedBigObject::create(KHttpObject* obj) {
 	assert(obj->data->i.type == BIG_OBJECT_PROGRESS);
-	char* filename = obj->get_filename();
+	auto filename = obj->get_filename();
 	if (filename == NULL) {
 		return false;
 	}
 	kfiber_mutex_lock(lock);
 	assert(fp == NULL);
-	fp = kfiber_file_open(filename, fileWriteRead, 0);
-	xfree(filename);
+	fp = kfiber_file_open(filename.get(), fileWriteRead, 0);
 	if (fp == NULL) {
 		kfiber_mutex_unlock(lock);
 		return false;
@@ -514,16 +510,14 @@ kgl_satisfy_status KSharedBigObject::can_satisfy(kgl_request_range* range, KHttp
 
 bool KSharedBigObject::save_progress(KHttpObject* obj) {
 	assert(!kfiber_is_main());
-	char* filename = obj->get_filename(true);
+	auto filename = obj->get_filename(true);
 	if (filename == NULL) {
 		return false;
 	}
-	kfiber_file* fp = kfiber_file_open(filename, fileWrite, 0);
+	kfiber_file* fp = kfiber_file_open(filename.get(), fileWrite, 0);
 	if (!fp) {
-		free(filename);
 		return false;
 	}
-	free(filename);
 	krb_node* node = rb_first(&blocks);
 	while (node) {
 		KBigObjectBlock* block = (KBigObjectBlock*)node->data;

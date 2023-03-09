@@ -73,11 +73,11 @@ inline bool is_valide_dc_sign(KHttpObjectFileHeader *header)
 		header->version == CACHE_DISK_VERSION;
 }
 bool kgl_dc_skip_string(char **hot,int &hotlen);
-char *kgl_dc_read_string(char **hot,int &hotlen,int &len);
+kgl_auto_cstr kgl_dc_read_string(char **hot,int &hotlen,int &len);
 bool kgl_dc_skip_string(KFile *file);
 int kgl_dc_write_string(KBufferFile *fp,const char *str,int len=0);
 int kgl_dc_write_string(char *hot, const char *str, int len);
-char *getCacheIndexFile();
+kgl_auto_cstr getCacheIndexFile();
 class KHttpObjectBody;
 bool read_obj_head(KHttpObjectBody *data,char **hot,int &hotlen);
 void scan_disk_cache();

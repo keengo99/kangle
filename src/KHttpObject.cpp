@@ -71,30 +71,26 @@ bool KHttpObject::AddVary(KHttpRequest* rq, const char* val, int val_len)
 {
 	KBIT_SET(index.flags, OBJ_HAS_VARY);
 	if (uk.vary == NULL) {
-		char* vary_val = rq->build_vary(val);
+		auto vary_val = rq->build_vary(val);
 		if (vary_val != NULL) {
 			uk.vary = new KVary;
-			uk.vary->val = vary_val;
+			uk.vary->val = vary_val.release();
 			uk.vary->key = strdup(val);
 			return true;
 		}
 	}
 	return false;
 }
-char* KHttpObject::BuildVary(KHttpRequest* rq)
+kgl_auto_cstr KHttpObject::BuildVary(KHttpRequest* rq)
 {
 	if (uk.vary == NULL) {
-		return NULL;
+		return nullptr;
 	}
-	KMutex* lock = getLock();
-	lock->Lock();
+	KLocker locker(getLock());
 	if (uk.vary->key == NULL) {
-		lock->Unlock();
-		return NULL;
+		return nullptr;
 	}
-	char* vary = rq->build_vary(uk.vary->key);
-	lock->Unlock();
-	return vary;
+	return rq->build_vary(uk.vary->key);
 }
 KHttpObject::KHttpObject(KHttpRequest* rq, KHttpObject* obj)
 {
@@ -200,11 +196,10 @@ int KHttpObject::GetHeaderSize(int url_len)
 	}
 	int len = sizeof(KHttpObjectFileHeader);
 	if (url_len == 0) {
-		char* u = get_obj_url_key(this, &url_len);
+		auto u = get_obj_url_key(this, &url_len);
 		if (u == NULL) {
 			return 0;
 		}
-		free(u);
 	}
 	len += url_len + sizeof(int);
 	KHttpHeader* header = data->headers;
@@ -300,33 +295,31 @@ void KHttpObject::unlinkDiskFile()
 			dci->start(ci_del, this);
 		}
 #endif
-		char* name = get_filename();
-		int ret = unlink(name);
-		char* url = this->uk.url->getUrl();
+		auto name = get_filename();
+		int ret = unlink(name.get());
+		auto url = this->uk.url->getUrl();
 		assert(url);
 		if (url) {
 			klog(KLOG_INFO, "unlink disk cache obj=[%p %x] url=[%s] file=[%s] ret=[%d] errno=[%d]\n",
 				this,
 				this->index.flags,
-				url,
-				name,
+				url.get(),
+				name.get(),
 				ret,
 				errno);
-			free(url);
 		}
 #ifdef ENABLE_BIG_OBJECT_206
 		if (KBIT_TEST(index.flags, FLAG_BIG_OBJECT_PROGRESS)) {
 			KStringBuf partfile;
-			partfile << name << ".part";
+			partfile << name.get() << ".part";
 			if (0 != unlink(partfile.c_str())) {
 				klog(KLOG_ERR, "cann't unlink file[%s] errno=%d\n", partfile.c_str(), errno);
 			}
 		}
 #endif
-		free(name);
 	}
 }
-char* KHttpObject::get_filename(bool part)
+kgl_auto_cstr KHttpObject::get_filename(bool part)
 {
 	KStringBuf s;
 	get_disk_base_dir(s);
@@ -400,20 +393,17 @@ int KHttpObject::build_header(char* buf, char* end, const char* url, int url_len
 }
 char* KHttpObject::build_aio_header(int& len, const char* url, int url_len)
 {
-	char* u = nullptr;
+	kgl_auto_cstr u = nullptr;
 	if (!url) {
 		u = get_obj_url_key(this, &url_len);
 		if (!u) {
 			return nullptr;
 		}
-		url = u;
+		url = u.get();
 	}
 	len = GetHeaderSize(url_len);
 	char* buf = (char*)aio_alloc_buffer(len);
 	build_header(buf, buf + len, url, url_len);
-	if (u) {
-		free(u);
-	}
 	return buf;
 }
 
@@ -437,7 +427,6 @@ bool KHttpObject::swapout(KBufferFile* file, bool fast_model)
 		return false;
 	}
 	kbuf* tmp;
-	char* filename = NULL;
 	assert(data);
 	if (KBIT_TEST(index.flags, FLAG_IN_DISK)) {
 		if (dc_index_update == 0) {
@@ -454,8 +443,8 @@ bool KHttpObject::swapout(KBufferFile* file, bool fast_model)
 		return false;
 	}
 	int url_len = 0;
-	char* url = get_obj_url_key(this, &url_len);
-	if (url == NULL) {
+	auto url = get_obj_url_key(this, &url_len);
+	if (url == nullptr) {
 		return false;
 	}
 	GetHeaderSize(url_len);
@@ -463,20 +452,20 @@ bool KHttpObject::swapout(KBufferFile* file, bool fast_model)
 	if (buffer_size > KGL_MAX_BUFFER_FILE_SIZE) {
 		buffer_size = KGL_MAX_BUFFER_FILE_SIZE;
 	}
-	filename = get_filename();
+	auto filename = get_filename();
 	klog(KLOG_INFO, "swap out obj=[%p %x] url=[%s] to file [%s]\n",
 		this,
 		index.flags,
-		url,
-		filename);
+		url.get(),
+		filename.get());
 	kassert(!file->opened());
 	file->init();
-	if (!file->open(filename, fileModify, KFILE_DSYNC)) {
+	if (!file->open(filename.get(), fileModify, KFILE_DSYNC)) {
 		int err = errno;
-		klog(KLOG_WARNING, "cann't open file [%s] to write. errno=[%d %s]\n", filename, err, strerror(err));
+		klog(KLOG_WARNING, "cann't open file [%s] to write. errno=[%d %s]\n", filename.get(), err, strerror(err));
 		goto swap_out_failed;
 	}
-	if (!save_header(file, url, url_len)) {
+	if (!save_header(file, url.get(), url_len)) {
 		goto swap_out_failed;
 	}
 #ifdef ENABLE_BIG_OBJECT_206
@@ -495,13 +484,13 @@ bool KHttpObject::swapout(KBufferFile* file, bool fast_model)
 		goto swap_out_success;
 	}
 	if (data->i.type != MEMORY_OBJECT) {
-		klog(KLOG_ERR, "swapout failed obj type=[%d],file=[%s].\n", data->i.type, filename);
+		klog(KLOG_ERR, "swapout failed obj type=[%d],file=[%s].\n", data->i.type, filename.get());
 		goto swap_out_failed;
 	}
 	tmp = data->bodys;
 	while (tmp) {
 		if (file->write(tmp->data, tmp->used) < (int)tmp->used) {
-			klog(KLOG_ERR, "cann't write cache to disk file=[%s].\n", filename);
+			klog(KLOG_ERR, "cann't write cache to disk file=[%s].\n", filename.get());
 			goto swap_out_failed;
 		}
 		tmp = tmp->next;
@@ -513,24 +502,12 @@ bool KHttpObject::swapout(KBufferFile* file, bool fast_model)
 	}
 #endif
 swap_out_success:
-	if (url) {
-		free(url);
-	}
-	if (filename) {
-		free(filename);
-	}
 	file->close();
 	return true;
 swap_out_failed:
-	if (url) {
-		free(url);
-	}
 	if (file->opened()) {
 		file->close();
-		unlink(filename);
-	}
-	if (filename) {
-		free(filename);
+		unlink(filename.get());
 	}
 	return false;
 }

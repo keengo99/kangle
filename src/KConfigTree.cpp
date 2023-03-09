@@ -49,22 +49,20 @@ namespace kconfig {
 				klog(KLOG_ERR, "config file [%s %s] is too big. size=[%d]\n", file->get_name()->data, file->get_filename()->data, size);
 				return nullptr;
 			}
-			char* buf = (char*)malloc(size + 1);
+			kgl_auto_cstr buf((char*)malloc(size + 1));
 			if (!buf) {
 				return nullptr;
 			}
-			defer(free(buf));
-			buf[size] = '\0';
-			if (!kfiber_file_read_full(fp, buf, &size)) {
+			buf.get()[size] = '\0';
+			if (!kfiber_file_read_full(fp, buf.get(), &size)) {
 				return nullptr;
 			}
 			KExtConfigDynamicString ds(file->get_filename()->data);
 			ds.dimModel = false;
 			ds.blockModel = false;
 			ds.envChar = '%';
-			char* content = ds.parseDirect(buf);
-			defer(free(content));
-			char* hot = content;
+			auto content = ds.parseDirect(buf.get());
+			char* hot = content.get();
 			while (*hot && isspace((unsigned char)*hot)) {
 				hot++;
 			}
@@ -89,7 +87,7 @@ namespace kconfig {
 			}
 			file->set_index(id);
 			file->set_remove_flag(false);
-			auto node = parse_xml(content);
+			auto node = parse_xml(content.get());
 			if (begin_parse_cb) {
 				if (!begin_parse_cb(file, node.get())) {
 					node = nullptr;

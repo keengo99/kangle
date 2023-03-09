@@ -58,8 +58,8 @@ public:
 	void addEnv(std::string name,std::string value){
 		kv[name] = value;
 	}
-	char *parseString(const char *str);
-	char *parseDirect(char *buf);
+	kgl_auto_cstr parseString(const char *str);
+	kgl_auto_cstr parseDirect(char *buf);
 	/*
 	 * 是否支持数组
 	 */

@@ -5,7 +5,7 @@ set(KANGLE_VERSION "3.6.0")
 set(CPACK_PACKAGE_VERSION ${KANGLE_VERSION})
 set(KANGLE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g2")
+
 file(GLOB KANGLE_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h  
@@ -76,6 +76,9 @@ if (ENABLE_BROTLI)
 	    list(APPEND KANGLE_LIBS "brotlienc-static" "brotlicommon-static")
 	    #      list(APPEND KANGLE_LIBS "brotlicommon" "brotlienc")
     endif()
+endif()
+if (NOT (CMAKE_SYSTEM_NAME MATCHES "Windows"))
+    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g2")
 endif()
 set(KASYNC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/kasync)
 

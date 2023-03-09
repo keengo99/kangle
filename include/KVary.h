@@ -50,7 +50,7 @@ struct KUrlKey
 	KUrl *url;
 	KVary *vary;
 };
-char *get_obj_url_key(KHttpObject *obj, int *len);
+kgl_auto_cstr get_obj_url_key(KHttpObject *obj, int *len);
 void update_url_vary_key(KUrlKey *uk, const char *key);
 bool register_vary_extend(kgl_vary *vary);
 bool build_vary_extend(KHttpRequest *rq, KStringBuf *s, const char *name, const char *value);

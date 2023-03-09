@@ -26,7 +26,7 @@ bool KHostRewriteMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** f
 	}
 	if (rewrite) {
 		free(rq->sink->data.url->host);
-		rq->sink->data.url->host = cdn_host->steal();
+		rq->sink->data.url->host = cdn_host->steal().release();
 		if (port>0) {
 			rq->sink->data.url->port = port;
 		}

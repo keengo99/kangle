@@ -23,7 +23,7 @@ private:
 	int flush_time;
 	bool started;
 	KStringBuf data;
-	char *sign;
+	kgl_auto_cstr sign;
 	KIpMap *im;
 	KMutex lock;
 	bool parse_data();

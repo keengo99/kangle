@@ -25,7 +25,7 @@ kev_result run_fw_call_back(void *data,int msec)
 		if (args[i]==NULL) {
 			continue;
 		}
-		arg[j] = ds.parseString(args[i]);
+		arg[j] = ds.parseString(args[i]).release();
 		j++;
 	}
 	arg[j] = NULL;

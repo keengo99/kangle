@@ -19,15 +19,13 @@ WhmExtend::~WhmExtend() {
 }
 bool WhmExtend::init(std::string &whmFile) {
 	KDynamicString ds;
-	char *dpath = ds.parseString(file.c_str());
+	auto dpath = ds.parseString(file.c_str());
 	if(dpath){
-		file = dpath;
-		xfree(dpath);
+		file = dpath.get();
 	}
 	if (!isAbsolutePath(file.c_str())) {
-		char *path = getPath(whmFile.c_str());
-		string newPath = path;
-		xfree(path);
+		auto path = getPath(whmFile.c_str());
+		string newPath = path.get();
 		newPath += PATH_SPLIT_CHAR;
 		newPath += file;
 		newPath.swap(file);
@@ -54,16 +52,16 @@ int WhmExtend::whmCall(const char *callName,const char *eventType,WhmContext *co
 	//重定向调用
 	KServiceProvider *sp = context->getProvider();
 	stringstream s;
-	char *path = getPath(sp->getFileName());
-	if(path == NULL){
+	auto path = getPath(sp->getFileName());
+	if(!path){
 		return WHM_CALL_FAILED;
 	}
-	char *buf = NULL;
+	kgl_auto_cstr buf;
 	if(rd==NULL || rd->size()<=0){
 		ret = WHM_CALL_FAILED;
 	}else{
 		buf = rd->steal();
-		char *hot = buf;
+		char *hot = buf.get();
 		//rd->init(256);
 		for(;;){
 			char *p = strchr(hot,',');
@@ -91,12 +89,6 @@ int WhmExtend::whmCall(const char *callName,const char *eventType,WhmContext *co
 			}
 			hot = p+1;
 		}
-	}
-	if (buf) {
-		xfree(buf);
-	}
-	if (path) {
-		xfree(path);
 	}
 	return ret;	
 }

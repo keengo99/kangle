@@ -30,25 +30,20 @@ bool KDsoModule::load(const char *file)
 	}else{
 		path = file;
 	}
-//{{ent
 #ifdef _WIN32
-	char *file_path = getPath(path.c_str());
+	auto file_path = getPath(path.c_str());
 	if (file_path != NULL) {
-		SetDllDirectory(file_path);
-		xfree(file_path);
+		SetDllDirectory(file_path.get());
 	}
 #endif
-//}}
 	handle = LoadLibrary(path.c_str());
 	if (handle == NULL) {
 		klog(KLOG_ERR,"cann't LoadLibrary %s %s\n", path.c_str(), getError());
 		return false;
 	}
-//{{ent
 #ifdef _WIN32
 	SetDllDirectory(NULL);
 #endif
-//}}
 	return true;
 }
 void *KDsoModule::findFunction(const char *func)

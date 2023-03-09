@@ -10,7 +10,7 @@ using namespace std;
 static int redirect_node_cmp(const void* k1, const void* k2) {
 	const char* name = (const char*)k1;
 	const KRedirectNode* rd = (const KRedirectNode*)k2;
-	return strcasecmp(name, rd->name);
+	return strcasecmp(name, rd->name.get());
 }
 KCdnContainer::KCdnContainer() {
 #ifdef ENABLE_TCMALLOC
@@ -165,7 +165,7 @@ KRedirect* KCdnContainer::refsRedirect(const char* name) {
 	free(buf);
 	if (rd != NULL) {
 		KRedirectNode* rn = new KRedirectNode;
-		rn->name = strdup(name);
+		rn->name = kgl_auto_cstr(strdup(name));
 		rn->rd = rd;
 		addRedirect(rn);
 		rd->add_ref();
@@ -217,7 +217,6 @@ void KCdnContainer::Remove(KRedirectNode* rn) {
 	rn->rd->release();
 	klist_remove(rn);
 	rbtree_remove(rd_map, rn->node);
-	xfree(rn->name);
 	delete rn;
 }
 KRedirect* KCdnContainer::findRedirect(const char* name) {
@@ -233,7 +232,7 @@ KRedirect* KCdnContainer::findRedirect(const char* name) {
 }
 void KCdnContainer::addRedirect(KRedirectNode* rn) {
 	int new_flags = 0;
-	rn->node = rbtree_insert(rd_map, (void*)rn->name, &new_flags, redirect_node_cmp);
+	rn->node = rbtree_insert(rd_map, (void*)rn->name.get(), &new_flags, redirect_node_cmp);
 	assert(new_flags);
 	rn->lastActive = kgl_current_sec;
 	klist_append(&rd_list, rn);

@@ -40,29 +40,25 @@ void KCloudIpAcl::http_body_hook(const char *data, int len)
 }
 bool KCloudIpAcl::parse_data()
 {
-	char *buf = data.steal();
+	auto buf = data.steal();
 	//data.init(512);
-	char *hot = strchr(buf, '\n');
+	char *hot = strchr(buf.get(), '\n');
 	if (hot == NULL) {
-		free(buf);
 		return false;
 	}
 	*hot++ = '\0';
-	if (this->sign && strcmp(this->sign,buf)==0) {
+	if (this->sign && strcmp(this->sign.get(), buf.get())==0) {
 		//not changed
-		free(buf);
 		return true;
 	}
-	int buf_len = (int)strlen(buf);
+	int buf_len = (int)strlen(buf.get());
 	if (buf_len < 6) {
-		klog(KLOG_ERR,"cloud_ip buf=[%s] len=[%d] is too short min len [6]\n",buf,buf_len);
-		free(buf);
+		klog(KLOG_ERR,"cloud_ip buf=[%s] len=[%d] is too short min len [6]\n",buf.get(),buf_len);
 		return false;
 	}
 	char *end = strchr(hot, '\n');
 	if (end == NULL) {
 		klog(KLOG_ERR,"cloud_ip no end char\n");
-		free(buf);
 		return false;
 	}
 	*end = '\0';
@@ -73,10 +69,7 @@ bool KCloudIpAcl::parse_data()
 		delete this->im;
 	}
 	this->im = im2;
-	if (this->sign) {
-		free(this->sign);
-	}
-	this->sign = buf;	
+	this->sign = std::move(buf);
 	lock.Unlock();
 	return true;
 }
@@ -89,9 +82,6 @@ KCloudIpAcl::KCloudIpAcl()
 }
 KCloudIpAcl::~KCloudIpAcl()
 {
-	if (this->sign) {
-		free(this->sign);
-	}
 	if (im) {
 		delete im;
 	}

@@ -5,7 +5,7 @@
 
 bool KDiskCacheStream::Open(KHttpObject *obj)
 {
-	filename = obj->get_filename();
+	filename = obj->get_filename().release();
 	fileModel model = fileWrite;
 	fp = kfiber_file_open(filename, model, 0);
 	if (fp == NULL) {

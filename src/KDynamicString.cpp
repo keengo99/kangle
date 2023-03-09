@@ -253,7 +253,7 @@ void KDynamicString::controlCode(char* code) {
 		blockStack.pop_front();
 	}
 }
-char* KDynamicString::parseDirect(char* str) {
+kgl_auto_cstr KDynamicString::parseDirect(char* str) {
 	if (buf) {
 		xfree(buf);
 	}
@@ -265,11 +265,10 @@ char* KDynamicString::parseDirect(char* str) {
 	buf = str;
 	hot = buf;
 	parseString();
-	char* result = dst->steal();
 	buf = NULL;
-	return result;
+	return dst->steal();
 }
-char* KDynamicString::parseString(const char* str) {
+kgl_auto_cstr KDynamicString::parseString(const char* str) {
 	if (str == NULL) {
 		return NULL;
 	}

@@ -23,15 +23,14 @@ public:
 		char **arg = new char *[args_count];
 		int i=0;
 		for (unsigned j=0; j < args.size(); j++) {
-			char *a = sc->parseString(args[j]);
-			if(a==NULL){
+			auto a = sc->parseString(args[j]);
+			if(!a){
 				continue;
 			}
 			if(*a=='\0'){
-				free(a);
 				continue;
 			}
-			arg[i] = a;
+			arg[i] = a.release();
 			i++;
 		}
 		arg[i] = NULL;
@@ -141,11 +140,11 @@ private:
 		if (file==NULL) {
 			return INVALIDE_PIPE;
 		}
-		char *f = sc->parseString(file);
+		auto f = sc->parseString(file);
 		if (f==NULL) {
 			return INVALIDE_PIPE;
 		}
-		file = f;
+		file = f.get();
 		fileModel model;
 		if (isRead) {
 			model = fileRead;
@@ -159,7 +158,6 @@ private:
 		}
 		KFile fp;
 		fp.open(file,model);
-		free(f);
 		return fp.stealHandle();
 	}
 	WhmShellCommand *command;

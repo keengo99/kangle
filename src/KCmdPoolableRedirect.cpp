@@ -95,16 +95,14 @@ bool KCmdPoolableRedirect::Exec(KVirtualHost* vh, KListenPipeStream* st,bool isS
 				tmp_arg = program.c_str();
 			}
 		}
-		char* a = ds.parseString(tmp_arg);
+		auto a = ds.parseString(tmp_arg);
 		if (a == NULL) {
 			continue;
 		}
 		if (*a == '\0') {
-			free(a);
 			continue;
 		}
-
-		arg[i] = a;
+		arg[i] = a.release();
 		i++;
 	}
 	arg[i] = NULL;

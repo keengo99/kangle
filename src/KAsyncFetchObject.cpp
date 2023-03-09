@@ -645,14 +645,14 @@ KGL_RESULT KAsyncFetchObject::upstream_is_error(KHttpRequest* rq, int error, con
 				//newµÄ²Å¼ÆËã´íÎó.
 				client->health(HealthStatus::Err);
 			}
-			char* url = rq->sink->data.url->getUrl();
+			auto url = rq->sink->data.url->getUrl();
 			sockaddr_i* upstream_addr = client->GetAddr();
 			char ips[MAXIPLEN];
 			ksocket_sockaddr_ip(upstream_addr, ips, MAXIPLEN);
 			klog(KLOG_WARNING, "rq=[%p] request=[%s %s] upstream=[%s:%d] self_port=[%d] error code=[%d],msg=[%s] errno=[%d %s],socket is %s.\n",
 				rq,
 				rq->get_method(),
-				url,
+				url.get(),
 				ips,
 				ksocket_addr_port(upstream_addr),
 				client->GetSelfPort(),
@@ -662,7 +662,6 @@ KGL_RESULT KAsyncFetchObject::upstream_is_error(KHttpRequest* rq, int error, con
 				strerror(err),
 				(client->IsNew() ? "new" : "pool")
 			);
-			xfree(url);
 		}
 	}
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER)) {

@@ -9,7 +9,7 @@
 #include "krbtree.h"
 struct KRedirectNode
 {
-	char *name;
+	kgl_auto_cstr name;
 	KRedirect *rd;
 	krb_node *node;
 	time_t lastActive;

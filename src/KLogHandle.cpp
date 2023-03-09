@@ -30,10 +30,9 @@ KLogDealTask::KLogDealTask(const std::string &logHandle,const char *logFile)
 	//std::map<std::string,std::string> kv;
 	//kv["log_file"] = logFile;
 	//ds.setKeyValue(&kv);
-	char *log_dir = getPath(logFile);
+	auto log_dir = getPath(logFile);
 	if (log_dir) {
-		ds.addEnv("log_dir",log_dir);
-		free(log_dir);
+		ds.addEnv("log_dir",log_dir.get());
 	}
 	ds.addEnv("log_file",logFile);
 #ifdef _WIN32
@@ -48,7 +47,7 @@ KLogDealTask::KLogDealTask(const std::string &logHandle,const char *logFile)
 	arg = new char *[args.size() + 1];
 	size_t i = 0;
 	for (; i < args.size(); i++) {
-		arg[i] = ds.parseString(args[i]);
+		arg[i] = ds.parseString(args[i]).release();
 	}
 	arg[i] = NULL;
 	free(buffer);

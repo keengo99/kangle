@@ -44,9 +44,7 @@ KCmdEnv* make_cmd_env(std::map<std::string, std::string>& attribute, KExtendProg
 		it != attribute.end();
 		it++) {
 		if (ds) {
-			char* value = ds->parseString((*it).second.c_str());
-			env->addEnv((*it).first.c_str(), value);
-			free(value);
+			env->addEnv((*it).first.c_str(), ds->parseString((*it).second.c_str()).get());
 		} else {
 			env->addEnv((*it).first.c_str(), (*it).second.c_str());
 		}
@@ -163,30 +161,28 @@ const char* KExtendProgramString::interGetValue(const char* name) {
 }
 bool KExtendProgramConfig::handle(KExtendProgramString* ds) {
 	KFileName file;
-	char* src_file_name = NULL;
-	char* dst_file_name = NULL;
-	char* src_buf = NULL;
-	char* dst_buf = NULL;
+	kgl_auto_cstr dst_file_name;
+	kgl_auto_cstr src_buf;
+	kgl_auto_cstr dst_buf;
 	KFile src_fp;
 	KFile dst_fp;
-	char* dir;
+	kgl_auto_cstr dir;
 	int len;
 	KStringBuf dst_tmp;
 	bool result = false;
-	src_file_name = ds->parseString(src.c_str());
+	auto src_file_name = ds->parseString(src.c_str());
 	if (src_file_name == NULL) {
 		klog(KLOG_ERR, "cann't parse src file name [%s]\n", src.c_str());
 		return false;
 	}
-	if (!file.setName(src_file_name)) {
-		klog(KLOG_ERR, "cann't get src_file[%s] infomation\n", src_file_name);
+	if (!file.setName(src_file_name.get())) {
+		klog(KLOG_ERR, "cann't get src_file[%s] infomation\n", src_file_name.get());
 		goto done;
 	}
-	ds->addEnv("src_file", src_file_name);
-	dir = getPath(src_file_name);
+	ds->addEnv("src_file", src_file_name.get());
+	dir = getPath(src_file_name.get());
 	if (dir) {
-		ds->addEnv("src_dir", dir);
-		xfree(dir);
+		ds->addEnv("src_dir", dir.get());
 	}
 	if (file.get_file_size() > 4194304) {
 		klog(KLOG_ERR, "file [%s] is too big(size=%d) max is 4M\n", dst.c_str());
@@ -197,49 +193,48 @@ bool KExtendProgramConfig::handle(KExtendProgramString* ds) {
 		klog(KLOG_ERR, "cann't parse dst file name[%s]\n", dst.c_str());
 		goto done;
 	}
-	dst_tmp << dst_file_name << "." << sequence.getNext();
+	dst_tmp << dst_file_name.get() << "." << sequence.getNext();
 	if (!force) {
 		KFileName dstFile;
-		if (dstFile.setName(dst_file_name)) {
+		if (dstFile.setName(dst_file_name.get())) {
 			//dst file is exsit.
 			result = true;
 			goto done;
 		}
 	}
-	ds->addEnv("dst_file", dst_file_name);
-	dir = getPath(dst_file_name);
+	ds->addEnv("dst_file", dst_file_name.get());
+	dir = getPath(dst_file_name.get());
 	if (dir) {
-		ds->addEnv("dst_dir", dir);
-		xfree(dir);
+		ds->addEnv("dst_dir", dir.get());
 	}
-	if (!src_fp.open(src_file_name, fileRead)) {
+	if (!src_fp.open(src_file_name.get(), fileRead)) {
 		klog(KLOG_ERR, "cann't open src file [%s] for read\n", file.getName());
 		goto done;
 	}
-	src_buf = (char*)xmalloc((int)file.get_file_size() + 1);
-	len = src_fp.read(src_buf, (int)file.get_file_size());
+	src_buf = kgl_auto_cstr((char*)xmalloc((int)file.get_file_size() + 1));
+	len = src_fp.read(src_buf.get(), (int)file.get_file_size());
 	if (len != file.get_file_size()) {
 		klog(KLOG_ERR, "cann't read complete src file [%s] readed=[%d],fileSize=[%d]\n", file.getName(), len, file.get_file_size());
 		goto done;
 	}
 	if (!dst_fp.open(dst_tmp.c_str(), fileWrite)) {
-		klog(KLOG_ERR, "cann't open dst file [%s] for write\n", dst_file_name);
+		klog(KLOG_ERR, "cann't open dst file [%s] for write\n", dst_file_name.get());
 		goto done;
 	}
 	if (only_copy) {
-		if (file.get_file_size() != dst_fp.write(src_buf, (int)file.get_file_size())) {
+		if (file.get_file_size() != dst_fp.write(src_buf.get(), (int)file.get_file_size())) {
 			klog(KLOG_ERR, "cann't write to tmp file .\n");
 			goto done;
 		}
 	} else {
-		src_buf[file.get_file_size()] = '\0';
-		dst_buf = ds->parseString(src_buf);
+		src_buf.get()[file.get_file_size()] = '\0';
+		dst_buf = ds->parseString(src_buf.get());
 		if (dst_buf == NULL) {
 			klog(KLOG_ERR, "cann't parse src file content [%s]\n", file.getName());
 			goto done;
 		}
-		len = (int)strlen(dst_buf);
-		if (len != dst_fp.write(dst_buf, len)) {
+		len = (int)strlen(dst_buf.get());
+		if (len != dst_fp.write(dst_buf.get(), len)) {
 			klog(KLOG_ERR, "cann't complete write to tmp file .\n");
 			goto done;
 		}
@@ -257,9 +252,9 @@ done:
 					chown(dst_tmp.c_str(), token[0], token[1]);
 				}
 			}
-			result = (0 == rename(dst_tmp.c_str(), dst_file_name));
+			result = (0 == rename(dst_tmp.c_str(), dst_file_name.get()));
 #else
-			result = (TRUE == MoveFileEx(dst_tmp.c_str(), dst_file_name, MOVEFILE_REPLACE_EXISTING));
+			result = (TRUE == MoveFileEx(dst_tmp.c_str(), dst_file_name.get(), MOVEFILE_REPLACE_EXISTING));
 #endif
 
 		}
@@ -269,28 +264,16 @@ done:
 			unlink(dst_tmp.c_str());
 		}
 	}
-	if (src_file_name) {
-		xfree(src_file_name);
-	}
-	if (dst_file_name) {
-		xfree(dst_file_name);
-	}
-	if (src_buf) {
-		xfree(src_buf);
-	}
-	if (dst_buf) {
-		xfree(dst_buf);
-	}
+
+
 	return result;
 }
 bool KExtendProgramUnlink::handle(KExtendProgramString* ds) {
-	char* buf = ds->parseString(file.c_str());
+	auto buf = ds->parseString(file.c_str());
 	if (buf == NULL) {
 		return false;
 	}
-	int ret = unlink(buf);
-	xfree(buf);
-	return ret == 0;
+	return 0 == unlink(buf.get());
 }
 bool KExtendProgramCmd::handle(KExtendProgramString* ds) {
 	KPipeStream* st = NULL;
@@ -299,7 +282,7 @@ bool KExtendProgramCmd::handle(KExtendProgramString* ds) {
 	char** arg = new char* [args.size() + 1];
 	size_t i = 0;
 	for (; i < args.size(); i++) {
-		arg[i] = ds->parseString(args[i].c_str());
+		arg[i] = ds->parseString(args[i].c_str()).release();
 	}
 	arg[i] = NULL;
 	Token_t token = NULL;

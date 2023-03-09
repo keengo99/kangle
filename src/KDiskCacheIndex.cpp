@@ -53,8 +53,7 @@ void KDiskCacheIndex::work(diskCacheOperatorParam *param)
 	{
 		transaction_count++;
 		assert(param->url);
-		result = add(param->filename1,param->filename2,param->url,(char *)&param->data,sizeof(param->data));
-		free(param->url);
+		result = add(param->filename1,param->filename2,param->url.get(),(char *)&param->data,sizeof(param->data));
 		break;
 	}
 	case ci_update:

@@ -302,7 +302,7 @@ public:
 #ifdef ENABLE_DISK_CACHE
 	bool swapout(KBufferFile* file, bool fast_model);
 	void unlinkDiskFile();
-	char* get_filename(bool part = false);
+	kgl_auto_cstr get_filename(bool part = false);
 	void write_file_header(KHttpObjectFileHeader* fileHeader);
 	bool save_header(KBufferFile* fp, const char* url, int url_len);
 	char* build_aio_header(int& len, const char* url, int url_len);
@@ -382,7 +382,7 @@ public:
 	HttpObjectIndex index;
 private:
 	~KHttpObject();
-	char* BuildVary(KHttpRequest* rq);
+	kgl_auto_cstr BuildVary(KHttpRequest* rq);
 };
 
 #endif /*KHTTPOBJECT_H_*/

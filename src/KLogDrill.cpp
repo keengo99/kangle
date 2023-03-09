@@ -160,7 +160,7 @@ void add_log_drill(KHttpRequest *rq,KStringBuf &s)
 	klog_drill *ld = new klog_drill;
 	memset(ld,0,sizeof(klog_drill));
 	ld->len = s.size();
-	ld->buf = s.steal();
+	ld->buf = s.steal().release();
 	/*
 	kgl_memcpy(ld->magic1,CHECK_MAGIC_STR,sizeof(CHECK_MAGIC_STR)-1);
 	kgl_memcpy(ld->magic2,CHECK_MAGIC_STR,sizeof(CHECK_MAGIC_STR)-1);

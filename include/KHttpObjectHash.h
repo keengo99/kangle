@@ -120,10 +120,9 @@ public:
 		bool result = false;
 		while (obj) {
 			if (KBIT_TEST(obj->index.flags,FLAG_IN_DISK)) {
-				char *file = obj->get_filename();
+				auto file = obj->get_filename();
 				if (file) {
-					result = (strcmp(file,filename)==0);
-					free(file);
+					result = (strcmp(file.get(),filename)==0);
 					if (result) {
 						break;
 					}
@@ -164,7 +163,7 @@ public:
 		}
 		//printf("match_url_node=[%p]\n", match_url_node);
 		obj = (KHttpObject *)match_url_node->data;
-		vary.val = obj->BuildVary(rq);
+		vary.val = obj->BuildVary(rq).release();
 		if (vary.val) {
 			uk.vary = &vary;
 			//жиаТВщев

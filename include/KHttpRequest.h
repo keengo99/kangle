@@ -205,8 +205,8 @@ public:
 #ifdef ENABLE_TF_EXCHANGE
 	bool NeedTempFile(bool upload);
 #endif
-	std::string getInfo();
-	char* getUrl();
+	KString getInfo();
+	kgl_auto_cstr getUrl();
 	void beginRequest();
 	int EndRequest();
 	int64_t get_left() {
@@ -305,7 +305,7 @@ public:
 		return of_ctx != NULL;
 	}
 	void response_vary(const char* vary);
-	char* build_vary(const char* vary);
+	kgl_auto_cstr build_vary(const char* vary);
 	const char* get_method();
 
 	/* override KWStream function begin */

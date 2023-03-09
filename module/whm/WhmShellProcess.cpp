@@ -124,14 +124,11 @@ bool WhmShellProcess::run(WhmShellContext *sc)
 				out = big_stdout_pipe[WRITE_PIPE];
 			}
 		}
-		char *curdir2 = NULL;
+		kgl_auto_cstr curdir2;
 		if (curdir) {
 			curdir2 = sc->parseString(curdir);
 		}
-		result = createProcess(token,arg,env,curdir2,in,out,err,pid);
-		if (curdir2) {
-			free(curdir2);
-		}
+		result = createProcess(token,arg,env,curdir2.get(),in,out,err,pid);
 		if (c!=command) {
 			//close the in pipe
 			ClosePipe(in);

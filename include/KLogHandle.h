@@ -34,9 +34,8 @@ public:
 	KLogZeroManageTask(const char *logFile,unsigned log_day,INT64 log_size)
 	{
 		//this->path.swap(path);
-		char *tpath = getPath(logFile);
-		this->path = tpath;
-		xfree(tpath);
+		auto tpath = getPath(logFile);
+		this->path = tpath.get();
 		this->log_day = log_day;
 		this->log_size = log_size;
 	}

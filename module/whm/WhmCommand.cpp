@@ -56,7 +56,7 @@ int WhmCommand::call(const char *callName, const char *eventType,
 	char **arg = new char *[len+1];
 	arg[0] = (char *)file.c_str();
 	for(int i=1;i<len;i++){		
-		arg[i] = context->parseString(args[i].c_str());
+		arg[i] = context->parseString(args[i].c_str()).release();
 	}
 	arg[len] = NULL;
 	KPipeStream *st = createProcess(token, arg, NULL, true);

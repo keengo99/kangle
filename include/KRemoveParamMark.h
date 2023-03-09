@@ -52,7 +52,7 @@ public:
 		}
 		free(url->param);
 		if (np.size()>0) {
-			url->param = np.steal();
+			url->param = np.steal().release();
 		} else {
 			url->param = NULL;
 		}

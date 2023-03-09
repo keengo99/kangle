@@ -639,11 +639,12 @@ BOOL StartInteractiveClientProcess2 (
 		inheritHandle = TRUE;
 	}
 	char *curdir = NULL ;
-	char *cmd = strdup(lpCommandLine);
+	auto cmd = kgl_auto_cstr(strdup(lpCommandLine));
+	auto application_dir = getPath(lpApplication);
 	if(currentDirectory){
 		curdir = (char *)currentDirectory;
 	} else if (lpApplication) {
-		curdir = getPath(lpApplication);
+		curdir = application_dir.get();
 	}
 	closeExecLock.Lock();
 	si.dwFlags = STARTF_USESHOWWINDOW|STARTF_USESTDHANDLES;
@@ -664,7 +665,7 @@ BOOL StartInteractiveClientProcess2 (
 		bResult = CreateProcessAsUser(
 			hToken,            // client's access token
 			lpApplication,     // file to execute
-			cmd,     // command line
+			cmd.get(),     // command line
 			NULL,              // pointer to process SECURITY_ATTRIBUTES
 			NULL,              // pointer to thread SECURITY_ATTRIBUTES
 			inheritHandle,             // handles are not inheritable
@@ -677,7 +678,7 @@ BOOL StartInteractiveClientProcess2 (
 	} else {
 		bResult = CreateProcess(
 			lpApplication,              // file to execute
-			cmd,     // command line
+			cmd.get(),     // command line
 			NULL,              // pointer to process SECURITY_ATTRIBUTES
 			NULL,              // pointer to thread SECURITY_ATTRIBUTES
 			inheritHandle,             // handles are not inheritable
@@ -701,10 +702,6 @@ BOOL StartInteractiveClientProcess2 (
 		ResumeThread(pi.hThread);
 	} 
 	closeExecLock.Unlock();
-	free(cmd);
-	if (curdir && currentDirectory==NULL) {
-		free(curdir);
-	}
 	if (hToken) {
 		RevertToSelf();
 	}
@@ -737,7 +734,7 @@ BOOL StartInteractiveClientProcess (
 	si.lpDesktop = TEXT("winsta0\\default");
 	// bool execlocked = false;
 	//execlocked = true; 
-	char *curdir = getPath(lpApplication);
+	auto curdir = getPath(lpApplication);
 	closeExecLock.Lock();
 	if(isCgi==RDSTD_ALL || isCgi==RDSTD_INPUT){
 		si.dwFlags = STARTF_USESHOWWINDOW|STARTF_USESTDHANDLES;
@@ -776,7 +773,7 @@ BOOL StartInteractiveClientProcess (
 				(isCgi==RDSTD_ALL||isCgi==RDSTD_INPUT),             // handles are not inheritable
 				CREATEPROCESS_FLAGS ,   // creation flags
 				env,              // pointer to new environment block 
-				curdir,              // name of current directory 
+				curdir.get(),              // name of current directory 
 				&si,               // pointer to STARTUPINFO structure
 				&pi                // receives information about new process
 				);
@@ -790,7 +787,7 @@ BOOL StartInteractiveClientProcess (
 			(isCgi==RDSTD_ALL||isCgi==RDSTD_INPUT),             // handles are not inheritable
 			CREATEPROCESS_FLAGS ,   // creation flags,   // creation flags
 			env,              // pointer to new environment block 
-			curdir,              // name of current directory 
+			curdir.get(),              // name of current directory 
 			&si,               // pointer to STARTUPINFO structure
 			&pi                // receives information about new process
 			);
@@ -807,9 +804,6 @@ BOOL StartInteractiveClientProcess (
 		kfile_close_on_exec(si.hStdInput,true);
 	}
 	closeExecLock.Unlock();
-	if (curdir) {
-		free(curdir);
-	}
 	if(bResult){
 		st->process.bind(pi.hProcess);
 		if(isCgi==RDSTD_ALL){

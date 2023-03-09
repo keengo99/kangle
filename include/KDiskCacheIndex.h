@@ -19,7 +19,7 @@ struct diskCacheOperatorParam
 	unsigned filename1;
 	unsigned filename2;	
 	KHttpObjectDbIndex data;
-	char *url;
+	kgl_auto_cstr url;
 };
 typedef void (*loadDiskCacheIndexCallBack) (unsigned filename1, unsigned filename2,const char *url,const char *data,int dataLen);
 class KDiskCacheIndex

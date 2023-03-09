@@ -66,11 +66,11 @@ bool kgl_dc_skip_string(KFile* file)
 	}
 	return file->seek(len, seekCur);
 }
-char* kgl_dc_read_string(char** hot, int& hotlen, int& len)
+kgl_auto_cstr kgl_dc_read_string(char** hot, int& hotlen, int& len)
 {
 	if (hotlen < (int)sizeof(int)) {
 		len = -1;
-		return NULL;
+		return nullptr;
 	}
 	kgl_memcpy(&len, *hot, sizeof(int));
 	hotlen -= sizeof(int);
@@ -78,14 +78,14 @@ char* kgl_dc_read_string(char** hot, int& hotlen, int& len)
 	if (len < 0 || len>131072) {
 		klog(KLOG_ERR, "string len[%d] is too big\n", len);
 		len = -1;
-		return NULL;
+		return nullptr;
 	}
 	if (hotlen < len) {
 		len = -1;
-		return NULL;
+		return nullptr;
 	}
 	if (len == 0) {
-		return NULL;
+		return nullptr;
 	}
 	char* buf = (char*)xmalloc(len + 1);
 	buf[len] = '\0';
@@ -94,27 +94,27 @@ char* kgl_dc_read_string(char** hot, int& hotlen, int& len)
 		hotlen -= len;
 		(*hot) += len;
 	}
-	return buf;
+	return kgl_auto_cstr(buf);
 }
-char* kgl_dc_read_string(KFile* file, int& len)
+kgl_auto_cstr kgl_dc_read_string(KFile* file, int& len)
 {
 	if (file->read((char*)&len, sizeof(len)) != sizeof(len)) {
 		len = -1;
-		return NULL;
+		return nullptr;
 	}
 	if (len < 0 || len>131072) {
 		len = -1;
 		klog(KLOG_ERR, "string len[%d] is too big\n", len);
-		return NULL;
+		return nullptr;
 	}
 	char* buf = (char*)xmalloc(len + 1);
 	buf[len] = '\0';
 	if (len > 0 && (int)file->read(buf, len) != len) {
 		xfree(buf);
 		len = -1;
-		return NULL;
+		return nullptr;
 	}
-	return buf;
+	return kgl_auto_cstr(buf);
 }
 int kgl_dc_write_string(char* hot, const char* str, int len)
 {
@@ -146,7 +146,7 @@ bool read_obj_head(KHttpObjectBody* data, char** hot, int& hotlen)
 		//printf("hotlen=[%d]\n", hotlen);
 		int buf_len;
 		//printf("before attr hotlen=[%d]\n",hotlen);
-		char* buf = kgl_dc_read_string(hot, hotlen, buf_len);
+		auto buf = kgl_dc_read_string(hot, hotlen, buf_len);
 		//printf("after attr before val hotlen=[%d]\n",hotlen);
 		if (buf_len == -1) {
 			return false;
@@ -170,18 +170,16 @@ bool read_obj_head(KHttpObjectBody* data, char** hot, int& hotlen)
 			return true;
 		}
 		if (hotlen < sizeof(uint32_t)) {
-			xfree(buf);
 			return false;
 		}
 
 		//printf("val=[%s]\n",val);
 		KHttpHeader* header = (KHttpHeader*)xmalloc(sizeof(KHttpHeader));
 		if (header == NULL) {
-			xfree(buf);
 			return false;
 		}
 		header->next = NULL;
-		header->buf = buf;
+		header->buf = buf.release();
 		header->name_attribute = *(uint32_t*)(*hot);
 		*hot += sizeof(uint32_t);
 		hotlen -= sizeof(uint32_t);
@@ -206,7 +204,7 @@ bool read_obj_head(KHttpObjectBody* data, char** hot, int& hotlen)
 		last = header;
 	}
 }
-char* getCacheIndexFile()
+kgl_auto_cstr getCacheIndexFile()
 {
 	KStringBuf s;
 	if (*conf.disk_cache_dir) {
@@ -352,13 +350,12 @@ cor_result create_http_object(KHttpObject* obj, const char* url, uint32_t flag_e
 cor_result create_http_object(KFile* fp, KHttpObject* obj, uint32_t url_flag_encoding, const char* verified_filename = NULL)
 {
 	int len;
-	char* url = kgl_dc_read_string(fp, len);
+	auto url = kgl_dc_read_string(fp, len);
 	if (url == NULL) {
 		fprintf(stderr, "read url is NULL\n");
 		return cor_failed;
 	}
-	cor_result ret = create_http_object2(obj, url, url_flag_encoding, verified_filename);
-	free(url);
+	cor_result ret = create_http_object2(obj, url.get(), url_flag_encoding, verified_filename);
 	return ret;
 }
 int create_file_index(const char* file, void* param)
@@ -524,12 +521,12 @@ void init_disk_cache(bool firstTime)
 	memset(&index_scan_state, 0, sizeof(index_scan_state));
 	load_index_scan_state();
 	dci = new KSqliteDiskCacheIndex;
-	char* file_name = getCacheIndexFile();
+	auto file_name = getCacheIndexFile();
 	KStringBuf sqliteIndex;
 	//remove old version sqt
 	bool remove_old_index = false;
 	for (int i = 1; i < CACHE_DISK_VERSION; i++) {
-		sqliteIndex << file_name << ".sqt";
+		sqliteIndex << file_name.get() << ".sqt";
 		if (i > 1) {
 			sqliteIndex << i;
 		}
@@ -541,8 +538,7 @@ void init_disk_cache(bool firstTime)
 	if (remove_old_index) {
 		rescan_disk_cache();
 	}
-	sqliteIndex << file_name << ".sqt" << CACHE_DISK_VERSION;
-	free(file_name);
+	sqliteIndex << file_name.get() << ".sqt" << CACHE_DISK_VERSION;
 	KFile fp;
 	if (fp.open(sqliteIndex.c_str(), fileRead)) {
 		fp.close();

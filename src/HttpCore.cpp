@@ -75,16 +75,13 @@ KGL_RESULT send_auth2(KHttpRequest* rq, KAutoBuffer* body) {
 	return send_http2(rq, NULL, status_code, body);
 }
 static void log_request_error(KHttpRequest* rq, int code, const char* reason) {
-	char* url = rq->sink->data.raw_url->getUrl();
+	auto url = rq->sink->data.raw_url->getUrl();
 	klog(KLOG_WARNING, "request error %s %s %s %d %s\n",
 		rq->getClientIp(),
 		rq->get_method(),
-		url ? url : "BAD_URL",
+		url ? url.get() : "BAD_URL",
 		code,
 		reason);
-	if (url) {
-		xfree(url);
-	}
 }
 
 KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, KAutoBuffer* body) {

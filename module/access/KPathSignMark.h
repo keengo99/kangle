@@ -144,7 +144,7 @@ private:
 	void set_url_param(KStringBuf &np,KUrl *url) {
 		free(url->param);
 		if (np.size()>0) {
-			url->param = np.steal();
+			url->param = np.steal().release();
 		} else {
 			url->param = NULL;
 		}

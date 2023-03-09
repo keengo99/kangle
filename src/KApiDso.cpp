@@ -114,21 +114,18 @@ bool KApiDso::load() {
 	}
 	state = STATE_LOAD_FAILED;
 #ifdef _WIN32
-	char* file_path = getPath(path.c_str());
-	if (file_path != NULL) {
-		SetDllDirectory(file_path);
-		xfree(file_path);
+	auto file_path = getPath(path.c_str());
+	if (file_path!=nullptr) {
+		SetDllDirectory(file_path.get());
 	}
 #endif
 	KDynamicString ds;
-	char* filename = ds.parseString(path.c_str());
-	handle = LoadLibrary(filename);
+	auto filename = ds.parseString(path.c_str());
+	handle = LoadLibrary(filename.get());
 	if (handle == NULL) {
-		klog(KLOG_ERR, "cann't LoadLibrary [%s] %s\n", filename, getError());
-		xfree(filename);
+		klog(KLOG_ERR, "cann't LoadLibrary [%s] %s\n", filename.get(), getError());
 		return false;
 	}
-	xfree(filename);
 #ifdef _WIN32
 	SetDllDirectory(NULL);
 #endif

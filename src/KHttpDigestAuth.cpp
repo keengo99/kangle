@@ -335,7 +335,7 @@ void KHttpDigestAuth::init(KHttpRequest* rq, const char* realm) {
 	KStringBuf s(64);
 	s.add((int)time(NULL), "%x");
 	s.add(rand(), "%x");
-	this->nonce = s.steal();
+	this->nonce = s.steal().release();
 	KHttpDigestSession* session = new KHttpDigestSession(realm);
 	kgl_memcpy(&session->addr, rq->sink->get_peer_addr(), sizeof(sockaddr_i));
 	lock.Lock();
