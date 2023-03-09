@@ -9,8 +9,7 @@
 #include "extern.h"
 
 KRedirect::KRedirect() {
-	enable = true;
-	ext = cur_config_ext;
+
 }
 
 KRedirect::~KRedirect() {

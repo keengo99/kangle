@@ -233,6 +233,9 @@ typedef struct _kgl_request_body_ctx kgl_request_body_ctx;
 typedef struct _kgl_parse_header_ctx kgl_parse_header_ctx;
 
 typedef LPVOID KCONN;
+typedef const void * KCONN_CFG;
+typedef const void * KCONN_CFG_NODE;
+
 typedef LPVOID KSOCKET_CLIENT;
 typedef LPVOID KSOCKET_SERVER;
 typedef LPVOID KSOCKET_SERVER_THREAD;
@@ -442,28 +445,45 @@ typedef struct _kgl_access_build
 
 } kgl_access_build;
 
-typedef struct _kgl_access_parse
+typedef struct _kgl_config_diff
 {
-	KCONN cn;
+	//[from,to)
+	uint32_t from;
+	uint32_t old_to;
+	uint32_t new_to;
+} kgl_config_diff;
+
+
+typedef struct _kgl_access_config_f
+{	
+	const char* (*get_value) (KCONN_CFG cn, const char* name);
+	int64_t(*get_int)(KCONN_CFG cn, const char* name);
+	const char* (*get_text)(KCONN_CFG cn);
+	KCONN_CFG_NODE (*find_child)(KCONN_CFG cn, const char* name);
+} kgl_access_config_f;
+
+typedef struct _kgl_access_node_config_f
+{
+	const char* (*get_tag)(KCONN_CFG_NODE cn);
+	uint32_t(*get_count)(KCONN_CFG_NODE cn);
+	KCONN_CFG(*get_data)(KCONN_CFG_NODE cn, uint32_t index);
+} kgl_access_node_config_f;
+
+typedef struct _kgl_access_parse_config {
 	void* module;
-	const char* (*get_value) (KCONN cn, const char* name);
-	int64_t(*get_int)(KCONN cn, const char* name);
-} kgl_access_parse;
+	kgl_access_config_f cfg;
+	kgl_access_node_config_f node;
+	KCONN_CFG cn;
+} kgl_access_parse_config;
 
-typedef enum _KF_ACCESS_BUILD_TYPE
-{
-	KF_ACCESS_BUILD_HTML = 0,
-	KF_ACCESS_BUILD_SHORT,
-	KF_ACCESS_BUILD_XML,
-	KF_ACCESS_BUILD_XML_CHARACTER,
-} KF_ACCESS_BUILD_TYPE;
-
-typedef enum _KF_ACCESS_PARSE_TYPE
-{
-	KF_ACCESS_PARSE_KV = 0,
-	KF_ACCESS_PARSE_XML_CHARACTER,
-	KF_ACCESS_PARSE_END
-} KF_ACCESS_PARSE_TYPE;
+typedef struct _kgl_access_parse_child {
+	void* module;
+	kgl_access_config_f cfg;
+	kgl_access_node_config_f node;
+	KCONN_CFG_NODE o;
+	KCONN_CFG_NODE n;
+	kgl_config_diff* diff;	
+} kgl_access_parse_child;
 
 typedef struct _kgl_access
 {
@@ -472,8 +492,9 @@ typedef struct _kgl_access
 	const char* name;
 	void* (*create_ctx)();
 	void (*free_ctx)(void* ctx);
-	KGL_RESULT(*build)(kgl_access_build* build_ctx, KF_ACCESS_BUILD_TYPE build_type);
-	KGL_RESULT(*parse)(kgl_access_parse* parse_ctx, KF_ACCESS_PARSE_TYPE parse_type);
+	KGL_RESULT(*build)(kgl_access_build* build_ctx, uint32_t build_type);
+	KGL_RESULT(*parse_config)(kgl_access_parse_config *parse_ctx);
+	KGL_RESULT(*parse_child)(kgl_access_parse_child *parse_ctx);
 	uint32_t(*process)(KREQUEST rq, kgl_access_context* ctx, DWORD notify);
 	void (*init_shutdown)(void* ctx, bool is_shutdown);
 } kgl_access;

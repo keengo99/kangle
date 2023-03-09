@@ -13,7 +13,7 @@ public:
 	bool mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) override {
 		KIpList* bls = NULL;
 		if (isGlobal) {
-			bls = conf.gvm->globalVh.blackList;
+			bls = conf.gvm->vhs.blackList;
 		} else {
 			auto svh = rq->get_virtual_host();
 			if (svh) {
@@ -28,7 +28,8 @@ public:
 	std::string getDisplay() override {
 		return "";
 	}
-	void editHtml(std::map<std::string, std::string>& attribute, bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		/*
 if (1== atoi(attribute["enable"].c_str())) {
 	enable = true;
@@ -56,11 +57,6 @@ if (1== atoi(attribute["enable"].c_str())) {
 	const char* getName() override {
 		return "black_list";
 	}
-public:
-	void buildXML(std::stringstream& s) override {
-		//s << " enable='" << (enable?1:0) << "'>";
-		s << ">";
-	}
 private:
 	//bool enable;
 };
@@ -76,7 +72,7 @@ public:
 	bool mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) override {
 		KIpList* bls = NULL;
 		if (isGlobal) {
-			bls = conf.gvm->globalVh.blackList;
+			bls = conf.gvm->vhs.blackList;
 		} else {
 			auto svh = rq->get_virtual_host();
 			if (svh) {
@@ -84,7 +80,7 @@ public:
 			}
 		}
 		if (bls) {
-			if (bls->find(rq->getClientIp(), time_out, bls != conf.gvm->globalVh.blackList)) {
+			if (bls->find(rq->getClientIp(), time_out, bls != conf.gvm->vhs.blackList)) {
 				//rq->buffer << "HTTP/1.1 403 FORBIDIN\r\nConnection: close\r\n\r\nip is block";
 				//jump_type = JUMP_DROP;
 				return true;
@@ -100,7 +96,8 @@ public:
 		s << "time:" << time_out;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string>& attribute, bool html)	override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		time_out = atoi(attribute["time_out"].c_str());
 	}
 	std::string getHtml(KModel* model)override {
@@ -122,13 +119,6 @@ public:
 	}
 	const char* getName()override {
 		return "check_black_list";
-	}
-public:
-	void buildXML(std::stringstream& s) override {
-		if (!isGlobal) {
-			s << "time_out='" << time_out << "'";
-		}
-		s << "> ";
 	}
 private:
 	int time_out;

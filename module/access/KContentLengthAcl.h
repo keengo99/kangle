@@ -62,13 +62,10 @@ public:
 		s << get_size(minlen) << "," << get_size(maxlen);
 		return s.str();
 	}
-	void editHtml(std::map<std::string,std::string> &attribute,bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		minlen = get_size(attribute["min"].c_str());
 		maxlen = get_size(attribute["max"].c_str());
-	}
-	void buildXML(std::stringstream &s) override {
-		s << " min='" << get_size(minlen) << "' max='" << get_size(maxlen) << "'";
-		s << ">";
 	}
 private:
 	INT64 minlen;

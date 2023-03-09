@@ -42,10 +42,7 @@ public:
 		shutdown();
 		release();
 	}
-	bool startElement(KXmlContext* context) override {
-		return true;
-	}
-	virtual bool parse_config(khttpd::KXmlNode* node) {
+	virtual bool parse_config(const khttpd::KXmlNode* node) {
 		auto proto = node->get_body(0)->attributes("proto", "");
 		if (!*proto) {
 			proto = node->get_body(0)->attributes("type","");

@@ -6,7 +6,7 @@
 #include "KWriteBack.h"
 #include "KRWLock.h"
 #ifdef ENABLE_WRITE_BACK
-class KWriteBackManager: public KXmlSupport {
+class KWriteBackManager {
 public:
 	KWriteBackManager();
 	virtual ~KWriteBackManager();
@@ -22,11 +22,7 @@ public:
 	bool newWriteBack(std::string name, std::string msg, std::string &err_msg);
 	bool editWriteBack(std::string name, KWriteBack &m_a, std::string &err_msg);
 	std::string writebackList(std::string name = "");
-	std::vector<std::string> getWriteBackNames();
-	bool startElement(KXmlContext *context) override;
-	bool startCharacter(KXmlContext* context, char *character, int len) override;
-	//	bool endElement(std::string context, std::string qName);
-	void buildXML(std::stringstream &s, int flag) override;
+	std::vector<std::string> getWriteBackNames();	
 	friend class KAccess;
 private:
 	KWriteBack * getWriteBack(std::string table_name);

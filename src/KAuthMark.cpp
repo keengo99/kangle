@@ -342,8 +342,8 @@ std::string KAuthMark::getDisplay() {
 	s << ",require:" << getRequireUsers();
 	return s.str();
 }
-void KAuthMark::editHtml(std::map<std::string, std::string> &attribute,bool html)
-		 {
+void KAuthMark::parse_config(const khttpd::KXmlNodeBody* xml) {
+	auto attribute = xml->attr();
 	file = attribute["file"];
 	lock.Lock();
 	cryptType = parseCryptType(attribute["crypt_type"].c_str());
@@ -395,16 +395,4 @@ void KAuthMark::editHtml(std::map<std::string, std::string> &attribute,bool html
 		xfree(str);
 	}
 	lock.Unlock();
-}
-void KAuthMark::buildXML(std::stringstream &s) {
-	s << " file='" << file << "'";
-	s << " crypt_type='" << buildCryptType(cryptType) << "'";
-	s << " auth_type='" << KHttpAuth::buildType(auth_type) << "'";
-	s << " realm='" << (realm?realm:PROGRAM_NAME) << "'";
-	s << " require='" << getRequireUsers() << "'";
-	if (file_sign) {
-		s << " file_sign='1'";
-	}
-	s << ">";
-
 }

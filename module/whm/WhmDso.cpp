@@ -118,7 +118,7 @@ static const char *whmGetSystemEnv(const char *name)
 	if(value2){
 		return value2;
 	}
-	if(!conf.gvm->globalVh.getEnvValue(name,value)){
+	if(!conf.gvm->vhs.getEnvValue(name,value)){
 		return NULL;
 	}
 	return value.c_str();
@@ -152,7 +152,7 @@ static const char *whmGetEnv(void *param,const char *name)
 	if(value2){
 		return value2;
 	}
-	if(!conf.gvm->globalVh.getEnvValue(name,value)){
+	if(!conf.gvm->vhs.getEnvValue(name,value)){
 		return NULL;
 	}
 	return ctx->save(xstrdup(value.c_str()));

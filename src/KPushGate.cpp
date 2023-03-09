@@ -201,11 +201,11 @@ kgl_response_body_function forward_body_function = {
 	forward_sendfile,
 	forward_close
 };
-
-
 void st_write_status(kgl_output_stream_ctx* st, uint16_t status_code) {
 	kgl_default_output_stream_ctx* g = (kgl_default_output_stream_ctx*)st;
-	g->rq->ctx.obj->data->i.status_code = status_code;
+	if (g->rq->ctx.obj->data->i.status_code==0) {
+		g->rq->ctx.obj->data->i.status_code = status_code;
+	}
 }
 KGL_RESULT st_write_header(kgl_output_stream_ctx* st, kgl_header_type attr, const char* val, int val_len) {
 	kgl_default_output_stream_ctx* g = (kgl_default_output_stream_ctx*)st;

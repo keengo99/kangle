@@ -20,8 +20,8 @@ bool KQueueMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)
 	}
 	return true;
 }
-void KQueueMark::editHtml(std::map<std::string, std::string> &attribute,bool html) 
-{
+void KQueueMark::parse_config(const khttpd::KXmlNodeBody* xml) {
+	auto attribute = xml->attr();
 	int max_worker = atoi(attribute["max_worker"].c_str());
 	int max_queue = atoi(attribute["max_queue"].c_str());
 	if (queue == NULL) {
@@ -37,13 +37,6 @@ std::string KQueueMark::getDisplay()
 		s << " " << queue->getRef();
 	}
 	return s.str();
-}
-void KQueueMark::buildXML(std::stringstream &s)
-{
-	if (queue) {
-		s << " max_worker='" << queue->getMaxWorker() << "' max_queue='" << queue->getMaxQueue();
-	}
-	s << "'>";
 }
 std::string KQueueMark::getHtml(KModel *model)
 {
@@ -116,8 +109,9 @@ bool KPerQueueMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)
 	delete ss;
 	return true;
 }
-void KPerQueueMark::editHtml(std::map<std::string, std::string> &attribute,bool html) 
+void KPerQueueMark::parse_config(const khttpd::KXmlNodeBody* xml)
 {
+	auto attribute = xml->attr();
 	max_worker = atoi(attribute["max_worker"].c_str());
 	max_queue = atoi(attribute["max_queue"].c_str());
 	while (this->matcher) {
@@ -159,7 +153,6 @@ void KPerQueueMark::editHtml(std::map<std::string, std::string> &attribute,bool 
 		hot = p;
 	}
 	free(url);
-
 }
 std::string KPerQueueMark::getDisplay()
 {
@@ -167,12 +160,7 @@ std::string KPerQueueMark::getDisplay()
 	s << max_worker << " " << max_queue << "/";
 	return s.str();
 }
-void KPerQueueMark::buildXML(std::stringstream &s)
-{
-	s << " url='";
-	build_matcher(s);
-	s << "' max_worker='" << max_worker << "' max_queue='" << max_queue << "'>";
-}
+
 void KPerQueueMark::build_matcher(std::stringstream &s)
 {
 	per_queue_matcher *matcher = this->matcher;

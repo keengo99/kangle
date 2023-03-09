@@ -29,6 +29,6 @@ public:
 		return false;
 	}
 	virtual bool process(KApacheConfig *htaccess,const char *cmd,std::vector<char *> &item) = 0;
-	virtual bool getXml(std::stringstream &s) = 0;
+	virtual bool getXml(KStringBuf &s) = 0;
 };
 #endif /* KHTMODULE_H_ */

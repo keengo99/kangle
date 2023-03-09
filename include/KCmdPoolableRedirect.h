@@ -39,16 +39,13 @@ public:
 		getProcessManage()->killAllProcess();
 	}
 	KUpstream* GetUpstream(KHttpRequest* rq) override;
-	void parseConfig(std::map<std::string, std::string> &attribute) override;
-
 	KProcessManage *getProcessManage() {
 		return static_cast<KProcessManage *>(&pm);
 	}
 	bool Exec(KVirtualHost* vh, KListenPipeStream* st, bool isSameRunning);
 	//KTcpUpstream *createPipeStream(KVirtualHost *vh, KListenPipeStream *st, std::string &unix_path,bool isSameRunning);
 	bool parseEnv(const KXmlAttribute &attribute) override;
-	bool parse_config(khttpd::KXmlNode* node) override;
-	void buildXML(std::stringstream &s) override;
+	bool parse_config(const khttpd::KXmlNode* node) override;
 	const char *getType() override {
 		return "cmd";
 	}

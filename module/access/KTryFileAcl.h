@@ -57,12 +57,10 @@ public:
 	std::string getDisplay() override {
 		return "";
 	}
-	void editHtml(std::map<std::string, std::string> &attibute,bool html) override {
-		
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 	}
-	void buildXML(std::stringstream &s) override {
-		s << " >";
-	}
+
 };
 
 #endif

@@ -15,10 +15,11 @@
  *
  * See COPYING file for detail.
  */
-#ifndef KMODEL_H_
-#define KMODEL_H_
+#ifndef KMODEL_H_INCLUDE
+#define KMODEL_H_INCLUDE
 #include "KXmlSupport.h"
 #include "KHtmlSupport.h"
+#include "KConfigTree.h"
 #include "KCountable.h"
 
 #define MODEL_ACL 	1
@@ -29,37 +30,44 @@ class WhmContext;
 /*
  * 控制模块基类
  */
-class KModel: public KXmlSupport, public KHtmlSupport, public KCountableEx {
+class KModel {
 public:
 	KModel() {
 		revers = false;
 		isGlobal = true;
 		is_or = false;
+		ref = 1;
 	}
-	virtual ~KModel() {
-	}
-	/*
-	* 是否有运行时信息?
-	*/
-	virtual bool supportRuntime()
-	{
-		return false;
-	}
-	virtual const char *getName()=0;
+	virtual const char *getName() = 0;
 	virtual int whmCall(WhmContext *ctx)
 	{
 		return 500;
 	}
-	virtual std::string getHtml(KModel *model)=0;
-	virtual bool startElement(KXmlContext *context) override {
-		editHtml(context->attribute, false);
-		return true;
+	virtual std::string getDisplay() = 0;
+	virtual void parse_config(const khttpd::KXmlNodeBody* xml) = 0;
+	virtual void parse_child(const kconfig::KXmlChanged* changed) {
 	}
+	virtual std::string getHtml(KModel* model) = 0;
+	KModel* add_ref() {
+		katom_inc((void*)&ref);
+		return this;
+	}
+	uint32_t get_ref() {
+		return katom_get((void*)&ref);
+	}
+	void release() {
+		if (katom_dec((void*)&ref) == 0) {
+			delete this;
+		}
+	}
+	std::string name;
 	bool revers;
 	bool is_or;
 	bool isGlobal;
-	//use for runtime model
-	std::string name;
+protected:
+	volatile uint32_t ref;
+	virtual ~KModel() {
+	}
 };
 
 #endif /*KMODEL_H_*/

@@ -155,15 +155,13 @@ bool convert(const char *domain,bool &wide,domain_t buf,int buf_size) {
 }
 void KVirtualHostContainer::bind_vh(KVirtualHost* vh, bool high)
 {
-	std::list<KSubVirtualHost*>::iterator it2;
-	for (it2 = vh->hosts.begin(); it2 != vh->hosts.end(); it2++) {
+	for (auto it2 = vh->hosts.begin(); it2 != vh->hosts.end(); ++it2) {
 		root.add((*it2)->bind_host, (*it2)->wide, high ? kgl_bind_high : kgl_bind_low, (*it2));
 	}
 }
 void KVirtualHostContainer::unbind_vh(KVirtualHost* vh)
 {
-	std::list<KSubVirtualHost*>::iterator it2;
-	for (it2 = vh->hosts.begin(); it2 != vh->hosts.end(); it2++) {
+	for (auto it2 = vh->hosts.begin(); it2 != vh->hosts.end(); ++it2) {
 		root.del((*it2)->bind_host, (*it2)->wide, (*it2));
 	}
 }

@@ -10,10 +10,10 @@ struct KApacheVirtualHostItem {
 	std::string certificate;
 	std::string certificate_key;
 	std::vector<std::string> index;
-	void buildIndex(std::stringstream &s)
+	void buildIndex(KStringBuf &s)
 	{
 		for(size_t i=0;i<index.size();i++){
-			s << "<index id='100'>" << index[i] << "</index>\n";
+			s << "<index id='100' file='" << index[i] << "'/>\n";
 		}
 	}
 };
@@ -34,10 +34,10 @@ public:
 			delete (*it);
 		}
 	}
-	bool startContext(KApacheConfig *htaccess,const char *cmd,std::map<char *,char *,lessp_icase> &attribute);
-	bool endContext(KApacheConfig *htaccess,const char *cmd);
-	bool process(KApacheConfig *htaccess,const char *cmd,std::vector<char *> &item) ;
-	bool getXml(std::stringstream &s);
+	bool startContext(KApacheConfig *htaccess,const char *cmd,std::map<char *,char *,lessp_icase> &attribute) override;
+	bool endContext(KApacheConfig *htaccess,const char *cmd) override;
+	bool process(KApacheConfig *htaccess,const char *cmd,std::vector<char *> &item) override;
+	bool getXml(KStringBuf&s) override;
 	
 private:
 	KApacheVirtualHostItem *vitem;

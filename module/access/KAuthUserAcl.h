@@ -86,11 +86,9 @@ public:
 		s << user.getModel();
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attibute,bool html) override {
-		user.setModel(attibute["user"].c_str(),0);
-	}
-	void buildXML(std::stringstream &s) override {
-		s << "user='" << user.getModel() << "'>";
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
+		user.setModel(attribute["user"].c_str(),0);
 	}
 private:
 	KReg user;

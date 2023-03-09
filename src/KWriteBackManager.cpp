@@ -25,7 +25,7 @@ KWriteBack * KWriteBackManager::refsWriteBack(std::string name)
 	lock.RLock();
 	KWriteBack *wb = getWriteBack(name);
 	if(wb){
-		wb->addRef();
+		wb->add_ref();
 	}
 	lock.RUnlock();
 	return wb;
@@ -85,7 +85,7 @@ bool KWriteBackManager::delWriteBack(std::string name, std::string &err_msg) {
 		lock.WUnlock();
 		return false;
 	}
-	if ((*it).second->getRef()>1) {
+	if ((*it).second->get_ref()>1) {
 		err_msg=LANG_TABLE_REFS_ERR;
 		lock.WUnlock();
 		return false;
@@ -119,7 +119,7 @@ std::string KWriteBackManager::writebackList(std::string name) {
 		s << "[<a href=\"javascript:if(confirm('" << LANG_CONFIRM_DELETE << m_a->name;
 		s << "')){ window.location='/writebackdelete?name=" << m_a->name << "';}\">" << LANG_DELETE << "</a>]";
 		s << "[<a href=\"/writeback?name=" << m_a->name << "\">" << LANG_EDIT << "</a>]";
-		s << "</td><td>" << m_a->name << "</td><td>" << m_a->getRefFast() << "</td></tr>\n";
+		s << "</td><td>" << m_a->name << "</td><td>" << m_a->get_ref() << "</td></tr>\n";
 	}
 	if (name.size()>0) {
 		m_a=getWriteBack(name);
@@ -149,57 +149,5 @@ bool KWriteBackManager::addWriteBack(KWriteBack *wb)
 	writebacks.insert(std::pair<std::string,KWriteBack *>(wb->name,wb));
 	lock.WUnlock();
 	return true;
-}
-bool KWriteBackManager::startElement(KXmlContext* context) {
-	if (context->qName=="writeback") {
-		assert(curWriteBack==NULL);
-		string err_msg;
-		if (context->attribute["type"]=="del") {
-			delWriteBack(context->attribute["name"], err_msg);
-			return true;
-		}
-		if (context->attribute["type"] == "edit") {
-			edit=true;
-		} else {
-			edit=false;
-		}
-		curWriteBack=new KWriteBack();
-		curWriteBack->name= context->attribute["name"];
-		return true;
-	}
-	return false;
-}
-bool KWriteBackManager::startCharacter(KXmlContext* context, char *character, int len) {
-
-	if (context->qName=="writeback") {
-		string err_msg;
-		if (curWriteBack) {
-			curWriteBack->setMsg(KXml::decode(character));
-			if (!edit) {
-				if (!addWriteBack(curWriteBack)) {
-					curWriteBack->release();
-				}
-			} else {
-				editWriteBack(curWriteBack->name, *curWriteBack, err_msg);
-				delete curWriteBack;
-			}
-			curWriteBack=NULL;
-		}
-		return true;
-	}
-	return false;
-}
-void KWriteBackManager::buildXML(stringstream &s, int flag) {
-	s << "\t<!--writeback start-->\n";
-	std::map<std::string,KWriteBack *>::iterator it;
-	lock.RLock();
-	for(it=writebacks.begin();it!=writebacks.end();it++) {
-		if ((*it).second->ext) {
-			continue;
-		}
-		(*it).second->buildXML(s);
-	}
-	lock.RUnlock();
-	s << "\t<!--writeback end-->\n";
 }
 #endif

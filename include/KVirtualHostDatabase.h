@@ -28,7 +28,6 @@ public:
 	~KVirtualHostDatabase();
 	bool flushVirtualHost(const char *vhName,bool initEvent,KVirtualHostEvent *ctx);
 	bool loadVirtualHost(KVirtualHostManage *vm,std::string &errMsg);
-
 	bool parseAttribute(KXmlAttribute &attribute);
 	//检查数据库连接是否正常
 	bool check();
@@ -37,9 +36,6 @@ public:
 		return lastStatus;
 	}
 	bool isLoad();
-	//void clear();
-	bool ext;
-
 private:
 	kgl_vh_connection createConnection();
 	void freeConnection(kgl_vh_connection cn);

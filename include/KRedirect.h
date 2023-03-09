@@ -21,12 +21,10 @@ class KRedirect: public KJump {
 public:
 	KRedirect();
 	KRedirect(const std::string& name) : KJump(name) {
-		enable = true;
-		ext = cur_config_ext;
+	
 	}
 	KRedirect(std::string&& name) : KJump(name) {
-		enable = true;
-		ext = cur_config_ext;
+	
 	}
 	
 	virtual KRedirectSource*makeFetchObject(KHttpRequest *rq, KFileName *file) = 0;
@@ -34,11 +32,11 @@ public:
 	{
 		return nullptr;
 	}
-	void setEnable() {
-		enable = true;
+	void set_enable(bool enable) {
+		
 	}
-	void setDisable() {
-		enable = false;
+	bool is_disable() {
+		return false;
 	}
 	virtual const char *getType() = 0;
 	/*
@@ -48,11 +46,6 @@ public:
 	{
 		return "";
 	}
-	bool enable;
-	/*
-	 * 是否外来扩展，如果是就不用保存在config.xml
-	 */
-	bool ext;
 protected:
 	virtual ~KRedirect();
 };

@@ -45,18 +45,17 @@ class KHtRewriteModule: public KHtModule {
 public:
 	KHtRewriteModule();
 	virtual ~KHtRewriteModule();
-	bool process(KApacheConfig *htaccess, const char *cmd,
-			std::vector<char *> &item);
-	bool getXml(std::stringstream &s);
+	bool process(KApacheConfig *htaccess, const char *cmd, std::vector<char *> &item) override;
+	bool getXml(KStringBuf &s) override;
 	//bool getTable(std::stringstream &s);
 	//bool getChain(std::stringstream &s);
 private:
 	void chainStart(KApacheConfig *htaccess);
 	void chainEnd();
 	bool enable;
-	std::stringstream chain;
-	std::stringstream rule;
-	std::stringstream action;
+	KStringBuf chain;
+	KStringBuf rule;
+	KStringBuf action;
 	std::string rewriteBase;
 	bool chainStarted;
 	bool lastCondOr;

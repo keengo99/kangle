@@ -25,8 +25,11 @@
 #include "KMutex.h"
 #include "KHttpRequest.h"
 #include "KAcserver.h"
-//#include "KFilter.h"
 #include "kfiber_sync.h"
+#include "KFiberLocker.h"
+#include "KConfigTree.h"
+#include "KSharedObj.h"
+
 #define BEGIN_TABLE	"BEGIN"
 #define REQUEST		0
 #define RESPONSE	1
@@ -40,107 +43,70 @@
 class KTable;
 class KVirtualHostEvent;
 class WhmContext;
-class KAccess: public KXmlSupport {
+using KSafeTable = KSharedObj<KTable>;
+void bind_access_config(kconfig::KConfigTree* tree, KAccess* access);
+class KAccess: public kconfig::KConfigListen {
 public:
-	KAccess();
-	virtual ~KAccess();
-	void destroy();
+	KAccess(bool is_global, u_short type);	
+	void clear();
+	KAccess* add_ref() {
+		katom_inc((void *)&ref);
+		return this;
+	}
+	void release() {
+		if (katom_dec((void*)&ref) == 0) {
+			delete this;
+		}
+	}
+	kconfig::KConfigEventFlag config_flag() const override {
+		return kconfig::ev_self | kconfig::ev_subdir;
+	}
+	void parse_config(const KXmlAttribute& attr);
+	bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) override;
 	kgl_jump_type check(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo);
 	//POSTMAP 只在RESPONSE里有效，在映射完物理文件后调用
 	kgl_jump_type checkPostMap(KHttpRequest *rq,KHttpObject *obj, KFetchObject** fo);
 	static void loadModel();
 public:
-	//void checkExpireChain();
-	void printFilter();
-	//	std::string addChainForm(std::string table_name, int index, bool add=true);
-	std::string chainList();
-	
-	static int getType(int type);
+	u_short get_type() {
+		return type;
+	}
 	static int32_t ShutdownMarkModule();
-	void htmlChainAction(std::stringstream &s, kgl_jump_type jump_type, KJump *jump,
-			bool showTable, std::string skipTable);
-	bool parseChainAction(std::string action, kgl_jump_type&jumpType,
-			std::string &jumpName);
+	void setChainAction(kgl_jump_type& jump_type, KJump** jump, const std::string& name);
+	bool parseChainAction(const std::string &action, kgl_jump_type&jumpType,std::string &jumpName);
 	static void buildChainAction(kgl_jump_type jumpType, KJump *jump, std::stringstream &s);
-	void setChainAction(kgl_jump_type&jump_type, KJump **jump, std::string name);
-	std::string
-	addChainForm(const char *vh,std::string table_name, int index, bool add = true);
-	int newChain(std::string table_name, int index,KUrlValue *urlValue=NULL);
-	bool downChain(std::string table_name, int index);
-	bool delChain(std::string table_name, int index);
-	bool delChain(std::string table_name, std::string name);
-	void changeFirst(kgl_jump_type jump_type, std::string name);
-	bool addAcl(std::string table_name, int index, std::string acl, bool mark);
-	bool delAcl(std::string table_name, int index, std::string acl, bool mark);
-	bool downModel(std::string table_name, int index, std::string acl, bool mark);
-	bool editChain(std::string table_name, int index, KUrlValue *urlValue);
-	bool editChain(std::string table_name, std::string name, KUrlValue *urlValue);
-	void clearImportConfig();
 	bool isGlobal();
-	void copy(KAccess &a);
-	void setType(u_short type)
-	{
-		this->type = type;
-		if (type==REQUEST) {
-			qName = "request";
-		} else {
-			qName = "response";
-		}
-	}
-	void setGlobal(bool globalFlag)
-	{
-		this->globalFlag = globalFlag;
-	}
 public:
 	std::string htmlAccess(const char *vh="");
-	bool emptyTable(std::string table_name, std::string &err_msg);
-	bool newTable(std::string table_name, std::string &err_msg);
-	bool delTable(std::string table_name, std::string &err_msg);
-	bool renameTable(std::string name_from, std::string name_to,std::string &err_msg);
 	void listTable(KVirtualHostEvent *ctx);
-	bool listChain(std::string table_name,const char *chain_name,KVirtualHostEvent *ctx,int flag);
 public:
-	void startXml(const std::string &encoding) override;
-	void endXml(bool result) override;
-	bool startElement(KXmlContext *context) override;
-	bool startCharacter(KXmlContext *context, char *character, int len) override;
-	bool endElement(KXmlContext *context) override;
-	void buildXML(std::stringstream &s, int flag) override;
-public:
-	const char *qName;
-	u_short type;
-	bool globalFlag;
-	bool actionParsed;
 	friend class KChain;
+	friend class KTable;
 	static std::map<std::string,KAcl *> aclFactorys[2];
 	static std::map<std::string,KMark *> markFactorys[2];
 	static bool addAclModel(u_short type,KAcl *acl,bool replace=false);
 	static bool addMarkModel(u_short type,KMark *acl,bool replace=false);
-	static void releaseRunTimeModel(KModel *model);
-	static int whmCallRunTimeModel(std::string name,WhmContext *ctx);
 private:
-	void htmlRadioAction(std::stringstream &s, int*jump_value, kgl_jump_type jump_type,
-		KJump *jump, int my_jump_type, std::string my_type_name,
-			std::vector<std::string> &table_names);	
-private:
-	void setChainAction();
+	~KAccess();
 	void inter_destroy();
+	KFiberReadLocker read_lock() {
+		return KFiberReadLocker(rwlock);
+	}
+	KFiberWriteLocker write_lock() {
+		return KFiberWriteLocker(rwlock);
+	}
 	kfiber_rwlock* rwlock;
 	kgl_jump_type default_jump_type;
-	std::string jump_name;
 	KJump *default_jump;	
-	KTable *curTable;
-	KTable *begin;
-	KTable *postMap;
-	std::map<std::string,KTable *> tables;
-	KTable *getTable(std::string table_name);
-	bool InternalNewTable(std::string table_name, std::string& err_msg);
+	KSafeTable begin;
+	KSafeTable post_map;
+	u_short type;
+	bool globalFlag;
+	volatile uint32_t ref;
+	std::map<std::string,KSafeTable> tables;
+	KSafeTable getTable(const std::string &table_name);
 	std::vector<std::string> getTableNames(std::string skipName,bool show_global);
-private:
-	static KModel *getRunTimeModel(std::string name);
-	static void addRunTimeModel(KModel *m);
-	static std::map<std::string,KModel *> runtimeModels;
-	static kfiber_mutex *runtimeLock;
 };
-extern KAccess kaccess[2];
+using KSafeAccess = KSharedObj<KAccess>;
+extern KAccess *kaccess[2];
 #endif /*KACCESS_H_*/

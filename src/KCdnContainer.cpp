@@ -41,7 +41,7 @@ KRedirect* KCdnContainer::refsRedirect(const char* ip, const char* host, int por
 	lock.Lock();
 	KRedirect* rd = findRedirect(s.c_str());
 	if (rd) {
-		rd->addRef();
+		rd->add_ref();
 		lock.Unlock();
 		return rd;
 	}
@@ -54,7 +54,7 @@ KRedirect* KCdnContainer::refsRedirect(const char* ip, const char* host, int por
 	rn->name = s.steal();
 	rn->rd = server;
 	addRedirect(rn);
-	server->addRef();
+	server->add_ref();
 	lock.Unlock();
 	return server;
 }
@@ -65,7 +65,7 @@ KMultiAcserver* KCdnContainer::refsMultiServer(const char* name) {
 	lock.Lock();
 	KRedirect* rd = findRedirect(name);
 	if (rd) {
-		rd->addRef();
+		rd->add_ref();
 	}
 	lock.Unlock();
 	if (rd == NULL) {
@@ -84,7 +84,7 @@ KRedirect* KCdnContainer::refsRedirect(const char* name) {
 	lock.Lock();
 	KRedirect* rd = findRedirect(name);
 	if (rd) {
-		rd->addRef();
+		rd->add_ref();
 		lock.Unlock();
 		return rd;
 	}
@@ -168,14 +168,14 @@ KRedirect* KCdnContainer::refsRedirect(const char* name) {
 		rn->name = strdup(name);
 		rn->rd = rd;
 		addRedirect(rn);
-		rd->addRef();
+		rd->add_ref();
 	}
 	lock.Unlock();
 	return rd;
 }
 KFetchObject* KCdnContainer::get(const char* ip, const char* host, int port, const char* ssl, int life_time, Proto_t proto) {
 	KRedirect* server = refsRedirect(ip, host, port, ssl, life_time, proto);
-	KBaseRedirect* brd = new KBaseRedirect(server, KGL_CONFIRM_FILE_NEVER);
+	KBaseRedirect* brd = new KBaseRedirect(server, KConfirmFile::Never);
 	KRedirectSource* fo = new KHttpProxyFetchObject();
 	fo->bind_base_redirect(brd);
 	return fo;
@@ -185,7 +185,7 @@ KFetchObject* KCdnContainer::get(const char* name) {
 	if (server == NULL) {
 		return NULL;
 	}
-	KBaseRedirect* brd = new KBaseRedirect(server, KGL_CONFIRM_FILE_NEVER);
+	KBaseRedirect* brd = new KBaseRedirect(server, KConfirmFile::Never);
 	KRedirectSource* fo = new KHttpProxyFetchObject();
 	fo->bind_base_redirect(brd);
 	return fo;

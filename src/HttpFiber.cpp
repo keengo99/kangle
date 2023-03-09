@@ -297,7 +297,7 @@ void start_request_fiber(KSink* sink, int header_length) {
 	if (rq->ctx.skip_access) {
 		goto skip_access;
 	}
-	jump_type = kaccess[REQUEST].check(rq, NULL, &fo);
+	jump_type = kaccess[REQUEST]->check(rq, NULL, &fo);
 	if (fo) {
 		rq->append_source(fo);
 	}
@@ -308,7 +308,9 @@ void start_request_fiber(KSink* sink, int header_length) {
 		handle_denied_request(rq);
 		goto clean;
 	case JUMP_VHS: {
-		assert(fo == nullptr);
+		if (fo) {
+			break;
+		}
 		query_vh_result vh_result = query_virtual(rq, rq->sink->data.url->host, 0, header_length);
 		switch (vh_result) {
 		case query_vh_connect_limit:
@@ -494,19 +496,15 @@ bool check_request_final_source(KHttpRequest* rq, RequestError* error) {
 			}
 #endif
 		}
-		KAccess* htresponse = NULL;
-		KFetchObject* fo = bindVirtualHost(rq, error, &htresponse);
+		KApacheHtaccessContext htresponse;
+		KFetchObject* fo = bindVirtualHost(rq, error, htresponse);
 		if (!fo) {
-			if (htresponse) {
-				delete htresponse;
-			}
 			return false;
 		}
 		rq->append_source(fo);
 		//postmap
 		if (htresponse) {
-			if (!rq->ctx.internal && htresponse->checkPostMap(rq, rq->ctx.obj, NULL) == JUMP_DENY) {
-				delete htresponse;
+			if (!rq->ctx.internal && htresponse->access[RESPONSE]->checkPostMap(rq, rq->ctx.obj, NULL) == JUMP_DENY) {
 				if (KBIT_TEST(rq->ctx.filter_flags, RQ_SEND_AUTH)) {
 					error->code = AUTH_STATUS_CODE;
 					error->msg = "";
@@ -516,7 +514,6 @@ bool check_request_final_source(KHttpRequest* rq, RequestError* error) {
 				error->code = STATUS_FORBIDEN;
 				return false;
 			}
-			delete htresponse;
 		}
 	}
 	if (!rq->ctx.internal && !rq->ctx.skip_access) {
@@ -539,7 +536,7 @@ bool check_request_final_source(KHttpRequest* rq, RequestError* error) {
 				return false;
 			}
 		}
-		if (kaccess[RESPONSE].checkPostMap(rq, rq->ctx.obj, NULL) == JUMP_DENY) {
+		if (kaccess[RESPONSE]->checkPostMap(rq, rq->ctx.obj, NULL) == JUMP_DENY) {
 			if (KBIT_TEST(rq->ctx.filter_flags, RQ_SEND_AUTH)) {
 				error->code = AUTH_STATUS_CODE;
 				error->msg = "";
@@ -976,7 +973,9 @@ KGL_RESULT prepare_write_body(KHttpRequest* rq, kgl_response_body* body) {
 		}
 		if (!kgl_load_response_body(rq, body)) {
 			if (body) {
+				rq->ctx.body = *body;
 				body->f->close(body->ctx, KGL_ENOT_PREPARE);
+				assert(rq->ctx.body.ctx == nullptr);
 			}
 			return KGL_ENOT_PREPARE;
 		}

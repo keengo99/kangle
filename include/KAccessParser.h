@@ -26,18 +26,4 @@
 #include "KXmlEvent.h"
 #include "KAccess.h"
 
-class KAccessParser: public KXmlEvent {
-public:
-	KAccessParser();
-	virtual ~KAccessParser();
-	bool startElement(KXmlContext *context) override;
-	bool startCharacter(KXmlContext *context, char *character, int len) override;
-	bool endElement(KXmlContext *context) override;
-	bool parseFile(std::string file, KAccess *access);
-	bool parseString(const char *str,KAccess *access);
-	void startXml(const std::string &encoding) override;
-	void endXml(bool success) override;
-private:
-	KAccess *access;
-};
 #endif /* KACCESSPARSER_H_ */

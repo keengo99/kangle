@@ -37,16 +37,12 @@ public:
 	}
 	virtual ~KPerIpAcl() {
 	}
-	bool supportRuntime() override
-	{
-		return true;
-	}
 	void addCallBack(KHttpRequest *rq,const char *ip)
 	{
 		KPerIpCallBackData *cd = new KPerIpCallBackData;
 		cd->ip = strdup(ip);
 		cd->mark = this;
-		addRef();
+		add_ref();
 		rq->registerConnectCleanHook(per_ip_mark_call_back,cd);
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) override {
@@ -79,8 +75,8 @@ public:
 		s << ">" << max_per_ip;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
-	{
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		max_per_ip = atoi(attribute["max"].c_str());
 	}
 	std::string getHtml(KModel *model) override {
@@ -96,14 +92,7 @@ public:
 	const char *getName() override {
 		return "per_ip";
 	}
-public:
-	bool startElement(KXmlContext *context) override {
-		max_per_ip = atoi(context->attribute["max"].c_str());
-		return true;
-	}
-	void buildXML(std::stringstream &s) override {
-		s << " max='" << max_per_ip << "'>";
-	}
+
 
 private:
 	KMutex ip_lock;

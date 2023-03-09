@@ -83,7 +83,7 @@ private:
 */
 class KVirtualHost: public KBaseVirtualHost,public KSslConfig, public KCountable {
 public:
-	KVirtualHost();
+	KVirtualHost(const std::string &name);
 	virtual ~KVirtualHost();
 	bool setDocRoot(const std::string &docRoot);
 	KSubVirtualHost *getFirstSubVirtualHost() {
@@ -92,9 +92,13 @@ public:
 		}
 		return *(hosts.begin());
 	}
-	virtual bool isTemplete()
-	{
+	virtual bool is_global() override {
 		return false;
+	}
+	bool parse_xml(const KXmlAttribute& attr, KVirtualHost *ov);
+	virtual bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) override;
+	kconfig::KConfigEventFlag config_flag() const override {
+		return kconfig::ev_subdir;
 	}
 	friend class KHttpRequest;
 	friend class KNsVirtualHost;
@@ -107,8 +111,6 @@ public:
 			uint16_t fflow : 1;
 			uint16_t ip_hash:1;
 			uint16_t inherit:1;
-			uint16_t ext:1;
-			uint16_t db:1;
 #ifdef ENABLE_VH_RUN_AS
 			uint16_t need_kill_process : 1;
 #ifdef _WIN32
@@ -119,19 +121,12 @@ public:
 #ifndef _WIN32
 			uint16_t chroot:1;
 #endif
-#ifdef ENABLE_USER_ACCESS
-			uint16_t access_file_loaded:1;
-#endif
 			uint16_t app_share:1;
 			/* 应用程序池数量 */
 			uint8_t app;
 		};
 		uint32_t flags;
 	};
-	/*
-	 * 模板
-	 */
-	KTempleteVirtualHost *tvh;
 #ifdef ENABLE_USER_ACCESS	
 	int checkRequest(KHttpRequest *rq, KFetchObject **fo);
 	int checkResponse(KHttpRequest *rq, KFetchObject** fo);
@@ -153,7 +148,7 @@ public:
 #ifdef ENABLE_VH_LOG_FILE
 	KLogElement *logger;
 	std::string logFile;
-	void setLogFile(KAttributeHelper *ah,KVirtualHost *tm=NULL);
+	void parse_log_config(const KXmlAttribute &attr);
 #endif
 #ifdef ENABLE_VH_RUN_AS
 	/*
@@ -275,6 +270,8 @@ public:
 	}
 
 #endif
+	bool alias(bool internal, const char* path, KFileName* file, bool& exsit, int flag);
+	char* alias(bool internal, const char* path);
 	//用于webdav等应用校验
 	KBaseRedirect* refsPathRedirect(const char* path, int path_len);
 	KFetchObject *findPathRedirect(KHttpRequest *rq, KFileName *file,const char *path,
@@ -284,9 +281,8 @@ public:
 	 */
 	bool isPathRedirect(KHttpRequest *rq, KFileName *file, bool fileExsit,
 			KRedirect *rd);
-	KFetchObject *findFileExtRedirect(KHttpRequest *rq, KFileName *file,
-			bool fileExsit,bool &result);
-	KFetchObject *findDefaultRedirect(KHttpRequest *rq,KFileName *file,bool fileExsit);
+	KFetchObject *findFileExtRedirect(KHttpRequest *rq, KFileName *file,bool fileExsit,bool &result);
+	//KFetchObject *findDefaultRedirect(KHttpRequest *rq,KFileName *file,bool fileExsit);
 	std::string name;
 
 #ifdef ENABLE_BASED_PORT_VH
@@ -341,12 +337,10 @@ public:
 	void setApp(int app);
 	std::string getApp(KHttpRequest *rq);
 	static void closeToken(Token_t token);
-	virtual void buildXML(std::stringstream &s);	
 	bool loadApiRedirect(KApiPipeStream *st,int workType);
-	bool saveAccess();
 	void setAccess(const std::string &access_file);
 	std::string htaccess;
-	KAccess access[2];
+	KSafeAccess access[2];
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
 	kgl_ssl_ctx *ssl_ctx;
 	bool setSSLInfo(const std::string &certfile, const std::string &keyfile, const std::string &cipher,const std::string &protocols);
@@ -378,11 +372,17 @@ private:
 	HANDLE token;
 #endif
 #endif
+	void copy_to(KVirtualHost* vh);
+	KSubVirtualHost* parse_host(const khttpd::KXmlNodeBody* body) {
+		KSubVirtualHost* svh = new KSubVirtualHost(this);
+		svh->setDocRoot(this->doc_root.c_str(), body->attributes("dir",nullptr));
+		svh->setHost(body->get_text(""));
+		return svh;
+	}
 public:
 #ifdef ENABLE_USER_ACCESS
-	bool loadAccess(KVirtualHost *vh=NULL);
+	void access_config_listen(kconfig::KConfigTree* tree, KVirtualHost *ov);
+	void reload_access();
 #endif
 };
-
-
 #endif /*KVIRTUALHOST_H_*/

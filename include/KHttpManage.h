@@ -56,8 +56,6 @@ public:
 	KHttpRequest* rq;
 	kgl_output_stream* out;
 private:
-	bool save_access(KVirtualHost *vh,std::string redirect_url);
-	//KXmlAttribute urlParam;
 	KUrlValue urlValue;
 	char *postData;
 	int postLen;

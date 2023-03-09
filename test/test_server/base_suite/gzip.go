@@ -28,9 +28,11 @@ func check_gzip() {
 }
 func check_accept_encoding_with_q() {
 	common.Get("/static/index.html?q", map[string]string{"Accept-Encoding": "gzip; q=0"}, func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 200)
 		common.Assert("gzip-content-encoding", resp.Header.Get("Content-Encoding") != "gzip")
 	})
 	common.Get("/static/index.html?q2", map[string]string{"Accept-Encoding": "br; q=0, gzip; q=0.5"}, func(resp *http.Response, err error) {
+		common.AssertSame(resp.StatusCode, 200)
 		common.Assert("gzip-content-encoding", resp.Header.Get("Content-Encoding") == "gzip")
 	})
 }

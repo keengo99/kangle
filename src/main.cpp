@@ -970,9 +970,6 @@ int parse_args(int argc, char** argv) {
 			my_exit(0);
 		}
 #endif
-		if (get_param(argc, argv, i, "-a", tmp)) {
-			my_exit(merge_apache_config(tmp));
-		}
 		if (get_param(argc, argv, i, "-d", tmp)) {
 			ret = 0;
 			m_debug = atoi(tmp);
@@ -1126,6 +1123,11 @@ void init_program() {
 	kasync_init();
 	init_http_server_callback(kangle::kgl_on_new_connection, start_request_fiber);
 	selector_manager_init(1, false);
+	for (int i = 0; i < 2; i++) {
+		kaccess[i] = new KAccess(true, i);
+	}
+	klog_start();
+	KAccess::loadModel();
 }
 
 #ifndef _WIN32
@@ -1264,6 +1266,8 @@ int main_fiber(void* arg, int argc) {
 	}
 #endif
 	assert(test());
+	kcond* cond = (kcond*)arg;
+	kcond_notice(cond);
 	return 0;
 }
 void StartAll() {
@@ -1289,11 +1293,15 @@ void StartAll() {
 	kgl_pagesize = getpagesize();
 	server_container = new KCdnContainer;
 	init_program();
+	auto cond = kcond_init(true);
 	selector_manager_on_ready([](KOPAQUE data, void* arg, int got) {
-		kfiber_create(main_fiber, nullptr, 0, 0, nullptr);
+		kfiber_create(main_fiber, arg, 0, 0, nullptr);
 		return kev_ok;
-		}, nullptr);
+		}, cond);
 	selector_manager_start(kgl_update_http_time, true);
+	kcond_wait(cond);
+	//wait fiber init done.
+	kcond_destroy(cond);
 	time_thread(NULL);
 #ifdef MALLOCDEBUG
 	checkMemoryLeak();
@@ -1318,8 +1326,6 @@ int main(int argc, char** argv) {
 #endif
 		my_exit(0);
 	}
-	LoadDefaultConfig();
-
 	//{{ent
 #ifdef _WIN32	
 #ifdef _WIN32_SERVICE

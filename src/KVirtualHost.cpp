@@ -42,33 +42,14 @@
 #include "KTempleteVirtualHost.h"
 #include "extern.h"
 #include "KAcserverManager.h"
+#include "KDefer.h"
+#include "KConfigTree.h"
 
-volatile bool cur_config_vh_db = false;
-using namespace std;
-#if 0
-const std::string slashString(const std::string &str)
-{
-	std::stringstream s;
-	if(str.size()==0){
-		return "";
-	}
-	int length = (int)str.size();
-	if(str[length-1]=='\\'){
-		s << str << "\\";
-		return s.str();
-	}
-	return str;
-}
-#endif
-KVirtualHost::KVirtualHost() {
+
+
+KVirtualHost::KVirtualHost(const std::string& name) {
+	this->name = name;
 	flags = 0;
-	db = cur_config_vh_db;
-#ifdef ENABLE_USER_ACCESS
-	access[REQUEST].type = REQUEST;
-	access[REQUEST].qName = "request";
-	access[RESPONSE].type = RESPONSE;
-	access[RESPONSE].qName = "response";
-#endif
 #ifdef ENABLE_VH_LOG_FILE
 	logger = NULL;
 #endif
@@ -94,10 +75,6 @@ KVirtualHost::KVirtualHost() {
 	max_worker = 0;
 #endif
 	inherit = true;
-	if (!db) {
-		ext = cur_config_ext;
-	}
-	tvh = NULL;
 	app_share = 1;
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
 	ssl_ctx = NULL;
@@ -106,7 +83,7 @@ KVirtualHost::KVirtualHost() {
 KVirtualHost::~KVirtualHost() {
 #ifdef ENABLE_VH_RUN_AS
 #ifdef _WIN32
-	if(token) {
+	if (token) {
 		CloseHandle(token);
 	}
 #endif
@@ -124,7 +101,7 @@ KVirtualHost::~KVirtualHost() {
 	if (sl) {
 		sl->release();
 	}
-	if(cur_connect){
+	if (cur_connect) {
 		cur_connect->release();
 	}
 #endif
@@ -134,26 +111,23 @@ KVirtualHost::~KVirtualHost() {
 	}
 #endif
 #ifdef ENABLE_VH_QUEUE
-	if(queue){
+	if (queue) {
 		queue->release();
 	}
 #endif
-	if (tvh) {
-		tvh->destroy();
-	}
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
-	if(ssl_ctx){
+	if (ssl_ctx) {
 		kgl_release_ssl_ctx(ssl_ctx);
 	}
 #endif
 }
-bool KVirtualHost::isPathRedirect(KHttpRequest *rq, KFileName *file,
-		bool fileExsit, KRedirect *rd) {
+bool KVirtualHost::isPathRedirect(KHttpRequest* rq, KFileName* file,
+	bool fileExsit, KRedirect* rd) {
 	bool result = false;
 	int path_len = (int)strlen(rq->sink->data.url->path);
 	lock.Lock();
 	for (auto it2 = pathRedirects.begin(); it2 != pathRedirects.end(); it2++) {
-		if ((*it2)->match(rq->sink->data.url->path,path_len) 
+		if ((*it2)->match(rq->sink->data.url->path, path_len)
 			&& (*it2)->allowMethod.matchMethod(rq->sink->data.meth)) {
 			if (rd == (*it2)->rd) {
 				result = true;
@@ -164,89 +138,70 @@ bool KVirtualHost::isPathRedirect(KHttpRequest *rq, KFileName *file,
 	lock.Unlock();
 	return result;
 }
-KFetchObject *KVirtualHost::findDefaultRedirect(KHttpRequest *rq,
-		KFileName *file, bool fileExsit) {
-	KRedirectSource*fo = NULL;
-	lock.Lock();
-	if (defaultRedirect 
-		&& defaultRedirect->rd
-		&& defaultRedirect->allowMethod.matchMethod(rq->sink->data.meth)) {
-		switch (defaultRedirect->confirmFile) {
-		case 0:
-			//不确认文件是否存在
-			fo = defaultRedirect->rd->makeFetchObject(rq, file);
-			break;
-		case 1:
-			//确认文件存在
-			if (fileExsit) {
-				fo = defaultRedirect->rd->makeFetchObject(rq, file);
-			}
-			break;
-		case 2:
-			//确认文件不存在
-			if (!fileExsit) {
-				fo = defaultRedirect->rd->makeFetchObject(rq, file);
-			}
-			break;
+bool KVirtualHost::alias(bool internal, const char* path, KFileName* file, bool& exsit, int flag) {
+	auto len = strlen(path);
+	auto alias = find_alias(internal, path, len);
+	if (!alias) {
+		if (!inherit) {
+			return false;
+		}
+		alias = conf.gvm->vhs.find_alias(internal, path, len);
+		if (!alias) {
+			return false;
 		}
 	}
-	if (fo) {
-		defaultRedirect->addRef();
-		fo->bind_base_redirect(defaultRedirect);
+	char* doc_root = nullptr;
+	if (!kgl_is_absolute_path(alias->to)) {
+		doc_root = KFileName::concatDir(this->doc_root.c_str(), alias->to);
+		exsit = file->setName(doc_root, path + alias->path_len, flag);
+		free(doc_root);
+	} else {
+		exsit = file->setName(alias->to, path + alias->path_len, flag);
 	}
-	lock.Unlock();
-	return fo;
+	return true;
 }
-KBaseRedirect* KVirtualHost::refsPathRedirect(const char* path, int path_len)
-{
-	KLocker locker(&lock);
-	for (auto it = pathRedirects.begin(); it != pathRedirects.end(); it++) {
-		if ((*it)->match(path, path_len)) {
-			(*it)->addRef();
-			return (*it);
+char* KVirtualHost::alias(bool internal, const char* path) {
+	auto len = strlen(path);
+	auto alias = find_alias(internal, path, len);
+	if (!alias) {
+		if (!inherit) {
+			return NULL;
+		}
+		alias = conf.gvm->vhs.find_alias(internal, path, len);
+		if (!alias) {
+			return NULL;
 		}
 	}
-	return NULL;
+	char* result = alias->matched(path, len);
+	if (kgl_is_absolute_path(result)) {
+		return result;
+	}
+	auto result2 = KFileName::concatDir(this->doc_root.c_str(), result);
+	free(result);
+	return result2;
 }
-KFetchObject *KVirtualHost::findPathRedirect(KHttpRequest *rq, KFileName *file,const char *path,
-		bool fileExsit, bool &result) {
-	KRedirectSource*fo = NULL;
-	int path_len = (int)strlen(path);
-	KLocker locker(&lock);
-	for (auto it2 = pathRedirects.begin(); it2 != pathRedirects.end(); it2++) {
-		if ((*it2)->match(path,path_len) && (*it2)->allowMethod.matchMethod(rq->sink->data.meth)) {
-			if ((*it2)->MatchConfirmFile(fileExsit)) {
-				result = true;
-				if ((*it2)->rd) {
-					fo = (*it2)->rd->makeFetchObject(rq, file);
-					(*it2)->addRef();
-					fo->bind_base_redirect((*it2));
-				}
-				break;
-			}
-		}
+KBaseRedirect* KVirtualHost::refsPathRedirect(const char* path, int path_len) {
+	auto rd = refs_path_redirect(path, path_len);
+	if (rd != nullptr || !inherit) {
+		return rd;
 	}
-	return fo;
+	return conf.gvm->vhs.refs_path_redirect(path, path_len);
 }
-KFetchObject *KVirtualHost::findFileExtRedirect(KHttpRequest *rq,
-		KFileName *file, bool fileExsit, bool &result) {
-	KRedirectSource*fo = NULL;
-	char *file_ext = (char *) file->getExt();
-	if (!file_ext) {
-		return nullptr;
+KFetchObject* KVirtualHost::findPathRedirect(KHttpRequest* rq, KFileName* file, const char* path, bool fileExsit, bool& result) {
+	auto path_len = strlen(path);
+	auto fo = find_path_redirect(rq, file, path, path_len, fileExsit, result);
+	if (result || !inherit) {
+		return fo;
 	}
-	lock.Lock();
-	auto it = redirects.find(file_ext);
-	if (it != redirects.end() && (*it).second->allowMethod.matchMethod(rq->sink->data.meth) && (*it).second->MatchConfirmFile(fileExsit)) {
-		result = true;
-		if ((*it).second->rd) {
-			fo = (*it).second->rd->makeFetchObject(rq, file);
-			(*it).second->addRef();
-			fo->bind_base_redirect((*it).second);
-		}
+	return conf.gvm->vhs.find_path_redirect(rq, file, path, path_len, fileExsit, result);
+}
+KFetchObject* KVirtualHost::findFileExtRedirect(KHttpRequest* rq, KFileName* file, bool fileExsit, bool& result) {
+	char* file_ext = (char*)file->getExt();
+	auto fo = find_file_redirect(rq, file, file_ext, fileExsit, result);
+	if (result || !inherit) {
+		return fo;
 	}
-	lock.Unlock();
-	return fo;
+	return conf.gvm->vhs.find_file_redirect(rq, file, file_ext, fileExsit, result);
 }
 void KVirtualHost::closeToken(Token_t token) {
 	if (token == NULL) {
@@ -260,49 +215,48 @@ void KVirtualHost::closeToken(Token_t token) {
 void KVirtualHost::createToken(Token_t token) {
 #ifdef _WIN32
 	HANDLE curThread = GetCurrentProcess();
-	OpenProcessToken(curThread,TOKEN_ALL_ACCESS,&token);
+	OpenProcessToken(curThread, TOKEN_ALL_ACCESS, &token);
 	CloseHandle(curThread);
 #else
 	token[0] = getuid();
 	token[1] = getgid();
 #endif
 }
-Token_t KVirtualHost::getProcessToken(bool &result) {
+Token_t KVirtualHost::getProcessToken(bool& result) {
 	return createToken(result);
 }
-Token_t KVirtualHost::createToken(bool &result) {
+Token_t KVirtualHost::createToken(bool& result) {
 #ifdef _WIN32
-	if(user.empty()) {
+	if (user.empty()) {
 		result = true;
 		return NULL;
 	}
 	HANDLE token = NULL;
 	result = (LogonUser(user.c_str(),
-				".",
-				group.c_str(),
-				LOGON32_LOGON_INTERACTIVE,
-				LOGON32_PROVIDER_DEFAULT,
-				&token) == TRUE);
+		".",
+		group.c_str(),
+		LOGON32_LOGON_INTERACTIVE,
+		LOGON32_PROVIDER_DEFAULT,
+		&token) == TRUE);
 	return token;
 #else
 	result = true;
-	return (Token_t) &id;
+	return (Token_t)&id;
 #endif
 }
 #ifdef _WIN32
-HANDLE KVirtualHost::logon(bool &result)
-{
+HANDLE KVirtualHost::logon(bool& result) {
 	lock.Lock();
-	if(!logoned) {
+	if (!logoned) {
 		logoned = true;
-		assert(token==NULL);
+		assert(token == NULL);
 		bool create_token_result = false;
 		token = createToken(create_token_result);
 		logonresult = create_token_result;
 	}
 	lock.Unlock();
 	result = logonresult;
-	if(result && token) {
+	if (result && token) {
 		result = ImpersonateLoggedOnUser(token) == TRUE;
 	}
 	return token;
@@ -313,7 +267,7 @@ bool KVirtualHost::setRunAs(const std::string& user, const std::string& group) {
 	this->user = user;
 	this->group = group;
 #ifdef _WIN32
-	if(user.empty()) {
+	if (user.empty()) {
 		this->group = "";
 	}
 	return true;
@@ -341,7 +295,7 @@ bool KVirtualHost::setRunAs(const std::string& user, const std::string& group) {
 #endif
 }
 #endif
-bool KVirtualHost::setDocRoot(const std::string &docRoot) {
+bool KVirtualHost::setDocRoot(const std::string& docRoot) {
 	if (docRoot.empty()) {
 		return false;
 	}
@@ -350,7 +304,7 @@ bool KVirtualHost::setDocRoot(const std::string &docRoot) {
 		doc_root = conf.path + doc_root;
 	} else {
 #ifdef _WIN32
-		if(doc_root[0]=='/'){
+		if (doc_root[0] == '/') {
 			doc_root = conf.diskName + doc_root;
 		}
 #endif
@@ -359,333 +313,138 @@ bool KVirtualHost::setDocRoot(const std::string &docRoot) {
 	return true;
 }
 #ifdef ENABLE_VH_LOG_FILE
-void KVirtualHost::setLogFile(KAttributeHelper *ah, KVirtualHost *tm) {
-	std::string path;
-	if (!ah->getValue("log_file", path) && tm) {
-		path = tm->logFile;
-	}
+void KVirtualHost::parse_log_config(const KXmlAttribute& attr) {
+	auto path = attr["log_file"];
 	if (path.empty()) {
 		return;
 	}
 	logFile = path;
-	assert(logger==NULL);
-	if (path[0]!='|' && !isAbsolutePath(path.c_str())) {
+	assert(logger == NULL);
+	if (path[0] != '|' && !isAbsolutePath(path.c_str())) {
 		path = doc_root + path;
-	}else{
+	} else {
 #ifdef _WIN32
-		if (path[0]=='/' && path!="/nolog") {
+		if (path[0] == '/' && path != "/nolog") {
 			path = conf.diskName + path;
 		}
 #endif
 	}
-	logManage.lock.Lock();
+	auto locker = logManage.get_locker();
 	auto it = logManage.logs.find(path);
 	if (it == logManage.logs.end()) {
 		logger = new KLogElement;
 		logger->setPath(path);
 		logger->place = LOG_FILE;
-		logManage.logs.insert(pair<string, KLogElement *> (path, logger));
+		logManage.logs.insert(std::pair<std::string, KLogElement*>(path, logger));
 	} else {
 		logger = (*it).second;
 	}
-	string value;
-	if (!ah->getValue("log_rotate_time", value) && tm && tm->logger) {
-		tm->logger->getRotateTime(value);
-	}
-	logger->setRotateTime(value.c_str());
-	if (ah->getValue("log_rotate_size", value)) {
-		logger->rotate_size = get_size(value.c_str());
-	} else if (tm && tm->logger) {
-		logger->rotate_size = tm->logger->rotate_size;
-	}
-	if(ah->getValue("logs_day",value)){
-		logger->logs_day = atoi(value.c_str());
-	}else if(tm && tm->logger){
-		logger->logs_day = tm->logger->logs_day;
-	}
-	if(ah->getValue("logs_size",value)){
-		logger->logs_size = get_size(value.c_str());
-	}else if(tm && tm->logger){
-		logger->logs_size = tm->logger->logs_size;
-	}
-	if (ah->getValue("log_handle", value)) {
-		if (strcasecmp(value.c_str(), "off") == 0 || value == "0") {
-			logger->log_handle = false;
-		} else {
-			logger->log_handle = true;
-		}
-	} else if (tm && tm->logger) {
-		logger->log_handle = tm->logger->log_handle;
-	}
-	if (ah->getValue("log_mkdir", value)) {
-		if (strcasecmp(value.c_str(), "on") == 0 || value == "1") {
-			logger->mkdir_flag = true;
-		} else {
-			logger->mkdir_flag = false;
-		}
-	} else if (tm && tm->logger) {
-		logger->mkdir_flag = tm->logger->mkdir_flag;
-	}
+	logger->setRotateTime(attr("log_rotate_time"));
+	logger->rotate_size = get_size(attr("log_rotate_size"));
+	logger->logs_day = attr.get_int("logs_day");
+	logger->logs_size = get_size(attr("logs_size"));
+	logger->log_handle = (attr["log_handle"] == "on" || attr["log_handle"] == "1");
+	logger->mkdir_flag = (attr["log_mkdir"] == "on" || attr["log_handle"] == "1");
 #ifdef ENABLE_VH_RUN_AS
 	logger->uid = id[0];
 	logger->gid = id[1];
 #endif
 	logger->addRef();
-	logManage.lock.Unlock();
 }
 #endif
 #ifdef ENABLE_USER_ACCESS
-bool KVirtualHost::saveAccess()
-{
-	if (user_access.size()==0) {
-		return false;
-	}
-	if (user_access=="-") {
-		std::string errMsg;
-		conf.gvm->saveConfig(errMsg);
-		return true;
-	}
-	std::string accessFile = doc_root;
-	accessFile += user_access;
-	stringstream s;
-	s << "<config>\n";
-	for(int i=0;i<2;i++){
-		access[i].buildXML(s,CHAIN_XML_DETAIL);
-	}
-	s << "</config>\n";
-	KFile fp;
-	if (!fp.open(accessFile.c_str(),fileWrite,KFILE_NOFOLLOW)) {
-		klog(KLOG_ERR,"Cann't save to access file [%s]\n",accessFile.c_str());
-		return false;
-	}
-	fp.write(s.str().c_str(),(int)s.str().size());
-	fp.close();
-	return true;
-}
-int KVirtualHost::checkRequest(KHttpRequest *rq, KFetchObject **fo) {
-	if (!loadAccess()) {
+int KVirtualHost::checkRequest(KHttpRequest* rq, KFetchObject** fo) {
+	if (!access[REQUEST]) {
 		return JUMP_ALLOW;
 	}
-	return access[REQUEST].check(rq, NULL, fo);
+	return access[REQUEST]->check(rq, NULL, fo);
 }
-int KVirtualHost::checkResponse(KHttpRequest *rq, KFetchObject** fo)
-{
-	if (user_access.empty()) {
+int KVirtualHost::checkResponse(KHttpRequest* rq, KFetchObject** fo) {
+	if (!access[RESPONSE]) {
 		return JUMP_ALLOW;
 	}
-	return access[RESPONSE].check(rq,rq->ctx.obj, fo);
+	return access[RESPONSE]->check(rq, rq->ctx.obj, fo);
 }
-int KVirtualHost::checkPostMap(KHttpRequest *rq, KFetchObject** fo)
-{
-	if(user_access.size()==0){
+int KVirtualHost::checkPostMap(KHttpRequest* rq, KFetchObject** fo) {
+	if (!access[RESPONSE]) {
 		return JUMP_ALLOW;
 	}
-	return access[RESPONSE].checkPostMap(rq,rq->ctx.obj, fo);
+	return access[RESPONSE]->checkPostMap(rq, rq->ctx.obj, fo);
 }
-void KVirtualHost::setAccess(const std::string &access_file)
-{
+void KVirtualHost::setAccess(const std::string& access_file) {
 	this->user_access = access_file;
 }
-bool KVirtualHost::loadAccess(KVirtualHost *vh) {
-	if (user_access.empty()) {
-		return false;
-	}
-	if (access_file_loaded) {
-		return true;
-	}
-	access_file_loaded = true;
-	std::string err_msg;
-	if (user_access=="-") {
-		std::stringstream s;
-		access[0].newTable(BEGIN_TABLE, err_msg);
-		access[1].newTable(BEGIN_TABLE, err_msg);
-		if (vh) {
-			s << "<config>\n";
-			for (int i=0;i<2;i++) {
-				vh->access[i].buildXML(s,(CHAIN_XML_DETAIL|CHAIN_SKIP_EXT));
-			}
-			s << "</config>\n";			
-			KAccessParser parser;
-			parser.parseString(s.str().c_str(), &this->access[0]);
+
+void KVirtualHost::reload_access() {
+	KStringBuf s;
+	s << "@vh|" << name << "_access";
+	auto locker = kconfig::lock();
+	kconfig::reload_config(s.str().data(), false);
+}
+void KVirtualHost::access_config_listen(kconfig::KConfigTree* tree, KVirtualHost* ov) {
+	KStringBuf s;
+	s << "@vh|" << name << "_access";
+	if (ov) {
+		if (ov->user_access == user_access) {
+			return;
 		}
-		return true;
+		if (!ov->user_access.empty() && ov->user_access != "-") {
+			kconfig::remove_config_file(s.str().data());
+		}
 	}
-	std::string accessFile;
-	if (isAbsolutePath(user_access.c_str())) {
-		accessFile = user_access;
-	} else {
-		accessFile = doc_root;
-		accessFile += user_access;
+	if (!user_access.empty() && user_access != "-") {
+		KStringBuf accessFile;
+		if (isAbsolutePath(user_access.c_str())) {
+			accessFile << user_access;
+		} else {
+			accessFile << doc_root;
+			accessFile << user_access;
+		}
+		
+		kconfig::add_config_file(s.str().data(), accessFile.str().data(), tree, kconfig::KConfigFileSource::Vh);
 	}
-	struct _stati64 buf;	
-	if (lstat(accessFile.c_str(), &buf) != 0 || !S_ISREG(buf.st_mode)) {
-		for (int i=0;i<2;i++) {
-				this->access[i].destroy();
-				this->access[i].newTable(BEGIN_TABLE, err_msg);
-		}		
-		return true;
-	}
-	KAccess access[2];
-	KAccessParser parser;
-	access[REQUEST].type = REQUEST;
-	access[REQUEST].qName = "request";
-	access[RESPONSE].type = RESPONSE;
-	access[RESPONSE].qName = "response";
-	access[0].newTable(BEGIN_TABLE, err_msg);
-	access[1].newTable(BEGIN_TABLE, err_msg);
-	parser.parseFile(accessFile, &access[0]);
-	for (int i = 0; i < 2; i++) {
-		this->access[i].copy(access[i]);
-	}
-	return true;
+	return;
 }
 #endif
-void KVirtualHost::buildXML(std::stringstream &s) {
-	lock.Lock();
-	//	s << "<vh ";
-	if (name.size() > 0) {
-		s << "name='" << name << "' ";
-	}
-	s << "doc_root='" << GetDocumentRoot() << "' ";
-#ifdef ENABLE_VH_LOG_FILE
-	if (logger) {
-		s << "log_file='" << logFile << "'";
-		logger->buildXML(s);
-	}
-#endif
-	s << " inherit='" << (inherit ? "on" : "off") << "'";
-#ifdef ENABLE_VH_RUN_AS
-	if (user.size() > 0) {
-		s << " user='" << user << "'";
-	}
-	if (group.size() > 0) {
-#ifndef _WIN32
-		s << " group='";
-#else
-		s << " password='";
-#endif
-		s << group << "'";
-	}
-	if (app>0) {
-		s << " app='" << (int)app << "'";
-	}
-	if (ip_hash) {
-		s << " ip_hash='1'";
-	}
-	if (app_share!=1) {
-		s << " app_share='" << (int)app_share << "'";
-	}
-#ifndef _WIN32
-	if (chroot) {
-		s << " chroot='1'";
-	}
-#endif
-#endif
-	if (browse) {
-		s << " browse='on'";
-	}
-#ifdef ENABLE_USER_ACCESS
-	if(user_access.size()>0){
-		s << " access='" << user_access << "'";
-	}
-#endif
-	if(htaccess.size()>0){
-		s << " htaccess='" << htaccess << "'";
-	}
-#ifdef ENABLE_VH_RS_LIMIT
-	if (max_connect > 0) {
-		s << " max_connect='" << max_connect << "'";
-	}
-	if (speed_limit > 0) {
-		s << " speed_limit='" << speed_limit << "'";
-	}
-#endif
-#ifdef ENABLE_VH_FLOW
-	if (fflow) {
-		s << " fflow='" << (int)fflow << "'";
-	}
-#endif
-#ifdef ENABLE_VH_QUEUE
-	if(max_worker>0){
-		s << " max_worker='" << max_worker << "'";
-	}
-	if(max_queue>0){
-		s << " max_queue='" << max_queue << "'";
-	}
-#endif
-#ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
-	if (!cert_file.empty()) {
-		s << " certificate='" << cert_file << "'";
-	}
-	if (!key_file.empty()) {
-		s << " certificate_key='" << key_file << "'";
-	}
-	if (!cipher.empty()) {
-		s << " cipher='" << cipher << "'";
-	}
-	if (!protocols.empty()) {
-		s << " protocols='" << protocols << "'";
-	}
-#ifdef ENABLE_HTTP2
-	if (alpn>0) {
-		s << " alpn='" << (int)alpn << "'";
-	}
-#endif
-#ifdef SSL_READ_EARLY_DATA_SUCCESS
-	if (early_data) {
-		s << " early_data='1'";
-	}
-#endif
-#endif
-	if (closed || tvh) {
-		s << " status='" << (int)closed << "'";
-	}
-	if (tvh) {
-		s << " templete='" << tvh->name << "'";
-	}
-	buildBaseXML(s);
-#ifdef ENABLE_BASED_PORT_VH
-	for (auto it5=binds.begin();it5!=binds.end();it5++) {
-		s << "<bind>" << (*it5) << "</bind>\n";
-	}
-#endif
-	for (auto it = hosts.begin(); it != hosts.end(); it++) {
-		if ((*it)->fromTemplete) {
-			continue;
+void KVirtualHost::copy_to(KVirtualHost* vh) {
+	for (auto&& file_rd : redirects) {
+		if (file_rd.second->rd) {
+			file_rd.second->rd->add_ref();
 		}
-		s << "<host";
-		if (strcmp((*it)->dir, "/") != 0
-			//{{ent
-#ifdef ENABLE_SVH_SSL
-			|| (*it)->ssl_param!=NULL
-#endif//}}
-		){
-			s << " dir='" << (*it)->dir;
-			//{{ent
-#ifdef ENABLE_SVH_SSL
-			if ((*it)->ssl_param != NULL) {
-				s << KGL_SSL_PARAM_SPLIT_CHAR << (*it)->ssl_param;
-			}
-#endif//}}
-			s << "'";
-		}
-		s << ">" ;
-		if ((*it)->wide) {
-			s << "*";
-		}
-		s << (*it)->host ;
-		s << "</host>\n";
-	}
-#ifdef ENABLE_USER_ACCESS
-	if (user_access=="-") {
-		for (int i=0;i<2;i++) {
-			access[i].buildXML(s,0);
-		}
-	}
+		KBaseRedirect* br = new KBaseRedirect(file_rd.second->rd, file_rd.second->confirm_file);
+#ifdef ENABLE_UPSTREAM_PARAM
+		br->params = file_rd.second->params;
 #endif
-	lock.Unlock();
+		br->allowMethod.setMethod(file_rd.second->allowMethod.getMethod().c_str());
+		vh->redirects.insert(std::pair<char*, KBaseRedirect*>(xstrdup(file_rd.first), br));
+	}
+	for (auto&& path : pathRedirects) {
+		if (path->rd) {
+			path->rd->add_ref();
+		}
+		KPathRedirect* prd = new KPathRedirect(path->path, path->rd);
+		prd->confirm_file = path->confirm_file;
+#ifdef ENABLE_UPSTREAM_PARAM
+		prd->params = path->params;
+#endif
+		prd->allowMethod.setMethod(path->allowMethod.getMethod().c_str());
+		vh->pathRedirects.push_back(prd);
+	}
+	vh->indexFiles = indexFiles;
+	vh->errorPages = errorPages;
+	vh->aliass = aliass;
+	vh->binds = binds;
+	vh->access[0] = access[0];
+	vh->access[1] = access[1];
+	for (auto&& item : hosts) {
+		KSubVirtualHost* svh = new KSubVirtualHost(vh);
+		svh->setHost(item->host);
+		svh->fromTemplete = true;
+		svh->setDocRoot(vh->doc_root.c_str(), item->dir);
+		vh->hosts.push_back(svh);
+	}
 }
-bool KVirtualHost::loadApiRedirect(KApiPipeStream *st, int workType) {
+bool KVirtualHost::loadApiRedirect(KApiPipeStream* st, int workType) {
 	lock.Lock();
 	for (auto it = pathRedirects.begin(); it != pathRedirects.end(); it++) {
 		if (!loadApiRedirect((*it)->rd, st, workType)) {
@@ -702,13 +461,13 @@ bool KVirtualHost::loadApiRedirect(KApiPipeStream *st, int workType) {
 	lock.Unlock();
 	return true;
 }
-bool KVirtualHost::loadApiRedirect(KRedirect *rd, KApiPipeStream *st,
-		int workType) {
-	if(rd==NULL){
+bool KVirtualHost::loadApiRedirect(KRedirect* rd, KApiPipeStream* st,
+	int workType) {
+	if (rd == NULL) {
 		return true;
 	}
 	if (strcmp(rd->getType(), "api") == 0) {
-		KApiRedirect *ard = static_cast<KApiRedirect *> (rd);
+		KApiRedirect* ard = static_cast<KApiRedirect*> (rd);
 		KExtendProgramString ds(ard->name.c_str(), this);
 		if (ard->type == workType && !st->isLoaded(ard)) {
 			ard->preLoad(&ds);
@@ -717,7 +476,7 @@ bool KVirtualHost::loadApiRedirect(KRedirect *rd, KApiPipeStream *st,
 				ds.setPid(st->process.getProcessId());
 				ard->postLoad(&ds);
 			} else {
-				klog(KLOG_ERR,"cann't load api [%s]\n",ard->name.c_str());
+				klog(KLOG_ERR, "cann't load api [%s]\n", ard->name.c_str());
 			}
 			return result;
 		}
@@ -725,7 +484,7 @@ bool KVirtualHost::loadApiRedirect(KRedirect *rd, KApiPipeStream *st,
 	return true;
 }
 #ifdef ENABLE_VH_RS_LIMIT
-void KVirtualHost::setSpeedLimit(int speed_limit,KVirtualHost *ov) {
+void KVirtualHost::setSpeedLimit(int speed_limit, KVirtualHost* ov) {
 	lock.Lock();
 	this->speed_limit = speed_limit;
 	if (speed_limit == 0) {
@@ -735,12 +494,12 @@ void KVirtualHost::setSpeedLimit(int speed_limit,KVirtualHost *ov) {
 		}
 	} else {
 		if (sl == NULL) {
-			if(ov){
+			if (ov) {
 				sl = ov->sl;
 			}
-			if(sl){
+			if (sl) {
 				sl->addRef();
-			}else{
+			} else {
 				sl = new KSpeedLimit();
 			}
 		}
@@ -748,40 +507,37 @@ void KVirtualHost::setSpeedLimit(int speed_limit,KVirtualHost *ov) {
 	}
 	lock.Unlock();
 }
-void KVirtualHost::setSpeedLimit(const char * speed_limit_str,KVirtualHost *ov) {
-	setSpeedLimit((int) get_size(speed_limit_str),ov);
+void KVirtualHost::setSpeedLimit(const char* speed_limit_str, KVirtualHost* ov) {
+	setSpeedLimit((int)get_size(speed_limit_str), ov);
 }
 int KVirtualHost::GetConnectionCount() {
-	if(cur_connect){
+	if (cur_connect) {
 		return cur_connect->getConnectionCount();
 	}
 	return refs - VH_REFS_CONNECT_DELTA;
 }
 #endif
 #ifdef ENABLE_VH_QUEUE
-unsigned KVirtualHost::getWorkerCount()
-{
-	if(queue){
+unsigned KVirtualHost::getWorkerCount() {
+	if (queue) {
 		return queue->getWorkerCount();
 	}
 	return 0;
 }
-unsigned KVirtualHost::getQueueSize()
-{
-	if(queue){
+unsigned KVirtualHost::getQueueSize() {
+	if (queue) {
 		return queue->getQueueSize();
 	}
 	return 0;
 }
 #endif
 #ifdef ENABLE_VH_RUN_AS
-void KVirtualHost::KillAllProcess()
-{
+void KVirtualHost::KillAllProcess() {
 	for (size_t i = 0; i < apps.size(); i++) {
 		conf.gam->killCmdProcess(apps[i]);
 	}
 }
-bool KVirtualHost::caculateNeedKillProcess(KVirtualHost *ov) {
+bool KVirtualHost::caculateNeedKillProcess(KVirtualHost* ov) {
 
 	if (doc_root != ov->doc_root) {
 		return true;
@@ -789,13 +545,9 @@ bool KVirtualHost::caculateNeedKillProcess(KVirtualHost *ov) {
 	if (envs.size() > ov->envs.size()) {
 		return true;
 	}
-	if(tvh != ov->tvh){
-		return true;
-	}
 	//check env change
 	for (auto it3 = envs.begin(); it3 != envs.end(); it3++) {
-		map<char *, char *, lessp_icase>::iterator it4;
-		it4 = ov->envs.find((*it3).first);
+		auto it4 = ov->envs.find((*it3).first);
 		if (it4 == ov->envs.end()) {
 			return true;
 		}
@@ -806,39 +558,37 @@ bool KVirtualHost::caculateNeedKillProcess(KVirtualHost *ov) {
 	return false;
 }
 #endif
-std::string KVirtualHost::getApp(KHttpRequest *rq)
-{
-	if (app<=0) {
+std::string KVirtualHost::getApp(KHttpRequest* rq) {
+	if (app <= 0) {
 		return getUser();
 	}
 	kassert((int)apps.size() == (int)app);
 	//todo:以后根据ip做hash
-	int index = (ip_hash? ksocket_addr_hash(rq->sink->get_peer_addr()):rand()) % app;
+	int index = (ip_hash ? ksocket_addr_hash(rq->sink->get_peer_addr()) : rand()) % app;
 	//printf("get vh=[%p] app=[%s]\n",this,apps[index].c_str());
 	return apps[index];
 }
-void KVirtualHost::setApp(int app)
-{
-	if (app<=0 || app>512) {
+void KVirtualHost::setApp(int app) {
+	if (app <= 0 || app > 512) {
 		app = 1;
 	}
 	apps.clear();
 	this->app = (uint8_t)app;
 	std::stringstream s;
-	for (int i=0;i<app;i++) {
+	for (int i = 0; i < app; i++) {
 		s.str("");
 		if (app_share) {
 			s << getUser();
 		} else {
 			s << name;
 		}
-		s << ":" << (i+1);
+		s << ":" << (i + 1);
 		apps.push_back(s.str());
 	}
+	apps.shrink_to_fit();
 }
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
-std::string KVirtualHost::get_cert_file()
-{
+std::string KVirtualHost::get_cert_file() {
 	if (cert_file.empty()) {
 		return cert_file;
 	}
@@ -850,8 +600,7 @@ std::string KVirtualHost::get_cert_file()
 	}
 	return cert_file;
 }
-std::string KVirtualHost::get_key_file()
-{
+std::string KVirtualHost::get_key_file() {
 	if (key_file.empty()) {
 		return key_file;
 	}
@@ -863,8 +612,7 @@ std::string KVirtualHost::get_key_file()
 	}
 	return key_file;
 }
-bool KVirtualHost::setSSLInfo(const std::string& certfile, const std::string& keyfile, const std::string& cipher, const std::string& protocols)
-{
+bool KVirtualHost::setSSLInfo(const std::string& certfile, const std::string& keyfile, const std::string& cipher, const std::string& protocols) {
 	this->cert_file = certfile;
 	this->key_file = keyfile;
 	this->cipher = cipher;
@@ -877,3 +625,165 @@ bool KVirtualHost::setSSLInfo(const std::string& certfile, const std::string& ke
 	return true;
 }
 #endif
+bool KVirtualHost::parse_xml(const KXmlAttribute& attr, KVirtualHost* ov) {
+	envs.clear();
+	parseEnv(attr("envs"));
+	setDocRoot(attr["doc_root"]);
+	browse = attr["browse"] == "on";
+
+	inherit = (attr["inherit"] == "on" || attr["inherit"] == "1");
+	setAccess(attr["access"]);
+	htaccess = attr["htaccess"];
+#ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
+	std::string certfile;
+	std::string keyfile;
+	std::string cipher;
+	std::string protocols;
+#ifdef ENABLE_HTTP2
+	alpn = 0;
+	if (!attr["alpn"].empty()) {
+		alpn = attr.get_int("alpn");
+	} else {
+		if (attr.get_int("http2") == 1) {
+			KBIT_SET(alpn, KGL_ALPN_HTTP2);
+		}
+#ifdef ENABLE_HTTP3
+		if (attr.get_int("http3") == 1) {
+			KBIT_SET(alpn, KGL_ALPN_HTTP3);
+		}
+#endif
+	}
+#endif
+	early_data = attr.get_int("early_data") == 1;
+	setSSLInfo(attr["certificate"], attr["certificate_key"], attr["cipher"], attr["protocols"]);
+#endif
+	setRunAs(attr["user"], attr["group"]);
+#ifndef _WIN32
+	chroot = (attr["chroot"] == "on" || attr["chroot"] == "1");
+#endif
+	app_share = (attr["app_share"] == "on" || attr["app_share"] == "1");
+	setApp(attr.get_int("app"));
+	ip_hash = (attr["ip_hash"] == "on" || attr["ip_hash"] == "1");
+#ifdef ENABLE_VH_LOG_FILE
+	parse_log_config(attr);
+#endif
+#ifdef ENABLE_VH_RS_LIMIT
+	setSpeedLimit(attr("speed_limit"), ov);
+	max_connect = attr.get_int("max_connect");
+	initConnect(ov);
+#endif
+#ifdef ENABLE_BLACK_LIST
+	if (ov) {
+		assert(ov->blackList);
+		blackList = ov->blackList;
+		ov->blackList->addRef();
+	} else {
+		blackList = new KIpList();
+	}
+#endif
+#ifdef ENABLE_VH_FLOW
+	setFlow(attr.get_int("fflow") == 1, ov);
+#endif
+#ifdef ENABLE_VH_QUEUE
+	max_worker = attr.get_int("max_worker");
+	max_queue = attr.get_int("max_queue");
+	initQueue(ov);
+#endif
+	SetStatus(attr.get_int("status"));
+	if (ov != nullptr) {
+		auto locker = ov->get_locker();
+		ov->copy_to(this);
+	}
+	return true;
+}
+bool KVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+	if (KBaseVirtualHost::on_config_event(tree, ev)) {
+		return true;
+	}
+	auto xml = ev->get_xml();
+	auto attr = xml->attributes();
+	switch (ev->type) {
+	case kconfig::EvSubDir | kconfig::EvNew:
+		if (xml->is_tag(_KS("request"))) {
+			auto locker = get_locker();
+			if (ev->type == (kconfig::EvSubDir | kconfig::EvNew)) {
+				if (!access[REQUEST]) {
+					access[REQUEST].reset(new KAccess(false, REQUEST));
+				}
+				bind_access_config(tree, access[REQUEST].get());
+			}
+			access[REQUEST]->parse_config(attr);
+			return true;
+		}
+		if (xml->is_tag(_KS("response"))) {
+			auto locker = get_locker();
+			if (ev->type == (kconfig::EvSubDir | kconfig::EvNew)) {
+				if (!access[RESPONSE]) {
+					access[RESPONSE].reset(new KAccess(false, RESPONSE));
+				}
+				bind_access_config(tree, access[RESPONSE].get());
+			}
+			access[RESPONSE]->parse_config(attr);
+			return true;
+		}
+		//[[fallthrough]]
+	case kconfig::EvSubDir | kconfig::EvUpdate:
+	{		
+		if (xml->is_tag(_KS("host"))) {
+			std::list<KSubVirtualHost*> hosts;
+			defer(for (auto&& host : hosts) {
+				host->release();
+			});
+			for (uint32_t index = 0;; ++index) {
+				auto body = xml->get_body(index);
+				if (!body) {
+					break;
+				}
+				auto svh = parse_host(body);
+				if (!svh) {
+					continue;
+				}
+				hosts.push_back(svh);
+			}
+			conf.gvm->updateVirtualHost(this, hosts);
+			return true;
+		}
+		if (xml->is_tag(_KS("bind"))) {
+			std::list<std::string> binds;
+			for (uint32_t index = 0;; ++index) {
+				auto body = xml->get_body(index);
+				if (!body) {
+					break;
+				}
+				auto bind = body->get_text(nullptr);
+				if (!bind) {
+					continue;
+				}
+				if (*bind == '@' || *bind == '#' || *bind == '!') {
+					binds.push_back(bind);
+				} else if (isdigit(*bind)) {
+					KStringBuf s;
+					s << "!*:" << bind;
+					binds.push_back(s.c_str());
+				}
+			}
+			conf.gvm->updateVirtualHost(this, binds);
+			return true;
+		}
+	}
+	break;
+	case kconfig::EvSubDir | kconfig::EvRemove:
+		if (xml->is_tag(_KS("host"))) {
+			std::list<KSubVirtualHost*> hosts;
+			conf.gvm->updateVirtualHost(this, hosts);
+			return true;
+		}
+		if (xml->is_tag(_KS("bind"))) {
+			std::list<std::string> binds;		
+			conf.gvm->updateVirtualHost(this, binds);
+			return true;
+		}		
+		break;
+	}
+	return false;
+}

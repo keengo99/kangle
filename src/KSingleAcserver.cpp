@@ -19,7 +19,7 @@ KSingleAcserver::KSingleAcserver(const std::string &name) : KPoolableRedirect(na
 KSingleAcserver::~KSingleAcserver() {
 	sockHelper->release();
 }
-bool KSingleAcserver::parse_config(khttpd::KXmlNode* node) {
+bool KSingleAcserver::parse_config(const khttpd::KXmlNode* node) {
 	if (!KPoolableRedirect::parse_config(node)) {
 		return false;
 	}
@@ -37,13 +37,4 @@ KUpstream* KSingleAcserver::GetUpstream(KHttpRequest* rq)
 }
 bool KSingleAcserver::setHostPort(std::string host, const char *port) {
 	return sockHelper->setHostPort(host , port);
-}
-void KSingleAcserver::buildXML(std::stringstream &s) {
-	s << "\t<server name='" << name << "' proto='";
-	s << KPoolableRedirect::buildProto(proto);
-	s << "'";
-	std::map<std::string, std::string> params;
-	sockHelper->build(params);
-	build_xml(params, s);
-	s << "/>\n";
 }

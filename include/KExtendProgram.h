@@ -246,8 +246,7 @@ public:
 	}
 	bool isChanged(KExtendProgram *ep);
 	std::string getEnv();
-	virtual bool parse_config(khttpd::KXmlNode* xml);
-	virtual void parseConfig(std::map<std::string, std::string> &attribute);
+	virtual bool parse_config(const khttpd::KXmlNode* xml);
 	virtual bool parseEnv(const KXmlAttribute&attribute);
 	bool addEvent(bool preEvent, const KXmlAttribute& attribute);
 	bool preLoad(KExtendProgramString *ds);

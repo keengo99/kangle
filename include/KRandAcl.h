@@ -36,11 +36,9 @@ public:
 		s << count << "/" << total;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		setRand(attribute["rand"].c_str());
-	}
-	void buildXML(std::stringstream &s) override {
-		s << " rand='" << getDisplay() << "'>";
 	}
 private:
 	void setRand(const char *str)

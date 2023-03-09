@@ -54,24 +54,8 @@ enum{
 	CALL_EDIT_VH,
 	CALL_INFO_VH,
 	CALL_LIST_VH,
-	CALL_LIST_TVH,
-	CALL_LIST_GTVH,
 	CALL_LIST_LISTEN,
-	CALL_ADD_VH_INFO,
-	CALL_DEL_VH_INFO,
-	CALL_ADD_INDEX,
-	CALL_DEL_INDEX,
 	CALL_LIST_INDEX,
-	CALL_ADD_REDIRECT,
-	CALL_DEL_REDIRECT,
-	CALL_ADD_ERROR_PAGE,
-	CALL_DEL_ERROR_PAGE,
-	CALL_SAVE_CONFIG,
-	CALL_SAVE_VH,
-	CALL_EXPORT_VH,
-	CALL_EXPORT_CONFIG,
-	CALL_ADD_SERVER,
-	CALL_DEL_SERVER,
 	CALL_RELOAD,
 	CALL_RELOAD_VH,
 	CALL_RELOAD_VH_ACCESS,
@@ -82,17 +66,7 @@ enum{
 	CALL_CHECK_VH_DB,
 	CALL_UPDATE_VH,
 	CALL_INFO_DOMAIN,
-
-	CALL_ADD_TABLE,
-	CALL_EMPTY_TABLE,
-	CALL_DEL_TABLE,
-	CALL_LIST_TABLE,
-	
-	CALL_LIST_CHAIN,
-	CALL_ADD_CHAIN,
-	CALL_EDIT_CHAIN,
-	CALL_DEL_CHAIN,
-	
+	CALL_LIST_TABLE,	
 	CALL_CLEAN_CACHE,
 	CALL_CACHE_INFO,
 	CALL_CACHE_PREFETCH,
@@ -102,9 +76,7 @@ enum{
 	CALL_DUMP_FLOW,
 	CALL_DUMP_LOAD,
 	CALL_GET_CONNECTION,
-	CALL_PORT_MAP,
 	CALL_CHECK_SSL,
-	CALL_RUNTIME_MODEL,
 	CALL_VH_STAT,
 	CALL_BLACK_LIST,
 	CALL_REPORT_IP,
@@ -123,31 +95,10 @@ static int parseCallName(const char *callName)
 		return CALL_UNKNOW;
 	}
 	switch(*callName){
-		case 'a':
-			if(strcmp(callName,"add_vh_info")==0){
-				return CALL_ADD_VH_INFO;
-			}		
+		case 'a':				
 			if(strcmp(callName,"add_vh")==0){
 				return CALL_ADD_VH;
-			}
-			if(strcmp(callName,"add_redirect")==0){
-				return CALL_ADD_REDIRECT;
-			}
-			if(strcmp(callName,"add_error_page")==0){
-				return CALL_ADD_ERROR_PAGE;
-			}
-			if(strcmp(callName,"add_server")==0){
-				return CALL_ADD_SERVER;
-			}
-			if(strcmp(callName,"add_index")==0){
-				return CALL_ADD_INDEX;
-			}
-			if(strcmp(callName,"add_table")==0){
-				return CALL_ADD_TABLE;
-			}
-			if(strcmp(callName,"add_chain")==0){
-				return CALL_ADD_CHAIN;
-			}
+			}				
 			break;
 		case 'b':
 			if (strcmp(callName,"black_list")==0) {
@@ -177,31 +128,10 @@ static int parseCallName(const char *callName)
 				return CALL_CLEAN_ALL_CACHE;
 			}
 			break;
-		case 'd':
-			if (strcmp(callName,"del_vh_info") == 0) {
-				return CALL_DEL_VH_INFO;
-			}
+		case 'd':			
 			if(strcmp(callName,"del_vh")==0){
 				return CALL_DEL_VH;
-			}
-			if(strcmp(callName,"del_redirect")==0){
-				return CALL_DEL_REDIRECT;
-			}
-			if(strcmp(callName,"del_error_page")==0){
-				return CALL_DEL_ERROR_PAGE;
-			}
-			if(strcmp(callName,"del_server")==0){
-				return CALL_DEL_SERVER;
-			}
-			if(strcmp(callName,"del_index")==0){
-				return CALL_DEL_INDEX;
-			}
-			if(strcmp(callName,"del_table")==0){
-				return CALL_DEL_TABLE;
-			}
-			if(strcmp(callName,"del_chain")==0){
-				return CALL_DEL_CHAIN;
-			}
+			}			
 #ifdef ENABLE_VH_FLOW
 			if (strcmp(callName,"dump_flow")==0) {
 				return CALL_DUMP_FLOW;
@@ -214,18 +144,6 @@ static int parseCallName(const char *callName)
 		case 'e':
 			if(strcmp(callName,"edit_vh")==0){
 				return CALL_EDIT_VH;
-			}
-			if(strcmp(callName,"export_vh")==0){
-				return CALL_EXPORT_VH;
-			}
-			if(strcmp(callName,"export_config")==0){
-				return CALL_EXPORT_CONFIG;
-			}
-			if(strcmp(callName,"empty_table")==0){
-				return CALL_EMPTY_TABLE;
-			}
-			if (strcmp(callName,"edit_chain")==0) {
-				return CALL_EDIT_CHAIN;
 			}
 			break;
 		case 'g':
@@ -259,17 +177,8 @@ static int parseCallName(const char *callName)
 			if(strcmp(callName,"list_vh")==0){
 				return CALL_LIST_VH;
 			}
-			if(strcmp(callName,"list_tvh")==0){
-				return CALL_LIST_TVH;
-			}
-			if(strcmp(callName,"list_gtvh")==0){
-				return CALL_LIST_GTVH;
-			}
 			if(strcmp(callName,"list_table")==0){
 				return CALL_LIST_TABLE;
-			}
-			if(strcmp(callName,"list_chain")==0){
-				return CALL_LIST_CHAIN;
 			}
 			if (strcmp(callName,"list_index")==0) {
 				return CALL_LIST_INDEX;
@@ -286,10 +195,6 @@ static int parseCallName(const char *callName)
 			}
 #endif
 			break;
-		case 'p':
-			if(strcmp(callName,"port_map")==0){
-				return CALL_PORT_MAP;
-			}
 		case 'q':
 			if (strcmp(callName, "query_domain") == 0) {
 				return CALL_QUERY_DOMAIN;
@@ -307,20 +212,11 @@ static int parseCallName(const char *callName)
 			if (strcmp(callName,"reload")==0) {
 				return CALL_RELOAD;
 			}
-			if (strcmp(callName,"runtime_model")==0) {
-				return CALL_RUNTIME_MODEL;
-			}
 			if (strcmp(callName,"report_ip")==0) {
 				return CALL_REPORT_IP;
 			}
 			break;
 		case 's':
-			if(strcmp(callName,"save_config")==0){
-				return CALL_SAVE_CONFIG;
-			}
-			if(strcmp(callName,"save_vh")==0){
-				return CALL_SAVE_VH;
-			}
 			if (strcmp(callName,"stat_vh")==0) {
 				return CALL_VH_STAT;
 			}
@@ -341,30 +237,6 @@ static int parseCallName(const char *callName)
 	}
 	return CALL_UNKNOW;
 }
-#if 0
-static int deleteVh(WhmContext *ctx)
-{
-	//TODO:以下代码要移入vhd.delVirtualHost中
-	KUrlValue *uv = ctx->getUrlValue();
-	string name = uv->get("name");
-	KVirtualHost *vh = conf.gvm->refsVirtualHostByName(name);
-	if(vh==NULL){
-		ctx->setStatus("vh cann't find");
-		return WHM_PARAM_ERROR;
-	}
-	vhd.delVirtualHost(uv->attribute);
-	conf.gvm->removeVirtualHost(vh);
-	int ret = WHM_OK;
-	ctx->buildVh(vh);
-	if(uv->get("destroy")=="1" || uv->get("destroy")=="true"){
-		KTempleteVirtualHost *tvh = vh->tvh;
-		if(tvh){
-			tvh->destroyEvent(ctx);
-		}
-	}
-	return ret;
-}
-#endif
 static int getVhDomain(WhmContext *ctx)
 {
 	KUrlValue *uv = ctx->getUrlValue();
@@ -705,23 +577,10 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 			return WHM_OK;
 		}
 #endif
-#ifdef ENABLE_VH_RUN_AS
-	case CALL_PORT_MAP:
-		{
-			KVirtualHost *vh = ctx->getVh();
-			if (vh==NULL) {
-				ctx->setStatus("cann't find vh");
-				return WHM_CALL_FAILED;
-			}
-			int port = conf.gam->getCmdPortMap(vh,uv->get("cmd"),uv->get("name"),atoi(uv->get("app").c_str()));
-			ctx->add("port",port);
-			return WHM_OK;
-		}
-#endif
 #ifdef ENABLE_BLACK_LIST
 	case CALL_BLACK_LIST:
 		{
-			KIpList *iplist = conf.gvm->globalVh.blackList;
+			KIpList *iplist = conf.gvm->vhs.blackList;
 			if (uv->getx("vh")) {
 				KVirtualHost *vh = ctx->getVh();
 				
@@ -828,15 +687,6 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 			ctx->setStatus("ssl sni not support");
 			return WHM_CALL_FAILED;
 		}
-	case CALL_RUNTIME_MODEL:
-		{
-			const char *name = uv->getx("name");
-			if (name==NULL) {
-				ctx->setStatus("name param is missing");
-				return WHM_PARAM_ERROR;
-			}
-			return KAccess::whmCallRunTimeModel(name,ctx);
-		}
 	case CALL_SERVER_INFO:
 	{
 		const char *name = uv->getx("name");
@@ -874,14 +724,8 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 		return WHM_OK;
 	}
 #endif
-	case CALL_ADD_TABLE:
-	case CALL_EMPTY_TABLE:
-	case CALL_DEL_TABLE:
+
 	case CALL_LIST_TABLE:	
-	case CALL_LIST_CHAIN:
-	case CALL_ADD_CHAIN:
-	case CALL_EDIT_CHAIN:
-	case CALL_DEL_CHAIN:
 		{
 			//vh=vhname&access=response|request
 			std::string err_msg;
@@ -904,82 +748,22 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 				ctx->setStatus("access must be response or request");
 				return WHM_PARAM_ERROR;
 			}
-			KAccess *maccess = &kaccess[access_type];
+			KSafeAccess maccess(kaccess[access_type]->add_ref());
 			if (vh) {
-#ifndef HTTP_PROXY
-				if(!vh->loadAccess()) {
-					ctx->setStatus("vh load access error!");
-					return WHM_CALL_FAILED;
-				}				
-				maccess = &vh->access[access_type];
+#ifndef HTTP_PROXY				
+				maccess = vh->access[access_type];
 #endif
 			}
 			bool result = true;
 			bool save_file = false;
 			if (cmd==CALL_LIST_TABLE) {
-				maccess->listTable(ctx);						
-			} else if (cmd==CALL_ADD_TABLE) {
-				result = maccess->newTable(uv->get("table_name"),err_msg);
-				save_file = true;
-			} else if(cmd==CALL_DEL_TABLE) {
-				result = maccess->delTable(uv->get("table_name"),err_msg);
-				save_file = true;
-			} else if(cmd==CALL_EMPTY_TABLE) {
-				result = maccess->emptyTable(uv->get("table_name"),err_msg);
-				save_file = true;
-			} else if(cmd==CALL_LIST_CHAIN) {
-				const char *name = uv->getx("name");
-				int flag = 0;
-				if (atoi(uv->get("detail").c_str())==0) {
-					flag |= CHAIN_XML_SHORT;
+				if (maccess) {
+					maccess->listTable(ctx);
 				}
-				if (atoi(uv->get("reset_flow").c_str())==0) {
-					flag |= CHAIN_RESET_FLOW;
-				}
-				result = maccess->listChain(uv->get("table_name"),name,ctx,flag);
-			} else if(cmd==CALL_EDIT_CHAIN) {
-				const char *id = uv->getx("id");
-				const char *name = uv->getx("name");
-				if(id==NULL && name==NULL){
-					ctx->setStatus("id or name must set one");
-				}else{
-					if (id) {
-						result = maccess->editChain(uv->get("table_name"),atoi(id),uv);
-					}else{
-						result = maccess->editChain(uv->get("table_name"),name,uv);
-					}
-				}
-				save_file = true;
-			} else if(cmd==CALL_ADD_CHAIN) {
-				int id = maccess->newChain(uv->get("table_name"),atoi(uv->get("id").c_str()),uv);
-				save_file = true;
-				ctx->add("id",id);
-			} else if(cmd==CALL_DEL_CHAIN) {
-				const char *id = uv->getx("id");
-				const char *name = uv->getx("name");
-				if(id==NULL && name==NULL){
-					ctx->setStatus("id or name must set one");
-				}else{
-					if (id) {
-						result = maccess->delChain(uv->get("table_name"),atoi(id));
-					}else{
-						result = maccess->delChain(uv->get("table_name"),name);
-					}
-				}
-				save_file = true;
 			}
 			if(!result){
 				ctx->setStatus(err_msg.c_str());
 				return WHM_CALL_FAILED;
-			}
-			if(save_file){
-				if(vh==NULL){
-					KConfigBuilder::saveConfig();
-				} else {
-#ifndef HTTP_PROXY
-					vh->saveAccess();
-#endif
-				}
 			}
 			return WHM_OK;
 		}
@@ -1003,7 +787,7 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 		return deleteVh(ctx);
 	}
 #endif
-	if(cmd == CALL_LIST_VH || cmd == CALL_LIST_TVH || cmd == CALL_LIST_GTVH){
+	if(cmd == CALL_LIST_VH){
 		//ctx->setStatus(WHM_OK);
 		std::list<std::string> vhs;
 		if(cmd==CALL_LIST_VH){
@@ -1012,13 +796,8 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 				uv->get("status")=="1",
 				uv->get("onlydb")=="1"
 				);
-		}else if(cmd==CALL_LIST_TVH){
-			conf.gvm->getAllTempleteVh(uv->getx("name"),vhs);			
-		}else{
-			conf.gvm->getAllGroupTemplete(vhs);
 		}
-		std::list<std::string>::iterator it;
-		for(it=vhs.begin();it!=vhs.end();it++){
+		for(auto it=vhs.begin();it!=vhs.end();it++){
 			ctx->add("name",(*it));
 		}
 		return WHM_OK;
@@ -1029,112 +808,22 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 	if(cmd==CALL_INFO_VH){
 		return getVhDetail(ctx);
 	}
-	if(cmd==CALL_ADD_ERROR_PAGE 
-		|| cmd==CALL_DEL_ERROR_PAGE 
-		|| cmd==CALL_ADD_REDIRECT 
-		|| cmd==CALL_DEL_REDIRECT
-		|| cmd==CALL_ADD_INDEX
-		|| cmd==CALL_DEL_INDEX
-		|| cmd==CALL_LIST_INDEX
-		){
+	if(cmd==CALL_LIST_INDEX){
 		std::string name;
 		KBaseVirtualHost *bvh = ctx->getVh();
 		if(bvh==NULL){
 			ctx->setStatus("no such vh");
 			return WHM_CALL_FAILED;
 		}
-		bool result=false;
-		if(cmd==CALL_ADD_ERROR_PAGE){
-			result = bvh->addErrorPage(atoi(uv->get("code").c_str()),uv->get("url"));
-		}else if(cmd==CALL_DEL_ERROR_PAGE){
-			result = bvh->delErrorPage(atoi(uv->get("code").c_str()));
-		}else if(cmd==CALL_ADD_REDIRECT){
-			result = bvh->addRedirect(atoi(uv->get("file_ext").c_str())==1,
-										uv->get("value"),
-										uv->get("target"),
-										uv->get("method"),
-										(uint8_t)atoi(uv->get("exsit").c_str()),
-										uv->get("params")
-										);
-		}else if(cmd==CALL_DEL_REDIRECT){
-			result = bvh->delRedirect(atoi(uv->get("file_ext").c_str())==1,
-										uv->get("value"));
-		}else if(cmd==CALL_ADD_INDEX){
-			int id = atoi(uv->get("id").c_str());
-			if (id==0) {
-				id = 80;
-			}
-			result = bvh->addIndexFile(uv->get("index"),id);
-		}else if(cmd==CALL_DEL_INDEX){
-			result = bvh->delIndexFile(uv->get("index"));
-		} else if(cmd==CALL_LIST_INDEX) {
-			bvh->listIndex(ctx);
-			result = true;
-		}
+		bool result=false;		
+		bvh->listIndex(ctx);
+		result = true;
+		
 		if(result){
 			return WHM_OK;
 		}
 		//ctx->setStatus(WHM_CALL_FAILED);
 		return WHM_CALL_FAILED;
-	}
-	if(cmd==CALL_EXPORT_VH){
-		std::stringstream s;
-		std::string name;
-		if(uv->get("name",name)){
-			KVirtualHost *vh = conf.gvm->refsVirtualHostByName(name);
-			if(vh==NULL){
-				ctx->setStatus("vh not found");
-				return WHM_CALL_FAILED;
-			}
-			vh->buildXML(s);
-			vh->destroy();
-		}else{
-			conf.gvm->build(s);
-		}
-		ctx->add("data",b64encode((const unsigned char *)s.str().c_str()).c_str());
-		return WHM_OK;
-	}
-	if(cmd==CALL_SAVE_VH){
-		std::string errMsg;
-		if(!conf.gvm->saveConfig(errMsg)){
-			ctx->setStatus(errMsg.c_str());
-			return WHM_CALL_FAILED;
-		}
-		return WHM_OK;
-	}
-	if(cmd==CALL_EXPORT_CONFIG){
-		KConfigBuilder builder;
-		std::stringstream s;
-		builder.build(s);
-		ctx->add("data",b64encode((const unsigned char *)s.str().c_str()).c_str());
-		return WHM_OK;
-	}
-	if(cmd==CALL_SAVE_CONFIG){
-		if(!KConfigBuilder::saveConfig()){
-			return WHM_CALL_FAILED;
-		}
-		return WHM_OK;
-	}
-	if(cmd==CALL_ADD_SERVER){
-		std::string err_msg;
-		bool result = conf.gam->new_server(
-			atoi(uv->get("over_flag").c_str())==1,
-			uv->attribute,
-			err_msg);
-		if(!result){
-			ctx->setStatus(err_msg.c_str());
-			return WHM_CALL_FAILED;
-		}
-		return WHM_OK;
-	}
-	if(cmd==CALL_DEL_SERVER){
-		std::string err_msg;
-		bool result = conf.gam->remove_server(uv->get("name"),err_msg);
-		if(!result){
-			ctx->setStatus(err_msg.c_str());
-			return WHM_CALL_FAILED;
-		}
-		return WHM_OK;
 	}
 	if(cmd==CALL_KILL_PROCESS){	
 		if(!killProcess(ctx->getVh())){
@@ -1151,12 +840,14 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 	}
 	if (cmd == CALL_RELOAD_VH_ACCESS) {
 		KVirtualHost *vh = ctx->getVh();
+#if 0
 		if (vh == NULL) {
 			ctx->setStatus("cann't find vh");
 			return WHM_CALL_FAILED;
 		}
 		vh->access_file_loaded = false;
 		vh->loadAccess(NULL);
+#endif
 		return WHM_OK;
 	}
 	if(cmd==CALL_RELOAD_VH){
@@ -1204,7 +895,6 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 			return WHM_CALL_FAILED;
 		}
 		conf.admin_lock.Unlock();
-		KConfigBuilder::saveConfig();
 		return WHM_OK;
 	}
 	if(cmd==CALL_REBOOT){

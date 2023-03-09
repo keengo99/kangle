@@ -73,7 +73,7 @@ void KRewriteRule::buildXml(std::stringstream &s)
 		s << " code='" << code << "'";
 	}
 }
-bool KRewriteRule::parse(std::map<std::string,std::string> &attribute)
+bool KRewriteRule::parse(const KXmlAttribute& attribute)
 {
 	if (attribute["nc"] == "1") {
 		nc = true;
@@ -299,86 +299,40 @@ std::string KRewriteMarkEx::getHtml(KModel *model) {
 std::string KRewriteMarkEx::getDisplay() {
 	return "not support in manage model";
 }
-void KRewriteMarkEx::editHtml(std::map<std::string, std::string> &attribute,bool html) {
-	
+void KRewriteMarkEx::parse_config(const khttpd::KXmlNodeBody* body) {
+	prefix = body->attributes["prefix"];
+	rewriteBase = body->attributes["rewrite_base"];
+	return;
 }
-bool KRewriteMarkEx::startCharacter(KXmlContext *context, char *character,
-		int len) {
-	if (context->qName == "cond") {
-		KRewriteCond *cond = new KRewriteCond;
-		cond->str = xstrdup(context->attribute["str"].c_str());
-		if (context->attribute["or"] == "1") {
-			cond->is_or = true;
-		} else {
-			cond->is_or = false;
+void KRewriteMarkEx::parse_child(const kconfig::KXmlChanged* changed) {
+	auto xml = changed->get_xml();
+	if (xml->is_tag(_KS("rule"))) {
+		for (uint32_t index = 0;; ++index) {
+			auto body = xml->get_body(index);
+			if (!body) {
+				break;
+			}
+			KRewriteRule* rule = new KRewriteRule;
+			rule->parse(body->attributes);
+			rules.push_back(rule);
 		}
-		if (context->attribute["nc"] == "1") {
-			cond->nc = true;
-		} else {
-			cond->nc = false;
-		}
-		char *test = character;
-		if (*test == '!') {
-			cond->revert = true;
-			test++;
-		}
-		if (*test == '-') {
-			//it is file attribute
-			cond->testor = new KFileAttributeTestor;
-		} else if (*test == '>' || *test == '<' || *test == '=') {
-			//compare string
-			cond->testor = new KCompareTestor;
-		} else {
-			cond->testor = new KRegexTestor;
-			//reg
-		}
-		if (!cond->testor->parse(test, cond->nc)) {
-			delete cond;
-			return false;
-		}
-		conds.push_back(cond);
+		return;
 	}
-	return true;
-}
-void KRewriteMarkEx::buildXML(std::stringstream &s) {
-	if (prefix.size() > 0) {
-		s << " prefix='" << prefix << "'";
-	}
-	if (rewriteBase.size()>0) {
-		s << " rewrite_base='" << rewriteBase << "'";
-	}
-	s << ">\n";
-	std::list<KRewriteCond *>::iterator it;
-	for (it = conds.begin(); it != conds.end(); it++) {
-		s << "<cond str='" << (*it)->str << "'";
-		if (it != conds.begin() && (*it)->is_or) {
-			s << " or='1'";
+	if (xml->is_tag(_KS("cond"))) {
+		for (uint32_t index = 0;; ++index) {
+			auto body = xml->get_body(index);
+			if (!body) {
+				break;
+			}
+			auto cond = new KRewriteCond;
+			if (!cond->parse_config(body)) {
+				delete cond;
+				continue;
+			}
+			conds.push_back(cond);
 		}
-		s << " nc='" << ((*it)->nc ? "1" : "0") << "'>";
-		s << CDATA_START;
-		if ((*it)->revert) {
-			s << "!";
-		}
-		s << (*it)->testor->getString() << CDATA_END;
-		s << "</cond>\n";
+		return;
 	}
-	std::list<KRewriteRule *>::iterator it2;
-	for (it2 = rules.begin(); it2 != rules.end(); it2++) {
-		s << "<rule ";
-		(*it2)->buildXml(s);
-		s << "/>\n";
-	}
-}
-bool KRewriteMarkEx::startElement(KXmlContext *context) {
-	if (context->qName == "mark_rewritex") {
-		prefix = context->attribute["prefix"];
-		rewriteBase = context->attribute["rewrite_base"];
-	} else if (context->qName == "rule") {
-		KRewriteRule *rule = new KRewriteRule;
-		rule->parse(context->attribute);
-		rules.push_back(rule);
-	}
-	return true;
 }
 void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KStringBuf &s) {
 	if (strncasecmp(env, "LA-U:", 5) == 0 || strncasecmp(env, "LA-F:", 5) == 0) {

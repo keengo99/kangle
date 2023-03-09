@@ -14,12 +14,12 @@ static void free_access_ctx(void *ctx)
 {
 
 }
-static KGL_RESULT build(kgl_access_build *build_ctx, KF_ACCESS_BUILD_TYPE build_type)
+static KGL_RESULT build(kgl_access_build *build_ctx, uint32_t build_type)
 {
 	build_ctx->write_string(build_ctx->cn, "test", 4, 0);
 	return KGL_OK;
 }
-static KGL_RESULT parse(kgl_access_parse *parse_ctx, KF_ACCESS_PARSE_TYPE parse_type)
+static KGL_RESULT parse_config(kgl_access_parse_config *parse_ctx)
 {
 	return KGL_OK;
 }
@@ -97,7 +97,8 @@ static kgl_access access_model = {
 	create_access_ctx,
 	free_access_ctx,
 	build,
-	parse,
+	parse_config,
+	NULL,
 	process,
 	NULL
 };

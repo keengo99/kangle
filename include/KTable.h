@@ -29,54 +29,58 @@
 #include "KReg.h"
 #include "KAccess.h"
 
-////////////////////////////////////////////////
 
+struct KConfigFileKey
+{
+	KConfigFileKey(uint16_t index, kgl_ref_str_t* name) {
+		this->index = index;
+		this->name = kstring_refs(name);
+	}
+	KConfigFileKey(const KConfigFileKey& a) {
+		this->index = a.index;
+		this->name = kstring_refs(a.name);
+	}
+	KConfigFileKey& operator=(const KConfigFileKey& a) = delete;
+	~KConfigFileKey() {
+		kstring_release(name);
+	}
+	uint16_t index;
+	kgl_ref_str_t* name;
+};
+struct KConfigFileLess
+{
+	bool operator()(const KConfigFileKey& a, const KConfigFileKey& b) const {
+		int result = (int)a.index - (int)b.index;
+		if (result<0) {
+			return true;
+		} else if (result > 0) {
+			return false;
+		}
+		return kgl_string_cmp(a.name, b.name);
+	}
+};
 class KChain;
 #define TABLE_CONTEXT 	"table"
-
-class KTable : public KJump {
+using KSafeChain = std::unique_ptr<KChain>;
+class KTable : public KJump, public kconfig::KConfigListen {
 public:
 	~KTable();
-	KTable();
+	KTable(KAccess *access,const std::string& name);
 	kgl_jump_type match(KHttpRequest *rq, KHttpObject *obj, unsigned& checked_table, KJump **jump, KFetchObject **fo);
-	std::string addChainForm(KChain *chain,u_short accessType);
 	void htmlTable(std::stringstream &s,const char *vh,u_short accessType);
-	int insertChain(int index, KChain *newChain);
-	bool delChain(std::string name);
-	bool editChain(std::string name,KUrlValue *urlValue,KAccess *kaccess);
-	bool delChain(int index);
-	bool downChain(int index);
-	bool editChain(int index, KUrlValue *urlValue,KAccess *kaccess);
-	bool addAcl(int index, std::string acl, bool mark,KAccess *kaccess);
-	bool delAcl(int index, std::string acl, bool mark);
-	bool downModel(int index, std::string acl, bool mark);
-	void empty();
-	friend class KAccess;
-public:
-	bool startElement(KXmlContext* context) override {
-		return true;
+	bool parse_config(KAccess *access,const khttpd::KXmlNodeBody* xml);
+	kconfig::KConfigEventFlag config_flag() const {
+		return kconfig::ev_subdir|kconfig::ev_merge;
 	}
-	bool startElement(KXmlContext *context,KAccess *kaccess);
-	bool startCharacter(KXmlContext *context, char *character, int len) override;
-	bool endElement(KXmlContext *context) override;
-	/*
-
-	*/
-	void buildXML(std::stringstream &s,int flag) override;
-	bool buildXML(const char *chain_name,std::stringstream &s,int flag);
-
+	bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+	void clear();
+	friend class KAccess;
 private:
-	KChain *findChain(const char *name);
-	KChain *findChain(int index);
-	void removeChain(KChain *chain);
-	void pushChain(KChain *chain);
-	void chainChangeName(std::string oname,KChain *chain);
+	void on_file_event(std::vector<KSafeChain>& chain, kconfig::KConfigEvent* ev);
+	KSafeChain parse_chain(const khttpd::KXmlNodeBody* xml);
 	//ÐÂµÄÁ´
-	//std::vector<KChain *> chain;
-	KChain *head;
-	KChain *end;
-	std::map<std::string,KChain *> chain_map;
-	KChain *curChain;
-	bool ext;
+	KAccess* access;
+	std::map<KConfigFileKey, std::vector<KSafeChain>, KConfigFileLess> chains;
 };
+
 #endif /*KTABLE_H_*/

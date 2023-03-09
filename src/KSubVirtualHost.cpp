@@ -15,6 +15,7 @@
 #include "KHttpProxyFetchObject.h"
 #include "kmalloc.h"
 #include "HttpFiber.h"
+#include "KDefer.h"
 std::string htaccess_filename;
 using namespace std;
 iterator_ret subdir_port_map_destroy(void *data, void *argv)
@@ -178,15 +179,15 @@ bool KSubVirtualHost::setHost(const char *host)
 /* 如果setHost里面设置了dir信息(|分隔),以setHost的为准 */
 void KSubVirtualHost::setDocRoot(const char *doc_root, const char *dir) {
 	free_subtype_data();
-	if (this->dir==NULL) {
-		if (dir == NULL) {
+	if (this->dir==nullptr) {
+		if (dir == nullptr) {
 			this->dir = xstrdup("/");
 		} else {
 			this->dir = xstrdup(dir);
 		}
 	}
 	char *ssl_crt = strchr(this->dir, KGL_SSL_PARAM_SPLIT_CHAR);
-	if (ssl_crt != NULL) {
+	if (ssl_crt != nullptr) {
 		*ssl_crt = '\0';
 #ifdef ENABLE_SVH_SSL
 		ssl_crt++;
@@ -290,7 +291,7 @@ void KSubVirtualHost::setDocRoot(const char *doc_root, const char *dir) {
 	}
 	KFileName::tripDir3(this->doc_root,PATH_SPLIT_CHAR);
 }
-kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit,KAccess **htresponse, KFetchObject** fo) {
+kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit, KApacheHtaccessContext& htctx, KFetchObject** fo) {
 	//	char *tripedDir = KFileName::tripDir2(rq->sink->data.url->path, '/');
 #ifdef _WIN32
 	int path_len = (int)strlen(rq->sink->data.url->path);
@@ -317,7 +318,7 @@ kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool 
 				*hot = '\0';
 				char *apath = vh->alias(rq->ctx.internal, path);
 				KFileName htfile;
-				bool htfile_exsit;
+				bool htfile_exsit = false;
 				if (apath) {
 					htfile_exsit = htfile.setName(apath, vh->htaccess.c_str(), 0);
 					xfree(apath);
@@ -327,25 +328,15 @@ kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool 
 					htfile_exsit = htfile.setName(s.str().c_str(), vh->htaccess.c_str(), 0);
 				}
 				if (htfile_exsit) {
-					if ((*htresponse) == NULL) {
-						(*htresponse) = new KAccess;
-						(*htresponse)->setType(RESPONSE);
-					}
-					KAccess *htrequest = new KAccess;
-					htrequest->setType(REQUEST);
-					if (makeHtaccess(path, &htfile, htrequest, *htresponse)) {						
-						int jump_type = htrequest->check(rq, obj, fo);						
-						if (fo || jump_type==JUMP_DENY) {							
+					htctx = make_htaccess(path, &htfile);
+					if (htctx) {
+						int jump_type = htctx->access[REQUEST]->check(rq, obj, fo);						
+						if (fo || jump_type==JUMP_DENY) {						
 							xfree(path);
-							delete htrequest;
-							if (jump_type == JUMP_DENY) {
-								delete (*htresponse);
-								*htresponse = NULL;
-							}
+							htctx = nullptr;
 							return jump_type;
 						}
 					}
-					delete htrequest;
 				}
 				//todo:check rebind file
 				//	if(filencmp(,rq->sink->data.url->path)
@@ -418,7 +409,7 @@ kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool 
 		return JUMP_DENY;
 	}
 	KRedirectSource*fo2 = rd->makeFetchObject(rq, rq->file);
-	KBaseRedirect *brd = new KBaseRedirect(rd, KGL_CONFIRM_FILE_NEVER);
+	KBaseRedirect *brd = new KBaseRedirect(rd, KConfirmFile::Never);
 	fo2->bind_base_redirect(brd);
 	*fo = fo2;
 	return JUMP_ALLOW;
@@ -440,25 +431,15 @@ bool KSubVirtualHost::bindFile(KHttpRequest *rq,bool &exsit,bool searchDefaultFi
 	}
 	return true;
 }
-bool KSubVirtualHost::makeHtaccess(const char *prefix,KFileName *file,KAccess *request,KAccess *response)
+KApacheHtaccessContext KSubVirtualHost::make_htaccess(const char *prefix,KFileName *file)
 {
-	KApacheConfig htaccess(true);
-	htaccess.setPrefix(prefix);
-	std::stringstream s;
-	if (htaccess.load(file,s)) {
-		KXml xmlParser;
-		xmlParser.addEvent(request);
-		xmlParser.addEvent(response);
-		bool result=false;
-		try {
-			result = xmlParser.parseString(s.str().c_str());
-		} catch(KXmlException &e) {
-			fprintf(stderr,"%s",e.what());
-			return false;
-		}
-		return result;
+	KApacheHtaccessContext ctx(new _KApacheHtaccessContext(file->getName()));
+	try {
+		ctx->file->reload(true);
+	} catch (std::exception& e) {
+		klog(KLOG_ERR, "load htaccess file error [%s]\n", e.what());
 	}
-	return false;
+	return ctx;
 }
 char *KSubVirtualHost::mapFile(const char *path) {
 	char *new_path = vh->alias(true,path);

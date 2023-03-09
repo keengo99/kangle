@@ -180,7 +180,7 @@ KGL_RESULT send_error2(KHttpRequest* rq, int code, const char* reason) {
 	KAutoBuffer s(rq->sink->pool);
 	assert(rq);
 	std::string errorPage;
-	if (conf.gvm->globalVh.getErrorPage(code, errorPage)) {
+	if (conf.gvm->vhs.getErrorPage(code, errorPage)) {
 		if (strncasecmp(errorPage.c_str(), "file://", 7) == 0) {
 			errorPage = errorPage.substr(7, errorPage.size() - 7);
 		}
@@ -387,7 +387,7 @@ bool push_redirect_header(KHttpRequest* rq, const char* url, int url_len, int co
 }
 
 
-KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KAccess** htresponse) {
+KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KApacheHtaccessContext &htresponse) {
 	assert(rq->file == NULL);
 	//file = new KFileName;
 	assert(!rq->has_final_source());
@@ -468,11 +468,13 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KAccess** h
 		//映射源确定
 		return fo;
 	}
+#if 0
 	//查找默认扩展
 	fo = svh->vh->findDefaultRedirect(rq, rq->file, result);
 	if (fo) {
 		return fo;
 	}
+#endif
 	if (result) {
 		if (rq->file->getPathInfoLength() > 0) {
 			//静态文件不支持path_info
@@ -502,7 +504,7 @@ char* find_content_type(KHttpRequest* rq, KHttpObject* obj) {
 		content_type = svh->vh->getMimeType(obj, rq->file->getExt());
 	}
 	if (content_type == NULL) {
-		content_type = conf.gvm->globalVh.getMimeType(obj, rq->file->getExt());
+		content_type = conf.gvm->vhs.getMimeType(obj, rq->file->getExt());
 	}
 	return content_type;
 }
@@ -716,7 +718,7 @@ int checkResponse(KHttpRequest* rq, KHttpObject* obj) {
 	}
 	rq->ctx.response_checked = 1;
 	KFetchObject* fo = nullptr;
-	int action = kaccess[RESPONSE].check(rq, obj, &fo);
+	int action = kaccess[RESPONSE]->check(rq, obj, &fo);
 	assert(!fo);
 	if (fo) {
 		klog(KLOG_ERR, "response check not support new source\n");

@@ -78,8 +78,8 @@ std::string KMapRedirectMark::getDisplay()
 {
 	return this->getValList();
 }
-void KMapRedirectMark::editHtml(std::map<std::string, std::string> &attribute,bool html) 
-{
+void KMapRedirectMark::	parse_config(const khttpd::KXmlNodeBody* xml) {
+	auto attribute = xml->attr();
 	vhc.clear();
 	char *buf = strdup(attribute["v"].c_str());
 	char *hot = buf;
@@ -119,10 +119,6 @@ void KMapRedirectMark::editHtml(std::map<std::string, std::string> &attribute,bo
 		hot = p;
 	}
 	free(buf);
-}
-void KMapRedirectMark::buildXML(std::stringstream &s)
-{
-	s << "v='" << this->getValList() << "'>";
 }
 std::string KMapRedirectMark::getValList() {
 	std::stringstream s;

@@ -83,16 +83,11 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)override
-			
-	{
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		host = attribute["host"];
 		port = atoi(attribute["port"].c_str());
 		param = attribute["param"];
-	}
-	void buildXML(std::stringstream &s)override
-	{
-		s << "host='" << host << "' port='" << port << "' param='" << param << "'>";
 	}
 private:
 	std::string host;

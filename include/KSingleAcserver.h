@@ -32,13 +32,12 @@ public:
 	const char* getType() override {
 		return "server";
 	}
-	bool parse_config(khttpd::KXmlNode* node) override;
+	bool parse_config(const khttpd::KXmlNode* node) override;
 	void set_proto(Proto_t proto) override;
 	void shutdown() override {
 		sockHelper->shutdown();
 	}
 public:
-	void buildXML(std::stringstream &s) override;
 	KSockPoolHelper *sockHelper;
 };
 #endif /* KSingleAcserver_H_ */

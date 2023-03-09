@@ -34,7 +34,7 @@
 #include "KLogHandle.h"
 #include "KCache.h"
 using namespace std;
-void on_firewall_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+void on_firewall_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 #ifdef ENABLE_BLACK_LIST
 	if (ev == nullptr || ev->type == kconfig::EvRemove) {
 		conf.bl_time = 0;
@@ -54,11 +54,11 @@ void on_firewall_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigE
 	if (kconfig::is_first() && *conf.flush_ip_cmd) {
 		run_fw_cmd(conf.flush_ip_cmd, NULL);
 	}
-	conf.gvm->globalVh.blackList->setRunFwCmd(*conf.block_ip_cmd != '\0');
-	conf.gvm->globalVh.blackList->setReportIp(*conf.report_url != '\0');
+	conf.gvm->vhs.blackList->setRunFwCmd(*conf.block_ip_cmd != '\0');
+	conf.gvm->vhs.blackList->setReportIp(*conf.report_url != '\0');
 #endif
 }
-void on_compress_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+void on_compress_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	if (ev == nullptr || ev->type == kconfig::EvRemove) {
 		conf.only_compress_cache = 0;
 		conf.min_compress_length = 512;
@@ -72,7 +72,7 @@ void on_compress_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigE
 		conf.br_level = attr.get_int("br_level", 5);
 	}
 }
-void on_connect_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+void on_connect_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	if (ev == nullptr || ev->type == kconfig::EvRemove) {
 		conf.max = 0;
 		conf.max_per_ip = 0;
@@ -86,7 +86,7 @@ void on_connect_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEv
 		conf.per_ip_deny = attr.get_int("per_ip_deny");
 	}
 }
-void on_run_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+void on_run_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	if (ev == nullptr || ev->type == kconfig::EvRemove) {
 		conf.run_user = "";
 		conf.run_group = "";
@@ -96,7 +96,7 @@ void on_run_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 		conf.run_group = attr["group"];
 	}
 }
-void on_fiber_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+void on_fiber_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	if (ev == nullptr || ev->type == kconfig::EvRemove) {
 		conf.fiber_stack_size = 0;
 		http_config.fiber_stack_size = conf.fiber_stack_size;
@@ -109,7 +109,7 @@ void on_fiber_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEven
 	}
 	http_config.fiber_stack_size = conf.fiber_stack_size;
 }
-void on_dns_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+void on_dns_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	if (ev == nullptr || ev->type == kconfig::EvRemove) {
 		conf.worker_dns = 8;
 	} else {
@@ -122,7 +122,7 @@ void on_dns_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 		kasync_worker_set(conf.dnsWorker, conf.worker_dns, 512);
 	}
 }
-void on_io_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+void on_io_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	if (ev == nullptr || ev->type == kconfig::EvRemove) {
 		conf.worker_io = 2;
 		conf.max_io = 0;
@@ -140,7 +140,7 @@ void on_io_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* 
 		kasync_worker_set(conf.ioWorker, conf.worker_io, conf.max_io);
 	}
 }
-void on_cache_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+void on_cache_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	if (ev == nullptr || ev->type == kconfig::EvRemove) {
 		//default
 		conf.default_cache = 1;
@@ -191,7 +191,7 @@ void on_cache_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEven
 	cache.init(kconfig::is_first());
 
 }
-void on_log_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+void on_log_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	if (ev == nullptr || ev->type == kconfig::EvRemove) {
 		//default
 		conf.log_level = 2;
@@ -226,7 +226,7 @@ void on_log_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 		break;
 	}
 }
-void on_admin_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+void on_admin_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	conf.admin_lock.Lock();
 	defer(conf.admin_lock.Unlock());
 	auto attr = ev->get_xml()->attributes();
@@ -244,7 +244,7 @@ void on_admin_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEven
 		break;
 	}
 }
-void on_ssl_client_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+void on_ssl_client_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	auto attr = ev->get_xml()->attributes();
 	switch (ev->type) {
 	case kconfig::EvNew:
@@ -258,7 +258,7 @@ void on_ssl_client_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfi
 		break;
 	}
 }
-void on_main_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+void on_main_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	auto xml = ev->get_xml();
 	KBIT_CLR(ev->type, kconfig::EvSubDir);
 	switch (ev->type) {

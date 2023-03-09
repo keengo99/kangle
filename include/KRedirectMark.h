@@ -36,9 +36,7 @@ public:
 	std::string getHtml(KModel *model)override;
 
 	std::string getDisplay()override;
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)override;
-	bool startCharacter(KXmlContext *context, char *character, int len)override;
-	void buildXML(std::stringstream &s)override;
+	void parse_config(const khttpd::KXmlNodeBody* xml) override;
 private:
 	char *dst;
 	bool internalRedirect;

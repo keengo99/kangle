@@ -54,8 +54,8 @@ public:
 		s << count;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string>& attribute, bool html) override
-	{
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		if (vhc) {
 			delete vhc;
 			vhc = NULL;
@@ -98,16 +98,6 @@ public:
 		}
 		s << "' placeHolder='-|abc.com|*.abc.com'>";
 		return s.str();
-	}
-	void buildXML(std::stringstream& s) override {
-		s << " host='";
-		if (this->host_null) {
-			s << "-|";
-		}
-		if (vhc) {
-			vhc->iterator(referer_domain_iterator, &s);
-		}
-		s << "'>";
 	}
 private:
 	KDomainMap* vhc;

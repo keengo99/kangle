@@ -16,7 +16,7 @@ public:
 	 */
 	virtual bool test(const char *str, KRegSubString **lastSubString) = 0;
 	virtual std::string getString() = 0;
-	virtual bool parse(char *str, bool nc) = 0;
+	virtual bool parse(const char *str, bool nc) = 0;
 };
 /*
  Œƒº˛ Ù–‘≤‚ ‘
@@ -26,13 +26,13 @@ public:
 	KFileAttributeTestor() {
 
 	}
-	bool test(const char *str, KRegSubString **lastSubString);
-	std::string getString() {
+	bool test(const char *str, KRegSubString **lastSubString) override ;
+	std::string getString() override {
 		std::stringstream s;
 		s << "-" << type;
 		return s.str();
 	}
-	bool parse(char *str, bool nc) {
+	bool parse(const char *str, bool nc) override {
 		type = str[1];
 		return true;
 	}
@@ -44,13 +44,13 @@ private:
  */
 class KRegexTestor: public KRewriteCondTestor {
 public:
-	std::string getString() {
+	std::string getString() override {
 		return reg.getModel();
 	}
-	bool parse(char *str, bool nc) {
+	bool parse(const char *str, bool nc) override {
 		return reg.setModel(str, (nc ? PCRE_CASELESS : 0));
 	}
-	bool test(const char *str, KRegSubString **lastSubString) {
+	bool test(const char *str, KRegSubString **lastSubString) override {
 		if (*lastSubString) {
 			delete *lastSubString;
 		}
@@ -73,7 +73,7 @@ public:
 			xfree(str);
 		}
 	}
-	bool test(const char *buf, KRegSubString **lastSubString) {
+	bool test(const char *buf, KRegSubString **lastSubString) override {
 		int r;
 		if(str==NULL){
 			return false;
@@ -93,10 +93,10 @@ public:
 		}
 		return false;
 	}
-	std::string getString() {
+	std::string getString() override {
 		return str;
 	}
-	bool parse(char *buf, bool nc) {
+	bool parse(const char *buf, bool nc) override {
 		if (*buf == '\0') {
 			return false;
 		}
@@ -124,6 +124,28 @@ public:
 			delete testor;
 		}
 	}
+	bool parse_config(const khttpd::KXmlNodeBody* body) {
+		str = xstrdup(body->attributes["str"].c_str());		
+		is_or = body->attributes["or"] == "1";		
+		nc = body->attributes["nc"] == "1";
+		
+		const char* test = body->get_text("");
+		if (*test == '!') {
+			revert = true;
+			test++;
+		}
+		if (*test == '-') {
+			//it is file attribute
+			testor = new KFileAttributeTestor;
+		} else if (*test == '>' || *test == '<' || *test == '=') {
+			//compare string
+			testor = new KCompareTestor;
+		} else {
+			testor = new KRegexTestor;
+			//reg
+		}
+		return testor->parse(test, nc);
+	}
 	bool nc;
 	bool revert;
 	//true is or false is and with prev cond;
@@ -138,7 +160,7 @@ public:
 	KRewriteRule();
 	~KRewriteRule();
 	bool mark(KHttpRequest *rq, KHttpObject *obj, std::list<KRewriteCond *> *conds, const std::string &prefix, const char* rewriteBase, KFetchObject** fo);
-	bool parse(std::map<std::string,std::string> &attribute);
+	bool parse(const KXmlAttribute &attribute);
 	void buildXml(std::stringstream &s);
 	bool revert;
 	KReg reg;
@@ -160,10 +182,8 @@ public:
 
 	std::string getDisplay() override;
 	static void getEnv(KHttpRequest *rq, char *env, KStringBuf &s);
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override;
-	bool startElement(KXmlContext *context) override;
-	bool startCharacter(KXmlContext *context, char *character, int len) override;
-	void buildXML(std::stringstream &s) override;
+	void parse_config(const khttpd::KXmlNodeBody* body) override;
+	void parse_child(const kconfig::KXmlChanged* changed) override;
 	static KStringBuf *getString(const char *prefix, const char *str,
 			KHttpRequest *rq, KRegSubString *s1, KRegSubString *s2);
 	static void getString(const char *prefix, const char *str,

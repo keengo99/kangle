@@ -133,21 +133,12 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
-			
-	{
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		sign = attribute["sign"];
 		expire = attribute["expire"];
 		key = attribute["key"];
 		file = (attribute["file"]=="1");
-	}
-	void buildXML(std::stringstream &s) override
-	{
-		s << "sign='" << sign << "' expire='" << expire << "' key='" << key << "' ";
-		if (file) {
-			s << "file='1'";
-		}
-		s << ">";
 	}
 private:
 	void set_url_param(KStringBuf &np,KUrl *url) {

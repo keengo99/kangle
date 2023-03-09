@@ -92,13 +92,11 @@ public:
 		s << "==>" << replace;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string>& attribute, bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		attr = attribute["attr"];
 		val.setModel(attribute["val"].c_str(), 0);
 		replace = attribute["replace"];
-	}
-	void buildXML(std::stringstream& s) override {
-		s << " attr='" << attr << "' val='" << KXml::param(val.getModel()) << "' replace='" << KXml::param(replace.c_str()) << "'>";
 	}
 private:
 	KReg val;

@@ -13,8 +13,7 @@ public:
 	const char *getName() override;
 	std::string getHtml(KModel *model) override;
 	std::string getDisplay() override;
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override;
-	void buildXML(std::stringstream &s) override;
+	void parse_config(const khttpd::KXmlNodeBody* xml) override;
 
 private:
 	KReg regHost;
@@ -34,9 +33,7 @@ public:
 	const char *getName() override;
 	std::string getHtml(KModel *model) override;
 	std::string getDisplay() override;
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override;
-	void buildXML(std::stringstream &s) override;
-
+	void parse_config(const khttpd::KXmlNodeBody* xml) override;
 private:
 	std::string host;
 	int port;

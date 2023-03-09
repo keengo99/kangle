@@ -22,6 +22,7 @@
  */
 #include <assert.h>
 #include <string.h>
+#include <vector>
 #include "global.h"
 #include "KGzip.h"
 #include "do_config.h"
@@ -95,6 +96,7 @@ void test_vh_container() {
 	kassert(ret == 1);
 	delete vhc;
 }
+
 void test_regex() {
 	KReg reg;
 	reg.setModel("s", 0);
@@ -252,7 +254,7 @@ void test_xml() {
 	printf("dst=[%s]\n", dst);
 }
 void test_config() {
-	kconfig::test();
+	
 }
 //}}
 void test_url_decode() {
@@ -339,6 +341,7 @@ void test_white_list() {
 #endif
 }
 void test_string() {
+	
 }
 void test_line_file() {
 	KStreamFile lf;

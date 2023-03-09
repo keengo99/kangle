@@ -37,7 +37,6 @@ public:
 	kgl_dso_init_f kgl_dso_init;
 	kgl_dso_finit_f kgl_dso_finit;
 	kgl_dso_version version;
-	bool cur_config_ext;
 	KXmlAttribute attribute;
 private:
 	std::map<const char *, KDsoRedirect *, lessp> upstream;	

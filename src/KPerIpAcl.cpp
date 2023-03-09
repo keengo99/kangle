@@ -17,6 +17,5 @@ void KPerIpAcl::callBack(KPerIpCallBackData *data) {
 		ip_map.erase(it_ip);
 	}
 	ip_lock.Unlock();
-	KAccess::releaseRunTimeModel(this);
 	delete data;
 }

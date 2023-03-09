@@ -23,16 +23,16 @@
 #include "kmalloc.h"
 #include "KConfigTree.h"
 
-void on_main_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
-void on_ssl_client_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
-void on_admin_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
-void on_log_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
-void on_cache_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
-void on_io_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
-void on_fiber_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
-void on_dns_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
-void on_run_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
-void on_connect_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
-void on_compress_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
-void on_firewall_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_main_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_ssl_client_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_admin_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_log_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_cache_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_io_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_fiber_event( kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_dns_event( kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_run_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_connect_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_compress_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+void on_firewall_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
 #endif /*KCONFIGPARSER_H_*/

@@ -161,7 +161,7 @@ public:
 			klog(KLOG_INFO, "clean disk list count is zero,now clean it from memory list.\n");
 		}
 #endif
-		klog(KLOG_INFO, "cache flush, killed memory [" INT64_FORMAT " %d],killed disk [" INT64_FORMAT " %d]\n",
+		klog(KLOG_DEBUG, "cache flush, killed memory [" INT64_FORMAT " %d],killed disk [" INT64_FORMAT " %d]\n",
 			kill_mem_size,
 			memory_clean_count,
 			kill_disk_size,

@@ -83,7 +83,7 @@ KGL_RESULT KApiFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_out
 	KGL_RESULT result = KGL_OK;
 	if (dso->HttpExtensionProc) {
 		assert(rq);
-		if (!brd->rd->enable) {
+		if (brd->rd->is_disable()) {
 			return out->f->error(out->ctx,  STATUS_SERVER_ERROR, _KS("extend is disable"));
 		}
 		KBIT_SET(obj->index.flags, ANSW_LOCAL_SERVER);

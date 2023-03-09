@@ -144,6 +144,7 @@ public:
 	std::string port;
 	int model = 0;
 };
+using KSafeListen = std::unique_ptr<KListenHost>;
 struct WorkerProcess
 {
 #ifdef _WIN32
@@ -243,7 +244,7 @@ public:
 	/////////////////////////////////////////////////////////
 	//以下是程序运行信息,只在程序启动前初始化一次...
 	std::list<std::string> mergeFiles;
-	std::map<std::string, khttpd::KAutoArray<KListenHost>> services;
+	std::map<std::string, std::vector<KSafeListen>> services;
 	int worker_dns;
 	int worker_io;
 	int fiber_stack_size;
@@ -327,9 +328,6 @@ public:
 extern KGlobalConfig conf;
 extern int m_debug;
 extern int kgl_cpu_number;
-extern KConfig* cconf;
-int merge_apache_config(const char* file);
-void LoadDefaultConfig();
 void do_config(bool first_time);
 //清除配置文件，用于内存泄漏检测时，才调用
 void clean_config();

@@ -35,9 +35,8 @@ bool KApacheVirtualHost::process(KApacheConfig *htaccess,const char *cmd,std::ve
 	}
 	return false;
 }
-bool KApacheVirtualHost::getXml(std::stringstream &s)
+bool KApacheVirtualHost::getXml(KStringBuf &s)
 {
-	std::list<KApacheVirtualHostItem *>::iterator it;
 	if(global.certificate.size()>0){
 		s << "<certificate>" << global.certificate << "</certificate>\n";
 	}
@@ -49,11 +48,11 @@ bool KApacheVirtualHost::getXml(std::stringstream &s)
 	}
 	global.buildIndex(s);
 	if (global.documentRoot.size()>0) {
-		s << "<vh name='default' doc_root='" << KXml::param(global.documentRoot.c_str()) << "' htaccess='.htaccess' templete='_apache'>\n";
+		s << "<vh name='default' doc_root='" << KXml::param(global.documentRoot.c_str()) << "' htaccess='.htaccess'>\n";
 		s << "<host>*</host>\n";
 		s << "</vh>";
 	}
-	for (it=vitems.begin();it!=vitems.end();it++) {
+	for (auto it=vitems.begin();it!=vitems.end();it++) {
 		s << "<vh name='" << (*it)->serverName << "' doc_root='" << KXml::param((*it)->documentRoot.c_str()) << "'";
 		if ((*it)->certificate.size()>0) {
 			s << " certificate='" << (*it)->certificate << "'";
@@ -61,13 +60,13 @@ bool KApacheVirtualHost::getXml(std::stringstream &s)
 		if ((*it)->certificate_key.size()>0) {
 			s << " certificate_key='" << (*it)->certificate_key << "'";
 		}
-		s << " htaccess='.htaccess' templete='_apache'>\n";
+		s << " htaccess='.htaccess'>\n";
 		(*it)->buildIndex(s);
 		if ((*it)->port>0) {
-			s << "<port>" << (*it)->port << "</port>\n";
+			s << "<bind>!*:" << (*it)->port << "</bind>\n";
 		}
 		s << "<host>" << (*it)->serverName << "</host>\n";
-		for(std::list<std::string>::iterator it2=(*it)->hosts.begin();it2!=(*it)->hosts.end();it2++){
+		for(auto it2=(*it)->hosts.begin();it2!=(*it)->hosts.end();it2++){
 			s << "<host>" << (*it2) << "</host>\n";
 		}
 		s << "</vh>\n";

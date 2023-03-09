@@ -43,7 +43,8 @@ public:
 		s << "total:" << m.size();
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		char *map = strdup(attribute["map"].c_str());
 		char *hot = map;
 		for (;;) {
@@ -95,13 +96,6 @@ public:
 	}
 	const char *getName() override {
 		return "host_alias";
-	}
-public:
-	void buildXML(std::stringstream &s) override {
-		s << "map='";
-		getMap(s);
-		s << "'";
-		s << ">";
 	}
 private:
 	void getMap(std::stringstream &s)

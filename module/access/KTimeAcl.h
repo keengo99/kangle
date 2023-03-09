@@ -53,20 +53,10 @@ public:
 		s << ts;
 		return s.str();
 	}
-	bool startCharacter(KXmlContext *context, char *character, int len) override {
-		if (character) {
-			ts = character;
-			t.set(character);
-		}
-		return true;
-	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
-		ts = attribute["time"];
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		ts = xml->attributes["time"];
 		t.set(ts.c_str());
-	}
-	void buildXML(std::stringstream &s) override {
-		s << " time='" << ts << "'>";
-	}
+	}	
 private:
 	std::string ts;
 	KTimeMatch t;

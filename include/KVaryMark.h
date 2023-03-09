@@ -33,7 +33,8 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string>& attribute, bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		if (header) {
 			xfree(header);
 		}
@@ -55,12 +56,6 @@ public:
 	}
 	const char* getName() override {
 		return "vary";
-	}
-	void buildXML(std::stringstream& s) override {
-		if (header) {
-			s << " header='" << header << "' ";
-		}
-		s << ">";
 	}
 private:
 	char* header;

@@ -36,8 +36,6 @@ void init_safe_process();
 extern int m_pid;
 extern int m_ppid;
 extern bool dump_memory_object;
-extern volatile bool cur_config_ext;
-extern volatile bool cur_config_vh_db;
 extern int worker_index;
 extern unsigned total_connect;
 #ifdef ENABLE_VH_FLOW

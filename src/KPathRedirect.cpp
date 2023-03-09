@@ -9,13 +9,13 @@
 #include "kmalloc.h"
 void KRedirectMethods::setMethod(const char *methodstr)
 {
-	memset(methods, 0, sizeof(methods));
+	meths.reset();
 	if (methodstr == NULL || *methodstr == '\0') {
 		return;
 	}
 	if (strcmp(methodstr, "*") == 0) {
 		for (int i = 0; i < MAX_METHOD; i++) {
-			methods[i] = true;
+			meths.set(i, true);
 		}
 		return;
 	}
@@ -28,7 +28,7 @@ void KRedirectMethods::setMethod(const char *methodstr)
 		}
 		int meth = KHttpKeyValue::get_method(hot, (int)strlen(hot));
 		if (meth > 0) {
-			methods[meth] = 1;
+			meths.set(meth, true);
 		}
 		if (p == NULL) {
 			break;
@@ -37,7 +37,7 @@ void KRedirectMethods::setMethod(const char *methodstr)
 	}
 	xfree(buf);
 }
-KPathRedirect::KPathRedirect(const char *path, KRedirect *rd) : KBaseRedirect(rd, KGL_CONFIRM_FILE_NEVER) {
+KPathRedirect::KPathRedirect(const char *path, KRedirect *rd) : KBaseRedirect(rd, KConfirmFile::Never) {
 	path_len = (int)strlen(path);
 	this->path = (char *)xmalloc(path_len + 1);
 	kgl_memcpy(this->path, path, path_len+1);

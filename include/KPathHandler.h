@@ -15,30 +15,27 @@ struct kgl_map_cmp
 	}
 };
 template<typename T, typename CMP = kgl_map_cmp>
-class KPathHandler
+class KPathHandler : private CMP
 {
 public:
-	using iterator_callback = void (*)(KStackName*, T, void*);
+	using iterator_callback = void (*)(KStackName*, T, bool, void*);
 	KPathHandler(const char* name, size_t len) {
 		handler = nullptr;
-		this->name = kstring_from2(name, len);
+		this->key = (uintptr_t)kstring_from2(name, len);
 	}
 	KPathHandler(kgl_ref_str_t* name) {
-		this->name = kstring_refs(name);
+		this->key = (uintptr_t)kstring_refs(name);
 		handler = nullptr;
 	}
-	~KPathHandler() {
-		if (child) {
-			child->iterator([](void* data, void* arg) {
-				delete (KPathHandler*)data;
-				return iterator_remove_continue;
-				}, NULL);
-		}
-		kstring_release(name);
+	~KPathHandler() noexcept {
+		child.iterator([](void* data, void* arg) {
+			delete (KPathHandler*)data;
+			return iterator_remove_continue;
+			}, NULL);
+		kstring_release(get_name());
 	}
 	int cmp(const kgl_ref_str_t* key) const {
-		CMP c;
-		return c(name, key);
+		return this->operator()(get_name(), key);
 	}
 	bool add(const char* name, size_t size, T handler) {
 		size_t name_len;
@@ -50,18 +47,14 @@ public:
 			if (this->handler) {
 				return false;
 			}
-			this->handler = handler;
-			if (size == 0) {
-				this->name->id = FILE_KEY;
-			}
+			bind_handler(handler, false);
 			return true;
 		}
 		if (*name == '*') {
 			if (this->handler) {
 				return false;
 			}
-			this->name->id = WIDE_KEY;
-			this->handler = handler;
+			bind_handler(handler, true);
 			return true;
 		}
 		auto path = (const char*)memchr(name, '/', size);
@@ -71,13 +64,10 @@ public:
 			name_len = size;
 		}
 		kgl_ref_str_t key;
-		key.data = name;
+		key.data = (char *)name;
 		key.len = name_len;
 		int new_flag = 0;
-		if (!child) {
-			child = new KMap<kgl_ref_str_t, KPathHandler>();
-		}
-		auto node = child->insert(&key, &new_flag);
+		auto node = child.insert(&key, &new_flag);
 		if (new_flag) {
 			node->value(new KPathHandler<T, CMP>(name, name_len));
 		}
@@ -93,10 +83,7 @@ public:
 			return this->handler;
 		}
 		if (**name == '/') {
-			if (this->name->id == FILE_KEY) {
-				return nullptr;
-			}
-			return this->handler;
+			goto done;
 		}
 		auto path = (const char*)memchr(*name, '/', *size);
 		if (path) {
@@ -107,12 +94,9 @@ public:
 		kgl_ref_str_t key;
 		KMapNode<KPathHandler>* node;
 		T value;
-		if (!child) {
-			goto done;
-		}
-		key.data = *name;
+		key.data = (char *)*name;
 		key.len = name_len;
-		node = child->find(&key);
+		node = child.find(&key);
 		if (!node) {
 			goto done;
 		}
@@ -123,7 +107,7 @@ public:
 			return value;
 		}
 	done:
-		if (this->name->id == WIDE_KEY) {
+		if (is_wide_handler()) {
 			//is wide
 			return this->handler;
 		}
@@ -138,7 +122,6 @@ public:
 		if (size <= 0 || *name == '/') {
 			auto handler = this->handler;
 			this->handler = nullptr;
-			this->name->id = 0;
 			return handler;
 		}
 		auto path = (const char*)memchr(name, '/', size);
@@ -153,7 +136,7 @@ public:
 		kgl_ref_str_t key;
 		key.data = name;
 		key.len = name_len;
-		auto node = child->find(&key);
+		auto node = child.find(&key);
 		if (!node) {
 			return nullptr;
 		}
@@ -163,11 +146,7 @@ public:
 			if (child_handler->empty()) {
 				delete child_handler;
 				child->erase(node);
-			}
-			if (child->empty()) {
-				delete child;
-				child = nullptr;
-			}
+			}			
 		}
 		return handler;
 	}
@@ -176,24 +155,33 @@ public:
 			return;
 		}
 		if (handler) {
-			cb(name, handler, arg);
-		}
-		if (child) {
-			for (auto it = child->first(); it; it = it->next()) {
-				it->value()->iterator(name, cb, arg);
-			}
-		}
+			cb(name, handler, is_wide_handler(), arg);
+		}		
+		for (auto it = child.first(); it; it = it.next()) {
+			it->value()->iterator(name, cb, arg);
+		}		
 		name->pop();
 	}
-	bool empty() {
-		return !handler && !child;
+	bool empty() const {
+		return !handler && child.empty();
 	}
-
+	kgl_ref_str_t* get_name() const {
+		return ((kgl_ref_str_t*)(key & ~1));
+	}
 private:
-	static constexpr uint16_t WIDE_KEY = 1;
-	static constexpr uint16_t FILE_KEY = 2;
-	kgl_ref_str_t* name;
+	void bind_handler(T handler, bool is_wide) {
+		if (is_wide) {
+			key |= 1;
+		} else {
+			key &= ~1;
+		}
+		this->handler = handler;
+	}
+	bool is_wide_handler() const {
+		return (key & 1);
+	}
+	uintptr_t key;
 	T handler;
-	KMap<kgl_ref_str_t, KPathHandler>* child = nullptr;
+	KMap<kgl_ref_str_t, KPathHandler> child;
 };
 #endif

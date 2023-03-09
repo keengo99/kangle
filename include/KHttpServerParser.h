@@ -24,26 +24,16 @@
 #include "KXmlAttribute.h"
 #ifndef HTTP_PROXY
 
-class KHttpServerParser : public KXmlEvent {
+class KHttpServerParser {
 public:
 	KHttpServerParser();
 	virtual ~KHttpServerParser();
-	bool parse(std::string file);
-	bool parseString(const char *buf);
-	bool startElement(KXmlContext *context) override;
-	bool startCharacter(KXmlContext *context, char *character, int len) override;
-	bool endElement(KXmlContext *context) override;
-	void startXml(const std::string &encoding) override;
-	void endXml(bool result) override;
-	static bool buildVirtualHost(KAttributeHelper *ah,KVirtualHost *virtualHost,KBaseVirtualHost *gvh,KTempleteVirtualHost *tm,KVirtualHost *ov = NULL);
-	static KVirtualHost *buildVirtualHost(KXmlAttribute&attribute,KBaseVirtualHost *gvh,KTempleteVirtualHost *tm,KVirtualHost *ov);
-	static KVirtualHost *buildVirtualHost(KAttributeHelper *ah,KBaseVirtualHost *gvh,KTempleteVirtualHost *tm,KVirtualHost *ov = NULL);
+	static bool buildVirtualHost(KAttributeHelper *ah,KVirtualHost *virtualHost,KBaseVirtualHost *gvh,KVirtualHost *ov = NULL);
+	static KVirtualHost *buildVirtualHost(KXmlAttribute&attribute,KBaseVirtualHost *gvh,KVirtualHost *ov);
+	static KVirtualHost *buildVirtualHost(KAttributeHelper *ah,KBaseVirtualHost *gvh,KVirtualHost *ov = NULL);
 	static bool buildBaseVirtualHost(KXmlAttribute &attribute,KBaseVirtualHost *vh);
-	KAccess *kaccess[2];
 private:
 	bool ParseSsl(KVirtualHostManage *vhm, std::map<std::string, std::string> &attribute);
-	KVirtualHost *virtualHost;
-	KTempleteVirtualHost *cur_tvh;
 };
 #endif
 #endif /*KLOGPARSER_H_*/

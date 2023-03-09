@@ -141,7 +141,7 @@ KGL_RESULT KAsyncFetchObject::InternalProcess(KHttpRequest* rq, kfiber** post_fi
 	if (brd == NULL) {
 		client = proxy_connect(rq);
 	} else {
-		if (!brd->rd->enable) {
+		if (brd->rd->is_disable()) {
 			return out->f->error(out->ctx,  STATUS_SERVICE_UNAVAILABLE, _KS("extend is disable"));
 		}
 		assert(client == NULL);

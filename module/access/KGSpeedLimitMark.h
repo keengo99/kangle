@@ -35,10 +35,6 @@ public:
 	virtual ~KGSpeedLimitMark() {
 		gsl->release();
 	}
-	bool supportRuntime() override
-	{
-		return true;
-	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)override {
 		gsl->addRef();
 		rq->pushSpeedLimit(gsl);
@@ -49,7 +45,8 @@ public:
 		s << "limit: " << gsl->getSpeedLimit() ;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		gsl->setSpeedLimit((int)get_size(attribute["limit"].c_str()));
 	}
 	std::string getHtml(KModel *model) override {
@@ -67,10 +64,6 @@ public:
 	}
 	const char *getName()override {
 		return "gspeed_limit";
-	}
-public:
-	void buildXML(std::stringstream &s)override {
-		s << " limit='" << gsl->getSpeedLimit() << "'>";
 	}
 private:
 	KSpeedLimit *gsl;

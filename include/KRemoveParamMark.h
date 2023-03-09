@@ -69,7 +69,8 @@ public:
 		s << params.getModel();
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		raw = (attribute["raw"]=="1");
 		nc = (attribute["nc"]=="1");
 		const char *param = attribute["params"].c_str();
@@ -111,17 +112,7 @@ public:
 	const char *getName()override {
 		return "remove_param";
 	}
-public:
-	void buildXML(std::stringstream &s) override {
-		s << "params='";
-		if (revert) {
-			s << "!";
-		}
-		s << params.getModel();
-		s << "' raw='" << (raw?1:0) << "'";
-		s << " nc='" << (nc?1:0) << "'";
-		s << ">";
-	}
+	
 private:
 	bool matchParam(const char *name)
 	{

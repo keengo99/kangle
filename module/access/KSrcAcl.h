@@ -28,7 +28,8 @@ public:
 		}
 		return matchIP(addr);
 	}
-	void editHtml(std::map<std::string,std::string> &attribute,bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		addIpModel(attribute["ip"].c_str(), ip);
 	}
 	std::string getHtml(KModel *acl) override {

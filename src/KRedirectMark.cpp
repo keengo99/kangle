@@ -96,7 +96,8 @@ std::string KRedirectMark::getDisplay() {
 	}
 	return s.str();
 }
-void KRedirectMark::editHtml(std::map<std::string, std::string>& attribute, bool html) {
+void KRedirectMark::parse_config(const khttpd::KXmlNodeBody* xml) {
+	auto attribute = xml->attr();
 	if (dst) {
 		xfree(dst);
 	}
@@ -107,17 +108,4 @@ void KRedirectMark::editHtml(std::map<std::string, std::string>& attribute, bool
 		internalRedirect = false;
 	}
 	code = atoi(attribute["code"].c_str());
-}
-bool KRedirectMark::startCharacter(KXmlContext* context, char* character, int len) {
-	return true;
-}
-void KRedirectMark::buildXML(std::stringstream& s) {
-	s << " dst='" << (dst ? dst : "") << "'";
-	if (internalRedirect) {
-		s << " internal='1'";
-	}
-	if (code > 0) {
-		s << " code='" << code << "'";
-	}
-	s << ">";
 }

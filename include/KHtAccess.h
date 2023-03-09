@@ -27,12 +27,13 @@
 #include <map>
 #include <list>
 #include <string>
+#include <memory>
 #include "utils.h"
 #include "KCountable.h"
 #include "KAccess.h"
 #include "KFileName.h"
 #include "KHtModule.h"
-#include "do_config.h"
+#include "KConfigTree.h"
 
 /*
  * 转换apache格式的.htaccess到kangle的KAccess
@@ -41,7 +42,9 @@ class KApacheConfig {
 public:
 	KApacheConfig(bool isHtaccess);
 	virtual ~KApacheConfig();
+#if 0
 	bool load(KFileName *file,std::stringstream &s);
+#endif
 	bool load(const char *file);
 	/*
 	 * 得到唯一table名
@@ -57,6 +60,7 @@ public:
 		this->prefix = prefix;
 	}
 	std::string getFullPath(std::string file);
+	khttpd::KSafeXmlNode build();
 	const char *prefix;
 	bool isHtaccess;
 	std::map<char *,char *,lessp_icase> attribute;
@@ -65,11 +69,53 @@ private:
 	bool load(KFileName *file);
 	bool parse(char *buf);
 	bool process(const char *cmd,std::vector<char *> &item);
-	void getXml(std::stringstream &s);
+	void getXml(KStringBuf &s);
 	std::string serverRoot;
 	int includeLevel;
 	std::list<KListenHost> listens;
 	std::list<KHtModule *> modules;
 	unsigned tableid;
 };
+class KApacheConfigDriver : public kconfig::KConfigFileSourceDriver
+{
+public:
+	khttpd::KSafeXmlNode load(kconfig::KConfigFile* file) override;
+	time_t get_last_modified(kconfig::KConfigFile* file) override {
+		return kfile_last_modified(file->get_filename()->data);
+	}
+	bool enable_save(kconfig::KConfigFile* file) override {
+		return false;
+	}
+};
+struct _KApacheHtaccessContext
+{
+	KAccess *access[2];
+	kconfig::KConfigFile *file;
+	kconfig::KConfigTree ev;
+	_KApacheHtaccessContext(const char* filename) : file{ 0 },access { 0 }, ev(nullptr, _KS("")) {
+		for (int i = 0; i < 2; ++i) {
+			access[i] = new KAccess(false, i);
+		}
+		ev.add(_KS("request"), access[REQUEST]);
+		ev.add(_KS("response"), access[RESPONSE]);
+		KString str(filename);
+		file = new kconfig::KConfigFile(&ev, nullptr, str.data());
+		file->set_source(kconfig::KConfigFileSource::Htaccess);
+	}
+	~_KApacheHtaccessContext() noexcept {
+		if (file) {
+			file->clear();
+			file->release();
+		}
+		for (int i = 0; i < 2; ++i) {
+			if (access[i]) {
+				access[i]->release();
+			}
+		}
+		ev.remove(_KS("request"));
+		ev.remove(_KS("response"));
+		assert(ev.empty());
+	}
+};
+using KApacheHtaccessContext = std::unique_ptr< _KApacheHtaccessContext>;
 #endif /* KHTACCESS_H_ */

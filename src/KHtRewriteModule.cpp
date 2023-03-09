@@ -211,7 +211,7 @@ bool KHtRewriteModule::process(KApacheConfig *htaccess, const char *cmd,
 	}
 	return false;
 }
-bool KHtRewriteModule::getXml(std::stringstream &s)
+bool KHtRewriteModule::getXml(KStringBuf &s)
 {
 	chainEnd();
 	if(chain.str().size()==0){
@@ -243,6 +243,6 @@ void KHtRewriteModule::chainEnd() {
 			<< "'>\n";
 	chain << rule.str();
 	chain << "</mark_rewritex></chain>";
-	action.str("");
-	rule.str("");
+	action.clean();
+	rule.clean();
 }

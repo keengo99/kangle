@@ -136,12 +136,9 @@ std::string KMultiHostAcl::getHtml(KModel *model) {
 	s << "'>(one line one host)";
 	return s.str();
 }
-void KMultiHostAcl::editHtml(std::map<std::string, std::string> &attribute,bool html)
-		 {
+void KMultiHostAcl:: parse_config(const khttpd::KXmlNodeBody* xml) {
+	auto attribute = xml->attr();
 	if (attribute["file"].size() > 0) {
 		file = attribute["file"];
 	}
-}
-void KMultiHostAcl::buildXML(std::stringstream &s) {
-	s << " file='" << file << "'>";
 }

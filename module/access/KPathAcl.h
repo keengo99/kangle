@@ -92,9 +92,12 @@ public:
 		xfree(t);
 		return true;
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		if (attribute["path"].size() > 0) {
 			setPath(attribute["path"].c_str());
+		} else {
+			setPath(xml->get_text());
 		}
 		if (attribute["raw"]=="1") {
 			raw = true;
@@ -102,18 +105,6 @@ public:
 			raw = false;
 		}
 
-	}
-	bool startCharacter(KXmlContext *context, char *character, int len) override {
-		if (path.size() == 0) {
-			setPath(character);
-		}
-		return true;
-	}
-	void buildXML(std::stringstream &s) override {
-		if (raw) {
-			s << " raw='1'";
-		}
-		s << " path='" << getPath() << "'>";
 	}
 private:
 	std::string getPath()

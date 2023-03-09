@@ -35,10 +35,6 @@ public:
 		kassert(flush_timer == false);
 		kfiber_rwlock_destroy(lock);
 	}
-	bool supportRuntime() override
-	{
-		return false;
-	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override {
 		kfiber_rwlock_rlock(lock);
 		geo_lable *lable = (geo_lable *)im.find(rq->getClientIp());
@@ -59,7 +55,8 @@ public:
 		s << this->name << " " << total_item;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attr, bool html)	override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attr = xml->attr();
 		kfiber_rwlock_wlock(lock);
 		this->file = attr["file"];
 		this->name = attr["name"];
@@ -79,9 +76,6 @@ public:
 		}
 		this->load_data(file.c_str());
 		kfiber_rwlock_wunlock(lock);
-	}
-	bool startCharacter(KXmlContext *context, char *character, int len) override {
-		return true;
 	}
 	std::string getHtml(KModel *model) override {
 		std::stringstream s;
@@ -113,18 +107,6 @@ public:
 	}
 	const char *getName() override {
 		return "geo";
-	}
-	void buildXML(std::stringstream &s) override {
-		s << " file='" << this->file << "'";
-		s << " name='" << this->name << "'";
-		if (url) {
-			int url_len = (int)strlen(url);
-			char *encode_url = KXml::htmlEncode(url, url_len, NULL);
-			s << " url='" << encode_url << "'";
-			xfree(encode_url);
-			s << " flush_time='" << flush_time << "'";
-		}
-		s << ">";
 	}
 	void flush_timer_callback();
 	void download_callback(int status);

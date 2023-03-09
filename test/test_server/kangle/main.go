@@ -90,6 +90,7 @@ func CreateMainConfig(malloc_debug int) (err error) {
 	<admin user='admin' password='kangle' crypt='plain' auth_type='Basic' admin_ips='~127.0.0.1'/>
 	<request action='vhs'></request>
 	<vhs >
+		<index id='100' file='index.html'/>
 		<mime_type ext='*' type='text/plain'/>
 		<mime_type ext='html' type='text/html' compress='1'/>
 		<mime_type ext='id' type='text/html' compress='2'/>

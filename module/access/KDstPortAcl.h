@@ -55,19 +55,11 @@ public:
 		s << port;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		if(attribute["port"].size()>0){
 			port = atoi(attribute["port"].c_str());
 		}
-	}
-	bool startCharacter(KXmlContext *context, char *character, int len) override {
-		if(character && isdigit(*character)){
-			port = atoi(character);
-		}
-		return true;
-	}
-	void buildXML(std::stringstream &s) override {
-		s << ">" << port ;
 	}
 private:
 	int port;

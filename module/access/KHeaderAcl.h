@@ -71,22 +71,12 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string>& attribute, bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		header = attribute["header"];
 		nc = attribute["nc"] == "1";
 		reg.setModel(attribute["val"].c_str(), nc ? PCRE_CASELESS : 0);
 		regLen = strlen(reg.getModel());
-	}
-	bool startCharacter(KXmlContext* context, char* character, int len) override {
-		if (len > 0) {
-			reg.setModel(character, nc ? PCRE_CASELESS : 0);
-			regLen = strlen(reg.getModel());
-		}
-		return true;
-	}
-	void buildXML(std::stringstream& s) override {
-		s << "header='" << KXml::param(header.c_str()) << "' nc='" << (nc ? 1 : 0) << "'";
-		s << ">" << CDATA_START << reg.getModel() << CDATA_END;
 	}
 private:
 	std::string header;
@@ -138,15 +128,11 @@ public:
 		s << name << ":" << KMultiAcl::getDisplay();
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string>& attribute, bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		name = attribute["name"];
-		KMultiAcl::editHtml(attribute, html);
-	}
-
-	void buildXML(std::stringstream& s) override {
-		s << "name='" << KXml::param(name.c_str()) << "' ";
-		KMultiAcl::buildXML(s);
-	}
+		KMultiAcl::parse_config(xml);
+	}	
 private:
 	std::string name;
 

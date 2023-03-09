@@ -57,14 +57,12 @@ public:
 		s << getMarkOp2(op) << (int)mark;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
-	{
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		op = getMarkOp(attribute["op"].c_str());
 		mark = atoi(attribute["v"].c_str());
 	}
-	void buildXML(std::stringstream &s) override {
-		s << "op='" << getMarkOp(op) << "' v='" << (int)mark << "'>";
-	}
+	
 private:
 	const char *getMarkOp(int op)
 	{

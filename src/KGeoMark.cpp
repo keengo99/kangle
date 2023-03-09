@@ -89,12 +89,12 @@ void KGeoMark::add_flush_timer(int timer)
 		return;
 	}
 	flush_timer = true;
-	this->addRef();
+	this->add_ref();
 	selector_manager_add_timer(geo_mark_timer, this, timer,NULL);
 }
 void KGeoMark::flush_timer_callback()
 {
-	if (getRef() == 1) {
+	if (get_ref() == 1) {
 		flush_timer = false;
 		this->release();
 		return;

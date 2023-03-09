@@ -20,18 +20,38 @@
 #include<string>
 #include "KXmlSupport.h"
 #include "KMutex.h"
-#include "KCountable.h"
-class KJump : public KXmlSupport,public KCountableEx
+#include "katom.h"
+#include "KSharedObj.h"
+
+class KJump
 {
 public:
-	KJump() {}
+	KJump() {
+		ref = 1;
+	}
 	KJump(const std::string &a): name(a) {
+		ref = 1;
 	}
 	KJump(std::string&& a) noexcept : name(a) {
-
+		ref = 1;
+	}
+	void release() {
+		if (katom_dec((void*)&ref) == 0) {
+			delete this;
+		}
+	}
+	KJump* add_ref() {
+		katom_inc((void*)&ref);
+		return this;
+	}
+	uint32_t get_ref() {
+		return katom_get((void*)&ref);
 	}
 	std::string name;
 protected:
 	virtual ~KJump();
+private:
+	volatile uint32_t ref;
 };
+using KSafeJump = KSharedObj<KJump>;
 #endif /*KJUMP_H_*/

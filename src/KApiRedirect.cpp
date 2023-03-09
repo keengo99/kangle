@@ -184,14 +184,11 @@ bool KApiRedirect::load(const std::string &file)
 	return load();
 }
 #endif
-bool KApiRedirect::parse_config(khttpd::KXmlNode* node) {
+bool KApiRedirect::parse_config(const khttpd::KXmlNode* node) {
 	auto attr = node->attributes();
 	auto type = attr("type",nullptr);
 	if (type!=nullptr) {
 		this->type = KApiRedirect::getTypeValue(type);
-	}
-	if (attr["flag"]=="disable") {
-		this->enable = false;
 	}
 	this->setFile(attr["file"]);
 	return KExtendProgram::parse_config(node);
@@ -215,8 +212,8 @@ bool KApiRedirect::load()
 			dso.TerminateExtension = Whm_TerminateExtension;
 			bool result = dso.init();
 			if(result){
-				addRef();
-				conf.sysHost->addRedirect(true,"whm",this,"*",KGL_CONFIRM_FILE_EXSIT,"");
+				add_ref();
+				conf.sysHost->addRedirect(true,"whm",this,"*", KConfirmFile::Exsit,"");
 			}
 			return result;
 #else
@@ -232,8 +229,8 @@ bool KApiRedirect::load()
 		bool result = dso.load();
 		if (result) {
 			if(strcmp(dso.apiInfo,"whm")==0){
-				addRef();
-				conf.sysHost->addRedirect(true,"whm",this,"*", KGL_CONFIRM_FILE_EXSIT,"");
+				add_ref();
+				conf.sysHost->addRedirect(true,"whm",this,"*", KConfirmFile::Exsit,"");
 			}
 		}
 		return result;
@@ -252,17 +249,6 @@ KRedirectSource*KApiRedirect::makeFetchObject(KHttpRequest *rq, KFileName *file)
 	}
 	lock.Unlock();
 	return new KApiFetchObject(this);
-}
-void KApiRedirect::buildXML(std::stringstream &s) {
-	s << "\t<api name='" << name << "' file='" << this->apiFile << "' ";
-	if (type != WORK_TYPE_SP) {
-		s << "type='" << getTypeString(type) << "' ";
-	}
-	if (!enable) {
-		s << "flag='disable' ";
-	}
-	KExtendProgram::buildConfig(s);
-	s << "\t</api>\n";
 }
 bool KApiRedirect::createProcess(KVirtualHost *vh, KPipeStream *st) {
 	char *argv[2] = { (char *) conf.extworker.c_str(),NULL };

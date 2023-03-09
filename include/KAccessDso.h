@@ -39,15 +39,19 @@ public:
 	}
 	std::string getHtml(KModel *model);
 	std::string getDisplay();
+	void parse_config(const khttpd::KXmlNodeBody* xml);
+	void parse_child(const kconfig::KXmlChanged* changed);
+#if 0
 	void editHtml(std::map<std::string, std::string> &attribute,bool html);
 	bool startCharacter(KXmlContext *context, char *character, int len);
 	void buildXML(std::stringstream &s);
 	bool endElement(KXmlContext *context);
+#endif
 	friend class KAccessDsoMark;
 	friend class KAccessDsoAcl;
 	KDsoExtend *dso;
 private:
-	std::string build(KF_ACCESS_BUILD_TYPE type);
+	std::string build(uint32_t type);
 	kgl_access *access;
 	kgl_access_context ctx;
 	int notify_type;
@@ -104,16 +108,14 @@ public:
 	{
 		return ad->getDisplay();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override;
-	void buildXML(std::stringstream &s) override
-	{
-		ad->buildXML(s);
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		ad->parse_config(xml);
+		init_event();
+		return;
 	}
-	bool startCharacter(KXmlContext *context, char *character, int len) override
-	{
-		return ad->startCharacter(context, character, len);
+	void parse_child(const kconfig::KXmlChanged* changed) override {
+		ad->parse_child(changed);
 	}
-	bool endElement(KXmlContext* context) override;
 private:
 	KAccessDso *ad;
 	void init_event();
@@ -151,21 +153,11 @@ public:
 	{
 		return ad->getDisplay();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
-	{
-		ad->editHtml(attribute,html);
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		ad->parse_config(xml);
 	}
-	void buildXML(std::stringstream &s) override
-	{
-		ad->buildXML(s);
-	}
-	bool startCharacter(KXmlContext *context, char *character, int len) override
-	{
-		return ad->startCharacter(context, character, len);
-	}
-	bool endElement(KXmlContext *context) override
-	{
-		return ad->endElement(context);
+	void parse_child(const kconfig::KXmlChanged* changed) override {
+		ad->parse_child(changed);
 	}
 private:
 	KAccessDso *ad;

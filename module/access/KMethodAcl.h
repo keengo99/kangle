@@ -53,19 +53,11 @@ public:
 		s << meth.getMethod();
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		if(!attribute["meth"].empty()){
 			meth.setMethod(attribute["meth"].c_str());
 		}
-	}
-	bool startCharacter(KXmlContext *context, char *character, int len) override {
-		if(len>0){
-			meth.setMethod(character);
-		}
-		return true;
-	}
-	void buildXML(std::stringstream &s) override {
-		s << ">" << meth.getMethod();
 	}
 private:
 	KRedirectMethods meth;

@@ -17,6 +17,7 @@
 #include "kmalloc.h"
 #include "KApacheVirtualHost.h"
 #include "kfile.h"
+#include "KDefer.h"
 
 struct KApacheConfigFileInclude
 {
@@ -105,8 +106,7 @@ KApacheConfig::KApacheConfig(bool isHtaccess) {
 	prefix = "";
 }
 KApacheConfig::~KApacheConfig() {
-	std::list<KHtModule*>::iterator it;
-	for (it = modules.begin(); it != modules.end(); it++) {
+	for (auto it = modules.begin(); it != modules.end(); ++it) {
 		delete (*it);
 	}
 }
@@ -279,13 +279,32 @@ bool KApacheConfig::parse(char* buf)
 	}
 	return true;
 }
+
 bool KApacheConfig::load(KFileName* file)
 {
-	if (file->get_file_size() > max_htaccess_file_size) {
-		klog(KLOG_ERR, "the file [%s] size=[%d] is too big\n", file->getName(),
-			file->get_file_size());
+	auto fp = kfiber_file_open(file->getName(), fileRead, KFILE_ASYNC);
+	if (!fp) {
+		klog(KLOG_ERR, "cann't open file[%s] for read\n", file->getName());
 		return false;
 	}
+	defer(kfiber_file_close(fp));
+	auto size = (int)kfiber_file_size(fp);
+	if (size > kconfig::max_file_size) {
+		klog(KLOG_ERR, "config file [%s] is too big. size=[%d]\n", file->getName(), size);
+		return false;
+	}
+	char* buf = (char*)malloc(size + 1);
+	if (!buf) {
+		klog(KLOG_ERR, "no memory to alloc %s:%d", __FILE__, __LINE__);
+		return false;
+	}
+	buf[size] = '\0';	
+	if (!kfiber_file_read_full(fp, buf, &size)) {
+		free(buf);
+		return false;
+	}
+	return parse(buf);
+#if 0
 	KFile fp;
 	if (!fp.open(file->getName(), fileRead)) {
 		klog(KLOG_ERR, "cann't open file[%s] for read\n", file->getName());
@@ -299,14 +318,21 @@ bool KApacheConfig::load(KFileName* file)
 	int len = fp.read(buf, (int)file->get_file_size());
 	buf[len] = '\0';
 	return parse(buf);
+#endif
 }
+khttpd::KSafeXmlNode KApacheConfig::build() {
+	KStringBuf s;
+	getXml(s);
+	s.end_with_zero();
+	return khttpd::KSafeXmlNode(kconfig::parse_xml(s.buf()));
+}
+#if 0
 bool KApacheConfig::load(KFileName* file, std::stringstream& s) {
 	if (!load(file)) {
 		return false;
 	}
 	getXml(s);
 #ifndef NDEBUG
-#if 0
 	KFileName savefile;
 	stringstream f1;
 	f1 << file->getName() << ".xml";
@@ -316,24 +342,29 @@ bool KApacheConfig::load(KFileName* file, std::stringstream& s) {
 		fclose(fp2);
 	}
 #endif
-#endif
 	return true;
 }
-void KApacheConfig::getXml(std::stringstream& s)
+#endif
+void KApacheConfig::getXml(KStringBuf& s)
 {
 	s << "<!--converted by kangle " << time(NULL) << " -->\n";
 	s << "<config version='" << VERSION << "'>\n";
-	std::list<KListenHost>::iterator it2;
-	for (it2 = listens.begin(); it2 != listens.end(); it2++) {
+	for (auto it2 = listens.begin(); it2 != listens.end(); it2++) {
 		s << "\t<listen ip='" << (*it2).ip << "' ";
 		s << "port='" << (*it2).port << "' type='"
 			<< getWorkModelName((*it2).model) << "' ";
 		s << "/>\n";
 	}
-	list<KHtModule*>::iterator it;
-	for (it = modules.begin(); it != modules.end(); it++) {
+	for (auto it = modules.begin(); it != modules.end(); it++) {
 		(*it)->getXml(s);
 	}
 	s << "</config>";
 	return;
+}
+khttpd::KSafeXmlNode KApacheConfigDriver::load(kconfig::KConfigFile* file) {
+	KApacheConfig config(true);
+	if (!config.load(file->get_filename()->data)) {
+		return nullptr;
+	}
+	return config.build();
 }

@@ -30,15 +30,17 @@
 #include "HttpFiber.h"
 using namespace std;
 #ifdef ENABLE_MULTI_SERVER
-void KMultiAcserver::on_event(kconfig::KConfigTree* tree, khttpd::KXmlNode* xml, kconfig::KConfigEventType ev) {
+bool KMultiAcserver::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+	auto xml = ev->get_xml();
 	if (!xml->is_tag(_KS("node"))) {
 		klog(KLOG_NOTICE, "Warning unknow xml tag [%s]\n", xml->key.tag->data);
-		return;
+		return false;
 	}
-	switch (ev) {
+	switch (ev->type) {
 	case kconfig::EvNew | kconfig::EvSubDir:
 	case kconfig::EvUpdate | kconfig::EvSubDir:
-		lock.Lock();
+	{
+		KLocker locker(&lock);
 		removeAllNode();
 		for (uint32_t index = 0;; index++) {
 			auto body = xml->get_body(index);
@@ -53,11 +55,18 @@ void KMultiAcserver::on_event(kconfig::KConfigTree* tree, khttpd::KXmlNode* xml,
 			}
 		}
 		buildVNode();
-		lock.Unlock();
-		return;
+		return true;
+	}
+	case kconfig::EvRemove: {
+		KLocker locker(&lock);
+		removeAllNode();
+		buildVNode();
+		break;
+	}
 	default:
 		break;
 	}
+	return true;
 }
 void KMultiAcserver::init() {
 	nodes = NULL;
@@ -250,7 +259,7 @@ KUpstream* KMultiAcserver::GetUpstream(KHttpRequest* rq) {
 	if (icp) {
 		//use icp
 		KPoolableRedirect* icp_rd = icp;
-		icp_rd->addRef();
+		icp_rd->add_ref();
 		lock.Unlock();
 		KUpstream* us = icp_rd->GetUpstream(rq);
 		icp_rd->release();
@@ -454,7 +463,7 @@ KSockPoolHelper* KMultiAcserver::getIndexNode(int index) {
 	}
 	return NULL;
 }
-bool KMultiAcserver::parse_config(khttpd::KXmlNode* xml) {
+bool KMultiAcserver::parse_config(const khttpd::KXmlNode* xml) {
 	if (!KPoolableRedirect::parse_config(xml)) {
 		return false;
 	}
@@ -528,7 +537,7 @@ void KMultiAcserver::getHtml(std::stringstream& s) {
 	s << "<td rowspan='" << nodesCount << "'>" << (cookie_stick ? LANG_ON : "&nbsp;") << "</td>";
 	s << "<td rowspan='" << nodesCount << "'>" << errorTryTime << "</td>";
 	s << "<td rowspan='" << nodesCount << "'>" << max_error_count << "</td>";
-	s << "<td rowspan='" << nodesCount << "'>" << getRefFast() << "</td>";
+	s << "<td rowspan='" << nodesCount << "'>" << get_ref() << "</td>";
 #ifdef ENABLE_MSERVER_ICP
 	s << "<td rowspan='" << nodesCount << "'>" << (icp ? icp->name : "&nbsp;") << "</td>";
 #endif
@@ -747,27 +756,6 @@ void KMultiAcserver::buildAttribute(std::stringstream& s) {
 		s << "icp='" << icp->name << "' ";
 	}
 #endif
-}
-void KMultiAcserver::buildXML(std::stringstream& s) {
-	s << "\t<server name='" << name << "' ";
-	buildAttribute(s);
-	s << ">\n";
-	lock.Lock();
-	KSockPoolHelper* helper = nodes;
-	while (helper) {
-		KSockPoolHelper* n = helper->next;
-		s << "\t\t<node  weight='" << helper->weight << "'";
-		std::map<std::string, std::string> params;
-		helper->build(params);
-		build_xml(params, s);
-		s << "/>\n";
-		if (n == nodes) {
-			break;
-		}
-		helper = n;
-	}
-	lock.Unlock();
-	s << "\t</server>\n";
 }
 bool KMultiAcserver::isChanged(KPoolableRedirect* rd) {
 	if (KPoolableRedirect::isChanged(rd)) {

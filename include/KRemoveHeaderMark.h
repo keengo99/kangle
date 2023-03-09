@@ -99,7 +99,8 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string>& attribute, bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		attr = attribute["attr"];
 		if (val) {
 			delete val;
@@ -116,16 +117,6 @@ public:
 			val = new KReg;
 			val->setModel(v, PCRE_CASELESS);
 		}
-	}
-	void buildXML(std::stringstream& s)override {
-		s << " attr='" << attr << "' val='";
-		if (revers) {
-			s << "!";
-		}
-		if (val) {
-			s << KXml::param(val->getModel());
-		}
-		s << "' >";
 	}
 private:
 	std::string attr;

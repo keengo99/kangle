@@ -18,9 +18,6 @@ public:
 	{
 	
 	}
-	bool startElement(KXmlContext* context) override {
-		return true;
-	}
 	kev_result connect(KHttpRequest *rq, KAsyncFetchObject *fo)
 	{
 		kassert(false);

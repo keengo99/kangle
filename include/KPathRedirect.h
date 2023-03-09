@@ -13,18 +13,21 @@
 #include "KCountable.h"
 #include "KRedirect.h"
 #include <string>
+#include <bitset>
 #include "KXml.h"
 #include "KReg.h"
-#define KGL_CONFIRM_FILE_NEVER 0
-#define KGL_CONFIRM_FILE_EXSIT 1
-#define KGL_CONFIRM_FILE_NON_EXSIT 2
-
-inline const char *kgl_get_confirm_file_tips(uint8_t confirm_file)
+enum class KConfirmFile : uint8_t
+{
+	Never = 0,
+	Exsit = 1,
+	NonExsit = 2
+};
+inline const char *kgl_get_confirm_file_tips(KConfirmFile confirm_file)
 {
 	switch (confirm_file) {
-	case KGL_CONFIRM_FILE_NEVER:
+	case KConfirmFile::Never:
 		return "never";
-	case KGL_CONFIRM_FILE_EXSIT:
+	case KConfirmFile::Exsit:
 		return "exsit";
 	default:
 		return "non-exsit";
@@ -40,17 +43,17 @@ class KRedirectMethods
 public:
 	KRedirectMethods()
 	{
-		memset(methods, 0, sizeof(methods));
+		//memset(methods, 0, sizeof(methods));
 	}
 	void setMethod(const char *methodstr);
 	std::string getMethod()
 	{
-		if (methods[0]) {
+		if (meths[0]) {
 			return "*";
 		}
 		std::stringstream s;
 		for (int i = 1; i < MAX_METHOD; i++) {
-			if (methods[i]) {
+			if (meths[i]) {
 				if (!s.str().empty()) {
 					s << ",";
 				}
@@ -61,32 +64,32 @@ public:
 	}
 	bool matchMethod(uint8_t method)
 	{
-		return methods[method];
+		return meths[method];
 	}
 private:
-	bool methods[MAX_METHOD];
+	std::bitset<MAX_METHOD> meths;
 };
 class KBaseRedirect : public KAtomCountable {
 public:
 	KBaseRedirect() {
 		rd = NULL;
-		inherited = false;
-		confirmFile = KGL_CONFIRM_FILE_EXSIT;
+		global = false;
+		confirm_file = KConfirmFile::Exsit;
 	}
 	/**
 	* 调用此处rd必须先行addRef。
 	*/
-	KBaseRedirect(KRedirect *rd, uint8_t confirmFile) {
-		inherited = false;
+	KBaseRedirect(KRedirect *rd, KConfirmFile confirmFile) {
+		global = false;
 		this->rd = rd;
-		this->confirmFile = confirmFile;
+		this->confirm_file = confirmFile;
 	}
 	bool MatchConfirmFile(bool file_exsit)
 	{
-		switch (confirmFile) {
-		case KGL_CONFIRM_FILE_NEVER:
+		switch (confirm_file) {
+		case KConfirmFile::Never:
 			return true;
-		case KGL_CONFIRM_FILE_EXSIT:
+		case KConfirmFile::Exsit:
 			return file_exsit;
 		default:
 			return !file_exsit;
@@ -105,7 +108,7 @@ public:
 			s << "default";
 		}
 		s << "'";
-		s << " confirm_file='" << (int)confirmFile << "'";
+		s << " confirm_file='" << (int)confirm_file << "'";
 		s << " allow_method='" << allowMethod.getMethod() << "'";
 		//{{ent
 #ifdef ENABLE_UPSTREAM_PARAM
@@ -172,8 +175,8 @@ public:
 #endif
 	//}}
 	KRedirectMethods allowMethod;
-	bool inherited;
-	uint8_t confirmFile;
+	bool global;
+	KConfirmFile confirm_file;
 	KRedirect *rd;
 protected:
 	~KBaseRedirect() {

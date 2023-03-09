@@ -55,17 +55,13 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)override
-	{
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		v = (time_t)(string2int(attribute["v"].c_str()));
 		if (v > kgl_current_sec) {
 			v = kgl_current_sec;
 		}
 		hard = atoi(attribute["hard"].c_str());
-	}
-	void buildXML(std::stringstream &s)override
-	{
-		s << " v='" << (INT64)v << "' hard='" << hard << "'>";
 	}
 private:
 	time_t v;

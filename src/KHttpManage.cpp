@@ -196,19 +196,21 @@ bool changeAdminPassword(KUrlValue* url, std::string& errMsg) {
 		errMsg = "change auth_type must reset password.please enter admin password";
 		return false;
 	}
-	kconfig::update("admin"_CS, 0, "", &url->attribute, kconfig::EvUpdate | kconfig::FlagCreate);
+	kconfig::update("admin"_CS, 0, nullptr, &url->attribute, kconfig::EvUpdate | kconfig::FlagCreate);
 	return true;
 }
 bool KHttpManage::runCommand() {
 	string cmd = getUrlValue("cmd");
 
 	if (cmd == "flush_log") {
+#if 0
 #ifndef HTTP_PROXY
 		KHttpServerParser logParser;
 		string configFile = conf.path;
 		configFile += VH_CONFIG_FILE;
 		//conf.gvm->clear();
 		logParser.parse(configFile);
+#endif
 #endif
 		return sendHttp("200");
 #ifdef MALLOCDEBUG
@@ -379,10 +381,6 @@ bool KHttpManage::config() {
 	string config_header[] = { LANG_SERVICE, LANG_CACHE, LANG_LOG,LANG_RS_LIMIT,klang["data_exchange"], LANG_OTHER_CONFIG, LANG_MANAGE_ADMIN };
 	size_t max_config = sizeof(config_header) / sizeof(string);
 	stringstream s;
-	if (xml) {
-		KConfigBuilder::build(s);
-		return sendXML(s.str().c_str());
-	}
 	unsigned item = atoi(getUrlValue("item").c_str());
 #ifdef KANGLE_ETC_DIR
 	string file_name = KANGLE_ETC_DIR;
@@ -427,18 +425,18 @@ bool KHttpManage::config() {
 		s << "<table border=1>";
 		s << "<tr><td>" << LANG_OPERATOR << "</td><td>" << LANG_IP << "</td><td>" << LANG_PORT << "</td><td>" << klang["listen_type"] << "</td></tr>";
 		for (auto it = conf.services.begin(); it != conf.services.end(); ++it) {
-			for (uint32_t index = 0;; ++index) {
-				auto lh = (*it).second.get(index);
-				if (!lh) {
-					break;
+			int index = 0;
+			for (auto &&lh : (*it).second) {
+				if (lh) {
+					s << "<tr><td>";
+					s << "[<a href=\"javascript:if(confirm('really delete')){ window.location='/deletelisten?file=" << (*it).first << "&id=";
+					s << index << "';}\">" << LANG_DELETE << "</a>][<a href='/newlistenform?action=edit&file=" << (*it).first << "&id=" << index << "'>" << LANG_EDIT << "</a>]</td>";
+					s << "<td>" << lh->ip << "</td>";
+					s << "<td>" << lh->port << "</td>";
+					s << "<td>" << getWorkModelName(lh->model) << "</td>";
+					s << "</tr>";
 				}
-				s << "<tr><td>";
-				s << "[<a href=\"javascript:if(confirm('really delete')){ window.location='/deletelisten?file=" << (*it).first << "&id=";
-				s << index << "';}\">" << LANG_DELETE << "</a>][<a href='/newlistenform?action=edit&file=" << (*it).first << "&id=" << index << "'>" << LANG_EDIT << "</a>]</td>";
-				s << "<td>" << lh->ip << "</td>";
-				s << "<td>" << lh->port << "</td>";
-				s << "<td>" << getWorkModelName(lh->model) << "</td>";
-				s << "</tr>";
+				++index;
 			}
 		}
 		s << "</table>";
@@ -674,9 +672,9 @@ bool KHttpManage::configsubmit() {
 		KXmlAttribute attr;
 		attr.emplace("rw", getUrlValue("time_out"));
 		attr.emplace("connect", getUrlValue("connect_time_out"));
-		kconfig::update("timeout"_CS, 0, "", &attr, kconfig::EvUpdate | kconfig::FlagCreate);
-		kconfig::update("keep_alive_count"_CS, 0, getUrlValue("keep_alive_count"), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
-		kconfig::update("worker_thread"_CS, 0, getUrlValue("worker_thread"), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("timeout"_CS, 0, nullptr, &attr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("keep_alive_count"_CS, 0, &getUrlValue("keep_alive_count"), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("worker_thread"_CS, 0, &getUrlValue("worker_thread"), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 		int worker_thread = atoi(getUrlValue("worker_thread").c_str());
 		if (worker_thread != conf.select_count) {
 			conf.select_count = worker_thread;
@@ -684,7 +682,7 @@ bool KHttpManage::configsubmit() {
 		}
 		goto skip_save;
 	} else if (item == 1) {
-		kconfig::update("cache"_CS, 0, "", &urlValue.attribute, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("cache"_CS, 0, nullptr, &urlValue.attribute, kconfig::EvUpdate | kconfig::FlagCreate);
 		goto skip_save;
 	} else if (item == 2) {
 		string access_log = getUrlValue("access_log");
@@ -794,9 +792,6 @@ bool KHttpManage::configsubmit() {
 		}
 		goto skip_save;
 	}
-	if (!saveConfig()) {
-		return sendErrorSaveConfig();
-	}
 skip_save:
 	url << "/config?item=" << item;
 	return sendRedirect(url.str().c_str());
@@ -874,7 +869,6 @@ bool KHttpManage::parseUrl(const char* url) {
 bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* content_type, const char* add_header, int max_age) {
 	KStringBuf s;
 	out->f->write_status(out->ctx, STATUS_OK);
-
 	if (content_type) {
 		out->f->write_unknow_header(out->ctx, kgl_expand_string("Content-Type"), content_type, (hlen_t)strlen(content_type));
 	} else {
@@ -887,9 +881,8 @@ bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* co
 		out->f->write_unknow_header(out->ctx, kgl_expand_string("Cache-control"), s.buf(), s.size());
 	}
 	out->f->write_unknow_header(out->ctx, _KS("x-gzip"), _KS("1"));
+	KBIT_SET(rq->ctx.obj->index.flags, ANSW_LOCAL_SERVER);
 	kgl_response_body body;
-
-
 	if (content_length < 0 && msg) {
 		content_length = strlen(msg);
 	}
@@ -958,7 +951,7 @@ bool KHttpManage::sendLeftMenu() {
 	stringstream s;
 	s << "<html><head><title>" << PROGRAM_NAME << "(" << VER_ID << ") " << LANG_MANAGE << "</title><LINK href=/main.css type='text/css' rel=stylesheet></head><body>";
 	s << "<img border=0 src='/logo.gif' alt='logo'>";
-	s << "<table><tr><td height=30><a href=/main target=mainFrame>" << LANG_HOME << "</a></td></tr>";
+	s << "<table width='100%'><tr><td height=30><a href=/main target=mainFrame>" << LANG_HOME << "</a></td></tr>";
 	s << "<tr><td height=30><a href='/accesslist?access_type=0' target=mainFrame>" << klang["lang_requestAccess"] << "</a></td></tr>";
 	s << "<tr><td height=30><a href='/accesslist?access_type=1' target=mainFrame>" << klang["lang_responseAccess"] << "</a></td></tr>";
 	s << "<tr><td height=30><a href=/acserver target=mainFrame>" << klang["extends"] << "</a></td></tr>\n";
@@ -972,8 +965,7 @@ bool KHttpManage::sendLeftMenu() {
 	s << "<tr><td height=30><a href=/connect_per_ip target=mainFrame>" << LANG_CONNECT_PER_IP << "</a></td></tr>";
 	s << "<tr><td height=30><a href=/connection target=mainFrame>" << LANG_CONNECTION << "</a></td></tr>";
 	s << "<tr><td height=30><a href='/config' target=mainFrame>" << LANG_CONFIG << "</a></td></tr>";
-	s << "<tr><td height=30><a href=\"javascript:if(confirm('really reboot')){ window.parent.location='/reboot';}\">";
-	s << klang["reboot"] << "</a>";
+	s << "<tr><td height=30><a href=\"javascript:if(confirm('really reboot')){ window.parent.location='/reboot';}\">" << klang["reboot"] << "</a></td></tr>";
 	s << "</table></body></html>";
 	return sendHttp(s.str().c_str());
 }
@@ -1292,25 +1284,24 @@ bool KHttpManage::start_listen(bool& hit) {
 	if (strcmp(rq->sink->data.url->path, "/deletelisten") == 0) {
 		hit = true;
 		int id = atoi(getUrlValue("id").c_str());
-		auto file = getUrlValue("file");
-		kconfig::remove(file, "listen"_CS, id);
+		KString file(getUrlValue("file"));
+		kconfig::remove(file.str(), "listen"_CS, id);
 		return sendRedirect("/config");
 	}
 	if (strcmp(rq->sink->data.url->path, "/newlisten") == 0) {
 		hit = true;
 		auto action = removeUrlValue("action");
-		auto file = removeUrlValue("file");
+		KString file(removeUrlValue("file"));
 		if (file.empty()) {
 			file = "default";
 		}
 		auto id = removeUrlValue("id");
 		auto xml = kconfig::new_xml(_KS("listen"));
-		defer(xml->release());
 		xml->attributes().swap(urlValue.attribute);
 		if (action == "edit") {
-			kconfig::update(file, "listen"_CS, atoi(id.c_str()), xml, kconfig::EvUpdate);
+			kconfig::update(file.str(), "listen"_CS, atoi(id.c_str()), xml.get(), kconfig::EvUpdate);
 		} else {
-			kconfig::add(file, "listen"_CS, khttpd::last_pos, xml);
+			kconfig::add(file.str(), "listen"_CS, khttpd::last_pos, xml.get());
 		}
 		return sendRedirect("/config");
 	}
@@ -1318,15 +1309,16 @@ bool KHttpManage::start_listen(bool& hit) {
 		hit = true;
 		stringstream s;
 		int id = atoi(getUrlValue("id").c_str());
-		KListenHost* host = NULL;
+		const KListenHost *host = nullptr;
 		auto file = getUrlValue("file");
 		if (getUrlValue("action") == "edit") {
 			auto it = conf.services.find(file);
 			if (it == conf.services.end()) {
 				return sendErrPage("cann't find such listen");
 			}
-			host = (*it).second.get(id);
-			if (!host) {
+			try {
+				host = (*it).second.at(id).get();
+			}catch(std::out_of_range) {
 				return sendErrPage("cann't find such listen");
 			}
 		}
@@ -1432,27 +1424,13 @@ bool KHttpManage::start_listen(bool& hit) {
 
 	return false;
 }
-bool KHttpManage::save_access(KVirtualHost* vh, std::string redirect_url) {
-	if (vh) {
-#ifndef HTTP_PROXY
-		vh->saveAccess();
-#endif
-		vh->destroy();
-	} else {
-		if (!saveConfig()) {
-			sendErrorSaveConfig();
-			return false;
-		}
-	}
-	return sendRedirect(redirect_url.c_str());
-}
 bool KHttpManage::start_access(bool& hit) {
 	hit = true;
-	int type = KAccess::getType(atoi(getUrlValue("access_type").c_str()));
+	int type = !!atoi(getUrlValue("access_type").c_str());
 	stringstream accesslist;
 	std::string name = getUrlValue("vh");
 	KVirtualHost* vh = NULL;
-	KAccess* access = &kaccess[type];
+	KSafeAccess access(kaccess[type]->add_ref());
 #ifndef HTTP_PROXY
 	if (name.size() > 0) {
 		vh = conf.gvm->refsVirtualHostByName(name);
@@ -1463,7 +1441,7 @@ bool KHttpManage::start_access(bool& hit) {
 			vh->destroy();
 			return sendHttp("vh do not support user access");
 		}
-		access = &vh->access[type];
+		access = vh->access[type];
 	}
 #endif
 	accesslist << "/accesslist?access_type=" << getUrlValue("access_type") << "&vh=" << getUrlValue("vh");
@@ -1472,180 +1450,10 @@ bool KHttpManage::start_access(bool& hit) {
 		if (vh) {
 			vh->destroy();
 			conf.gvm->getHtml(s, name, type + 6, urlValue);
-		} else {
-			s << kaccess[type].htmlAccess();
+		} else if (access) {
+			s << access->htmlAccess();
 		}
 		return sendHttp(s.str());
-	}
-
-	if (strcmp(rq->sink->data.url->path, "/addmodel") == 0) {
-		bool mark = false;
-		//		int table = REQUEST;
-		//		std::string model = getUrlValue("model");
-		if (getUrlValue("mark") == "1") {
-			mark = true;
-		}
-		access->addAcl(getUrlValue("table_name"), atoi(
-			getUrlValue("id").c_str()), getUrlValue("model"), mark);
-		stringstream url;
-		url << "/editchainform?access_type=" << getUrlValue("access_type")
-			<< "&table_name=" << getUrlValue("table_name") << "&id="
-			<< getUrlValue("id") << "&vh=" << getUrlValue("vh");
-		return save_access(vh, url.str());
-	}
-	if (strcmp(rq->sink->data.url->path, "/downmodel") == 0) {
-		bool mark = false;
-		if (getUrlValue("mark") == "1") {
-			mark = true;
-		}
-		access->downModel(getUrlValue("table_name"), atoi(getUrlValue("id").c_str()), getUrlValue("model"), mark);
-		stringstream url;
-		url << "/editchainform?access_type=" << getUrlValue("access_type")
-			<< "&table_name=" << getUrlValue("table_name") << "&id="
-			<< getUrlValue("id") << "&vh=" << getUrlValue("vh");
-		return save_access(vh, url.str());
-	}
-	if (strcmp(rq->sink->data.url->path, "/delmodel") == 0) {
-		bool mark = false;
-		if (getUrlValue("mark") == "1") {
-			mark = true;
-		}
-		access->delAcl(getUrlValue("table_name"), atoi(
-			getUrlValue("id").c_str()), getUrlValue("model"), mark);
-		stringstream url;
-		url << "/editchainform?access_type=" << getUrlValue("access_type")
-			<< "&table_name=" << getUrlValue("table_name") << "&id="
-			<< getUrlValue("id") << "&vh=" << getUrlValue("vh");
-		return save_access(vh, url.str());
-	}
-	if (strcmp(rq->sink->data.url->path, "/downchain") == 0) {
-		access->downChain(getUrlValue("table_name"), atoi(getUrlValue("id").c_str()));
-		return save_access(vh, accesslist.str());
-	}
-	if (strcmp(rq->sink->data.url->path, "/addchain") == 0) {
-		int id = access->newChain(getUrlValue("table_name"), atoi(
-			getUrlValue("id").c_str()));
-		stringstream url;
-		url << "/editchainform?access_type=" << getUrlValue("access_type")
-			<< "&table_name=" << getUrlValue("table_name") << "&id=" << id << "&vh=" << getUrlValue("vh");
-		return save_access(vh, url.str());
-	}
-	if (strcmp(rq->sink->data.url->path, "/editchain") == 0) {
-		stringstream url;
-		if (getUrlValue("modelflag") == "1") {
-			bool mark = false;
-			if (getUrlValue("mark") == "1") {
-				mark = true;
-			}
-			access->addAcl(getUrlValue("table_name"), atoi(getUrlValue(
-				"id").c_str()), getUrlValue("modelname"), mark);
-			url << "/editchainform?access_type=" << getUrlValue("access_type")
-				<< "&table_name=" << getUrlValue("table_name") << "&id="
-				<< getUrlValue("id") << "&vh=" << getUrlValue("vh");
-		}
-		access->editChain(getUrlValue("table_name"), atoi(getUrlValue(
-			"id").c_str()), &urlValue);
-		if (getUrlValue("modelflag") == "1") {
-			return save_access(vh, url.str());
-		}
-		return save_access(vh, accesslist.str());
-	}
-	if (strcmp(rq->sink->data.url->path, "/editchainform") == 0) {
-		//sendHeader(200);
-		std::stringstream s;
-		std::stringstream url;
-		if (vh) {
-			conf.gvm->getMenuHtml(s, vh, url, 0);
-		}
-		s << access->addChainForm(name.c_str(), getUrlValue("table_name"), atoi(getUrlValue("id").c_str()), (getUrlValue("add") == "1" ? true : false));
-		s << endTag();
-		//int type = KAccess::getType(atoi(getUrlValue("access_type").c_str()));
-		bool result = sendHttp(s.str());
-		if (vh) {
-			vh->destroy();
-		}
-		return result;
-	}
-	if (strcmp(rq->sink->data.url->path, "/delchain") == 0) {
-		if (!access->delChain(getUrlValue("table_name"), atoi(
-			getUrlValue("id").c_str()))) {
-			if (vh) {
-				vh->destroy();
-			}
-			return sendErrPage("Del access failed");
-		}
-		return save_access(vh, accesslist.str());
-	}
-	if (strcmp(rq->sink->data.url->path, "/accesschangefirst") == 0) {
-		string name;
-		int jump_type = atoi(getUrlValue("jump_type").c_str());
-		switch (jump_type) {
-		case JUMP_SERVER:
-			name = getUrlValue("server");
-			break;
-		case JUMP_WBACK:
-			name = getUrlValue("wback");
-			break;
-		case JUMP_VHS:
-			name = getUrlValue("vhs");
-			break;
-		}
-		access->changeFirst(jump_type, name);
-		return save_access(vh, accesslist.str());
-
-	}
-	/*	if(strcmp(rq->sink->data.url->path,"/tableaddform")==0) {
-	 stringstream s;
-	 s << "<html><head><title></title><LINK href=/main.css type='text/main.css' rel=stylesheet></head><body><form action=tableadd method=get>\n";
-	 s << LANG_TABLE << LANG_NAME << "<input name=table_name><input type=submit value=" << LANG_SUBMIT << "></form></body></html>";
-	 return sendHttp(s.str());
-
-	 }*/
-	if (strcmp(rq->sink->data.url->path, "/tableadd") == 0) {
-		//	stringstream s;
-		string err_msg;
-
-		if (access->newTable(getUrlValue("table_name"), err_msg)) {
-			//conf.m_kfilter.SaveConfig();
-			return save_access(vh, accesslist.str());
-		} else {
-			if (vh) {
-				vh->destroy();
-			}
-			return sendErrPage(err_msg.c_str());
-		}
-		//	return sendHttp(s.str());
-	}
-	if (strcmp(rq->sink->data.url->path, "/tableempty") == 0) {
-		string err_msg;
-		if (!access->emptyTable(getUrlValue("table_name"), err_msg)) {
-			if (vh) {
-				vh->destroy();
-			}
-			return sendErrPage(err_msg.c_str());
-		}
-		return save_access(vh, accesslist.str());
-	}
-	if (strcmp(rq->sink->data.url->path, "/tabledel") == 0) {
-		string err_msg;
-		if (!access->delTable(getUrlValue("table_name"), err_msg)) {
-			if (vh) {
-				vh->destroy();
-			}
-			return sendErrPage(err_msg.c_str());
-		}
-		return save_access(vh, accesslist.str());
-	}
-	if (strcmp(rq->sink->data.url->path, "/tablerename") == 0) {
-		string err_msg;
-		if (!access->renameTable(getUrlValue("name_from"), getUrlValue(
-			"name_to"), err_msg)) {
-			if (vh) {
-				vh->destroy();
-			}
-			return sendErrPage(err_msg.c_str());
-		}
-		return save_access(vh, accesslist.str());
 	}
 	if (vh) {
 		vh->destroy();
@@ -1656,12 +1464,6 @@ bool KHttpManage::start_access(bool& hit) {
 bool KHttpManage::start_vhs(bool& hit) {
 	string err_msg;
 	stringstream s;
-	if (xml && strcmp(rq->sink->data.url->path, "/vhs") == 0) {
-
-		hit = true;
-		conf.gvm->build(s);
-		return sendXML(s.str().c_str());
-	}
 	if (strcmp(rq->sink->data.url->path, "/vhslist") == 0) {
 		hit = true;
 		conf.gvm->getHtml(s, "", 0, urlValue);
@@ -1680,22 +1482,6 @@ bool KHttpManage::start_vhs(bool& hit) {
 		s << klang["reload_vh_msg"] << "<br>";
 		conf.gvm->getHtml(s, getUrlValue("name"), atoi(getUrlValue("id").c_str()), urlValue);
 		return sendHttp(s.str());
-	}
-	if (strcmp(rq->sink->data.url->path, "/vhbase") == 0) {
-		hit = true;
-		conf.gvm->vhBaseAction(urlValue, err_msg);
-		if (err_msg.size() > 0) {
-			return sendErrPage(err_msg.c_str());
-		}
-		if (!conf.gvm->saveConfig(err_msg)) {
-			return sendErrPage(err_msg.c_str());//sendErrorSaveConfig(1);
-		}
-		stringstream s;
-		s << "/vhlist?id=" << getUrlValue("id") << "&t=" << getUrlValue("t");
-		if (getUrlValue("action") != "vh_edit" && getUrlValue("action") != "vh_add") {
-			s << "&name=" << getUrlValue("name");
-		}
-		return sendRedirect(s.str().c_str());
 	}
 	return true;
 }
@@ -1717,16 +1503,6 @@ KGL_RESULT KHttpManage::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_
 	this->rq = rq;
 	this->out = out;
 	return handle_request(handler, this, rq, in, out);
-#if 0	
-	bool hit = true;
-	if (!start(hit)) {
-		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
-	}
-	if (!hit) {
-		return send_error2(rq, STATUS_NOT_FOUND, "no such file");
-	}
-	return KGL_OK;
-#endif
 }
 bool KHttpManage::start(bool& hit) {
 	parseUrl(rq->sink->data.url->param);
@@ -1804,9 +1580,6 @@ bool KHttpManage::start(bool& hit) {
 		if (writeBackManager.editWriteBack(getUrlValue("namefrom"), m_a,
 			err_msg)) {
 			//conf.m_kfilter.SaveConfig();
-			if (!saveConfig()) {
-				return sendErrorSaveConfig();
-			}
 			return sendRedirect("/writeback");
 		}
 		return sendErrPage(err_msg.c_str());
@@ -1814,9 +1587,6 @@ bool KHttpManage::start(bool& hit) {
 	if (strcasecmp(rq->sink->data.url->path, "/writebackdelete") == 0) {
 		string err_msg;
 		if (writeBackManager.delWriteBack(getUrlValue("name"), err_msg)) {
-			if (!saveConfig()) {
-				return sendErrorSaveConfig();
-			}
 			return sendRedirect("/writeback");
 		}
 		return sendErrPage(err_msg.c_str());
@@ -1846,9 +1616,6 @@ bool KHttpManage::start(bool& hit) {
 	if (strcmp(rq->sink->data.url->path, "/macserver_node") == 0) {
 		string err_msg;
 		if (conf.gam->macserver_node(urlValue.attribute, err_msg)) {
-			if (!saveConfig()) {
-				return sendErrorSaveConfig();
-			}
 			return sendRedirect("/macserver");
 		}
 		return sendErrPage(err_msg.c_str());
@@ -1972,33 +1739,8 @@ function sortrq(index)\
 		s << "</body></html>";
 		return sendHttp(s.str());
 	}
-	if (strcmp(rq->sink->data.url->path, "/apienable") == 0) {
-		bool enable = false;
-		if (getUrlValue("flag") == "enable") {
-			enable = true;
-		}
-		if (conf.gam->apiEnable(getUrlValue("name"), enable)) {
-			if (!saveConfig()) {
-				return sendErrorSaveConfig();
-			}
-			return extends(2);
-		}
-		return sendErrPage("error set flag");
-	}
+	
 #ifdef ENABLE_VH_RUN_AS
-	if (strcmp(rq->sink->data.url->path, "/cmdenable") == 0) {
-		bool enable = false;
-		if (getUrlValue("flag") == "enable") {
-			enable = true;
-		}
-		if (conf.gam->cmdEnable(getUrlValue("name"), enable)) {
-			if (!saveConfig()) {
-				return sendErrorSaveConfig();
-			}
-			return extends(3);
-		}
-		return sendErrPage("error set flag");
-	}
 	if (strcmp(rq->sink->data.url->path, "/cmdform") == 0) {
 		std::string errMsg;
 		if (conf.gam->cmdForm(urlValue.attribute, errMsg)) {
@@ -2140,6 +1882,8 @@ void init_manager_handler() {
 				return out->f->error(out->ctx, 404, _KS("not found"));
 			}
 			out->f->write_header(out->ctx, kgl_header_content_type, _KS("text/xml"));
+			KBIT_SET(rq->ctx.obj->index.flags, ANSW_LOCAL_SERVER);
+			out->f->write_unknow_header(out->ctx, _KS("x-gzip"), _KS("1"));
 			KBodyWStream st;
 			auto result = out->f->write_header_finish(out->ctx, -1, &st.body);
 			if (result != KGL_OK) {
@@ -2151,6 +1895,10 @@ void init_manager_handler() {
 			}
 			if (orig_len > path->len) {
 				st.write_all(orig_path, orig_len - path->len);
+			}
+			st.write_all(_KS("' listen='"));
+			if (tree->ls) {
+				st << (int)tree->ls->config_flag();
 			}
 			st.write_all(_KS("'>"));
 			auto node = tree->node;
@@ -2167,14 +1915,23 @@ void init_manager_handler() {
 				}
 				node = node->next;
 			}
-			if (tree->child) {
+			if (!tree->child.empty()) {
 				st.write_all(_KS("<child>"));
-				for (auto it = tree->child->first(); it; it = it->next()) {
+				for (auto it = tree->child.first(); it; it = it->next()) {
 					auto v = it->value();
-					if (v->name->len > 0) {
+					if (v->key.tag->len > 0) {
 						st.write_all(_KS("<"));
-						st.write_all(v->name->data, v->name->len);
+						st.write_all(v->key.tag->data, v->key.tag->len);
+						if (v->key.vary && v->key.vary->len>0) {
+							st.write_all(_KS(" vary='"));
+							st.write_all(v->key.vary->data, v->key.vary->len);
+							st.write_all(_KS("'"));
+						}
 						st.write_all(_KS("/>"));
+					} else if (v->key.vary && v->key.vary->len > 0) {
+						st.write_all(_KS("<"));
+						st.write_all(v->key.vary->data, v->key.vary->len);						
+						st.write_all(_KS(" is_vary='1'/>"));
 					}
 				}
 				st.write_all(_KS("</child>"));

@@ -41,7 +41,8 @@ public:
 		s << speed_limit;
 		return s.str();
 	}
-	void editHtml(std::map<std::string,std::string> &attribute,bool html)override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		speed_limit=(int)get_size(attribute["limit"].c_str());
 	}
 	std::string getHtml(KModel *model) override {
@@ -59,10 +60,6 @@ public:
 	}
 	const char *getName()override {
 		return "speed_limit";
-	}
-public:
-	void buildXML(std::stringstream &s) override {
-		s << " limit='" << speed_limit << "'>";
 	}
 private:
 	int speed_limit;

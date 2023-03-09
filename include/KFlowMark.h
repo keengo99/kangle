@@ -14,10 +14,6 @@ public:
 			fi->release();
 		}
 	}
-	bool supportRuntime() override
-	{
-		return true;
-	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
 	{
 		if (fi) {
@@ -49,8 +45,8 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
-	{
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		if (fi==NULL) {
 			fi = new KFlowInfo;
 		}
@@ -58,17 +54,7 @@ public:
 			fi->reset();
 		}
 	}
-	void buildXML(std::stringstream &s,int flag) override
-	{
-		if (fi) {
-			s << "flow='" << fi->flow << "' ";
-			s << "cache='" << fi->cache << "' ";
-			if (KBIT_TEST(flag,CHAIN_RESET_FLOW)) {
-				fi->reset();
-			}
-		}
-		s << ">";
-	}
+
 private:
 	KFlowInfo *fi;
 };

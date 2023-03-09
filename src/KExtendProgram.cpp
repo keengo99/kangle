@@ -97,25 +97,6 @@ const char* KExtendProgramString::interGetValue(const char* name) {
 	}
 #endif
 #endif
-	if (strcasecmp(name, "templete") == 0) {
-		if (vh->tvh == NULL) {
-			return NULL;
-		}
-		return vh->tvh->name.c_str();
-	}
-	if (strcasecmp(name, "subtemplete") == 0) {
-		if (vh->tvh == NULL) {
-			return NULL;
-		}
-		s.clean();
-		s << vh->tvh->name.c_str();
-		const char* subname = s.c_str();
-		const char* p = strchr(subname, ':');
-		if (p == NULL) {
-			return NULL;
-		}
-		return p + 1;
-	}
 	if (strcasecmp(name, "time") == 0) {
 		s.clean();
 		s << (INT64)time(NULL);
@@ -134,7 +115,7 @@ const char* KExtendProgramString::interGetValue(const char* name) {
 	if (vh->getEnvValue(name, vh_value)) {
 		return vh_value.c_str();
 	}
-	if (conf.gvm->globalVh.getEnvValue(name, vh_value)) {
+	if (conf.gvm->vhs.getEnvValue(name, vh_value)) {
 		return vh_value.c_str();
 	}
 	//{{ent
@@ -465,21 +446,21 @@ void KExtendProgram::buildConfig(std::stringstream& s) {
 		s << "/>\n";
 	}
 }
-bool KExtendProgram::parse_config(khttpd::KXmlNode* xml) {
+bool KExtendProgram::parse_config(const khttpd::KXmlNode* xml) {
 	auto attr = xml->attributes();
 	life_time = attr.get_int("life_time");
 	idleTime = attr.get_int("idle_time");
 	maxRequest = attr.get_int("max_request");
 	maxConnect = attr.get_int("max_connect");
 	max_error_count = attr.get_int("max_error_count");
-	auto envs_node = kconfig::find_child(xml, _KS("env"));
+	auto envs_node = kconfig::find_child(xml->get_first(), _KS("env"));
 	if (envs_node != nullptr) {
 		parseEnv(envs_node->attributes());
 	} else {
 		envs.clear();
 	}
 	clean_event();
-	auto events = kconfig::find_child(xml, _KS("pre_event"));
+	auto events = kconfig::find_child(xml->get_first(), _KS("pre_event"));
 	if (events) {
 		for (uint32_t index = 0;; ++index) {
 			auto body = events->get_body(index);
@@ -489,7 +470,7 @@ bool KExtendProgram::parse_config(khttpd::KXmlNode* xml) {
 			addEvent(true, body->attributes);
 		}
 	}
-	events = kconfig::find_child(xml, _KS("post_event"));
+	events = kconfig::find_child(xml->get_first(), _KS("post_event"));
 	if (events) {
 		for (uint32_t index = 0;; ++index) {
 			auto body = events->get_body(index);
@@ -500,21 +481,6 @@ bool KExtendProgram::parse_config(khttpd::KXmlNode* xml) {
 		}
 	}
 	return true;
-}
-void KExtendProgram::parseConfig(std::map<std::string, std::string>& attribute) {
-	if (attribute["life_time"].size() > 0) {
-		life_time = atoi(attribute["life_time"].c_str());
-	}
-	if (attribute["idle_time"].size() > 0) {
-		idleTime = atoi(attribute["idle_time"].c_str());
-	}
-	if (attribute["max_request"].size() > 0) {
-		maxRequest = atoi(attribute["max_request"].c_str());
-	}
-	if (attribute["max_connect"].size() > 0) {
-		maxConnect = atoi(attribute["max_connect"].c_str());
-	}
-	max_error_count = atoi(attribute["max_error_count"].c_str());
 }
 bool KExtendProgram::parseEnv(const KXmlAttribute& attribute) {
 	envs.clear();

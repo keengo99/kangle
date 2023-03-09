@@ -87,8 +87,8 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)override
-	{
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		icase = (attribute["icase"]=="1");
 		if (attribute["nc"].size()>0) {
 			icase = (attribute["nc"]=="1");
@@ -96,17 +96,6 @@ public:
 		url.setModel(attribute["url"].c_str(),(icase?PCRE_CASELESS : 0));
 		dst = attribute["dst"];
 		code = atoi(attribute["code"].c_str());
-	}
-	void buildXML(std::stringstream &s)override
-	{
-		s << "url='" << KXml::param(url.getModel()) << "' dst='" << KXml::param(dst.c_str()) << "'";
-		if (icase) {
-			s << " nc='1'";
-		}
-		if (code>0) {
-			s << " code='" << code << "'";
-		}
-		s << ">";
 	}
 private:
 	KReg url;

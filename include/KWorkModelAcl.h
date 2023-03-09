@@ -25,7 +25,8 @@ public:
 		getFlagString(s);
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		flag = 0;
 #ifdef WORK_MODEL_TCP
 		if (attribute["tcp"] == "1") {
@@ -36,10 +37,6 @@ public:
 			flag |= WORK_MODEL_SSL;
 		}
 		
-	}
-	void buildXML(std::stringstream &s) override {
-		getFlagString(s);
-		s << ">";
 	}
 	std::string getHtml(KModel *model) override {
 		std::stringstream s;

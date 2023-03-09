@@ -101,15 +101,8 @@ std::string KRewriteMark::getDisplay() {
 	}
 	return s.str();
 }
-void KRewriteMark::editHtml(std::map<std::string, std::string> &attribute,bool html)
-		 {
+void KRewriteMark::parse_config(const khttpd::KXmlNodeBody* xml) {
+	auto attribute = xml->attr();
 	prefix = attribute["prefix"];
 	rule.parse(attribute);
-}
-void KRewriteMark::buildXML(std::stringstream &s) {
-	if(prefix.size()>0){
-		s << " prefix='" << prefix << "'";
-	}
-	rule.buildXml(s);
-	s << ">";
 }

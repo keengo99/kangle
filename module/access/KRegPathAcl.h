@@ -78,7 +78,8 @@ public:
 		path.setModel(value,flag);
 		return true;
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		nc = (attribute["nc"]=="1");
 		if (attribute["path"].size() > 0) {
 			setPath(attribute["path"].c_str());
@@ -88,21 +89,6 @@ public:
 		} else {
 			raw = false;
 		}
-	}
-	bool startCharacter(KXmlContext *context, char *character, int len) override {
-		if (strlen(path.getModel()) == 0) {
-			setPath(character);
-		}
-		return true;
-	}
-	void buildXML(std::stringstream &s) override {
-		if (raw) {
-			s << " raw='1'";
-		}
-		if (nc) {
-			s << " nc='1'";
-		}
-		s << " path='" << path.getModel() << "'>";
 	}
 private:
 	KReg path;
@@ -166,7 +152,8 @@ public:
 		path.setModel(value,flag);
 		return true;
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		nc = (attribute["nc"]=="1");
 		if (attribute["param"].size() > 0) {
 			setPath(attribute["param"].c_str());
@@ -177,22 +164,7 @@ public:
 			raw = false;
 		}
 	}
-	bool startCharacter(KXmlContext *context, char *character, int len) override {
-		if (strlen(path.getModel()) == 0) {
-			setPath(character);
-		}
-		return true;
-	}
-	void buildXML(std::stringstream &s) override {
-		s << " param='" << path.getModel() << "'";
-		if (raw) {
-			s << " raw='1'";
-		}
-		if (nc) {
-			s << " nc='1'";
-		}
-		s << ">";
-	}
+	
 private:
 	KReg path;
 	bool raw;

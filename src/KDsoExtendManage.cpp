@@ -99,3 +99,14 @@ void KDsoExtendManage::shutdown()
 		(*it).second->shutdown();
 	}
 }
+bool KDsoExtendManage::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+	switch (ev->type) {
+	case kconfig::EvNew | kconfig::EvSubDir:
+		add(ev->new_xml->attributes());
+		break;
+	default:
+		klog(KLOG_ERR, "dso_extend do not support ev=[%d]\n", ev->type);
+		break;
+	}
+	return true;
+}

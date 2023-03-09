@@ -26,18 +26,18 @@
 #include "KExtendProgram.h"
 #include "KConfigTree.h"
 #include <string>
-class KAcserverManager: public KXmlBuilder
+class KAcserverManager
 {
 public:
 	KAcserverManager();
 	virtual ~KAcserverManager();
-	void on_server_event(kconfig::KConfigTree* tree, khttpd::KXmlNode* xml, kconfig::KConfigEventType ev);
-	void on_cmd_event(kconfig::KConfigTree* tree, khttpd::KXmlNode* xml, kconfig::KConfigEventType ev);
-	void on_api_event(kconfig::KConfigTree* tree, khttpd::KXmlNode* xml, kconfig::KConfigEventType ev);
-	std::string acserverList(std::string name = "");
-	std::string apiList(std::string name = "");
+	void on_server_event(kconfig::KConfigTree* tree, const khttpd::KXmlNode* xml, kconfig::KConfigEventType ev);
+	void on_cmd_event(kconfig::KConfigTree* tree, const khttpd::KXmlNode* xml, kconfig::KConfigEventType ev);
+	void on_api_event(kconfig::KConfigTree* tree, const khttpd::KXmlNode* xml, kconfig::KConfigEventType ev);
+	std::string acserverList(const std::string& name = "");
+	std::string apiList(const std::string& name = "");
 #ifdef ENABLE_VH_RUN_AS	
-	std::string cmdList(std::string name = "");
+	std::string cmdList(const std::string& name = "");
 #ifdef ENABLE_ADPP
 	/*
 	 * flush the cmd extend process cpu usage.
@@ -45,7 +45,6 @@ public:
 	void flushCpuUsage(ULONG64 cpuTime);
 #endif
 	void shutdown();
-	int getCmdPortMap(KVirtualHost* vh, std::string cmd, std::string name, int app);
 	void refreshCmd(time_t nowTime);
 	void getProcessInfo(std::stringstream& s);
 	void killCmdProcess(USER_T user);
@@ -56,15 +55,15 @@ public:
 	void unloadAllApi();
 	bool remove_server(const std::string &name, std::string& err_msg);
 #ifdef ENABLE_MULTI_SERVER
-	std::string macserverList(std::string name = "");	
-	std::string macserver_node_form(std::string name, std::string action, unsigned nodeIndex);
+	std::string macserverList(const std::string& name="");
+	std::string macserver_node_form(const std::string&, std::string action, unsigned nodeIndex);
 	bool macserver_node(KXmlAttribute& attribute, std::string& errMsg);
-	KMultiAcserver* refsMultiAcserver(std::string name)
+	KMultiAcserver* refsMultiAcserver(const std::string& name)
 	{
 		lock.RLock();
 		KMultiAcserver* as = getMultiAcserver(name);
 		if (as) {
-			as->addRef();
+			as->add_ref();
 		}
 		lock.RUnlock();
 		return as;
@@ -89,8 +88,8 @@ public:
 	bool cmdForm(KXmlAttribute& attribute, std::string& errMsg);
 	KCmdPoolableRedirect* newCmdRedirect(std::map<std::string, std::string>& attribute,
 		std::string& errMsg);
-	KCmdPoolableRedirect* refsCmdRedirect(std::string name);
-	bool cmdEnable(std::string name, bool enable);
+	KCmdPoolableRedirect* refsCmdRedirect(const std::string& name);
+	bool cmdEnable(const std::string&, bool enable);
 	bool delCmd(const std::string& name, std::string& err_msg) {
 		return remove_item("cmd", name, err_msg);
 	}
@@ -107,29 +106,28 @@ public:
 		return true;
 	}
 #endif
-	bool apiEnable(std::string name, bool enable);
+	bool apiEnable(const std::string&, bool enable);
 	bool delApi(const std::string& name, std::string& err_msg) {
 		return remove_item("api", name, err_msg);
 	}
 	bool apiForm(KXmlAttribute& attribute, std::string& errMsg);
-	KSingleAcserver* refsSingleAcserver(std::string name);
-	KPoolableRedirect* refsAcserver(std::string name);
-	KRedirect* refsRedirect(std::string target);
-	KApiRedirect* refsApiRedirect(std::string name);
+	KSingleAcserver* refsSingleAcserver(const std::string& name);
+	KPoolableRedirect* refsAcserver(const std::string& name);
+	KRedirect* refsRedirect(const std::string &target);
+	KApiRedirect* refsApiRedirect(const std::string& name);
 	void clearImportConfig();
-	void buildXML(std::stringstream& s, int flag) override;
 	friend class KAccess;
 	friend class KHttpManage;
 private:
-	KSingleAcserver* getSingleAcserver(std::string table_name);
+	KSingleAcserver* getSingleAcserver(const std::string& table_name);
 #ifdef ENABLE_MULTI_SERVER
-	KMultiAcserver* getMultiAcserver(std::string table_name);
+	KMultiAcserver* getMultiAcserver(const std::string&  table_name);
 	std::map<std::string, KMultiAcserver*> mservers;
 #endif
-	KPoolableRedirect* getAcserver(std::string table_name);
-	KApiRedirect* getApiRedirect(std::string name);
+	KPoolableRedirect* getAcserver(const std::string& table_name);
+	KApiRedirect* getApiRedirect(const std::string& name);
 #ifdef ENABLE_VH_RUN_AS
-	KCmdPoolableRedirect* getCmdRedirect(std::string name);
+	KCmdPoolableRedirect* getCmdRedirect(const std::string& name);
 	std::map<std::string, KCmdPoolableRedirect*> cmds;
 #endif
 	std::map<std::string, KSingleAcserver*> acservers;

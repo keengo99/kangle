@@ -53,8 +53,8 @@ public:
 		s << ">flush";
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
-	{
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		if (host) {
 			free(host);
 			host = NULL;
@@ -63,14 +63,7 @@ public:
 			host = strdup(attribute["host"].c_str());
 		}
 		flush = attribute["flush"] == "1";
-	}
-	void buildXML(std::stringstream &s) override {
-		if (this->host) {
-			s << "host='" << host << "'";
-		}
-		s << " flush='" << (flush ? 1 : 0) << "'";
-		s << ">";
-	}
+	}	
 private:
 	char *host;
 	bool flush;
@@ -123,7 +116,8 @@ public:
 		s << "'>";
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		if (host) {
 			free(host);
 			host = NULL;
@@ -131,12 +125,6 @@ public:
 		if (!attribute["host"].empty()) {
 			host = strdup(attribute["host"].c_str());
 		}
-	}
-	void buildXML(std::stringstream &s)override {
-		if (this->host) {
-			s << "host='" << host << "'";
-		}
-		s << ">";
 	}
 private:
 	char *host;

@@ -65,7 +65,8 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string,std::string> &attribute,bool html)override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		flag=0;
 		compress = false;
 		identity_encoding = false;
@@ -117,10 +118,6 @@ public:
 	const char *getName() override {
 		return "response_flag";
 	}
-public:
-	void buildXML(std::stringstream &s) override {
-		s << " flagvalue='" << getDisplay() << "'>";
-	}
 private:
 	int flag;
 	bool compress;
@@ -152,7 +149,8 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string,std::string> &attribute,bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		if(attribute["no_extend"]=="1"){
 			no_extend = true;
 		} else {
@@ -180,10 +178,6 @@ public:
 	}
 	const char *getName()override {
 		return "extend_flag";
-	}
-public:
-	void buildXML(std::stringstream &s) override {
-		s << " no_extend='" << (no_extend?1:0) << "'>";
 	}
 private:
 	bool no_extend;

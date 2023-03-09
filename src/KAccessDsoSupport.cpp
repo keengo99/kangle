@@ -365,7 +365,7 @@ static KGL_RESULT support_function(
 		//目前还不支持同步模式	
 		KDsoRedirect* rd = new KDsoRedirect("", us);
 		KRedirectSource* fo = rd->makeFetchObject(rq, *ret);
-		fo->bind_base_redirect(new KBaseRedirect(rd, KGL_CONFIRM_FILE_NEVER));
+		fo->bind_base_redirect(new KBaseRedirect(rd, KConfirmFile::Never));
 		fo->filter = 1;
 		if (KBIT_TEST(us->flags, KGL_UPSTREAM_BEFORE_CACHE)) {
 			rq->insert_source(fo);

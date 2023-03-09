@@ -80,37 +80,23 @@ public:
 		s << getValList();
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		freeMap();
 		if(icase_can_change){
-			if (attribute["icase"] == "1") {
+			if (xml->attributes["icase"] == "1") {
 				seticase(true);
 			} else {
 				seticase(false);
 			}
 		}
-		if (attribute["split"].size() > 0) {
-			split = attribute["split"][0];
+		if (xml->attributes["split"].size() > 0) {
+			split = xml->attributes["split"][0];
 		} else {
 			split = '|';
 		}
-		if (attribute["v"].size() > 0) {
-			explode(attribute["v"].c_str());
+		if (xml->attributes["v"].size() > 0) {
+			explode(xml->attributes["v"].c_str());
 		}
-	}
-	bool startCharacter(KXmlContext *context, char *character, int len) override {
-		if (len > 0) {
-			freeMap();
-			explode(character);
-		}
-		return true;
-	}
-
-	void buildXML(std::stringstream &s) override {
-		if (icase_can_change && icase) {
-			s << " icase='1'";
-		}
-		s << " split='" << split << "'>" << getValList();
 	}
 protected:
 	bool match(const char *item) {

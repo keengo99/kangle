@@ -41,14 +41,9 @@ public:
 	std::string getDisplay() override {
 		return "";
 	}
-	bool startCharacter(KXmlContext *context, char *character, int len) override {
-		return true;
-	}
-	void editHtml(std::map<std::string, std::string> &attibute,bool html) override {
-		
-	}
-	void buildXML(std::stringstream &s) override {
-		s << " >";
+
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();		
 	}
 private:
 };

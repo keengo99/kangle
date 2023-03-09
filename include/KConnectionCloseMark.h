@@ -25,10 +25,8 @@ public:
 		std::stringstream s;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
-	}
-	void buildXML(std::stringstream &s) override {
-		s << ">";
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 	}
 	std::string getHtml(KModel *model)override {
 		return "";

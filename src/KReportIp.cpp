@@ -171,7 +171,7 @@ void add_report_ip(const char *ips)
 		}
 		if (*hot=='0') {
 			hot++;
-			conf.gvm->globalVh.blackList->AddDynamic(hot,true);
+			conf.gvm->vhs.blackList->AddDynamic(hot,true);
 		} else if (*hot=='1') {
 			hot++;
 			char *ip = strchr(hot,'|');
@@ -185,13 +185,13 @@ void add_report_ip(const char *ips)
 			}
 		} else if (*hot == '2') {
 			hot++;
-			conf.gvm->globalVh.blackList->AddStatic(hot, false);
+			conf.gvm->vhs.blackList->AddStatic(hot, false);
 		} else if (*hot == '3') {
 			hot++;
-			conf.gvm->globalVh.blackList->AddStatic(hot, true);
+			conf.gvm->vhs.blackList->AddStatic(hot, true);
 		} else if (*hot == '4') {
 			hot++;
-			conf.gvm->globalVh.blackList->Remove(hot);
+			conf.gvm->vhs.blackList->Remove(hot);
 		}
 		if (p==NULL) {
 			break;

@@ -142,8 +142,9 @@ std::string KCloudIpAcl::getDisplay()
 	lock.Unlock();
 	return s.str();
 }
-void KCloudIpAcl::editHtml(std::map<std::string, std::string> &attribute,bool html) 
+void KCloudIpAcl::parse_config(const khttpd::KXmlNodeBody* xml)
 {
+	auto attribute = xml->attr();
 	lock.Lock();
 	url = attribute["url"];
 	flush_time = atoi(attribute["flush_time"].c_str());
@@ -154,7 +155,7 @@ void KCloudIpAcl::start() {
 
 	if (!this->started) {
 		this->started = true;
-		this->addRef();
+		this->add_ref();
 		selector_manager_on_ready(cloud_ip_start, this);		
 	}
 
@@ -174,9 +175,5 @@ void KCloudIpAcl::start_http()
 		this->release();
 	}
 	lock.Unlock();
-}
-void KCloudIpAcl::buildXML(std::stringstream &s)
-{
-	s << "url='" << this->url << "' flush_time='" << this->flush_time << "' >";
 }
 #endif

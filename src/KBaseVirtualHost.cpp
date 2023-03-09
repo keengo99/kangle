@@ -1,5 +1,6 @@
 #include <vector>
 #include <sstream>
+#include <map>
 #include <stdlib.h>
 #include <string.h>
 #include "KBaseVirtualHost.h"
@@ -11,17 +12,86 @@
 #include "KApiRedirect.h"
 #include "lang.h"
 #include "http.h"
+#include "KDefer.h"
 using namespace std;
+void on_vh_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+	assert(data);
+	KBaseVirtualHost* bvh = (KBaseVirtualHost*)data;
+	bvh->on_config_event(tree, ev);
+}
 KBaseVirtualHost::KBaseVirtualHost() {
-	defaultRedirect = NULL;
 	mimeType = NULL;
 #ifdef ENABLE_BLACK_LIST
 	blackList = NULL;
 #endif
 }
-KBaseVirtualHost::~KBaseVirtualHost() {
-	lock.Lock();
-	for (auto it = redirects.begin(); it != redirects.end(); it++) {
+KFetchObject* KBaseVirtualHost::find_file_redirect(KHttpRequest* rq, KFileName* file, const char* file_ext, bool fileExsit, bool& result) {
+	decltype (redirects.find("")) it;
+	auto locker = get_locker();
+	if (!file_ext) {
+		it = redirects.find("*");
+	} else {
+		it = redirects.find((char *)file_ext);
+		if (it == redirects.end()) {
+			it = redirects.find("*");
+		}
+	}
+	if (it != redirects.end() && (*it).second->allowMethod.matchMethod(rq->sink->data.meth) && (*it).second->MatchConfirmFile(fileExsit)) {
+		result = true;
+		if ((*it).second->rd) {
+			auto fo = (*it).second->rd->makeFetchObject(rq, file);
+			(*it).second->addRef();
+			fo->bind_base_redirect((*it).second);
+			return fo;
+		}
+	}
+	return nullptr;
+}
+KAlias KBaseVirtualHost::find_alias(bool internal, const char* path, size_t path_len) {
+	auto locker = get_locker();
+	for (auto it = aliass.begin(); it != aliass.end(); it++) {
+		if ((*it)->internal) {
+			if (!internal) {
+				continue;
+			}
+		}
+		if ((*it)->match(path, path_len)) {
+			return KAlias((*it)->add_ref());
+		}
+	}
+	return KAlias(nullptr);
+}
+KBaseRedirect* KBaseVirtualHost::refs_path_redirect(const char* path, int path_len) {
+	auto locker = get_locker();
+	for (auto it = pathRedirects.begin(); it != pathRedirects.end(); ++it) {
+		if ((*it)->match(path, path_len)) {
+			(*it)->addRef();
+			return (*it);
+		}
+	}
+	return nullptr;
+}
+KFetchObject* KBaseVirtualHost::find_path_redirect(KHttpRequest* rq, KFileName* file, const char* path, size_t path_len, bool fileExsit, bool& result) {
+	auto locker = get_locker();
+	for (auto it2 = pathRedirects.begin(); it2 != pathRedirects.end(); ++it2) {
+		if ((*it2)->match(path, path_len) && (*it2)->allowMethod.matchMethod(rq->sink->data.meth)) {
+			if ((*it2)->MatchConfirmFile(fileExsit)) {
+				result = true;
+				if ((*it2)->rd) {
+					auto fo = (*it2)->rd->makeFetchObject(rq, file);
+					(*it2)->addRef();
+					fo->bind_base_redirect((*it2));
+					return fo;
+				}
+				return nullptr;
+			}
+		}
+	}
+	return nullptr;
+}
+void KBaseVirtualHost::clear() {
+	auto locker = get_locker();
+	for (auto it = redirects.begin(); it != redirects.end(); ++it) {
 		xfree((*it).first);
 		(*it).second->release();
 	}
@@ -29,28 +99,37 @@ KBaseVirtualHost::~KBaseVirtualHost() {
 	indexFiles.clear();
 	errorPages.clear();
 	for (auto it2 = aliass.begin(); it2 != aliass.end(); it2++) {
-		delete (*it2);
+		(*it2)->release();
 	}
 	aliass.clear();
 	for (auto it3 = pathRedirects.begin(); it3 != pathRedirects.end(); it3++) {
 		(*it3)->release();
 	}
 	pathRedirects.clear();
+#if 0
 	if (defaultRedirect) {
 		defaultRedirect->release();
 		defaultRedirect = NULL;
 	}
+#endif
 	if (mimeType) {
 		delete mimeType;
 		mimeType = NULL;
 	}
+	for (auto it3 = envs.begin(); it3 != envs.end(); it3++) {
+		xfree((*it3).second);
+		xfree((*it3).first);
+	}
+	envs.clear();
+}
+KBaseVirtualHost::~KBaseVirtualHost() {
+	clear();
 #ifdef ENABLE_BLACK_LIST
 	if (blackList) {
 		blackList->release();
+		blackList = nullptr;
 	}
 #endif
-	lock.Unlock();
-	clearEnv();
 }
 void KBaseVirtualHost::swap(KBaseVirtualHost* a) {
 	lock.Lock();
@@ -59,9 +138,11 @@ void KBaseVirtualHost::swap(KBaseVirtualHost* a) {
 	redirects.swap(a->redirects);
 	pathRedirects.swap(a->pathRedirects);
 	aliass.swap(a->aliass);
+#if 0
 	KBaseRedirect* tdefaultRedirect = defaultRedirect;
 	defaultRedirect = a->defaultRedirect;
 	a->defaultRedirect = tdefaultRedirect;
+#endif
 	if (mimeType) {
 		if (a->mimeType == NULL) {
 			delete mimeType;
@@ -77,48 +158,59 @@ void KBaseVirtualHost::swap(KBaseVirtualHost* a) {
 	lock.Unlock();
 }
 bool KBaseVirtualHost::getErrorPage(int code, std::string& errorPage) {
-	bool result = false;
-	lock.Lock();
-	auto it = errorPages.find(code);
-	if (it != errorPages.end()) {
-		errorPage = (*it).second.s;
-		result = true;
-	} else {
-		it = errorPages.find(0);
+	{
+		auto locker = get_locker();
+		auto it = errorPages.find(code);
 		if (it != errorPages.end()) {
 			errorPage = (*it).second.s;
-			result = true;
-		}
-	}
-	lock.Unlock();
-	return result;
-}
-bool KBaseVirtualHost::getIndexFile(KHttpRequest* rq, KFileName* file, KFileName** newFile, char** newPath) {
-	lock.Lock();
-	for (auto it = indexFiles.begin(); it != indexFiles.end(); it++) {
-		*newFile = new KFileName;
-		if ((*newFile)->setName(file->getName(), (*it).index.s.c_str(), rq->getFollowLink()) && !(*newFile)->isDirectory()) {
-			(*newFile)->setIndex((*it).index.s.c_str());
-			if (newPath) {
-				assert(*newPath == NULL);
-				*newPath = KFileName::concatDir(rq->sink->data.url->path, (*it).index.s.c_str());
-			}
-			lock.Unlock();
 			return true;
 		} else {
-			delete (*newFile);
+			it = errorPages.find(0);
+			if (it != errorPages.end()) {
+				errorPage = (*it).second.s;
+				return true;
+			}
 		}
 	}
-	lock.Unlock();
+	if (!is_global()) {
+		auto vh = static_cast<KVirtualHost*>(this);
+		if (vh->inherit) {
+			return conf.gvm->vhs.getErrorPage(code, errorPage);
+		}
+	}
+	return false;
+}
+bool KBaseVirtualHost::getIndexFile(KHttpRequest* rq, KFileName* file, KFileName** newFile, char** newPath) {
+	{
+		auto locker = get_locker();
+		for (auto it = indexFiles.begin(); it != indexFiles.end(); ++it) {
+			*newFile = new KFileName;
+			if ((*newFile)->setName(file->getName(), (*it).index.s.c_str(), rq->getFollowLink()) && !(*newFile)->isDirectory()) {
+				(*newFile)->setIndex((*it).index.s.c_str());
+				if (newPath) {
+					assert(*newPath == NULL);
+					*newPath = KFileName::concatDir(rq->sink->data.url->path, (*it).index.s.c_str());
+				}
+				return true;
+			} else {
+				delete (*newFile);
+			}
+		}
+	}
+	if (!is_global()) {
+		auto vh = static_cast<KVirtualHost*>(this);
+		if (vh->inherit) {
+			return conf.gvm->vhs.getIndexFile(rq, file, newFile, newPath);
+		}
+	}
 	return false;
 }
 bool KBaseVirtualHost::delMimeType(const char* ext) {
 	bool result = false;
-	lock.Lock();
+	auto locker = get_locker();
 	if (mimeType) {
 		result = mimeType->remove(ext);
 	}
-	lock.Unlock();
 	return result;
 }
 void KBaseVirtualHost::addMimeType(const char* ext, const char* type, kgl_compress_type compress, int max_age) {
@@ -225,7 +317,7 @@ void KBaseVirtualHost::getAliasHtml(const std::string& url, std::stringstream& s
 		} else {
 			s
 				<< "[<a href=\"javascript:if(confirm('really delete?')){ window.location='/vhbase?action=aliasdelete&path=";
-			s << (*it)->getPath() << "&" << url << "';}\">" << LANG_DELETE
+			s << (*it)->get_path() << "&" << url << "';}\">" << LANG_DELETE
 				<< "</a>]";
 		}
 		s << "</td>";
@@ -237,8 +329,8 @@ void KBaseVirtualHost::getAliasHtml(const std::string& url, std::stringstream& s
 			s << "&nbsp;";
 		}
 		s << "</td>";
-		s << "<td>" << (*it)->getPath() << "</td>";
-		s << "<td>" << (*it)->getTo() << "</td>";
+		s << "<td>" << (*it)->get_path() << "</td>";
+		s << "<td>" << (*it)->get_to() << "</td>";
 		s << "<td>" << ((*it)->internal ? klang["internal"] : "&nbsp;") << "</td>";
 		s << "<td>" << (*it)->hit_count << "</td>";
 		s << "</tr>\n";
@@ -257,7 +349,7 @@ void KBaseVirtualHost::getAliasHtml(const std::string& url, std::stringstream& s
 }
 void KBaseVirtualHost::getRedirectItemHtml(const std::string& url, const std::string& value, bool file_ext, KBaseRedirect* brd, std::stringstream& s) {
 	s << "<tr><td>";
-	if (brd->inherited) {
+	if (brd->global) {
 		s << klang["inherited"];
 	} else {
 		s
@@ -282,7 +374,7 @@ void KBaseVirtualHost::getRedirectItemHtml(const std::string& url, const std::st
 	}
 	s << "</td>";
 	s << "<td>" << brd->allowMethod.getMethod() << "</td>";
-	s << "<td>" << kgl_get_confirm_file_tips(brd->confirmFile) << "</td>";
+	s << "<td>" << kgl_get_confirm_file_tips(brd->confirm_file) << "</td>";
 	//{{ent
 #ifdef ENABLE_UPSTREAM_PARAM
 	s << "<td>";
@@ -310,9 +402,9 @@ void KBaseVirtualHost::getRedirectHtml(const std::string& url, std::stringstream
 	for (auto it = redirects.begin(); it != redirects.end(); it++) {
 		getRedirectItemHtml(url, (*it).first, true, (*it).second, s);
 	}
-	if (defaultRedirect) {
-		getRedirectItemHtml(url, "*", true, defaultRedirect, s);
-	}
+	//if (defaultRedirect) {
+	//	getRedirectItemHtml(url, "*", true, defaultRedirect, s);
+	//}
 	s << "</table>";
 	s << "<form action='/vhbase?action=redirectadd&" << url
 		<< "' method='post'>";
@@ -352,7 +444,7 @@ void KBaseVirtualHost::getRedirectHtml(const std::string& url, std::stringstream
 	s << "<tr><td>" << klang["confirm_file"];
 	s << "<select name='confirm_file'>";
 	for (int i = 0; i < 3; i++) {
-		s << "<option value='" << i << "'>" << kgl_get_confirm_file_tips(i);
+		s << "<option value='" << i << "'>" << kgl_get_confirm_file_tips(static_cast<KConfirmFile>(i));
 	}
 	s << "</select>";
 	s << "</td></tr>";
@@ -368,7 +460,7 @@ void KBaseVirtualHost::getRedirectHtml(const std::string& url, std::stringstream
 	s << "</form>";
 }
 bool KBaseVirtualHost::addIndexFile(const std::string& index, int id) {
-	lock.Lock();
+	auto locker = get_locker();
 	std::list<KIndexItem>::iterator it, it_insert;
 	bool it_insert_finded = false;
 	for (it = indexFiles.begin(); it != indexFiles.end(); it++) {
@@ -385,16 +477,11 @@ bool KBaseVirtualHost::addIndexFile(const std::string& index, int id) {
 			break;
 		}
 	}
-	KIndexItem item;
-	item.id = id;
-	item.index.s = index;
 	if (it_insert_finded) {
-		indexFiles.insert(it_insert, item);
+		indexFiles.emplace(it_insert, id, index);
 	} else {
-		indexFiles.push_back(item);
+		indexFiles.emplace_back(id, index);
 	}
-	lock.Unlock();
-
 	return true;
 }
 bool KBaseVirtualHost::delIndexFile(const std::string& index) {
@@ -411,18 +498,9 @@ bool KBaseVirtualHost::delIndexFile(const std::string& index) {
 	return false;
 
 }
-bool KBaseVirtualHost::addRedirect(bool file_ext, const std::string& value, KRedirect* rd, const std::string& allowMethod, uint8_t confirmFile, const std::string& params) {
-	lock.Lock();
+bool KBaseVirtualHost::addRedirect(bool file_ext, const std::string& value, KRedirect* rd, const std::string& allowMethod, KConfirmFile confirmFile, const std::string& params) {
+	auto locker = get_locker();
 	if (file_ext) {
-		if (value == "*") {
-			//Ä¬ÈÏÀ©Õ¹
-			KBaseRedirect* brd = new KBaseRedirect(rd, confirmFile);
-			brd->allowMethod.setMethod(allowMethod.c_str());
-			if (defaultRedirect) {
-				defaultRedirect->release();
-			}
-			defaultRedirect = brd;
-		} else {
 			auto it = redirects.find((char*)value.c_str());
 			if (it != redirects.end()) {
 				xfree((*it).first);
@@ -435,11 +513,11 @@ bool KBaseVirtualHost::addRedirect(bool file_ext, const std::string& value, KRed
 			nrd->parseParams(params);
 #endif
 			redirects.insert(pair<char*, KBaseRedirect*>(xstrdup(value.c_str()), nrd));
-		}
+		//}
 	} else {
 		KPathRedirect* pr = new KPathRedirect(value.c_str(), rd);
 		pr->allowMethod.setMethod(allowMethod.c_str());
-		pr->confirmFile = confirmFile;
+		pr->confirm_file = confirmFile;
 #ifdef ENABLE_UPSTREAM_PARAM
 		pr->parseParams(params);
 #endif
@@ -457,10 +535,9 @@ bool KBaseVirtualHost::addRedirect(bool file_ext, const std::string& value, KRed
 			pathRedirects.push_back(pr);
 		}
 	}
-	lock.Unlock();
 	return true;
 }
-bool KBaseVirtualHost::addRedirect(bool file_ext, const std::string& value, const std::string& extend, const std::string& allowMethod, uint8_t confirmFile, const std::string& params) {
+bool KBaseVirtualHost::addRedirect(bool file_ext, const std::string& value, const std::string& extend, const std::string& allowMethod, KConfirmFile confirmFile, const std::string& params) {
 
 	KRedirect* rd = NULL;
 	if (extend != "default") {
@@ -470,40 +547,6 @@ bool KBaseVirtualHost::addRedirect(bool file_ext, const std::string& value, cons
 		}
 	}
 	return addRedirect(file_ext, value, rd, allowMethod, confirmFile, params);
-}
-bool KBaseVirtualHost::delRedirect(bool file_ext, const std::string& value) {
-	bool result = false;
-	lock.Lock();
-	if (file_ext) {
-		if (value == "*") {
-			if (defaultRedirect) {
-				defaultRedirect->release();
-				defaultRedirect = NULL;
-			}
-		} else {
-			auto it = redirects.find((char*)value.c_str());
-			if (it != redirects.end()) {
-				xfree((*it).first);
-				//delete (*it).second;
-				(*it).second->release();
-				redirects.erase(it);
-				result = true;
-			}
-		}
-	} else {
-		for (auto it2 = pathRedirects.begin(); it2 != pathRedirects.end(); it2++) {
-			if (filecmp((*it2)->path, value.c_str()) == 0) {
-				if ((*it2)->rd) {
-					(*it2)->rd->release();
-				}
-				pathRedirects.erase(it2);
-				result = true;
-				break;
-			}
-		}
-	}
-	lock.Unlock();
-	return result;
 }
 bool KBaseVirtualHost::addErrorPage(int code, const std::string& url) {
 	lock.Lock();
@@ -523,58 +566,6 @@ bool KBaseVirtualHost::delErrorPage(int code) {
 	lock.Unlock();
 	return result;
 }
-void KBaseVirtualHost::buildBaseXML(std::stringstream& s) {
-	s << ">\n";
-	for (auto it = errorPages.begin(); it != errorPages.end(); it++) {
-		if ((*it).second.inherited) {
-			continue;
-		}
-		s << "<error code='" << (*it).first << "' file='" << (*it).second.s << "'/>\n";
-	}
-	for (auto iit = indexFiles.begin(); iit != indexFiles.end(); iit++) {
-		if ((*iit).index.inherited) {
-			continue;
-		}
-		s << "<index id='" << (*iit).id << "' file='" << (*iit).index.s << "'/>\n";
-	}
-	if (envs.size() > 0) {
-		s << "<env ";
-		buildEnv(s);
-		s << "/>\n";
-	}
-	for (auto it4 = aliass.begin(); it4 != aliass.end(); it4++) {
-		if ((*it4)->inherited) {
-			continue;
-		}
-		s << "<alias path='" << KXml::param((*it4)->getPath());
-		s << "' to='" << KXml::param((*it4)->getTo()) << "'";
-		if ((*it4)->internal) {
-			s << " internal='1'";
-		}
-		s << "/>\n";
-	}
-	for (auto it3 = pathRedirects.begin(); it3 != pathRedirects.end(); it3++) {
-		if ((*it3)->inherited) {
-			continue;
-		}
-		s << "<map path='" << (*it3)->path << "'";
-		(*it3)->buildXML(s);
-	}
-	for (auto it2 = redirects.begin(); it2 != redirects.end(); it2++) {
-		if ((*it2).second->inherited) {
-			continue;
-		}
-		s << "<map file_ext='" << (*it2).first << "'";
-		(*it2).second->buildXML(s);
-	}
-	if (defaultRedirect) {
-		s << "<map file_ext='*' ";
-		defaultRedirect->buildXML(s);
-	}
-	if (mimeType) {
-		mimeType->buildXml(s);
-	}
-}
 bool KBaseVirtualHost::addAlias(const std::string& path, const std::string& to, const char* doc_root, bool internal, int id,
 	std::string& errMsg) {
 	if (path.empty() || to.empty()) {
@@ -585,16 +576,14 @@ bool KBaseVirtualHost::addAlias(const std::string& path, const std::string& to, 
 		errMsg = "path not start with `/` char";
 		return false;
 	}
-	KBaseAlias* alias = new KBaseAlias(path.c_str(), to.c_str(), doc_root);
-	alias->internal = internal;
+	KAlias alias(new KBaseAlias(path.c_str(), to.c_str(),internal));
 	lock.Lock();
-	list<KBaseAlias*>::iterator it, it2;
+	list<KAlias>::iterator it, it2;
 	bool fined = false;
 	int i = 1;
 	for (it = aliass.begin(); it != aliass.end(); it++, i++) {
-		if (alias->equalPath((*it))) {
+		if (alias->same_path((*it).get())) {
 			lock.Unlock();
-			delete alias;
 			errMsg = "path is exsit";
 			return false;
 		}
@@ -605,217 +594,32 @@ bool KBaseVirtualHost::addAlias(const std::string& path, const std::string& to, 
 	}
 
 	if (fined) {
-		aliass.insert(it2, alias);
+		aliass.insert(it2, std::move(alias));
 	} else {
-		aliass.push_back(alias);
+		aliass.push_back(std::move(alias));
 	}
 	lock.Unlock();
 	return true;
 }
-bool KBaseVirtualHost::delAlias(const char* path) {
-	lock.Lock();
-	int i = 1;
-	for (auto it = aliass.begin(); it != aliass.end(); it++, i++) {
-		if ((*it)->inherited) {
-			continue;
-		}
-		if (filecmp(path, (*it)->getPath()) == 0) {
-			aliass.erase(it);
-			lock.Unlock();
-			return true;
-		}
-	}
-	lock.Unlock();
-	return false;
-}
-void KBaseVirtualHost::copyTo(KVirtualHost* vh, bool copyInherit, int inherited) {
-	for (auto it = redirects.begin(); it != redirects.end(); it++) {
-		if ((*it).second->inherited && !copyInherit) {
-			continue;
-		}
-		if (vh->redirects.find((*it).first) == vh->redirects.end()) {
-			if ((*it).second->rd) {
-				(*it).second->rd->addRef();
-			}
-			KBaseRedirect* br = new KBaseRedirect((*it).second->rd, (*it).second->confirmFile);
-			if (inherited == 2) {
-				br->inherited = (*it).second->inherited;
-			} else {
-				br->inherited = (inherited == 1);
-			}
-#ifdef ENABLE_UPSTREAM_PARAM
-			br->params = (*it).second->params;
-#endif
-			br->allowMethod.setMethod(
-				(*it).second->allowMethod.getMethod().c_str());
-			vh->redirects.insert(pair<char*, KBaseRedirect*>(
-				xstrdup((*it).first), br));
-		}
-	}
-	for (auto it2 = pathRedirects.begin(); it2 != pathRedirects.end(); it2++) {
-		if ((*it2)->inherited && !copyInherit) {
-			continue;
-		}
-		bool finded = false;
-		for (auto it3 = vh->pathRedirects.begin(); it3 != vh->pathRedirects.end(); it3++) {
-			if (filecmp((*it2)->path, (*it3)->path) == 0) {
-				finded = true;
-				break;
-			}
-		}
-		if (finded) {
-			continue;
-		}
-		if ((*it2)->rd) {
-			(*it2)->rd->addRef();
-		}
-		KPathRedirect* prd = new KPathRedirect((*it2)->path, (*it2)->rd);
-		prd->confirmFile = (*it2)->confirmFile;
-#ifdef ENABLE_UPSTREAM_PARAM
-		prd->params = (*it2)->params;
-#endif
-		prd->allowMethod.setMethod((*it2)->allowMethod.getMethod().c_str());
-		if (inherited == 2) {
-			prd->inherited = (*it2)->inherited;
-		} else {
-			prd->inherited = (inherited == 1);
-		}
-		vh->pathRedirects.push_back(prd);
-	}
-	for (auto iit = indexFiles.begin(); iit != indexFiles.end(); iit++) {
-		if ((*iit).index.inherited && !copyInherit) {
-			continue;
-		}
-		bool finded = false;
-		for (auto iit2 = vh->indexFiles.begin(); iit2 != vh->indexFiles.end(); iit2++) {
-			if (filecmp((*iit).index.s.c_str(), (*iit2).index.s.c_str()) == 0) {
-				finded = true;
-				break;
-			}
-		}
-		if (finded) {
-			continue;
-		}
-		KIndexItem item;
-		if (inherited == 2) {
-			item.index.inherited = (*iit).index.inherited;
-		} else {
-			item.index.inherited = (inherited == 1);
-		}
-		item.id = (*iit).id;
-		item.index.s = (*iit).index.s;
-		std::list<KIndexItem>::iterator itp;
-		bool it_insert_finded = false;
-		for (itp = vh->indexFiles.begin(); itp != vh->indexFiles.end(); itp++) {
-			if (!it_insert_finded && (*itp).id > item.id) {
-				it_insert_finded = true;
-				break;
-			}
-		}
-		if (it_insert_finded) {
-			vh->indexFiles.insert(itp, item);
-		} else {
-			vh->indexFiles.push_back(item);
-		}
-	}
-	for (auto it4 = errorPages.begin(); it4 != errorPages.end(); it4++) {
-		if ((*it4).second.inherited && !copyInherit) {
-			continue;
-		}
-		if (vh->errorPages.find((*it4).first) == vh->errorPages.end()) {
-			KBaseString bs;
-			if (inherited == 2) {
-				bs.inherited = (*it4).second.inherited;
-			} else {
-				bs.inherited = (inherited == 1);
-			}
-			bs.s = (*it4).second.s;
-			vh->errorPages.insert(
-				pair<int, KBaseString>((*it4).first, bs));
-		}
-	}
-	for (auto it5 = aliass.begin(); it5 != aliass.end(); it5++) {
-		bool finded = false;
-		for (auto it6 = vh->aliass.begin(); it6 != vh->aliass.end(); it6++) {
-			if ((*it5)->equalPath((*it6))) {
-				finded = true;
-				break;
-			}
-		}
-		if (finded) {
-			continue;
-		}
-		KBaseAlias* alias = new KBaseAlias;
-		(*it5)->cloneTo(alias, vh->doc_root.c_str());
-		if (inherited == 2) {
-			alias->inherited = (*it5)->inherited;
-		} else {
-			alias->inherited = (inherited == 1);
-		}
-		vh->aliass.push_back(alias);
-	}
-	if (defaultRedirect) {
-		if (vh->defaultRedirect == NULL) {
-			vh->defaultRedirect = new KBaseRedirect(defaultRedirect->rd, defaultRedirect->confirmFile);
-			if (inherited == 2) {
-				vh->defaultRedirect->inherited = defaultRedirect->inherited;
-			} else {
-				vh->defaultRedirect->inherited = (inherited == 1);
-			}
-		}
-	}
-}
 void KBaseVirtualHost::cloneTo(KVirtualHost* vh, bool copyInherit, int changeInherit) {
+#if 0
 	vh->lock.Lock();
 	copyTo(vh, copyInherit, changeInherit);
 	vh->lock.Unlock();
+#endif
 }
 void KBaseVirtualHost::inheriTo(KVirtualHost* vh, bool clearFlag) {
 	if (!vh->inherit) {
 		return;
 	}
+#if 0
 	vh->lock.Lock();
 	if (clearFlag) {
 		vh->internalChangeInherit(true);
 	}
 	copyTo(vh, true, true);
 	vh->lock.Unlock();
-}
-bool KBaseVirtualHost::alias(bool internal, const char* path, KFileName* file, bool& exsit, int flag) {
-	int len = (int)strlen(path);
-	lock.Lock();
-	for (auto it = aliass.begin(); it != aliass.end(); it++) {
-		if ((*it)->internal) {
-			if (!internal) {
-				continue;
-			}
-		}
-		if ((*it)->match(path, len)) {
-			exsit = file->setName((*it)->to, path + (*it)->path_len, flag);
-			lock.Unlock();
-			return true;
-		}
-	}
-	lock.Unlock();
-	return false;
-}
-char* KBaseVirtualHost::alias(bool internal, const char* path) {
-	int len = (int)strlen(path);
-	lock.Lock();
-	for (auto it = aliass.begin(); it != aliass.end(); it++) {
-		if ((*it)->internal) {
-			if (!internal) {
-				continue;
-			}
-		}
-		if ((*it)->match(path, len)) {
-			char* new_path = (*it)->matched(path, len);
-			lock.Unlock();
-			return new_path;
-		}
-	}
-	lock.Unlock();
-	return NULL;
+#endif
 }
 void KBaseVirtualHost::changeInherit(bool remove) {
 	lock.Lock();
@@ -823,8 +627,9 @@ void KBaseVirtualHost::changeInherit(bool remove) {
 	lock.Unlock();
 }
 void KBaseVirtualHost::internalChangeInherit(bool remove) {
+#if 0
 	for (auto it = redirects.begin(); it != redirects.end();) {
-		if ((*it).second->inherited) {
+		if ((*it).second->global) {
 			if (remove) {
 				auto itnext = it;
 				itnext++;
@@ -833,7 +638,7 @@ void KBaseVirtualHost::internalChangeInherit(bool remove) {
 				redirects.erase(it);
 				it = itnext;
 			} else {
-				(*it).second->inherited = false;
+				(*it).second->global = false;
 				it++;
 			}
 		} else {
@@ -841,13 +646,13 @@ void KBaseVirtualHost::internalChangeInherit(bool remove) {
 		}
 	}
 	for (auto it2 = pathRedirects.begin(); it2 != pathRedirects.end();) {
-		if ((*it2)->inherited) {
+		if ((*it2)->global) {
 			if (remove) {
 				//delete (*it2);
 				(*it2)->release();
 				it2 = pathRedirects.erase(it2);
 			} else {
-				(*it2)->inherited = false;
+				(*it2)->global = false;
 				it2++;
 			}
 		} else {
@@ -894,6 +699,7 @@ void KBaseVirtualHost::internalChangeInherit(bool remove) {
 			it5++;
 		}
 	}
+#endif
 }
 void KBaseVirtualHost::getParsedFileExt(KVirtualHostEvent* ctx) {
 	lock.Lock();
@@ -930,15 +736,6 @@ bool KBaseVirtualHost::getEnvValue(const char* name, std::string& value) {
 	lock.Unlock();
 	return false;
 }
-void KBaseVirtualHost::clearEnv() {
-	lock.Lock();
-	for (auto it3 = envs.begin(); it3 != envs.end(); it3++) {
-		xfree((*it3).second);
-		xfree((*it3).first);
-	}
-	envs.clear();
-	lock.Unlock();
-}
 void KBaseVirtualHost::getErrorEnv(const char* split, KStringBuf& s) {
 	lock.Lock();
 	for (auto it2 = errorPages.begin(); it2 != errorPages.end(); it2++) {
@@ -958,4 +755,198 @@ void KBaseVirtualHost::getIndexFileEnv(const char* split, KStringBuf& s) {
 		s << (*it).index.s;
 	}
 	lock.Unlock();
+}
+KBaseRedirect* KBaseVirtualHost::parse_file_map(const KXmlAttribute& attr) {
+	auto rd = conf.gam->refsRedirect(attr["extend"]);
+	if (!rd && attr["extend"] != "default") {
+		klog(KLOG_ERR, "cann't find extend [%s]\n", attr("extend"));
+		return nullptr;
+	}
+	KBaseRedirect* nrd = new KBaseRedirect(rd, static_cast<KConfirmFile>(attr.get_int("confirm_file")));
+	nrd->allowMethod.setMethod(attr("allow_method"));
+#ifdef ENABLE_UPSTREAM_PARAM
+	nrd->parseParams(attr["params"]);
+#endif
+	return nrd;
+
+}
+KPathRedirect* KBaseVirtualHost::parse_path_map(const KXmlAttribute& attr) {
+	auto rd = conf.gam->refsRedirect(attr["extend"]);
+	if (!rd && attr["extend"]!="default") {
+		klog(KLOG_ERR, "cann't find extend [%s]\n", attr("extend"));
+		return nullptr;
+	}
+	KPathRedirect* pr = new KPathRedirect(attr("path"), rd);
+	pr->allowMethod.setMethod(attr("allow_method"));
+	pr->confirm_file = static_cast<KConfirmFile>(attr.get_int("confirm_file"));
+#ifdef ENABLE_UPSTREAM_PARAM
+	pr->parseParams(attr["params"]);
+#endif
+	return pr;
+}
+KAlias KBaseVirtualHost::parse_alias(const KXmlAttribute& attr) {
+	auto path = attr["path"];
+	auto to = attr["to"];
+	if (path.empty() || to.empty()) {
+		klog(KLOG_ERR, "parse alias error path or to is empty\n");
+		//errMsg = "path or to cann't be zero";
+		return nullptr;
+	}
+	if (path[0] != '/') {
+		klog(KLOG_ERR, "parse alias error path not start with `/` char\n");
+		return nullptr;
+	}
+	return KAlias(new KBaseAlias(path.c_str(), to.c_str(), attr.get_int("internal") == 1));
+}
+bool KBaseVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+	switch (ev->type) {
+	case kconfig::EvRemove:
+	{
+		if (is_global()) {
+			clear();
+			return true;
+		}
+		assert(false);
+		auto bvh = (KBaseVirtualHost*)tree->unbind();
+		assert(bvh == this);
+		static_cast<KVirtualHost*>(bvh)->destroy();
+		return true;
+	}
+	case kconfig::EvNew:
+	case kconfig::EvUpdate:
+		return false;
+	case kconfig::EvSubDir | kconfig::EvNew:
+	case kconfig::EvSubDir | kconfig::EvUpdate:
+	{
+		auto xml = ev->get_xml();
+		auto attr = xml->attributes();
+		if (xml->is_tag(_KS("error"))) {
+			this->addErrorPage(attr.get_int("code"), attr("file"));
+			return true;
+		}
+		if (xml->is_tag(_KS("mime_type"))) {
+			addMimeType(attr("ext"), attr("type"), (kgl_compress_type)attr.get_int("compress"), attr.get_int("max_age"));
+			return true;
+		}
+		if (xml->is_tag(_KS("index"))) {
+			std::multimap<int, KIndexItem> indexs;
+			for (uint32_t index = 0;; ++index) {
+				auto body = xml->get_body(index);
+				if (!body) {
+					break;
+				}
+				auto attr2 = body->attributes;
+				auto id = attr2.get_int("id");
+				indexs.emplace(std::piecewise_construct, std::forward_as_tuple(id), std::forward_as_tuple(id, attr2["file"]));
+			}
+			auto locker = get_locker();
+			this->indexFiles.clear();
+			for (auto it = indexs.begin(); it != indexs.end(); ++it) {
+				this->indexFiles.push_back(std::move((*it).second));
+			}
+			return true;
+		}
+		if (xml->is_tag(_KS("map"))) {
+			std::map<char*, KBaseRedirect*, lessf> file_maps;
+			std::list<KPathRedirect*> path_maps;
+			defer(
+				for (auto it = file_maps.begin(); it != file_maps.end(); ++it) {
+					(*it).second->release();
+					xfree((*it).first);
+				}
+			for (auto it = path_maps.begin(); it != path_maps.end(); ++it) {
+				(*it)->release();
+			});
+			for (uint32_t index = 0;; ++index) {
+				auto body = xml->get_body(index);
+				if (!body) {
+					break;
+				}
+				auto attr2 = body->attributes;
+				auto file_ext = attr2("file_ext", nullptr);
+				if (file_ext != nullptr) {
+					if (file_maps.find((char*)file_ext) == file_maps.end()) {
+						auto rd = parse_file_map(attr2);
+						if (rd) {
+							file_maps.insert(std::pair<char*, KBaseRedirect*>(strdup(file_ext), rd));
+						}
+					}
+				} else {
+					auto rd = parse_path_map(attr2);
+					if (rd) {
+						path_maps.push_back(rd);
+					}
+				}
+			}
+			{
+				auto locker = get_locker();
+				file_maps.swap(redirects);
+				path_maps.swap(pathRedirects);
+			}
+
+			return true;
+		}
+		if (xml->is_tag(_KS("alias"))) {
+			std::list<KAlias> alias;
+			for (uint32_t index = 0;; ++index) {
+				auto body = xml->get_body(index);
+				if (!body) {
+					break;
+				}
+				auto as = parse_alias(body->attributes);
+				if (!as) {
+					continue;
+				}
+				alias.push_back(std::move(as));
+			}
+			{
+				auto locker = get_locker();
+				this->aliass.swap(alias);
+			}
+			return true;
+		}
+		break;
+	}
+	case kconfig::EvSubDir | kconfig::EvRemove:
+	{
+		auto xml = ev->get_xml();
+		auto attr = xml->attributes();
+		if (xml->is_tag(_KS("error"))) {
+			this->delErrorPage(attr.get_int("code"));
+			return true;
+		}
+		if (xml->is_tag(_KS("mime_type"))) {
+			delMimeType(attr("ext"));
+			return true;
+		}
+		if (xml->is_tag(_KS("index"))) {
+			auto locker = this->get_locker();
+			this->indexFiles.clear();
+			return true;
+		}
+		if (xml->is_tag(_KS("alias"))) {
+			auto locker = this->get_locker();
+			for (auto it = aliass.begin(); it != aliass.end(); ++it) {
+				(*it)->release();
+			}
+			aliass.clear();
+			return true;
+		}
+		if (xml->is_tag(_KS("map"))) {
+			auto locker = this->get_locker();
+			for (auto it = redirects.begin(); it != redirects.end(); ++it) {
+				(*it).second->release();
+				xfree((*it).first);
+			}
+			redirects.clear();
+			for (auto it = pathRedirects.begin(); it != pathRedirects.end(); ++it) {
+				(*it)->release();
+			}
+			pathRedirects.clear();
+			return true;
+		}
+		break;
+	}
+	}
+	return false;
 }

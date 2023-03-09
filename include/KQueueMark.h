@@ -6,82 +6,65 @@
 #include "utils.h"
 #ifdef ENABLE_REQUEST_QUEUE
 class KRequestQueue;
-class per_queue_matcher {
+class per_queue_matcher
+{
 public:
-	per_queue_matcher()
-	{
+	per_queue_matcher() {
 		header = NULL;
 		next = NULL;
 	}
-	~per_queue_matcher()
-	{
+	~per_queue_matcher() {
 		if (header) {
 			free(header);
 		}
 	}
-	char *header;
+	char* header;
 	KReg reg;
-	per_queue_matcher *next;
+	per_queue_matcher* next;
 };
 class KQueueMark : public KMark
 {
 public:
-	KQueueMark()
-	{
+	KQueueMark() {
 		queue = NULL;
 	}
 	~KQueueMark();
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override;
-	bool supportRuntime() override
-	{
-		return true;
-	}
-	KMark * new_instance()override
-	{
+	bool mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) override;
+	KMark* new_instance()override {
 		return new KQueueMark;
 	}
-	const char *getName()override
-	{
+	const char* getName()override {
 		return "queue";
 	}
-	std::string getHtml(KModel *model)override;
+	std::string getHtml(KModel* model) override;
 	std::string getDisplay()override;
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)override;
-	void buildXML(std::stringstream &s)override;
+	void parse_config(const khttpd::KXmlNodeBody* xml) override;
 private:
-	KRequestQueue *queue;
+	KRequestQueue* queue;
 };
 
 class KPerQueueMark : public KMark
 {
 public:
-	KPerQueueMark()
-	{
+	KPerQueueMark() {
 		max_worker = 0;
 		max_queue = 0;
 		matcher = NULL;
 	}
 	~KPerQueueMark();
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override;
-	bool supportRuntime() override
-	{
-		return true;
-	}
-	KMark * new_instance() override
-	{
+	bool mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) override;
+	KMark* new_instance() override {
 		return new KPerQueueMark;
 	}
-	const char *getName() override
-	{
+	const char* getName() override {
 		return "per_queue";
 	}
-	std::string getHtml(KModel *model) override;
+	std::string getHtml(KModel* model) override;
 	std::string getDisplay() override;
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override;
-	void buildXML(std::stringstream &s) override;
+	void parse_config(const khttpd::KXmlNodeBody* xml) override;
 private:
-	void build_matcher(std::stringstream &s);
-	per_queue_matcher *matcher;
+	void build_matcher(std::stringstream& s);
+	per_queue_matcher* matcher;
 	unsigned max_worker;
 	unsigned max_queue;
 };

@@ -12,6 +12,9 @@ public:
 	void destroy(KLogElement *logger);
 	friend class KVirtualHost;
 	void checkRotate(time_t now_time);
+	KLocker get_locker() {
+		return KLocker(&lock);
+	}
 private:
 	std::map<std::string,KLogElement *> logs;
 	KMutex lock;

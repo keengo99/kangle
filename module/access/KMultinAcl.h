@@ -86,7 +86,8 @@ public:
 		s << getValList();
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html){
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		freeMap();
 		if(icase_can_change){
 			if (attribute["icase"] == "1") {
@@ -103,20 +104,6 @@ public:
 		if (attribute["v"].size() > 0) {
 			explode(attribute["v"].c_str());
 		}
-	}
-	bool startCharacter(KXmlContext *context, char *character, int len) {
-		if (len > 0) {
-			freeMap();
-			explode(character);
-		}
-		return true;
-	}
-
-	void buildXML(std::stringstream &s) {
-		if (icase_can_change && icase) {
-			s << " icase='1'";
-		}
-		s << " split='" << split << "'>" << getValList();
 	}
 protected:
 	bool match(const char *item) {

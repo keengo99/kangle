@@ -22,60 +22,36 @@
 #include "KXmlSupport.h"
 #include "KCountable.h"
 #include "KHttpRequest.h"
+#include "KSharedObj.h"
 #include "lang.h"
 #include <list>
 #include "kmalloc.h"
 #define CHAIN_CONTEXT	"chain"
 class KAccess;
+using KSafeAcl = KSharedObj<KAcl>;
+using KSafeMark = KSharedObj<KMark>;
+
 class KChain {
 public:
 	KChain();
 	virtual ~KChain();
 	bool match(KHttpRequest *rq, KHttpObject *obj, KFetchObject **fo);
 	uint32_t hit_count;
-	KAcl *addAcl(std::string acl,std::string name,KAccess *kaccess);
-	bool delAcl(std::string acl);
-	bool downAcl(std::string id);
-	bool downMark(std::string id);
-	KMark *addMark(std::string mark,std::string name,KAccess *kaccess);
-	bool delMark(std::string mark);
-
+	KSafeAcl new_acl(const std::string &name,KAccess *kaccess);
+	KSafeMark new_mark(const std::string &name, KAccess* kaccess);	
+	void parse_config(KAccess *access, const khttpd::KXmlNodeBody* xml);
 	void getAclShortHtml(std::stringstream &s);
 	void getMarkShortHtml(std::stringstream &s);
-	void getEditHtml(std::stringstream &s,u_short accessType);
-	//void getAclHtml(std::stringstream &s);
-	bool findAcl(std::string aclName);
-	bool findMark(std::string markName);
-	/*
-	editFlag=false,则表示新加
-	*/
-	bool edit(KUrlValue *urlValue,KAccess *kaccess,bool editFlag);
 	void clear();
 	friend class KAccess;
 	friend class KTable;
-	bool ext;
 private:
-	bool editModel(KModel *model,std::map<std::string, std::string> &attribute);
-	bool editModel(KModel *model, KUrlValue *urlValue);
 	void getModelHtml(KModel *model, std::stringstream &s, int type, int index);
-public:
-	bool startElement(KXmlContext *context,KAccess *kaccess);
-	bool startCharacter(KXmlContext *context, char *character, int len);
-	bool endElement(KXmlContext *context);
-	void buildXML(std::stringstream &s,int flag);
-	KAcl *newAcl(std::string acl,KAccess *kaccess);
-	KMark *newMark(std::string mark,KAccess *kaccess);
 private:
 	kgl_jump_type jumpType;
-	std::string jumpName;
-	KJump *jump;	
-	std::list<KAcl *> acls;
-	std::list<KMark *> marks;
-	std::string name;
-	KAcl *curacl;
-	KMark *curmark;
-	KChain *next;
-	KChain *prev;
+	KJump *jump;
+	std::list<KSafeAcl> acls;
+	std::list<KSafeMark> marks;
 };
 
 #endif /*KCHAIN_H_*/

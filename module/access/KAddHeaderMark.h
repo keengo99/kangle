@@ -74,8 +74,8 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute, bool html) override
-	{
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		if(attr){
 			free(attr);
 			attr = NULL;
@@ -92,10 +92,6 @@ public:
 		if(val_len>0){
 			val = strdup(attribute["val"].c_str());
 		}
-	}
-	void buildXML(std::stringstream &s) override
-	{
-		s << " attr='" << (attr?attr:"") << "' val='" << (val?val:"") << "' force='" << force << "'>";
 	}
 private:
 	int force;
@@ -168,8 +164,8 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
-	{
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		if (attr) {
 			free(attr);
 			attr = NULL;
@@ -186,10 +182,6 @@ public:
 		if (val_len>0) {
 			val = strdup(attribute["val"].c_str());
 		}
-	}
-	void buildXML(std::stringstream &s) override
-	{
-		s << " attr='" << (attr ? attr : "") << "' val='" << (val ? val : "") << "'>";
 	}
 private:
 	int attr_len;

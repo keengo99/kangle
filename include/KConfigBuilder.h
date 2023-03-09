@@ -25,13 +25,5 @@
 #define KCONFIGBUILDER_H_
 #include<string>
 #include "do_config.h"
-class KConfigBuilder
-{
-public:
-	KConfigBuilder();
-	virtual ~KConfigBuilder();
-	static void build(std::stringstream &s);
-	static bool saveConfig();
-};
 
 #endif /*KCONFIGBUILDER_H_*/

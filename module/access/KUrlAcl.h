@@ -76,7 +76,8 @@ public:
 		s << reg.getModel();
 		return s.str();
 	}
-	void editHtml(std::map<std::string,std::string> &attribute,bool html) override{
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		nc = (attribute["nc"]=="1");
 		if(attribute["url"].size()>0){
 			reg.setModel(attribute["url"].c_str(), (nc?PCRE_CASELESS:0));
@@ -86,21 +87,6 @@ public:
 		} else {
 			raw = false;
 		}		
-	}
-	bool startCharacter(KXmlContext *context, char *character, int len) override {
-		if(len>0){
-			reg.setModel(character, 0);
-		}
-		return true;
-	}
-	void buildXML(std::stringstream &s)  override{
-		if (raw) {
-			s << " raw='1'";
-		}
-		if (nc) {
-			s << " nc='1'";
-		}
-		s << ">" << CDATA_START << reg.getModel() << CDATA_END;
 	}
 private:
 	KReg reg;

@@ -113,8 +113,8 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)override
-	{
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		header = attribute["header"];
 		std::string val = attribute["val"];
 		if (this->val) {
@@ -125,15 +125,7 @@ public:
 			this->val = new KReg;
 			this->val->setModel(val.c_str(), PCRE_CASELESS);
 		}
-	}
-	void buildXML(std::stringstream &s)override
-	{
-		s << " header='" << header << "' ";
-		if (val) {
-			s << "val='" << KXml::param(val->getModel()) << "' ";
-		}
-		s << "> ";
-	}
+	}	
 private:
 	std::string header;
 	KReg *val;
@@ -252,9 +244,8 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override
-	{
-		
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		for (int i = 0; i < 2; i++) {
 			if (this->upstream_sign[i].data) {
 				free(this->upstream_sign[i].data);
@@ -278,19 +269,6 @@ public:
 			hot = p + 1;
 		}
 		free(upstream_sign);
-	}
-	void buildXML(std::stringstream &s) override
-	{
-		s << " sign='";
-		for (int i = 0; i < 2; i++) {
-			if (upstream_sign[i].data) {
-				s.write(upstream_sign[i].data, upstream_sign[i].len);
-				if (i == 0) {
-					s << "|";
-				}
-			}
-		}
-		s << "'> ";
 	}
 private:
 	kgl_str_t upstream_sign[2];

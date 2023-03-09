@@ -64,7 +64,8 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		max_age = atoi(attribute["max_age"].c_str());
 		force = (attribute["force"] == "1");
 		if(attribute["static"]=="on" || attribute["static"]=="1"){
@@ -106,20 +107,6 @@ public:
 	}
 	const char *getName() override {
 		return "cache_control";
-	}
-public:
-	void buildXML(std::stringstream &s) override {
-		s << " max_age='" << max_age << "'";
-		if(force){
-			s << " force='1'";
-		}
-		if (static_flag) {
-			s << " static='1'";
-		}
-		if (must_revalidate) {
-			s << " must_revalidate='1'";
-		}
-		s << ">";
 	}
 private:
 	unsigned max_age;

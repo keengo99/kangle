@@ -103,7 +103,7 @@ static const char *getSystemEnv(void *param,const char *name)
 	if(value2){
 		return value2;
 	}
-	if(!conf.gvm->globalVh.getEnvValue(name,value)){
+	if(!conf.gvm->vhs.getEnvValue(name,value)){
 		return NULL;
 	}
 	return value.c_str();
@@ -111,7 +111,6 @@ static const char *getSystemEnv(void *param,const char *name)
 KVirtualHostDatabase::KVirtualHostDatabase()
 {
 	lock = kfiber_mutex_init();
-	ext = false;
 	lastStatus = false;
 	memset(&vhm,0,sizeof(vhm));
 	vhm.vhi_version = 2;
@@ -136,6 +135,7 @@ bool KVirtualHostDatabase::check()
 }
 bool KVirtualHostDatabase::flushVirtualHost(const char *vhName,bool initEvent,KVirtualHostEvent *ctx)
 {
+#if 0
 	kfiber_mutex_lock(lock);
 	kgl_vh_connection cn = createConnection();
 	if(cn==NULL){
@@ -179,24 +179,12 @@ bool KVirtualHostDatabase::flushVirtualHost(const char *vhName,bool initEvent,KV
 	vhm.freeConnection(cn);
 	if (vh && ctx) {
 		//vh的引用由ctx处理了.
-		ctx->buildVh(vh);
-		KTempleteVirtualHost *tvh = vh->tvh;
-		if (initEvent) {
-			if (tvh) {
-				tvh->initEvent(ctx);
-			}
-#ifndef HTTP_PROXY
-			conf.gam->killAllProcess(vh);
-#endif
-		} else {
-			if (tvh) {
-				tvh->updateEvent(ctx);
-			}
-		}
+		ctx->buildVh(vh);		
 	}
 	if(ov){
 		ov->destroy();
 	}
+#endif
 	return true;
 }
 bool KVirtualHostDatabase::isLoad()
@@ -282,7 +270,7 @@ bool KVirtualHostDatabase::loadVirtualHost(KVirtualHostManage *vm,std::string &e
 				const char *ip = attribute["ip"].c_str();
 				if (*ip) {
 					int flags = atoi(attribute["flags"].c_str());
-					conf.gvm->globalVh.blackList->AddStatic(ip, KBIT_TEST(flags,1));
+					conf.gvm->vhs.blackList->AddStatic(ip, KBIT_TEST(flags,1));
 				}
 			}
 			vhm.freeStmt(rs);
@@ -318,8 +306,7 @@ bool KVirtualHostDatabase::parseAttribute(KXmlAttribute&attribute)
 			kfiber_mutex_unlock(lock);
 			klog(KLOG_ERR,"Cann't init vh module in driver [%s]\n",driver.c_str());
 			return false;
-		}
-		ext = cur_config_ext;
+		}		
 	}
 	if(vhm.parseConfig){
 		vh_data vd;
@@ -332,40 +319,29 @@ bool KVirtualHostDatabase::parseAttribute(KXmlAttribute&attribute)
 }
 KVirtualHost *KVirtualHostDatabase::newVirtualHost(kgl_vh_connection cn, KXmlAttribute &attribute,KVirtualHostManage *vm,KVirtualHost *ov)
 {
-	KTempleteVirtualHost *tm = NULL;
+#if 0
 	KVirtualHost *vh = NULL;
-	bool result = false;
-	std::string templete = attribute["templete"];
-	if(templete.size()>0){
-		std::string subtemplete = attribute["subtemplete"];
-		if(subtemplete.size()>0){
-			templete += ":";
-			templete += subtemplete;
-		}	
-		tm = vm->refsTempleteVirtualHost(templete);		
-	}
+	bool result = false;	
 #ifndef HTTP_PROXY
-	vh = KHttpServerParser::buildVirtualHost(attribute,&vm->globalVh,tm,ov);
+	vh = KHttpServerParser::buildVirtualHost(attribute,&vm->vhs,ov);
 #endif
 	if (vh) {
-		vh->db = true;
 		vh->addRef();
 		loadInfo(vh,cn);
-		conf.gvm->inheritVirtualHost(vh,false);
+		//conf.gvm->inheritVirtualHost(vh,false);
 		if (ov) {
 			result = vm->updateVirtualHost(vh,ov);
 		} else {
 			result = vm->addVirtualHost(vh);
 		}
 	}
-	if (tm) {
-		tm->destroy();
-	}
 	if (!result && vh) {		
 		vh->destroy();
 		return NULL;
 	}
 	return vh;
+#endif
+	return nullptr;
 }
 bool KVirtualHostDatabase::loadInfo(KVirtualHost *vh, kgl_vh_connection cn)
 {
@@ -411,6 +387,7 @@ bool KVirtualHostDatabase::loadInfo(KVirtualHost *vh, kgl_vh_connection cn)
 			continue;
 		}
 		int t = atoi(type);
+#if 0
 		switch(t){
 			case VH_INFO_HOST:
 			case VH_INFO_HOST2:
@@ -472,9 +449,11 @@ bool KVirtualHostDatabase::loadInfo(KVirtualHost *vh, kgl_vh_connection cn)
 							*p = '\0';
 							p++;
 							char *allowMethod = p;
-							bool confirmFile = false;
+							KConfirmFile confirmFile = KConfirmFile::Never;
 							if (*buf=='1') {
-								confirmFile = true;
+								confirmFile = KConfirmFile::Exsit;
+							} else if (*buf == '2') {
+								confirmFile = KConfirmFile::NonExsit;
 							}
 							vh->addRedirect(file_ext,map_val,target,allowMethod,confirmFile,"");
 						}
@@ -511,6 +490,7 @@ bool KVirtualHostDatabase::loadInfo(KVirtualHost *vh, kgl_vh_connection cn)
 				vh->addEnvValue(name,value);
 		}
 		attribute.clear();
+#endif
 	}
 	vhm.freeStmt(st);
 	return true;

@@ -47,7 +47,8 @@ public:
 		getFlagString(s);
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		flag = 0;
 		clear = (attribute["clear"] == "1");
 		if (attribute["no_cache"] == "1") {
@@ -250,15 +251,6 @@ public:
 		return "flag";
 	}
 public:
-	bool startElement(KXmlContext *context) override {
-		if (!context->attribute["flag"].empty()) {
-			//@deprecated
-			flag = atoi(context->attribute["flag"].c_str());
-		} else {
-			editHtml(context->attribute, false);
-		}
-		return true;
-	}
 	void getFlagString(std::stringstream &s)
 	{
 		if (KBIT_TEST(flag,RF_NO_CACHE)) {
@@ -326,13 +318,6 @@ public:
 		if (KBIT_TEST(flag, RF_LOG_DRILL)) {
 			s << "log_drill='1' ";
 		}
-	}
-	void buildXML(std::stringstream &s) override {
-		if (clear) {
-			s << "clear='1' ";
-		}
-		getFlagString(s);
-		s << ">";
 	}
 private:
 	int flag;

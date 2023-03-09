@@ -20,9 +20,9 @@ public:
 		}
 		return s.str();
 	}
-	void editHtml(std::map<std::string,std::string> &attribute,bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		flag=0;
-		const char *flagStr=attribute["flag"].c_str();
+		const char *flagStr=xml->attributes["flag"].c_str();
 		char *buf = strdup(flagStr);
 		char *hot = buf;
 		for (;;) {
@@ -55,10 +55,6 @@ public:
 	}
 	const char *getName() override {
 		return "obj_flag";
-	}
-public:
-	void buildXML(std::stringstream &s) override {
-		s << " flag='" << getDisplay() << "'>";
 	}
 private:
 	int flag;

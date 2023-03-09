@@ -35,20 +35,16 @@
 #include "KConfigTree.h"
 #include "KHttpManage.h"
 #include "KDefer.h"
+#include "KDsoExtendManage.h"
 #ifdef _WIN32
 #include <direct.h>
 #else
 #include <sys/mman.h>
 #endif
-volatile bool cur_config_ext = false;
 static volatile int32_t load_config_progress = 0;
 volatile bool configReload = false;
 using namespace std;
-KConfig* cconf = NULL;
 KGlobalConfig conf;
-//读取配置文件，可重入
-void load_config(KConfig* cconf, bool firstTime);
-void post_load_config(bool firstTime);
 #ifdef KSOCKET_SSL
 kgl_ssl_ctx* KSslConfig::new_ssl_ctx(const char* certfile, const char* keyfile) {
 	void* ssl_ctx_data = NULL;
@@ -107,7 +103,7 @@ KConfig::~KConfig() {
 KGlobalConfig::KGlobalConfig() {
 	gam = new KAcserverManager;
 	gvm = new KVirtualHostManage;
-	sysHost = new KVirtualHost;
+	sysHost = new KVirtualHost("_SYS");
 	dem = NULL;
 	select_count = 0;
 }
@@ -132,7 +128,7 @@ public:
 	bool merge;
 	KExtConfig* next;
 };
-static map<int, KExtConfig*> extconfigs;
+
 bool get_size_radio(INT64 size, int radio, const char radio_char, std::stringstream& s) {
 	INT64 t;
 	t = size >> radio;
@@ -218,15 +214,46 @@ INT64 get_size(const char* size) {
 	bool is_radio = false;
 	return get_radio_size(size, is_radio);
 }
-void init_config(KConfig* conf) {
-	conf->path_info = true;
-	conf->wl_time = 1800;
-#ifdef ENABLE_TF_EXCHANGE
-	conf->max_post_size = 8388608;
-#endif	
+
+static bool on_begin_parse(kconfig::KConfigFile* file, khttpd::KXmlNode* node) {
+	if (!kconfig::is_first()) {
+		return true;
+	}
+	if (file->is_default()) {
+#ifdef MALLOCDEBUG
+		auto malloc_debug = kconfig::find_child(node->get_first(), _KS("mallocdebug"));
+		if (malloc_debug) {
+			conf.mallocdebug = atoi(malloc_debug->get_text()) == 1;
+		}
+		if (conf.mallocdebug) {
+			start_hook_alloc();
+		}
+#endif
+		auto worker_thread = kconfig::find_child(node->get_first(), _KS("worker_thread"));
+		if (worker_thread) {
+			conf.select_count = atoi(worker_thread->get_text());
+		}
+		int select_count = conf.select_count;
+		if (select_count <= 0) {
+			select_count = kgl_cpu_number;
+		}
+		if (select_count > 1) {
+			if (!selector_manager_grow(select_count)) {
+				fprintf(stderr, "cann't grow worker thread..\n");
+			} else {
+				fprintf(stderr, "worker thread grow to [%d] success.\n", get_selector_count());
+			}
+		}
+
+	}
+	return true;
 }
-void LoadDefaultConfig() {
-	init_config(&conf);
+static void init_config() {
+	conf.path_info = true;
+	conf.wl_time = 1800;
+#ifdef ENABLE_TF_EXCHANGE
+	conf.max_post_size = 8388608;
+#endif	
 #ifdef ENABLE_DISK_CACHE
 	conf.diskWorkTime.set(NULL);
 #endif
@@ -250,228 +277,142 @@ void LoadDefaultConfig() {
 	conf.sysHost->hosts.push_back(svh);
 	conf.sysHost->addRef();
 	init_manager_handler();
-}
-void loadExtConfigFile(int index, KExtConfig* config, KXml& xmlParser) {
-	while (config) {
-		if (config->merge) {
-			cur_config_ext = false;
-		} else {
-			cur_config_ext = true;
-		}
-		klog(KLOG_NOTICE, "[%d] load config file [%s]\n", index, config->file.c_str());
-		try {
-			xmlParser.startParse(config->content);
-		} catch (KXmlException& e) {
-			fprintf(stderr, "%s in file[%s]\n", e.what(), config->file.c_str());
-		}
-		config = config->next;
-	}
-}
-bool load_config_file(KFileName* file, int inclevel, KStringBuf& s, int& id, bool& merge) {
-	if (inclevel > 128) {
-		klog(KLOG_ERR, "include level [%d] is limited.\n", inclevel);
-		return false;
-	}
-	int len = (int)file->get_file_size();
-	if (len <= 0 || len > 1048576) {
-		klog(KLOG_ERR, "config file [%s] length is wrong\n", file->getName());
-		return false;
-	}
-	KFile fp;
-	if (!fp.open(file->getName(), fileRead)) {
-		klog(KLOG_ERR, "cann't open file[%s]\n", file->getName());
-		return false;
-	}
-	char* buf = (char*)malloc(len + 1);
-	int read_len = fp.read(buf, len);
-	if (read_len != len) {
-		klog(KLOG_ERR, "this sure not be happen,read file [%s] size error.\n", file->getName());
-		xfree(buf);
-		return false;
-	}
-	buf[len] = '\0';
-	KExtConfigDynamicString ds(file->getName());
-	ds.dimModel = false;
-	ds.blockModel = false;
-	ds.envChar = '%';
-	char* content = ds.parseDirect(buf);
-	free(buf);
-	char* hot = content;
-	while (*hot && isspace((unsigned char)*hot)) {
-		hot++;
-	}
-	char* start = hot;
-	//默认启动顺序为50
-	id = 50;
-	if (strncmp(hot, "<!--#", 5) == 0) {
-		hot += 5;
-		if (strncmp(hot, "stop", 4) == 0) {
-			/*
-			 * 扩展没有启动
-			 */
-			xfree(content);
-			return false;
-		} else if (strncmp(hot, "start", 5) == 0) {
-			char* end = strchr(hot, '>');
-			if (end) {
-				start = end + 1;
-			}
-			hot += 6;
-			id = atoi(hot);
-			char* p = strchr(hot, ' ');
-			if (p) {
-				if (inclevel > 0 && strncmp(p + 1, "merge", 5) == 0) {
-					merge = true;
-					conf.mergeFiles.push_back(file->getName());
-				}
-			}
-		}
-	}
-	klog(KLOG_NOTICE, "read config file [%s] success\n", file->getName());
-	hot = start;
-	for (;;) {
-		char* p = strstr(hot, "<!--#include");
-		if (p == NULL) {
-			s << hot;
-			break;
-		}
-		int pre_hot_len = (int)(p - hot);
-		p += 12;
-		s.write_all(hot, pre_hot_len);
-		hot = strstr(p, "-->");
-		if (hot == NULL) {
-			break;
-		}
-		while (p < hot&& isspace((unsigned char)*p)) {
-			p++;
-		}
-		int filelen = (int)(hot - p);
-		if (filelen <= 0) {
-			break;
-		}
-		char* incfilename = (char*)xmalloc(filelen + 1);
-		kgl_memcpy(incfilename, p, filelen);
-		incfilename[filelen] = '\0';
-		for (int i = filelen - 1; i > 0; i--) {
-			if (!isspace((unsigned char)incfilename[i])) {
-				break;
-			}
-			incfilename[i] = '\0';
-		}
-		bool incresult = false;
-		char* translate_filename = ds.parseDirect(incfilename);
-		xfree(incfilename);
-		KFileName incfile;
-		if (translate_filename) {
-			if (!isAbsolutePath(translate_filename)) {
-				incresult = incfile.setName(conf.path.c_str(), translate_filename, FOLLOW_LINK_ALL);
-			} else {
-				incresult = incfile.setName(translate_filename);
-			}
-			xfree(translate_filename);
-		}
-		if (incresult) {
-			int id;
-			bool merge = false;
-			load_config_file(&incfile, inclevel + 1, s, id, merge);
-		}
-		hot += 3;
-	}
-	xfree(content);
-	return true;
-}
-void loadExtConfigFile(KFileName* file) {
-	KStringBuf s;
-	int id = 50;
-	bool merge = false;
-	if (!load_config_file(file, 0, s, id, merge)) {
-		return;
-	}
-	KExtConfig* extconf = new KExtConfig(s.steal());
-	extconf->file = file->getName();
-	extconf->merge = merge;
-	map<int, KExtConfig*>::iterator it;
-	it = extconfigs.find(id);
-	if (it != extconfigs.end()) {
-		extconf->next = (*it).second->next;
-		(*it).second->next = extconf;
-	} else {
-		extconfigs.insert(pair<int, KExtConfig*>(id, extconf));
-	}
-}
-int handleExtConfigFile(const char* file, void* param) {
-	KFileName configFile;
-	if (!configFile.setName((char*)param, file, FOLLOW_LINK_ALL)) {
-		return 0;
-	}
-	if (configFile.isDirectory()) {
-		KFileName dirConfigFile;
-		if (!dirConfigFile.setName(configFile.getName(), "config.xml",
-			FOLLOW_LINK_ALL)) {
-			return 0;
-		}
-		loadExtConfigFile(&dirConfigFile);
-		return 0;
-	}
-	loadExtConfigFile(&configFile);
-	return 0;
-}
-void loadExtConfigFile() {
-#ifdef KANGLE_EXT_DIR
-	std::string ext_path = KANGLE_EXT_DIR;
-#else
-	std::string ext_path = conf.path + "/ext";
+#ifdef _WIN32
+	_setmaxstdio(2048);
 #endif
-	list_dir(ext_path.c_str(), handleExtConfigFile, (void*)ext_path.c_str());
-	string configFile = conf.path + "etc/vh.d/";
-	list_dir(configFile.c_str(), handleExtConfigFile, (void*)configFile.c_str());
+	kconfig::register_source_driver(kconfig::KConfigFileSource::Htaccess, new KApacheConfigDriver());
+	kconfig::init(on_begin_parse);
+	parse_server_software();
+#ifdef ENABLE_BLACK_LIST
+	init_run_fw_cmd();
+#endif
+
+	static auto main_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) -> bool {
+		on_main_event(tree, ev);
+		return true;
+		}, kconfig::ev_subdir);
+	kconfig::listen(_KS(""), &main_config_listener);
+
+	conf.dem = new KDsoExtendManage;
+	kconfig::listen(_KS("dso_extend"), conf.dem);
+	static auto server_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) -> bool {
+		conf.gam->on_server_event(tree, ev->get_xml(), ev->type);
+		return true;
+		}, kconfig::ev_subdir | kconfig::ev_skip_vary);
+	kconfig::listen(_KS("server"), &server_config_listener);
+
+	static auto cmd_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) -> bool {
+		conf.gam->on_cmd_event(tree, ev->get_xml(), ev->type);
+		return true;
+		}, kconfig::ev_subdir | kconfig::ev_skip_vary);
+	kconfig::listen(_KS("cmd"), &cmd_config_listener);
+
+	static auto api_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) -> bool {
+		conf.gam->on_api_event(tree, ev->get_xml(), ev->type);
+		return true;
+		}, kconfig::ev_subdir | kconfig::ev_skip_vary);
+	kconfig::listen(_KS("api"), &api_config_listener);
+
+	static auto listen_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) -> bool {
+		on_listen_event(tree, ev);
+		return true;
+		}, kconfig::ev_self | kconfig::ev_merge);
+	kconfig::listen(_KS("listen"), &listen_config_listener);
+
+	static auto ssl_client_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) -> bool {
+		on_ssl_client_event(tree, ev);
+		return true;
+		}, kconfig::ev_self);
+	kconfig::listen(_KS("ssl_client"), &ssl_client_config_listener);
+	static auto admin_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev)->bool {
+		on_admin_event(tree, ev);
+		return true;
+		}, kconfig::ev_self);
+	kconfig::listen(_KS("admin"), &admin_config_listener);
+	static auto log_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev)->bool {
+		on_log_event(tree, ev);
+		return true;
+		}, kconfig::ev_self | kconfig::ev_at_once);
+	kconfig::listen(_KS("log"), &log_config_listener);
+
+	static auto cache_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev)->bool {
+		on_cache_event(tree, ev);
+		return true;
+		}, kconfig::ev_self | kconfig::ev_at_once);
+	kconfig::listen(_KS("cache"), &cache_config_listener);
+
+	static auto io_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev)->bool {
+		on_io_event(tree, ev);
+		return true;
+		}, kconfig::ev_self | kconfig::ev_at_once);
+	kconfig::listen(_KS("io"), &io_config_listener);
+
+	static auto fiber_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev)->bool {
+		on_fiber_event(tree, ev);
+		return true;
+		}, kconfig::ev_self | kconfig::ev_at_once);
+	kconfig::listen(_KS("fiber"), &fiber_config_listener);
+
+	static auto dns_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev)->bool {
+		on_dns_event(tree, ev);
+		return true;
+		}, kconfig::ev_self | kconfig::ev_at_once);
+	kconfig::listen(_KS("dns"), &dns_config_listener);
+
+	static auto connect_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev)->bool {
+		on_connect_event(tree, ev);
+		return true;
+		}, kconfig::ev_self | kconfig::ev_at_once);
+	kconfig::listen(_KS("connect"), &connect_config_listener);
+
+	static auto run_as_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev)->bool {
+		on_run_event(tree, ev);
+		return true;
+		}, kconfig::ev_self | kconfig::ev_at_once);
+	kconfig::listen(_KS("run_as"), &run_as_config_listener);
+
+	static auto compress_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev)->bool {
+		on_compress_event(tree, ev);
+		return true;
+		}, kconfig::ev_self | kconfig::ev_at_once);
+	kconfig::listen(_KS("compress"), &compress_config_listener);
+
+
+	kconfig::listen(_KS("vhs"), &conf.gvm->vhs);
+	kconfig::listen(_KS("vh"), conf.gvm);
+#ifdef ENABLE_BLACK_LIST
+	static auto firewall_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev)->bool {
+		on_firewall_event(tree, ev);
+		return true;
+		}, kconfig::ev_self | kconfig::ev_at_once);
+	kconfig::listen(_KS("firewall"), &firewall_config_listener);
+#endif
+	auto ev_root = kconfig::find(_KS(""));
+	if (ev_root->add(_KS("request"), kaccess[REQUEST]) != nullptr) {
+		kaccess[REQUEST]->add_ref();
+	}
+	if (ev_root->add(_KS("response"), kaccess[RESPONSE]) != nullptr) {
+		kaccess[RESPONSE]->add_ref();
+	}
 }
 bool saveConfig() {
-	return KConfigBuilder::saveConfig();
-}
-void load_main_config(KConfig* cconf, std::string& configFile, KXml& xmlParser, bool firstload) {
-	klog(KLOG_NOTICE, "load config file [%s]\n", configFile.c_str());
-	for (int i = 0; i < 2; i++) {
-		try {
-			xmlParser.parseFile(configFile);
-			break;
-		} catch (KXmlException& e) {
-			fprintf(stderr, "%s\n", e.what());
-			if (i > 0) {
-				exit(0);
-			} else {
-				printf("cann't read config.xml try to read config.xml.lst\n");
-				configFile = configFile + ".lst";
-			}
-		}
-	}
-	try {
-#ifdef KANGLE_WEBADMIN_DIR
-		configFile = KANGLE_WEBADMIN_DIR;
-#else
-		configFile = conf.path + "/webadmin";
-#endif
-		configFile += "/lang.xml";
-		klog(KLOG_NOTICE, "load config file [%s]\n", configFile.c_str());
-		klang.load(configFile.c_str());
-	} catch (KXmlException& e) {
-		fprintf(stderr, "%s\n", e.what());
-	}
+	return false;
 }
 void clean_config() {
 	printf("clean_config now.........\n");
-	kaccess[REQUEST].destroy();
-	kaccess[RESPONSE].destroy();
+	kaccess[REQUEST]->clear();
+	kaccess[RESPONSE]->clear();
+	kaccess[REQUEST]->release();
+	kaccess[RESPONSE]->release();
+	kaccess[0] = nullptr;
+	kaccess[1] = nullptr;
+
 	conf.admin_ips.clear();
 	conf.admin_passwd.clear();
 	conf.admin_user.clear();
 	for (auto it = conf.services.begin(); it != conf.services.end(); ++it) {
-		for (uint32_t index = 0;; ++index) {
-			auto lh = (*it).second.get(index);
-			if (!lh) {
-				break;
-			}
-			conf.gvm->UnBindGlobalListen(lh);
+		for (auto&& lh : (*it).second) {
+			conf.gvm->UnBindGlobalListen(lh.get());
 		}
 	}
 	conf.services.clear();
@@ -479,128 +420,8 @@ void clean_config() {
 	writeBackManager.destroy();
 #endif
 }
-bool on_begin_parse(kconfig::KConfigFile* file, khttpd::KXmlNode* node) {
-	if (!kconfig::is_first()) {
-		return true;
-	}
-	if (file->is_default()) {
-#ifdef MALLOCDEBUG
-		auto malloc_debug = kconfig::find_child(node, _KS("mallocdebug"));
-		if (malloc_debug) {
-			conf.mallocdebug = atoi(malloc_debug->get_text()) == 1;
-		}
-		if (conf.mallocdebug) {
-			start_hook_alloc();
-		}
-#endif
-		auto worker_thread = kconfig::find_child(node, _KS("worker_thread"));
-		if (worker_thread) {
-			conf.select_count = atoi(worker_thread->get_text());
-		}
-		int select_count = conf.select_count;
-		if (select_count <= 0) {
-			select_count = kgl_cpu_number;
-		}
-		if (select_count > 1) {
-			if (!selector_manager_grow(select_count)) {
-				fprintf(stderr, "cann't grow worker thread..\n");
-			} else {
-				fprintf(stderr, "worker thread grow to [%d] success.\n", get_selector_count());
-			}
-		}
-
-	}
-	return true;
-}
-int do_config_thread(void* first_time, int argc) {
-	assert(kfiber_self());
-	cur_config_ext = false;
-	if (first_time != NULL) {
-#ifdef _WIN32
-		_setmaxstdio(2048);
-#endif
-		for (int i = 0; i < 2; i++) {
-			kaccess[i].setType(i);
-			kaccess[i].setGlobal(true);
-		}
-		KAccess::loadModel();
-		kconfig::init(on_begin_parse);
-		kconfig::listen(_KS("dso_extend"), nullptr, on_dso_event, kconfig::ev_subdir);
-		kconfig::listen(_KS(""), &conf, on_main_event, kconfig::ev_subdir);
-		kconfig::listen(_KS("server"), conf.gam, on_server_event, kconfig::ev_subdir);
-		kconfig::listen(_KS("cmd"), conf.gam, on_cmd_event, kconfig::ev_subdir);
-		kconfig::listen(_KS("api"), conf.gam, on_api_event, kconfig::ev_subdir);
-		kconfig::listen(_KS("listen"), nullptr, on_listen_event, kconfig::ev_self | kconfig::ev_merge);
-		kconfig::listen(_KS("ssl_client"), nullptr, on_ssl_client_event, kconfig::ev_self);
-		kconfig::listen(_KS("admin"), nullptr, on_admin_event, kconfig::ev_self);
-		kconfig::listen(_KS("log"), nullptr, on_log_event, kconfig::ev_self | kconfig::ev_at_once);
-		kconfig::listen(_KS("cache"), nullptr, on_cache_event, kconfig::ev_self | kconfig::ev_at_once);
-		kconfig::listen(_KS("io"), nullptr, on_io_event, kconfig::ev_self | kconfig::ev_at_once);
-		kconfig::listen(_KS("fiber"), nullptr, on_fiber_event, kconfig::ev_self | kconfig::ev_at_once);
-		kconfig::listen(_KS("dns"), nullptr, on_dns_event, kconfig::ev_self | kconfig::ev_at_once);
-		kconfig::listen(_KS("connect"), nullptr, on_connect_event, kconfig::ev_self | kconfig::ev_at_once);
-		kconfig::listen(_KS("run_as"), nullptr, on_run_event, kconfig::ev_self | kconfig::ev_at_once);
-		kconfig::listen(_KS("compress"), nullptr, on_compress_event, kconfig::ev_self);
-#ifdef ENABLE_BLACK_LIST
-		kconfig::listen(_KS("firewall"), nullptr, on_firewall_event, kconfig::ev_self | kconfig::ev_at_once);
-#endif
-	}
-	assert(cconf == NULL);
-	cconf = new KConfig;
-	defer(delete cconf; cconf = NULL);
-	init_config(cconf);
-	//new version config
-	kconfig::reload();
-	load_config(cconf, first_time != NULL);
-	post_load_config(first_time != NULL);
-	katom_set((void*)&load_config_progress, 0);
-	return 0;
-}
-void do_config(bool first_time) {
-	if (!katom_cas((void*)&load_config_progress, 0, 1)) {
-		assert(!first_time);
-		return;
-	}
-	if (kfiber_create(do_config_thread, first_time ? (void*)&first_time : nullptr, 0, conf.fiber_stack_size, NULL) != 0) {
-		katom_set((void*)&load_config_progress, 0);
-	}
-}
-void wait_load_config_done() {
-	for (;;) {
-		if (0 == katom_get((void*)&load_config_progress)) {
-			break;
-		}
-		kfiber_msleep(10);
-	}
-}
-int merge_apache_config(const char* filename) {
-	KFileName file;
-	if (file.setName(filename)) {
-		KApacheConfig apConfig(false);
-		std::stringstream s;
-		s << "<!--#start 1000 merge-->\n";
-		apConfig.load(&file, s);
-		std::stringstream xf;
-		xf << conf.path << PATH_SPLIT_CHAR << "ext";
-		mkdir(xf.str().c_str(), 0755);
-		xf << "/_apache.xml";
-		FILE* fp = fopen(xf.str().c_str(), "wt");
-		if (fp == NULL) {
-			fprintf(stderr, "cann't open file [%s] to write\n", xf.str().c_str());
-			return 1;
-		}
-		fwrite(s.str().c_str(), 1, s.str().size(), fp);
-		fclose(fp);
-		fprintf(stdout, "success convert to file [%s] please reboot kangle\n", xf.str().c_str());
-		return 0;
-	} else {
-		fprintf(stderr, "cann't open apache config file [%s]\n", filename);
-		return 1;
-	}
-}
 void load_db_vhost(KVirtualHostManage* vm) {
 #ifndef HTTP_PROXY
-	cur_config_vh_db = false;
 	if (vhd.isLoad()) {
 		string errMsg;
 		if (!vhd.loadVirtualHost(vm, errMsg)) {
@@ -609,109 +430,46 @@ void load_db_vhost(KVirtualHostManage* vm) {
 	}
 #endif
 }
-//读取配置文件，可重入
-void load_config(KConfig* cconf, bool firstTime) {
-	std::map<int, KExtConfig*>::iterator it;
-	bool main_config_loaded = false;
-#ifdef KANGLE_ETC_DIR
-	std::string configFileDir = KANGLE_ETC_DIR;
+void load_lang() {
+	try {
+#ifdef KANGLE_WEBADMIN_DIR
+		std::string configFile = KANGLE_WEBADMIN_DIR;
 #else
-	std::string configFileDir = conf.path + "/etc";
+		std::string configFile = conf.path + "/webadmin";
 #endif
-	std::string configFile = configFileDir + CONFIG_FILE;
-	loadExtConfigFile();
-	KAccess access[2];
-	KWriteBackManager wm;
-	KVirtualHostManage vm;
-	KXml xmlParser;
-	xmlParser.setData(cconf);
-#ifndef HTTP_PROXY
-	KHttpServerParser vhParser;
-	xmlParser.addEvent(&vhParser);
-#endif
-	if (firstTime) {
-#ifdef ENABLE_BLACK_LIST
-		init_run_fw_cmd();
-#endif
-#ifdef ENABLE_WRITE_BACK
-		xmlParser.addEvent(&writeBackManager);
-#endif
-#ifdef HTTP_PROXY
-		xmlParser.addEvent(&kaccess[0]);
-		xmlParser.addEvent(&kaccess[1]);
-#endif
-		cconf->vm = &vm;
-		//dso配置只在启动时加载一次
-	} else {
-		for (int i = 0; i < 2; i++) {
-			access[i].setType(i);
-			access[i].setGlobal(true);
-		}
-#ifndef HTTP_PROXY
-		vhParser.kaccess[0] = &access[0];
-		vhParser.kaccess[1] = &access[1];
-#else
-		xmlParser.addEvent(&access[0]);
-		xmlParser.addEvent(&access[1]);
-#endif
-		xmlParser.addEvent(&wm);
-		cconf->vm = &vm;
+		configFile += "/lang.xml";
+		klog(KLOG_NOTICE, "load config file [%s]\n", configFile.c_str());
+		klang.load(configFile.c_str());
+	} catch (KXmlException& e) {
+		fprintf(stderr, "%s\n", e.what());
 	}
-
-	for (it = extconfigs.begin(); it != extconfigs.end(); it++) {
-		if (!main_config_loaded && (*it).first >= 100) {
-			main_config_loaded = true;
-			cur_config_ext = false;
-			load_main_config(cconf, configFile, xmlParser, firstTime);
-			cur_config_ext = true;
-		}
-		loadExtConfigFile((*it).first, (*it).second, xmlParser);
-		delete (*it).second;
-	}
-	extconfigs.clear();
-	cur_config_ext = false;
-	if (!main_config_loaded) {
-		load_main_config(cconf, configFile, xmlParser, firstTime);
-	}
-#if 0
-#ifndef KANGLE_FREE
-	if (conf.apache_config_file.size() > 0) {
-		KFileName file;
-		if (file.setName(conf.apache_config_file.c_str())) {
-			KApacheConfig apConfig(false);
-			std::stringstream s;
-			apConfig.load(&file, s);
-			cur_config_vh_db = true;
-			char* content = strdup(s.str().c_str());
-			KExtConfig apextconfig(content);
-			apextconfig.merge = false;
-			apextconfig.file = conf.apache_config_file;
-			loadExtConfigFile(999999, &apextconfig, xmlParser);
-		}
-	}
-#endif
-#endif
-	load_db_vhost(cconf->vm);
-	conf.gvm->copy(&vm);
-	if (!firstTime) {
-		writeBackManager.copy(wm);
-		for (int i = 0; i < 2; i++) {
-			//access[i].setChainAction();
-			kaccess[i].copy(access[i]);
-		}
-	}
-	// load serial
-#if 0
-	string serial_file = conf.path;
-	serial_file += ".autoupdate.conf";
-	FILE* fp = fopen(serial_file.c_str(), "rt");
-	if (fp) {
-		fscanf(fp, "%d", &serial);
-		fclose(fp);
-	}
-#endif
-	cur_config_ext = false;
 }
+int do_config_thread(void* first_time, int argc) {
+	assert(kfiber_self());
+	if (first_time != NULL) {
+		init_config();
+		load_lang();
+	}
+	kconfig::reload();
+	load_db_vhost(conf.vm);
+	katom_set((void*)&load_config_progress, 0);
+	return 0;
+}
+void do_config(bool first_time) {
+	if (!katom_cas((void*)&load_config_progress, 0, 1)) {
+		assert(!first_time);
+		return;
+	}
+	assert(!kfiber_is_main());
+	if (first_time) {
+		do_config_thread((void*)&first_time, 0);
+	} else {
+		if (kfiber_create(do_config_thread, nullptr, 0, conf.fiber_stack_size, NULL) != 0) {
+			katom_set((void*)&load_config_progress, 0);
+		}
+	}
+}
+
 void parse_server_software() {
 	//生成serverName
 	timeLock.Lock();
@@ -726,6 +484,11 @@ void parse_server_software() {
 	conf.serverNameLength = (int)strlen(conf.serverName);
 	timeLock.Unlock();
 }
-
-void post_load_config(bool firstTime) {
+void wait_load_config_done() {
+	for (;;) {
+		if (0 == katom_get((void*)&load_config_progress)) {
+			break;
+		}
+		kfiber_msleep(10);
+	}
 }

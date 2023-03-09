@@ -28,7 +28,7 @@
 #include "KSockPoolHelper.h"
 #include "KConfigTree.h"
 
-class KMultiAcserver: public KPoolableRedirect {
+class KMultiAcserver: public KPoolableRedirect, public kconfig::KConfigListen {
 public:
 	KMultiAcserver(const std::string &name);
 	KMultiAcserver(KSockPoolHelper *nodes);
@@ -37,10 +37,8 @@ public:
 	void shutdown() override;
 	KUpstream* GetUpstream(KHttpRequest* rq) override;
 	unsigned getPoolSize();
-	void on_event(kconfig::KConfigTree* tree, khttpd::KXmlNode* xml, kconfig::KConfigEventType ev);
 	bool editNode(KXmlAttribute&attr);
-	void buildXML(std::stringstream &s) override;
-	bool parse_config(khttpd::KXmlNode* xml) override;
+	bool parse_config(const khttpd::KXmlNode* xml) override;
 	void buildAttribute(std::stringstream &s);
 	static void baseHtml(KMultiAcserver *mserver,std::stringstream &s);
 	void getHtml(std::stringstream &s);
@@ -49,6 +47,10 @@ public:
 	static std::string form(KMultiAcserver *mserver);
 	void parse(std::map<std::string,std::string> &attribute);
 	void parseNode(const char *nodeString);
+	kconfig::KConfigEventFlag config_flag() const {
+		return kconfig::ev_subdir;
+	}
+	bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
 	const char *getType() override
 	{
 		return "mserver";

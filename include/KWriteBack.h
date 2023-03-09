@@ -23,20 +23,12 @@ class KWriteBack:public KJump
 public:
 	KWriteBack()
 	{
-		ext = cur_config_ext;
 		header = NULL;
 	}
 	void buildRequest(KHttpRequest *rq, KFetchObject **fo);
 	std::string getMsg();
 	void setMsg(std::string msg);
-	bool startElement(KXmlContext* context) override {
-		return true;
-	}
-	void buildXML(std::stringstream &s) override {
-		s << "\t<writeback name='" << name << "'>";
-		s << CDATA_START << KXml::encode(getMsg()) << CDATA_END << "</writeback>\n";
-	}
-	bool ext;
+
 	bool keep_alive;
 	int status_code;
 	KHttpHeader *header;

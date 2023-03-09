@@ -47,7 +47,8 @@ public:
 		s << getValList();
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html) override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		im.clear();
 		if (attribute["split"].size() > 0) {
 			split = attribute["split"][0];
@@ -58,16 +59,6 @@ public:
 		if (attribute["v"].size() > 0) {
 			im.add_multi_addr(attribute["v"].c_str(), split, (void *)1);
 		}
-	}
-	bool startCharacter(KXmlContext *context, char *character, int len) override {
-		if (len > 0) {
-			im.clear();
-			im.add_multi_addr(character, split, (void *)1);
-		}
-		return true;
-	}
-	void buildXML(std::stringstream &s) override {
-		s << " split='" << split << "'>" << getValList();
 	}
 protected:
 	char split;

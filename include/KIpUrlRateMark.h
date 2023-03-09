@@ -20,10 +20,6 @@ public:
 	{
 		iplist->release();
 	}
-	bool supportRuntime() override
-	{
-		return true;
-	}
 	KMark * new_instance() override {
 		return new KIpUrlRateMark();
 	}
@@ -43,16 +39,14 @@ public:
 		s << rate.getCount();
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)override {
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attribute = xml->attr();
 		request = atoi(attribute["request"].c_str());
 		second = atoi(attribute["second"].c_str());
 		block_time = atoi(attribute["block_time"].c_str());
 		if (block_time<=0) {
 			block_time = 60;
 		}
-	}
-	void buildXML(std::stringstream &s) override {
-		s << "request='" << request << "' second='" << second << "' block_time='" << block_time << "'>";
 	}
 	std::string getHtml(KModel *model) override {
 		std::stringstream s;

@@ -10,10 +10,6 @@ public:
 	~KCounterMark()
 	{
 	}
-	bool supportRuntime() override
-	{
-		return true;
-	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
 	{
 		lock.Lock();
@@ -41,8 +37,7 @@ public:
 		s << counter;
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)  override
-	{
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 	}
 	int whmCall(WhmContext *ctx) override
 	{
@@ -65,10 +60,6 @@ public:
 			return 200;
 		}
 		return 400;
-	}
-	void buildXML(std::stringstream &s,int flag) override
-	{
-		s << ">";
 	}
 private:
 	KMutex lock;

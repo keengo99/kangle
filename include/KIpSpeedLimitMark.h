@@ -26,10 +26,6 @@ public:
 			free((*it).first);
 		}
 	}
-	bool supportRuntime() override
-	{
-		return true;
-	}
 	void requestClean(char *ip)
 	{
 		lock.Lock();
@@ -62,7 +58,7 @@ public:
 		KIpSpeedLimitContext *speed_limit_context = new KIpSpeedLimitContext();
 		speed_limit_context->ip = strdup(ip);
 		speed_limit_context->mark = this;
-		addRef();
+		add_ref();
 		rq->registerRequestCleanHook(ip_speed_limit_clean,speed_limit_context);
 		return true;
 	}
@@ -94,14 +90,9 @@ public:
 		lock.Unlock();
 		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)override
-	{
-		speed_limit = (int)get_size(attribute["speed_limit"].c_str());
-	}
-	void buildXML(std::stringstream &s)override
-	{
-		s << "speed_limit='" << get_size(speed_limit) << "'>";
-	}
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		speed_limit = (int)get_size(xml->attr()("speed_limit"));
+	}	
 private:
 	int speed_limit;
 	std::map<char *,KSpeedLimit *,lessp> ips;

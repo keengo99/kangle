@@ -26,14 +26,9 @@ public:
 	{
 		return name.c_str();
 	}
-	bool startElement(KXmlContext* context) override {
-		return true;
-	}
-	bool parse_config(khttpd::KXmlNode* node) override;
+	bool parse_config(const khttpd::KXmlNode* node) override;
 	KRedirectSource*makeFetchObject(KHttpRequest *rq, KFileName *file) override;
-	bool unload();
-	
-	//bool load(const std::string &file);
+	bool unload();	
 	KUpstream* GetUpstream(KHttpRequest* rq) override;
 	const char *getType() override {
 		return "api";
@@ -46,8 +41,6 @@ public:
 	}
 	bool load();
 	void setFile(const std::string& file);
-public:
-	void buildXML(std::stringstream &s) override;
 public:
 	std::string apiFile;
 	KApiDso dso;

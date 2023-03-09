@@ -86,9 +86,8 @@ std::string KHostRewriteMark::getDisplay()
 	s << "]";
 	return s.str();
 }
-void KHostRewriteMark::editHtml(std::map<std::string, std::string> &attribute,bool html)
-			
-{
+void KHostRewriteMark::parse_config(const khttpd::KXmlNodeBody* xml) {
+	auto attribute = xml->attr();
 	regHost.setModel(attribute["reg_host"].c_str(),PCRE_CASELESS);
 	host = attribute["host"];
 	port = atoi(attribute["port"].c_str());
@@ -104,18 +103,6 @@ void KHostRewriteMark::editHtml(std::map<std::string, std::string> &attribute,bo
 		rewrite = false;
 	}
 }
-void KHostRewriteMark::buildXML(std::stringstream &s)
-{
-	s << " reg_host='" << regHost.getModel() << "' host='" << host << "' port='" << port << "' ";
-	if (proxy) {
-		s << "proxy='1' ";
-	}
-	if (rewrite) {
-		s << "rewrite='1' ";
-	}
-	s << "life_time='" << life_time << "'>";
-}
-
 
 KHostMark::KHostMark()
 {
@@ -190,9 +177,8 @@ std::string KHostMark::getDisplay()
 	s << "]";
 	return s.str();
 }
-void KHostMark::editHtml(std::map<std::string, std::string> &attribute,bool html)
-			
-{
+void KHostMark::parse_config(const khttpd::KXmlNodeBody* xml) {
+	auto attribute = xml->attr();
 	host = attribute["host"];
 	port = atoi(attribute["port"].c_str());
 	if (strchr(attribute["port"].c_str(),'s')) {
@@ -211,21 +197,6 @@ void KHostMark::editHtml(std::map<std::string, std::string> &attribute,bool html
 	} else {
 		rewrite = false;
 	}
-}
-void KHostMark::buildXML(std::stringstream &s)
-{
-	s << " host='" << host << "' port='" << port;
-	if (ssl) {
-		s << "s";
-	}
-	s << "' ";
-	if (proxy) {
-		s << "proxy='1' ";
-	}
-	if (rewrite) {
-		s << "rewrite='1' ";
-	}
-	s << "life_time='" << life_time << "'>";
 }
 
 

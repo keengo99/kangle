@@ -22,5 +22,5 @@
 #include "do_config.h"
 #include "KConfigTree.h"
 
-void on_listen_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent *ev);
+void on_listen_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent *ev);
 #endif

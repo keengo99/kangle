@@ -209,7 +209,7 @@ namespace kangle {
 		if (conf.per_ip_deny) {
 			char ips[MAXIPLEN];
 			ksocket_sockaddr_ip(&c->addr, ips, MAXIPLEN);
-			conf.gvm->globalVh.blackList->AddDynamic(ips);
+			conf.gvm->vhs.blackList->AddDynamic(ips);
 		}
 #endif
 		return kgl_connection_per_limit;

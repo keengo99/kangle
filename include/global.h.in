@@ -55,20 +55,20 @@
 #define  JUMP_TABLE     2
 #define  JUMP_SERVER    3
 #define  JUMP_WBACK     4
-#define  JUMP_VHS       5
-#define  JUMP_FCGI      6
-#define  JUMP_CONTINUE  7
-#define  JUMP_PROXY     8
-#define  RESPONSE_TABLE 9
-#define  JUMP_CGI       10
-#define  JUMP_API       11
+#define  JUMP_FCGI      5
+#define  JUMP_CONTINUE  6
+#define  JUMP_PROXY     7
+#define  RESPONSE_TABLE 8
+#define  JUMP_CGI       9
+#define  JUMP_API       10
 #define  JUMP_RETURN    12
 #define  JUMP_CMD       13
 #define  JUMP_MSERVER   14
-#define  JUMP_DROP      16
-#define  JUMP_FINISHED  17
-#define  JUMP_DSO       18
+#define  JUMP_DROP      15
+#define  JUMP_FINISHED  16
+#define  JUMP_DSO       17
 #define  JUMP_UNKNOW    100
+#define  JUMP_VHS       JUMP_ALLOW
 
 #define  REQUEST          0
 #define  RESPONSE         1
@@ -91,6 +91,9 @@
 #define _LARGE_FILE  1
 #endif
 
+#ifdef KSOCKET_SSL
+#define ENABLE_SVH_SSL 1
+#endif
 
 #define ENABLE_WRITE_BACK  1
 #define ENABLE_LIMIT_SPEED 1

@@ -71,7 +71,6 @@ static int get_selector_index()
 }
 KDsoExtend::KDsoExtend(const char* name)
 {
-	this->cur_config_ext = ::cur_config_ext;
 	this->name = xstrdup(name);
 	filename = NULL;
 	orign_filename = NULL;
@@ -107,7 +106,7 @@ KRedirect* KDsoExtend::RefsRedirect(std::string& name)
 		return NULL;
 	}
 	KRedirect* rd = (*it).second;
-	rd->addRef();
+	rd->add_ref();
 	return rd;
 }
 void KDsoExtend::ListUpstream(std::stringstream& s)
