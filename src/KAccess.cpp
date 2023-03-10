@@ -761,7 +761,8 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 			if (!m) {
 				return false;
 			}
-			auto result = this->named_acls.emplace(xml->attributes()["name"], new KNamedModel(std::move(m)));
+			auto named_model = KSafeNamedModel(new KNamedModel(std::move(m)));
+			auto result = this->named_acls.insert(std::make_pair(xml->attributes()["name"],std::move(named_model)));
 			if (result.second) {
 				tree->bind(result.first->second->add_ref());
 			}
@@ -773,7 +774,8 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 			if (!m) {
 				return false;
 			}
-			auto result = this->named_marks.emplace(xml->attributes()["name"], new KNamedModel(std::move(m)));
+			auto named_model = KSafeNamedModel(new KNamedModel(std::move(m)));
+			auto result = this->named_marks.insert(std::make_pair(xml->attributes()["name"],std::move(named_model)));
 			if (result.second) {
 				tree->bind(result.first->second->add_ref());
 			}
