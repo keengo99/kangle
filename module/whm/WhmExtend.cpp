@@ -75,7 +75,7 @@ int WhmExtend::whmCall(const char *callName,const char *eventType,WhmContext *co
 			}
 			*p2 = '\0';
 			s.str("");
-			s << path << PATH_SPLIT_CHAR << hot;
+			s << path.get() << PATH_SPLIT_CHAR << hot;
 			WhmPackage *package = packageManage.load(s.str().c_str());
 			if(package == NULL){
 				ret = WHM_PACKAGE_ERROR;

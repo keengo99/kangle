@@ -127,7 +127,7 @@ std::string KCloudIpAcl::getDisplay()
 	s << url;
 	lock.Lock();
 	if (this->sign!=NULL) {
-		s << " " << this->sign;
+		s << " " << this->sign.get();
 	}
 	lock.Unlock();
 	return s.str();

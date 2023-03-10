@@ -314,21 +314,17 @@ cor_result create_http_object2(KHttpObject* obj, char* url, uint32_t flag_encodi
 	if (KBIT_TEST(obj->index.flags, FLAG_IN_DISK)) {
 #ifdef KGL_DISK_CACHE_ALIGN_HEAD
 		if (obj->index.head_size != kgl_align(obj->index.head_size, kgl_aio_align_size)) {
-			char* url = obj->uk.url->getUrl();
-			char* filename = obj->get_filename();
-			klog(KLOG_ERR, "disk cache file head_size=[%d] is not align by size=[%d], url=[%s] file=[%s] now dead it.\n", obj->index.head_size, kgl_aio_align_size, url, filename);
-			free(filename);
-			free(url);
+			auto url = obj->uk.url->getUrl();
+			auto filename = obj->get_filename();
+			klog(KLOG_ERR, "disk cache file head_size=[%d] is not align by size=[%d], url=[%s] file=[%s] now dead it.\n", obj->index.head_size, kgl_aio_align_size, url.get(), filename.get());
 			KBIT_SET(obj->index.flags, FLAG_DEAD);
 		}
 #endif
 #ifndef ENABLE_BIG_OBJECT_206
 		if (KBIT_TEST(obj->index.flags, FLAG_BIG_OBJECT_PROGRESS)) {
-			char* url = obj->uk.url->getUrl();
-			char* filename = obj->getFileName();
-			klog(KLOG_ERR, "disk cache file head_size=[%d] is part file that is not support by now size=[%d], url=[%s] file=[%s]. now dead it.\n", obj->index.head_size, kgl_aio_align_size, url, filename);
-			free(filename);
-			free(url);
+			auto url = obj->uk.url->getUrl();
+			auto filename = obj->getFileName();
+			klog(KLOG_ERR, "disk cache file head_size=[%d] is part file that is not support by now size=[%d], url=[%s] file=[%s]. now dead it.\n", obj->index.head_size, kgl_aio_align_size, url.get(), filename.get());
 			KBIT_SET(obj->index.flags, FLAG_DEAD);
 		}
 #endif
