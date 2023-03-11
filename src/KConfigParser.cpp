@@ -31,6 +31,7 @@
 #include "kselector_manager.h"
 #include "KDefer.h"
 #include "KDsoExtendManage.h"
+#include "KVirtualHostDatabase.h"
 #include "KLogHandle.h"
 #include "KCache.h"
 using namespace std;

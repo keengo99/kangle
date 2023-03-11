@@ -35,7 +35,7 @@ namespace kconfig {
 	void register_source_driver(KConfigFileSource s, KConfigFileSourceDriver* dr) {
 		sources[static_cast<int>(s)] = dr;
 	}
-	class KSystemConfigFileDriver : public KConfigFileSourceDriver
+	class KDefaultConfigFileDriver : public KConfigFileSourceDriver
 	{
 	public:
 		khttpd::KSafeXmlNode load(KConfigFile* file) override {
@@ -134,27 +134,99 @@ namespace kconfig {
 			return true;
 		}
 	};
+	struct kgl_ext_config_context
+	{
+		std::string dir;
+		std::string prefix;
+		KConfigFileScanInfo* info;
+	};
+
+	void load_config_file(KStringBuf& name, KFileName* file, KConfigFileScanInfo* provider, bool is_default = false) {
+		time_t last_modified = file->getLastModified();
+		KString filename(file->getName());
+		provider->new_file(name.str().data(), filename.data(), last_modified, is_default);
+	}
+	int handle_ext_config_dir(const char* file, void* param) {
+		kgl_ext_config_context* ctx = (kgl_ext_config_context*)param;
+		KFileName configFile;
+		KStringBuf name;
+		if (!configFile.setName(ctx->dir.c_str(), file, FOLLOW_LINK_ALL)) {
+			return 0;
+		}
+		if (!ctx->prefix.empty()) {
+			name << ctx->prefix << "|"_CS;
+		}
+		name << file;
+		if (configFile.isDirectory()) {
+			name << "|"_CS;
+			KFileName dirConfigFile;
+			if (!dirConfigFile.setName(configFile.getName(), "config.xml", FOLLOW_LINK_ALL)) {
+				return 0;
+			}
+			load_config_file(name, &dirConfigFile, ctx->info);
+			return 0;
+		}
+		name << "_"_CS;
+		load_config_file(name, &configFile, ctx->info);
+		return 0;
+	}
+	class KSystemConfigFileDriver : public KDefaultConfigFileDriver
+	{
+	public:
+		bool enable_scan() override {
+			return true;
+		};
+		void scan(KConfigFileScanInfo* info) override {
+			kgl_ext_config_context ctx;
+			ctx.info = info;
+#ifdef KANGLE_ETC_DIR
+			std::string config_dir = KANGLE_ETC_DIR;
+#else
+			std::string config_dir = conf.path + "/etc";
+#endif
+			KFileName file;
+			if (!file.setName(config_dir.c_str(), CONFIG_FILE, FOLLOW_LINK_ALL)) {
+				file.setName(config_dir.c_str(), CONFIG_DEFAULT_FILE, FOLLOW_LINK_ALL);
+			}
+			KStringBuf default_name;
+			default_name << default_file_name;
+			load_config_file(default_name, &file, info, true);
+			ctx.prefix = "ext";
+#ifdef KANGLE_EXT_DIR
+			ctx.dir = KANGLE_EXT_DIR;
+#else
+			ctx.dir = conf.path + "/ext";
+#endif		
+			list_dir(ctx.dir.c_str(), handle_ext_config_dir, (void*)&ctx);
+			ctx.dir = conf.path + "etc/vh.d/";
+			ctx.prefix = "vh_d";
+			list_dir(ctx.dir.c_str(), handle_ext_config_dir, (void*)&ctx);
+		}
+	};
+	class KVhAccessConfigFileDriver : public KDefaultConfigFileDriver
+	{
+	public:
+		bool enable_scan() override {
+			return false;
+		};
+	};
+
 	class KConfigFileInfo
 	{
 	public:
-		KConfigFileInfo(KConfigFile* file, time_t last_modified) {
-			this->file = file->add_ref();
+		KConfigFileInfo(KSafeConfigFile file, khttpd::KSafeXmlNode node, time_t last_modified) {
+			this->file = std::move(file);
+			this->node = std::move(node);
 			this->last_modified = last_modified;
 		}
-		~KConfigFileInfo() {
-			file->release();
-		}
-		bool load() {
-			assert(!node);
-			node = find_source_driver(KConfigFileSource::System)->load(file);
-			return node != nullptr;
+		~KConfigFileInfo() {			
 		}
 		void parse() {
 			klog(KLOG_ERR, "now parse config [%s %s]\n", file->get_name()->data, file->get_filename()->data);
 			file->update(std::move(node));
 			file->set_last_modified(last_modified);
 		}
-		KConfigFile* file;
+		KSafeConfigFile file;
 		time_t last_modified;
 		khttpd::KSafeXmlNode node;
 	};
@@ -636,6 +708,9 @@ namespace kconfig {
 		update(std::move(tree_node));
 		return true;
 	}
+	KConfigFileSourceDriver *KConfigFile::get_source_driver() const {
+		return sources[static_cast<int>(source)];
+	}
 	bool KConfigFile::update(const char* name, size_t size, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type) {
 		if (readonly) {
 			return false;
@@ -655,7 +730,7 @@ namespace kconfig {
 		if (!fs) {
 			return false;
 		}
-		if (!fs->enable_save(this)) {
+		if (!fs->enable_save()) {
 			return false;
 		}
 		if (fs->save(this, nodes.get())) {
@@ -703,8 +778,7 @@ namespace kconfig {
 		if (!new_flag) {
 			return it->value()->reload(false);
 		}
-		KConfigFile* file = new KConfigFile(tree, name, filename);
-		file->set_source(source);
+		KConfigFile* file = new KConfigFile(tree, name, filename, source);
 		it->value(file);
 		return file->reload(true);
 	}
@@ -730,73 +804,46 @@ namespace kconfig {
 	KConfigListen* remove_listen(const char* name, size_t size) {
 		return events.remove(name, size);
 	}
-	struct kgl_ext_config_context
+
+	class KConfigScanInfoProvider : public KConfigFileScanInfo
 	{
-		std::multimap<uint16_t, KConfigFileInfo*> files;
-		std::string dir;
-		std::string prefix;
-		~kgl_ext_config_context() {
-			for (auto&& info : files) {
-				delete info.second;
-			};
+	public:
+		void new_file(kgl_ref_str_t *name, kgl_ref_str_t *filename, time_t last_modified, bool is_default) {
+			int new_flag;
+			auto it = config_files.insert(name, &new_flag);
+			//printf("file [%s] new_flag=[%d]\n",name->data,new_flag);
+			KConfigFile*cfg_file;
+			if (new_flag) {
+				cfg_file = new KConfigFile(&events, name, filename, current_source);
+				cfg_file->set_remove_flag(!is_default);
+				if (is_default) {
+					cfg_file->set_default_config();
+				}
+				it->value(cfg_file);
+			} else {
+				cfg_file = it->value();
+				if (cfg_file->get_source() != current_source) {
+					klog(KLOG_ERR, "source is not match\n");
+					return;
+				}
+				if (is_default) {
+					cfg_file->update_filename(filename);
+				}
+			}
+			//printf("file last_modified old=[" INT64_FORMAT_HEX "] new =[" INT64_FORMAT_HEX "]\n", cfg_file->last_modified, last_modified);
+			if (cfg_file->last_modified != last_modified) {
+				//changed
+				auto node = cfg_file->load();
+				auto index = cfg_file->get_index();
+				auto info = std::unique_ptr<KConfigFileInfo>(new KConfigFileInfo(KSafeConfigFile(cfg_file->add_ref()), std::move(node), last_modified));
+				files.emplace(cfg_file->get_index(), std::move(info));				
+			} else {
+				cfg_file->set_remove_flag(false);
+			}
 		}
+		std::multimap<uint16_t, std::unique_ptr<KConfigFileInfo>> files;
+		KConfigFileSource current_source;
 	};
-	void load_config_file(KStringBuf& name, KFileName* file, kgl_ext_config_context* ctx, bool is_default = false) {
-		time_t last_modified = file->getLastModified();
-		auto filename = kstring_from(file->getName());
-		defer(kstring_release(filename));
-		int new_flag;
-		auto it = config_files.insert(name.str().data(), &new_flag);
-		//printf("file [%s] new_flag=[%d]\n",name->data,new_flag);
-		KConfigFileInfo* info;
-		KConfigFile* cfg_file;
-		if (new_flag) {
-			cfg_file = new KConfigFile(&events, name.str().data(), filename);
-			cfg_file->set_remove_flag(!is_default);
-			if (is_default) {
-				cfg_file->set_default_config();
-			}
-			it->value(cfg_file);
-		} else {
-			cfg_file = it->value();
-		}
-		//printf("file last_modified old=[" INT64_FORMAT_HEX "] new =[" INT64_FORMAT_HEX "]\n", cfg_file->last_modified, last_modified);
-		if (cfg_file->last_modified != last_modified) {
-			//changed
-			info = new KConfigFileInfo(cfg_file, last_modified);
-			if (!info->load()) {
-				delete info;
-				return;
-			}
-			ctx->files.insert(std::pair<uint16_t, KConfigFileInfo*>(info->file->get_index(), info));
-		} else {
-			cfg_file->set_remove_flag(false);
-		}
-	}
-	int handle_ext_config_dir(const char* file, void* param) {
-		kgl_ext_config_context* ctx = (kgl_ext_config_context*)param;
-		KFileName configFile;
-		KStringBuf name;
-		if (!configFile.setName(ctx->dir.c_str(), file, FOLLOW_LINK_ALL)) {
-			return 0;
-		}
-		if (!ctx->prefix.empty()) {
-			name << ctx->prefix << "|"_CS;
-		}
-		name << file;
-		if (configFile.isDirectory()) {
-			name << "|"_CS;
-			KFileName dirConfigFile;
-			if (!dirConfigFile.setName(configFile.getName(), "config.xml", FOLLOW_LINK_ALL)) {
-				return 0;
-			}
-			load_config_file(name, &dirConfigFile, ctx);
-			return 0;
-		}
-		name << "_"_CS;
-		load_config_file(name, &configFile, ctx);
-		return 0;
-	}
 	bool reload_config(kgl_ref_str_t* name, bool force) {
 		auto locker = lock();
 		auto it = config_files.find(name);
@@ -812,7 +859,7 @@ namespace kconfig {
 		}
 		auto file = it->value();
 		if (!file->reload(force)) {
-			if (file->get_source() == KConfigFileSource::System && !file->is_default()) {
+			if (file->get_source_driver()->enable_scan() && !file->is_default()) {
 				//remove config
 				file->clear();
 				config_files.erase(it);
@@ -825,38 +872,26 @@ namespace kconfig {
 	void reload() {
 		auto locker = lock();
 		kgl_ext_config_context ctx;
+		KConfigScanInfoProvider provider;
 		config_files.iterator([](void* data, void* arg) {
 			KConfigFile* file = (KConfigFile*)data;
 			//printf("set file [%s] remove_flag\n", file->filename->data);
-			if (file->get_source() == KConfigFileSource::System) {
+			if (file->get_source_driver()->enable_scan()) {
 				file->set_remove_flag(true);
 			}
 			return iterator_continue;
 			}, NULL);
-
-#ifdef KANGLE_ETC_DIR
-		std::string config_dir = KANGLE_ETC_DIR;
-#else
-		std::string config_dir = conf.path + "/etc";
-#endif
-		KFileName file;
-		if (!file.setName(config_dir.c_str(), CONFIG_FILE, FOLLOW_LINK_ALL)) {
-			file.setName(config_dir.c_str(), CONFIG_DEFAULT_FILE, FOLLOW_LINK_ALL);
-	}
-		KStringBuf default_name;
-		default_name << default_file_name;
-		load_config_file(default_name, &file, &ctx, true);
-		ctx.prefix = "ext";
-#ifdef KANGLE_EXT_DIR
-		ctx.dir = KANGLE_EXT_DIR;
-#else
-		ctx.dir = conf.path + "/ext";
-#endif		
-		list_dir(ctx.dir.c_str(), handle_ext_config_dir, (void*)&ctx);
-		ctx.dir = conf.path + "etc/vh.d/";
-		ctx.prefix = "vh_d";
-		list_dir(ctx.dir.c_str(), handle_ext_config_dir, (void*)&ctx);
-
+		for (int i = 0; i < static_cast<int>(KConfigFileSource::Size); ++i) {
+			if (sources[i] != nullptr) {
+				if (sources[i]->enable_scan()) {
+					provider.current_source = static_cast<KConfigFileSource>(i);
+					sources[i]->scan(&provider);
+				}
+			}
+		}
+		for (auto&& info : provider.files) {
+			info.second->parse();
+		}
 		config_files.iterator([](void* data, void* arg) {
 			KConfigFile* file = (KConfigFile*)data;
 			if (file->is_removed()) {
@@ -865,14 +900,11 @@ namespace kconfig {
 				file->release();
 				return iterator_remove_continue;
 			}
-			if (file->get_source() != KConfigFileSource::System) {
+			if (!file->get_source_driver()->enable_scan()) {
 				file->reload(false);
 			}
 			return iterator_continue;
 			}, NULL);
-		for (auto&& info : ctx.files) {
-			info.second->parse();
-		};
 		if (is_first_config) {
 			events.check_at_once();
 			is_first_config = false;
@@ -933,6 +965,14 @@ namespace kconfig {
 		}
 		return it->value();
 	}
+	khttpd::KXmlNodeBody* new_child(khttpd::KXmlNodeBody* node, const char* name, size_t len, const char* vary, size_t vary_len) {
+		auto xml = new_xml(name, len, vary, vary_len);
+		return node->add(xml.get(), khttpd::last_pos);
+	}
+	khttpd::KXmlNodeBody* new_child(khttpd::KXmlNodeBody* node, const char* name, size_t len) {
+		auto xml = new_xml(name, len);
+		return node->add(xml.get(), khttpd::last_pos);
+	}
 	uint32_t register_qname(const char* name, size_t len) {
 		auto key = new khttpd::KXmlKey(name, len);
 		auto old_key = qname_config.add(key->tag, key);
@@ -947,9 +987,8 @@ namespace kconfig {
 	}
 	void init(on_begin_parse_f cb) {
 		locker = kfiber_mutex_init();
-		static auto system_source_driver = new KSystemConfigFileDriver;
-		register_source_driver(KConfigFileSource::System, system_source_driver);
-		register_source_driver(KConfigFileSource::Vh, system_source_driver);
+		register_source_driver(KConfigFileSource::System, new KSystemConfigFileDriver);
+		register_source_driver(KConfigFileSource::Vh, new KVhAccessConfigFileDriver);
 		register_qname(_KS("worker_thread"));
 		register_qname(_KS("access_log"));
 		register_qname(_KS("log"));
@@ -1112,7 +1151,7 @@ namespace kconfig {
 	};
 
 	bool test() {
-		return true;
+		//return true;
 		int prev_ev;
 		register_qname(_KS("a"));
 		register_qname(_KS("b"));
@@ -1120,8 +1159,7 @@ namespace kconfig {
 		KConfigTree test_ev(nullptr, _KS("config"));
 		test_config_context ctx;
 		memset(&ctx, 0, sizeof(ctx));
-		KConfigFile* t = new KConfigFile(&test_ev, nullptr, nullptr);
-		defer(t->release());
+		KSafeConfigFile t(new KConfigFile(&test_ev, nullptr, nullptr, KConfigFileSource::System));
 		auto listener = config_listen([&](KConfigTree* tree, KConfigEvent* ev) {
 			auto xml = ev->get_xml();
 			ctx.ev_count++;
@@ -1196,7 +1234,7 @@ namespace kconfig {
 			}
 
 			return true;
-			}, ev_subdir);
+			}, ev_subdir|ev_skip_vary);
 		assert(listen(_KS("/vh"), &test_vh_event, &test_ev));
 		t->reload(_KS("<config></config>"));
 

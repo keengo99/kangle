@@ -27,6 +27,7 @@ namespace kconfig {
 	constexpr KConfigEventFlag ev_merge = 4;
 	constexpr KConfigEventFlag ev_at_once = 8;
 	constexpr KConfigEventFlag ev_skip_vary = 16;
+	using KSafeConfigFile = KSharedObj<KConfigFile>;
 
 	using KConfigEventType = int;
 	constexpr KConfigEventType EvNone = 0;
@@ -36,7 +37,6 @@ namespace kconfig {
 	constexpr KConfigEventType EvSubDir = (1 << 4);
 	constexpr KConfigEventType FlagCopyChilds = (1 << 5);
 	constexpr KConfigEventType FlagCreate = (1 << 6);
-
 	enum class KConfigFileSource : uint8_t
 	{
 		System = 0,
@@ -171,14 +171,26 @@ namespace kconfig {
 		}
 		static kgl_refs_string skip_vary;
 	};
+	class KConfigFileScanInfo
+	{
+	public:
+		virtual ~KConfigFileScanInfo() {
+		}
+		virtual void new_file(kgl_ref_str_t* name, kgl_ref_str_t* filename, time_t last_modified, bool is_default) = 0;
+	};
 	class KConfigFileSourceDriver
 	{
 	public:
 		virtual ~KConfigFileSourceDriver() noexcept {
 		}
+		virtual void scan(KConfigFileScanInfo* info) {
+		}
 		virtual khttpd::KSafeXmlNode load(KConfigFile* file) = 0;
 		virtual time_t get_last_modified(KConfigFile* file) = 0;
-		virtual bool enable_save(KConfigFile* file) {
+		virtual bool enable_save() {
+			return true;
+		}
+		virtual bool enable_scan() {
 			return true;
 		}
 		virtual bool save(KConfigFile* file, khttpd::KXmlNode* node) {
@@ -188,17 +200,21 @@ namespace kconfig {
 	class KConfigFile
 	{
 	public:
-		KConfigFile(KConfigTree* ev, kgl_ref_str_t* name, kgl_ref_str_t* filename) {
+		KConfigFile(KConfigTree* ev, kgl_ref_str_t* name, kgl_ref_str_t* filename, KConfigFileSource source) {
 			this->name = kstring_refs(name);
 			this->filename = kstring_refs(filename);
 			this->ev = ev;
-			this->source = KConfigFileSource::System;
+			this->source = source;
 		}
 		void release() {
 			assert(katom_get((void*)&ref) < 0xfffffff);
 			if (katom_dec((void*)&ref) == 0) {
 				delete this;
 			}
+		}
+		void update_filename(kgl_ref_str_t* filename) {
+			kstring_release(this->filename);
+			this->filename = kstring_refs(filename);
 		}
 		int cmp(const kgl_ref_str_t* key) const {
 			return kgl_cmp(name->data, name->len, key->data, key->len);
@@ -225,6 +241,7 @@ namespace kconfig {
 		void set_remove_flag(bool flag) {
 			this->remove_flag = flag;
 		}
+		KConfigFileSourceDriver *get_source_driver() const;
 		KConfigFileSource get_source() const {
 			return source;
 		}
@@ -279,7 +296,7 @@ namespace kconfig {
 		bool diff(KConfigTree* name, khttpd::KXmlNode* o, khttpd::KXmlNode* n, int* notice_count);
 		bool diff_body(KConfigTree* name, khttpd::KXmlNodeBody* o, khttpd::KXmlNodeBody* n, int* notice_count);
 	};
-	using KSafeConfigFile = KSharedObj<KConfigFile>;
+	
 	class KConfigEventNode
 	{
 	public:
@@ -325,6 +342,8 @@ namespace kconfig {
 	khttpd::KSafeXmlNode new_xml(const char* name, size_t len, const char* vary, size_t vary_len);
 	khttpd::KXmlNode* find_child(const khttpd::KXmlNodeBody* node, const char* name, size_t len);
 	khttpd::KXmlNode* find_child(const khttpd::KXmlNodeBody* node, uint32_t name_id, const char* vary, size_t len);
+	khttpd::KXmlNodeBody* new_child(khttpd::KXmlNodeBody* node, const char* name, size_t len);
+	khttpd::KXmlNodeBody* new_child(khttpd::KXmlNodeBody* node, const char* name, size_t len, const char* vary, size_t vary_len);
 	khttpd::KSafeXmlNode parse_xml(char* buf);
 	void register_source_driver(KConfigFileSource s, KConfigFileSourceDriver* dr);
 	KFiberLocker lock();

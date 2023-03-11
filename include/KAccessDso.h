@@ -6,7 +6,8 @@
 #include "KDsoExtend.h"
 #include "KAccessDsoSupport.h"
 #include "KBufferFetchObject.h"
-
+extern kgl_config_node_f kgl_config_node_func;
+extern kgl_config_body_f kgl_config_body_func;
 #ifdef ENABLE_KSAPI_FILTER
 
 class KAccessDso

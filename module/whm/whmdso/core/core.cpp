@@ -857,9 +857,9 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 			initEvent = true;
 		}
 		if (uv->get("name",name)) {
-			if (!vhd.flushVirtualHost(name.c_str(),initEvent,ctx)) {
-				return WHM_CALL_FAILED;
-			}
+			KStringBuf name;
+			name << "@vhd|" << name;
+			kconfig::reload_config(name.str().data(), true);
 		} else {
 			const char *names = uv->getx("names");
 			if (names && *names) {
@@ -872,7 +872,9 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 						*p = '\0';
 					}
 					if (*hot) {
-						vhd.flushVirtualHost(hot,initEvent,ctx);
+						KStringBuf name;
+						name << "@vhd|" << name;
+						kconfig::reload_config(name.str().data(), true);
 					}
 					if (p==NULL) {
 						break;
@@ -881,7 +883,7 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 				}
 				free(buf);
 			} else {
-				do_config(false);
+				kconfig::reload();
 			}
 		}
 		return WHM_OK;

@@ -18,6 +18,7 @@ std::string dbname;
 #pragma comment(lib,"sqlite3.lib")
 #endif
 static const char *load_sql = "SELECT uid AS user,gid AS `group`,* FROM vhost";
+static const char* load_vh_name_sql = "SELECT name FROM vhost";
 static const char *load_black_list_sql = "SELECT ip,flags FROM black_list";
 static std::string flush_sql;
 static const char *load_info_sql2 = "SELECT * FROM vhost_info WHERE vhost='%s' AND type<1000 order by id";
@@ -55,7 +56,7 @@ static int query(void *stmt,vh_data *data)
 		const char *name = rs->getColumnName(i);
 		const char *value = rs->getString(i);
 		if(name && value){
-			data->set(data->ctx,name,value);
+			data->body->set_value(data->ctx,name,value);
 		}
 	}
 	return 1;
@@ -91,29 +92,29 @@ static int  addVirtualHost(void *cn,vh_data *data)
 	if (st == NULL) {
 		return 0;
 	}
-	st->bindString(0,data->get(data->ctx,"name"));
-	st->bindString(1,data->get(data->ctx,"passwd"));
-	st->bindString(2,data->get(data->ctx,"doc_root"));
-	st->bindString(3,data->get(data->ctx,"user"));
-	st->bindString(4,data->get(data->ctx,"group"));
-	st->bindString(5,data->get(data->ctx,"templete"));
-	st->bindString(6,data->get(data->ctx,"subtemplete"));
-	st->bindInt(7,atoi(data->get(data->ctx,"status")));
-	st->bindString(8,data->get(data->ctx,"htaccess"));
-	st->bindString(9,data->get(data->ctx,"access"));
-	st->bindInt(10,atoi(data->get(data->ctx,"max_connect")));
-	st->bindInt(11,atoi(data->get(data->ctx,"max_worker")));
-	st->bindInt(12,atoi(data->get(data->ctx,"max_queue")));
-	st->bindString(13,data->get(data->ctx,"log_file"));
-	st->bindString(14,data->get(data->ctx,"speed_limit"));
+	st->bindString(0,data->body->get_value(data->ctx,"name"));
+	st->bindString(1,data->body->get_value(data->ctx,"passwd"));
+	st->bindString(2,data->body->get_value(data->ctx,"doc_root"));
+	st->bindString(3,data->body->get_value(data->ctx,"user"));
+	st->bindString(4,data->body->get_value(data->ctx,"group"));
+	st->bindString(5,data->body->get_value(data->ctx,"templete"));
+	st->bindString(6,data->body->get_value(data->ctx,"subtemplete"));
+	st->bindInt(7,atoi(data->body->get_value(data->ctx,"status")));
+	st->bindString(8,data->body->get_value(data->ctx,"htaccess"));
+	st->bindString(9,data->body->get_value(data->ctx,"access"));
+	st->bindInt(10,atoi(data->body->get_value(data->ctx,"max_connect")));
+	st->bindInt(11,atoi(data->body->get_value(data->ctx,"max_worker")));
+	st->bindInt(12,atoi(data->body->get_value(data->ctx,"max_queue")));
+	st->bindString(13,data->body->get_value(data->ctx,"log_file"));
+	st->bindString(14,data->body->get_value(data->ctx,"speed_limit"));
 	int ret = st->execute();
 	delete st;
 	return ret;
 }
 static int  updateVirtualHost(void *cn,vh_data *data)
 {
-	const char *name = data->getx(data->ctx,"name");
-	if (name==NULL) {
+	const char *name = data->body->get_value(data->ctx,"name");
+	if (!*name) {
 		return 0;
 	}
 	KDyamicSqliteStmt *st = ((KVirtualHostSqliteConnection *)cn)->updateVirtualHost(name);
@@ -136,7 +137,7 @@ static int delVirtualHost(void *cn,vh_data *data)
 {
 	KVirtualHostStmt *st = ((KVirtualHostSqliteConnection *)cn)->delAllInfo();
 	if (st) {
-		st->bindString(0,data->get(data->ctx,"name"));
+		st->bindString(0,data->body->get_value(data->ctx,"name"));
 		int ret = st->execute();
 		delete st;
 	}	
@@ -144,21 +145,21 @@ static int delVirtualHost(void *cn,vh_data *data)
 	if (st == NULL) {
 		return 0;
 	}
-	st->bindString(0,data->get(data->ctx,"name"));
+	st->bindString(0,data->body->get_value(data->ctx,"name"));
 	int ret = st->execute();
 	delete st;
 	return ret;
 }
 static int  delInfo(void *cn,vh_data *data)
 {
-	const char *value = data->getx(data->ctx,"value");
-	KVirtualHostStmt *st = ((KVirtualHostSqliteConnection *)cn)->delInfo(value!=NULL);
+	const char *value = data->body->get_value(data->ctx,"value");
+	KVirtualHostStmt *st = ((KVirtualHostSqliteConnection *)cn)->delInfo(*value);
 	if (st == NULL) {
 		return 0;
 	}
-	st->bindString(0,data->get(data->ctx,"vhost"));
-	st->bindString(1,data->get(data->ctx,"name"));
-	st->bindInt(2,atoi(data->get(data->ctx,"type")));
+	st->bindString(0,data->body->get_value(data->ctx,"vhost"));
+	st->bindString(1,data->body->get_value(data->ctx,"name"));
+	st->bindInt(2,atoi(data->body->get_value(data->ctx,"type")));
 	if(value){
 		st->bindString(3,value);
 	}
@@ -169,16 +170,16 @@ static int  delInfo(void *cn,vh_data *data)
 static int addInfo(void *cn,vh_data *data)
 {
 	KVirtualHostStmt *st;
-	const char *multi = data->getx(data->ctx,"multi");
-	if (multi==NULL || strcmp(multi,"0")==0 || *multi=='\0') {
+	const char *multi = data->body->get_value(data->ctx,"multi");
+	if (strcmp(multi,"0")==0 || *multi=='\0') {
 		//del the info
 		st = ((KVirtualHostSqliteConnection *)cn)->delInfo(false);
 		if (st == NULL) {
 			return 0;
 		}
-		st->bindString(0,data->get(data->ctx,"vhost"));
-		st->bindString(1,data->get(data->ctx,"name"));
-		st->bindInt(2,atoi(data->get(data->ctx,"type")));
+		st->bindString(0,data->body->get_value(data->ctx,"vhost"));
+		st->bindString(1,data->body->get_value(data->ctx,"name"));
+		st->bindInt(2,atoi(data->body->get_value(data->ctx,"type")));
 		st->execute();
 		delete st;
 	}
@@ -186,10 +187,10 @@ static int addInfo(void *cn,vh_data *data)
 	if (st == NULL) {
 		return 0;
 	}
-	st->bindString(0,data->get(data->ctx,"value"));
-	st->bindString(1,data->get(data->ctx,"vhost"));
-	st->bindString(2,data->get(data->ctx,"name"));
-	st->bindInt(3,atoi(data->get(data->ctx,"type")));
+	st->bindString(0,data->body->get_value(data->ctx,"value"));
+	st->bindString(1,data->body->get_value(data->ctx,"vhost"));
+	st->bindString(2,data->body->get_value(data->ctx,"name"));
+	st->bindInt(3,atoi(data->body->get_value(data->ctx,"type")));
 	int ret = st->execute();
 	delete st;
 	return ret;
@@ -200,7 +201,7 @@ static int  delAllInfo(void *cn,vh_data *data)
 	if (st == NULL) {
 		return 0;
 	}
-	st->bindString(0,data->get(data->ctx,"vhost"));
+	st->bindString(0,data->body->get_value(data->ctx,"vhost"));
 	int ret = st->execute();
 	delete st;
 	return ret;
@@ -211,9 +212,9 @@ static kgl_vh_stmt loadBlackList(kgl_vh_connection cn)
 }
 static int setFlow(void *cn,vh_data *data)
 {
-	const char *flow_model = data->getx(data->ctx,"flow_model");
+	const char *flow_model = data->body->get_value(data->ctx,"flow_model");
 	KVirtualHostSqliteStmt *st;
-	if (flow_model && strcmp(flow_model,"set")==0) {
+	if (strcmp(flow_model,"set")==0) {
 		st = ((KVirtualHostSqliteConnection *)cn)->setFlow();
 	} else {
 		st = ((KVirtualHostSqliteConnection *)cn)->addFlow();
@@ -221,9 +222,9 @@ static int setFlow(void *cn,vh_data *data)
 	if (st==NULL) {
 		return 0;
 	}
-	st->bindInt64(0,string2int(data->get(data->ctx,"flow")));
-	st->bindInt64(1,string2int(data->get(data->ctx,"hcount")));
-	st->bindString(2,data->get(data->ctx,"name"));
+	st->bindInt64(0,string2int(data->body->get_value(data->ctx,"flow")));
+	st->bindInt64(1,string2int(data->body->get_value(data->ctx,"hcount")));
+	st->bindString(2,data->body->get_value(data->ctx,"name"));
 	int ret = st->execute();
 	delete st;
 	return ret;
@@ -234,8 +235,8 @@ static void *getFlow(void *cn,const char *name)
 }
 static int parseConfig(vh_data *data)
 {
-	const char *value = data->getx(data->ctx,"dbname");
-	if (value == NULL || *value == '\0') {
+	const char *value = data->body->get_value(data->ctx,"dbname");
+	if (*value == '\0') {
 		return 0;
 	}
 	if (value[0] == '/' 
@@ -372,7 +373,7 @@ void KVirtualHostSqliteConnection::executeSqls(const char *sql[])
 }
 KVirtualHostData *KVirtualHostSqliteConnection::loadVirtualHost()
 {
-	return querySql(load_sql);
+	return querySql(load_vh_name_sql);
 }
 KVirtualHostData *KVirtualHostSqliteConnection::loadBlackList()
 {

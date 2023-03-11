@@ -1,5 +1,7 @@
 #ifndef VH_MODULE_H
 #define VH_MODULE_H
+#include "ksapi.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -7,16 +9,9 @@ extern "C" {
 	typedef void * kgl_vh_stmt;
 	struct vh_data
 	{
-		void *ctx;
-		void (* set)(void *ctx,const char *name,const char *value);
-		/*
-		该函数不会返回NULL
-		*/
-		const char * (* get)(void *ctx,const char *name);
-		/*
-		该函数会返回NULL
-		*/
-		const char * (* getx)(void *ctx,const char *name);
+		kgl_config_body *ctx;
+		kgl_config_body_f *body;
+		kgl_config_node_f *node;		
 	};
 	struct vh_module
 	{
@@ -26,7 +21,7 @@ extern "C" {
 		const char *(* getConfigValue)(void *ctx,const char *name);
 		//以下是返回
 		//解析配置文件
-		int (* parseConfig)(vh_data *data);
+		int (*parseConfig)(vh_data *data);
 		//建立连接
 		kgl_vh_connection (* createConnection)();
 		//查询操作,data作为输出参数

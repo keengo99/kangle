@@ -244,7 +244,10 @@ static bool on_begin_parse(kconfig::KConfigFile* file, khttpd::KXmlNode* node) {
 				fprintf(stderr, "worker thread grow to [%d] success.\n", get_selector_count());
 			}
 		}
-
+	}
+	auto vh_database = kconfig::find_child(node->get_first(), _KS("vh_database"));
+	if (vh_database) {
+		vhd.parse_config(vh_database->get_first());
 	}
 	return true;
 }
@@ -281,6 +284,7 @@ static void init_config() {
 	_setmaxstdio(2048);
 #endif
 	kconfig::register_source_driver(kconfig::KConfigFileSource::Htaccess, new KApacheConfigDriver());
+	kconfig::register_source_driver(kconfig::KConfigFileSource::Db, &vhd);
 	kconfig::init(on_begin_parse);
 	parse_server_software();
 #ifdef ENABLE_BLACK_LIST
@@ -420,16 +424,6 @@ void clean_config() {
 	writeBackManager.destroy();
 #endif
 }
-void load_db_vhost(KVirtualHostManage* vm) {
-#ifndef HTTP_PROXY
-	if (vhd.isLoad()) {
-		string errMsg;
-		if (!vhd.loadVirtualHost(vm, errMsg)) {
-			klog(KLOG_ERR, "Cann't load VirtualHost[%s]\n", errMsg.c_str());
-		}
-	}
-#endif
-}
 void load_lang() {
 	try {
 #ifdef KANGLE_WEBADMIN_DIR
@@ -451,7 +445,6 @@ int do_config_thread(void* first_time, int argc) {
 		load_lang();
 	}
 	kconfig::reload();
-	load_db_vhost(conf.vm);
 	katom_set((void*)&load_config_progress, 0);
 	return 0;
 }

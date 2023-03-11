@@ -83,7 +83,10 @@ public:
 	time_t get_last_modified(kconfig::KConfigFile* file) override {
 		return kfile_last_modified(file->get_filename()->data);
 	}
-	bool enable_save(kconfig::KConfigFile* file) override {
+	bool enable_save() override {
+		return false;
+	}
+	bool enable_scan() override {
 		return false;
 	}
 };
@@ -99,8 +102,7 @@ struct _KApacheHtaccessContext
 		ev.add(_KS("request"), access[REQUEST]);
 		ev.add(_KS("response"), access[RESPONSE]);
 		KString str(filename);
-		file = new kconfig::KConfigFile(&ev, nullptr, str.data());
-		file->set_source(kconfig::KConfigFileSource::Htaccess);
+		file = new kconfig::KConfigFile(&ev, nullptr, str.data(), kconfig::KConfigFileSource::Htaccess);
 	}
 	~_KApacheHtaccessContext() noexcept {
 		if (file) {

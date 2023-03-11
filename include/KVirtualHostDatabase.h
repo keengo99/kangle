@@ -10,6 +10,7 @@
 #include "KDsoModule.h"
 #include "kfiber_sync.h"
 #include "KXmlAttribute.h"
+#include "KConfigTree.h"
 
 #define VH_INFO_HOST       0
 #define VH_INFO_ERROR_PAGE 1
@@ -21,14 +22,12 @@
 #define VH_INFO_HOST2      8
 #define VH_INFO_ENV        100
 
-class KVirtualHostDatabase
+class KVirtualHostDatabase final: public kconfig::KConfigFileSourceDriver
 {
 public:
 	KVirtualHostDatabase();
 	~KVirtualHostDatabase();
-	bool flushVirtualHost(const char *vhName,bool initEvent,KVirtualHostEvent *ctx);
-	bool loadVirtualHost(KVirtualHostManage *vm,std::string &errMsg);
-	bool parseAttribute(KXmlAttribute &attribute);
+	bool parse_config(khttpd::KXmlNodeBody *xml);
 	//检查数据库连接是否正常
 	bool check();
 	bool isSuccss()
@@ -36,11 +35,22 @@ public:
 		return lastStatus;
 	}
 	bool isLoad();
+	void scan(kconfig::KConfigFileScanInfo* info) override;
+	khttpd::KSafeXmlNode load(kconfig::KConfigFile* file) override;
+	time_t get_last_modified(kconfig::KConfigFile* file) override;
+	bool enable_save() override  {
+		return false;
+	}
+	bool enable_scan() override {
+		return true;
+	}
 private:
+	KFiberLocker get_locker() {
+		return KFiberLocker(lock);
+	}
 	kgl_vh_connection createConnection();
 	void freeConnection(kgl_vh_connection cn);
-	bool loadInfo(KVirtualHost *vh, kgl_vh_connection cn);
-	KVirtualHost *newVirtualHost(kgl_vh_connection cn, KXmlAttribute &attribute, KVirtualHostManage *vm, KVirtualHost *ov);
+	bool loadInfo(khttpd::KXmlNodeBody *vh, kgl_vh_connection cn);
 	kfiber_mutex* lock;
 	vh_module vhm;
 	bool lastStatus;

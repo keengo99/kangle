@@ -33,14 +33,14 @@ static KGL_RESULT build(kgl_access_build *build_ctx, uint32_t build_type)
 static KGL_RESULT parse(kgl_access_parse_config *parse_ctx)
 {
 	kgl_footer* mark = (kgl_footer*)parse_ctx->module;	
-	mark->head = parse_ctx->cfg.get_int(parse_ctx->cn, "head") == 1;
-	mark->replace = parse_ctx->cfg.get_int(parse_ctx->cn, "replace") == 1;
-	const char* footer = parse_ctx->cfg.get_value(parse_ctx->cn, "footer");
+	mark->head = parse_ctx->body->get_int(parse_ctx->cn, "head") == 1;
+	mark->replace = parse_ctx->body->get_int(parse_ctx->cn, "replace") == 1;
+	const char* footer = parse_ctx->body->get_value(parse_ctx->cn, "footer");
 	if (footer && *footer) {
 		kstring_release(mark->data);
 		mark->data = kstring_from(footer);
 	}
-	const char* text = parse_ctx->cfg.get_text(parse_ctx->cn);
+	const char* text = parse_ctx->body->get_text(parse_ctx->cn);
 	if (*text) {
 		kstring_release(mark->data);
 		mark->data = kstring_from(text);

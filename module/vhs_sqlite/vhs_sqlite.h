@@ -60,8 +60,7 @@ public:
 	}
 	~KDyamicSqliteStmt()
 	{
-		std::list<KDyamicItem *>::iterator it;
-		for (it=items.begin();it!=items.end();it++) {
+		for (auto it=items.begin();it!=items.end();it++) {
 			delete (*it);
 		}
 		free(sql);
@@ -76,17 +75,13 @@ public:
 	}
 	void bindInt(const char *name,vh_data *data,const char *dataName=NULL)
 	{
-		const char *v = data->getx(data->ctx,dataName?dataName:name);
-		if (v) {
-			bind(name,atoi(v));
-		}
+		const char *v = data->body->get_value(data->ctx,dataName?dataName:name);		
+		bind(name,atoi(v));
 	}
 	void bindString(const char *name,vh_data *data,const char *dataName=NULL)
 	{
-		const char *v = data->getx(data->ctx,dataName?dataName:name);
-		if (v) {
-			bind(name,v);
-		}
+		const char *v = data->body->get_value(data->ctx,dataName?dataName:name);
+		bind(name,v);
 	}
 	bool execute()
 	{

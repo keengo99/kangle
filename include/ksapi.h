@@ -233,8 +233,6 @@ typedef struct _kgl_request_body_ctx kgl_request_body_ctx;
 typedef struct _kgl_parse_header_ctx kgl_parse_header_ctx;
 
 typedef LPVOID KCONN;
-typedef const void * KCONN_CFG;
-typedef const void * KCONN_CFG_NODE;
 
 typedef LPVOID KSOCKET_CLIENT;
 typedef LPVOID KSOCKET_SERVER;
@@ -453,36 +451,44 @@ typedef struct _kgl_config_diff
 	uint32_t new_to;
 } kgl_config_diff;
 
+typedef struct _kgl_config_body kgl_config_body;
+typedef struct _kgl_config_node kgl_config_node;
 
-typedef struct _kgl_access_config_f
+typedef struct _kgl_config_body_f
 {	
-	const char* (*get_value) (KCONN_CFG cn, const char* name);
-	int64_t(*get_int)(KCONN_CFG cn, const char* name);
-	const char* (*get_text)(KCONN_CFG cn);
-	KCONN_CFG_NODE (*find_child)(KCONN_CFG cn, const char* name);
-} kgl_access_config_f;
+	const char* (*get_value) (const kgl_config_body*cn, const char* name);
+	int64_t(*get_int)(const kgl_config_body*cn, const char* name);
+	const char* (*get_text)(const kgl_config_body*cn);
+	void (*set_value)(kgl_config_body*cn, const char* name, const char* value);
+	void (*set_int)(kgl_config_body*cn, const char* name, int64_t value);
+	void (*set_text)(kgl_config_body*cn, const char* value);
+	kgl_config_node*(*find_child)(const kgl_config_body*cn, const char* name);
+	kgl_config_body*(*new_child)(kgl_config_body*cn, const char* name);
+} kgl_config_body_f;
 
-typedef struct _kgl_access_node_config_f
+typedef struct _kgl_config_node_f
 {
-	const char* (*get_tag)(KCONN_CFG_NODE cn);
-	uint32_t(*get_count)(KCONN_CFG_NODE cn);
-	KCONN_CFG(*get_data)(KCONN_CFG_NODE cn, uint32_t index);
-} kgl_access_node_config_f;
+	const char* (*get_tag)(const kgl_config_node*cn);
+	uint32_t(*get_count)(const kgl_config_node*cn);
+	kgl_config_body *(*get_body)(const kgl_config_node*cn, uint32_t index);
+	kgl_config_body *(*new_body) (kgl_config_node*cn, uint32_t index);
+} kgl_config_node_f;
+
 
 typedef struct _kgl_access_parse_config {
 	void* module;
-	kgl_access_config_f cfg;
-	kgl_access_node_config_f node;
-	KCONN_CFG cn;
+	const kgl_config_body* cn;
+	kgl_config_body_f* body;
+	kgl_config_node_f* node;
 } kgl_access_parse_config;
 
 typedef struct _kgl_access_parse_child {
 	void* module;
-	kgl_access_config_f cfg;
-	kgl_access_node_config_f node;
-	KCONN_CFG_NODE o;
-	KCONN_CFG_NODE n;
-	kgl_config_diff* diff;	
+	const kgl_config_node*o;
+	const kgl_config_node*n;
+	const kgl_config_diff* diff;
+	kgl_config_body_f* body;
+	kgl_config_node_f* node;
 } kgl_access_parse_child;
 
 typedef struct _kgl_access

@@ -239,13 +239,6 @@ KTHREAD_FUNCTION time_thread(void* arg) {
 			kgl_flush_addr_cache(nowTime);
 		}
 		server_container->flush(kgl_current_sec);
-		if (vhd.isLoad() && !vhd.isSuccss()) {
-			klog(KLOG_ERR, "vh database last status is failed.try again.\n");
-			std::string errMsg;
-			if (!vhd.loadVirtualHost(conf.gvm, errMsg)) {
-				klog(KLOG_ERR, "Cann't load VirtualHost[%s]\n", errMsg.c_str());
-			}
-		}
 #ifdef ENABLE_DISK_CACHE
 		scan_disk_cache();
 		if (dci && !cache.is_disk_shutdown()) {
