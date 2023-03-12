@@ -35,7 +35,7 @@ KUpstream* KApiProcess::PowerResult(KHttpRequest* rq, KPipeStream* st2)
 	//这里把端口号保存，下次连接时就不用对stLock加锁了。
 #ifdef KSOCKET_UNIX	
 	if (st->is_unix_socket()) {
-		std::stringstream s;
+		KStringBuf s;
 		s << "/tmp/extworker." << st->info.port << ".sock";
 		s.str().swap(unix_path);
 	} else {

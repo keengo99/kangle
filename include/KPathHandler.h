@@ -70,7 +70,7 @@ public:
 		}
 		kgl_str_t key = kgl_string2(name, name_len);
 		int new_flag = 0;
-		auto node = child.insert<kgl_str_t>(&key, &new_flag);
+		auto node = child.insert(&key, &new_flag);
 		if (new_flag) {
 			node->value(new KPathHandler<T, CMP>(name, name_len));
 		}
@@ -95,7 +95,7 @@ public:
 			kgl_str_t  key = kgl_string2(*name,name_len);
 			KMapNode<KPathHandler>* node;
 			T value;
-			node = child.find<kgl_str_t>(&key);
+			node = child.find(&key);
 			if (!node) {
 				goto done;
 			}
@@ -134,7 +134,7 @@ public:
 			return nullptr;
 		}
 		kgl_str_t key = kgl_string2(name, name_len);
-		auto node = child.find<kgl_str_t>(&key);
+		auto node = child.find(&key);
 		if (!node) {
 			return nullptr;
 		}

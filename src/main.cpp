@@ -642,7 +642,9 @@ bool create_file_path(char* argv0) {
 	KFileName file;
 	file.tripDir(conf.path);
 #ifndef _WIN32
-	conf.path = "/" + conf.path;
+	KStringBuf s;
+	s << "/" << conf.path;
+	conf.path = std::move(s);
 #endif
 	conf.program = conf.path + PATH_SPLIT_CHAR + conf.program;
 	conf.extworker = conf.path + PATH_SPLIT_CHAR + "extworker";

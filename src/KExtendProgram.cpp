@@ -77,12 +77,12 @@ const char* KExtendProgramString::interGetValue(const char* name) {
 #ifdef ENABLE_VH_RUN_AS
 #ifndef _WIN32
 	if (strcasecmp(name, "uid") == 0) {
-		s.clean();
+		s.clear();
 		s << vh->id[0];
 		return s.c_str();
 	}
 	if (strcasecmp(name, "gid") == 0) {
-		s.clean();
+		s.clear();
 		s << vh->id[1];
 		return s.c_str();
 	}
