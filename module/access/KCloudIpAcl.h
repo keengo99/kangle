@@ -9,20 +9,20 @@ class KCloudIpAcl: public KAcl {
 public:
 	KCloudIpAcl();
 	virtual ~KCloudIpAcl();
-	std::string getHtml(KModel *model) override;
+	void get_display(KWStream& s) override;
+	void get_html(KModel* model, KWStream& s) override;
 	KAcl *new_instance() override;
 	const char *getName() override;
 	bool match(KHttpRequest *rq, KHttpObject *obj) override;
-	std::string getDisplay() override;
 	void parse_config(const khttpd::KXmlNodeBody* xml) override;
 	void start();
 	void start_http();
 	void http_body_hook(const char *data, int len);
 private:
-	std::string url;
+	KString url;
 	int flush_time;
 	bool started;
-	KStringBuf data;
+	KStringStream data;
 	kgl_auto_cstr sign;
 	KIpMap *im;
 	KMutex lock;

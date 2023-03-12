@@ -260,7 +260,7 @@ kgl_auto_cstr KDynamicString::parseDirect(char* str) {
 	if (dst) {
 		delete dst;
 	}
-	dst = new KStringBuf();
+	dst = new KStringStream();
 	clean();
 	buf = str;
 	hot = buf;
@@ -278,7 +278,7 @@ kgl_auto_cstr KDynamicString::parseString(const char* str) {
 	if (dst) {
 		delete dst;
 	}
-	dst = new KStringBuf();
+	dst = new KStringStream();
 	clean();
 	buf = xstrdup(str);
 	hot = buf;

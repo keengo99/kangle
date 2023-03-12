@@ -46,21 +46,21 @@ public:
 		//memset(methods, 0, sizeof(methods));
 	}
 	void setMethod(const char *methodstr);
-	std::string getMethod()
+	void getMethod(KWStream &s)
 	{
 		if (meths[0]) {
-			return "*";
+			s << "*"_CS;
+			return;
 		}
-		std::stringstream s;
 		for (int i = 1; i < MAX_METHOD; i++) {
 			if (meths[i]) {
-				if (!s.str().empty()) {
+				if (!s.empty()) {
 					s << ",";
 				}
 				s << KHttpKeyValue::get_method(i)->data;
 			}
 		}
-		return s.str();
+		return;
 	}
 	bool matchMethod(uint8_t method)
 	{
@@ -95,35 +95,9 @@ public:
 			return !file_exsit;
 		}
 	}
-	void buildXML(std::stringstream &s)
-	{
-		s << " extend='";
-		if (rd) {
-			const char *rd_type = rd->getType();
-			if (strcmp(rd_type, "mserver") == 0) {
-				rd_type = "server";
-			}
-			s << rd_type << ":" << rd->name;
-		} else {
-			s << "default";
-		}
-		s << "'";
-		s << " confirm_file='" << (int)confirm_file << "'";
-		s << " allow_method='" << allowMethod.getMethod() << "'";
-		//{{ent
-#ifdef ENABLE_UPSTREAM_PARAM
-		if (params.size() > 0) {
-			std::stringstream p;
-			buildParams(p);
-			s << " params='" << KXml::param(p.str().c_str()) << "'";
-		}
-#endif
-		//}}
-		s << "/>\n";
-	}
 	//{{ent
 #ifdef ENABLE_UPSTREAM_PARAM
-	void buildParams(std::stringstream &s)
+	void buildParams(KWStream &s)
 	{
 		std::list<KParamItem>::iterator it;
 		for (it = params.begin(); it != params.end(); it++) {
@@ -133,7 +107,7 @@ public:
 			s << (*it).name << "=\"" << (*it).value << "\"";
 		}
 	}
-	void parseParams(const std::string &s)
+	void parseParams(const KString &s)
 	{
 		char *buf = xstrdup(s.c_str());
 		parseParams(buf);

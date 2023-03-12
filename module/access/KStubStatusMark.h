@@ -36,13 +36,9 @@ public:
 	{
 		return "stub_status";
 	}
-	std::string getHtml(KModel *model) override
-	{
-		return "";
+	void get_html(KModel* model, KWStream& s) override {
 	}
-	std::string getDisplay() override
-	{
-		return "";
+	void get_display(KWStream& s) override {
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override
 	{

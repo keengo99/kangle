@@ -31,16 +31,16 @@ class WhmExtend : public KXmlEvent{
 public:
 	WhmExtend();
 	virtual ~WhmExtend();
-	virtual bool init(std::string &whmFile);
+	virtual bool init(KString&whmFile);
 	int whmCall(const char *callName,const char *eventType,WhmContext *context);
-	std::string name;
+	KString name;
 	virtual const char *getType() = 0;
 	virtual void flush()
 	{
 	}
 protected:	
 	virtual int call(const char *callName,const char *eventType,WhmContext *context) = 0;
-	std::string file;
+	KString file;
 };
 
 #endif /* WHMEXTEND_H_ */

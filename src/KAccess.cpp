@@ -134,8 +134,8 @@
 using namespace std;
 
 KAccess* kaccess[2] = { 0 };
-std::map<std::string, KAcl*> KAccess::aclFactorys[2];
-std::map<std::string, KMark*> KAccess::markFactorys[2];
+std::map<KString, KAcl*> KAccess::aclFactorys[2];
+std::map<KString, KMark*> KAccess::markFactorys[2];
 
 void bind_access_config(kconfig::KConfigTree* tree, KAccess *access) {
 	if (tree->add(_KS(""), access) != nullptr) {
@@ -146,7 +146,7 @@ void bind_access_config(kconfig::KConfigTree* tree, KAccess *access) {
 
 int32_t KAccess::ShutdownMarkModule() {
 	int32_t result = 0;
-	std::map<std::string, KMark*>::iterator it;
+	std::map<KString, KMark*>::iterator it;
 	for (int i = 0; i < 2; i++) {
 		for (it = KAccess::markFactorys[i].begin(); it != markFactorys[i].end(); it++) {
 			result += (*it).second->shutdown();
@@ -194,11 +194,11 @@ bool KAccess::addAclModel(u_short type, KAcl* m, bool replace) {
 		m->add_ref();
 		for (u_short i = 0; i < 2; i++) {
 			addAclModel(i, m, replace);
-			//aclFactorys[i].insert(std::pair<std::string,KAcl *>(m->getName(),m));
+			//aclFactorys[i].insert(std::pair<KString,KAcl *>(m->getName(),m));
 		}
 		return true;
 	}
-	std::map<std::string, KAcl*>::iterator it = aclFactorys[type].find(m->getName());
+	std::map<KString, KAcl*>::iterator it = aclFactorys[type].find(m->getName());
 	if (it != aclFactorys[type].end()) {
 		if (!replace) {
 			m->release();
@@ -207,7 +207,7 @@ bool KAccess::addAclModel(u_short type, KAcl* m, bool replace) {
 		(*it).second->release();
 		aclFactorys[type].erase(it);
 	}
-	aclFactorys[type].insert(std::pair<std::string, KAcl*>(m->getName(), m));
+	aclFactorys[type].insert(std::pair<KString, KAcl*>(m->getName(), m));
 	return true;
 }
 bool KAccess::addMarkModel(u_short type, KMark* m, bool replace) {
@@ -215,11 +215,11 @@ bool KAccess::addMarkModel(u_short type, KMark* m, bool replace) {
 		m->add_ref();
 		for (u_short i = 0; i < 2; i++) {
 			addMarkModel(i, m, replace);
-			//markFactorys[i].insert(std::pair<std::string,KMark *>(m->getName(),m));
+			//markFactorys[i].insert(std::pair<KString,KMark *>(m->getName(),m));
 		}
 		return true;
 	}
-	std::map<std::string, KMark*>::iterator it = markFactorys[type].find(m->getName());
+	std::map<KString, KMark*>::iterator it = markFactorys[type].find(m->getName());
 	if (it != markFactorys[type].end()) {
 		if (!replace) {
 			m->release();
@@ -228,7 +228,7 @@ bool KAccess::addMarkModel(u_short type, KMark* m, bool replace) {
 		(*it).second->release();
 		markFactorys[type].erase(it);
 	}
-	markFactorys[type].insert(std::pair<std::string, KMark*>(m->getName(), m));
+	markFactorys[type].insert(std::pair<KString, KMark*>(m->getName(), m));
 	return true;
 }
 void KAccess::loadModel() {
@@ -482,15 +482,15 @@ kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KFetchObject** 
 	kfiber_rwlock_runlock(rwlock);
 	return jumpType;
 }
-KSafeTable KAccess::getTable(const std::string &table_name) {
+KSafeTable KAccess::getTable(const KString &table_name) {
 	auto it = tables.find(table_name);
 	if (it != tables.end()) {
 		return (*it).second;
 	}
 	return KSafeTable();
 }
-std::string KAccess::htmlAccess(const char* vh) {
-	std::stringstream s;
+KString KAccess::htmlAccess(const char* vh) {
+	KStringBuf s;
 	if (*vh == '\0') {
 		s << "<html><LINK href=/main.css type='text/css' rel=stylesheet>\n";
 		s << "<body>";
@@ -513,7 +513,7 @@ std::string KAccess::htmlAccess(const char* vh) {
 	}
 	return s.str();
 }
-bool KAccess::parseChainAction(const std::string& action, kgl_jump_type& jumpType,std::string& jumpName) {
+bool KAccess::parseChainAction(const KString& action, kgl_jump_type& jumpType,KString& jumpName) {
 	if (strcasecmp(action.c_str(), "deny") == 0) {
 		jumpType = JUMP_DENY;
 	}
@@ -568,7 +568,7 @@ bool KAccess::parseChainAction(const std::string& action, kgl_jump_type& jumpTyp
 	}
 	return true;
 }
-void KAccess::buildChainAction(kgl_jump_type jumpType, KJump* jump, std::stringstream& s) {
+void KAccess::buildChainAction(kgl_jump_type jumpType, KJump* jump, KWStream & s) {
 	bool jname = false;
 	switch (jumpType) {
 	case JUMP_DROP:
@@ -606,7 +606,7 @@ void KAccess::buildChainAction(kgl_jump_type jumpType, KJump* jump, std::strings
 		s << jump->name;
 	}
 }
-void KAccess::setChainAction(kgl_jump_type& jump_type, KJump** jump, const std::string &name) {
+void KAccess::setChainAction(kgl_jump_type& jump_type, KJump** jump, const KString &name) {
 	if (*jump) {
 		(*jump)->release();
 		*jump = nullptr;
@@ -649,8 +649,8 @@ void KAccess::setChainAction(kgl_jump_type& jump_type, KJump** jump, const std::
 	}
 	return;
 }
-std::vector<std::string> KAccess::getTableNames(std::string skipName, bool global) {
-	std::vector<std::string> table_names;
+std::vector<KString> KAccess::getTableNames(KString skipName, bool global) {
+	std::vector<KString> table_names;
 	for (auto it = tables.begin(); it != tables.end(); it++) {
 		if ((skipName.size() == 0 || (skipName.size() > 0 && skipName != (*it).first)) && (*it).first != BEGIN_TABLE) {
 			if (global) {
@@ -673,7 +673,7 @@ void KAccess::listTable(KVirtualHostEvent* ctx) {
 }
 void KAccess::parse_config(const KXmlAttribute& attr) {
 	auto locker = write_lock();
-	std::string jump_name;
+	KString jump_name;
 	parseChainAction(attr["action"], default_jump_type, jump_name);
 	setChainAction(this->default_jump_type, &this->default_jump, jump_name);
 }
@@ -701,7 +701,7 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 			return true;
 		}
 		auto locker = write_lock();
-		std::string jump_name;
+		KString jump_name;
 		parseChainAction("allow", default_jump_type, jump_name);
 		setChainAction(this->default_jump_type, &this->default_jump, jump_name);
 		break;

@@ -20,10 +20,10 @@ class KUpstream;
 class KRedirect: public KJump {
 public:
 	KRedirect();
-	KRedirect(const std::string& name) : KJump(name) {
+	KRedirect(const KString& name) : KJump(name) {
 	
 	}
-	KRedirect(std::string&& name) : KJump(name) {
+	KRedirect(KString&& name) : KJump(name) {
 	
 	}
 	

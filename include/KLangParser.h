@@ -26,7 +26,7 @@ public:
 	virtual ~KLangParser();
 	bool startElement(KXmlContext *context) override;
 	bool startCharacter(KXmlContext *context, char *character, int len) override;
-	std::map<std::string,std::string> langs;
+	std::map<KString,KString> langs;
 };
 
 #endif /*KLANGPARSER_H_*/

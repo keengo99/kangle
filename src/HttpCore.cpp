@@ -176,7 +176,7 @@ KGL_RESULT send_error2(KHttpRequest* rq, int code, const char* reason) {
 	}
 	KAutoBuffer s(rq->sink->pool);
 	assert(rq);
-	std::string errorPage;
+	KString errorPage;
 	if (conf.gvm->vhs.getErrorPage(code, errorPage)) {
 		if (strncasecmp(errorPage.c_str(), "file://", 7) == 0) {
 			errorPage = errorPage.substr(7, errorPage.size() - 7);
@@ -538,7 +538,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 		}
 	do_not_insert: av = av->next;
 	}
-	KStringBuf host;
+	KStringStream host;
 	rq->sink->data.url->GetHost(host);
 	env->add_http_header(_KS("Host"), host.c_str(), host.size());
 	int64_t content_length;
@@ -697,7 +697,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 	if (brd && brd->params.size() > 0) {
 		std::list<KParamItem>::iterator it;
 		for (it = brd->params.begin(); it != brd->params.end(); it++) {
-			KStringBuf* s = KRewriteMarkEx::getString(NULL, (*it).value.c_str(), rq, NULL, NULL);
+			auto s = KRewriteMarkEx::getString(NULL, (*it).value.c_str(), rq, NULL, NULL);
 			if (s) {
 				env->add_env((*it).name.c_str(), (*it).name.size(), (const char*)s->c_str(), s->size());
 				delete s;

@@ -18,20 +18,20 @@ kev_result next_dso_init(KOPAQUE data, void* arg, int got)
 }
 static int write_int(void* server_ctx, int value)
 {
-	std::stringstream* s = (std::stringstream*)server_ctx;
+	KWStream * s = (KWStream *)server_ctx;
 	*s << value;
 	return 0;
 }
 static int write_string(void* server_ctx, const char* str, int len, int build_flags)
 {
-	std::stringstream* s = (std::stringstream*)server_ctx;
+	KWStream* s = (KWStream *)server_ctx;
 	if (KBIT_TEST(build_flags, KGL_BUILD_HTML_ENCODE)) {
 		char* buf = KXml::htmlEncode(str, len, NULL);
-		s->write(buf, len);
+		s->write_all(buf, len);
 		free(buf);
 		return 0;
 	}
-	s->write(str, len);
+	s->write_all(str, len);
 	return 0;
 }
 static const char* get_text(const kgl_config_body*cn)
@@ -153,17 +153,16 @@ void KAccessDso::parse_child(const kconfig::KXmlChanged* changed) {
 		throw KXmlException("parse child error");
 	}
 }
-std::string KAccessDso::getHtml(KModel* model)
+void KAccessDso::getHtml(KModel* model, KWStream& s)
 {
-	return "";
+	
 }
-std::string KAccessDso::getDisplay()
+void KAccessDso::getDisplay(KWStream& s)
 {
-	return build(0);
+	return build(0,s);
 }
-std::string KAccessDso::build(uint32_t type)
+void KAccessDso::build(uint32_t type, KWStream& s)
 {
-	std::stringstream s;
 	kgl_access_build builder;
 	memset(&builder, 0, sizeof(builder));
 	builder.cn = &s;
@@ -171,7 +170,7 @@ std::string KAccessDso::build(uint32_t type)
 	builder.write_string = write_string;
 	builder.write_int = write_int;
 	access->build(&builder, type);
-	return s.str();
+	return;
 }
 void KAccessDsoMark::init_event()
 {

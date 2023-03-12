@@ -28,6 +28,7 @@
 #include "kfile.h"
 #include "kasync_file.h"
 #include "kmalloc.h"
+#include "KStringBuf.h"
 #ifdef _WIN32
 #define ENABLE_UNICODE_FILE 1
 #endif
@@ -59,7 +60,7 @@ public:
 	const char* get_base();
 	CheckLinkState checkLink(const char *path, int follow_link);
 	bool operator ==(KFileName &a);
-	static bool tripDir(std::string &dir);
+	static bool tripDir(KString &dir);
 	static char *tripDir2(const char *dir, const char split_char);
 	static void tripDir3(char *path,const char split_char);
 	static char *concatDir(const char *doc_root,const char *file);

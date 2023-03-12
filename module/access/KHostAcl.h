@@ -24,8 +24,8 @@
 #include "KVirtualHostContainer.h"
 inline void multi_domain_iterator(void *arg,const char *domain,void *vh)
 {
-	std::stringstream *s = (std::stringstream *)arg;
-	if (!s->str().empty()) {
+	KWStream*s = (KWStream*)arg;
+	if (!s->empty()) {
 		*s << "|";
 	}
 	*s << domain;
@@ -60,18 +60,16 @@ public:
 	const char *getName() override {
 		return "wide_host";
 	}
-	std::string getDisplay() override {
-		return this->getValList();
+	void get_display(KWStream& s) override {
+		this->getValList(s);
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel *model, KWStream &s) override {
 		s << "<input name=v size=40 placeholder='abc.com|*.abc.com' value='";
 		KWideHostAcl *acl = (KWideHostAcl *) (model);
 		if (acl) {
-			s << acl->getValList();
+			acl->getValList(s);
 		}
-		s << "'>";		
-		return s.str();
+		s << "'>";
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		return vhc.find(rq->sink->data.url->host)!=NULL;		
@@ -95,10 +93,9 @@ public:
 		free(buf);
 	}
 private:
-	std::string getValList() {
-		std::stringstream s;
+	void getValList(KWStream& s) {
 		vhc.iterator(multi_domain_iterator,&s);
-		return s.str();
+		return;
 	}
 	KDomainMap vhc;
 };

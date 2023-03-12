@@ -26,12 +26,10 @@ public:
 		}
 		return true;
 	}
-	std::string getDisplay()override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		if (header) {
 			s << header;
 		}
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -41,15 +39,13 @@ public:
 		header = strdup(attribute["header"].c_str());
 		header_len = strlen(header);
 	}
-	std::string getHtml(KModel* model) override {
+	void get_html(KModel* model, KWStream& s) override {
 		KVaryMark* m = (KVaryMark*)model;
-		std::stringstream s;
 		s << "header:<input name='header' value='";
 		if (m && m->header) {
 			s << m->header;
 		}
 		s << "'>";
-		return s.str();
 	}
 	KMark* new_instance() override {
 		return new KVaryMark;

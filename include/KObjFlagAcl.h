@@ -13,12 +13,10 @@ public:
 	{
 		return KBIT_TEST(obj->index.flags,flag)>0;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		if (KBIT_TEST(flag,ANSW_NO_CACHE)) {
 			s << "nocache,";
 		}
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		flag=0;
@@ -40,15 +38,13 @@ public:
 		}
 		free(buf);
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "<input type=text name=flag value='";
 		if (model) {
-			s << model->getDisplay();
+			model->get_display(s);
 		}
 
 		s << "'>(available:nocache)";
-		return s.str();
 	}
 	KAcl *new_instance() override {
 		return new KObjFlagAcl();

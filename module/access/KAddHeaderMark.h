@@ -22,7 +22,7 @@ public:
 	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject **fo) override
 	{
 		if (attr && val) {
-			KStringBuf *s = KRewriteMarkEx::getString(NULL,val,rq,NULL,NULL);
+			auto s = KRewriteMarkEx::getString(NULL,val,rq,NULL,NULL);
 			if (s==NULL) {
 				return true;
 			}
@@ -46,9 +46,8 @@ public:
 	{
 		return "add_header";
 	}
-	std::string getHtml(KModel *model) override
+	void get_html(KModel *model,KWStream &s) override
 	{
-		std::stringstream s;
 		s << "attr:<input name='attr' value='";
 		KAddHeaderMark *mark = (KAddHeaderMark *) (model);
 		if (mark && mark->attr) {
@@ -60,11 +59,8 @@ public:
 			s << mark->val;
 		}
 		s << "'>\n";
-		return s.str();
 	}
-	std::string getDisplay() override
-	{
-		std::stringstream s;
+	void get_display(KWStream& s)override {
 		if(attr){
 			s << attr;
 		}
@@ -72,7 +68,6 @@ public:
 		if(val){
 			s << val;
 		}
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -120,7 +115,7 @@ public:
 	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
 	{
 		if (attr && val) {
-			KStringBuf *s = KRewriteMarkEx::getString(NULL, val, rq, NULL, NULL);
+			auto s = KRewriteMarkEx::getString(NULL, val, rq, NULL, NULL);
 			if (s == NULL) {
 				return true;
 			}
@@ -136,9 +131,7 @@ public:
 	{
 		return "add_response_header";
 	}
-	std::string getHtml(KModel *model) override
-	{
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "attr:<input name='attr' value='";
 		KAddResponseHeaderMark *mark = (KAddResponseHeaderMark *)(model);
 		if (mark && mark->attr) {
@@ -150,11 +143,8 @@ public:
 			s << mark->val;
 		}
 		s << "'>\n";
-		return s.str();
 	}
-	std::string getDisplay() override
-	{
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		if (attr) {
 			s << attr;
 		}
@@ -162,7 +152,6 @@ public:
 		if (val) {
 			s << val;
 		}
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

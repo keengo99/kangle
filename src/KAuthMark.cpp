@@ -138,7 +138,7 @@ KAuthMark::~KAuthMark() {
 	}
 }
 bool KAuthMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) {
-	std::string path;
+	KString path;
 #ifndef HTTP_PROXY
 	auto svh = rq->get_virtual_host();
 	if (svh && !this->isGlobal)
@@ -180,8 +180,7 @@ bool KAuthMark::checkLogin(KHttpRequest *rq) {
 	}
 	bool result = false;
 	lock.Lock();
-	map<string, string>::iterator it;
-	it = users.find(rq->auth->getUser());
+	auto it = users.find(rq->auth->getUser());
 	if (it==users.end()) {
 		it = users.find("*");
 	}
@@ -191,7 +190,7 @@ bool KAuthMark::checkLogin(KHttpRequest *rq) {
 	lock.Unlock();
 	return result;
 }
-bool KAuthMark::loadAuthFile(std::string &path) {
+bool KAuthMark::loadAuthFile(KString&path) {
 	INT64 diffTime = kgl_current_sec - lastLoad;
 	if (diffTime>-10 && diffTime<10) {
 		return lastState!=OPEN_FAILED;
@@ -204,7 +203,7 @@ bool KAuthMark::loadAuthFile(std::string &path) {
 		path = file;
 	}
 	KLineFile lFile;
-	std::map<std::string,std::string> users;
+	std::map<KString, KString> users;
 	lock.Lock();
 	lastState = lFile.open(path.c_str(), lastModified);
 	if (lastState == OPEN_NOT_MODIFIED) {
@@ -240,8 +239,7 @@ bool KAuthMark::loadAuthFile(std::string &path) {
 					users.insert(pair<string, string> (user, passwd));
 				}
 			} else {
-				std::map<std::string,std::string>::iterator it;
-				it = users.find(user);
+				auto it = users.find(user);
 				if(it!=users.end()){
 					(*it).second = passwd;
 				}
@@ -262,8 +260,7 @@ KMark *KAuthMark::new_instance() {
 const char *KAuthMark::getName() {
 	return "auth";
 }
-std::string KAuthMark::getHtml(KModel *model) {
-	std::stringstream s;
+void KAuthMark::get_html(KModel *model,KWStream &s) {
 	KAuthMark *acl = (KAuthMark *) model;
 	s << "file:<input name='file' value='";
 	if (acl) {
@@ -294,11 +291,10 @@ std::string KAuthMark::getHtml(KModel *model) {
 		s << "checked";
 	}
 	s << ">file_sign";
-	return s.str();
 }
-std::string KAuthMark::getRequireUsers()
+KString KAuthMark::getRequireUsers()
 {
-	std::stringstream s;
+	KStringBuf s;
 	if(all){
 		s << "*";
 	}else{
@@ -310,8 +306,7 @@ std::string KAuthMark::getRequireUsers()
 			s << reg_user->getModel();
 		} else {
 			lock.Lock();
-			std::map<std::string,std::string>::iterator it;
-			for(it=users.begin();it!=users.end();it++){
+			for(auto it=users.begin();it!=users.end();it++){
 				if(it!=users.begin()){
 					s << ",";
 				}
@@ -322,8 +317,7 @@ std::string KAuthMark::getRequireUsers()
 	}
 	return s.str();
 }
-std::string KAuthMark::getDisplay() {
-	stringstream s;
+void KAuthMark::get_display(KWStream &s) {
 	s << "realm:" << (realm?realm:"") << " ";
 	s << KHttpAuth::buildType(auth_type) << " ";
 	s << "file:" << file << " crypt_type:" << buildCryptType(cryptType);
@@ -340,7 +334,6 @@ std::string KAuthMark::getDisplay() {
 		s << "<font color='green'>success</font>";
 	}
 	s << ",require:" << getRequireUsers();
-	return s.str();
 }
 void KAuthMark::parse_config(const khttpd::KXmlNodeBody* xml) {
 	auto attribute = xml->attr();
@@ -357,7 +350,7 @@ void KAuthMark::parse_config(const khttpd::KXmlNodeBody* xml) {
 	if(attribute["realm"].size()>0){
 		realm = xstrdup(attribute["realm"].c_str());
 	}
-	string require = attribute["require"];
+	auto  require = attribute["require"];
 	users.clear();
 	if (reg_user) {
 		delete reg_user;

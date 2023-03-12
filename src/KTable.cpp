@@ -101,7 +101,7 @@ kgl_jump_type KTable::match(KHttpRequest* rq, KHttpObject* obj, unsigned& checke
 	}
 	return JUMP_CONTINUE;
 }
-void KTable::htmlTable(std::stringstream &s,const char *vh,u_short accessType) {
+void KTable::htmlTable(KWStream &s,const char *vh,u_short accessType) {
 	s << name << "," << LANG_REFS << get_ref();
 #if 0
 	s << "[<a href=\"javascript:if(confirm('" << LANG_CONFIRM_DELETE << name
@@ -191,7 +191,7 @@ void KTable::htmlTable(std::stringstream &s,const char *vh,u_short accessType) {
 			<< "</a>]<br><br>";
 #endif
 }
-KTable::KTable(KAccess *access,const std::string &name) : KJump(name) {
+KTable::KTable(KAccess *access,const KString&name) : KJump(name) {
 	this->access = access;
 }
 KTable::~KTable() {

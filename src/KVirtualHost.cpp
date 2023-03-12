@@ -47,7 +47,7 @@
 
 
 
-KVirtualHost::KVirtualHost(const std::string& name) {
+KVirtualHost::KVirtualHost(const KString& name) {
 	this->name = name;
 	flags = 0;
 #ifdef ENABLE_VH_LOG_FILE
@@ -262,7 +262,7 @@ HANDLE KVirtualHost::logon(bool& result) {
 	return token;
 }
 #endif
-bool KVirtualHost::setRunAs(const std::string& user, const std::string& group) {
+bool KVirtualHost::setRunAs(const KString& user, const KString& group) {
 	//if (user == NULL || strlen(group) == 0) {
 	this->user = user;
 	this->group = group;
@@ -295,7 +295,7 @@ bool KVirtualHost::setRunAs(const std::string& user, const std::string& group) {
 #endif
 }
 #endif
-bool KVirtualHost::setDocRoot(const std::string& docRoot) {
+bool KVirtualHost::setDocRoot(const KString& docRoot) {
 	if (docRoot.empty()) {
 		return false;
 	}
@@ -335,7 +335,7 @@ void KVirtualHost::parse_log_config(const KXmlAttribute& attr) {
 		logger = new KLogElement;
 		logger->setPath(path);
 		logger->place = LOG_FILE;
-		logManage.logs.insert(std::pair<std::string, KLogElement*>(path, logger));
+		logManage.logs.insert(std::pair<KString, KLogElement*>(path, logger));
 	} else {
 		logger = (*it).second;
 	}
@@ -371,7 +371,7 @@ int KVirtualHost::checkPostMap(KHttpRequest* rq, KFetchObject** fo) {
 	}
 	return access[RESPONSE]->checkPostMap(rq, rq->ctx.obj, fo);
 }
-void KVirtualHost::setAccess(const std::string& access_file) {
+void KVirtualHost::setAccess(const KString& access_file) {
 	this->user_access = access_file;
 }
 
@@ -415,7 +415,9 @@ void KVirtualHost::copy_to(KVirtualHost* vh) {
 #ifdef ENABLE_UPSTREAM_PARAM
 		br->params = file_rd.second->params;
 #endif
-		br->allowMethod.setMethod(file_rd.second->allowMethod.getMethod().c_str());
+		KStringBuf s;
+		file_rd.second->allowMethod.getMethod(s);
+		br->allowMethod.setMethod(s.c_str());
 		vh->redirects.insert(std::pair<char*, KBaseRedirect*>(xstrdup(file_rd.first), br));
 	}
 	for (auto&& path : pathRedirects) {
@@ -427,7 +429,9 @@ void KVirtualHost::copy_to(KVirtualHost* vh) {
 #ifdef ENABLE_UPSTREAM_PARAM
 		prd->params = path->params;
 #endif
-		prd->allowMethod.setMethod(path->allowMethod.getMethod().c_str());
+		KStringBuf s;
+		path->allowMethod.getMethod(s);
+		prd->allowMethod.setMethod(s.c_str());
 		vh->pathRedirects.push_back(prd);
 	}
 	vh->indexFiles = indexFiles;
@@ -558,7 +562,7 @@ bool KVirtualHost::caculateNeedKillProcess(KVirtualHost* ov) {
 	return false;
 }
 #endif
-std::string KVirtualHost::getApp(KHttpRequest* rq) {
+KString KVirtualHost::getApp(KHttpRequest* rq) {
 	if (app <= 0) {
 		return getUser();
 	}
@@ -574,21 +578,20 @@ void KVirtualHost::setApp(int app) {
 	}
 	apps.clear();
 	this->app = (uint8_t)app;
-	std::stringstream s;
-	for (int i = 0; i < app; i++) {
-		s.str("");
+	KStringBuf s;
+	for (int i = 0; i < app; i++) {		
 		if (app_share) {
 			s << getUser();
 		} else {
 			s << name;
 		}
 		s << ":" << (i + 1);
-		apps.push_back(s.str());
+		apps.push_back(s.reset());
 	}
 	apps.shrink_to_fit();
 }
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
-std::string KVirtualHost::get_cert_file() {
+KString KVirtualHost::get_cert_file() {
 	if (cert_file.empty()) {
 		return cert_file;
 	}
@@ -600,7 +603,7 @@ std::string KVirtualHost::get_cert_file() {
 	}
 	return cert_file;
 }
-std::string KVirtualHost::get_key_file() {
+KString KVirtualHost::get_key_file() {
 	if (key_file.empty()) {
 		return key_file;
 	}
@@ -612,7 +615,7 @@ std::string KVirtualHost::get_key_file() {
 	}
 	return key_file;
 }
-bool KVirtualHost::setSSLInfo(const std::string& certfile, const std::string& keyfile, const std::string& cipher, const std::string& protocols) {
+bool KVirtualHost::setSSLInfo(const KString& certfile, const KString& keyfile, const KString& cipher, const KString& protocols) {
 	this->cert_file = certfile;
 	this->key_file = keyfile;
 	this->cipher = cipher;
@@ -635,10 +638,10 @@ bool KVirtualHost::parse_xml(const KXmlAttribute& attr, KVirtualHost* ov) {
 	setAccess(attr["access"]);
 	htaccess = attr["htaccess"];
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
-	std::string certfile;
-	std::string keyfile;
-	std::string cipher;
-	std::string protocols;
+	KString certfile;
+	KString keyfile;
+	KString cipher;
+	KString protocols;
 #ifdef ENABLE_HTTP2
 	alpn = 0;
 	if (!attr["alpn"].empty()) {
@@ -749,7 +752,7 @@ bool KVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigE
 			return true;
 		}
 		if (xml->is_tag(_KS("bind"))) {
-			std::list<std::string> binds;
+			std::list<KString> binds;
 			for (uint32_t index = 0;; ++index) {
 				auto body = xml->get_body(index);
 				if (!body) {
@@ -779,7 +782,7 @@ bool KVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigE
 			return true;
 		}
 		if (xml->is_tag(_KS("bind"))) {
-			std::list<std::string> binds;		
+			std::list<KString> binds;		
 			conf.gvm->updateVirtualHost(this, binds);
 			return true;
 		}		

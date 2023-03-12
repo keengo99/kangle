@@ -47,7 +47,7 @@ KHttpObjectBody::KHttpObjectBody(KHttpObjectBody* data)
 		if (data->i.condition_is_time) {
 			this->last_modified = data->last_modified;
 		} else {
-			this->etag = (kgl_len_str_t*)malloc(data->etag->len + 1 + sizeof(kgl_len_str_t));
+			this->etag = (kgl_len_str_t*)malloc(kgl_len_str_size(data->etag->len));
 			memcpy(this->etag, data->etag, data->etag->len + sizeof(kgl_len_str_t));
 			this->etag->data[etag->len] = '\0';
 		}
@@ -242,11 +242,11 @@ void KHttpObjectBody::set_etag(const char* val, size_t len)
 		return;
 	}
 	i.condition_is_time = 0;
-	etag = (kgl_len_str_t*)xmalloc(len + sizeof(kgl_len_str_t) + 1);
+	etag = (kgl_len_str_t*)xmalloc(kgl_len_str_size(len));
 	if (!etag) {
 		return;
 	}
-	etag->len = len;
+	etag->len = (uint32_t)len;
 	memcpy(etag->data, val, len);
 	etag->data[len] = '\0';
 }
@@ -321,7 +321,7 @@ void KHttpObject::unlinkDiskFile()
 }
 kgl_auto_cstr KHttpObject::get_filename(bool part)
 {
-	KStringBuf s;
+	KStringStream s;
 	get_disk_base_dir(s);
 	if (dk.filename1 == 0) {
 		dk.filename1 = katom_get((void*)&disk_file_base);

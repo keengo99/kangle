@@ -12,7 +12,7 @@
 
 using namespace std;
 #ifdef ENABLE_VH_RUN_AS
-KCmdPoolableRedirect::KCmdPoolableRedirect(const std::string &name) : KPoolableRedirect(name) {
+KCmdPoolableRedirect::KCmdPoolableRedirect(const KString&name) : KPoolableRedirect(name) {
 	//lifeTime = EXTENDPROGRAM_DEFAULT_LIFETIME;
 	type = WORK_TYPE_SP;
 	chuser = true; 
@@ -85,7 +85,7 @@ bool KCmdPoolableRedirect::Exec(KVirtualHost* vh, KListenPipeStream* st,bool isS
 			rdst = RDSTD_INPUT;
 		}
 	}
-	std::string program;
+	KString program;
 	for (unsigned j = 0; j < args.size(); j++) {
 		const char* tmp_arg = args[j];
 		if (j == 0) {
@@ -175,7 +175,7 @@ bool KCmdPoolableRedirect::setWorkType(const char *typeStr,bool changed) {
 	if (changed) {
 		pm.clean();
 	}
-	std::stringstream s;
+	KStringBuf s;
 	s << "cmd:" << name;
 	pm.setName(s.str().c_str());
 	return true;

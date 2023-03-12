@@ -96,7 +96,7 @@ void init_vh_data(vh_data* vd, khttpd::KXmlNodeBody* body) {
 	vd->ctx = (kgl_config_body*)body;
 }
 static const char* getSystemEnv(void* param, const char* name) {
-	static std::string value;
+	static KString value;
 	const char* value2 = getSystemEnv(name);
 	if (value2) {
 		return value2;
@@ -135,7 +135,7 @@ bool KVirtualHostDatabase::parse_config(khttpd::KXmlNodeBody* xml) {
 	auto attribute = xml->attr();
 	bool result = false;
 	kfiber_mutex_lock(lock);
-	std::string driver = attribute["driver"];
+	auto driver = attribute["driver"];
 	if (vhm.createConnection == NULL) {
 
 		if (!isAbsolutePath(driver.c_str())) {

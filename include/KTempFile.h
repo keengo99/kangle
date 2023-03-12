@@ -10,6 +10,7 @@
 #include "kselector.h"
 #include "KHttpStream.h"
 #include "kfiber.h"
+#include "KStringBuf.h"
 
 #ifdef ENABLE_TF_EXCHANGE
 #define TEMPFILE_POST_CHUNK_SIZE     8192
@@ -38,7 +39,7 @@ private:
 	volatile int64_t read_offset;
 	kfiber_file* fp;
 	kfiber_mutex* lock;
-	std::string file;
+	KString file;
 	volatile bool write_is_end;
 };
 

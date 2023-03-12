@@ -120,7 +120,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 		xfree(path);
 		path = NULL;
 	}
-	s.clean();
+	s.clear();
 	s << url->host;
 	if (url->port != defaultPort) {
 		s.WSTR(":");
@@ -159,7 +159,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 				goto do_not_insert;
 			}
 			x_forwarded_for_inserted = true;
-			s.clean();
+			s.clear();
 			s.write_all(av->buf+av->val_offset, av->val_len);
 			s.write_all(_KS(","));
 			s << ips;
@@ -173,7 +173,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 				goto do_not_insert;
 			}
 			via_inserted = true;
-			s.clean();
+			s.clear();
 			insert_via(rq, s, av->buf+av->val_offset, av->val_len);
 			if (!client->send_header(kgl_expand_string("Via"), s.buf(), (hlen_t)s.size())) {
 				return false;
@@ -226,7 +226,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 	}
 	kgl_request_range* range = in->f->get_range(in->ctx);
 	if (range) {
-		s.clean();
+		s.clear();
 		s << "bytes=";
 		if (range->from >= 0) {
 			s << range->from << "-";
@@ -273,7 +273,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 		client->send_header(kgl_expand_string("X-Forwarded-For"), ips, ips_len);
 	}
 	if (KBIT_TEST(rq->ctx.filter_flags, RF_VIA) && !via_inserted) {
-		s.clean();
+		s.clear();
 		insert_via(rq, s, NULL);
 		if (!client->send_header(kgl_expand_string("Via"), s.buf(), (hlen_t)s.size())) {
 			return false;

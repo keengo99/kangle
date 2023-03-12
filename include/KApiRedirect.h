@@ -21,7 +21,7 @@
 
 class KApiRedirect final: public KRedirect,public KExtendProgram {
 public:
-	KApiRedirect(const std::string &name);
+	KApiRedirect(const KString &name);
 	const char *getName()
 	{
 		return name.c_str();
@@ -40,9 +40,9 @@ public:
 		return false;
 	}
 	bool load();
-	void setFile(const std::string& file);
+	void setFile(const KString& file);
 public:
-	std::string apiFile;
+	KString apiFile;
 	KApiDso dso;
 protected:
 	~KApiRedirect();

@@ -33,11 +33,9 @@ public:
 		}
 		return false;
 	}	
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << "&gt;" << request << "/" << second << "s ";
 		s << rate.getCount();
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -48,8 +46,7 @@ public:
 			block_time = 60;
 		}
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		KIpUrlRateMark *m = (KIpUrlRateMark *)model;
 		s << "rate&gt;request:<input name='request' size=4 value='";
 		if(m){
@@ -66,7 +63,6 @@ public:
 			s << m->block_time;
 		}
 		s << "'>";
-		return s.str();
 	}
 private:
 	bool match(KHttpRequest *rq, KHttpObject *obj) {

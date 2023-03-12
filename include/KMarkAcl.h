@@ -33,8 +33,7 @@ public:
 		}
 		return false;
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		KMarkAcl *m = (KMarkAcl *)model;
 		s << "mark:<select name='op'>";
 		for(int i=0;i<3;i++){
@@ -50,12 +49,9 @@ public:
 			s << (int)m->mark;
 		}
 		s << "'>";
-		return s.str();
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << getMarkOp2(op) << (int)mark;
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

@@ -55,9 +55,7 @@ public:
 	{
 		return "port_map";
 	}
-	std::string getHtml(KModel *model)override
-	{
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "host:<input name='host' value='";
 		KPortMapMark *m = (KPortMapMark *)model;
 		if (m) {
@@ -72,16 +70,12 @@ public:
 			s << m->param;
 		}
 		s << "'>";
-		return s.str();
 	}
-	std::string getDisplay()override
-	{
-		std::stringstream s;
+	void get_display(KWStream& s)override {
 		s << host << ":" << port;
 		if (!param.empty()) {
 			s << "?" << param;
 		}
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -90,9 +84,9 @@ public:
 		param = attribute["param"];
 	}
 private:
-	std::string host;
+	KString host;
 	int port;
-	std::string param;
+	KString param;
 };
 #endif
 #endif

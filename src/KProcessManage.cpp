@@ -65,7 +65,7 @@ void KProcessManage::flushCpuUsage(ULONG64 cpuTime) {
 	lock.Unlock();
 }
 #endif
-int KProcessManage::getPortMap(KVirtualHost *vh,KExtendProgram *rd,std::string name,int app)
+int KProcessManage::getPortMap(KVirtualHost *vh,KExtendProgram *rd,KString name,int app)
 {
 	std::map<USER_T, KVirtualHostProcess *>::iterator it;
 	if(app<0 || app>(int)vh->apps.size()){
@@ -100,17 +100,15 @@ void KProcessManage::refresh(time_t nowTime) {
 
 }
 
-void KProcessManage::getProcessInfo(std::stringstream &s) {
-
-	std::map<USER_T, KVirtualHostProcess *>::iterator it;
+void KProcessManage::getProcessInfo(KWStream&s) {
 	int count = 0;
-	std::stringstream t;
+	KStringBuf t;
 	lock.Lock();
 	if (pools.size() == 0) {
 		lock.Unlock();
 		return;
 	}
-	for (it = pools.begin(); it != pools.end(); it++) {
+	for (auto it = pools.begin(); it != pools.end(); it++) {
 		(*it).second->getProcessInfo((*it).first, name, t,count);
 	}
 	lock.Unlock();

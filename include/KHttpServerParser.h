@@ -28,10 +28,6 @@ class KHttpServerParser {
 public:
 	KHttpServerParser();
 	virtual ~KHttpServerParser();
-	static bool buildVirtualHost(KAttributeHelper *ah,KVirtualHost *virtualHost,KBaseVirtualHost *gvh,KVirtualHost *ov = NULL);
-	static KVirtualHost *buildVirtualHost(KXmlAttribute&attribute,KBaseVirtualHost *gvh,KVirtualHost *ov);
-	static KVirtualHost *buildVirtualHost(KAttributeHelper *ah,KBaseVirtualHost *gvh,KVirtualHost *ov = NULL);
-	static bool buildBaseVirtualHost(KXmlAttribute &attribute,KBaseVirtualHost *vh);
 private:
 	bool ParseSsl(KVirtualHostManage *vhm, std::map<std::string, std::string> &attribute);
 };

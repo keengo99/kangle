@@ -81,7 +81,7 @@ kgl_auto_cstr getCacheIndexFile();
 class KHttpObjectBody;
 bool read_obj_head(KHttpObjectBody *data,char **hot,int &hotlen);
 void scan_disk_cache();
-void get_disk_base_dir(KStringBuf &s);
+void get_disk_base_dir(KWStream &s);
 bool get_disk_size(INT64 &total_size, INT64 &free_size);
 INT64 get_need_free_disk_size(int used_radio);
 void init_disk_cache(bool firstTime);

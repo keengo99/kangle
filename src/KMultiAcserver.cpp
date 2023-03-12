@@ -80,7 +80,7 @@ void KMultiAcserver::init() {
 	icp = NULL;
 #endif
 }
-KMultiAcserver::KMultiAcserver(const std::string &name) : KPoolableRedirect(name) {
+KMultiAcserver::KMultiAcserver(const KString &name) : KPoolableRedirect(name) {
 	init();
 }
 KMultiAcserver::KMultiAcserver(KSockPoolHelper* nodes) : KPoolableRedirect(""){
@@ -350,7 +350,7 @@ bool KMultiAcserver::addNode(KXmlAttribute& attr, char* self_ip) {
 	return false;
 }
 bool KMultiAcserver::editNode(KXmlAttribute& attr) {
-	string action = attr["action"];
+	auto  action = attr["action"];
 	if (action == "edit") {
 		int id = atoi(attr["id"].c_str());
 		lock.Lock();
@@ -390,15 +390,13 @@ void KMultiAcserver::addNode(KSockPoolHelper* sockHelper) {
 	}
 	nodesCount++;
 }
-std::string KMultiAcserver::nodeForm(std::string name, KMultiAcserver* as,
-	unsigned nodeIndex) {
+void  KMultiAcserver::nodeForm(KWStream& s, const KString &name, KMultiAcserver* as,unsigned nodeIndex) {
 
 	KSockPoolHelper* helper = NULL;
 	if (as) {
 		as->lock.Lock();
 		helper = as->getIndexNode((int)nodeIndex);
 	}
-	stringstream s;
 	s << "<form action='/macserver_node?name=" << name << "&action=";
 	if (helper) {
 		s << "edit";
@@ -437,7 +435,7 @@ std::string KMultiAcserver::nodeForm(std::string name, KMultiAcserver* as,
 	}
 	s << "param:<input name='param' value='";
 	if (param) {
-		s.write(param->data, param->len);
+		s.write_all(param->data, param->len);
 	}
 	kstring_release(param);
 	s << "'><br>";
@@ -447,7 +445,6 @@ std::string KMultiAcserver::nodeForm(std::string name, KMultiAcserver* as,
 	if (as) {
 		as->lock.Unlock();
 	}
-	return s.str();
 }
 KSockPoolHelper* KMultiAcserver::getIndexNode(int index) {
 	if (index >= nodesCount) {
@@ -495,7 +492,7 @@ void KMultiAcserver::shutdown() {
 	}
 	lock.Unlock();
 }
-void KMultiAcserver::getNodeInfo(std::stringstream& s) {
+void KMultiAcserver::getNodeInfo(KWStream& s) {
 	lock.Lock();
 	KSockPoolHelper* node = nodes;
 	for (int i = 0; i < nodesCount; i++) {
@@ -512,7 +509,7 @@ void KMultiAcserver::getNodeInfo(std::stringstream& s) {
 	}
 	lock.Unlock();
 }
-void KMultiAcserver::getHtml(std::stringstream& s) {
+void KMultiAcserver::getHtml(KWStream & s) {
 	lock.Lock();
 	s << "<tr><td rowspan='" << nodesCount << "'>";
 	s << "[<a href=\"javascript:if(confirm('really delete')){ window.location='/del_macserver?name="
@@ -570,7 +567,7 @@ void KMultiAcserver::getHtml(std::stringstream& s) {
 	}
 	lock.Unlock();
 }
-void KMultiAcserver::baseHtml(KMultiAcserver* mserver, std::stringstream& s) {
+void KMultiAcserver::baseHtml(KMultiAcserver* mserver, KWStream& s) {
 	KPoolableRedirect::build_proto_html(mserver, s);
 	s << "<input type='checkbox' name='ip_hash' value='1' ";
 	if (mserver && mserver->ip_hash) {
@@ -598,10 +595,9 @@ void KMultiAcserver::baseHtml(KMultiAcserver* mserver, std::stringstream& s) {
 #endif
 
 }
-std::string KMultiAcserver::form(KMultiAcserver* mserver) {
-	std::stringstream s;
+void KMultiAcserver::form(KMultiAcserver* mserver, KWStream& s) {
 	s << "<form action='/macserveradd?action=" << (mserver ? "edit" : "add") << "' method=post>\n";
-	s << LANG_NAME << ":<input name=name value='";
+	s << LANG_NAME<< ":<input name=name value='";
 	if (mserver) {
 		s << mserver->name;
 	}
@@ -612,7 +608,6 @@ std::string KMultiAcserver::form(KMultiAcserver* mserver) {
 	s << "><br>";
 	baseHtml(mserver, s);
 	s << "<input type=submit value=" << LANG_ADD << "></form>\n";
-	return s.str();
 }
 void KMultiAcserver::parseNode(const char* nodeString) {
 	KSockPoolHelper* nodes = KPoolableRedirect::parse_nodes(nodeString);
@@ -678,7 +673,7 @@ void KMultiAcserver::set_proto(Proto_t proto) {
 	}
 	lock.Unlock();
 }
-void KMultiAcserver::parse(std::map<std::string, std::string>& attribute) {
+void KMultiAcserver::parse(KXmlAttribute& attribute) {
 #ifdef ENABLE_MSERVER_ICP
 	setIcp(attribute["icp"].c_str());
 #endif
@@ -743,7 +738,7 @@ void KMultiAcserver::buildVNode() {
 		helper = n;
 	}
 }
-void KMultiAcserver::buildAttribute(std::stringstream& s) {
+void KMultiAcserver::buildAttribute(KWStream& s) {
 	s << "proto='";
 	s << KPoolableRedirect::buildProto(proto);
 	s << "' ip_hash='" << (ip_hash ? 1 : 0) << "' ";

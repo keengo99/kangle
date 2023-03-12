@@ -34,19 +34,16 @@ public:
 		}
 		return second>s;
 	}
-	std::string getDisplay() override{
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << "&gt;" << request << "/" << second << "s ";
 		s << rate.getCount();
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
 		request = atoi(attribute["request"].c_str());
 		second = atoi(attribute["second"].c_str());
 	}
-	std::string getHtml(KModel *model) override{
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		KIpRateAcl *m = (KIpRateAcl *)model;
 		s << "rate&gt;request:<input name='request' value='";
 		if(m){
@@ -58,7 +55,6 @@ public:
 			s << m->second;
 		}
 		s << "'>";
-		return s.str();
 	}
 private:
 	int request;

@@ -20,10 +20,8 @@ public:
 	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		return KBIT_TEST(rq->sink->get_server_model(),flag)>0;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s)override {
 		getFlagString(s);
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -38,8 +36,7 @@ public:
 		}
 		
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel *model,KWStream &s) override {
 		KWorkModelAcl *m_chain = (KWorkModelAcl *)model;
 #ifdef WORK_MODEL_TCP
 		s << "<input type=checkbox name='tcp' value='1' ";
@@ -53,11 +50,10 @@ public:
 			s << "checked";
 		}
 		s << ">ssl";
-		return s.str();
 	}
 private:
 	int flag;
-	void getFlagString(std::stringstream &s)
+	void getFlagString(KWStream& s)
 	{
 #ifdef WORK_MODEL_TCP
 		if (KBIT_TEST(flag, WORK_MODEL_TCP)) {

@@ -21,13 +21,13 @@ class KVirtualHostManage : public kconfig::KConfigListen
 public:
 	KVirtualHostManage();
 	virtual ~KVirtualHostManage();
-	void getMenuHtml(std::stringstream& s, KVirtualHost* vh, std::stringstream& url, int t);
-	void getHtml(std::stringstream& s, const std::string& vh_name, int id, KUrlValue& attribute);
-	void GetListenHtml(std::stringstream& s);
+	void getMenuHtml(KWStream& s, KVirtualHost* vh, KStringBuf& url, int t);
+	void getHtml(KWStream& s, const KString& vh_name, int id, KUrlValue& attribute);
+	void GetListenHtml(KWStream& s);
 	void GetListenWhm(WhmContext* ctx);
 	void shutdown();
 	int getNextInstanceId();
-	void getAutoName(std::string& name);
+	void getAutoName(KString& name);
 	void BindGlobalListen(KListenHost* services);
 	void UnBindGlobalListen(KListenHost* services);
 	void BindGlobalListens(std::vector<KListenHost*>& services);
@@ -45,7 +45,7 @@ public:
 	bool updateVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh);
 	bool updateVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh, KVirtualHost* ov);
 	void updateVirtualHost(KVirtualHost* vh, std::list<KSubVirtualHost*>& hosts);
-	void updateVirtualHost(KVirtualHost* vh, std::list<std::string>& binds);
+	void updateVirtualHost(KVirtualHost* vh, std::list<KString>& binds);
 	/*
 	 * 增加虚拟主机
 	 */
@@ -56,8 +56,8 @@ public:
 	bool removeVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh);
 	static query_vh_result queryVirtualHost(KVirtualHostContainer* vhc, KSubVirtualHost** rq_svh, const char* site, int site_len);
 	int find_domain(const char* domain, WhmContext* ctx);
-	void getAllVh(std::list<std::string>& vhs, bool status, bool onlydb);
-	KVirtualHost* refsVirtualHostByName(const std::string& name);
+	void getAllVh(std::list<KString>& vhs, bool status, bool onlydb);
+	KVirtualHost* refsVirtualHostByName(const KString& name);
 	kserver* RefsServer(u_short port);
 #ifdef ENABLE_VH_FLOW
 	void dumpLoad(KVirtualHostEvent* ctx, bool revers, const char* prefix, int prefix_len);
@@ -77,15 +77,15 @@ public:
 		return KFiberLocker(lock);
 	}
 private:
-	void getVhIndex(std::stringstream& s, KVirtualHost* vh, int id, int t);
+	void getVhIndex(KWStream& s, KVirtualHost* vh, int id, int t);
 	bool internalAddVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh, KVirtualHost* ov);
 	bool internalRemoveVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh);
-	void getAllVhHtml(std::stringstream& s, int tvh);
-	void getVhDetail(std::stringstream& s, KVirtualHost* vh, bool edit, int t);
+	void getAllVhHtml(KWStream& s, int tvh);
+	void getVhDetail(KWStream& s, KVirtualHost* vh, bool edit, int t);
 	/*
 	 * 所有虚拟主机列表
 	 */
-	std::map<std::string, KVirtualHost*> avh;
+	std::map<KString, KVirtualHost*> avh;
 	/*
 	* 绑定到侦听上
 	*/

@@ -25,17 +25,11 @@ public:
 	{
 		return "counter";
 	}
-	std::string getHtml(KModel *model) override
-	{
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "<input type=checkbox name='reset' value='1'>reset";
-		return s.str();
 	}
-	std::string getDisplay() override
-	{
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << counter;
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 	}

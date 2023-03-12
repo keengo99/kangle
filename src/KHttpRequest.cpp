@@ -421,7 +421,7 @@ bool KHttpRequest::rewrite_url(const char* newUrl, int errorCode, const char* pr
 	if (KBIT_TEST(url2.u->flags, KGL_URL_ORIG_SSL)) {
 		KBIT_SET(url2.u->flags, KGL_URL_SSL);
 	}
-	KStringBuf s;
+	KStringStream s;
 	if (errorCode > 0) {
 		s << errorCode << ";";
 		if (KBIT_TEST(sink->data.url->flags, KGL_URL_SSL)) {
@@ -461,18 +461,18 @@ kgl_auto_cstr KHttpRequest::getUrl() {
 	return sink->data.url->getUrl();
 }
 KString KHttpRequest::getInfo() {
-	KStringBuf s;
+	KStringStream s;
 #ifdef HTTP_PROXY
 	if (sink->data.meth == METH_CONNECT) {
 		s << "CONNECT ";
 		if (sink->data.raw_url->host) {
 			s << sink->data.raw_url->host << ":" << sink->data.raw_url->port;
 		}
-		return s.getString();
+		return s.str();
 	}
 #endif
 	sink->data.raw_url->GetUrl(s, true);
-	return KString(std::move(s));
+	return s.str();
 }
 
 KHttpRequest::~KHttpRequest() {
@@ -602,7 +602,7 @@ void KHttpRequest::response_vary(const char* vary) {
 kgl_auto_cstr KHttpRequest::build_vary(const char* vary) {
 	KHttpField field;
 	field.parse(vary, ',');
-	KStringBuf s;
+	KStringStream s;
 	http_field_t* head = field.getHeader();
 	while (head) {
 		if (strcasecmp(head->attr, "Accept-Encoding") != 0) {

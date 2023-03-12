@@ -51,11 +51,11 @@ public:
 		}
 		return exsit;
 	}
-	std::string getHtml(KModel *model) override {
-		return "";
-	}	
-	std::string getDisplay() override {
-		return "";
+	void get_display(KWStream& s) override {
+
+	}
+	void get_html(KModel* model, KWStream& s) override {
+
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

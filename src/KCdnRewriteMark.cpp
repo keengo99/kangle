@@ -19,7 +19,7 @@ bool KHostRewriteMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** f
 	if (ss==NULL) {
 		return false;
 	}
-	KStringBuf *cdn_host = KRewriteMarkEx::getString(NULL,host.c_str(),rq,NULL,ss);
+	auto cdn_host = KRewriteMarkEx::getString(NULL,host.c_str(),rq,NULL,ss);
 	if (cdn_host==NULL) {
 		delete ss;
 		return false;
@@ -52,10 +52,9 @@ const char *KHostRewriteMark::getName()
 {
 	return "host_rewrite";
 }
-std::string KHostRewriteMark::getHtml(KModel *model)
+void KHostRewriteMark::get_html(KModel *model,KWStream &s)
 {
 	KHostRewriteMark *mark = static_cast<KHostRewriteMark *>(model);
-	stringstream s;
 	s << "reg_host: <input name='reg_host' size=30 value='" << (mark?mark->regHost.getModel():"") << "'><br>";
 	s << "host: <input name='host' value='" << (mark?mark->host.c_str():"") << "'>";
 	s << "port: <input name='port' value='" << (mark?mark->port:80) << "' size=6><br>";
@@ -70,11 +69,9 @@ std::string KHostRewriteMark::getHtml(KModel *model)
 		s << "checked";
 	}
 	s << ">rewrite";
-	return s.str();
 }
-std::string KHostRewriteMark::getDisplay()
+void KHostRewriteMark::get_display(KWStream &s)
 {
-	stringstream s;
 	s << regHost.getModel() << "=>" << host << ":" << port;
 	s << "[";
 	if (proxy) {
@@ -84,7 +81,6 @@ std::string KHostRewriteMark::getDisplay()
 		s << "R";
 	}
 	s << "]";
-	return s.str();
 }
 void KHostRewriteMark::parse_config(const khttpd::KXmlNodeBody* xml) {
 	auto attribute = xml->attr();
@@ -137,10 +133,9 @@ const char *KHostMark::getName()
 {
 	return "host";
 }
-std::string KHostMark::getHtml(KModel *model)
+void KHostMark::get_html(KModel *model,KWStream &s)
 {
 	KHostMark *mark = static_cast<KHostMark *>(model);
-	stringstream s;
 	s << "host: <input name='host' value='" << (mark?mark->host.c_str():"") << "'>";
 	s << "port: <input name='port' value='" << (mark?mark->port:80);
 	if (ssl) {
@@ -158,11 +153,9 @@ std::string KHostMark::getHtml(KModel *model)
 		s << "checked";
 	}
 	s << ">rewrite";
-	return s.str();
 }
-std::string KHostMark::getDisplay()
+void KHostMark::get_display(KWStream &s)
 {
-	stringstream s;
 	s << host << ":" << port;
 	if (ssl) {
 		s << "s";
@@ -175,7 +168,6 @@ std::string KHostMark::getDisplay()
 		s << "R";
 	}
 	s << "]";
-	return s.str();
 }
 void KHostMark::parse_config(const khttpd::KXmlNodeBody* xml) {
 	auto attribute = xml->attr();

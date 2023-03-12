@@ -45,7 +45,7 @@
 #include "KDefer.h"
 #include "kmd5.h"
 namespace kangle {
-	std::string get_connect_per_ip();
+	KString get_connect_per_ip();
 };
 using namespace std;
 using namespace kangle;
@@ -84,7 +84,7 @@ bool kgl_connection_iterator(void* arg, KSink* rq) {
 		char ips[MAXIPLEN];
 		sockaddr_i* addr = rq->get_peer_addr();
 		ksocket_sockaddr_ip(addr, ips, MAXIPLEN);
-		ctx->s << "rq=" << (void*)rq;
+		ctx->s << "rq=" << (uint64_t)rq;
 		ctx->s << ",peer=" << ips << ":" << ksocket_addr_port(addr);
 	}
 	ctx->s << "','" << rq->get_client_ip();
@@ -97,7 +97,7 @@ bool kgl_connection_iterator(void* arg, KSink* rq) {
 	}
 	ctx->s << "','";
 	auto meths = KHttpKeyValue::get_method(rq->data.meth);
-	ctx->s.write(meths->data, meths->len);
+	ctx->s.write_all(meths->data, meths->len);
 	ctx->s << "','";
 	KStringBuf url;
 	get_url_info(rq, url);
@@ -120,16 +120,16 @@ bool kgl_connection_iterator(void* arg, KSink* rq) {
 	ctx->s << "','";
 	switch (rq->data.http_version) {
 	case 0x300:
-		ctx->s.write(_KS("3"));
+		ctx->s.write_all(_KS("3"));
 		break;
 	case 0x200:
-		ctx->s.write(_KS("2"));
+		ctx->s.write_all(_KS("2"));
 		break;
 	case 0x100:
-		ctx->s.write(_KS("1.0"));
+		ctx->s.write_all(_KS("1.0"));
 		break;
 	default:
-		ctx->s.write(_KS("1.1"));
+		ctx->s.write_all(_KS("1.1"));
 		break;
 	}
 	ctx->s << "',";
@@ -137,8 +137,8 @@ bool kgl_connection_iterator(void* arg, KSink* rq) {
 	ctx->s << ")); \n";
 	return true;
 }
-string endTag() {
-	std::stringstream s;
+KString endTag() {
+	KStringBuf s;
 	if (kconfig::need_reboot()) {
 		s << "<font color='red'>" << klang["need_reboot"] << "</font> <a href=\"javascript:if(confirm('really reboot')){ window.parent.location='/reboot';}\">" << klang["reboot"] << "</a>";
 	}
@@ -160,7 +160,7 @@ bool killProcess(KVirtualHost* vh) {
 #endif
 	return true;
 }
-bool killProcess(std::string process, std::string user, int pid) {
+bool killProcess(KString process, KString user, int pid) {
 
 	char* name = xstrdup(process.c_str());
 	if (name == NULL) {
@@ -190,8 +190,8 @@ bool killProcess(std::string process, std::string user, int pid) {
 	xfree(name);
 	return true;
 }
-bool changeAdminPassword(KUrlValue* url, std::string& errMsg) {
-	std::string admin_passwd = url->attribute["password"];
+bool changeAdminPassword(KUrlValue* url, KString& errMsg) {
+	auto admin_passwd = url->attribute["password"];
 	if (admin_passwd.empty()) {
 		errMsg = "change auth_type must reset password.please enter admin password";
 		return false;
@@ -200,7 +200,7 @@ bool changeAdminPassword(KUrlValue* url, std::string& errMsg) {
 	return true;
 }
 bool KHttpManage::runCommand() {
-	string cmd = getUrlValue("cmd");
+	auto cmd = getUrlValue("cmd");
 
 	if (cmd == "flush_log") {
 #if 0
@@ -216,7 +216,7 @@ bool KHttpManage::runCommand() {
 #ifdef MALLOCDEBUG
 	} else if (cmd == "dump_memory") {
 		int min_time = atoi(getUrlValue("min_time").c_str());
-		string max_time_str = getUrlValue("max_time");
+		auto max_time_str = getUrlValue("max_time");
 		int max_time = -1;
 		if (max_time_str.size() > 0) {
 			max_time = atoi(max_time_str.c_str());
@@ -250,7 +250,7 @@ bool KHttpManage::runCommand() {
 	} else if (cmd == "cache") {
 		INT64 csize, cdsize, hsize, hdsize;
 		caculateCacheSize(csize, cdsize, hsize, hdsize);
-		std::stringstream s;
+		KStringBuf s;
 		s << "<pre>";
 		s << "csize:\t" << csize << "\n";
 		s << "hsize:\t" << hsize << "\n";
@@ -259,7 +259,7 @@ bool KHttpManage::runCommand() {
 		s << "</pre>";
 		return sendHttp(s.str());
 	} else if (cmd == "dump_refs_obj") {
-		std::stringstream s;
+		KStringBuf s;
 		s << "<pre>";
 		/*
 		cacheLock.Lock();
@@ -273,7 +273,7 @@ bool KHttpManage::runCommand() {
 		return sendHttp(s.str());
 #ifdef ENABLE_DB_DISK_INDEX
 	} else if (cmd == "dci") {
-		std::stringstream s;
+		KStringBuf s;
 		if (dci) {
 			s << "dci queue: " << dci->getWorker()->queue;
 			s << " memory: " << dci->memory_used();
@@ -291,7 +291,7 @@ bool KHttpManage::runCommand() {
 	return false;
 }
 bool KHttpManage::extends(unsigned item) {
-	stringstream s;
+	KStringBuf s;
 	unsigned i;
 
 	const size_t max_extends = 5;
@@ -336,24 +336,24 @@ bool KHttpManage::extends(unsigned item) {
 	}
 	s << "<br><br>";
 	if (item == 0) {
-		s << conf.gam->acserverList(getUrlValue("name"));
+		conf.gam->acserverList(s, getUrlValue("name"));
 	} else if (item == 1) {
 #ifdef ENABLE_MULTI_SERVER
-		s << conf.gam->macserverList(getUrlValue("name"));
+		conf.gam->macserverList(s, getUrlValue("name"));
 #endif
 	} else if (item == 2) {
-		string name;
+		KString name;
 		if (getUrlValue("action") == "edit") {
 			name = getUrlValue("name");
 		}
-		s << conf.gam->apiList(name);
+		conf.gam->apiList(s, name);
 #ifdef ENABLE_VH_RUN_AS
 	} else if (item == 3) {
-		string name;
+		KString name;
 		if (getUrlValue("action") == "edit") {
 			name = getUrlValue("name");
 		}
-		s << conf.gam->cmdList(name);
+		conf.gam->cmdList(s, name);
 #endif
 	} else if (item == 4) {
 #ifdef ENABLE_KSAPI_FILTER
@@ -380,12 +380,12 @@ bool KHttpManage::config() {
 
 	string config_header[] = { LANG_SERVICE, LANG_CACHE, LANG_LOG,LANG_RS_LIMIT,klang["data_exchange"], LANG_OTHER_CONFIG, LANG_MANAGE_ADMIN };
 	size_t max_config = sizeof(config_header) / sizeof(string);
-	stringstream s;
+	KStringBuf s;
 	unsigned item = atoi(getUrlValue("item").c_str());
 #ifdef KANGLE_ETC_DIR
-	string file_name = KANGLE_ETC_DIR;
+	auto file_name = KANGLE_ETC_DIR;
 #else
-	string file_name = conf.path + "/etc";
+	auto file_name = conf.path + "/etc";
 #endif
 	bool canWrite = true;
 	//	stringstream s;
@@ -666,7 +666,7 @@ bool KHttpManage::config() {
 }
 bool KHttpManage::configsubmit() {
 	//	size_t i;
-	std::stringstream url;
+	KStringBuf url;
 	size_t item = atoi(removeUrlValue("item").c_str());
 	if (item == 0) {
 		KXmlAttribute attr;
@@ -685,7 +685,7 @@ bool KHttpManage::configsubmit() {
 		kconfig::update("cache"_CS, 0, nullptr, &urlValue.attribute, kconfig::EvUpdate | kconfig::FlagCreate);
 		goto skip_save;
 	} else if (item == 2) {
-		string access_log = getUrlValue("access_log");
+		auto access_log = getUrlValue("access_log");
 		SAFE_STRCPY(conf.log_rotate, getUrlValue("log_rotate_time").c_str());
 		conf.log_rotate_size = get_size(getUrlValue("log_rotate_size").c_str());
 		conf.error_rotate_size = get_size(getUrlValue("error_rotate_size").c_str());
@@ -701,7 +701,7 @@ bool KHttpManage::configsubmit() {
 		if (access_log != conf.access_log) {
 			SAFE_STRCPY(conf.access_log, access_log.c_str());
 			accessLogger.place = LOG_FILE;
-			std::string logpath;
+			KString logpath;
 			if (!isAbsolutePath(conf.access_log)) {
 				logpath = conf.path;
 			}
@@ -777,7 +777,7 @@ bool KHttpManage::configsubmit() {
 		//conf.setHostname(getUrlValue("hostname").c_str());
 		//{{ent
 #ifdef KANGLE_ENT
-		std::string server_software = getUrlValue("server_software");
+		auto server_software = getUrlValue("server_software");
 		if (server_software != conf.server_software) {
 			SAFE_STRCPY(conf.server_software, server_software.c_str());
 			parse_server_software();
@@ -786,7 +786,7 @@ bool KHttpManage::configsubmit() {
 #endif
 		//}}
 	} else if (item == 6) {
-		string errMsg;
+		KString errMsg;
 		if (!changeAdminPassword(&urlValue, errMsg)) {
 			return sendErrPage(errMsg.c_str());
 		}
@@ -802,23 +802,22 @@ KHttpManage::KHttpManage() {
 	rq = NULL;
 	postData = NULL;
 	postLen = 0;
-	xml = false;
 }
 KHttpManage::~KHttpManage() {
 	if (postData) {
 		free(postData);
 	}
 }
-std::string KHttpManage::removeUrlValue(const std::string& name) {
+KString KHttpManage::removeUrlValue(const KString& name) {
 	auto it = urlValue.attribute.find(name);
 	if (it == urlValue.attribute.end()) {
 		return "";
 	}
-	std::string value(std::move((*it).second));
+	KString value(std::move((*it).second));
 	urlValue.attribute.erase(it);
 	return value;
 }
-const std::string& KHttpManage::getUrlValue(const string& name) {
+const KString& KHttpManage::getUrlValue(const KString& name) {
 	return urlValue.attribute[name];
 }
 #if 0
@@ -897,7 +896,7 @@ bool KHttpManage::sendHttp(const char* msg, INT64 content_length, const char* co
 	}
 	return true;
 }
-bool KHttpManage::sendHttp(const string& msg) {
+bool KHttpManage::sendHttp(const KString& msg) {
 	return sendHttp(msg.c_str(), msg.size());
 }
 void KHttpManage::sendTest() {
@@ -913,7 +912,7 @@ void KHttpManage::sendTest() {
 #endif
 }
 bool KHttpManage::reboot() {
-	stringstream s;
+	KStringBuf s;
 	s
 		<< "<html><head><meta http-equiv=\"Refresh\" content=\"3;url=/\"></head><body>";
 	s << "<img border='0' width='0' height='0' src='/reboot_submit?s=" << kgl_current_sec << "&r=" << rand() << "'/>";
@@ -935,7 +934,7 @@ bool KHttpManage::sendErrorSaveConfig(int file) {
 	return sendErrPage(s.str().c_str());
 }
 bool KHttpManage::sendErrPage(const char* err_msg, int close_flag) {
-	stringstream s;
+	KStringBuf s;
 	s
 		<< "<html><LINK href=/main.css type='text/css' rel=stylesheet><body><h1><font color=red>"
 		<< err_msg;
@@ -970,7 +969,7 @@ bool KHttpManage::sendLeftMenu() {
 	return sendHttp(s.str().c_str());
 }
 bool KHttpManage::sendMainFrame() {
-	stringstream s;
+	KStringBuf s;
 	char buf[256];
 	INT64 total_mem_size = 0, total_disk_size = 0;
 	int mem_count = 0, disk_count = 0;
@@ -1064,7 +1063,7 @@ bool KHttpManage::sendMainFrame() {
 	s << "[<a href=\"javascript:if(confirm('really reload')){ window.location='/reload_config';}\">" << klang["reload_config"] << "</a>] ";
 	//s << "[<a href=\"javascript:if(confirm('really reload')){ window.location='/reload_vh';}\">" << klang["reload_vh"] << "</a>] ";
 	s << klang["lang"] << ":<select name='lang'>";
-	std::vector<std::string> langNames;
+	std::vector<KString> langNames;
 	klang.getAllLangName(langNames);
 	for (size_t i = 0; i < langNames.size(); i++) {
 		s << "<option value='" << langNames[i] << "' ";
@@ -1082,7 +1081,7 @@ bool KHttpManage::sendMainFrame() {
 	return sendHttp(s.str().c_str());
 }
 bool KHttpManage::send_css() {
-	std::string css = klang["css"];
+	KString css = klang["css"];
 	return sendHttp(css.c_str(), css.size(), "text/css", NULL, 3600);
 }
 bool KHttpManage::sendMainPage() {
@@ -1102,7 +1101,7 @@ bool KHttpManage::sendRedirect(const char* newUrl) {
 	rq->response_header(kgl_expand_string("Location"), newUrl, (hlen_t)strlen(newUrl));
 	return rq->start_response_body(0);
 }
-bool matchManageIP(const char* ip, std::vector<std::string>& ips, std::string& matched_ip) {
+bool matchManageIP(const char* ip, std::vector<KString>& ips, KString& matched_ip) {
 	for (size_t i = 0; i < ips.size(); i++) {
 		if (ips[i][0] == '~') {
 			if (strcasecmp(ips[i].c_str() + 1, ip) == 0) {
@@ -1118,7 +1117,7 @@ bool matchManageIP(const char* ip, std::vector<std::string>& ips, std::string& m
 	}
 	return false;
 }
-char* KHttpManage::parsePostFile(int& len, std::string& fileName) {
+char* KHttpManage::parsePostFile(int& len, KString& fileName) {
 	KHttpHeader* header = rq->sink->data.get_header();
 	char* boundary = NULL;
 	if (postData == NULL) {
@@ -1251,7 +1250,7 @@ bool checkManageLogin(KHttpRequest* rq) {
 	char ips[MAXIPLEN];
 	rq->sink->get_peer_ip(ips, sizeof(ips));
 	if (strcmp(ips, "127.0.0.1") != 0) {
-		std::string manage_sec_file = conf.path + "manage.sec";
+		auto manage_sec_file = conf.path + "manage.sec";
 		KFile file;
 		if (file.open(manage_sec_file.c_str(), fileRead)) {
 			rq->sink->shutdown();
@@ -1259,7 +1258,7 @@ bool checkManageLogin(KHttpRequest* rq) {
 		}
 	}
 	if (!conf.admin_ips.empty()) {
-		std::string matched_ip;
+		KString matched_ip;
 		if (!matchManageIP(ips, conf.admin_ips, matched_ip)) {
 			return false;
 		}
@@ -1280,7 +1279,7 @@ bool checkManageLogin(KHttpRequest* rq) {
 	return false;
 }
 bool KHttpManage::start_listen(bool& hit) {
-	string err_msg;
+	KString err_msg;
 	if (strcmp(rq->sink->data.url->path, "/deletelisten") == 0) {
 		hit = true;
 		int id = atoi(getUrlValue("id").c_str());
@@ -1307,7 +1306,7 @@ bool KHttpManage::start_listen(bool& hit) {
 	}
 	if (strcmp(rq->sink->data.url->path, "/newlistenform") == 0) {
 		hit = true;
-		stringstream s;
+		KStringBuf s;
 		int id = atoi(getUrlValue("id").c_str());
 		const KListenHost *host = nullptr;
 		auto file = getUrlValue("file");
@@ -1427,8 +1426,8 @@ bool KHttpManage::start_listen(bool& hit) {
 bool KHttpManage::start_access(bool& hit) {
 	hit = true;
 	int type = !!atoi(getUrlValue("access_type").c_str());
-	stringstream accesslist;
-	std::string name = getUrlValue("vh");
+	KStringBuf accesslist;
+	auto name = getUrlValue("vh");
 	KVirtualHost* vh = NULL;
 	KSafeAccess access(kaccess[type]->add_ref());
 #ifndef HTTP_PROXY
@@ -1446,7 +1445,7 @@ bool KHttpManage::start_access(bool& hit) {
 #endif
 	accesslist << "/accesslist?access_type=" << getUrlValue("access_type") << "&vh=" << getUrlValue("vh");
 	if (strcmp(rq->sink->data.url->path, "/accesslist") == 0) {
-		std::stringstream s;
+		KStringBuf s;
 		if (vh) {
 			vh->destroy();
 			conf.gvm->getHtml(s, name, type + 6, urlValue);
@@ -1462,8 +1461,8 @@ bool KHttpManage::start_access(bool& hit) {
 	return false;
 }
 bool KHttpManage::start_vhs(bool& hit) {
-	string err_msg;
-	stringstream s;
+	KString err_msg;
+	KStringBuf s;
 	if (strcmp(rq->sink->data.url->path, "/vhslist") == 0) {
 		hit = true;
 		conf.gvm->getHtml(s, "", 0, urlValue);
@@ -1487,7 +1486,7 @@ bool KHttpManage::start_vhs(bool& hit) {
 }
 bool KHttpManage::sendProcessInfo() {
 
-	stringstream s;
+	KStringBuf s;
 	s << "<html><head><title>" << PROGRAM_NAME << "(" << VER_ID << ") "
 		<< LANG_MANAGE
 		<< "</title><LINK href=/main.css type='text/css' rel=stylesheet></head><body>";
@@ -1506,9 +1505,6 @@ KGL_RESULT KHttpManage::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_
 }
 bool KHttpManage::start(bool& hit) {
 	parseUrl(rq->sink->data.url->param);
-	if (getUrlValue("xml") == "1") {
-		xml = true;
-	}
 	parsePostData();
 	if (strcmp(rq->sink->data.url->path, "/command") == 0) {
 		return runCommand();
@@ -1559,8 +1555,8 @@ bool KHttpManage::start(bool& hit) {
 			writeBackManager.writebackList(getUrlValue("name")).c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/writebackadd") == 0) {
-		string err_msg;
-		string msg = getUrlValue("msg");
+		KString err_msg;
+		auto msg = getUrlValue("msg");
 		if (writeBackManager.newWriteBack(getUrlValue("name"), getUrlValue(
 			"msg"), err_msg)) {
 			if (!saveConfig()) {
@@ -1571,7 +1567,7 @@ bool KHttpManage::start(bool& hit) {
 		return sendErrPage(err_msg.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/writebackedit") == 0) {
-		string err_msg;
+		KString err_msg;
 		KWriteBack m_a;
 		m_a.name = getUrlValue("name");
 		m_a.setMsg(getUrlValue("msg"));
@@ -1585,7 +1581,7 @@ bool KHttpManage::start(bool& hit) {
 		return sendErrPage(err_msg.c_str());
 	}
 	if (strcasecmp(rq->sink->data.url->path, "/writebackdelete") == 0) {
-		string err_msg;
+		KString err_msg;
 		if (writeBackManager.delWriteBack(getUrlValue("name"), err_msg)) {
 			return sendRedirect("/writeback");
 		}
@@ -1594,7 +1590,7 @@ bool KHttpManage::start(bool& hit) {
 #endif
 #ifdef ENABLE_MULTI_SERVER
 	if (strcmp(rq->sink->data.url->path, "/macserveradd") == 0) {
-		std::string err_msg;
+		KString err_msg;
 		bool edit = getUrlValue("action") == "edit";
 		if (conf.gam->new_server(edit, urlValue.attribute, err_msg)) {
 			return sendRedirect("/macserver");
@@ -1602,19 +1598,19 @@ bool KHttpManage::start(bool& hit) {
 		return sendErrPage(err_msg.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/del_macserver") == 0) {
-		string err_msg;
+		KString err_msg;
 		if (conf.gam->remove_server(getUrlValue("name"), err_msg)) {
 			return sendRedirect("/macserver");
 		}
 		return sendErrPage(err_msg.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/macserver_node_form") == 0) {
-		return sendHttp(conf.gam->macserver_node_form(
-			getUrlValue("name"), getUrlValue("action"), atoi(getUrlValue(
-				"id").c_str())));
+		KStringBuf s;
+		conf.gam->macserver_node_form(s, getUrlValue("name"), getUrlValue("action"), atoi(getUrlValue("id").c_str()));
+		return sendHttp(s.str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/macserver_node") == 0) {
-		string err_msg;
+		KString err_msg;
 		if (conf.gam->macserver_node(urlValue.attribute, err_msg)) {
 			return sendRedirect("/macserver");
 		}
@@ -1622,21 +1618,21 @@ bool KHttpManage::start(bool& hit) {
 	}
 #endif
 	if (strcmp(rq->sink->data.url->path, "/acserveradd") == 0) {
-		string err_msg;
+		KString err_msg;
 		if (conf.gam->new_server(false, urlValue.attribute, err_msg)) {
 			return sendRedirect("/acserver");
 		}
 		return sendErrPage(err_msg.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/acserveredit") == 0) {
-		string err_msg;
+		KString err_msg;
 		if (conf.gam->new_server(true, urlValue.attribute, err_msg)) {
 			return sendRedirect("/acserver");
 		}
 		return sendErrPage(err_msg.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/acserverdelete") == 0) {
-		string err_msg;
+		KString err_msg;
 		if (conf.gam->remove_server(getUrlValue("name"), err_msg)) {
 			return sendRedirect("/acserver");
 		}
@@ -1652,7 +1648,7 @@ bool KHttpManage::start(bool& hit) {
 	}
 
 	if (strcasecmp(rq->sink->data.url->path, "/connection") == 0) {
-		std::stringstream s;
+		KStringBuf s;
 		KConnectionInfoContext ctx;
 		ctx.total_count = 0;
 		ctx.debug = atoi(getUrlValue("debug").c_str());
@@ -1742,14 +1738,14 @@ function sortrq(index)\
 	
 #ifdef ENABLE_VH_RUN_AS
 	if (strcmp(rq->sink->data.url->path, "/cmdform") == 0) {
-		std::string errMsg;
+		KString errMsg;
 		if (conf.gam->cmdForm(urlValue.attribute, errMsg)) {
 			return sendRedirect("/extends?item=3");
 		}
 		return sendErrPage(errMsg.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/delcmd") == 0) {
-		std::string errMsg;
+		KString errMsg;
 		if (conf.gam->delCmd(getUrlValue("name"), errMsg)) {
 			return extends(3);
 		}
@@ -1758,14 +1754,14 @@ function sortrq(index)\
 	}
 #endif
 	if (strcmp(rq->sink->data.url->path, "/apiform") == 0) {
-		std::string errMsg;
+		KString errMsg;
 		if (conf.gam->apiForm(urlValue.attribute, errMsg)) {
 			return sendRedirect("/extends?item=2");
 		}
 		return sendErrPage(errMsg.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/delapi") == 0) {
-		std::string errMsg;
+		KString errMsg;
 		if (conf.gam->delApi(getUrlValue("name"), errMsg)) {
 			return extends(2);
 		}
@@ -1810,7 +1806,7 @@ function sortrq(index)\
 	}
 	void create_cache_dir(const char* disk_dir);
 	if (strcmp(rq->sink->data.url->path, "/format_disk_cache_dir.km") == 0) {
-		string dir = getUrlValue("dir");
+		auto dir = getUrlValue("dir");
 		if (!dir.empty()) {
 			SAFE_STRCPY(conf.disk_cache_dir2, dir.c_str());
 		}

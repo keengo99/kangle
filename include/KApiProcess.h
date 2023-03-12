@@ -29,8 +29,7 @@ public:
 			delete st;
 		}
 	}
-	void getProcessInfo(const USER_T &user, const std::string &name,
-			std::stringstream &s,int &count) override {
+	void getProcessInfo(const USER_T &user, const KString &name, KWStream &s,int &count) override {
 		stLock.Lock();
 		if (st) {
 			count++;
@@ -52,7 +51,7 @@ public:
 	KUpstream* PowerResult(KHttpRequest* rq, KPipeStream* st2) override;
 	//{{ent
 #ifdef ENABLE_ADPP
-	void flushCpuUsage(const std::string &user,const std::string &name,ULONG64 cpuTime) override
+	void flushCpuUsage(const KString&user,const KString&name,ULONG64 cpuTime) override
 	{
 		stLock.Lock();
 		if (st) {

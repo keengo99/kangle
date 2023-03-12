@@ -68,7 +68,7 @@ bool KMultiHostAcl::loadFile(KHttpRequest *rq) {
 		return true;
 	}
 	lastCheck = kgl_current_sec;
-	std::string path;
+	KString path;
 	if (isAbsolutePath(file.c_str())) {
 		path = file;
 	} else {
@@ -108,8 +108,7 @@ bool KMultiHostAcl::loadFile(KHttpRequest *rq) {
 	return true;
 
 }
-std::string KMultiHostAcl::getDisplay() {
-	stringstream s;
+void KMultiHostAcl::get_display(KWStream &s) {
 	s << "file:" << file << " read state:";
 	switch (lastState) {
 	case OPEN_UNKNOW:
@@ -123,18 +122,15 @@ std::string KMultiHostAcl::getDisplay() {
 		s << "<font color='green'>success</font>";
 
 	}
-	return s.str();
 }
 
-std::string KMultiHostAcl::getHtml(KModel *model) {
+void KMultiHostAcl::get_html(KModel *model,KWStream &s) {
 	KMultiHostAcl *acl = (KMultiHostAcl *) model;
-	stringstream s;
 	s << "file: <input name='file' value='";
 	if (acl) {
 		s << acl->file;
 	}
 	s << "'>(one line one host)";
-	return s.str();
 }
 void KMultiHostAcl:: parse_config(const khttpd::KXmlNodeBody* xml) {
 	auto attribute = xml->attr();

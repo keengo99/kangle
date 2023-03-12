@@ -22,7 +22,7 @@ public:
 		}
 		char *hot = param;
 		bool matched = false;
-		KStringBuf np;
+		KStringStream np;
 		for (;;) {
 			char *p = strchr(hot,'&');
 			if (p) {
@@ -58,8 +58,7 @@ public:
 		}
 		return matched;
 	}
-	std::string getDisplay()override {
-		std::stringstream s;
+	void get_display(KWStream &s) override {
 		if (raw) {
 			s << "[raw]";
 		}
@@ -67,7 +66,6 @@ public:
 			s << "!";
 		}
 		s << params.getModel();
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -82,10 +80,8 @@ public:
 		}
 		params.setModel(param,(nc?PCRE_CASELESS:0));
 	}
-	std::string getHtml(KModel *model)override
-	{
+	void get_html(KModel* model, KWStream& s) override {
 		KRemoveParamMark *m = (KRemoveParamMark *)model;
-		std::stringstream s;
 		s << "param name(regex):<input name='params' value='";
 		if (m) {
 			if (m->revert) {
@@ -104,7 +100,6 @@ public:
 			s << "checked";
 		}
 		s << ">nc";
-		return s.str();		
 	}
 	KMark * new_instance() override {
 		return new KRemoveParamMark();

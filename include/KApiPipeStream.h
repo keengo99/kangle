@@ -24,7 +24,7 @@ public:
 	/*
 	 windowsœ¬”√logon
 	 */
-	bool logon(std::string &user, std::string &password);
+	bool logon(const KString &user, const KString &password);
 	bool chroot(const char *dir);
 	bool isChrooted() {
 		return chrooted;

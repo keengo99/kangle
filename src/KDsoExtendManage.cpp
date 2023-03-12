@@ -44,7 +44,7 @@ void KDsoExtendManage::whm(WhmContext *ctx)
 	}
 	lock.Unlock();
 }
-void KDsoExtendManage::html(std::stringstream &s)
+void KDsoExtendManage::html(KWStream &s)
 {
 	s << "<table border=1><tr><td>name</td><td>file</td><td>upstream</td><td>version</td></tr>";
 	std::map<const char *, KDsoExtend *, lessp>::iterator it;
@@ -65,7 +65,7 @@ void KDsoExtendManage::html(std::stringstream &s)
 	lock.Unlock();
 	s << "</table>";
 }
-void KDsoExtendManage::ListTarget(std::vector<std::string> &target)
+void KDsoExtendManage::ListTarget(std::vector<KString> &target)
 {
 	std::map<const char *, KDsoExtend *, lessp>::iterator it;
 	lock.Lock();
@@ -74,13 +74,13 @@ void KDsoExtendManage::ListTarget(std::vector<std::string> &target)
 	}
 	lock.Unlock();
 }
-KRedirect *KDsoExtendManage::RefsRedirect(std::string &name)
+KRedirect *KDsoExtendManage::RefsRedirect(KString &name)
 {
-	size_t index = name.find_first_of(':');
+	size_t index = name.find(':');
 	if (index == std::string::npos) {
 		return NULL;
 	}
-	std::string dso_name = name.substr(0, index);
+	auto  dso_name = name.substr(0, index);
 	std::map<const char *, KDsoExtend *, lessp>::iterator it;
 	lock.Lock();
 	it = dsos.find(dso_name.c_str());
@@ -88,7 +88,7 @@ KRedirect *KDsoExtendManage::RefsRedirect(std::string &name)
 		lock.Unlock();
 		return NULL;
 	}
-	std::string rd_name = name.substr(index + 1);
+	auto  rd_name = name.substr(index + 1);
 	KRedirect *rd = (*it).second->RefsRedirect(rd_name);
 	lock.Unlock();
 	return rd; 

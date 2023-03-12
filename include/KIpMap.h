@@ -4,7 +4,7 @@
 #include "kforwin32.h"
 #include "ksocket.h"
 #include "krbtree.h"
-#include <sstream>
+#include "KStringBuf.h"
 struct dns_range_addr
 {
 	ip_addr min_addr;
@@ -32,7 +32,7 @@ public:
 	void *find(ip_addr *local_addr);
 	void *find(const char *addr);
 	void dump_addr(iteratorbt iterator, void *arg);
-	void dump_addr(std::stringstream &s,char split);
+	void dump_addr(KWStream &s,char split);
 	int add_multi_addr(const char *addr,const char split_char,void *bind_data);
 	bool add_min_max_addr(const char *min_addr,const char *max_addr,void *bind_data);
 	bool add_cidr_addr(const char *min_addr,int prefix,void *bind_data);

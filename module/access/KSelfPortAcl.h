@@ -28,15 +28,13 @@ public:
 	}
 	virtual ~KSelfPortAcl() {
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel *model,KWStream &s) override {
 		s << "<input name=port value='";
 		KSelfPortAcl *urlAcl = (KSelfPortAcl *) (model);
 		if (urlAcl) {
-			s << urlAcl->getDisplay();
+			urlAcl->get_display(s);
 		}
 		s << "'>";
-		return s.str();
 	}
 	KAcl *new_instance() override {
 		return new KSelfPortAcl();
@@ -47,10 +45,8 @@ public:
 	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		return rq->sink->get_self_port() == port;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream &s) override {
 		s << port;
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

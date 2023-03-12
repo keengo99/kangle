@@ -30,8 +30,7 @@ public:
 	}
 	virtual ~KRegPathAcl() {
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "<input name=path value='";
 		KRegPathAcl *urlAcl = (KRegPathAcl *) (model);
 		if (urlAcl) {
@@ -48,7 +47,6 @@ public:
 			s << "checked";
 		}
 		s << ">nc";
-		return s.str();
 	}
 	KAcl *new_instance() override {
 		return new KRegPathAcl();
@@ -62,13 +60,11 @@ public:
 		}
 		return path.match(rq->sink->data.url->path,strlen(rq->sink->data.url->path),0)>0;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		if (raw) {
 			s << "raw:";
 		}
 		s << path.getModel();
-		return s.str();
 	}
 	bool setPath(const char *value) {
 		int flag = 0;
@@ -103,8 +99,7 @@ public:
 	}
 	virtual ~KRegParamAcl() {
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "<input name='param' value='";
 		KRegParamAcl *urlAcl = (KRegParamAcl *) (model);
 		if (urlAcl) {
@@ -121,7 +116,6 @@ public:
 			s << "checked";
 		}
 		s << ">nc";
-		return s.str();
 	}
 	KAcl *new_instance() override {
 		return new KRegParamAcl();
@@ -136,13 +130,11 @@ public:
 		}
 		return path.match(param,strlen(param),0)>0;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		if (raw) {
 			s << "raw:";
 		}
 		s << path.getModel();
-		return s.str();
 	}
 	bool setPath(const char *value) {
 		int flag = 0;

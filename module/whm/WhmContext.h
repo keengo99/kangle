@@ -89,8 +89,8 @@ public:
 	}
 	bool flush(int status,int format = OUTPUT_FORMAT_XML);
 	void add(const char *name, const char *value,bool encode=false);
-	void add(const char *name,std::string &value);
-	void add(std::string &name, std::string &value);
+	void add(const char *name, KString&value);
+	void add(KString &name, KString&value);
 	void add(const char *name,INT64 value);
 	KVirtualHost *getVh()
 	{
@@ -107,7 +107,7 @@ public:
 		}
 		redirectCalls << call;		
 	}
-	KStringBuf *getRedirectCalls()
+	KStringStream*getRedirectCalls()
 	{
 		return &redirectCalls;
 	}
@@ -120,7 +120,7 @@ private:
 	std::string statusMsg;
 	KVirtualHost *vh;
 	KExtendProgramString *ds;
-	KStringBuf redirectCalls;
+	KStringStream redirectCalls;
 };
 
 #endif /* WHMCONTEXT_H_ */

@@ -113,7 +113,7 @@ static BOOL whmServerSupportFunction(void *param, int request,void *buffer, int 
 }
 static const char *whmGetSystemEnv(const char *name)
 {
-	static std::string value;
+	static KString value;
 	const char *value2 = getSystemEnv(name);
 	if(value2){
 		return value2;
@@ -146,7 +146,7 @@ static void whmSetValue(void *param,const char *name,const char *value)
 }
 static const char *whmGetEnv(void *param,const char *name)
 {
-	std::string value;
+	KString value;
 	WhmContext *ctx = (WhmContext *)param;
 	const char *value2 = getSystemEnv(name);
 	if(value2){
@@ -169,7 +169,7 @@ static void whmFree(void *ctx,void *ptr)
 {
 	free(ptr);
 }
-WhmDso::WhmDso(std::string &file) {
+WhmDso::WhmDso(KString&file) {
 	this->file = file;
 	handle = NULL;
 	GetWhmVersion = NULL;
@@ -184,7 +184,7 @@ WhmDso::~WhmDso() {
 		FreeLibrary(handle);
 	}
 }
-bool WhmDso::init(std::string &whmFile) {
+bool WhmDso::init(KString &whmFile) {
 	if(strncasecmp(file.c_str(),"buildin:",8)==0){
 		if(strcasecmp(file.c_str()+8,"core")==0){
 		//#ifndef _WIN32

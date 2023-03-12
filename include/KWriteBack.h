@@ -26,8 +26,8 @@ public:
 		header = NULL;
 	}
 	void buildRequest(KHttpRequest *rq, KFetchObject **fo);
-	std::string getMsg();
-	void setMsg(std::string msg);
+	KString getMsg();
+	void setMsg(KString msg);
 
 	bool keep_alive;
 	int status_code;

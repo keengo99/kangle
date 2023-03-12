@@ -98,7 +98,7 @@ bool KChain::match(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) {
 	}
 	return result;
 }
-void KChain::getModelHtml(KModel *model, std::stringstream &s, int type, int index) {
+void KChain::getModelHtml(KModel *model, KWStream &s, int type, int index) {
 
 	s << "<tr><td>";
 	s << "<input type=hidden name='begin_sub_form' value='" << model->getName()
@@ -119,34 +119,36 @@ void KChain::getModelHtml(KModel *model, std::stringstream &s, int type, int ind
 	s << "[<a href=\"javascript:delmodel('" << index << "'," << type << ");\">del</a>]";
 	s << "[<a href=\"javascript:downmodel('" << index << "'," << type << ");\">down</a>]";
 	s << model->getName() << "</td><td>";
-	s << model->getHtml(model);
+	model->get_html(model,s);
 	s << "<input type=hidden name='end_sub_form' value='1'></td></tr>\n";
 }
-void KChain::getAclShortHtml(std::stringstream &s) {
+void KChain::getAclShortHtml(KWStream&s) {
 	if (acls.size() == 0) {
 		s << "&nbsp;";
 	}
 	for (auto it = acls.begin(); it != acls.end(); ++it) {
-		s <<  ((*it)->revers ? "!" : "") << (*it)->getName() << ": " << (*it)->getDisplay() ;
+		s << ((*it)->revers ? "!" : "") << (*it)->getName() << ": ";
+		(*it)->get_display(s);
 		if ((*it)->is_or) {
 			s << " [OR NEXT]";
 		}
 		s << "<br>";
 	}
 }
-void KChain::getMarkShortHtml(std::stringstream &s) {
+void KChain::getMarkShortHtml(KWStream &s) {
 	if (marks.size() == 0) {
 		s << "&nbsp;";
 	}
 	for (auto it = marks.begin(); it != marks.end(); it++) {
-		s << ((*it)->revers ? "!" : "")	<< (*it)->getName() << ": " <<  (*it)->getDisplay();
+		s << ((*it)->revers ? "!" : "") << (*it)->getName() << ": ";
+		(*it)->get_display(s);
 		if ((*it)->is_or) {
 			s << " [OR NEXT]";
 		}
 		s << "<br>";
 	}
 }
-KSafeAcl KChain::new_acl(const std::string& name, KAccess* kaccess) {
+KSafeAcl KChain::new_acl(const KString& name, KAccess* kaccess) {
 	auto it = KAccess::aclFactorys[kaccess->type].find(name);
 	if (it == KAccess::aclFactorys[kaccess->type].end()) {
 		return nullptr;
@@ -157,7 +159,7 @@ KSafeAcl KChain::new_acl(const std::string& name, KAccess* kaccess) {
 	}
 	return m;
 }
-KSafeMark KChain::new_mark(const std::string& name, KAccess* kaccess) {
+KSafeMark KChain::new_mark(const KString& name, KAccess* kaccess) {
 	auto it = KAccess::markFactorys[kaccess->type].find(name);
 	if (it == KAccess::markFactorys[kaccess->type].end()) {
 		return nullptr;
@@ -171,7 +173,7 @@ KSafeMark KChain::new_mark(const std::string& name, KAccess* kaccess) {
 void KChain::parse_config(KAccess *access,const khttpd::KXmlNodeBody* xml) {
 	assert(acls.empty());
 	assert(marks.empty());
-	std::string jumpName;
+	KString jumpName;
 	if (!access->parseChainAction(xml->attributes["action"], jumpType, jumpName)) {
 		throw KXmlException("chain action error");
 	}

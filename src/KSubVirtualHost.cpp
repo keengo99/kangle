@@ -109,7 +109,7 @@ void KSubVirtualHost::release()
 #ifdef ENABLE_SVH_SSL
 bool KSubVirtualHost::set_ssl_info(const char *crt, const char *key)
 {
-	std::string certfile,keyfile;
+	KString certfile,keyfile;
 	if (*crt == '-') {
 		certfile = conf.path + (crt + 1);
 	} else if (!isAbsolutePath(crt)) {

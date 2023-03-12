@@ -36,7 +36,7 @@ public:
 			int ret = val.match(header->buf + header->val_offset, header->val_len, 0, ovector, MAX_OVECTOR);
 			if (ret > 0) {
 				KRegSubString* subString = KReg::makeSubString(header->buf + header->val_offset, ovector, MAX_OVECTOR, ret);
-				KStringBuf* replaced = KRewriteMarkEx::getString(NULL, replace.c_str(), rq, NULL, subString);
+				auto replaced = KRewriteMarkEx::getString(NULL, replace.c_str(), rq, NULL, subString);
 				delete subString;
 				if (replaced) {
 					int new_buf_len = header->val_offset + replaced->size();
@@ -64,8 +64,7 @@ public:
 	const char* getName() override {
 		return "replace_header";
 	}
-	std::string getHtml(KModel* model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "attr:<input name='attr' value='";
 		KReplaceHeaderMark* mark = (KReplaceHeaderMark*)(model);
 		if (mark) {
@@ -82,15 +81,12 @@ public:
 			s << mark->replace;
 		}
 		s << "</textarea>";
-		return s.str();
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << attr;
 		s << ": ";
 		s << val.getModel();
 		s << "==>" << replace;
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -100,7 +96,7 @@ public:
 	}
 private:
 	KReg val;
-	std::string replace;
-	std::string attr;
+	KString replace;
+	KString attr;
 };
 #endif

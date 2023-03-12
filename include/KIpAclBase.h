@@ -40,7 +40,7 @@ public:
 	}
 	static bool addIpModel(const char *ip_model, IP_MODEL &m_ip) {
 		memset(&m_ip, 0, sizeof(m_ip));
-		std::vector<std::string> ip_mask;
+		std::vector<KString> ip_mask;
 		explode(ip_model, '/', ip_mask);
 		if (ip_mask.size() <= 0) {
 			//		printf("ip_mask.size=0\n");
@@ -101,15 +101,13 @@ public:
 	}
 	~KIpAclBase() {
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream &s) override {
 		char ips[MAXIPLEN];
 		ksocket_ipaddr_ip(&ip.addr,ips,sizeof(ips));
 		s << ips;
 		if (ip.mask_num > 0) {
 			s << "/" << (int) ip.mask_num;
 		}
-		return s.str();
 	}
 protected:
 	IP_MODEL ip;

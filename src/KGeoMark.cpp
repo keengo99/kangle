@@ -23,7 +23,7 @@ void KGeoMark::download_callback(int status)
 {
 	kfiber_rwlock_wlock(lock);
 	flush_timer = false;
-	std::string file;
+	KString file;
 	if (isAbsolutePath(this->file.c_str())) {
 		file = this->file;
 	} else {
@@ -113,7 +113,7 @@ void KGeoMark::flush_timer_callback()
 		return;
 	}
 	last_flush = kgl_current_sec;
-	std::string file;
+	KString file;
 	if (isAbsolutePath(this->file.c_str())) {
 		file = this->file;
 	} else {

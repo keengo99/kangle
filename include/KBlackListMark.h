@@ -25,8 +25,7 @@ public:
 		}
 		return true;
 	}
-	std::string getDisplay() override {
-		return "";
+	void get_display(KWStream& s) override {
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -38,7 +37,7 @@ if (1== atoi(attribute["enable"].c_str())) {
 }
 */
 	}
-	std::string getHtml(KModel* model) override {
+	void get_html(KModel* model, KWStream& s) override {
 		/*
 		KBlackListMark *m_chain = (KBlackListMark *) model;
 		std::stringstream s;
@@ -49,7 +48,7 @@ if (1== atoi(attribute["enable"].c_str())) {
 		s << ">enable" ;
 		return s.str();
 		*/
-		return "";
+		return;
 	}
 	KMark* new_instance() override {
 		return new KBlackListMark();
@@ -88,21 +87,18 @@ public:
 		}
 		return false;
 	}
-	std::string getDisplay() override {
+	void get_display(KWStream& s) override {
 		if (isGlobal) {
-			return "";
+			return ;
 		}
-		std::stringstream s;
 		s << "time:" << time_out;
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
 		time_out = atoi(attribute["time_out"].c_str());
 	}
-	std::string getHtml(KModel* model)override {
+	void get_html(KModel* model, KWStream& s) override {
 		KCheckBlackListMark* m_chain = (KCheckBlackListMark*)model;
-		std::stringstream s;
 		if (!isGlobal) {
 			s << "block time(seconds):<input type=text name='time_out' value='";
 			if (m_chain) {
@@ -112,7 +108,6 @@ public:
 			}
 			s << "'>";
 		}
-		return s.str();
 	}
 	KMark* new_instance() override {
 		return new KCheckBlackListMark();

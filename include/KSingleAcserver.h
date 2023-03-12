@@ -13,7 +13,7 @@
 
 class KSingleAcserver: public KPoolableRedirect {
 public:
-	KSingleAcserver(const std::string &name);
+	KSingleAcserver(const KString &name);
 	KSingleAcserver(KSockPoolHelper *nodes);
 	virtual ~KSingleAcserver();
 	unsigned getPoolSize() {

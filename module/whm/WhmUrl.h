@@ -12,9 +12,9 @@
 
 class WhmUrl: public WhmExtend {
 public:
-	WhmUrl(std::string &file);
+	WhmUrl(const KString&file);
 	virtual ~WhmUrl();
-	bool init(std::string &whmFile) override {
+	bool init(KString &whmFile) override {
 		return true;
 	}
 	bool startElement(KXmlContext* context) override {

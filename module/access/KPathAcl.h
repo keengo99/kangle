@@ -30,12 +30,11 @@ public:
 	}
 	virtual ~KPathAcl() {
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel *model,KWStream &s) override {
 		s << "<input name=path value='";
 		KPathAcl *urlAcl = (KPathAcl *) (model);
 		if (urlAcl) {
-			s << urlAcl->getPath();
+			urlAcl->getPath(s);
 		}
 		s << "'>";
 		s << "<input name='raw' value='1' type='checkbox' ";
@@ -43,7 +42,7 @@ public:
 			s << "checked";
 		}
 		s << ">raw";
-		return s.str();
+		return;
 	}
 	KAcl *new_instance() override {
 		return new KPathAcl();
@@ -63,13 +62,11 @@ public:
 		}
 		return filecmp(url->path, path.c_str()) == 0;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream &s) override {
 		if (raw) {
 			s << "raw:";
 		}
-		s << getPath();
-		return s.str();
+		getPath(s);
 	}
 
 	bool setPath(const char *value) {
@@ -107,13 +104,11 @@ public:
 
 	}
 private:
-	std::string getPath()
+	void getPath(KWStream &s)
 	{
-		std::stringstream s;
 		s << path << (wide?"*":"");
-		return s.str();
 	}
-	std::string path;
+	KString path;
 	bool wide;
 	bool raw;
 };

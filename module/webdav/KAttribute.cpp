@@ -6,7 +6,7 @@
  */
 
 #include "KAttribute.h"
-
+#if 0
 using namespace std;
 
 KAttribute::KAttribute() {
@@ -43,3 +43,4 @@ void KAttribute::del(const char *name) {
 		atts.erase(it);
 	}
 }
+#endif

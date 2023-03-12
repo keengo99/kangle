@@ -29,10 +29,10 @@ public:
 	KJump() {
 		ref = 1;
 	}
-	KJump(const std::string &a): name(a) {
+	KJump(const KString&a): name(a) {
 		ref = 1;
 	}
-	KJump(std::string&& a) noexcept : name(a) {
+	KJump(KString&& a) noexcept : name(a) {
 		ref = 1;
 	}
 	void release() {
@@ -47,7 +47,7 @@ public:
 	uint32_t get_ref() {
 		return katom_get((void*)&ref);
 	}
-	std::string name;
+	KString name;
 protected:
 	virtual ~KJump();
 private:

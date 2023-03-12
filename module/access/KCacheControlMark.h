@@ -51,8 +51,7 @@ public:
 		}
 		return true;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << "max_age:" << max_age;
 		if (static_flag) {
 			s << " static";
@@ -62,7 +61,6 @@ public:
 		if (must_revalidate) {
 			s << " must_revalidate";
 		}
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -76,8 +74,7 @@ public:
 		}
 		must_revalidate = (attribute["must_revalidate"]=="1");
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		KCacheControlMark *mark = (KCacheControlMark *) model;
 		s << "max_age: <input type=text name=max_age size=6 value='";
 		if (mark) {
@@ -100,7 +97,6 @@ public:
 			s << "checked";
 		}
 		s << ">must_revalidate";
-		return s.str();
 	}
 	KMark * new_instance() override {
 		return new KCacheControlMark();

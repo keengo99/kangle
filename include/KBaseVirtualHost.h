@@ -39,16 +39,16 @@ public:
 	KBaseString() {
 		inherited = false;
 	}
-	KBaseString(const std::string &s) {
+	KBaseString(const KString &s) {
 		inherited = false;
 		this->s = s;
 	}
 	bool inherited;
-	std::string s;
+	KString s;
 };
 struct KIndexItem
 {
-	KIndexItem(const int &id, const std::string& s) : index(s) {
+	KIndexItem(const int &id, const KString& s) : index(s) {
 		this->id = id;
 	}
 	int id;
@@ -159,8 +159,8 @@ private:
 			xfree(to);
 		}
 	}
-	std::string orig_to;
-	std::string orig_path;
+	KString orig_to;
+	KString orig_path;
 };
 using KAlias = KSharedObj<KBaseAlias>;
 class KBaseVirtualHost: public kconfig::KConfigListen
@@ -185,21 +185,21 @@ public:
 	std::map<char*, KBaseRedirect*, lessf> redirects;
 	std::list<KPathRedirect*> pathRedirects;
 	std::list<KAlias> aliass;
-	void getRedirectItemHtml(const std::string& url, const std::string& value, bool file_ext, KBaseRedirect* brd, std::stringstream& s);
-	void getIndexHtml(const std::string& url, std::stringstream& s);
-	void getErrorPageHtml(const std::string& url, std::stringstream& s);
-	void getRedirectHtml(const std::string& url, std::stringstream& s);
-	void getAliasHtml(const std::string& url, std::stringstream& s);
-	bool addAlias(const std::string& path, const std::string& to, const char* doc_root, bool internal, int id, std::string& errMsg);
-	bool addIndexFile(const std::string& index, int id = 100);
+	void getRedirectItemHtml(const KString& url, const KString& value, bool file_ext, KBaseRedirect* brd, KWStream& s);
+	void getIndexHtml(const KString& url, KWStream& s);
+	void getErrorPageHtml(const KString& url, KWStream& s);
+	void getRedirectHtml(const KString& url, KWStream& s);
+	void getAliasHtml(const KString& url, KWStream& s);
+	bool addAlias(const KString& path, const KString& to, const char* doc_root, bool internal, int id, KString& errMsg);
+	bool addIndexFile(const KString& index, int id = 100);
 	void listIndex(KVirtualHostEvent* ev);
-	bool delIndexFile(const std::string& index);
+	bool delIndexFile(const KString& index);
 	void getParsedFileExt(KVirtualHostEvent* ctx);
-	bool addRedirect(bool file_ext, const std::string& value, KRedirect* rd, const std::string& allowMethod, KConfirmFile confirmFile, const std::string& params);
-	bool addRedirect(bool file_ext, const std::string& value, const std::string& target, const std::string& allowMethod, KConfirmFile confirmFile, const std::string& params);
-	bool addErrorPage(int code, const std::string& url);
+	bool addRedirect(bool file_ext, const KString& value, KRedirect* rd, const KString& allowMethod, KConfirmFile confirmFile, const KString& params);
+	bool addRedirect(bool file_ext, const KString& value, const KString& target, const KString& allowMethod, KConfirmFile confirmFile, const KString& params);
+	bool addErrorPage(int code, const KString& url);
 	bool delErrorPage(int code);
-	bool getErrorPage(int code, std::string& errorPage);
+	bool getErrorPage(int code, KString& errorPage);
 	bool getIndexFile(KHttpRequest* rq, KFileName* file, KFileName** newFile, char** newPath);
 	/**
 	* 继承给vh,clearFlag标识是否先清除继承的设置再继承(用于重新继承)
@@ -217,7 +217,7 @@ public:
 	}
 	void addMimeType(const char* ext, const char* type, kgl_compress_type compress, int max_age);
 	bool delMimeType(const char* ext);
-	void getMimeTypeHtml(const std::string& url, std::stringstream& s);
+	void getMimeTypeHtml(const KString& url, KWStream& s);
 	friend class KNsVirtualHost;
 	friend class KHttpServerParser;
 	friend class KVirtualHostManage;
@@ -231,9 +231,9 @@ public:
 		变量
 	*/
 	std::map<char*, char*, lessp_icase> envs;
-	bool getEnvValue(const char* name, std::string& value);
+	bool getEnvValue(const char* name, KString& value);
 	bool addEnvValue(const char* name, const char* value);
-	void buildEnv(std::stringstream& s) {
+	void buildEnv(KWStream& s) {
 		std::map<char*, char*, lessp_icase>::iterator it5;
 		for (it5 = envs.begin(); it5 != envs.end(); it5++) {
 			s << (*it5).first << "='" << (*it5).second << "' ";

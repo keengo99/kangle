@@ -98,7 +98,7 @@ bool KDsoExtend::RegisterUpstream(kgl_upstream* us)
 	upstream.insert(std::pair<const char*, KDsoRedirect*>(us->name, new KDsoRedirect(name, us)));
 	return true;
 }
-KRedirect* KDsoExtend::RefsRedirect(std::string& name)
+KRedirect* KDsoExtend::RefsRedirect(KString& name)
 {
 	std::map<const char*, KDsoRedirect*, lessp>::iterator it;
 	it = upstream.find(name.c_str());
@@ -109,14 +109,14 @@ KRedirect* KDsoExtend::RefsRedirect(std::string& name)
 	rd->add_ref();
 	return rd;
 }
-void KDsoExtend::ListUpstream(std::stringstream& s)
+void KDsoExtend::ListUpstream(KWStream& s)
 {
 	std::map<const char*, KDsoRedirect*, lessp>::iterator it;
 	for (it = upstream.begin(); it != upstream.end(); it++) {
 		s << (*it).first << " ";
 	}
 }
-void KDsoExtend::ListTarget(std::vector<std::string>& target)
+void KDsoExtend::ListTarget(std::vector<KString>& target)
 {
 	std::map<const char*, KDsoRedirect*, lessp>::iterator it;
 	for (it = upstream.begin(); it != upstream.end(); it++) {

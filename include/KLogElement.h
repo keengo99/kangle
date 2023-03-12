@@ -26,6 +26,7 @@
 #include "KTimeMatch.h"
 #include "KMutex.h"
 #include "KFileName.h"
+#include "KStringBuf.h"
 #define LOG_NONE  0
 #define LOG_PRINT 1
 #define LOG_FILE  2
@@ -101,23 +102,22 @@ public:
 		}
 	}
 	bool checkRotate(time_t nowTime);
-	void buildXML(std::stringstream& s);
 	void setRotateTime(const char* str) {
 		lock.Lock();
 		rotate_time = str;
 		rotate.set(str);
 		lock.Unlock();
 	}
-	void getRotateTime(std::string& str) {
+	void getRotateTime(KString& str) {
 		lock.Lock();
 		str = rotate_time;
 		lock.Unlock();
 	}
-	void setPath(std::string path);
+	void setPath(KString path);
 	void close();
 	friend class KVirtualHost;
 	friend class KVirtualHostManage;
-	std::string path;
+	KString path;
 	INT64 rotate_size;
 	INT64 log_file_size;
 	INT64 logs_size;
@@ -130,7 +130,7 @@ public:
 	bool log_handle;
 private:
 	void rotateLog();
-	std::string rotate_time;
+	KString rotate_time;
 	KFile fp;
 	KTimeMatch rotate;
 	KMutex lock;

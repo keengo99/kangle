@@ -80,13 +80,13 @@ kgl_ssl_ctx* KSslConfig::new_ssl_ctx(const char* certfile, const char* keyfile) 
 	ssl_ctx->ctx = ctx;
 	return ssl_ctx;
 }
-std::string KSslConfig::get_cert_file() {
+KString KSslConfig::get_cert_file() {
 	if (isAbsolutePath(cert_file.c_str())) {
 		return cert_file;
 	}
 	return  conf.path + cert_file;
 }
-std::string KSslConfig::get_key_file() {
+KString KSslConfig::get_key_file() {
 	if (isAbsolutePath(key_file.c_str())) {
 		return key_file;
 	}
@@ -129,7 +129,7 @@ public:
 	KExtConfig* next;
 };
 
-bool get_size_radio(INT64 size, int radio, const char radio_char, std::stringstream& s) {
+bool get_size_radio(INT64 size, int radio, const char radio_char, KWStream& s) {
 	INT64 t;
 	t = size >> radio;
 	if (t > 0) {
@@ -154,8 +154,8 @@ char* get_human_size(double size, char* buf, size_t buf_size) {
 	snprintf(buf, buf_size - 1, "%.*f%s", 2, size, units[i]);
 	return buf;
 }
-std::string get_size(INT64 size) {
-	std::stringstream s;
+KString get_size(INT64 size) {
+	KStringBuf s;
 	if (get_size_radio(size, 40, 'T', s)) {
 		return s.str();
 	}
@@ -427,9 +427,9 @@ void clean_config() {
 void load_lang() {
 	try {
 #ifdef KANGLE_WEBADMIN_DIR
-		std::string configFile = KANGLE_WEBADMIN_DIR;
+		KString configFile = KANGLE_WEBADMIN_DIR;
 #else
-		std::string configFile = conf.path + "/webadmin";
+		KString configFile = conf.path + "/webadmin";
 #endif
 		configFile += "/lang.xml";
 		klog(KLOG_NOTICE, "load config file [%s]\n", configFile.c_str());

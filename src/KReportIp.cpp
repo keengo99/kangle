@@ -73,7 +73,7 @@ void start_report_worker(std::list<char *> &items) {
 	kgl_async_http ctx;
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.meth = "POST";
-	KStringBuf post;
+	KStringStream post;
 	post << "ips=";
 	std::list<char *>::iterator it;
 	for (it=items.begin();it!=items.end();it++) {

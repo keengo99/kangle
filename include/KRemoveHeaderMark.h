@@ -66,12 +66,11 @@ public:
 	const char* getName()override {
 		return "remove_header";
 	}
-	std::string getHtml(KModel* model)override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "attr:<input name='attr' value='";
 		KRemoveHeaderMark* mark = (KRemoveHeaderMark*)(model);
 		if (mark) {
-			s << mark->attr;
+			s << mark->attr.c_str();
 		}
 		s << "'>";
 		s << "val(regex):<input name='val' value='";
@@ -84,12 +83,10 @@ public:
 			}
 		}
 		s << "'>";
-		return s.str();
 	}
-	std::string getDisplay()override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		if (!attr.empty()) {
-			s << attr << ":";
+			s << attr.c_str() << ":";
 		}
 		if (revers) {
 			s << "!";
@@ -97,7 +94,6 @@ public:
 		if (val) {
 			s << val->getModel();
 		}
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -119,7 +115,7 @@ public:
 		}
 	}
 private:
-	std::string attr;
+	KString attr;
 	KReg* val;
 	bool revers;
 };

@@ -35,12 +35,11 @@ public:
 	virtual ~KMultiAcl() {
 		freeMap();
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel *model, KWStream &s) override {
 		s << "<input name=v size=40 value='";
 		KMultiAcl *acl = (KMultiAcl *) (model);
 		if (acl) {
-			s << acl->getValList();
+			acl->getValList(s);
 		}
 		s << "'>";
 		if(icase_can_change){
@@ -57,10 +56,8 @@ public:
 			s << acl->split;
 		}
 		s << "'>";
-		return s.str();
 	}
-	std::string getValList() {
-		std::stringstream s;
+	void getValList(KWStream& s) {
 		krb_node *node;
 		bool isFirst = true;
 		for (node=rb_first(&root); node!=NULL; node=rb_next(node)) {
@@ -70,15 +67,13 @@ public:
 			isFirst = false;
 			s << (char *)node->data;
 		}
-		return s.str();
+		return;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		if (icase) {
 			s << "[I]";
 		}
-		s << getValList();
-		return s.str();
+		getValList(s);
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		freeMap();

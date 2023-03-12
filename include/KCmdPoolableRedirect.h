@@ -27,7 +27,7 @@
  */
 class KCmdPoolableRedirect final: public KPoolableRedirect, public KExtendProgram {
 public:
-	KCmdPoolableRedirect(const std::string &name);
+	KCmdPoolableRedirect(const KString&name);
 
 	unsigned getPoolSize() {
 		return 0;
@@ -64,7 +64,7 @@ public:
 	int port;
 	int sig;
 	friend class KSPCmdGroupConnection;	
-	std::string cmd;
+	KString cmd;
 protected:
 	~KCmdPoolableRedirect();
 private:

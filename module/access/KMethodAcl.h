@@ -29,15 +29,13 @@ public:
 	}
 	virtual ~KMethodAcl() {
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "<input name=meth placeholder='GET,POST,PUT,...' value='";
 		KMethodAcl *urlAcl = (KMethodAcl *) (model);
 		if (urlAcl) {
-			s << urlAcl->getDisplay();
+			urlAcl->get_display(s);
 		}
 		s << "'>";
-		return s.str();
 	}
 	KAcl *new_instance() override {
 		return new KMethodAcl();
@@ -48,10 +46,8 @@ public:
 	bool match(KHttpRequest *rq, KHttpObject *obj)  override {
 		return meth.matchMethod(rq->sink->data.meth);
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
-		s << meth.getMethod();
-		return s.str();
+	void get_display(KWStream& s) override {
+		meth.getMethod(s);
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

@@ -158,7 +158,7 @@ public:
 		}
 
 	}
-	std::string ip;
+	KString ip;
 	int port;
 	bool ipv4;
 	int32_t manage;
@@ -235,7 +235,7 @@ public:
 	void RemoveGlobal(KListenHost *lh);
 	void BindGlobalVirtualHost(KVirtualHost *vh);
 	void UnbindGlobalVirtualHost(KVirtualHost *vh);
-	void GetListenHtml(std::stringstream &s);
+	void GetListenHtml(KWStream &s);
 	void GetListenWhm(WhmContext *ctx);
 	void QueryDomain(domain_t host,int port, WhmContext *ctx);
 	void Close();

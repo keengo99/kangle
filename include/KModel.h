@@ -43,11 +43,12 @@ public:
 	{
 		return 500;
 	}
-	virtual std::string getDisplay() = 0;
+	
 	virtual void parse_config(const khttpd::KXmlNodeBody* xml) = 0;
 	virtual void parse_child(const kconfig::KXmlChanged* changed) {
 	}
-	virtual std::string getHtml(KModel* model) = 0;
+	virtual void get_display(KWStream& s) = 0;
+	virtual void get_html(KModel* model, KWStream& s) = 0;
 	KModel* add_ref() {
 		katom_inc((void*)&ref);
 		return this;
@@ -60,7 +61,7 @@ public:
 			delete this;
 		}
 	}
-	std::string name;
+	KString name;
 	bool revers;
 	bool is_or;
 	bool isGlobal;

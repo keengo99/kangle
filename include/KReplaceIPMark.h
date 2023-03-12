@@ -86,9 +86,7 @@ public:
 	{
 		return "replace_ip";
 	}
-	std::string getHtml(KModel *model)override
-	{
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "header:<input name='header' value='";
 		KReplaceIPMark *m = (KReplaceIPMark *)model;
 		if (m) {
@@ -102,21 +100,17 @@ public:
 			s << m->val->getModel();
 		}
 		s << "'>";
-		return s.str();
 	}
-	std::string getDisplay()override
-	{
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << header;
 		if (val) {
 			s << ":" << val->getModel();
 		}
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
 		header = attribute["header"];
-		std::string val = attribute["val"];
+		auto val = attribute["val"];
 		if (this->val) {
 			delete this->val;
 			this->val = NULL;
@@ -127,7 +121,7 @@ public:
 		}
 	}	
 private:
-	std::string header;
+	KString header;
 	KReg *val;
 };
 class KParentMark : public KMark
@@ -213,15 +207,13 @@ public:
 	{
 		return "parent";
 	}
-	std::string getHtml(KModel *model)override
-	{
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "sign:<input name='sign' value='";
 		KParentMark *m = (KParentMark *)model;
 		if (m) {
 			for (int i = 0; i < 2; i++) {
 				if (m->upstream_sign[i].data) {
-					s.write(m->upstream_sign[i].data, m->upstream_sign[i].len);
+					s.write_all(m->upstream_sign[i].data, m->upstream_sign[i].len);
 					if (i == 0) {
 						s << "|";
 					}
@@ -229,20 +221,16 @@ public:
 			}
 		}
 		s << "'>";
-		return s.str();
 	}
-	std::string getDisplay()override
-	{
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		for (int i = 0; i < 2; i++) {
 			if (upstream_sign[i].data) {
-				s.write(upstream_sign[i].data, upstream_sign[i].len);
+				s.write_all(upstream_sign[i].data, upstream_sign[i].len);
 				if (i == 0) {
 					s << "|";
 				}
 			}
 		}
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

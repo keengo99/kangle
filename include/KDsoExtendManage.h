@@ -21,12 +21,12 @@ public:
 		}
 		dsos.clear();
 	}
-	void html(std::stringstream &s);
+	void html(KWStream &s);
 	void whm(WhmContext *ctx);
 	bool add(KDsoExtend *dso);
 	bool add(const KXmlAttribute &attribute);
-	void ListTarget(std::vector<std::string> &target);
-	KRedirect *RefsRedirect(std::string &name);
+	void ListTarget(std::vector<KString> &target);
+	KRedirect *RefsRedirect(KString&name);
 	void shutdown();
 	virtual bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) override;
 	kconfig::KConfigEventFlag config_flag() const override {

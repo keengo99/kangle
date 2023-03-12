@@ -157,7 +157,7 @@ void KBaseVirtualHost::swap(KBaseVirtualHost* a) {
 	envs.swap(a->envs);
 	lock.Unlock();
 }
-bool KBaseVirtualHost::getErrorPage(int code, std::string& errorPage) {
+bool KBaseVirtualHost::getErrorPage(int code, KString& errorPage) {
 	{
 		auto locker = get_locker();
 		auto it = errorPages.find(code);
@@ -222,7 +222,7 @@ void KBaseVirtualHost::addMimeType(const char* ext, const char* type, kgl_compre
 	lock.Unlock();
 }
 void KBaseVirtualHost::listIndex(KVirtualHostEvent* ev) {
-	std::stringstream s;
+	KStringBuf s;
 	lock.Lock();
 	for (auto it = indexFiles.begin(); it != indexFiles.end(); it++) {
 		s << "<index id='" << (*it).id << "' index='" << (*it).index.s << "' inherit='" << ((*it).index.inherited ? 1 : 0) << "'/>\n";
@@ -230,10 +230,10 @@ void KBaseVirtualHost::listIndex(KVirtualHostEvent* ev) {
 	lock.Unlock();
 	ev->add("indexs", s.str().c_str(), false);
 }
-void KBaseVirtualHost::getIndexHtml(const std::string& url, std::stringstream& s) {
+void KBaseVirtualHost::getIndexHtml(const KString& url, KWStream& s) {
 	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>" << klang["id"] << "</td><td>"
 		<< klang["index"] << "</td></tr>";
-	for (std::list<KIndexItem>::iterator it = indexFiles.begin(); it != indexFiles.end(); it++) {
+	for (auto  it = indexFiles.begin(); it != indexFiles.end(); it++) {
 		s << "<tr><td>";
 		if ((*it).index.inherited) {
 			s << klang["inherited"];
@@ -254,7 +254,7 @@ void KBaseVirtualHost::getIndexHtml(const std::string& url, std::stringstream& s
 		<< LANG_ADD << "'>";
 	s << "</form>";
 }
-void KBaseVirtualHost::getErrorPageHtml(const std::string& url, std::stringstream& s) {
+void KBaseVirtualHost::getErrorPageHtml(const KString& url, KWStream& s) {
 	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>"
 		<< klang["error_code"];
 	s << "</td><td>" << klang["error_url"] << "</td></tr>\n";
@@ -282,7 +282,7 @@ void KBaseVirtualHost::getErrorPageHtml(const std::string& url, std::stringstrea
 	s << "</form>";
 
 }
-void KBaseVirtualHost::getMimeTypeHtml(const std::string& url, std::stringstream& s) {
+void KBaseVirtualHost::getMimeTypeHtml(const KString& url, KWStream& s) {
 	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>" << klang["file_ext"] << "</td><td>";
 	s << klang["mime_type"] << "</td><td>compress</td><td>" << klang["max_age"] << "</td></tr>";
 	if (mimeType) {
@@ -303,7 +303,7 @@ void KBaseVirtualHost::getMimeTypeHtml(const std::string& url, std::stringstream
 	s << "</form>";
 
 }
-void KBaseVirtualHost::getAliasHtml(const std::string& url, std::stringstream& s) {
+void KBaseVirtualHost::getAliasHtml(const KString& url, KWStream& s) {
 	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>"
 		<< klang["id"] << "</td><td>" << klang["url_path"] << "</td>";
 	s << "<td>" << klang["phy_path"] << "</td>";
@@ -347,7 +347,7 @@ void KBaseVirtualHost::getAliasHtml(const std::string& url, std::stringstream& s
 	s << "</form>";
 
 }
-void KBaseVirtualHost::getRedirectItemHtml(const std::string& url, const std::string& value, bool file_ext, KBaseRedirect* brd, std::stringstream& s) {
+void KBaseVirtualHost::getRedirectItemHtml(const KString& url, const KString& value, bool file_ext, KBaseRedirect* brd, KWStream& s) {
 	s << "<tr><td>";
 	if (brd->global) {
 		s << klang["inherited"];
@@ -373,7 +373,9 @@ void KBaseVirtualHost::getRedirectItemHtml(const std::string& url, const std::st
 		s << klang["default"];
 	}
 	s << "</td>";
-	s << "<td>" << brd->allowMethod.getMethod() << "</td>";
+	s << "<td>";
+	brd->allowMethod.getMethod(s);
+	s << "</td>";
 	s << "<td>" << kgl_get_confirm_file_tips(brd->confirm_file) << "</td>";
 	//{{ent
 #ifdef ENABLE_UPSTREAM_PARAM
@@ -384,7 +386,7 @@ void KBaseVirtualHost::getRedirectItemHtml(const std::string& url, const std::st
 	//}}
 	s << "</tr>";
 }
-void KBaseVirtualHost::getRedirectHtml(const std::string& url, std::stringstream& s) {
+void KBaseVirtualHost::getRedirectHtml(const KString& url, KWStream& s) {
 	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>"
 		<< klang["map_type"];
 	s << "</td><td>" << LANG_VALUE << "</td><td>" << klang["extend"]
@@ -416,7 +418,7 @@ void KBaseVirtualHost::getRedirectHtml(const std::string& url, std::stringstream
 	s << "<input name='value'>";
 	s << "</td></tr>";
 	s << "<tr><td>";
-	vector<std::string> targets = conf.gam->getAllTarget();
+	auto targets = conf.gam->getAllTarget();
 	s << klang["extend"] << ":<select name='extend'>\n";
 	for (size_t i = 0; i < targets.size(); i++) {
 		s << "<option value='" << targets[i] << "'>";
@@ -459,7 +461,7 @@ void KBaseVirtualHost::getRedirectHtml(const std::string& url, std::stringstream
 	s << "</td></tr></table>";
 	s << "</form>";
 }
-bool KBaseVirtualHost::addIndexFile(const std::string& index, int id) {
+bool KBaseVirtualHost::addIndexFile(const KString& index, int id) {
 	auto locker = get_locker();
 	std::list<KIndexItem>::iterator it, it_insert;
 	bool it_insert_finded = false;
@@ -484,7 +486,7 @@ bool KBaseVirtualHost::addIndexFile(const std::string& index, int id) {
 	}
 	return true;
 }
-bool KBaseVirtualHost::delIndexFile(const std::string& index) {
+bool KBaseVirtualHost::delIndexFile(const KString& index) {
 	lock.Lock();
 	for (auto it = indexFiles.begin(); it != indexFiles.end(); it++) {
 		if ((*it).index.s == index) {
@@ -498,7 +500,7 @@ bool KBaseVirtualHost::delIndexFile(const std::string& index) {
 	return false;
 
 }
-bool KBaseVirtualHost::addRedirect(bool file_ext, const std::string& value, KRedirect* rd, const std::string& allowMethod, KConfirmFile confirmFile, const std::string& params) {
+bool KBaseVirtualHost::addRedirect(bool file_ext, const KString& value, KRedirect* rd, const KString& allowMethod, KConfirmFile confirmFile, const KString& params) {
 	auto locker = get_locker();
 	if (file_ext) {
 			auto it = redirects.find((char*)value.c_str());
@@ -537,7 +539,7 @@ bool KBaseVirtualHost::addRedirect(bool file_ext, const std::string& value, KRed
 	}
 	return true;
 }
-bool KBaseVirtualHost::addRedirect(bool file_ext, const std::string& value, const std::string& extend, const std::string& allowMethod, KConfirmFile confirmFile, const std::string& params) {
+bool KBaseVirtualHost::addRedirect(bool file_ext, const KString& value, const KString& extend, const KString& allowMethod, KConfirmFile confirmFile, const KString& params) {
 
 	KRedirect* rd = NULL;
 	if (extend != "default") {
@@ -548,7 +550,7 @@ bool KBaseVirtualHost::addRedirect(bool file_ext, const std::string& value, cons
 	}
 	return addRedirect(file_ext, value, rd, allowMethod, confirmFile, params);
 }
-bool KBaseVirtualHost::addErrorPage(int code, const std::string& url) {
+bool KBaseVirtualHost::addErrorPage(int code, const KString& url) {
 	lock.Lock();
 	errorPages[code] = url;
 	errorPages[code].inherited = false;
@@ -566,8 +568,8 @@ bool KBaseVirtualHost::delErrorPage(int code) {
 	lock.Unlock();
 	return result;
 }
-bool KBaseVirtualHost::addAlias(const std::string& path, const std::string& to, const char* doc_root, bool internal, int id,
-	std::string& errMsg) {
+bool KBaseVirtualHost::addAlias(const KString& path, const KString& to, const char* doc_root, bool internal, int id,
+	KString& errMsg) {
 	if (path.empty() || to.empty()) {
 		errMsg = "path or to cann't be zero";
 		return false;
@@ -722,7 +724,7 @@ bool KBaseVirtualHost::addEnvValue(const char* name, const char* value) {
 	lock.Unlock();
 	return result;
 }
-bool KBaseVirtualHost::getEnvValue(const char* name, std::string& value) {
+bool KBaseVirtualHost::getEnvValue(const char* name, KString& value) {
 	if (name == NULL) {
 		return false;
 	}

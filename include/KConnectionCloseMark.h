@@ -21,15 +21,12 @@ public:
 		KBIT_SET(rq->sink->data.flags,RQ_CONNECTION_CLOSE);
 		return true;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
-		return s.str();
+	void get_display(KWStream& s) override {
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
 	}
-	std::string getHtml(KModel *model)override {
-		return "";
+	void get_html(KModel* model, KWStream& s) override {
 	}
 private:
 };

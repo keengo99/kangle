@@ -260,7 +260,7 @@ ULONG64 KProcess::getCpuTime() {
 	lastQueryTime = nowTime;
 	return totalTime;
 }
-int KProcess::flushCpuUsage(const std::string &user, const std::string &name,ULONG64 cpuTime,int cpu_limit)
+int KProcess::flushCpuUsage(const KString&user, const KString&name,ULONG64 cpuTime,int cpu_limit)
 {
 	if (isKilled()) {
 		return 0;

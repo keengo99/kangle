@@ -112,16 +112,15 @@ public:
 	virtual KUpstream* PowerResult(KHttpRequest* rq, KPipeStream* st) = 0;
 	KPipeStream* Power(KHttpRequest* rq, KExtendProgram* rd);
 	virtual KPipeStream* PowerThread(KVirtualHost* vh, KExtendProgram* rd) = 0;
-	virtual void getProcessInfo(const USER_T& user, const std::string& name,
-		std::stringstream& s, int& count) {
+	virtual void getProcessInfo(const USER_T& user, const KString& name, KWStream& s, int& count) {
 	}
 	//{{ent
 #ifdef ENABLE_ADPP
-	virtual void flushCpuUsage(const std::string& user, const std::string& name, ULONG64 cpuTime) {
+	virtual void flushCpuUsage(const KString& user, const KString& name, ULONG64 cpuTime) {
 
 	}
 #endif
-	virtual int getPortMap(KVirtualHost* vh, KExtendProgram* rd, std::string name)
+	virtual int getPortMap(KVirtualHost* vh, KExtendProgram* rd, KString name)
 	{
 		return -1;
 	}
@@ -168,7 +167,7 @@ protected:
 		return true;
 	}
 #ifdef KSOCKET_UNIX
-	std::string unix_path;
+	KString unix_path;
 #endif
 private:
 	void NoticePowerResult(bool result);
@@ -190,6 +189,6 @@ struct VProcessPowerParam
 	kselector* selector;
 	kfiber* fiber;
 };
-void getProcessInfo(const USER_T& user, const std::string& name, KProcess* process, KPoolableSocketContainer* ps, std::stringstream& s);
+void getProcessInfo(const USER_T& user, const KString& name, KProcess* process, KPoolableSocketContainer* ps, KWStream& s);
 KTHREAD_FUNCTION VProcessPowerWorker(void* param);
 #endif /* KVIRTUALPROCESS_H_ */

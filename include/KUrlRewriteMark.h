@@ -11,7 +11,7 @@ public:
 	}
 	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)override
 	{
-		KStringBuf u;
+		KStringStream u;
 		rq->sink->data.url->GetUrl(u);
 		/*
 		int len = url_decode(u.getBuf(),u.getSize());
@@ -21,7 +21,7 @@ public:
 		if (subString==NULL) {
 			return false;
 		}
-		KStringBuf *nu = KRewriteMarkEx::getString(
+		auto nu = KRewriteMarkEx::getString(
 			NULL,
 			dst.c_str(),
 			rq,
@@ -51,9 +51,7 @@ public:
 	{
 		return "url_rewrite";
 	}
-	std::string getHtml(KModel *model)override
-	{
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		KUrlRewriteMark *m = (KUrlRewriteMark *)model;
 		s << "url:<input name='url' size=32 value='";
 		if (m) {
@@ -76,16 +74,13 @@ public:
 			s << "checked";
 		}
 		s << ">nc";
-		return s.str();
 	}
-	std::string getDisplay()override
+	void get_display(KWStream &s)override
 	{
-		std::stringstream s;
 		s << url.getModel() << "=>" << dst;
 		if (code>0) {
 			s << " " << code;
 		}
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -99,7 +94,7 @@ public:
 	}
 private:
 	KReg url;
-	std::string dst;
+	KString dst;
 	bool icase;
 	int code;
 };

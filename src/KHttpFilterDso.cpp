@@ -26,7 +26,7 @@ KGL_RESULT global_get_variable(PVOID ctx, KGL_GVAR type, const char *name, LPVOI
 	}
 	case KGL_GCONFIG:
 	{
-		std::map<std::string, std::string>::iterator it = dso->attribute.find(name);
+		auto it = dso->attribute.find(name);
 		if (it == dso->attribute.end()) {
 			return KGL_ENO_DATA;
 		}

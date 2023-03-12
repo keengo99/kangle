@@ -32,15 +32,13 @@ public:
 		auto attribute = xml->attr();
 		addIpModel(attribute["ip"].c_str(), ip);
 	}
-	std::string getHtml(KModel *acl) override {
-		std::stringstream s;
+	void get_html(KModel* acl, KWStream& s) override {
 		s << "<input name=ip value='";
 		KSrcAcl *acl2=(KSrcAcl *)(acl);
 		if (acl2) {
-			s << acl2->getDisplay();
+			acl2->get_display(s);
 		}
 		s << "'>(cidr format)";
-		return s.str();
 	}
 	KAcl *new_instance() override {
 		return new KSrcAcl();

@@ -22,19 +22,16 @@ public:
 	const char *getName() override {
 		return "ip_url_rate";
 	}	
-	std::string getDisplay() override  {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << "&gt;" << request << "/" << second << "s ";
 		s << rate.getCount();
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
 		request = atoi(attribute["request"].c_str());
 		second = atoi(attribute["second"].c_str());
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		KIpUrlRateAcl *m = (KIpUrlRateAcl *)model;
 		s << "rate&gt;request:<input name='request' size=4 value='";
 		if (m) {
@@ -46,7 +43,6 @@ public:
 			s << m->second;
 		}		
 		s << "'>";
-		return s.str();
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		if (kgl_current_sec - lastFlushTime > 5) {

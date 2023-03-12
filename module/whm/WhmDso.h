@@ -15,9 +15,9 @@ typedef int (WINAPI * WhmCallf)(const char *callName, const char *eventType,
 typedef BOOL (WINAPI * WhmTerminatef)(DWORD dwFlags);
 class WhmDso: public WhmExtend {
 public:
-	WhmDso(std::string &file);
+	WhmDso(KString &file);
 	virtual ~WhmDso();
-	bool init(std::string &whmFile) override;
+	bool init(KString &whmFile) override;
 	int call(const char *callName, const char *eventType, WhmContext *context) override;
 	const char *getType() override
 	{

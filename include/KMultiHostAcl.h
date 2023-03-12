@@ -9,16 +9,16 @@ class KMultiHostAcl: public KAcl {
 public:
 	KMultiHostAcl();
 	virtual ~KMultiHostAcl();
-	std::string getHtml(KModel *model) override;
+	void get_html(KModel* model, KWStream& s) override;
+	void get_display(KWStream& s) override;
 	KAcl *new_instance() override;
 	const char *getName() override;
 	bool match(KHttpRequest *rq, KHttpObject *obj) override;
-	std::string getDisplay() override;
 	void parse_config(const khttpd::KXmlNodeBody* xml) override;
 private:
 	bool loadFile(KHttpRequest *rq);
 	void freeMap();
-	std::string file;
+	KString file;
 	time_t lastModified;
 	time_t lastCheck;
 	std::map<char *, bool,lessp_icase > m;

@@ -39,13 +39,11 @@ public:
 		}
 		return true;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		if (clear) {
 			s << "clear ";
 		}
 		getFlagString(s);
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -117,9 +115,8 @@ public:
 			flag |= RF_LOG_DRILL;
 		}
 	}
-	std::string getHtml(KModel *model) override {
+	void get_html(KModel* model, KWStream& s) override {
 		KFlagMark *m_chain = (KFlagMark *) model;
-		std::stringstream s;
 		s << "<input type=checkbox name='clear' value='1' ";
 		if (m_chain && m_chain->clear) {
 			s << "checked";
@@ -242,7 +239,6 @@ public:
 			s << "checked";
 		}
 		s << ">log_drill";
-		return s.str();
 	}
 	KMark * new_instance() override {
 		return new KFlagMark();
@@ -251,7 +247,7 @@ public:
 		return "flag";
 	}
 public:
-	void getFlagString(std::stringstream &s)
+	void getFlagString(KWStream &s)
 	{
 		if (KBIT_TEST(flag,RF_NO_CACHE)) {
 			s << "no_cache='1' ";

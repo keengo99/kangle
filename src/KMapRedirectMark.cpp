@@ -6,8 +6,8 @@
 
 void map_redirect_iterator(void *arg, const char *domain, void *vh)
 {
-	std::stringstream *s = (std::stringstream *)arg;
-	if (!s->str().empty()) {
+	KWStream *s = (KWStream*)arg;
+	if (!s->empty()) {
 		*s << "\n";
 	}
 	KMapRedirectItem *item = (KMapRedirectItem *)vh;
@@ -32,7 +32,7 @@ bool KMapRedirectMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** f
 	if (item == NULL) {
 		return false;
 	}
-	KStringBuf s;
+	KStringStream s;
 	int defaultPort = 80;
 	if (strstr(item->rewrite, "://") == NULL) {
 		if (KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL)) {
@@ -63,20 +63,18 @@ const char *KMapRedirectMark::getName()
 {
 	return "map_redirect";
 }
-std::string KMapRedirectMark::getHtml(KModel *model)
+void KMapRedirectMark::get_html(KModel *model,KWStream &s)
 {
-	std::stringstream s;
 	s << "<textarea name='v' placeHolder='domain|code redirect'>";
 	KMapRedirectMark *mark = (KMapRedirectMark *)(model);
 	if (mark) {
-		s << mark->getValList();
+		mark->getValList(s);
 	}
 	s << "</textarea>";
-	return s.str();
 }
-std::string KMapRedirectMark::getDisplay()
+void KMapRedirectMark::get_display(KWStream& s)
 {
-	return this->getValList();
+	this->getValList(s);
 }
 void KMapRedirectMark::	parse_config(const khttpd::KXmlNodeBody* xml) {
 	auto attribute = xml->attr();
@@ -120,8 +118,6 @@ void KMapRedirectMark::	parse_config(const khttpd::KXmlNodeBody* xml) {
 	}
 	free(buf);
 }
-std::string KMapRedirectMark::getValList() {
-	std::stringstream s;
+void KMapRedirectMark::getValList(KWStream& s) {
 	vhc.iterator(map_redirect_iterator, &s);
-	return s.str();
 }

@@ -206,7 +206,7 @@ bool read_obj_head(KHttpObjectBody* data, char** hot, int& hotlen)
 }
 kgl_auto_cstr getCacheIndexFile()
 {
-	KStringBuf s;
+	KStringStream s;
 	if (*conf.disk_cache_dir) {
 		s << conf.disk_cache_dir;
 	} else {
@@ -476,7 +476,7 @@ bool recreate_index(const char* path, int& first_dir_index, int& second_dir_inde
 			s << PATH_SPLIT_CHAR;
 			s.add_as_hex(second_dir_index);
 			recreate_index_dir(s.c_str());
-			s.clean();
+			s.clear();
 			save_index_scan_state();
 		}
 		second_dir_index = 0;
@@ -491,7 +491,7 @@ void recreate_index(time_t start_time)
 	recreate_start_time = start_time;
 	index_progress = true;
 	klog(KLOG_ERR, "now recreate the index file,It may be use more time.Please wait...\n");
-	string path;
+	KString path;
 	if (*conf.disk_cache_dir) {
 		path = conf.disk_cache_dir;
 	} else {
@@ -529,7 +529,7 @@ void init_disk_cache(bool firstTime)
 		if (0 == unlink(sqliteIndex.c_str())) {
 			remove_old_index = true;
 		}
-		sqliteIndex.clean();
+		sqliteIndex.clear();
 	}
 	if (remove_old_index) {
 		rescan_disk_cache();
@@ -559,7 +559,7 @@ void init_disk_cache(bool firstTime)
 	m_thread.start(NULL, load_cache_index);
 #endif
 }
-void get_disk_base_dir(KStringBuf& s)
+void get_disk_base_dir(KWStream& s)
 {
 	if (*conf.disk_cache_dir) {
 		s << conf.disk_cache_dir;
@@ -569,7 +569,7 @@ void get_disk_base_dir(KStringBuf& s)
 }
 KTHREAD_FUNCTION scan_disk_cache_thread(void* param)
 {
-	string path;
+	KString path;
 	if (*conf.disk_cache_dir) {
 		path = conf.disk_cache_dir;
 	} else {

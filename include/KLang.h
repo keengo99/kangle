@@ -26,21 +26,21 @@ class KLocalLang
 public:
 	const char * get(const char *name)
 	{
-		std::map<std::string,std::string>::iterator it;
+		std::map<KString,KString>::iterator it;
 		it = langs.find(name);
 		if(it==langs.end()){
 			return NULL;
 		}
 		return (*it).second.c_str();
 	}
-	bool add(std::string name,std::string value)
+	bool add(KString name,KString value)
 	{
 		langs[name] = value;
 		return true;
 	}
 	friend class KLang;
 private:
-	std::map<std::string,std::string> langs;
+	std::map<KString,KString> langs;
 };
 class KLang : public KXmlEvent 
 {
@@ -53,17 +53,17 @@ public:
 	virtual ~KLang();
 	void clear();
 	const char * operator [](const char *name);
-	void getAllLangName(std::vector<std::string> &names);
-	bool load(std::string file);
+	void getAllLangName(std::vector<KString> &names);
+	bool load(KString file);
 	bool startElement(KXmlContext *context) override;
 	bool startCharacter(KXmlContext *context, char *character, int len) override;
 	bool endElement(KXmlContext *context) override;
 private:
 	const char *get(char *lang_name,const char *name);
 	KLocalLang *getLocal(char *name);
-	bool add(std::string lang,std::string name,std::string value);
+	bool add(KString lang,KString name,KString value);
 	std::map<char *,KLocalLang *,lessp_icase> *langs;
-	std::string curName;
+	KString curName;
 };
 extern KLang klang;
 #endif /*KLANG_H_*/

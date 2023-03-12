@@ -72,16 +72,16 @@ class KSslCertificate
 {
 public:
 #ifdef KSOCKET_SSL
-	std::string cert_file;
-	std::string key_file;
+	KString cert_file;
+	KString key_file;
 #endif
 };
 class KSslConfig : public KSslCertificate
 {
 public:
 #ifdef KSOCKET_SSL
-	virtual std::string get_cert_file();
-	virtual std::string get_key_file();
+	virtual KString get_cert_file();
+	virtual KString get_key_file();
 
 	kgl_ssl_ctx* new_ssl_ctx(const char* certfile, const char* keyfile);
 	virtual kgl_ssl_ctx* refs_ssl_ctx() {
@@ -89,8 +89,8 @@ public:
 	}
 	u_char alpn = 0;
 	bool early_data = false;
-	std::string cipher;
-	std::string protocols;
+	KString cipher;
+	KString protocols;
 #endif
 };
 
@@ -137,8 +137,8 @@ private:
 class KListenHost : public KSslConfig
 {
 public:
-	std::string ip;
-	std::string port;
+	KString ip;
+	KString port;
 	int model = 0;
 };
 using KSafeListen = std::unique_ptr<KListenHost>;
@@ -220,8 +220,8 @@ public:
 	~KConfig();
 	KVirtualHostManage* vm;
 	//run_user,run_group为一次性使用，可以安全用string
-	std::string run_user;
-	std::string run_group;
+	KString run_user;
+	KString run_group;
 };
 //配置参数和程序运行信息
 class KGlobalConfig : public KConfig
@@ -232,16 +232,16 @@ public:
 	KMutex admin_lock;
 	int auth_type;
 	int passwd_crypt;
-	std::string admin_passwd;
-	std::string admin_user;
-	std::vector<std::string> admin_ips;
+	KString admin_passwd;
+	KString admin_user;
+	std::vector<KString> admin_ips;
 	/////////////////////////////////////////////////////////
 	//以下是配置的编译结果，每次配置文件更改，都要重新生成
 	KTimeMatch diskWorkTime;
 	/////////////////////////////////////////////////////////
 	//以下是程序运行信息,只在程序启动前初始化一次...
-	std::list<std::string> mergeFiles;
-	std::map<std::string, std::vector<KSafeListen>> services;
+	std::list<KString> mergeFiles;
+	std::map<KString, std::vector<KSafeListen>> services;
 	int worker_dns;
 	int worker_io;
 	int fiber_stack_size;
@@ -300,10 +300,10 @@ public:
 			time_out = 5;
 		}
 	}
-	std::string path;
-	std::string tmppath;
-	std::string program;
-	std::string extworker;
+	KString path;
+	KString tmppath;
+	KString program;
+	KString extworker;
 	kasync_worker* ioWorker = nullptr;
 	kasync_worker* dnsWorker = nullptr;
 	int serverNameLength = 0;
@@ -314,7 +314,7 @@ public:
 #endif
 #ifdef _WIN32
 	//kangle程序所在的盘符
-	std::string diskName;
+	KString diskName;
 #endif
 	KAcserverManager* gam;
 	KVirtualHostManage* gvm;
@@ -332,7 +332,7 @@ void wait_load_config_done();
 bool saveConfig();
 void parse_server_software();
 INT64 get_size(const char* size);
-std::string get_size(INT64 size);
+KString get_size(INT64 size);
 char* get_human_size(double size, char* buf, size_t buf_size);
 INT64 get_radio_size(const char* size, bool& is_radio);
 

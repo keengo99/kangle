@@ -17,7 +17,7 @@ WhmExtend::WhmExtend() {
 WhmExtend::~WhmExtend() {
 
 }
-bool WhmExtend::init(std::string &whmFile) {
+bool WhmExtend::init(KString &whmFile) {
 	KDynamicString ds;
 	auto dpath = ds.parseString(file.c_str());
 	if(dpath){
@@ -25,17 +25,17 @@ bool WhmExtend::init(std::string &whmFile) {
 	}
 	if (!isAbsolutePath(file.c_str())) {
 		auto path = getPath(whmFile.c_str());
-		string newPath = path.get();
-		newPath += PATH_SPLIT_CHAR;
-		newPath += file;
-		newPath.swap(file);
+		KStringBuf newPath;
+		newPath << path.get();
+		newPath << PATH_SPLIT_CHAR << file;
+		newPath.str().swap(file);
 	}
 	return true;
 }
 int WhmExtend::whmCall(const char *callName,const char *eventType,WhmContext *context)
 {
 	int ret = call(callName,eventType,context);
-	KStringBuf *rd = context->getRedirectCalls();
+	KStringStream *rd = context->getRedirectCalls();
 	if(ret == WHM_OK){
 		if(rd && rd->size()>0){
 			//检查是否重定向
@@ -45,7 +45,7 @@ int WhmExtend::whmCall(const char *callName,const char *eventType,WhmContext *co
 	if(ret != WHM_REDIRECT){
 		//如果不是重定向，就返回结果
 		if(rd){
-			rd->clean();
+			rd->clear();
 		}
 		return ret;
 	}

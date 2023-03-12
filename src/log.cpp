@@ -86,7 +86,7 @@ int klog_start() {
 	} else {
 		//errorLogger.errorLog = true;
 		errorLogger.place = LOG_FILE;
-		std::string log_file;
+		KString log_file;
 #ifdef KANGLE_VAR_DIR
 		log_file = KANGLE_VAR_DIR;
 #else
@@ -99,7 +99,7 @@ int klog_start() {
 			errorLogger.place = LOG_PRINT;
 		}
 		accessLogger.place = LOG_FILE;
-		std::string logpath;
+		KString logpath;
 		if(conf.access_log[0]!='|' && !isAbsolutePath(conf.access_log)){
 #ifdef KANGLE_VAR_DIR
 			logpath = KANGLE_VAR_DIR;

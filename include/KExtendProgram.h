@@ -40,8 +40,7 @@ public:
 		return listenPort;
 	}
 	const char *getListenPortValue() {
-		//s.str("");
-		s.clean();
+		s.clear();
 		s << listenPort;
 		return s.c_str();
 	}
@@ -96,7 +95,7 @@ public:
 			if (index < 0 || index >= (int) vh->name.size()) {
 				return NULL;
 			}
-			s.clean();
+			s.clear();
 			char ch[2] = { vh->name[index], 0 };
 			s << ch;
 			return s.c_str();
@@ -131,25 +130,22 @@ public:
 	}
 	const char *interGetValue(const char *name);	
 	Token_t getToken(bool &result);
-	//{{ent
 #ifdef ENABLE_CMD_DPORT
 	int listenPort;
-	std::string listenName;
-	std::map<std::string,int> port;
+	KString listenName;
+	std::map<KString,int> port;
 #endif
-	//}}
 private:
 	KVirtualHost *vh;
 	int pid;
 	//std::stringstream s;
 	KStringBuf s;
-	std::string vh_value;
+	KString vh_value;
 
 };
 class KExtendProgramEvent {
 public:
 	virtual bool handle(KExtendProgramString *ds) = 0;
-	virtual void build(std::stringstream &s) = 0;
 	virtual ~KExtendProgramEvent() {
 	}
 	;
@@ -164,22 +160,8 @@ public:
 		run_as_user = false;
 	}
 	bool handle(KExtendProgramString *ds);
-	void build(std::stringstream &s) {
-		s << "src_file='" << src << "' dst_file='" << dst << "'";
-		if (only_copy) {
-			s << " only_copy='1'";
-		}
-		if (force) {
-			s << " force='1'";
-		} else {
-			s << " force='0'";
-		}
-		if (run_as_user) {
-			s << " run_as='" << (run_as_user ? "user" : "system") << "'";
-		}
-	}
-	std::string src;
-	std::string dst;
+	KString src;
+	KString dst;
 	bool only_copy;
 	bool force;
 	bool run_as_user;
@@ -187,10 +169,7 @@ public:
 class KExtendProgramUnlink: public KExtendProgramEvent {
 public:
 	bool handle(KExtendProgramString *ds);
-	void build(std::stringstream &s) {
-		s << "unlink='" << file << "'";
-	}
-	std::string file;
+	KString file;
 };
 class KExtendProgramCmd: public KExtendProgramEvent {
 public:
@@ -198,11 +177,7 @@ public:
 		run_as_user = false;
 	}
 	bool handle(KExtendProgramString *ds);
-	void build(std::stringstream &s) {
-		s << "cmd='" << cmd << "' run_as='"
-				<< (run_as_user ? "user" : "system") << "'";
-	}
-	std::string cmd;
+	KString cmd;
 	bool run_as_user;
 };
 #define EXTENDPROGRAM_DEFAULT_LIFETIME    0
@@ -245,7 +220,7 @@ public:
 		return WORK_TYPE_SP;
 	}
 	bool isChanged(KExtendProgram *ep);
-	std::string getEnv();
+	KString getEnv();
 	virtual bool parse_config(const khttpd::KXmlNode* xml);
 	virtual bool parseEnv(const KXmlAttribute&attribute);
 	bool addEvent(bool preEvent, const KXmlAttribute& attribute);
@@ -259,14 +234,13 @@ public:
 	int life_time;
 	u_short id;
 protected:
-	void buildConfig(std::stringstream &s);
-	std::map<std::string,std::string> envs;
+	std::map<KString, KString> envs;
 	KCmdEnv *makeEnv(KExtendProgramString *ds);
 private:
 	void clean_event();
 	std::list<KExtendProgramEvent *> preEvents;
 	std::list<KExtendProgramEvent *> postEvents;
 };
-KCmdEnv *make_cmd_env(std::map<std::string,std::string> &attribute,KExtendProgramString *ds=NULL);
+KCmdEnv *make_cmd_env(std::map<KString, KString>&attribute,KExtendProgramString *ds=NULL);
 KCmdEnv *make_cmd_env(char **env);
 #endif

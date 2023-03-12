@@ -35,8 +35,7 @@ public:
 		}
 		return false;
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		KStatusCodeAcl *m = (KStatusCodeAcl *)model;
 		s << "code:<select name='op'>";
 		for(int i=0;i<3;i++){
@@ -52,12 +51,9 @@ public:
 			s << (int)m->code;
 		}
 		s << "'>";
-		return s.str();
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << getMarkOp2(op) << code;
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

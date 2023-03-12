@@ -10,7 +10,7 @@
 #include "kmalloc.h"
 
 using namespace std;
-WhmCallMap::WhmCallMap(WhmExtend *callable, const std::string &callName) {
+WhmCallMap::WhmCallMap(WhmExtend *callable, const KString &callName) {
 	this->callable = new WhmExtendCall;
 	this->callable->callName = callName;
 	this->callable->extend = callable;
@@ -28,14 +28,14 @@ WhmCallMap::~WhmCallMap() {
 		delete (*it);
 	}
 }
-void WhmCallMap::addBeforeEvent(WhmExtend *event, std::map<std::string,std::string> &attribute) {
+void WhmCallMap::addBeforeEvent(WhmExtend *event, KXmlAttribute&attribute) {
 	WhmExtendCall *ec = makeEvent(attribute);
 	if(ec){
 		ec->extend = event;
 		beforeEvents.push_back(ec);
 	}
 }
-void WhmCallMap::addAfterEvent(WhmExtend *event, std::map<std::string,std::string> &attribute) {
+void WhmCallMap::addAfterEvent(WhmExtend *event, KXmlAttribute &attribute) {
 	WhmExtendCall *ec = makeEvent(attribute);
 	if(ec){
 		ec->extend = event;
@@ -65,9 +65,9 @@ int WhmCallMap::call(WhmContext *context) {
 	}
 	return ret;
 }
-WhmExtendCall *WhmCallMap::makeEvent(std::map<std::string,std::string> &attribute)
+WhmExtendCall *WhmCallMap::makeEvent(KXmlAttribute&attribute)
 {
-	std::string callName = attribute["call"];
+	auto callName = attribute["call"];
 	WhmExtendCall *ec = new WhmExtendCall;
 	if (callName.size() == 0) {
 		ec->callName = callable->callName;

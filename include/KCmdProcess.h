@@ -23,7 +23,7 @@ public:
 	~KSPCmdProcess();
 	KUpstream *PowerResult(KHttpRequest* rq, KPipeStream* st);
 	KPipeStream * PowerThread(KVirtualHost *vh,KExtendProgram *rd);
-	void getProcessInfo(const USER_T &user, const std::string &name, std::stringstream &s,int &count)
+	void getProcessInfo(const USER_T &user, const KString &name, KWStream &s,int &count)
 	{
 		stLock.Lock();
 		if (st) {
@@ -75,7 +75,7 @@ public:
 	~KMPCmdProcess();
 	KUpstream* GetUpstream(KHttpRequest* rq, KExtendProgram* rd) override;
 	//kev_result handleRequest(KHttpRequest *rq,KExtendProgram *rd, KAsyncFetchObject *fo);
-	void getProcessInfo(const USER_T &user, const std::string &name,std::stringstream &s,int &count) override;
+	void getProcessInfo(const USER_T &user, const KString&name, KWStream &s,int &count) override;
 	bool killProcess(int pid) override;
 	//KTcpUpstream *poweron(KVirtualHost *vh,KExtendProgram *erd, bool &success);
 	KPipeStream*PowerThread(KVirtualHost* vh, KExtendProgram* rd) override;
@@ -87,7 +87,7 @@ public:
 	}
 	void set_tcp(bool tcp) override;
 #ifdef ENABLE_ADPP
-	void flushCpuUsage(const std::string &user,const std::string &name,ULONG64 cpuTime) override;
+	void flushCpuUsage(const KString&user,const KString&name,ULONG64 cpuTime) override;
 #endif
 	bool canDestroy(time_t nowTime) override;
 private:

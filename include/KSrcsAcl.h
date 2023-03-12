@@ -20,12 +20,11 @@ public:
 	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		return im.find(rq->getClientIp()) != NULL;
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel *model,KWStream &s) override {
 		s << "<input placeholder='format: 127.0.0.1|127.0.0.0/24|127.0.0.1-127.0.0.255' name=v size=50 value='";
 		KSrcsAcl *acl = (KSrcsAcl *)(model);
 		if (acl) {
-			s << acl->getValList();
+			acl->getValList(s);
 		}
 		s << "'>";		
 		s << "split:<input name=split max=1 size=1 value='";
@@ -35,17 +34,12 @@ public:
 			s << acl->split;
 		}
 		s << "'>";
-		return s.str();
 	}
-	std::string getValList() {
-		std::stringstream s;
+	void getValList(KWStream &s) {
 		im.dump_addr(s, this->split);
-		return s.str();
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
-		s << getValList();
-		return s.str();
+	void get_display(KWStream& s) override {
+		getValList(s);
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

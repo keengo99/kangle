@@ -9,7 +9,8 @@
 #define KATTRIBUTE_H_
 #include <map>
 #include "kmalloc.h"
-
+#include "KXmlAttribute.h"
+#if 0
 struct attrp
 {
 	bool operator()(const char* __x, const char* __y) const {
@@ -27,5 +28,6 @@ public:
 	void del(const char *name);
 	std::map<char *, char *, attrp> atts;
 };
-
+#endif
+using KAttribute = KXmlAttribute;
 #endif /* KATTRIBUTE_H_ */

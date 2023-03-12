@@ -20,21 +20,20 @@ WhmPackage::WhmPackage() {
 }
 
 WhmPackage::~WhmPackage() {
-	std::map<string, WhmCallMap *>::iterator it;
-	for (it = callmap.begin(); it != callmap.end(); it++) {
+	for (auto it = callmap.begin(); it != callmap.end(); it++) {
 		delete (*it).second;
 	}
 	if (curCallable) {
 		delete curCallable;
 	}
-	std::map<std::string, WhmExtend *>::iterator it2;
+	std::map<KString, WhmExtend *>::iterator it2;
 	for (it2 = extends.begin(); it2 != extends.end(); it2++) {
 		delete (*it2).second;
 	}
 }
 void WhmPackage::flush()
 {
-	std::map<std::string, WhmExtend *>::iterator it;
+	std::map<KString, WhmExtend *>::iterator it;
 	for (it = extends.begin(); it != extends.end(); it++) {
 		(*it).second->flush();
 	}
@@ -42,14 +41,14 @@ void WhmPackage::flush()
 //query whm shell progress infomation
 int WhmPackage::query(WhmContext *context)
 {
-	std::string session = context->getUrlValue()->get("session");
-	size_t pos = session.find_first_of(':');
-	if (pos==std::string::npos) {
+	KString session = context->getUrlValue()->get("session");
+	size_t pos = session.find(':');
+	if (pos==KString::npos) {
 		context->setStatus("session format is error");
 		return WHM_PARAM_ERROR;
 	}
-	std::string extend = session.substr(0,pos);
-	std::map<std::string, WhmExtend *>::iterator it = extends.find(extend);
+	KString extend = session.substr(0,pos);
+	std::map<KString, WhmExtend *>::iterator it = extends.find(extend);
 	if (it==extends.end() || strcmp((*it).second->getType(),"shell")!=0) {
 		context->setStatus("cann't find such session");
 		return WHM_PARAM_ERROR;
@@ -88,12 +87,10 @@ int WhmPackage::getInfo(WhmContext *context)
 {
 	//context->setStatus(WHM_OK);
 	context->add("version",version.c_str());
-	std::map<string, WhmExtend *>::iterator it;
-	for(it=extends.begin();it!=extends.end();it++){
+	for(auto it=extends.begin();it!=extends.end();it++){
 		context->add("extend",(*it).first.c_str());
 	}
-	std::map<std::string, WhmCallMap *>::iterator it2;
-	for(it2=callmap.begin();it2!=callmap.end();it2++){
+	for(auto it2=callmap.begin();it2!=callmap.end();it2++){
 		context->add("call",(*it2).first.c_str());
 	}
 	//context->flush(WHM_OK,OUTPUT_FORMAT_XML);
@@ -109,8 +106,7 @@ int WhmPackage::process(const char *callName,WhmContext *context) {
 	if (strcasecmp(callName,"terminate")==0) {
 		return terminate(context);
 	}
-	std::map<string, WhmCallMap *>::iterator it;
-	it = callmap.find(callName);
+	auto it = callmap.find(callName);
 	if (it != callmap.end()) {
 		int ret = (*it).second->call(context);
 		//context->setStatus(ret);
@@ -121,15 +117,15 @@ int WhmPackage::process(const char *callName,WhmContext *context) {
 	//*out << "<result status=\"" << WHM_CALL_NOT_FOUND << "\"/>";
 	return WHM_CALL_NOT_FOUND;
 }
-WhmExtend *WhmPackage::findExtend(const std::string &name) {
-	std::map<string, WhmExtend *>::iterator it;
+WhmExtend *WhmPackage::findExtend(const KString &name) {
+	std::map<KString, WhmExtend *>::iterator it;
 	it = extends.find(name);
 	if (it == extends.end()) {
 		return NULL;
 	}
 	return (*it).second;
 }
-WhmCallMap *WhmPackage::newCallMap(const std::string &name, const std::string &callName) {
+WhmCallMap *WhmPackage::newCallMap(const KString &name, const KString &callName) {
 	WhmExtend *extend = findExtend(name);
 	if (extend == NULL) {
 		return NULL;
@@ -147,8 +143,8 @@ bool WhmPackage::startElement(KXmlContext *context) {
 		if (curCallable) {
 			WhmError("curCall is not NULL\n");
 		} else {
-			std::string name = context->attribute["name"];
-			std::string extendCall = context->attribute["call"];
+			auto  name = context->attribute["name"];
+			auto extendCall = context->attribute["call"];
 			if(extendCall.size()==0){
 				extendCall = name;
 			}
@@ -179,13 +175,13 @@ bool WhmPackage::startElement(KXmlContext *context) {
 			curCallable->addAfterEvent(extend, context->attribute);
 		}
 	} else if (context->qName == "extend") {
-		std::string name = context->attribute["name"];
+		KString name = context->attribute["name"];
 		WhmExtend *extend = findExtend(name);
 		if (extend) {
 			WhmError("extend name[%s] is duplicate\n", name.c_str());
 			return false;
 		}
-		std::string type = context->attribute["type"];
+		KString type = context->attribute["type"];
 		if (type.size()>0) {
 			//have type attribute
 			if (type=="shell") {
@@ -193,7 +189,7 @@ bool WhmPackage::startElement(KXmlContext *context) {
 			}
 		} else {
 			//@deprecated please use type=<dso|cmd|url|whmshell>
-			std::string file;
+			KString file;
 			file = context->attribute["dso"];
 			if (file.size() == 0) {
 				file = context->attribute["cmd"];
@@ -225,10 +221,10 @@ bool WhmPackage::startElement(KXmlContext *context) {
 		if (!extend->init(this->file)) {
 			WhmError("cann't init extend[%s]\n", name.c_str());
 		}
-		extends.insert(std::pair<std::string, WhmExtend *> (name, extend));
+		extends.insert(std::pair<KString, WhmExtend *> (name, extend));
 		curExtend = extend;
 	} else if (context->qName=="include") {
-		std::string name = context->attribute["extend"];
+		KString name = context->attribute["extend"];
 		WhmExtend *extend = findExtend(name);
 		if (extend==NULL) {
 			WhmError("extend name[%s] cann't find\n",name.c_str());
@@ -264,8 +260,7 @@ bool WhmPackage::endElement(KXmlContext *context) {
 				WhmError("call [%s] duplicate\n", curCallable->name.c_str());
 				delete curCallable;
 			} else {
-				callmap.insert(std::pair<string, WhmCallMap *> (
-						curCallable->name, curCallable));
+				callmap.insert(std::pair<KString, WhmCallMap *> (curCallable->name, curCallable));
 			}
 			curCallable = NULL;
 		}
@@ -278,8 +273,8 @@ bool WhmPackage::endElement(KXmlContext *context) {
 	}
 	return true;
 }
-WhmCallMap *WhmPackage::findCallMap(const std::string &name) {
-	std::map<std::string, WhmCallMap *>::iterator it;
+WhmCallMap *WhmPackage::findCallMap(const KString &name) {
+	std::map<KString, WhmCallMap *>::iterator it;
 	it = callmap.find(name);
 	if (it != callmap.end()) {
 		return (*it).second;

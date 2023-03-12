@@ -25,7 +25,7 @@ KCdnContainer::~KCdnContainer() {
 	rbtree_destroy(rd_map);
 }
 KRedirect* KCdnContainer::refsRedirect(const char* ip, const char* host, int port, const char* ssl, int life_time, Proto_t proto) {
-	KStringBuf s;
+	KStringStream s;
 	s << "s://";
 	if (ip) {
 		s << ip << "_";

@@ -43,7 +43,7 @@ public:
 		}
 		return NULL;
 	}
-	virtual bool buildValue(const char *name,KStringBuf *s)
+	virtual bool buildValue(const char *name,KWStream *s)
 	{
 		return false;
 	}
@@ -94,7 +94,7 @@ private:
 	int getControlIndex(const char *value);
 	char *hot;
 	char *buf;
-	KStringBuf *dst;
+	KStringStream*dst;
 	KControlCodeBlock *curBlock;
 	std::list<KControlCodeBlock *> blockStack;
 	std::map<std::string,std::string> kv;

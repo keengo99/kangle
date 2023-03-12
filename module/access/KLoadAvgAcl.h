@@ -28,15 +28,13 @@ public:
 	}
 	virtual ~KLoadAvgAcl() {
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "&gt;<input name=maxavg value='";
 		KLoadAvgAcl *acl=(KLoadAvgAcl *)(model);
 		if (acl) {
 			s << acl->maxavg;
 		}
 		s << "'>";
-		return s.str();
 	}
 	KAcl *new_instance() override {
 		return new KLoadAvgAcl();
@@ -51,10 +49,8 @@ public:
 		}
 		return false;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << "&gt;" << maxavg << "(cur:" << loadavg << ")";
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

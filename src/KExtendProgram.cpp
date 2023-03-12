@@ -35,12 +35,12 @@ KCmdEnv* make_cmd_env(char** envs) {
 	env->addEnvEnd();
 	return env;
 }
-KCmdEnv* make_cmd_env(std::map<std::string, std::string>& attribute, KExtendProgramString* ds) {
+KCmdEnv* make_cmd_env(std::map<KString, KString>& attribute, KExtendProgramString* ds) {
 	if (attribute.size() == 0) {
 		return NULL;
 	}
 	KCmdEnv* env = new KCmdEnv;
-	for (std::map<std::string, std::string>::iterator it = attribute.begin();
+	for (auto it = attribute.begin();
 		it != attribute.end();
 		it++) {
 		if (ds) {
@@ -96,17 +96,17 @@ const char* KExtendProgramString::interGetValue(const char* name) {
 #endif
 #endif
 	if (strcasecmp(name, "time") == 0) {
-		s.clean();
+		s.clear();
 		s << (INT64)time(NULL);
 		return s.c_str();
 	}
 	if (strcasecmp(name, "rand") == 0) {
-		s.clean();
+		s.clear();
 		s << rand();
 		return s.c_str();
 	}
 	if (strcasecmp(name, "pid") == 0) {
-		s.clean();
+		s.clear();
 		s << pid;
 		return s.c_str();
 	}
@@ -122,7 +122,7 @@ const char* KExtendProgramString::interGetValue(const char* name) {
 	if (p) {
 		*p = '\0';
 		const char* split_char = p + 1;
-		s.clean();
+		s.clear();
 		std::list<KSubVirtualHost*>::iterator it;
 		for (it = vh->hosts.begin(); it != vh->hosts.end(); it++) {
 			if (!(*it)->allSuccess) {
@@ -277,7 +277,7 @@ bool KExtendProgramUnlink::handle(KExtendProgramString* ds) {
 }
 bool KExtendProgramCmd::handle(KExtendProgramString* ds) {
 	KPipeStream* st = NULL;
-	std::vector<std::string> args;
+	std::vector<KString> args;
 	explode(cmd.c_str(), ' ', args);
 	char** arg = new char* [args.size() + 1];
 	size_t i = 0;
@@ -330,8 +330,8 @@ KExtendProgramEvent* KExtendProgramEvent::buildEvent(const KXmlAttribute& attrib
 		ep->run_as_user = (attribute["run_as"] == "user");
 		epe = ep;
 	} else {
-		std::string src_file = attribute["src_file"];
-		std::string dst_file = attribute["dst_file"];
+		auto src_file = attribute["src_file"];
+		auto dst_file = attribute["dst_file"];
 		if (src_file.size() > 0 && dst_file.size() > 0) {
 			KExtendProgramConfig* ep = new KExtendProgramConfig;
 			ep->src = src_file;
@@ -360,10 +360,9 @@ void KExtendProgram::clean_event() {
 KExtendProgram::~KExtendProgram() {
 	clean_event();
 }
-std::string KExtendProgram::getEnv() {
-	std::stringstream s;
-	std::map<std::string, std::string>::iterator it;
-	for (it = envs.begin(); it != envs.end(); it++) {
+KString KExtendProgram::getEnv() {
+	KStringBuf s;
+	for (auto it = envs.begin(); it != envs.end(); it++) {
 		if (it != envs.begin()) {
 			s << " ";
 		}
@@ -399,35 +398,6 @@ bool KExtendProgram::postLoad(KExtendProgramString* ds) {
 		(*it)->handle(ds);
 	}
 	return true;
-}
-void KExtendProgram::buildConfig(std::stringstream& s) {
-	//if (lifeTime != EXTENDPROGRAM_DEFAULT_LIFETIME) {
-	s << " life_time='" << life_time << "'";
-	//}
-	if (idleTime != EXTENDPROGRAM_DEFAULT_IDLETIME) {
-		s << " idle_time='" << idleTime << "'";
-	}
-	if (maxRequest != EXTENDPROGRAM_DEFAULT_MAXREQUEST) {
-		s << " max_request='" << maxRequest << "'";
-	}
-	if (maxConnect != EXTENDPROGRAM_DEFAULT_MAXCONNECT) {
-		s << " max_connect='" << maxConnect << "'";
-	}
-	if (max_error_count > 0) {
-		s << " max_error_count='" << max_error_count << "'";
-	}
-	s << ">\n";
-	std::list<KExtendProgramEvent*>::iterator it;
-	for (it = preEvents.begin(); it != preEvents.end(); it++) {
-		s << "\t\t<pre_event ";
-		(*it)->build(s);
-		s << "/>\n";
-	}
-	for (it = postEvents.begin(); it != postEvents.end(); it++) {
-		s << "\t\t<post_event ";
-		(*it)->build(s);
-		s << "/>\n";
-	}
 }
 bool KExtendProgram::parse_config(const khttpd::KXmlNode* xml) {
 	auto attr = xml->attributes();
@@ -476,11 +446,5 @@ KCmdEnv* KExtendProgram::makeEnv(KExtendProgramString* ds) {
 	return make_cmd_env(envs, ds);
 }
 bool KExtendProgram::isChanged(KExtendProgram* ep) {
-	std::stringstream s1, s2;
-	buildConfig(s1);
-	ep->buildConfig(s2);
-	if (s1.str() != s2.str()) {
-		return true;
-	}
 	return false;
 }

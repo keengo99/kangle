@@ -10,8 +10,8 @@
 
 struct kgl_map_cmp
 {
-	int operator()(const kgl_ref_str_t* _Left, const kgl_ref_str_t* _Right) const {
-		return kgl_file_cmp(_Left->data, _Left->len, _Right->data, _Right->len);
+	int operator()(const char* s1, size_t n1, const char* s2, size_t n2) const {
+		return kgl_file_cmp(s1, n1, s2, n2);
 	}
 };
 template<typename T, typename CMP = kgl_map_cmp>
@@ -34,8 +34,13 @@ public:
 			}, NULL);
 		kstring_release(get_name());
 	}
+	int cmp(const kgl_str_t* key) const {
+		auto name = get_name();
+		return get_cmper()(name->data, name->len, key->data, key->len);
+	}
 	int cmp(const kgl_ref_str_t* key) const {
-		return this->operator()(get_name(), key);
+		auto name = get_name();
+		return get_cmper()(name->data,name->len, key->data,key->len);
 	}
 	bool add(const char* name, size_t size, T handler) {
 		size_t name_len;
@@ -63,11 +68,9 @@ public:
 		} else {
 			name_len = size;
 		}
-		kgl_ref_str_t key;
-		key.data = (char *)name;
-		key.len = name_len;
+		kgl_str_t key = kgl_string2(name, name_len);
 		int new_flag = 0;
-		auto node = child.insert(&key, &new_flag);
+		auto node = child.insert<kgl_str_t>(&key, &new_flag);
 		if (new_flag) {
 			node->value(new KPathHandler<T, CMP>(name, name_len));
 		}
@@ -89,12 +92,10 @@ public:
 			} else {
 				name_len = *size;
 			}
-			kgl_ref_str_t key;
+			kgl_str_t  key = kgl_string2(*name,name_len);
 			KMapNode<KPathHandler>* node;
 			T value;
-			key.data = (char *)*name;
-			key.len = name_len;
-			node = child.find(&key);
+			node = child.find<kgl_str_t>(&key);
 			if (!node) {
 				goto done;
 			}
@@ -132,10 +133,8 @@ public:
 		if (!child) {
 			return nullptr;
 		}
-		kgl_ref_str_t key;
-		key.data = (char *)name;
-		key.len = name_len;
-		auto node = child.find(&key);
+		kgl_str_t key = kgl_string2(name, name_len);
+		auto node = child.find<kgl_str_t>(&key);
 		if (!node) {
 			return nullptr;
 		}
@@ -168,6 +167,9 @@ public:
 		return ((kgl_ref_str_t*)(key & ~1));
 	}
 private:
+	inline const CMP& get_cmper() const {
+		return *this;
+	}
 	void bind_handler(T handler, bool is_wide) {
 		if (is_wide) {
 			key |= 1;

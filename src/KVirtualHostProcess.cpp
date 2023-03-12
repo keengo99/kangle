@@ -23,7 +23,7 @@ KTHREAD_FUNCTION VProcessPowerWorker(void *param)
 	kfiber_wakeup2(vpp->selector, vpp->fiber, vpp->process, 0);
 	KTHREAD_RETURN;
 }
-void getProcessInfo(const USER_T &user,const std::string &name,KProcess *process,KPoolableSocketContainer *ps,std::stringstream &s)
+void getProcessInfo(const USER_T &user,const KString &name,KProcess *process,KPoolableSocketContainer *ps,KWStream &s)
 {
 	//time_t totalTime = time(NULL) - process->startTime;
 	s << "<tr>";

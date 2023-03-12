@@ -10,7 +10,7 @@
 #include "KXml.h"
 
 using namespace std;
-WhmCommand::WhmCommand(std::string &file) {	
+WhmCommand::WhmCommand(KString&file) {
 	explode(file.c_str(),' ',args);
 	this->file = args[0];
 #ifdef _WIN32
@@ -24,7 +24,7 @@ WhmCommand::WhmCommand(std::string &file) {
 	}
 	char *p = strchr(e,'.');
 	if(p==NULL){
-		this->file = this->file + ".exe";
+		this->file += ".exe";
 		args[0] = this->file;
 	}
 	free(buf);
@@ -33,7 +33,7 @@ WhmCommand::WhmCommand(std::string &file) {
 
 WhmCommand::~WhmCommand() {
 }
-bool WhmCommand::init(std::string &whmFile)
+bool WhmCommand::init(KString&whmFile)
 {
 	bool result = WhmExtend::init(whmFile);
 	args[0] = file;

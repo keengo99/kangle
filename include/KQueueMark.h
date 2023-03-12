@@ -36,8 +36,8 @@ public:
 	const char* getName()override {
 		return "queue";
 	}
-	std::string getHtml(KModel* model) override;
-	std::string getDisplay()override;
+	void get_html(KModel* model, KWStream& s) override;
+	void get_display(KWStream& s) override;
 	void parse_config(const khttpd::KXmlNodeBody* xml) override;
 private:
 	KRequestQueue* queue;
@@ -59,11 +59,11 @@ public:
 	const char* getName() override {
 		return "per_queue";
 	}
-	std::string getHtml(KModel* model) override;
-	std::string getDisplay() override;
+	void get_display(KWStream& s) override;
+	void get_html(KModel* model, KWStream& s) override;
 	void parse_config(const khttpd::KXmlNodeBody* xml) override;
 private:
-	void build_matcher(std::stringstream& s);
+	void build_matcher(KWStream& s);
 	per_queue_matcher* matcher;
 	unsigned max_worker;
 	unsigned max_queue;

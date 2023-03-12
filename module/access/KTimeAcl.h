@@ -29,15 +29,13 @@ public:
 	}
 	virtual ~KTimeAcl() {
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "<input name='time' value='";
 		KTimeAcl *urlAcl = (KTimeAcl *) (model);
 		if (urlAcl) {
 			s << urlAcl->ts;
 		}
-		s << "'>";
-		return s.str();
+		s << "'>";		
 	}
 	KAcl *new_instance() override {
 		return new KTimeAcl();
@@ -48,17 +46,16 @@ public:
 	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		return t.checkTime(kgl_current_sec);
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream &s) override {
 		s << ts;
-		return s.str();
+		return;
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		ts = xml->attributes["time"];
 		t.set(ts.c_str());
 	}	
 private:
-	std::string ts;
+	KString ts;
 	KTimeMatch t;
 };
 

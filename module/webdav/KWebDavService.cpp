@@ -519,9 +519,8 @@ bool KWebDavService::writeResourceProp(KResource* rs) {
 	}
 	*s << "</D:href>\n";
 	*s << "<D:propstat><D:prop>\n";
-	if (attribute) {
-		std::map<char*, char*, attrp>::iterator it;
-		for (it = attribute->atts.begin(); it != attribute->atts.end(); it++) {
+	if (attribute) {		
+		for (auto it = attribute->begin(); it != attribute->end(); it++) {
 			*s << "<D:" << (*it).first << ">" << (*it).second << "</D:"
 				<< (*it).first << ">\n";
 		}

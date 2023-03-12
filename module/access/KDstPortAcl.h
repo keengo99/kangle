@@ -28,15 +28,13 @@ public:
 	}
 	virtual ~KDstPortAcl() {
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "<input name=port value='";
 		KDstPortAcl *urlAcl = (KDstPortAcl *) (model);
 		if (urlAcl) {
-			s << urlAcl->getDisplay();
+			urlAcl->get_display(s);
 		}
 		s << "'>";
-		return s.str();
 	}
 	KAcl *new_instance() override {
 		return new KDstPortAcl();
@@ -50,10 +48,8 @@ public:
 		}
 		return false;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << port;
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

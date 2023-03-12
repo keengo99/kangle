@@ -62,9 +62,7 @@ public:
 	{
 		return "cookie";
 	}
-	std::string getHtml(KModel* model) override
-	{
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "Cookie regex:<input name='cookie' value='";
 		KCookieMark* m = (KCookieMark*)model;
 		if (m && m->cookie) {
@@ -81,11 +79,8 @@ public:
 			s << "checked";
 		}
 		s << ">secure";
-		return s.str();
 	}
-	std::string getDisplay() override
-	{
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		if (cookie) {
 			s << cookie->getModel();
 		}
@@ -95,7 +90,6 @@ public:
 		if (secure) {
 			s << " secure";
 		}
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

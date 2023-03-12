@@ -99,8 +99,8 @@ namespace kconfig {
 			return kfile_last_modified(file->get_filename()->data);
 		}
 		bool save(KConfigFile* f, khttpd::KXmlNode* nodes) override {
-			std::string tmpfile = f->get_filename()->data;
-			tmpfile += std::string(".tmp");
+			KString tmpfile = f->get_filename()->data;
+			tmpfile += KString(_KS(".tmp"));
 			auto fp = kfiber_file_open(tmpfile.c_str(), fileWrite, 0);
 			if (!fp) {
 				return false;
@@ -136,8 +136,8 @@ namespace kconfig {
 	};
 	struct kgl_ext_config_context
 	{
-		std::string dir;
-		std::string prefix;
+		KString dir;
+		KString prefix;
 		KConfigFileScanInfo* info;
 	};
 
@@ -180,9 +180,9 @@ namespace kconfig {
 			kgl_ext_config_context ctx;
 			ctx.info = info;
 #ifdef KANGLE_ETC_DIR
-			std::string config_dir = KANGLE_ETC_DIR;
+			KString config_dir = KANGLE_ETC_DIR;
 #else
-			std::string config_dir = conf.path + "/etc";
+			KString config_dir = conf.path + "/etc";
 #endif
 			KFileName file;
 			if (!file.setName(config_dir.c_str(), CONFIG_FILE, FOLLOW_LINK_ALL)) {
@@ -527,7 +527,7 @@ namespace kconfig {
 	}
 	KMapNode<KConfigTree>* KConfigTree::find_child(khttpd::KXmlKey* name) {
 		static kgl_ref_str_t empty_tag{ nullptr ,0,1};
-		decltype(child.find(nullptr)) it;
+		decltype(child.find<kgl_ref_str_t>(nullptr)) it;
 		if (is_subdir()) {
 			int new_flag;
 			it = child.insert(name, &new_flag);
@@ -1111,7 +1111,7 @@ namespace kconfig {
 		}
 		return update(file, path, index, xml, ev_type);
 	}
-	KConfigResult update(const kgl_ref_str_t& path, uint32_t index, const std::string* text, KXmlAttribute* attribute, KConfigEventType ev_type) {
+	KConfigResult update(const kgl_ref_str_t& path, uint32_t index, const KString* text, KXmlAttribute* attribute, KConfigEventType ev_type) {
 		const char* name = (const char*)kgl_memrchr(path.data, '/', path.len);
 		if (!name) {
 			name = path.data;

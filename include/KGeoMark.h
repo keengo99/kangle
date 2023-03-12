@@ -50,10 +50,8 @@ public:
 		kfiber_rwlock_runlock(lock);
 		return true;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream &s) override {
 		s << this->name << " " << total_item;
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attr = xml->attr();
@@ -68,7 +66,7 @@ public:
 		if (!attr["url"].empty()) {
 			this->url = strdup(attr["url"].c_str());
 		}
-		std::string file;
+		KString file;
 		if (isAbsolutePath(this->file.c_str())) {
 			file = this->file;
 		} else {
@@ -77,8 +75,7 @@ public:
 		this->load_data(file.c_str());
 		kfiber_rwlock_wunlock(lock);
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel *model,KWStream &s) override {		
 		KGeoMark *m = (KGeoMark *)model;
 		s << "name:<input name='name' value='";
 		if (m) {
@@ -100,7 +97,6 @@ public:
 			s << m->flush_time;
 		}
 		s << "'>";
-		return s.str();
 	}
 	KMark * new_instance() override {
 		return new KGeoMark;
@@ -148,8 +144,8 @@ private:
 		}
 		total_item = 0;
 	}
-	std::string file;
-	std::string name;
+	KString file;
+	KString name;
 	char *url;
 	KIpMap im;
 	kgl_pool_t *pool;

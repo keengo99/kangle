@@ -72,18 +72,18 @@ public:
 		return type;
 	}
 	static int32_t ShutdownMarkModule();
-	void setChainAction(kgl_jump_type& jump_type, KJump** jump, const std::string& name);
-	bool parseChainAction(const std::string &action, kgl_jump_type&jumpType,std::string &jumpName);
-	static void buildChainAction(kgl_jump_type jumpType, KJump *jump, std::stringstream &s);
+	void setChainAction(kgl_jump_type& jump_type, KJump** jump, const KString& name);
+	bool parseChainAction(const KString &action, kgl_jump_type&jumpType,KString &jumpName);
+	static void buildChainAction(kgl_jump_type jumpType, KJump *jump, KWStream &s);
 	bool isGlobal();
 public:
-	std::string htmlAccess(const char *vh="");
+	KString htmlAccess(const char *vh="");
 	void listTable(KVirtualHostEvent *ctx);
 public:
 	friend class KChain;
 	friend class KTable;
-	static std::map<std::string,KAcl *> aclFactorys[2];
-	static std::map<std::string,KMark *> markFactorys[2];
+	static std::map<KString,KAcl *> aclFactorys[2];
+	static std::map<KString,KMark *> markFactorys[2];
 	static bool addAclModel(u_short type,KAcl *acl,bool replace=false);
 	static bool addMarkModel(u_short type,KMark *acl,bool replace=false);
 private:
@@ -103,9 +103,9 @@ private:
 	u_short type;
 	bool globalFlag;
 	volatile uint32_t ref;
-	std::map<std::string,KSafeTable> tables;
-	KSafeTable getTable(const std::string &table_name);
-	std::vector<std::string> getTableNames(std::string skipName,bool show_global);
+	std::map<KString,KSafeTable> tables;
+	KSafeTable getTable(const KString &table_name);
+	std::vector<KString> getTableNames(KString skipName,bool show_global);
 };
 using KSafeAccess = KSharedObj<KAccess>;
 extern KAccess *kaccess[2];

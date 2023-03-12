@@ -4,7 +4,7 @@
 #ifdef ENABLE_LOG_DRILL
 #include "KStringBuf.h"
 class KHttpRequest;
-void add_log_drill(KHttpRequest *rq,KStringBuf &s);
+void add_log_drill(KHttpRequest *rq, KStringBuf &s);
 void flush_log_drill();
 void init_log_drill();
 #ifndef NDEBUG

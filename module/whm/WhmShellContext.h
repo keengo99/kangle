@@ -73,7 +73,7 @@ public:
 	}
 	bool buildValue(const char *name,KStringBuf *s)
 	{
-		std::map<std::string,std::string>::iterator it;
+		std::map<KString,KString>::iterator it;
 		if (strncasecmp(name,"vh:",3)==0) {
 			name += 3;
 			if(ds){
@@ -128,7 +128,7 @@ public:
 		return true;
 	}
 	WhmShell *shell;
-	std::map<std::string,std::string> attribute;
+	KXmlAttribute attribute;
 	//对应虚拟主机
 	KVirtualHost *vh;
 	KExtendProgramString *ds;
@@ -139,7 +139,7 @@ public:
 	int last_error;
 	pid_t last_pid;
 	//async session id,valiade in async model
-	std::string session;
+	KString session;
 	//is async model
 	bool async;
 	bool closed;

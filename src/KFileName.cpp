@@ -248,14 +248,14 @@ char *KFileName::tripDir2(const char *dir, const char split_char) {
 	tripDir3(path,split_char);
 	return path;
 }
-bool KFileName::tripDir(std::string &dir) {
+bool KFileName::tripDir(KString &dir) {
 	size_t i;
 	char *ptr;
 	char *split_str = strdup(dir.c_str());
 	char *tmp = split_str;
 	char *msg;
-	vector<string> dirs;
-	vector<string> real_dir;
+	vector<KString> dirs;
+	vector<KString> real_dir;
 	for (i = 0; i < strlen(split_str); i++) {
 		if (split_str[i] == '\\')
 			split_str[i] = '/';

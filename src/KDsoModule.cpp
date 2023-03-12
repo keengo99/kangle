@@ -24,7 +24,7 @@ bool KDsoModule::load(const char *file)
 	if(handle!=NULL){
 		return false;
 	}
-	std::string path;
+	KString path;
 	if(!isAbsolutePath(file)){
 		path = conf.path + file;
 	}else{

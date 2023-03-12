@@ -79,7 +79,7 @@ void KApiDso::unload() {
 	}
 	state = STATE_LOAD_UNKNOW;
 }
-bool KApiDso::load(const std::string &file) {
+bool KApiDso::load(const KString &file) {
 	//apiFile = file;
 	assert(handle == NULL);
 	assert(GetExtensionVersion == NULL);

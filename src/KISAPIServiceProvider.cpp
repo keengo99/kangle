@@ -61,7 +61,7 @@ int KISAPIServiceProvider::write(const char *buf, int len) {
 	return len;
 }
 bool KISAPIServiceProvider::sendStatus(int statusCode, const char *statusLine) {
-	status.clean();
+	status.clear();
 	status << statusCode << " " << (statusLine ? statusLine : "unknow");
 	return true;
 	//std::stringstream s;

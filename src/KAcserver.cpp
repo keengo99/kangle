@@ -27,7 +27,7 @@
 using namespace std;
 KJump::~KJump() {
 }
-KPoolableRedirect::KPoolableRedirect(const std::string& name) : KRedirect(name) {
+KPoolableRedirect::KPoolableRedirect(const KString& name) : KRedirect(name) {
 	proto = Proto_http;
 }
 KPoolableRedirect::~KPoolableRedirect() {
@@ -95,7 +95,7 @@ KSockPoolHelper *KPoolableRedirect::parse_nodes(const char *node_string)
 	free(buf);
 	return nodes;
 }
-void KPoolableRedirect::build_proto_html(KPoolableRedirect *mserver, std::stringstream &s)
+void KPoolableRedirect::build_proto_html(KPoolableRedirect *mserver, KWStream &s)
 {
 #ifndef HTTP_PROXY
 	s << klang["protocol"] << ":";
@@ -181,12 +181,4 @@ KRedirectSource*KPoolableRedirect::makeFetchObject(KHttpRequest *rq, KFileName *
 		return NULL;
 	}
 	return NULL;
-}
-
-void KPoolableRedirect::build_xml(std::map<std::string, std::string>& param, std::stringstream& s)
-{
-	std::map<std::string, std::string>::iterator it;
-	for (it = param.begin(); it != param.end(); it++) {
-		s << " " << (*it).first << "='" << KXml::encode((*it).second) << "'";
-	}
 }

@@ -44,9 +44,8 @@ bool KRewriteMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) {
 const char *KRewriteMark::getName() {
 	return "rewrite";
 }
-std::string KRewriteMark::getHtml(KModel *model) {
+void KRewriteMark::get_html(KModel *model,KWStream &s) {
 	KRewriteMark *mark = (KRewriteMark *) model;
-	stringstream s;
 	s << "prefix:<input name='prefix' value='";
 	if(mark){
 		s << mark->prefix;
@@ -82,10 +81,8 @@ std::string KRewriteMark::getHtml(KModel *model) {
 		s << "checked";
 	}
 	s << ">qsappend";
-	return s.str();
 }
-std::string KRewriteMark::getDisplay() {
-	std::stringstream s;
+void KRewriteMark::get_display(KWStream& s) {
 	if(prefix.size()>0){
 		s << prefix << " ";
 	}
@@ -99,7 +96,6 @@ std::string KRewriteMark::getDisplay() {
 	if(rule.nc){
 		s << " nc";
 	}
-	return s.str();
 }
 void KRewriteMark::parse_config(const khttpd::KXmlNodeBody* xml) {
 	auto attribute = xml->attr();

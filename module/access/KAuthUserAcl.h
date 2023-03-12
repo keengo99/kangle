@@ -71,20 +71,16 @@ public:
 		}
 		return user.match(auth_user,strlen(auth_user),0)>0;
 	}
-	std::string getHtml(KModel *model) override {
+	void get_html(KModel* model, KWStream& s) override {
 		KRegAuthUserAcl *m = (KRegAuthUserAcl *)model;
-		std::stringstream s;
 		s << "user regex:<input name='user' value='";
 		if (m) {
 			s << m->user.getModel();
 		}
 		s << "'>";
-		return s.str();
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << user.getModel();
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

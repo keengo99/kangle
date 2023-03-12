@@ -72,17 +72,7 @@ struct mime_type
 		}
 		return strdup(type);
 	}
-	void buildXml(std::stringstream &s)
-	{
-		s << "type='" << type << "'";
-		if (compress>0) {
-			s << " compress='" << (int)compress << "'";
-		}
-		if (max_age>0) {
-			s << " max_age='" << max_age << "'";
-		}
-	}
-	void buildHtml(const char *ext, const std::string&url,std::stringstream &s)
+	void buildHtml(const char *ext, const KString&url,KWStream &s)
 	{
 		s << "<tr><td>";
 		s << "[<a href=\"javascript:if(confirm('really delete?')){ window.location='/vhbase?action=mimetypedelete&ext=";
@@ -197,20 +187,6 @@ public:
 			} else if(overwrite) {
 				(*it).second->set(type, compress,max_age);
 			}
-		}
-	}
-	void buildXml(std::stringstream &s)
-	{
-		if (defaultMimeType) {
-			s << "<mime_type ext='*' ";
-			defaultMimeType->buildXml(s);
-			s << "/>\n";
-		}
-		std::map<char *,mime_type *,lessp_icase>::iterator it;
-		for (it = mimetypes.begin();it!=mimetypes.end();it++) {
-			s << "<mime_type ext='" << (*it).first << "' ";
-			(*it).second->buildXml(s);
-			s << "/>\n";
 		}
 	}
 	void swap(KMimeType *a)

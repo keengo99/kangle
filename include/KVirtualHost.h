@@ -48,44 +48,14 @@
 #include "KXmlAttribute.h"
 //由vh的引用，计算连接数的差异
 #define VH_REFS_CONNECT_DELTA 1
-class KTempleteVirtualHost;
-/**
-* 属性辅助类
-*/
-class KAttributeHelper
-{
-public:
-	KAttributeHelper(KXmlAttribute &attr): attribute(attr)
-	{		
-	}
-	KXmlAttribute &getAttribute()
-	{
-		return attribute;
-	}
-	bool getValue(const char *name,std::string &value) const 
-	{
-		auto it = attribute.find(name);
-		if(it==attribute.end()){
-			return false;
-		}
-		value = (*it).second;
-		return true;
-	}
-	void setValue(const char *name,const char *value)
-	{
-		attribute.emplace(name, value);
-	}
-private:
-	KXmlAttribute &attribute;
-};
 /**
 * 虚拟主机类
 */
 class KVirtualHost: public KBaseVirtualHost,public KSslConfig, public KCountable {
 public:
-	KVirtualHost(const std::string &name);
+	KVirtualHost(const KString&name);
 	virtual ~KVirtualHost();
-	bool setDocRoot(const std::string &docRoot);
+	bool setDocRoot(const KString &docRoot);
 	KSubVirtualHost *getFirstSubVirtualHost() {
 		if (hosts.size() == 0) {
 			return NULL;
@@ -131,12 +101,12 @@ public:
 	int checkRequest(KHttpRequest *rq, KFetchObject **fo);
 	int checkResponse(KHttpRequest *rq, KFetchObject** fo);
 	int checkPostMap(KHttpRequest *rq, KFetchObject** fo);
-	std::string user_access;
+	KString user_access;
 #endif
-	std::string doc_root;
-	std::string GetDocumentRoot()
+	KString doc_root;
+	KString GetDocumentRoot()
 	{
-		std::string orig_doc_root;
+		KString orig_doc_root;
 		if (strncasecmp(doc_root.c_str(), conf.path.c_str(), conf.path.size()) == 0) {
 			orig_doc_root =  doc_root.substr(conf.path.size());
 		} else {
@@ -147,7 +117,7 @@ public:
 	}
 #ifdef ENABLE_VH_LOG_FILE
 	KLogElement *logger;
-	std::string logFile;
+	KString logFile;
 	void parse_log_config(const KXmlAttribute &attr);
 #endif
 #ifdef ENABLE_VH_RUN_AS
@@ -283,10 +253,10 @@ public:
 			KRedirect *rd);
 	KFetchObject *findFileExtRedirect(KHttpRequest *rq, KFileName *file,bool fileExsit,bool &result);
 	//KFetchObject *findDefaultRedirect(KHttpRequest *rq,KFileName *file,bool fileExsit);
-	std::string name;
+	KString name;
 
 #ifdef ENABLE_BASED_PORT_VH
-	std::list<std::string> binds;
+	std::list<KString> binds;
 #endif
 	bool empty()
 	{
@@ -297,20 +267,20 @@ public:
 	}
 	std::list<KSubVirtualHost *> hosts;
 #ifdef ENABLE_VH_RUN_AS
-	//std::string add_dir;
-	bool setRunAs(const std::string &user, const std::string &group);
+	//KString add_dir;
+	bool setRunAs(const KString &user, const KString &group);
 
 
 	int id[2];
 	/*
 	 * run user
 	 */
-	std::string user;
+	KString user;
 	/*
 	 * run group
 	 */
-	std::string group;
-	std::string getUser()
+	KString group;
+	KString getUser()
 	{
 		return user;
 	}
@@ -329,23 +299,23 @@ public:
 	/*
 	对于不支持虚拟主机运行用户时返回一个全局用户名
 	*/
-	std::string getUser() {
+	KString getUser() {
 		return "-";
 	}
 #endif
-	std::vector<std::string> apps;
+	std::vector<KString> apps;
 	void setApp(int app);
-	std::string getApp(KHttpRequest *rq);
+	KString getApp(KHttpRequest *rq);
 	static void closeToken(Token_t token);
 	bool loadApiRedirect(KApiPipeStream *st,int workType);
-	void setAccess(const std::string &access_file);
-	std::string htaccess;
+	void setAccess(const KString &access_file);
+	KString htaccess;
 	KSafeAccess access[2];
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
 	kgl_ssl_ctx *ssl_ctx;
-	bool setSSLInfo(const std::string &certfile, const std::string &keyfile, const std::string &cipher,const std::string &protocols);
-	std::string get_cert_file() override;
-	std::string get_key_file() override;
+	bool setSSLInfo(const KString &certfile, const KString&keyfile, const KString&cipher,const KString&protocols);
+	KString get_cert_file() override;
+	KString get_key_file() override;
 	kgl_ssl_ctx* refs_ssl_ctx() override {
 		if (ssl_ctx == nullptr) {
 			this->ssl_ctx = KSslConfig::refs_ssl_ctx();

@@ -79,8 +79,8 @@ namespace kangle {
 	intmap m_ip;
 	KMutex ip_lock;
 
-	std::string get_connect_per_ip() {
-		std::stringstream s;
+	KString get_connect_per_ip() {
+		KStringBuf s;
 		s << "<html><head><LINK href=/main.css type='text/css' rel=stylesheet></head><body>";
 		s << LANG_MAX_CONNECT_PER_IP << conf.max_per_ip;
 		s << "<script language='javascript'>\n\

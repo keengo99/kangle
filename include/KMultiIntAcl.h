@@ -15,12 +15,11 @@ public:
 	virtual ~KMultiIntAcl() {
 		freeMap();
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "<input name=v size=40 value='";
 		KMultiIntAcl *acl = (KMultiIntAcl *) (model);
 		if (acl) {
-			s << acl->getValList();
+			acl->getValList(s);
 		}
 		s << "'>";		
 		s << "split:<input name=split max=1 size=1 value='";
@@ -30,10 +29,8 @@ public:
 			s << acl->split;
 		}
 		s << "'>";
-		return s.str();
 	}
-	std::string getValList() {
-		std::stringstream s;
+	void getValList(KWStream &s) {
 		krb_node *node;
 		bool isFirst = true;
 		for (node=rb_first(&root); node!=NULL; node=rb_next(node)) {
@@ -43,12 +40,9 @@ public:
 			isFirst = false;
 			s << *((int *)node->data);
 		}
-		return s.str();
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
-		s << getValList();
-		return s.str();
+	void get_display(KWStream& s) override {
+		getValList(s);
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

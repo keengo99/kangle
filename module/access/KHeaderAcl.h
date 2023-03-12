@@ -30,8 +30,7 @@ public:
 	}
 	virtual ~KHeaderAcl() {
 	}
-	std::string getHtml(KModel* model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "attr:<input name=header value='";
 		KHeaderAcl* urlAcl = (KHeaderAcl*)(model);
 		if (urlAcl) {
@@ -47,7 +46,6 @@ public:
 			s << "checked";
 		}
 		s << ">nc";
-		return s.str();
 	}
 	const char* getName() override {
 		return "header";
@@ -63,13 +61,11 @@ public:
 		}
 		return false;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << header << "/" << reg.getModel();
 		if (nc) {
 			s << " [nc]";
 		}
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -79,7 +75,7 @@ public:
 		regLen = strlen(reg.getModel());
 	}
 private:
-	std::string header;
+	KString header;
 	KReg reg;
 	int regLen;
 	bool nc;
@@ -93,15 +89,14 @@ public:
 	}
 	virtual ~KHeaderMapAcl() {
 	}
-	std::string getHtml(KModel* model) override {
-		std::stringstream s;
+	void get_html(KModel* model,KWStream &s) override {
 		s << "name:<input name=name value='";
 		KHeaderMapAcl* urlAcl = (KHeaderMapAcl*)(model);
 		if (urlAcl) {
 			s << urlAcl->name;
 		}
-		s << "'>value:" << KMultiAcl::getHtml(model);
-		return s.str();
+		s << "'>value:";
+		KMultiAcl::get_html(model, s);
 	}
 	KAcl* new_instance() override
 	{
@@ -123,10 +118,9 @@ public:
 		}
 		return false;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
-		s << name << ":" << KMultiAcl::getDisplay();
-		return s.str();
+	void get_display(KWStream& s) override {
+		s << name << ":";
+		KMultiAcl::get_display(s);
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -134,7 +128,7 @@ public:
 		KMultiAcl::parse_config(xml);
 	}	
 private:
-	std::string name;
+	KString name;
 
 };
 #endif /*KHEADERACL_H_*/

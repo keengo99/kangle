@@ -4,7 +4,7 @@
 #include "KVirtualHostContainer.h"
 inline void referer_domain_iterator(void* arg, const char* domain, void* vh)
 {
-	std::stringstream* s = (std::stringstream*)arg;
+	KWStream* s = (KWStream*)arg;
 	*s << domain << "|";
 }
 inline void count_domain_iterator(void* arg, const char* domain, void* vh)
@@ -41,9 +41,8 @@ public:
 		}
 		return  (vhc->find(referer.u->host) != NULL);
 	}
-	std::string getDisplay() override {
+	void get_display(KWStream &s) override {
 		int count = 0;
-		std::stringstream s;
 		s << "Host:";
 		if (this->host_null) {
 			count = 1;
@@ -52,7 +51,6 @@ public:
 			vhc->iterator(count_domain_iterator, &count);
 		}
 		s << count;
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -87,8 +85,7 @@ public:
 	const char* getName() override {
 		return "referer";
 	}
-	std::string getHtml(KModel* model) override {
-		std::stringstream s;
+	void get_html(KModel* model,KWStream &s) override {
 		s << "<input type='text' name='host' value='";
 		if (this->host_null) {
 			s << "-|";
@@ -97,7 +94,6 @@ public:
 			vhc->iterator(referer_domain_iterator, &s);
 		}
 		s << "' placeHolder='-|abc.com|*.abc.com'>";
-		return s.str();
 	}
 private:
 	KDomainMap* vhc;

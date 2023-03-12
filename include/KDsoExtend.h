@@ -30,9 +30,9 @@ public:
 		return orign_filename;
 	}
 	bool RegisterUpstream(kgl_upstream *us);
-	void ListUpstream(std::stringstream &s);
-	void ListTarget(std::vector<std::string> &target);
-	KRedirect *RefsRedirect(std::string &name);
+	void ListUpstream(KWStream &s);
+	void ListTarget(std::vector<KString> &target);
+	KRedirect *RefsRedirect(KString &name);
 	void shutdown();
 	kgl_dso_init_f kgl_dso_init;
 	kgl_dso_finit_f kgl_dso_finit;

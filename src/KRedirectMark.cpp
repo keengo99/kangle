@@ -63,9 +63,8 @@ const char* KRedirectMark::getName() {
 	return "redirect";
 }
 
-std::string KRedirectMark::getHtml(KModel* model) {
+void KRedirectMark::get_html(KModel* model,KWStream &s) {
 	KRedirectMark* mark = (KRedirectMark*)model;
-	stringstream s;
 	s << "redirect url:<input name='dst' value='";
 	if (mark && mark->dst) {
 		s << mark->dst;
@@ -81,10 +80,8 @@ std::string KRedirectMark::getHtml(KModel* model) {
 		s << "checked";
 	}
 	s << ">internal";
-	return s.str();
 }
-std::string KRedirectMark::getDisplay() {
-	std::stringstream s;
+void KRedirectMark::get_display(KWStream &s) {
 	if (dst) {
 		s << dst;
 	}
@@ -94,7 +91,6 @@ std::string KRedirectMark::getDisplay() {
 	if (code > 0) {
 		s << "R=" << code;
 	}
-	return s.str();
 }
 void KRedirectMark::parse_config(const khttpd::KXmlNodeBody* xml) {
 	auto attribute = xml->attr();

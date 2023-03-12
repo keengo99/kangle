@@ -29,19 +29,16 @@ void KQueueMark::parse_config(const khttpd::KXmlNodeBody* xml) {
 	}
 	queue->set(max_worker, max_queue);
 }
-std::string KQueueMark::getDisplay()
+void KQueueMark::get_display(KWStream &s)
 {
-	std::stringstream s;
 	if (queue) {
 		s << queue->getWorkerCount() << "/" << queue->getMaxWorker() << " " << queue->getQueueSize() << "/" << queue->getMaxQueue();
 		s << " " << queue->getRef();
 	}
-	return s.str();
 }
-std::string KQueueMark::getHtml(KModel *model)
+void KQueueMark::get_html(KModel *model, KWStream& s)
 {
 	KQueueMark *mark = (KQueueMark *)(model);
-	std::stringstream s;
 	s << "max_worker:<input name='max_worker' value='";
 	if (mark && mark->queue) {
 		s << mark->queue->getMaxWorker();
@@ -52,8 +49,6 @@ std::string KQueueMark::getHtml(KModel *model)
 		s << mark->queue->getMaxQueue();
 	}
 	s << "'>\n";
-
-	return s.str();
 }
 KPerQueueMark::~KPerQueueMark()
 {
@@ -68,13 +63,13 @@ bool KPerQueueMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)
 	if (rq->queue) {
 		return false;
 	}
-	KStringBuf *url = NULL;
+	KStringStream*url = NULL;
 	KRegSubString *ss = NULL;
 	per_queue_matcher *matcher = this->matcher;
 	while (matcher) {
 		if (matcher->header == NULL) {
 			if (url == NULL) {
-				url = new KStringBuf;
+				url = new KStringStream;
 				rq->sink->data.url->GetUrl(*url);
 			}
 			ss = matcher->reg.matchSubString(url->c_str(), url->size(), 0);
@@ -154,14 +149,12 @@ void KPerQueueMark::parse_config(const khttpd::KXmlNodeBody* xml)
 	}
 	free(url);
 }
-std::string KPerQueueMark::getDisplay()
+void KPerQueueMark::get_display(KWStream &s)
 {
-	std::stringstream s;
 	s << max_worker << " " << max_queue << "/";
-	return s.str();
 }
 
-void KPerQueueMark::build_matcher(std::stringstream &s)
+void KPerQueueMark::build_matcher(KWStream &s)
 {
 	per_queue_matcher *matcher = this->matcher;
 	while (matcher) {
@@ -175,10 +168,9 @@ void KPerQueueMark::build_matcher(std::stringstream &s)
 		matcher = matcher->next;
 	}
 }
-std::string KPerQueueMark::getHtml(KModel *model)
+void KPerQueueMark::get_html(KModel *model,KWStream &s)
 {
 	KPerQueueMark *mark = (KPerQueueMark *)(model);
-	std::stringstream s;
 	s << "url:<input name='url' value='";
 	if (mark) {
 		mark->build_matcher(s);
@@ -194,6 +186,5 @@ std::string KPerQueueMark::getHtml(KModel *model)
 		s << mark->max_queue;
 	}
 	s << "'>\n";
-	return s.str();
 }
 #endif

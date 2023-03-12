@@ -31,15 +31,14 @@ KUrlValue::KUrlValue() {
 }
 
 KUrlValue::~KUrlValue() {
-	map<string, KUrlValue *>::iterator it;
-	for (it = subs.begin(); it != subs.end(); it++) {
+	for (auto it = subs.begin(); it != subs.end(); it++) {
 		delete (*it).second;
 	}
 	if (next) {
 		delete next;
 	}
 }
-KUrlValue *KUrlValue::getNextSub(const std::string &name, int &index)  const {
+KUrlValue *KUrlValue::getNextSub(const KString&name, int &index)  const {
 	auto it = subs.find(name);
 	if (it == subs.end())
 		return NULL;
@@ -55,7 +54,7 @@ KUrlValue *KUrlValue::getNextSub(const std::string &name, int &index)  const {
 	last->flag = true;
 	return last;
 }
-KUrlValue *KUrlValue::getSub(const std::string &name, int index) const {
+KUrlValue *KUrlValue::getSub(const KString&name, int index) const {
 	auto it = subs.find(name);
 	if (it == subs.begin())
 		return NULL;
@@ -69,7 +68,7 @@ KUrlValue *KUrlValue::getSub(const std::string &name, int index) const {
 	}
 	return last;
 }
-const std::string &KUrlValue::get(const std::string &name) const {
+const KString&KUrlValue::get(const KString &name) const {
 	return attribute[name];
 }
 const char *KUrlValue::getx(const char *name) const
@@ -80,11 +79,11 @@ const char *KUrlValue::getx(const char *name) const
 	}
 	return (*it).second.c_str();
 }
-const std::string &KUrlValue::get(const char *name) const
+const KString &KUrlValue::get(const char *name) const
 {
 	return attribute[name];
 }
-bool KUrlValue::get(const std::string name, std::string &value) const {
+bool KUrlValue::get(const KString name, KString&value) const {
 	auto it = attribute.find(name);
 	if (it == attribute.end()) {
 		return false;
@@ -93,7 +92,7 @@ bool KUrlValue::get(const std::string name, std::string &value) const {
 	return true;
 }
 
-void KUrlValue::get(std::map<std::string, std::string> &values) const {
+void KUrlValue::get(std::map<KString, KString> &values) const {
 	values = attribute;
 }
 
@@ -158,10 +157,10 @@ bool KUrlValue::parse(const char *param) {
 	defer(free(buf));
 	return parse(buf);
 }
-void KUrlValue::put(const std::string& name, const std::string& value) {
+void KUrlValue::put(const KString& name, const KString& value) {
 	attribute.emplace(name, value);
 }
-bool KUrlValue::add(const std::string& name, const std::string& value) {
+bool KUrlValue::add(const KString& name, const KString& value) {
 	if (sub) {
 		if (sub->add(name, value))
 			return true;
@@ -187,9 +186,9 @@ bool KUrlValue::add(const std::string& name, const std::string& value) {
 	if(it2==attribute.end()){
 		attribute.emplace(name, value);
 	}else{
-		stringstream s;
+		KStringBuf s;
 		s << (*it2).second << ", " << value;
-		s.str().swap((*it2).second);//.swap(s.str());
+		s.str().swap((*it2).second);
 	}
 	return true;
 }

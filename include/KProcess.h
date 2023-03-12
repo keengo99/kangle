@@ -57,7 +57,7 @@ public:
 	·µ»Ø -1,downPriority
 	·µ»Ø 1 upPriority
 	*/
-	int flushCpuUsage(const std::string &user, const std::string &name,ULONG64 cpuTime,int cpu_limit);
+	int flushCpuUsage(const KString&user, const KString&name,ULONG64 cpuTime,int cpu_limit);
 
 	static ULONG64 getCpuTime();
 	/*

@@ -46,8 +46,7 @@ public:
 		}
 		return result;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		if (compress) {
 			s << "compress,";
 		}
@@ -63,7 +62,6 @@ public:
 		if (identity_encoding) {
 			s << "identity_encoding,";
 		}
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -102,15 +100,12 @@ public:
 		}
 		free(buf);
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "<input type=text name=flagvalue value='";
 		if (model) {
-			s << model->getDisplay();
+			model->get_display(s);
 		}
-
 		s << "'>(available:compress, nocache, nodiskcache, identity_encoding)";
-		return s.str();
 	}
 	KMark * new_instance() override {
 		return new KResponseFlagMark();
@@ -140,14 +135,12 @@ public:
 		}
 		return true;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream &s) override {
 		if(no_extend){
 			s << klang["no_extend"];
 		} else {
 			s << klang["normal"];
 		}
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -158,9 +151,8 @@ public:
 		}
 	
 	}
-	std::string getHtml(KModel *model)override {
+	void get_html(KModel *model,KWStream &s)override {
 		KExtendFlagMark *m_chain=(KExtendFlagMark *)model;
-		std::stringstream s;
 		s << "<input type=radio name='no_extend' value='1' ";
 		if (m_chain==NULL || m_chain->no_extend) {
 			s << "checked";
@@ -171,7 +163,6 @@ public:
 			s << "checked";
 		}
 		s << ">" << klang["clear_no_extend"];
-		return s.str();
 	}
 	KMark *new_instance() override {
 		return new KExtendFlagMark();

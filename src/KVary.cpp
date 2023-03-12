@@ -10,11 +10,11 @@ static std::map<const char *, kgl_vary *,lessp_icase> varys;
 
 struct kgl_vary_request {
 	KHttpRequest *rq;
-	KStringBuf *s;
+	KWStream*s;
 };
 kgl_auto_cstr get_obj_url_key(KHttpObject *obj, int *len)
 {
-	KStringBuf s;
+	KStringStream s;
 	obj->uk.url->GetUrl(s);
 	if (unlikely(obj->uk.vary!=NULL)) {
 		KMutex *lock = obj->getLock();
@@ -62,7 +62,7 @@ bool register_vary_extend(kgl_vary *vary)
 static void vary_response(KCONN cn, const char *str, int len)
 {
 	kgl_vary_request *vary_rq = (kgl_vary_request *)cn;
-	if (vary_rq->s->size() > 0) {
+	if (!vary_rq->s->empty()) {
 		vary_rq->s->write_all(kgl_expand_string(", "));
 	}
 	vary_rq->s->write_all(str, len);
@@ -77,7 +77,7 @@ static KGL_RESULT vary_get_variable(KCONN cn, KGL_VAR type, const char *name, LP
 	kgl_vary_request *vary_rq = (kgl_vary_request *)cn;
 	return get_request_variable(vary_rq->rq, type, name, value, size);
 }
-bool response_vary_extend(KHttpRequest *rq, KStringBuf *s, const char *name, const char *value)
+bool response_vary_extend(KHttpRequest *rq, KWStream*s, const char *name, const char *value)
 {
 	std::map<const char *, kgl_vary *, lessp_icase>::iterator it;
 	it = varys.find(name);
@@ -97,7 +97,7 @@ bool response_vary_extend(KHttpRequest *rq, KStringBuf *s, const char *name, con
 	ctx.get_variable = vary_get_variable;
 	return (*it).second->response(&ctx, value);
 }
-bool build_vary_extend(KHttpRequest *rq, KStringBuf *s, const char *name, const char *value)
+bool build_vary_extend(KHttpRequest *rq, KWStream *s, const char *name, const char *value)
 {
 	std::map<const char *, kgl_vary *, lessp_icase>::iterator it;
 	it = varys.find(name);

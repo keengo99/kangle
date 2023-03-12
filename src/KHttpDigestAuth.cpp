@@ -332,7 +332,7 @@ void KHttpDigestAuth::flushSession(time_t nowTime) {
 }
 void KHttpDigestAuth::init(KHttpRequest* rq, const char* realm) {
 	this->realm = xstrdup(realm);
-	KStringBuf s(64);
+	KStringStream s(64);
 	s.add((int)time(NULL), "%x");
 	s.add(rand(), "%x");
 	this->nonce = s.steal().release();

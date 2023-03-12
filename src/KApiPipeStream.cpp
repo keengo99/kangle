@@ -34,7 +34,7 @@ bool KApiPipeStream::shutdown() {
 	}
 	return false;
 }
-bool KApiPipeStream::logon(std::string& user, std::string& password) {
+bool KApiPipeStream::logon(const KString& user, const KString& password) {
 	FCGI_Header header;
 	memset(&header, 0, sizeof(header));
 	header.type = API_CHILD_LOGON;
@@ -98,7 +98,7 @@ bool KApiPipeStream::chroot(const char* dir) {
 	FCGI_Header header;
 	memset(&header, 0, sizeof(header));
 	header.type = API_CHILD_CHROOT;
-	//std::string path = rd->path;
+	//KString path = rd->path;
 	u_short len = (u_short)(strlen(dir) + 1);
 	header.contentLength = htons(len);
 	if (write_all((char*)&header, sizeof(header)) != STREAM_WRITE_SUCCESS) {
@@ -125,7 +125,7 @@ bool KApiPipeStream::loadApi(KApiRedirect* rd) {
 	FCGI_Header header;
 	memset(&header, 0, sizeof(header));
 	header.type = API_CHILD_LOAD;
-	std::string path = rd->dso.path;
+	auto path = rd->dso.path;
 	u_short len = (u_short)(path.size() + 1);
 	header.id = rd->id;
 	header.contentLength = htons(len);

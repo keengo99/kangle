@@ -86,9 +86,7 @@ KCloudIpAcl::~KCloudIpAcl()
 		delete im;
 	}
 }
-std::string KCloudIpAcl::getHtml(KModel *model)
-{
-	std::stringstream s;
+void KCloudIpAcl::get_html(KModel* model, KWStream& s) {
 	KCloudIpAcl *m = (KCloudIpAcl *)model;
 	s << "url:<input name='url' size=50 value='";
 	if (m){
@@ -100,7 +98,6 @@ std::string KCloudIpAcl::getHtml(KModel *model)
 		s << m->flush_time;
 	}	
 	s << "'>";
-	return s.str();
 }
 KAcl *KCloudIpAcl::new_instance()
 {
@@ -121,16 +118,14 @@ bool KCloudIpAcl::match(KHttpRequest *rq, KHttpObject *obj)
 	lock.Unlock();
 	return result;
 }
-std::string KCloudIpAcl::getDisplay()
+void KCloudIpAcl::get_display(KWStream &s)
 {
-	std::stringstream s;
 	s << url;
 	lock.Lock();
 	if (this->sign!=NULL) {
 		s << " " << this->sign.get();
 	}
 	lock.Unlock();
-	return s.str();
 }
 void KCloudIpAcl::parse_config(const khttpd::KXmlNodeBody* xml)
 {
@@ -152,7 +147,7 @@ void KCloudIpAcl::start() {
 }
 void KCloudIpAcl::start_http()
 {	
-	this->data.clean();	
+	this->data.clear();
 	kgl_async_http ctx;
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.meth = "GET";

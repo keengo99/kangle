@@ -36,14 +36,12 @@ bool KLangParser::startElement(KXmlContext *context) {
 		KLangParser parser;
 		xml.setEvent(&parser);
 		xml.parseFile(conf.path+ context->attribute["file"]);
-		map<string,string>::iterator it;
-		for (it=parser.langs.begin(); it!=parser.langs.end(); it++) {
+		for (auto it=parser.langs.begin(); it!=parser.langs.end(); it++) {
 			langs.insert(*it);
 		}
 	}
 	if (context->qName == "lang") {
-		map<string,string>::iterator it;
-		for (it= context->attribute.begin(); it!= context->attribute.end(); it++) {
+		for (auto it= context->attribute.begin(); it!= context->attribute.end(); it++) {
 			langs.insert(*it);
 		}
 	}
@@ -51,7 +49,7 @@ bool KLangParser::startElement(KXmlContext *context) {
 }
 bool KLangParser::startCharacter(KXmlContext *context, char *character,
 		int len) {
-	string value=replace(character, langs, "${", "}");
+	auto  value=replace(character, langs, "${", "}");
 	langs[context->qName]=value;
 	return true;
 }

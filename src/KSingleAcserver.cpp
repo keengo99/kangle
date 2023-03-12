@@ -13,7 +13,7 @@ KSingleAcserver::KSingleAcserver(KSockPoolHelper *nodes) : KPoolableRedirect("")
 {
 	sockHelper = nodes;
 }
-KSingleAcserver::KSingleAcserver(const std::string &name) : KPoolableRedirect(name) {
+KSingleAcserver::KSingleAcserver(const KString&name) : KPoolableRedirect(name) {
 	sockHelper = new KSockPoolHelper;
 }
 KSingleAcserver::~KSingleAcserver() {

@@ -326,7 +326,7 @@ namespace kconfig {
 	KConfigResult remove(const kgl_ref_str_t& path, uint32_t index);
 	KConfigResult add(const kgl_ref_str_t& path, uint32_t index, khttpd::KXmlNode* xml);
 	KConfigResult update(const kgl_ref_str_t& path, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type);
-	KConfigResult update(const kgl_ref_str_t& path, uint32_t index, const std::string* text, KXmlAttribute* attribute, KConfigEventType ev_type);
+	KConfigResult update(const kgl_ref_str_t& path, uint32_t index, const KString* text, KXmlAttribute* attribute, KConfigEventType ev_type);
 
 	KConfigResult add(const kgl_ref_str_t& file, const kgl_ref_str_t& path, uint32_t index, khttpd::KXmlNode* xml);
 	KConfigResult update(const kgl_ref_str_t& file, const kgl_ref_str_t& path, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type);

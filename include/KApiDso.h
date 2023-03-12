@@ -21,7 +21,7 @@ public:
 public:
 	
 	const char *getError();
-	bool load(const std::string &file);
+	bool load(const KString &file);
 	bool load();
 	bool reload();
 	void unload();
@@ -46,7 +46,7 @@ public:
 	{
 		return state;
 	}
-	std::string path;
+	KString path;
 	union
 	{
 		struct

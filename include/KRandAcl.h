@@ -12,15 +12,13 @@ public:
 	~KRandAcl()
 	{
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "<input name='rand' value='";
 		KRandAcl *urlAcl = (KRandAcl *) (model);
 		if (urlAcl) {
-			s << urlAcl->getDisplay();
+			urlAcl->get_display(s);
 		}
 		s << "'>";
-		return s.str();
 	}
 	KAcl *new_instance() override {
 		return new KRandAcl();
@@ -31,10 +29,8 @@ public:
 	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		return (rand() % total) < count;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << count << "/" << total;
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

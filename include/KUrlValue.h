@@ -8,34 +8,34 @@ class KUrlValue
 public:
 	KUrlValue();
 	virtual ~KUrlValue();
-	KUrlValue *getSub(const std::string &name,int index) const;
-	KUrlValue *getNextSub(const std::string &name,int &index) const;
-	const std::string &get(const std::string &name) const;
+	KUrlValue *getSub(const KString&name,int index) const;
+	KUrlValue *getNextSub(const KString&name,int &index) const;
+	const KString &get(const KString&name) const;
 	/*
 	得到一个值，不会返回NULL,不存在则返回""
 	*/
-	const std::string& get(const char *name) const;
+	const KString& get(const char *name) const;
 	/*
 	得到一个值，不存在返回NULL
 	*/
 	const char *getx(const char *name) const;
-	bool get(const std::string name,std::string &value) const;
-	void get(std::map<std::string,std::string> &values) const;
+	bool get(const KString name, KString&value) const;
+	void get(std::map<KString, KString> &values) const;
 	const KXmlAttribute &get() const
 	{
 		return attribute;
 	}
-	bool add(const std::string &name,const std::string &value);
-	void put(const std::string& name, const std::string& value);
+	bool add(const KString&name,const KString&value);
+	void put(const KString& name, const KString& value);
 	void add(KUrlValue *subform);
 	bool parse(const char *param);
 	bool parse(char* param);
 	KXmlAttribute attribute;
-	const std::string &operator[](const std::string &name) const
+	const KString &operator[](const KString&name) const
 	{
 		return attribute[name];
 	}
-	std::map<std::string,KUrlValue *> subs;
+	std::map<KString,KUrlValue *> subs;
 	KUrlValue *next;
 private:
 	bool flag;

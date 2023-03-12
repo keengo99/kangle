@@ -341,7 +341,6 @@ void test_white_list() {
 #endif
 }
 void test_string() {
-	
 }
 void test_line_file() {
 	KStreamFile lf;

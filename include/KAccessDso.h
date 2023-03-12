@@ -38,21 +38,16 @@ public:
 	{
 		return access->name;
 	}
-	std::string getHtml(KModel *model);
-	std::string getDisplay();
+	void getHtml(KModel *model,KWStream &s);
+	void getDisplay(KWStream& s);
 	void parse_config(const khttpd::KXmlNodeBody* xml);
 	void parse_child(const kconfig::KXmlChanged* changed);
-#if 0
-	void editHtml(std::map<std::string, std::string> &attribute,bool html);
-	bool startCharacter(KXmlContext *context, char *character, int len);
-	void buildXML(std::stringstream &s);
-	bool endElement(KXmlContext *context);
-#endif
+
 	friend class KAccessDsoMark;
 	friend class KAccessDsoAcl;
 	KDsoExtend *dso;
 private:
-	std::string build(uint32_t type);
+	void build(uint32_t type,KWStream &s);
 	kgl_access *access;
 	kgl_access_context ctx;
 	int notify_type;
@@ -101,13 +96,13 @@ public:
 	{
 		return ad->getName();
 	}
-	std::string getHtml(KModel *model) override
+	void get_html(KModel *model, KWStream& s) override
 	{
-		return ad->getHtml(model);
+		return ad->getHtml(model,s);
 	}
-	std::string getDisplay() override
+	void get_display(KWStream& s) override
 	{
-		return ad->getDisplay();
+		return ad->getDisplay(s);
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		ad->parse_config(xml);
@@ -146,13 +141,13 @@ public:
 	{
 		return ad->getName();
 	}
-	std::string getHtml(KModel *model) override
+	void get_html(KModel *model, KWStream &s) override
 	{
-		return ad->getHtml(model);
+		return ad->getHtml(model,s);
 	}
-	std::string getDisplay() override
+	void get_display(KWStream& s) override
 	{
-		return ad->getDisplay();
+		return ad->getDisplay(s);
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		ad->parse_config(xml);

@@ -65,9 +65,9 @@ using KSafeChain = std::unique_ptr<KChain>;
 class KTable : public KJump, public kconfig::KConfigListen {
 public:
 	~KTable();
-	KTable(KAccess *access,const std::string& name);
+	KTable(KAccess *access,const KString& name);
 	kgl_jump_type match(KHttpRequest *rq, KHttpObject *obj, unsigned& checked_table, KJump **jump, KFetchObject **fo);
-	void htmlTable(std::stringstream &s,const char *vh,u_short accessType);
+	void htmlTable(KWStream &s,const char *vh,u_short accessType);
 	bool parse_config(KAccess *access,const khttpd::KXmlNodeBody* xml);
 	kconfig::KConfigEventFlag config_flag() const {
 		return kconfig::ev_subdir|kconfig::ev_merge;

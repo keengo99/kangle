@@ -40,24 +40,20 @@ public:
 		rq->pushSpeedLimit(gsl);
 		return true;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << "limit: " << gsl->getSpeedLimit() ;
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
 		gsl->setSpeedLimit((int)get_size(attribute["limit"].c_str()));
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "limit:<input name=limit size=10 value='";
 		KGSpeedLimitMark *mark = (KGSpeedLimitMark *) (model);
 		if (mark) {
 			s << mark->gsl->getSpeedLimit();
 		}
 		s << "'>";
-		return s.str();
 	}
 	KMark * new_instance()override {
 		return new KGSpeedLimitMark();

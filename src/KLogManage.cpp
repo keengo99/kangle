@@ -6,17 +6,16 @@ using namespace std;
 void KLogManage::checkRotate(time_t now_time)
 {
 	lock.Lock();
-	map<string,KLogElement *>::iterator it;
-	for(it=logs.begin();it!=logs.end();it++){
+	for(auto it=logs.begin();it!=logs.end();it++){
 		(*it).second->checkRotate(now_time);
 	}
 	lock.Unlock();
 }
-KLogElement *KLogManage::refsLogger(std::string path,bool &isnew)
+KLogElement *KLogManage::refsLogger(KString path,bool &isnew)
 {
 	KLogElement *logger = NULL;
 	lock.Lock();
-	map<string,KLogElement *>::iterator it=logs.find(path);
+	auto it=logs.find(path);
 	if(it!=logs.end()){
 		isnew = false;
 		logger = (*it).second;
@@ -24,7 +23,7 @@ KLogElement *KLogManage::refsLogger(std::string path,bool &isnew)
 		logger = new KLogElement;
 		logger->path = path;
 		logger->place = LOG_FILE;
-		logs.insert(pair<string,KLogElement *>(path,logger));
+		logs.insert(pair<KString,KLogElement *>(path,logger));
 		isnew = true;
 	}
 	logger->addRef();
@@ -40,7 +39,7 @@ void KLogManage::destroy(KLogElement *logger)
 		return;
 	}
 	if(refs<=1){
-		map<string,KLogElement *>::iterator it=logs.find(logger->path);
+		auto it=logs.find(logger->path);
 		if (it!=logs.end() && logger == (*it).second) {
 			logs.erase(it);
 			logger->release();

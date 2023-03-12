@@ -312,7 +312,7 @@ void shutdown_signal(int sig) {
 
 #ifdef _WIN32
 kgl_auto_cstr get_signal_pipe_name(int pid) {
-	KStringBuf spipe;
+	KStringStream spipe;
 	spipe << "\\\\.\\pipe\\kangle_signal_" << pid;
 	return spipe.steal();
 }
@@ -436,7 +436,7 @@ bool create_dir(const char* dir) {
 	return true;
 }
 void create_cache_dir(const char* disk_dir) {
-	string path;
+	KString path;
 	if (disk_dir && *disk_dir) {
 		path = disk_dir;
 		pathEnd(path);
@@ -453,7 +453,7 @@ void create_cache_dir(const char* disk_dir) {
 		if (!create_dir(s.c_str())) {
 			return;
 		}
-		s.clean();
+		s.clear();
 		for (int j = 0; j <= CACHE_DIR_MASK2; j++) {
 			s << path.c_str();
 			s.add_as_hex(i);
@@ -462,7 +462,7 @@ void create_cache_dir(const char* disk_dir) {
 			if (!create_dir(s.c_str())) {
 				return;
 			}
-			s.clean();
+			s.clear();
 		}
 	}
 #if 0
@@ -692,7 +692,7 @@ int clean_process_handle(const char* file, void* param) {
 		kill(pid, sig);
 #endif
 	}
-	std::stringstream s;
+	KStringBuf s;
 	s << conf.tmppath << file;
 	char unix_file[512];
 	FILE* fp = fopen(s.str().c_str(), "rb");
@@ -832,7 +832,7 @@ int parse_args(int argc, char** argv) {
 	char tmp[512];
 #endif
 	conf.log_level = -1;
-	string pidFile;
+	KString pidFile;
 #ifdef KANGLE_VAR_DIR
 	pidFile = KANGLE_VAR_DIR;
 #else
@@ -1032,22 +1032,15 @@ void init_signal() {
 }
 
 void init_safe_process() {
-#ifdef KANGLE_ETC_DIR
-	string configFile = KANGLE_ETC_DIR;
-#else
-	string configFile = conf.path + "/etc";
-#endif
-	configFile += CONFIG_FILE;
 	KXml::fopen = (kxml_fopen)kfopen;
 	KXml::fclose = (kxml_fclose)kfclose;
 	KXml::fsize = (kxml_fsize)kfsize;
 	KXml::fread = (kxml_fread)kfread;
-	//listenConfigParser.parse(configFile.c_str());
 }
 void init_stderr() {
 #ifdef ENABLE_TCMALLOC
 	close(2);
-	string stderr_file = conf.path + "/var/stderr.log";
+	KString stderr_file = conf.path + "/var/stderr.log";
 	KFile fp;
 	if (fp.open(stderr_file.c_str(), fileAppend)) {
 		FILE_HANDLE fd = fp.stealHandle();
@@ -1413,7 +1406,7 @@ int main(int argc, char** argv) {
 }
 
 void save_pid() {
-	std::string path;
+	KString path;
 #ifdef KANGLE_VAR_DIR
 	path = KANGLE_VAR_DIR;
 #else

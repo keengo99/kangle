@@ -56,7 +56,7 @@ void KAcserverManager::on_cmd_event(kconfig::KConfigTree* tree, const khttpd::KX
 		try {
 			cmd->parse_config(xml);
 			auto locker = get_wlocker();
-			auto result = cmds.insert(std::pair<std::string, KCmdPoolableRedirect*>(name, cmd));
+			auto result = cmds.insert(std::pair<KString, KCmdPoolableRedirect*>(name, cmd));
 			if (!result.second) {
 				throw 2;
 			}
@@ -108,7 +108,7 @@ void KAcserverManager::on_api_event(kconfig::KConfigTree* tree, const khttpd::KX
 				throw 1;
 			}
 			auto locker = get_wlocker();
-			auto result = apis.insert(std::pair<std::string, KApiRedirect*>(name, api));
+			auto result = apis.insert(std::pair<KString, KApiRedirect*>(name, api));
 			if (!result.second) {
 				throw 2;
 			}
@@ -252,26 +252,26 @@ KAcserverManager::KAcserverManager() {
 void KAcserverManager::shutdown() {
 	killAllProcess(NULL);
 	lock.WLock();
-	std::map<std::string, KSingleAcserver*>::iterator it;
+	std::map<KString, KSingleAcserver*>::iterator it;
 	for (it = acservers.begin(); it != acservers.end(); it++) {
 		(*it).second->remove();
 	}
 	acservers.clear();
 #ifdef ENABLE_MULTI_SERVER
-	std::map<std::string, KMultiAcserver*>::iterator it2;
+	std::map<KString, KMultiAcserver*>::iterator it2;
 	for (it2 = mservers.begin(); it2 != mservers.end(); it2++) {
 		(*it2).second->remove();
 	}
 	mservers.clear();
 #endif
 #ifdef ENABLE_VH_RUN_AS
-	std::map<std::string, KCmdPoolableRedirect*>::iterator it3;
+	std::map<KString, KCmdPoolableRedirect*>::iterator it3;
 	for (it3 = cmds.begin(); it3 != cmds.end(); it3++) {
 		(*it3).second->remove();
 	}
 	cmds.clear();
 #endif
-	std::map<std::string, KApiRedirect*>::iterator it4;
+	std::map<KString, KApiRedirect*>::iterator it4;
 	for (it4 = apis.begin(); it4 != apis.end(); it4++) {
 		(*it4).second->release();
 	}
@@ -285,7 +285,7 @@ KAcserverManager::~KAcserverManager() {
 void KAcserverManager::refreshCmd(time_t nowTime) {
 
 	lock.RLock();
-	std::map<std::string, KCmdPoolableRedirect*>::iterator it;
+	std::map<KString, KCmdPoolableRedirect*>::iterator it;
 	for (it = cmds.begin(); it != cmds.end(); it++) {
 		KProcessManage* pm = (*it).second->getProcessManage();
 		if (pm) {
@@ -303,7 +303,7 @@ void KAcserverManager::killCmdProcess(USER_T user) {
 
 	spProcessManage.killProcess2(user, 0);
 	lock.RLock();
-	std::map<std::string, KCmdPoolableRedirect*>::iterator it;
+	std::map<KString, KCmdPoolableRedirect*>::iterator it;
 	for (it = cmds.begin(); it != cmds.end(); it++) {
 		KProcessManage* pm = (*it).second->getProcessManage();
 		if (pm) {
@@ -318,7 +318,7 @@ void KAcserverManager::killCmdProcess(USER_T user) {
 void KAcserverManager::flushCpuUsage(ULONG64 cpuTime) {
 
 	lock.RLock();
-	std::map<std::string, KCmdPoolableRedirect*>::iterator it;
+	std::map<KString, KCmdPoolableRedirect*>::iterator it;
 	for (it = cmds.begin(); it != cmds.end(); it++) {
 		KProcessManage* pm = (*it).second->getProcessManage();
 		if (pm) {
@@ -330,7 +330,7 @@ void KAcserverManager::flushCpuUsage(ULONG64 cpuTime) {
 }
 #endif
 #if 0
-int KAcserverManager::getCmdPortMap(KVirtualHost* vh, std::string cmd, std::string name, int app) {
+int KAcserverManager::getCmdPortMap(KVirtualHost* vh, KString cmd, KString name, int app) {
 	KCmdPoolableRedirect* rd = refsCmdRedirect(cmd);
 	if (rd == NULL) {
 		return -1;
@@ -345,9 +345,9 @@ int KAcserverManager::getCmdPortMap(KVirtualHost* vh, std::string cmd, std::stri
 }
 #endif
 //}}
-void KAcserverManager::getProcessInfo(std::stringstream& s) {
+void KAcserverManager::getProcessInfo(KWStream & s) {
 	lock.RLock();
-	std::map<std::string, KCmdPoolableRedirect*>::iterator it;
+	std::map<KString, KCmdPoolableRedirect*>::iterator it;
 	for (it = cmds.begin(); it != cmds.end(); it++) {
 		KProcessManage* pm = (*it).second->getProcessManage();
 		if (pm) {
@@ -361,10 +361,9 @@ void KAcserverManager::clearImportConfig() {
 
 }
 #ifdef ENABLE_MULTI_SERVER
-std::string KAcserverManager::macserverList(const std::string& name) {
-	stringstream s;
+void KAcserverManager::macserverList(KWStream &s,const KString& name) {
 	KMultiAcserver* m_a = NULL;
-	std::map<std::string, KMultiAcserver*>::iterator it;
+	std::map<KString, KMultiAcserver*>::iterator it;
 	lock.RLock();
 	s << "<table border=1><tr>"
 		<< "<td>" << LANG_OPERATOR << "</td>"
@@ -397,28 +396,20 @@ std::string KAcserverManager::macserverList(const std::string& name) {
 		}
 	}
 	s << "</table>";
-	s << KMultiAcserver::form(m_a);
+	KMultiAcserver::form(m_a,s);
 	lock.RUnlock();
-	return s.str();
 }
 #endif
-std::string KAcserverManager::apiList(const std::string& name) {
-	stringstream s;
+void KAcserverManager::apiList(KWStream& s, const KString& name) {
 	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>";
 	s << LANG_NAME << "</td><td>" << klang["file"] << "</td><td>";
 	s << klang["seperate_process"] << "</td><td>";
 	s << LANG_REFS << "</td><td>" << LANG_STATE << "</td><td>version</td></tr>";
 	lock.RLock();
 	KApiRedirect* m_a = NULL;
-
-	std::map<std::string, KApiRedirect*>::iterator it;
-	for (it = apis.begin(); it != apis.end(); it++) {
-		m_a = (*it).second;
-		string de;
-		string color = "white";
-		
-		s << "<tr bgcolor='" << color << "'><td>";
-		
+	for (auto it = apis.begin(); it != apis.end(); it++) {
+		m_a = (*it).second;	
+		s << "<tr bgcolor='white'><td>";		
 		s << "[<a href=\"javascript:if(confirm('really delete?')){ window.location='/delapi?name=";
 		s << m_a->name << "';}\">" << LANG_DELETE << "</a>]";
 		s << "[<a href='/apilist?action=edit&name=" << m_a->name << "'>" << LANG_EDIT << "</a>]";
@@ -451,25 +442,23 @@ std::string KAcserverManager::apiList(const std::string& name) {
 	s << "<input type='submit' value='" << LANG_SUBMIT << "'>";
 	s << "</form>";
 	lock.RUnlock();
-	return s.str();
 }
 #ifdef ENABLE_VH_RUN_AS
 bool KAcserverManager::cmdForm(KXmlAttribute& attribute,
-	std::string& errMsg) {
+	KString& errMsg) {
 	auto action = std::move(attribute.remove("action"));
 	bool is_update = action == "edit";
 	return new_item("cmd", is_update, attribute, errMsg);
 }
 #endif
 bool KAcserverManager::apiForm(KXmlAttribute& attribute,
-	std::string& errMsg) {
+	KString& errMsg) {
 	auto action = std::move(attribute.remove("action"));
 	bool is_update = action == "edit";
 	return new_item("api", is_update, attribute, errMsg);
 }
 #ifdef ENABLE_VH_RUN_AS
-std::string KAcserverManager::cmdList(const std::string& name) {
-	stringstream s;
+void KAcserverManager::cmdList(KWStream &s, const KString& name) {
 	s << "<script language='javascript'>"
 		"function $(id) \n"
 		"{ \n"
@@ -499,8 +488,7 @@ std::string KAcserverManager::cmdList(const std::string& name) {
 	lock.RLock();
 	KCmdPoolableRedirect* m_a = NULL;
 
-	std::map<std::string, KCmdPoolableRedirect*>::iterator it;
-	for (it = cmds.begin(); it != cmds.end(); it++) {
+	for (auto it = cmds.begin(); it != cmds.end(); it++) {
 		m_a = (*it).second;
 		string de;
 		string color = "white";
@@ -612,12 +600,9 @@ std::string KAcserverManager::cmdList(const std::string& name) {
 	s << "<input type='submit' value='" << LANG_SUBMIT << "'>";
 	s << "</form>";
 	lock.RUnlock();
-	return s.str();
 }
 #endif
-std::string KAcserverManager::acserverList(const std::string& name) {
-	stringstream s;
-	std::map<std::string, KSingleAcserver*>::iterator it;
+void KAcserverManager::acserverList(KWStream &s, const KString& name) {
 	KSingleAcserver* m_a = NULL;
 	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>"
 		<< LANG_NAME << "</td><td>" << klang["server_type"] << "</td><td>"
@@ -626,7 +611,7 @@ std::string KAcserverManager::acserverList(const std::string& name) {
 		<< "<td>" << klang["lang_sock_pool_size"] << "</td>"
 		<< "</tr>\n";
 	lock.RLock();
-	for (it = acservers.begin(); it != acservers.end(); it++) {
+	for (auto it = acservers.begin(); it != acservers.end(); it++) {
 		m_a = (*it).second;
 		s << "<tr><td>";
 		s << "[<a href=\"javascript:if(confirm('" << LANG_CONFIRM_DELETE
@@ -677,7 +662,7 @@ std::string KAcserverManager::acserverList(const std::string& name) {
 	}
 	s << "param:<input name='param' value='";
 	if (param) {
-		s.write(param->data, param->len);
+		s.write_all(param->data, param->len);
 		kstring_release(param);
 	}
 	s << "'><br>";
@@ -690,24 +675,24 @@ std::string KAcserverManager::acserverList(const std::string& name) {
 	s << "<br><input type=submit value=" << (m_a ? LANG_EDIT : LANG_SUBMIT) << "></form>\n";
 
 	lock.RUnlock();
-	return s.str();
 }
 #ifdef ENABLE_MULTI_SERVER
-std::string KAcserverManager::macserver_node_form(const std::string& name,
-	std::string action, unsigned nodeIndex) {
+void KAcserverManager::macserver_node_form(KWStream& s, const KString& name,
+	KString action, unsigned nodeIndex) {
 	if (action == "add") {
-		return KMultiAcserver::nodeForm(name, NULL, 0);
+		return KMultiAcserver::nodeForm(s, name, NULL, 0);
 	}
 	KMultiAcserver* as = getMultiAcserver(name);
 	if (as == NULL) {
-		return "name is not found";
+		s << "name not found";
+		return;
 	}
-	return KMultiAcserver::nodeForm(name, as, nodeIndex);
+	KMultiAcserver::nodeForm(s, name, as, nodeIndex);
 }
 bool KAcserverManager::macserver_node(
-	KXmlAttribute& attribute, std::string& errMsg) {
-	string name = attribute["name"];
-	string action = attribute["action"];
+	KXmlAttribute& attribute, KString& errMsg) {
+	auto name = attribute["name"];
+	auto action = attribute["action"];
 	if (name.size() == 0) {
 		errMsg = "name cann't be zero";
 		return false;
@@ -730,41 +715,37 @@ bool KAcserverManager::macserver_node(
 }
 #endif
 void KAcserverManager::unloadAllApi() {
-	std::map<std::string, KApiRedirect*>::iterator it3;
+	std::map<KString, KApiRedirect*>::iterator it3;
 	for (it3 = apis.begin(); it3 != apis.end(); it3++) {
 		(*it3).second->dso.unload();
 	}
 }
-std::vector<std::string> KAcserverManager::getAllTarget() {
-	std::vector<std::string> targets;
-	stringstream s;
+std::vector<KString> KAcserverManager::getAllTarget() {
+	std::vector<KString> targets;
+	KStringBuf s;
 
 	lock.RLock();
-	std::map<std::string, KSingleAcserver*>::iterator it;
-	for (it = acservers.begin(); it != acservers.end(); it++) {
-		s.str("");
+	for (auto it = acservers.begin(); it != acservers.end(); it++) {
+		s.clear();
 		s << (*it).second->getType() << ":" << (*it).first;
 		targets.push_back(s.str());
 	}
 #ifdef ENABLE_MULTI_SERVER
-	std::map<std::string, KMultiAcserver*>::iterator it2;
-	for (it2 = mservers.begin(); it2 != mservers.end(); it2++) {
-		s.str("");
+	for (auto it2 = mservers.begin(); it2 != mservers.end(); it2++) {
+		s.clear();
 		s << "server:" << (*it2).first;
 		targets.push_back(s.str());
 	}
 #endif
-	std::map<std::string, KApiRedirect*>::iterator it3;
-	for (it3 = apis.begin(); it3 != apis.end(); it3++) {
-		s.str("");
+	for (auto it3 = apis.begin(); it3 != apis.end(); it3++) {
+		s.clear();
 		s << (*it3).second->getType() << ":" << (*it3).first;
 		targets.push_back(s.str());
 	}
 
 #ifdef ENABLE_VH_RUN_AS
-	std::map<std::string, KCmdPoolableRedirect*>::iterator it5;
-	for (it5 = cmds.begin(); it5 != cmds.end(); it5++) {
-		s.str("");
+	for (auto it5 = cmds.begin(); it5 != cmds.end(); it5++) {
+		s.clear();
 		s << (*it5).second->getType() << ":" << (*it5).first;
 		targets.push_back(s.str());
 	}
@@ -776,18 +757,16 @@ std::vector<std::string> KAcserverManager::getAllTarget() {
 	lock.RUnlock();
 	return targets;
 }
-std::vector<std::string> KAcserverManager::getAcserverNames(bool onlyHttp) {
-	std::vector<std::string> table_names;
-	std::map<std::string, KSingleAcserver*>::iterator it;
+std::vector<KString> KAcserverManager::getAcserverNames(bool onlyHttp) {
+	std::vector<KString> table_names;
 	lock.RLock();
-	for (it = acservers.begin(); it != acservers.end(); it++) {
+	for (auto it = acservers.begin(); it != acservers.end(); it++) {
 		if (!onlyHttp || (onlyHttp && (Proto_http == (*it).second->get_proto() || Proto_ajp == (*it).second->get_proto()))) {
 			table_names.push_back((*it).first);
 		}
 	}
 #ifdef ENABLE_MULTI_SERVER
-	std::map<std::string, KMultiAcserver*>::iterator it2;
-	for (it2 = mservers.begin(); it2 != mservers.end(); it2++) {
+	for (auto it2 = mservers.begin(); it2 != mservers.end(); it2++) {
 		if (!onlyHttp || (onlyHttp && (Proto_http == (*it2).second->get_proto() || Proto_ajp == (*it2).second->get_proto()))) {
 			table_names.push_back((*it2).first);
 		}
@@ -796,7 +775,7 @@ std::vector<std::string> KAcserverManager::getAcserverNames(bool onlyHttp) {
 	lock.RUnlock();
 	return table_names;
 }
-KSingleAcserver* KAcserverManager::refsSingleAcserver(const std::string& name) {
+KSingleAcserver* KAcserverManager::refsSingleAcserver(const KString& name) {
 	lock.RLock();
 	KSingleAcserver* ac = getSingleAcserver(name);
 	if (ac) {
@@ -805,7 +784,7 @@ KSingleAcserver* KAcserverManager::refsSingleAcserver(const std::string& name) {
 	lock.RUnlock();
 	return ac;
 }
-KPoolableRedirect* KAcserverManager::refsAcserver(const std::string& name) {
+KPoolableRedirect* KAcserverManager::refsAcserver(const KString& name) {
 	lock.RLock();
 	KPoolableRedirect* ac = getAcserver(name);
 	if (ac) {
@@ -815,15 +794,15 @@ KPoolableRedirect* KAcserverManager::refsAcserver(const std::string& name) {
 	return ac;
 }
 #ifdef ENABLE_MULTI_SERVER
-KMultiAcserver* KAcserverManager::getMultiAcserver(const std::string& table_name) {
-	std::map<std::string, KMultiAcserver*>::iterator it = mservers.find(table_name);
+KMultiAcserver* KAcserverManager::getMultiAcserver(const KString& table_name) {
+	auto it = mservers.find(table_name);
 	if (it != mservers.end()) {
 		return (*it).second;
 	}
 	return NULL;
 }
 #endif
-KPoolableRedirect* KAcserverManager::getAcserver(const std::string& table_name) {
+KPoolableRedirect* KAcserverManager::getAcserver(const KString& table_name) {
 	KPoolableRedirect* server = getSingleAcserver(table_name);
 	if (server != NULL) {
 		return server;
@@ -834,9 +813,8 @@ KPoolableRedirect* KAcserverManager::getAcserver(const std::string& table_name) 
 	return NULL;
 #endif
 }
-KSingleAcserver* KAcserverManager::getSingleAcserver(const std::string& table_name) {
-	std::map<std::string, KSingleAcserver*>::iterator it;
-	it = acservers.find(table_name);
+KSingleAcserver* KAcserverManager::getSingleAcserver(const KString& table_name) {
+	auto it = acservers.find(table_name);
 	if (it != acservers.end()) {
 		return (*it).second;
 	}
@@ -845,18 +823,18 @@ KSingleAcserver* KAcserverManager::getSingleAcserver(const std::string& table_na
 bool KAcserverManager::new_server(
 	bool is_update,
 	KXmlAttribute& attr,
-	std::string& err_msg) {
+	KString& err_msg) {
 	return new_item("server", is_update, attr, err_msg);
 }
 bool KAcserverManager::new_item(
-	const std::string& scope,
+	const KString& scope,
 	bool is_update,
 	KXmlAttribute& attr,
-	std::string& err_msg) {
+	KString& err_msg) {
 
 	auto envs = std::move(attr.remove("env"));
 
-	std::string name = attr["name"];
+	auto  name = attr["name"];
 	err_msg = LANG_TABLE_NAME_ERR;
 	kconfig::KConfigResult result;
 	auto xml = kconfig::new_xml(scope.c_str(), scope.size(), name.c_str(), name.size());	
@@ -885,7 +863,7 @@ bool KAcserverManager::new_item(
 		return false;
 	}
 }
-bool KAcserverManager::remove_item(const std::string& scope, const std::string& name, std::string& err_msg) {
+bool KAcserverManager::remove_item(const KString& scope, const KString& name, KString& err_msg) {
 	KStringBuf s;
 	s << scope << "@"_CS << name;
 	switch (kconfig::remove(s.str().str(), 0)) {
@@ -903,13 +881,13 @@ bool KAcserverManager::remove_item(const std::string& scope, const std::string& 
 	}
 }
 #ifdef ENABLE_MULTI_SERVER
-bool KAcserverManager::remove_server(const std::string& name, std::string& err_msg) {
+bool KAcserverManager::remove_server(const KString& name, KString& err_msg) {
 	return remove_item("server", name, err_msg);
 }
 #endif
-KRedirect* KAcserverManager::refsRedirect(const std::string& target) {
+KRedirect* KAcserverManager::refsRedirect(const KString& target) {
 	int jumpType;
-	string name;
+	KString name;
 	if (strncasecmp(target.c_str(), "cdn:", 4) == 0) {
 		KRedirect* rd = NULL;
 		char* tmp = strdup(target.c_str() + 4);
@@ -958,15 +936,14 @@ KRedirect* KAcserverManager::refsRedirect(const std::string& target) {
 }
 #ifdef ENABLE_VH_RUN_AS	
 void KAcserverManager::loadAllApi() {
-	std::map<std::string, KApiRedirect*>::iterator it;
 	lock.WLock();
-	for (it = apis.begin(); it != apis.end(); it++) {
+	for (auto it = apis.begin(); it != apis.end(); it++) {
 		(*it).second->load();
 	}
 	lock.WUnlock();
 }
 #endif
-bool KAcserverManager::apiEnable(const std::string& name, bool enable) {
+bool KAcserverManager::apiEnable(const KString& name, bool enable) {
 	bool result = false;
 	lock.WLock();
 	KApiRedirect* rd = getApiRedirect(name);
@@ -977,7 +954,7 @@ bool KAcserverManager::apiEnable(const std::string& name, bool enable) {
 	return result;
 }
 #ifdef ENABLE_VH_RUN_AS
-bool KAcserverManager::cmdEnable(const std::string& name, bool enable) {
+bool KAcserverManager::cmdEnable(const KString& name, bool enable) {
 	bool result = false;
 	lock.WLock();
 	KCmdPoolableRedirect* rd = getCmdRedirect(name);
@@ -991,30 +968,30 @@ bool KAcserverManager::cmdEnable(const std::string& name, bool enable) {
 
 #ifdef ENABLE_VH_RUN_AS
 KCmdPoolableRedirect* KAcserverManager::newCmdRedirect(
-	std::map<std::string, std::string>& attribute, std::string& errMsg) {
-	string name = attribute["name"];
+	std::map<KString, KString>& attribute, KString& errMsg) {
+	auto name = attribute["name"];
 	if (getCmdRedirect(name)) {
 		errMsg = "name duplicate.";
 		return NULL;
 	}
 	KCmdPoolableRedirect* rd = new KCmdPoolableRedirect(name);
 	rd->name = name;
-	cmds.insert(std::pair<std::string, KCmdPoolableRedirect*>(rd->name, rd));
+	cmds.insert(std::pair<KString, KCmdPoolableRedirect*>(rd->name, rd));
 	return rd;
 }
 #endif
 
 
 #ifdef ENABLE_VH_RUN_AS
-KCmdPoolableRedirect* KAcserverManager::getCmdRedirect(const std::string& name) {
-	std::map<std::string, KCmdPoolableRedirect*>::iterator it;
+KCmdPoolableRedirect* KAcserverManager::getCmdRedirect(const KString& name) {
+	std::map<KString, KCmdPoolableRedirect*>::iterator it;
 	it = cmds.find(name);
 	if (it != cmds.end()) {
 		return (*it).second;
 	}
 	return NULL;
 }
-KCmdPoolableRedirect* KAcserverManager::refsCmdRedirect(const std::string& name) {
+KCmdPoolableRedirect* KAcserverManager::refsCmdRedirect(const KString& name) {
 	lock.RLock();
 	KCmdPoolableRedirect* ac = getCmdRedirect(name);
 	if (ac) {
@@ -1024,7 +1001,7 @@ KCmdPoolableRedirect* KAcserverManager::refsCmdRedirect(const std::string& name)
 	return ac;
 }
 #endif
-KApiRedirect* KAcserverManager::refsApiRedirect(const std::string& name) {
+KApiRedirect* KAcserverManager::refsApiRedirect(const KString& name) {
 	lock.RLock();
 	KApiRedirect* ac = getApiRedirect(name);
 	if (ac) {
@@ -1034,9 +1011,8 @@ KApiRedirect* KAcserverManager::refsApiRedirect(const std::string& name) {
 	return ac;
 }
 
-KApiRedirect* KAcserverManager::getApiRedirect(const std::string& name) {
-	std::map<std::string, KApiRedirect*>::iterator it;
-	it = apis.find(name);
+KApiRedirect* KAcserverManager::getApiRedirect(const KString& name) {
+	auto it = apis.find(name);
 	if (it != apis.end()) {
 		return (*it).second;
 	}

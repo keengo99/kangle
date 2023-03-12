@@ -195,17 +195,17 @@ KAttribute* KFSResource::getAttribute()
 	gmtime_r(&holder, &tm);
 	char tbuf[64];
 	snprintf(tbuf, sizeof(tbuf), "%d-%02d-%02dT%02d:%02d:%02dZ", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-	ab->add("creationdate", (const char*)tbuf);
+	ab->emplace("creationdate", (const char*)tbuf);
 	snprintf(tbuf, sizeof(tbuf), "%s, %02d %s %d %02d:%02d:%02d GMT", days[tm.tm_wday],
 		tm.tm_mday, months[tm.tm_mon], tm.tm_year + 1900, tm.tm_hour,
 		tm.tm_min, tm.tm_sec);
 	//mk1123time(buf->st_mtime,tbuf,sizeof(tbuf));
-	ab->add("getlastmodified", (const char*)tbuf);
+	ab->emplace("getlastmodified", (const char*)tbuf);
 	if (isDirectory()) {
-		ab->add("getcontenttype", "httpd/unix-directory");
+		ab->emplace("getcontenttype", "httpd/unix-directory");
 	} else {
 		sprintf(tbuf, "%d", (int)buf->st_size);
-		ab->add("getcontentlength", (const char*)tbuf);
+		ab->emplace("getcontentlength", (const char*)tbuf);
 	}
 	return ab;
 }

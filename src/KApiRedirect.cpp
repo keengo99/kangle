@@ -156,7 +156,7 @@ static BOOL WINAPI apiServerSupportFunction(HCONN hConn, DWORD dwHSERequest,
 	}
 	return FALSE;
 }
-KApiRedirect::KApiRedirect(const std::string &a): KRedirect(a) {
+KApiRedirect::KApiRedirect(const KString &a): KRedirect(a) {
 	life_time = 60;
 	max_error_count = 5;
 	type = WORK_TYPE_SP;
@@ -167,7 +167,7 @@ KApiRedirect::KApiRedirect(const std::string &a): KRedirect(a) {
 KApiRedirect::~KApiRedirect() {
 	
 }
-void KApiRedirect::setFile(const std::string &file)
+void KApiRedirect::setFile(const KString &file)
 {
 	apiFile = file;
 	if (!isAbsolutePath(apiFile.c_str())) {
@@ -177,7 +177,7 @@ void KApiRedirect::setFile(const std::string &file)
 	}
 }
 #if 0
-bool KApiRedirect::load(const std::string &file)
+bool KApiRedirect::load(const KString &file)
 {
 	apiFile = file;
 	dso.path = dso.path + apiFile;

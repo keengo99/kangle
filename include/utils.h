@@ -55,23 +55,21 @@ typedef KWinCgiEnv KCmdEnv;
 typedef KCgiEnv KCmdEnv;
 #endif
 //#ifdef _WIN32
-#define USER_T	std::string
+#define USER_T	KString
 //#else
 //#define USER_T	int
 //#endif
 #define isAbsolutePath kgl_is_absolute_path
-int get_path(char *argv0, std::string &path);
+int get_path(char *argv0, KString &path);
 int get_param(int argc, char **argv, int &i,const char *param, char *value);
 KTHREAD_FUNCTION time_thread(void *arg);
 void register_gc_service(void(*flush)(void *,time_t),void *arg);
 
 void my_msleep(int msec);
 void explode_cmd(char *str,std::vector<char *> &result);
-void explode(const char *str, const char split,
-		std::vector<std::string> &result, int limit = -1);
-void explode(const char *str, const char split,
-		std::map<char *, bool, lessp> *result, int limit = -1);
-std::string string2lower(std::string str);
+void explode(const char *str, const char split,std::vector<KString> &result, int limit = -1);
+//void explode(const char *str, const char split,	std::map<char *, bool, lessp> *result, int limit = -1);
+//std::string string2lower(std::string str);
 
 //kbuf *deflate_buff(kbuf *in_buf, int level, INT64 &len, bool fast);
 char *utf82charset(const char *str, size_t len, const char *charset);
@@ -84,7 +82,7 @@ void change_admin_password_crypt_type();
 void loadExtConfigFile();
 void buildAttribute(char *buf, std::map<char *, char *, lessp_icase> &attibute);
 void split(char *buf, std::vector<char *> &item);
-std::string endTag();
+KString endTag();
 void addCurrentEnv(KCmdEnv *env);
 /*
 创建一个进程外工作，并等待完成
@@ -231,6 +229,24 @@ inline void strip_path_end(std::string &path)
 	}
 #endif
 }
+
+inline void strip_path_end(KString& path) {
+	auto path_size = path.size();
+	if (path_size == 0) {
+		return;
+	}
+	const char c = path[path_size - 1];
+	if (c == '/') {
+		path = path.substr(0, path_size - 1);
+		return;
+	}
+#ifdef _WIN32
+	else if (c == '\\') {
+		path = path.substr(0, path_size - 1);
+		return;
+	}
+#endif
+}
 /*
  * be sure path is ended with '/'
  */
@@ -246,6 +262,26 @@ inline void pathEnd(std::string &path) {
 	}
 #ifdef _WIN32
 	else if(c=='\\') {
+		return;
+	}
+#endif
+	path = path + PATH_SPLIT_CHAR;
+}
+/*
+ * be sure path is ended with '/'
+ */
+inline void pathEnd(KString& path) {
+	auto path_size = path.size();
+	if (path_size == 0) {
+		path = "/";
+		return;
+	}
+	const char c = path[path_size - 1];
+	if (c == '/') {
+		return;
+	}
+#ifdef _WIN32
+	else if (c == '\\') {
 		return;
 	}
 #endif

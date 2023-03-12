@@ -20,8 +20,7 @@ struct klog_drill {
 };
 */
 struct klog_drill {
-	char *buf;
-	int len;
+	KString data;
 	klog_drill *next;
 };
 struct klog_drill_stat {
@@ -44,7 +43,6 @@ void init_log_drill()
 }
 void free_log_drill(klog_drill *ld)
 {
-	xfree(ld->buf);
 	delete ld;
 }
 #ifndef NDEBUG
@@ -126,7 +124,7 @@ static void remove_log_drill()
 	internal_check_log_drill();
 #endif
 }
-void add_log_drill(KHttpRequest *rq,KStringBuf &s)
+void add_log_drill(KHttpRequest *rq, KStringBuf&s)
 {
 	drill_lock.Lock();
 #ifndef NDEBUG
@@ -159,8 +157,7 @@ void add_log_drill(KHttpRequest *rq,KStringBuf &s)
 	drill_count++;
 	klog_drill *ld = new klog_drill;
 	memset(ld,0,sizeof(klog_drill));
-	ld->len = s.size();
-	ld->buf = s.steal().release();
+	ld->data = std::move(s);
 	/*
 	kgl_memcpy(ld->magic1,CHECK_MAGIC_STR,sizeof(CHECK_MAGIC_STR)-1);
 	kgl_memcpy(ld->magic2,CHECK_MAGIC_STR,sizeof(CHECK_MAGIC_STR)-1);
@@ -201,7 +198,7 @@ void flush_log_drill()
 	int free_count = 0;
 	//*
 	while (drill_list_head!=NULL) {
-		fp.write(drill_list_head->buf, drill_list_head->len);
+		fp.write(drill_list_head->data.c_str(), drill_list_head->data.size());
 		klog_drill *next = drill_list_head->next;
 		free_log_drill(drill_list_head);
 		drill_list_head = next;

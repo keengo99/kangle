@@ -31,7 +31,7 @@ public:
 		return "shell";
 	}
 	void flush() override;
-	WhmShellContext *refsContext(std::string session);
+	WhmShellContext *refsContext(KString session);
 	bool removeContext(WhmShellContext *sc);
 	void endContext(WhmShellContext *sc);
 	void include(WhmShell *shell);
@@ -46,7 +46,7 @@ private:
 	void addContext(WhmShellContext *sc);
 	KMutex lock;
 	unsigned index;
-	std::map<std::string,WhmShellContext *> context;
+	std::map<KString,WhmShellContext *> context;
 	//已经运行结束，等待flush就结束的shell context
 	WhmShellContext *head;
 	WhmShellContext *end;

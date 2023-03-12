@@ -61,7 +61,6 @@ enum{
 	CALL_RELOAD_VH_ACCESS,
 	CALL_CHANGE_ADMIN_PASSWORD,
 	CALL_KILL_PROCESS,
-	CALL_WRITE_FILE,
 	CALL_REBOOT,
 	CALL_CHECK_VH_DB,
 	CALL_UPDATE_VH,
@@ -228,11 +227,6 @@ static int parseCallName(const char *callName)
 			if (strcmp(callName,"update_vh")==0) {
 				return CALL_UPDATE_VH;
 			}
-			break;	
-		case 'w':
-			if(strcmp(callName,"write_file")==0){
-				return CALL_WRITE_FILE;
-			}
 			break;
 	}
 	return CALL_UNKNOW;
@@ -240,8 +234,8 @@ static int parseCallName(const char *callName)
 static int getVhDomain(WhmContext *ctx)
 {
 	KUrlValue *uv = ctx->getUrlValue();
-	string name = uv->get("name");
-	KVirtualHost *vh = conf.gvm->refsVirtualHostByName(name);
+	auto name = uv->get("name");
+	KVirtualHost *vh = conf.gvm->refsVirtualHostByName(name.c_str());
 	if(vh==NULL){
 		ctx->setStatus("vh cann't find");
 		return WHM_PARAM_ERROR;
@@ -290,24 +284,22 @@ static int getVhStat(WhmContext *ctx)
 static int getVhDetail(WhmContext *ctx)
 {
 	KUrlValue *uv = ctx->getUrlValue();
-	string name = uv->get("name");
-	KVirtualHost *vh = conf.gvm->refsVirtualHostByName(name);
+	auto name = uv->get("name");
+	KVirtualHost *vh = conf.gvm->refsVirtualHostByName(name.c_str());
 	if(vh==NULL){
 		ctx->setStatus("vh cann't find");
 		return WHM_PARAM_ERROR;
 	}
 	//ctx->setStatus(WHM_OK);
-	stringstream s;
+	KStringBuf s;
 	ctx->add("name",name);
 #ifdef ENABLE_BASED_PORT_VH
 	{
-		list<string>::iterator it2;
-		for (it2=vh->binds.begin();it2!=vh->binds.end();it2++) {
+		for (auto it2=vh->binds.begin();it2!=vh->binds.end();it2++) {
 			s << (*it2) << "\n";
 		}
 	}
-	ctx->add("bind",s.str().c_str());
-	s.str("");
+	ctx->add("bind",s.reset().c_str());
 #endif
 	{
 		list<KSubVirtualHost *>::iterator it;
@@ -319,12 +311,11 @@ static int getVhDetail(WhmContext *ctx)
 			s << "\n";
 		}
 	}
-	ctx->add("host",s.str().c_str());
-	s.str("");
+	ctx->add("host",s.reset().c_str());
 	ctx->add("doc_root",vh->GetDocumentRoot().c_str());
 	ctx->add("inherit",vh->inherit?"1":"0");
 #ifdef ENABLE_VH_RUN_AS
-	ctx->add("user",vh->user);
+	ctx->add("user",vh->user.c_str());
 #ifdef _WIN32
 	ctx->add("password","***");
 #else
@@ -333,17 +324,17 @@ static int getVhDetail(WhmContext *ctx)
 #endif
 
 #ifdef ENABLE_VH_LOG_FILE
-	ctx->add("log_file",vh->logFile);
-	string rotateTime;
+	ctx->add("log_file",vh->logFile.c_str());
+	KString rotateTime;
 	if (vh->logger) {
 		vh->logger->getRotateTime(rotateTime);
-		ctx->add("log_rotate_time",rotateTime);
+		ctx->add("log_rotate_time",rotateTime.c_str());
 		ctx->add("log_rotate_size",vh->logger->rotate_size);
 	}
 #endif
 	ctx->add("browse",vh->browse?"1":"0");
 #ifdef ENABLE_USER_ACCESS
-	ctx->add("access_file",vh->user_access);
+	ctx->add("access_file",vh->user_access.c_str());
 #endif
 #ifdef ENABLE_VH_RS_LIMIT
 	ctx->add("connect",vh->max_connect);
@@ -695,7 +686,7 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 			return WHM_PARAM_ERROR;
 		}
 		KMultiAcserver *rd = server_container->refsMultiServer(name);
-		std::stringstream s;
+		KStringBuf s;
 		if (rd) {
 			rd->getNodeInfo(s);
 			ctx->add("node", s.str().c_str());
@@ -789,7 +780,7 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 #endif
 	if(cmd == CALL_LIST_VH){
 		//ctx->setStatus(WHM_OK);
-		std::list<std::string> vhs;
+		std::list<KString> vhs;
 		if(cmd==CALL_LIST_VH){
 			conf.gvm->getAllVh(
 				vhs,
@@ -798,7 +789,7 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 				);
 		}
 		for(auto it=vhs.begin();it!=vhs.end();it++){
-			ctx->add("name",(*it));
+			ctx->add("name",(*it).c_str());
 		}
 		return WHM_OK;
 	}
@@ -851,7 +842,7 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 		return WHM_OK;
 	}
 	if(cmd==CALL_RELOAD_VH){
-		std::string name;
+		KString name;
 		bool initEvent = false;
 		if (uv->get("init")=="1"||uv->get("init")=="true") {
 			initEvent = true;
@@ -889,7 +880,7 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 		return WHM_OK;
 	}
 	if(cmd==CALL_CHANGE_ADMIN_PASSWORD){
-		std::string errMsg;
+		KString errMsg;
 		conf.admin_lock.Lock();
 		if(!changeAdminPassword(uv,errMsg)){
 			conf.admin_lock.Unlock();
@@ -902,51 +893,6 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 	if(cmd==CALL_REBOOT){
 		console_call_reboot();
 		return WHM_OK;
-	}
-	if(cmd==CALL_WRITE_FILE){
-		std::string file = uv->get("file");
-		if(file.size()<=0){
-			return WHM_CALL_FAILED;
-		}
-		std::string content = uv->get("content");
-		std::string urlencode = uv->get("urlencode");
-		if(isAbsolutePath(file.c_str())){
-			#ifdef _WIN32
-			if(file[0]=='/'){
-				file = conf.diskName + file;
-			}
-			#endif	
-		}else{
-			file = conf.path + file;
-		}
-		int len = (int)content.size();
-		char *buf = NULL;
-		if(urlencode.size()>0 && urlencode=="1"){
-			buf = strdup(content.c_str());
-		} else {
-			buf = b64decode((const unsigned char *)content.c_str(),&len);
-			if(buf==NULL || len<=0){
-				ctx->setStatus("cann't decode content");
-				if(buf){
-					xfree(buf);
-				}
-				return WHM_CALL_FAILED;
-			}			
-		}
-		FILE *fp = fopen(file.c_str(),"wb");
-		if(fp==NULL){
-			ctx->setStatus("access denied");
-			if(buf){
-				xfree(buf);
-			}
-			return WHM_CALL_FAILED;
-		}
-		fwrite(buf,1,len,fp);
-		fclose(fp);
-		if (buf) {
-			xfree(buf);
-		}
-		return WHM_OK;	
 	}
 	if(cmd==CALL_CHECK_VH_DB){
 		if(vhd.check()){

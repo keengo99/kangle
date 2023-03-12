@@ -185,33 +185,10 @@ void KLogElement::rotateLog() {
 	}
 }
 
-void KLogElement::buildXML(std::stringstream& s) {
-	lock.Lock();
-	//s << " log_file='" << path << "' ";
-	if (rotate_time.size() > 0) {
-		s << " log_rotate_time='" << rotate_time << "'";
-	}
-	if (rotate_size > 0) {
-		s << " log_rotate_size='" << rotate_size << "'";
-	}
-	if (mkdir_flag) {
-		s << " log_mkdir='on'";
-	}
-	if (logs_day > 0) {
-		s << " logs_day='" << logs_day << "'";
-	}
-	if (logs_size > 0) {
-		s << " logs_size='" << logs_size << "'";
-	}
-	if (!log_handle) {
-		s << " log_handle='off'";
-	}
-	lock.Unlock();
-}
-void KLogElement::setPath(std::string path) {
+void KLogElement::setPath(KString path) {
 	lock.Lock();
 	if (path != "/nolog" && worker_index > 0) {
-		std::stringstream s;
+		KStringBuf s;
 		s << path << worker_index;
 		s.str().swap(this->path);
 	} else {

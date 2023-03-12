@@ -517,7 +517,7 @@ void KDynamicListen::GetListenWhm(WhmContext *ctx)
 static iterator_ret listen_html_iterator(void *data, void *argv)
 {
 	KListen *listen = (KListen *)data;
-	std::stringstream *s = (std::stringstream *)argv;
+	KWStream *s = (KWStream*)argv;
 	kserver *server = listen->server;
 	if (KBIT_TEST(listen->server->flags, KGL_SERVER_START)) {
 		*s << "<tr>";
@@ -574,7 +574,7 @@ static iterator_ret listen_html_iterator(void *data, void *argv)
 	}
 	return iterator_continue;
 }
-void KDynamicListen::GetListenHtml(std::stringstream &s)
+void KDynamicListen::GetListenHtml(KWStream &s)
 {
 	rbtree_iterator(&listens, listen_html_iterator, &s);
 }

@@ -420,7 +420,7 @@ KGL_RESULT handle_error(KHttpRequest* rq, int code, const char* msg) {
 	rq->sink->data.range = nullptr;
 	//KBIT_CLR(rq->sink->data.flags, RQ_HAVE_RANGE);
 	assert(svh);
-	std::string errorPage2;
+	KString errorPage2;
 	if (!svh->vh->getErrorPage(code, errorPage2)) {
 		return send_error2(rq, code, msg);
 	}
@@ -598,7 +598,7 @@ void merge_precondition(KHttpRequest* rq, KHttpObject* obj) {
 			auto etag = obj->data->etag;
 			if (condition && KBIT_TEST(flag, kgl_precondition_mask) == kgl_precondition_if_none_match) {
 				size_t new_len = etag->len + condition->entity->len + 1;
-				sub_request->precondition->entity = (kgl_len_str_t*)kgl_pnalloc(rq->sink->pool, new_len + 1 + sizeof(kgl_len_str_t));
+				sub_request->precondition->entity = (kgl_len_str_t*)kgl_pnalloc(rq->sink->pool, kgl_len_str_size(new_len));
 				sub_request->precondition->entity->len = new_len;
 				char* hot = sub_request->precondition->entity->data;
 				memcpy(hot, etag->data, etag->len);

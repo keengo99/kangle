@@ -29,12 +29,11 @@ public:
 	}
 	virtual ~KRegFileAcl() {
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "<input name='file' value='";
 		KRegFileAcl *urlAcl = (KRegFileAcl *) (model);
 		if (urlAcl) {
-			s << urlAcl->getDisplay();
+			urlAcl->get_display(s);
 		}
 		s << "'>";
 		s << "<input name='nc' value='1' type='checkbox' ";
@@ -42,7 +41,6 @@ public:
 			s << "checked";
 		}
 		s << ">nc";
-		return s.str();
 	}
 	KAcl *new_instance() override {
 		return new KRegFileAcl();
@@ -57,8 +55,8 @@ public:
 		const char *filename = rq->file->getName();
 		return path.match(filename,strlen(filename),0)>0;
 	}
-	std::string getDisplay() override {
-		return path.getModel();
+	void get_display(KWStream& s) override {
+		s <<  path.getModel();
 	}
 	bool setPath(const char *value) {
 		int flag = 0;
@@ -86,12 +84,11 @@ public:
 	}
 	virtual ~KRegFileNameAcl() {
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "<input name='filename' value='";
 		KRegFileNameAcl *urlAcl = (KRegFileNameAcl *) (model);
 		if (urlAcl) {
-			s << urlAcl->getDisplay();
+			urlAcl->get_display(s);
 		}
 		s << "'>";
 		s << "<input name='nc' value='1' type='checkbox' ";
@@ -99,7 +96,6 @@ public:
 			s << "checked";
 		}
 		s << ">nc";
-		return s.str();
 	}
 	KAcl *new_instance() override {
 		return new KRegFileNameAcl();
@@ -119,8 +115,8 @@ public:
 		}
 		return path.match(filename,strlen(filename),0)>0;
 	}
-	std::string getDisplay() override {
-		return path.getModel();
+	void get_display(KWStream& s) override {
+		s <<  path.getModel();
 	}
 	bool setPath(const char *value) {
 		int flag = 0;

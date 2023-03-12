@@ -43,7 +43,7 @@ void KLang::clear()
 	}
 	delete langs;
 }
-bool KLang::load(std::string file)
+bool KLang::load(KString file)
 {
 	KXml xml;
 	xml.setEvent(this);
@@ -83,7 +83,7 @@ bool KLang::startElement(KXmlContext *context) {
 		//KXml xml;
 		KLang parser(langs);
 		try {
-			std::string file;
+			KString file;
 #ifdef KANGLE_WEBADMIN_DIR
 			file = KANGLE_WEBADMIN_DIR;
 #else
@@ -98,9 +98,8 @@ bool KLang::startElement(KXmlContext *context) {
 		return true;
 	}
 	if (context->qName == "lang") {
-		std::string name = context->attribute["name"];
-		map<string,string>::iterator it;
-		for (it= context->attribute.begin(); it!= context->attribute.end(); it++) {
+		KString name = context->attribute["name"];
+		for (auto it= context->attribute.begin(); it!= context->attribute.end(); it++) {
 			add(name,(*it).first,(*it).second);
 		}
 		return true;
@@ -116,7 +115,7 @@ bool KLang::startCharacter(KXmlContext *context, char *character,
 	const char *name = context->attribute["name"].c_str();
 	std::map<char *,KLocalLang *,lessp_icase>::iterator it;
 	it = langs->find((char *)name);
-	string value;
+	KString value;
 	if(it!=langs->end()){
 		value=replace(character, (*it).second->langs, "${", "}");
 	}else{
@@ -128,7 +127,7 @@ bool KLang::endElement(KXmlContext *context)
 {
 	return true;
 }
-bool KLang::add(std::string lang,std::string name,std::string value)
+bool KLang::add(KString lang,KString name,KString value)
 {
 	if(lang.size()==0){
 		//fprintf(stderr,"cann't add! lang name is zero\n");
@@ -147,7 +146,7 @@ bool KLang::add(std::string lang,std::string name,std::string value)
 	ll->add(name,value);
 	return true;
 }
-void KLang::getAllLangName(std::vector<std::string> &names)
+void KLang::getAllLangName(std::vector<KString> &names)
 {
 	std::map<char *,KLocalLang *,lessp_icase>::iterator it;
 	for(it=langs->begin();it!=langs->end();it++){

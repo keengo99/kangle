@@ -13,7 +13,7 @@ public:
 	{
 
 	}
-	bool ReturnWithRewriteParam(KHttpRequest *rq, KStringBuf &np, bool result)
+	bool ReturnWithRewriteParam(KHttpRequest *rq, KStringStream&np, bool result)
 	{
 		set_url_param(np, rq->sink->data.url);
 		return result;
@@ -26,7 +26,7 @@ public:
 		char *hot = rq->sink->data.url->param;
 		const char *sign_value = NULL;
 		const char *expire_value = NULL;
-		KStringBuf np;
+		KStringStream np;
 		for (;;) {
 			char *p = strchr(hot,'&');
 			if (p) {
@@ -96,8 +96,7 @@ public:
 	const char *getName() override  {
 		return "path_sign";
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		KPathSignMark *m = (KPathSignMark *)model;
 		s << "sign:<input name='sign' value='";
 		if (m) {
@@ -119,19 +118,15 @@ public:
 			s << "checked";
 		}
 		s << ">file";
-		return s.str();
 	}
 	KMark * new_instance() override  {
 		return new KPathSignMark();
 	}
-	std::string getDisplay() override
-	{
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << "sign=" << sign << ",expire=" << expire;
 		if (file) {
 			s << "[F]";
 		}
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -141,7 +136,7 @@ public:
 		file = (attribute["file"]=="1");
 	}
 private:
-	void set_url_param(KStringBuf &np,KUrl *url) {
+	void set_url_param(KStringStream &np,KUrl *url) {
 		free(url->param);
 		if (np.size()>0) {
 			url->param = np.steal().release();
@@ -149,9 +144,9 @@ private:
 			url->param = NULL;
 		}
 	}
-	std::string sign;
-	std::string expire;
-	std::string key;
+	KString sign;
+	KString expire;
+	KString key;
 	bool file;
 };
 #endif

@@ -29,15 +29,12 @@ public:
 	const char *getName() override {
 		return "white_list";
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		if (host) {
 			s << host;
 		}
-		return s.str();
 	}
-	std::string getHtml(KModel *m) override {
-		std::stringstream s;
+	void get_html(KModel* m, KWStream& s) override {
 		s << "host:<input name='host' value='";
 		if (m) {
 			char *host = static_cast<KWhiteListAcl *>(m)->host;
@@ -51,7 +48,6 @@ public:
 			s << "checked";
 		}
 		s << ">flush";
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -97,15 +93,12 @@ public:
 	const char *getName()override {
 		return "white_list";
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		if (host) {
 			s << host;
 		}
-		return s.str();
 	}
-	std::string getHtml(KModel *m) override {
-		std::stringstream s;
+	void get_html(KModel* m, KWStream& s) override {
 		s << "host:<input name='host' value='";
 		if (m) {
 			char *host = static_cast<KWhiteListMark *>(m)->host;
@@ -114,7 +107,6 @@ public:
 			}
 		}
 		s << "'>";
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

@@ -70,20 +70,16 @@ public:
 		ip_lock.Unlock();
 		return matched;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream &s) override {
 		s << ">" << max_per_ip;
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
 		max_per_ip = atoi(attribute["max"].c_str());
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel *model,KWStream &s) override {
 		KPerIpAcl *mark = (KPerIpAcl *) (model);
 		s << "><input type=text name=max value='" << (mark ? mark->max_per_ip : 0) << "'>";
-		return s.str();
 	}
 	void callBack(KPerIpCallBackData *data);
 	KAcl *new_instance() override {

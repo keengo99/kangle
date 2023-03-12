@@ -7,7 +7,7 @@
 
 #include "WhmUrl.h"
 
-WhmUrl::WhmUrl(std::string &file) {
+WhmUrl::WhmUrl(const KString &file) {
 	this->file = file;
 }
 

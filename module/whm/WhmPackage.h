@@ -33,18 +33,18 @@ public:
 	bool endElement(KXmlContext *context) override;
 private:
 //	WhmContext *whmContext;
-	WhmCallMap *newCallMap(const std::string &name, const std::string &callName);
-	WhmExtend *findExtend(const std::string &name);
-	WhmCallMap *findCallMap(const std::string &name);
+	WhmCallMap *newCallMap(const KString &name, const KString &callName);
+	WhmExtend *findExtend(const KString &name);
+	WhmCallMap *findCallMap(const KString &name);
 	/*
 	 * µ˜”√”≥…‰
 	 */
-	std::map<std::string, WhmCallMap *> callmap;
-	std::map<std::string, WhmExtend *> extends;
+	std::map<KString, WhmCallMap *> callmap;
+	std::map<KString, WhmExtend *> extends;
 	WhmCallMap *curCallable;
 	WhmExtend *curExtend;
-	std::string file;
-	std::string version;
+	KString file;
+	KString version;
 };
 
 #endif /* WHMPACKAGE_H_ */

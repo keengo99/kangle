@@ -70,25 +70,19 @@ public:
 	{
 		return "ip_speed_limit";
 	}
-	std::string getHtml(KModel *model)override
-	{
+	void get_html(KModel* model, KWStream& s) override {
 		KIpSpeedLimitMark *m = (KIpSpeedLimitMark *)model;
-		std::stringstream s;
 		s << "speed_limit:<input name='speed_limit' value='";
 		if (m) {
 			s << get_size(m->speed_limit);
 		}
 		s << "'> / second";
-		return s.str();
 	}
-	std::string getDisplay()override
-	{
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << get_size(speed_limit) << "/second ,record:";
 		lock.Lock();
 		s << ips.size();
 		lock.Unlock();
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		speed_limit = (int)get_size(xml->attr()("speed_limit"));

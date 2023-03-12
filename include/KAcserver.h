@@ -31,7 +31,7 @@ class KSockPoolHelper;
 class KPoolableRedirect: public KRedirect {
 
 public:
-	KPoolableRedirect(const std::string& name);
+	KPoolableRedirect(const KString& name);
 	KRedirectSource*makeFetchObject(KHttpRequest *rq, KFileName *file) override;
 	virtual bool isChanged(KPoolableRedirect *rd)
 	{
@@ -50,8 +50,7 @@ public:
 		set_proto(parseProto(proto));
 		return true;
 	}
-	static void build_xml(std::map<std::string, std::string> &param, std::stringstream& s);
-	static void build_proto_html(KPoolableRedirect *m_a, std::stringstream &s);
+	static void build_proto_html(KPoolableRedirect *m_a, KWStream&s);
 	static KSockPoolHelper *parse_nodes(const char *node_string);
 	static const char *buildProto(Proto_t proto) {
 		switch (proto) {

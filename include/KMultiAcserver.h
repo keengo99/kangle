@@ -30,7 +30,7 @@
 
 class KMultiAcserver: public KPoolableRedirect, public kconfig::KConfigListen {
 public:
-	KMultiAcserver(const std::string &name);
+	KMultiAcserver(const KString &name);
 	KMultiAcserver(KSockPoolHelper *nodes);
 	virtual ~KMultiAcserver();
 public:
@@ -39,13 +39,13 @@ public:
 	unsigned getPoolSize();
 	bool editNode(KXmlAttribute&attr);
 	bool parse_config(const khttpd::KXmlNode* xml) override;
-	void buildAttribute(std::stringstream &s);
-	static void baseHtml(KMultiAcserver *mserver,std::stringstream &s);
-	void getHtml(std::stringstream &s);
-	void getNodeInfo(std::stringstream &s);
+	void buildAttribute(KWStream&s);
+	static void baseHtml(KMultiAcserver *mserver, KWStream&s);
+	void getHtml(KWStream &s);
+	void getNodeInfo(KWStream&s);
 	friend class KAcserverManager;
-	static std::string form(KMultiAcserver *mserver);
-	void parse(std::map<std::string,std::string> &attribute);
+	static void form(KMultiAcserver *mserver,KWStream &s);
+	void parse(KXmlAttribute &attribute);
 	void parseNode(const char *nodeString);
 	kconfig::KConfigEventFlag config_flag() const override {
 		return kconfig::ev_subdir;
@@ -59,7 +59,7 @@ public:
 	void setIcp(const char *icp_name);
 #endif
 	void setErrorTryTime(int max_error_count,int errorTryTime);
-	static std::string nodeForm(std::string name,KMultiAcserver *as,unsigned nodeIndex);
+	static void nodeForm(KWStream &s, const KString &name,KMultiAcserver *as,unsigned nodeIndex);
 	bool delNode(int nodeIndex);
 	bool isChanged(KPoolableRedirect *rd) override;
 	void buildVNode();

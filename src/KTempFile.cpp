@@ -53,8 +53,8 @@ bool KTempFile::Init() {
 		kfiber_file_close(fp);
 		tunlink(file.c_str());
 	}
-	std::stringstream s;
-	s << conf.tmppath << "krf" << m_ppid << "_" << m_pid << "_" << (void*)this;
+	KStringBuf s;
+	s << conf.tmppath << "krf" << m_ppid << "_" << m_pid << "_" << (uint64_t)this;
 	s.str().swap(file);
 	fp = kfiber_file_open(file.c_str(), fileWriteRead, KFILE_TEMP_MODEL);
 	return fp != NULL;
@@ -135,7 +135,7 @@ int listHandleTempFile(const char* file, void* param) {
 	if (pid == m_ppid) {
 		return 0;
 	}
-	std::stringstream s;
+	KStringBuf s;
 	s << conf.tmppath << file;
 	klog(KLOG_NOTICE, "remove uncleaned tmpfile [%s]\n", s.str().c_str());
 	unlink(s.str().c_str());

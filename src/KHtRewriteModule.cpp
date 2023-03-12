@@ -243,6 +243,6 @@ void KHtRewriteModule::chainEnd() {
 			<< "'>\n";
 	chain << rule.str();
 	chain << "</mark_rewritex></chain>";
-	action.clean();
-	rule.clean();
+	action.clear();
+	rule.clear();
 }

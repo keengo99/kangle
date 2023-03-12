@@ -26,8 +26,8 @@ public:
 	}
 	virtual ~KObjAlwaysOnAcl() {
 	}
-	std::string getHtml(KModel *model) override {
-		return "";
+	void get_html(KModel* model, KWStream& s) override {
+		return;
 	}
 	KAcl *new_instance() override {
 		return new KObjAlwaysOnAcl();
@@ -38,8 +38,7 @@ public:
 	bool match(KHttpRequest *rq, KHttpObject *obj) override {
 		return rq->ctx.always_on_model;
 	}
-	std::string getDisplay() override {
-		return "";
+	void get_display(KWStream& s) override {
 	}
 
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {

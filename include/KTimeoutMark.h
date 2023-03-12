@@ -24,22 +24,16 @@ public:
 	{
 		return "timeout";
 	}
-	std::string getHtml(KModel *model)override
-	{
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "timeout radio(0-255):<input name='v' value='";
 		KTimeoutMark *m = (KTimeoutMark *)model;
 		if (m) {
 			s << (int)m->v;
 		}
 		s << "'>";
-		return s.str();
 	}
-	std::string getDisplay()override
-	{
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << (int)v;
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

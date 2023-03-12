@@ -14,13 +14,13 @@ KWriteBackManager::~KWriteBackManager() {
 	destroy();
 }
 void KWriteBackManager::destroy() {
-	std::map<std::string,KWriteBack *>::iterator it;
+	std::map<KString,KWriteBack *>::iterator it;
 	for (it=writebacks.begin(); it!=writebacks.end(); it++) {
 		(*it).second->release();
 	}
 	writebacks.clear();
 }
-KWriteBack * KWriteBackManager::refsWriteBack(std::string name)
+KWriteBack * KWriteBackManager::refsWriteBack(KString name)
 {
 	lock.RLock();
 	KWriteBack *wb = getWriteBack(name);
@@ -30,16 +30,16 @@ KWriteBack * KWriteBackManager::refsWriteBack(std::string name)
 	lock.RUnlock();
 	return wb;
 }
-KWriteBack * KWriteBackManager::getWriteBack(std::string table_name) {
-	std::map<std::string,KWriteBack *>::iterator it;
+KWriteBack * KWriteBackManager::getWriteBack(KString table_name) {
+	std::map<KString,KWriteBack *>::iterator it;
 	it = writebacks.find(table_name);
 	if (it!=writebacks.end()) {
 		return (*it).second;
 	}
 	return NULL;
 }
-bool KWriteBackManager::editWriteBack(std::string name, KWriteBack &m_a,
-		std::string &err_msg) {
+bool KWriteBackManager::editWriteBack(KString name, KWriteBack &m_a,
+		KString &err_msg) {
 	lock.WLock();
 	KWriteBack *m_tmp=getWriteBack(name);
 	if(m_tmp==NULL) {
@@ -53,8 +53,8 @@ bool KWriteBackManager::editWriteBack(std::string name, KWriteBack &m_a,
 	return true;
 
 }
-bool KWriteBackManager::newWriteBack(std::string name, std::string msg,
-		std::string &err_msg) {
+bool KWriteBackManager::newWriteBack(KString name, KString msg,
+		KString &err_msg) {
 	bool result=false;
 	if (name.size()<2 || name.size()>32) {
 		err_msg=LANG_TABLE_NAME_LENGTH_ERROR;
@@ -68,7 +68,7 @@ bool KWriteBackManager::newWriteBack(std::string name, std::string msg,
 		delete m_a;
 		goto done;
 	}
-	writebacks.insert(std::pair<std::string,KWriteBack *>(name,m_a));
+	writebacks.insert(std::pair<KString,KWriteBack *>(name,m_a));
 	result=true;
 	done:
 	lock.WUnlock();
@@ -77,10 +77,10 @@ bool KWriteBackManager::newWriteBack(std::string name, std::string msg,
 	}
 	return result;
 }
-bool KWriteBackManager::delWriteBack(std::string name, std::string &err_msg) {
+bool KWriteBackManager::delWriteBack(KString name, KString &err_msg) {
 	err_msg=LANG_TABLE_NAME_ERR;
 	lock.WLock();
-	std::map<string,KWriteBack *>::iterator it=writebacks.find(name);
+	auto it=writebacks.find(name);
 	if (it==writebacks.end()) {
 		lock.WUnlock();
 		return false;
@@ -95,18 +95,18 @@ bool KWriteBackManager::delWriteBack(std::string name, std::string &err_msg) {
 	lock.WUnlock();
 	return true;
 }
-std::vector<std::string> KWriteBackManager::getWriteBackNames() {
-	std::vector<std::string> table_names;
-	std::map<std::string,KWriteBack *>::iterator it;
+std::vector<KString> KWriteBackManager::getWriteBackNames() {
+	std::vector<KString> table_names;
+	std::map<KString,KWriteBack *>::iterator it;
 	KRLocker locker(&lock);
 	for(it=writebacks.begin();it!=writebacks.end();it++) {
 		table_names.push_back((*it).first);
 	}
 	return table_names;
 }
-std::string KWriteBackManager::writebackList(std::string name) {
-	stringstream s;
-	std::map<std::string,KWriteBack *>::iterator it;
+KString KWriteBackManager::writebackList(KString name) {
+	KStringBuf s;
+	std::map<KString,KWriteBack *>::iterator it;
 	s << "<html><LINK href=/main.css type='text/css' rel=stylesheet><body>\n";
 	KWriteBack *m_a=NULL;
 	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>"
@@ -146,7 +146,7 @@ bool KWriteBackManager::addWriteBack(KWriteBack *wb)
 		lock.WUnlock();
 		return false;
 	}
-	writebacks.insert(std::pair<std::string,KWriteBack *>(wb->name,wb));
+	writebacks.insert(std::pair<KString,KWriteBack *>(wb->name,wb));
 	lock.WUnlock();
 	return true;
 }

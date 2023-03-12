@@ -16,18 +16,18 @@ public:
 		lock.WUnlock();
 	}
 	void destroy();
-	bool delWriteBack(std::string name, std::string &err_msg);
+	bool delWriteBack(KString name, KString &err_msg);
 	bool addWriteBack(KWriteBack *wb);
-	KWriteBack * refsWriteBack(std::string name);
-	bool newWriteBack(std::string name, std::string msg, std::string &err_msg);
-	bool editWriteBack(std::string name, KWriteBack &m_a, std::string &err_msg);
-	std::string writebackList(std::string name = "");
-	std::vector<std::string> getWriteBackNames();	
+	KWriteBack * refsWriteBack(KString name);
+	bool newWriteBack(KString name, KString msg, KString &err_msg);
+	bool editWriteBack(KString name, KWriteBack &m_a, KString &err_msg);
+	KString writebackList(KString name = "");
+	std::vector<KString> getWriteBackNames();	
 	friend class KAccess;
 private:
-	KWriteBack * getWriteBack(std::string table_name);
+	KWriteBack * getWriteBack(KString table_name);
 	KRWLock lock;
-	std::map<std::string,KWriteBack *> writebacks;
+	std::map<KString,KWriteBack *> writebacks;
 };
 extern KWriteBackManager writeBackManager;
 #endif

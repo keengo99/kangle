@@ -103,7 +103,7 @@ int get_param(int argc, char **argv, int &i,const char *param, char *value) {
 	return 0;
 }
 #endif
-int get_path(char *argv0, std::string &path) {
+int get_path(char *argv0, KString &path) {
 	//	int size = strlen(argv0);
 	char *p = strrchr(argv0, PATH_SPLIT_CHAR);
 	if (p) {
@@ -132,7 +132,7 @@ int get_path(char *argv0, std::string &path) {
 #endif
 	}
 }
-
+/*
 std::string string2lower(std::string str) {
 	stringstream s;
 	for (size_t i = 0; i < str.size(); i++) {
@@ -140,6 +140,7 @@ std::string string2lower(std::string str) {
 	}
 	return s.str();
 }
+
 void explode(const char *str, const char split,
 		map<char *, bool, lessp> *result, int limit) {
 	char *tmp;
@@ -163,6 +164,7 @@ void explode(const char *str, const char split,
 	xfree(tmp2);
 	return;
 }
+*/
 void explode_cmd(char *buf,std::vector<char *> &item)
 {
 	while(*buf) {
@@ -223,7 +225,7 @@ void explode_cmd(char *buf,std::vector<char *> &item)
 	}
 
 }
-void explode(const char *str, const char split, vector<string> &result,
+void explode(const char *str, const char split, vector<KString> &result,
 		int limit) {
 	char *tmp;
 	char *msg;

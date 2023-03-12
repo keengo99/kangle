@@ -31,19 +31,13 @@ public:
 	{
 		return "flow";
 	}
-	std::string getHtml(KModel *model) override
-	{
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "<input type=checkbox name='reset' value='1'>reset";
-		return s.str();
 	}
-	std::string getDisplay() override
-	{
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		if (fi) {
 			s << fi->flow << " " << (fi->flow>0?(fi->cache * 100) / fi->flow :0)<< "%";
 		}
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

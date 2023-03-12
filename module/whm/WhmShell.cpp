@@ -48,8 +48,7 @@ void WhmShell::flush()
 void WhmShell::readStdin(WhmShellContext *sc,WhmContext *context)
 {
 	//查找标准输入数据
-	std::map<std::string,std::string>::iterator it;
-	it =  context->getUrlValue()->attribute.find("-");
+	auto it =  context->getUrlValue()->attribute.find("-");
 	if (it!=context->getUrlValue()->attribute.end()) {
 		sc->in_buffer.write_all((*it).second.c_str(),(int)(*it).second.size());
 	}
@@ -60,8 +59,8 @@ void WhmShell::initContext(WhmShellContext *sc,WhmContext *context)
 	sc->async = async;
 	sc->attribute = context->getUrlValue()->attribute;	
 	sc->bindVirtualHost(context->getVh());
-	std::stringstream s;
-	s << this->name << ":" << time(NULL) << "_" << (void *)sc << "_" << index++;
+	KStringBuf s;
+	s << this->name << ":" << time(NULL) << "_" << (int64_t)sc << "_" << index++;
 	sc->session = s.str();
 	readStdin(sc,context);
 }
@@ -77,7 +76,7 @@ int WhmShell::call(const char *callName,const char *eventType,WhmContext *contex
 			sc = new WhmShellContext;
 			initContext(sc,context);
 			sc->addRef();
-			this->context.insert(std::pair<std::string,WhmShellContext *>(sc->session,sc));
+			this->context.insert(std::pair<KString,WhmShellContext *>(sc->session,sc));
 			context->add("session",sc->session);
 			if (merge_context_running) {
 				//已经在运行
@@ -124,7 +123,7 @@ int WhmShell::call(const char *callName,const char *eventType,WhmContext *contex
 		return ret;
 	}
 	addContext(sc);
-	std::string session = sc->session;
+	auto session = sc->session;
 	if (!kthread_pool_start(whmShellAsyncThread, sc)) {
 		removeContext(sc);
 		sc->release();
@@ -168,7 +167,7 @@ bool WhmShell::startElement(KXmlContext *context)
 	if (context->qName=="commands") {
 		if (curProcess==NULL) {
 			curProcess = new WhmShellProcess;
-			std::string v = context->attribute["stdin"];
+			auto v = context->attribute["stdin"];
 			if (v.size()>0) {
 				curProcess->stdin_file = strdup(v.c_str());
 			}
@@ -247,16 +246,15 @@ void WhmShell::endContext(WhmShellContext *sc)
 void WhmShell::addContext(WhmShellContext *sc)
 {
 	lock.Lock();	
-	context.insert(std::pair<std::string,WhmShellContext *>(sc->session,sc));
+	context.insert(std::pair<KString,WhmShellContext *>(sc->session,sc));
 	lock.Unlock();
 	sc->addRef();
 }
-WhmShellContext *WhmShell::refsContext(std::string session)
+WhmShellContext *WhmShell::refsContext(KString session)
 {
 	WhmShellContext *sc = NULL;
 	lock.Lock();
-	std::map<std::string,WhmShellContext *>::iterator it;
-	it = context.find(session);
+	auto it = context.find(session);
 	if (it!=context.end()) {
 		sc = (*it).second;
 		sc->addRef();
@@ -281,7 +279,7 @@ bool WhmShell::removeContext(WhmShellContext *sc)
 	if (sc->prev){
 		sc->prev->next = sc->next;
 	}
-	std::map<std::string,WhmShellContext *>::iterator it;
+	std::map<KString,WhmShellContext *>::iterator it;
 	it = context.find(sc->session);
 	if (it!=context.end()) {
 		assert(sc==(*it).second);

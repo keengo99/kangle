@@ -42,12 +42,12 @@ public:
 	KUpstream* GetUpstream(KHttpRequest* rq, KExtendProgram* rd);
 	void clean();
 	void refresh(time_t nowTime);
-	void getProcessInfo(std::stringstream &s);
+	void getProcessInfo(KWStream &s);
 	//{{ent
 #ifdef ENABLE_ADPP
 	void flushCpuUsage(ULONG64 cpuTime);
 #endif
-	int getPortMap(KVirtualHost *vh,KExtendProgram *rd,std::string name,int app);
+	int getPortMap(KVirtualHost *vh,KExtendProgram *rd,KString name,int app);
 	//}}
 	void killAllProcess(KVirtualHost *vh=NULL);
 	bool killProcess(const char *user,int pid);
@@ -55,11 +55,11 @@ public:
 	void setName(const char *name) {
 		this->name = name;
 	}
-	std::string param;
+	KString param;
 protected:
 	virtual KVirtualHostProcess *newVirtualProcess(const char *param) = 0;
 private:
-	KVirtualHostProcess *refsVirtualHostProcess(std::string app,KExtendProgram *rd)
+	KVirtualHostProcess *refsVirtualHostProcess(KString app,KExtendProgram *rd)
 	{
 		//printf("refs virtualhost process app [%s]\n",app.c_str());
 		KVirtualHostProcess *gc = NULL;
@@ -97,7 +97,7 @@ private:
 	/*
 	 * 进程管理器名称
 	 */
-	std::string name;
+	KString name;
 	Proto_t proto;
 	KMutex lock;
 	std::map<USER_T, KVirtualHostProcess *> pools;

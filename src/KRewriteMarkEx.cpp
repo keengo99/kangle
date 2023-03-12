@@ -112,7 +112,7 @@ bool KRewriteRule::parse(const KXmlAttribute& attribute)
 	return true;
 }
 bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
-						std::list<KRewriteCond *> *conds,const std::string &prefix,const char *rewriteBase, KFetchObject** fo) {
+						std::list<KRewriteCond *> *conds,const KString &prefix,const char *rewriteBase, KFetchObject** fo) {
 	size_t len = strlen(rq->sink->data.url->path);
 	if (len < prefix.size()) {
 		return false;
@@ -138,7 +138,7 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 			if (!result && !(*it)->is_or) {
 				break;
 			}
-			KStringBuf *str = KRewriteMarkEx::getString(NULL, (*it)->str, rq, NULL, subString);
+			auto str = KRewriteMarkEx::getString(NULL, (*it)->str, rq, NULL, subString);
 			result = (*it)->testor->test(str->c_str(), &lastCond);
 			if ((*it)->revert) {
 				result = !result;
@@ -155,7 +155,7 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 		}
 		return result;
 	}
-	KStringBuf *url = KRewriteMarkEx::getString(
+	auto url = KRewriteMarkEx::getString(
 		NULL,
 		dst,
 		rq,
@@ -197,7 +197,7 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 			if (internal_flag) {
 				rq->rewrite_url(u,0,(rewriteBase?rewriteBase:prefix.c_str()));
 				if (proxy) {
-					KStringBuf *proxy_host = KRewriteMarkEx::getString(
+					auto proxy_host = KRewriteMarkEx::getString(
 						NULL,
 						proxy,
 						rq,
@@ -293,11 +293,11 @@ KMark *KRewriteMarkEx::new_instance() {
 const char *KRewriteMarkEx::getName() {
 	return "rewritex";
 }
-std::string KRewriteMarkEx::getHtml(KModel *model) {
-	return "not support in manage model";
+void KRewriteMarkEx::get_html(KModel *model,KWStream &s) {
+	s <<  "not support in manage model";
 }
-std::string KRewriteMarkEx::getDisplay() {
-	return "not support in manage model";
+void  KRewriteMarkEx::get_display(KWStream& s) {
+	s <<  "not support in manage model";
 }
 void KRewriteMarkEx::parse_config(const khttpd::KXmlNodeBody* body) {
 	prefix = body->attributes["prefix"];
@@ -334,7 +334,7 @@ void KRewriteMarkEx::parse_child(const kconfig::KXmlChanged* changed) {
 		return;
 	}
 }
-void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KStringBuf &s) {
+void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KWStream&s) {
 	if (strncasecmp(env, "LA-U:", 5) == 0 || strncasecmp(env, "LA-F:", 5) == 0) {
 		env += 5;
 	}
@@ -448,7 +448,7 @@ void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KStringBuf &s) {
 		}
 	}
 }
-void KRewriteMarkEx::getString(const char *prefix, const char *str,KHttpRequest *rq, KRegSubString *s1, KRegSubString *s2,KStringBuf *s)
+void KRewriteMarkEx::getString(const char *prefix, const char *str,KHttpRequest *rq, KRegSubString *s1, KRegSubString *s2,KWStream *s)
 {
 	KExtendProgramString ds(NULL,(rq && rq->sink->data.opaque?rq->get_virtual_host()->vh : NULL));	
 	char *buf = xstrdup(str);
@@ -526,9 +526,9 @@ void KRewriteMarkEx::getString(const char *prefix, const char *str,KHttpRequest 
 	}
 	xfree(buf);
 }
-KStringBuf * KRewriteMarkEx::getString(const char *prefix, const char *str,
+KStringStream* KRewriteMarkEx::getString(const char *prefix, const char *str,
 		KHttpRequest *rq, KRegSubString *s1, KRegSubString *s2) {
-	KStringBuf *s = new KStringBuf;
+	KStringStream*s = new KStringStream;
 	getString(prefix,str,rq,s1,s2,s);
 	return s;
 }

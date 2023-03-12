@@ -37,16 +37,16 @@ public:
 	virtual ~KChain();
 	bool match(KHttpRequest *rq, KHttpObject *obj, KFetchObject **fo);
 	uint32_t hit_count;
-	KSafeAcl new_acl(const std::string &name,KAccess *kaccess);
-	KSafeMark new_mark(const std::string &name, KAccess* kaccess);	
+	KSafeAcl new_acl(const KString &name,KAccess *kaccess);
+	KSafeMark new_mark(const KString&name, KAccess* kaccess);
 	void parse_config(KAccess *access, const khttpd::KXmlNodeBody* xml);
-	void getAclShortHtml(std::stringstream &s);
-	void getMarkShortHtml(std::stringstream &s);
+	void getAclShortHtml(KWStream&s);
+	void getMarkShortHtml(KWStream&s);
 	void clear();
 	friend class KAccess;
 	friend class KTable;
 private:
-	void getModelHtml(KModel *model, std::stringstream &s, int type, int index);
+	void getModelHtml(KModel *model, KWStream &s, int type, int index);
 private:
 	kgl_jump_type jumpType;
 	KJump *jump;

@@ -23,22 +23,16 @@ public:
 	{
 		return "mark";
 	}
-	std::string getHtml(KModel *model)override
-	{
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "mark(0-255):<input name='v' value='";
 		KMarkMark *m = (KMarkMark *)model;
 		if (m) {
 			s << (int)m->v;
 		}
 		s << "'>";
-		return s.str();
 	}
-	std::string getDisplay()override
-	{
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << (int)v;
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

@@ -11,9 +11,9 @@
 #include "WhmExtend.h"
 class WhmCommand: public WhmExtend {
 public:
-	WhmCommand(std::string &file);
+	WhmCommand(KString&file);
 	virtual ~WhmCommand();
-	bool init(std::string &whmFile) override;
+	bool init(KString &whmFile) override;
 
 	int call(const char *callName,const char *eventType,WhmContext *context) override;
 	bool runAsUser;
@@ -25,7 +25,7 @@ public:
 		return true;
 	}
 private:
-	std::vector<std::string> args;
+	std::vector<KString> args;
 };
 
 #endif /* WHMCOMMAND_H_ */

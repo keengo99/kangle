@@ -35,22 +35,21 @@ public:
 	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override;
 	KMark * new_instance() override;
 	const char *getName() override;
-	std::string getHtml(KModel *model) override;
-
-	std::string getDisplay() override;
+	void get_html(KModel *model,KWStream &s) override;
+	void get_display(KWStream &s) override;
 	void parse_config(const khttpd::KXmlNodeBody* xml) override;
 private:
-	std::string getRequireUsers();
-	bool loadAuthFile(std::string &path);
+	KString getRequireUsers();
+	bool loadAuthFile(KString&path);
 	bool checkLogin(KHttpRequest *rq);
 	OpenState lastState;
-	std::string file;
+	KString file;
 	time_t lastModified;
 	int cryptType;
 	int auth_type;
 	char *realm;
 	KMutex lock;
-	std::map<std::string,std::string> users;
+	std::map<KString, KString> users;
 	KReg *reg_user;
 	bool reg_user_revert;
 	bool all;

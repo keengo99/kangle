@@ -30,9 +30,7 @@ public:
 	{
 		return "min_obj_verified";
 	}
-	std::string getHtml(KModel *model)override
-	{
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "min_obj_verified:<input name='v' value='";
 		KMinObjVerifiedMark *m = (KMinObjVerifiedMark *)model;
 		if (m) {
@@ -44,16 +42,12 @@ public:
 			s << "checked";
 		}
 		s << ">hard";
-		return s.str();
 	}
-	std::string getDisplay()override
-	{
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		s << (INT64)v;
 		if (hard) {
 			s << "H";
 		}
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();

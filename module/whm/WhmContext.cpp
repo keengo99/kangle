@@ -41,7 +41,7 @@ void WhmContext::add(const char *name,INT64 value)
 	s << value;
 	return add(name,s.str().c_str());
 }
-void WhmContext::add(const char *name,std::string &value)
+void WhmContext::add(const char *name, KString&value)
 {
 	add(name,value.c_str());
 }
@@ -52,7 +52,7 @@ void WhmContext::add(const char *name, const char *value,bool encode) {
 	attribute->encode = encode;
 	attributes.push_back(attribute);
 }
-void WhmContext::add(std::string &name, std::string &value) {
+void WhmContext::add(KString&name, KString&value) {
 	add(name.c_str(), value.c_str());
 }
 void WhmContext::buildVh(KVirtualHost *vh)

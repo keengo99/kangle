@@ -29,26 +29,22 @@ public:
 	int total_count;
 	const char *vh;
 	bool translate;
-	std::stringstream s;
+	KStringBuf s;
 };
 
 bool kgl_connection_iterator(void* arg, KSink* rq);
 class KHttpManage : public KFetchObject {
 public:
-	bool sendHttpContent();
-	bool sendHttpHeader();
 	KHttpManage();
 	~KHttpManage();
 	static KPathHandler<kgl_request_handler> handler;
 	KGL_RESULT Open(KHttpRequest *rq, kgl_input_stream* in, kgl_output_stream* out);
-	//void process(KHttpRequest *rq);
 	bool start(bool &hit);
 	bool start_vhs(bool &hit);
 	bool start_listen(bool &hit);
-	//bool start_obj(bool &hit);
 	bool start_access(bool &hit);
-	std::string removeUrlValue(const std::string& name);
-	const std::string &getUrlValue(const std::string &name);
+	KString removeUrlValue(const KString& name);
+	const KString&getUrlValue(const KString&name);
 	bool sendHttp(const char *msg, INT64 content_length,
 			const char * content_type = NULL, const char *add_header = NULL,
 			int max_age = 0);
@@ -60,17 +56,11 @@ private:
 	char *postData;
 	int postLen;
 	int userType;
-	bool sendHttp(const std::string &msg);
+	bool sendHttp(const KString &msg);
 	void sendTest();
-	//bool parseUrlParam(char *param,size_t len);
 	bool parseUrl(const char *url);
 	void parsePostData();
-	char *parsePostFile(int &len, std::string &fileName);
-#if 0
-	bool exportConfig();
-	bool importConfig();
-	bool importexport();
-#endif
+	char *parsePostFile(int &len, KString &fileName);
 	bool runCommand();
 	bool sendErrorSaveConfig(int file=0);
 	bool sendErrPage(const char *err_msg, int closed_flag = 0);
@@ -85,10 +75,8 @@ private:
 	bool sendRedirect(const char *newUrl);
 	bool reboot();
 	bool sendXML(const char *buf,bool addXml=false);
-	//bool start_fetchobj();
-	bool xml;
 };
-bool changeAdminPassword(KUrlValue *url,std::string &errMsg);
+bool changeAdminPassword(KUrlValue *url,KString &errMsg);
 bool checkManageLogin(KHttpRequest *rq) ;
 void init_manager_handler();
 #endif

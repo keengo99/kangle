@@ -4,13 +4,13 @@
 #include "kmalloc.h"
 using namespace std;
 
-std::string KWriteBack::getMsg()
+KString KWriteBack::getMsg()
 {
-	std::stringstream s;
+	KStringBuf s;
 	kgl_str_t ret;
 	kgl_pool_t* pool = kgl_create_pool(128);
 	KHttpKeyValue::get_request_line(pool, status_code, &ret);
-	s.write(ret.data, ret.len);
+	s.write_all(ret.data, (int)ret.len);
 	kgl_destroy_pool(pool);
 	KHttpHeader* h = header;
 	while (h) {
@@ -28,13 +28,13 @@ std::string KWriteBack::getMsg()
 	}
 	return s.str();
 }
-void KWriteBack::setMsg(std::string msg)
+void KWriteBack::setMsg(KString msg)
 {
 	if (header) {
 		free_header_list(header);
 		header = NULL;
 	}
-	body.clean();
+	body.clear();
 	if (msg.empty()) {
 		return;
 	}

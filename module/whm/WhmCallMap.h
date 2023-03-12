@@ -17,20 +17,20 @@ enum WhmCallScope
 };
 struct WhmExtendCall{
 	WhmExtend *extend;
-	std::string callName;
+	KString callName;
 	bool force;
 };
 class WhmCallMap {
 public:
-	WhmCallMap(WhmExtend *callable, const std::string &callName);
+	WhmCallMap(WhmExtend *callable, const KString &callName);
 	virtual ~WhmCallMap();
 	int call(WhmContext *context);
-	void addBeforeEvent(WhmExtend *event,std::map<std::string,std::string> &attribute);
-	void addAfterEvent(WhmExtend *event,std::map<std::string,std::string> &attribute);
+	void addBeforeEvent(WhmExtend *event, KXmlAttribute&attribute);
+	void addAfterEvent(WhmExtend *event, KXmlAttribute&attribute);
 	WhmCallScope scope;
-	std::string name;
+	KString name;
 private:
-	WhmExtendCall *makeEvent(std::map<std::string,std::string> &attribute);
+	WhmExtendCall *makeEvent(KXmlAttribute&attribute);
 	std::list<WhmExtendCall *> beforeEvents;
 	std::list<WhmExtendCall *> afterEvents;
 	WhmExtendCall *callable;

@@ -20,8 +20,7 @@ public:
 		}
 		return true;
 	}
-	std::string getDisplay() override {
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		if (brd) {
 			KMultiAcserver* as = static_cast<KMultiAcserver*>(brd->rd);
 			if (as) {
@@ -32,7 +31,6 @@ public:
 				s << "</pre>";
 			}
 		}
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
@@ -47,13 +45,11 @@ public:
 		as->parseNode(nodes.c_str());
 		as->parse(attribute);
 	}
-	std::string getHtml(KModel* model) override {
+	void get_html(KModel* model, KWStream& s) override {
 		KMultiServerMark* m = static_cast<KMultiServerMark*>(model);
-		std::stringstream s;
 		KMultiAcserver::baseHtml((m && m->brd) ? static_cast<KMultiAcserver*>(m->brd->rd) : NULL, s);
 		s << "nodes(host:port:lifeTime:weight,...):<br>";
 		s << "<input name='nodes' size=40 value='" << (m ? m->nodes : "") << "'/>";
-		return s.str();
 	}
 	KMark* new_instance() override {
 		return new KMultiServerMark();
@@ -63,6 +59,6 @@ public:
 	}
 private:
 	KBaseRedirect* brd;
-	std::string nodes;
+	KString nodes;
 };
 #endif

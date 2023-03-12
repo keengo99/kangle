@@ -2,7 +2,8 @@
 #include "log.h"
 #include "katom.h"
 #include "kmalloc.h"
-#include <sstream>
+#include "KStream.h"
+
 static int ip_addr_cmp(const ip_addr *a1,const ip_addr *a2)
 {
 #ifdef KSOCKET_IPV6
@@ -376,7 +377,7 @@ void *KIpMap::find(ip_addr *local_addr)
 	return range_addr->bind_data;
 }
 typedef struct {
-	std::stringstream *s;
+	KWStream *s;
 	char split;
 }dump_addr_arg ;
 static iterator_ret dump_addr_iterator(void *data,void *arg)
@@ -385,7 +386,7 @@ static iterator_ret dump_addr_iterator(void *data,void *arg)
 	dns_range_addr *addr = (dns_range_addr *)data;
 	char ips[MAXIPLEN],ips2[MAXIPLEN];
 	make_local_ip(&addr->min_addr,ips,MAXIPLEN);
-	if (!da->s->str().empty()) {
+	if (!da->s->empty()) {
 		*(da->s) << da->split;
 	}
 	*(da->s) << ips;
@@ -396,7 +397,7 @@ static iterator_ret dump_addr_iterator(void *data,void *arg)
 	return iterator_continue;
 }
 
-void KIpMap::dump_addr(std::stringstream &s, char split)
+void KIpMap::dump_addr(KWStream &s, char split)
 {
 	dump_addr_arg arg;
 	arg.s = &s;

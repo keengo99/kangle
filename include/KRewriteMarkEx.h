@@ -159,7 +159,7 @@ class KRewriteRule {
 public:
 	KRewriteRule();
 	~KRewriteRule();
-	bool mark(KHttpRequest *rq, KHttpObject *obj, std::list<KRewriteCond *> *conds, const std::string &prefix, const char* rewriteBase, KFetchObject** fo);
+	bool mark(KHttpRequest *rq, KHttpObject *obj, std::list<KRewriteCond *> *conds, const KString &prefix, const char* rewriteBase, KFetchObject** fo);
 	bool parse(const KXmlAttribute &attribute);
 	void buildXml(std::stringstream &s);
 	bool revert;
@@ -178,21 +178,20 @@ public:
 	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override;
 	KMark * new_instance() override;
 	const char *getName() override;
-	std::string getHtml(KModel *model) override;
-
-	std::string getDisplay() override;
-	static void getEnv(KHttpRequest *rq, char *env, KStringBuf &s);
+	void get_display(KWStream& s) override;
+	void get_html(KModel* model, KWStream& s) override;
+	static void getEnv(KHttpRequest *rq, char *env, KWStream&s);
 	void parse_config(const khttpd::KXmlNodeBody* body) override;
 	void parse_child(const kconfig::KXmlChanged* changed) override;
-	static KStringBuf *getString(const char *prefix, const char *str,
+	static KStringStream *getString(const char *prefix, const char *str,
 			KHttpRequest *rq, KRegSubString *s1, KRegSubString *s2);
 	static void getString(const char *prefix, const char *str,
-			KHttpRequest *rq, KRegSubString *s1, KRegSubString *s2,KStringBuf *s);
+			KHttpRequest *rq, KRegSubString *s1, KRegSubString *s2,KWStream *s);
 private:
 	std::list<KRewriteCond *> conds;
 	std::list<KRewriteRule *> rules;
-	std::string prefix;
-	std::string rewriteBase;
+	KString prefix;
+	KString rewriteBase;
 	int flag;
 };
 #endif

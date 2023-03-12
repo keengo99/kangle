@@ -29,8 +29,7 @@ public:
 	}
 	virtual ~KUrlAcl() {
 	}
-	std::string getHtml(KModel *model) override {
-		std::stringstream s;
+	void get_html(KModel* model, KWStream& s) override {
 		s << "<input name=url value='";
 		KUrlAcl *urlAcl=(KUrlAcl *)(model);
 		if (urlAcl) {
@@ -48,7 +47,6 @@ public:
 			s << "checked";
 		}
 		s << ">nc";
-		return s.str();
 	}
 	KAcl *new_instance() override {
 		return new KUrlAcl();
@@ -57,7 +55,7 @@ public:
 		return "url";
 	}
 	bool match(KHttpRequest *rq, KHttpObject *obj) override {
-		KStringBuf url;
+		KStringStream url;
 		if (raw) {
 			rq->sink->data.raw_url->GetUrl(url);
 		} else {
@@ -68,13 +66,11 @@ public:
 		}
 		return false;
 	}
-	std::string getDisplay() override{
-		std::stringstream s;
+	void get_display(KWStream& s) override {
 		if (raw) {
 			s << "raw:";
 		}
 		s << reg.getModel();
-		return s.str();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
