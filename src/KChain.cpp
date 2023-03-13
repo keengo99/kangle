@@ -22,7 +22,7 @@
 #include "KChain.h"
 #include "KModel.h"
 #include "lang.h"
-//#include "KFilter.h"
+ //#include "KFilter.h"
 #include "KModelManager.h"
 #include "KTable.h"
 #include "KHttpLib.h"
@@ -46,13 +46,12 @@ void parse_module_config(KModel* m, const khttpd::KXmlNodeBody* xml) {
 KChain::KChain() {
 	hit_count = 0;
 	jump = nullptr;
-	jumpType = JUMP_CONTINUE;	
+	jumpType = JUMP_CONTINUE;
 }
 KChain::~KChain() {
 	clear();
 }
-void KChain::clear()
-{
+void KChain::clear() {
 	if (jump) {
 		jump->release();
 		jump = nullptr;
@@ -60,7 +59,7 @@ void KChain::clear()
 	acls.clear();
 	marks.clear();
 }
-bool KChain::match(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) {
+bool KChain::match(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) {
 	bool result = true;
 	bool last_or = false;
 	//OR NEXT
@@ -91,18 +90,18 @@ bool KChain::match(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) {
 		if (!result && !last_or) {
 			break;
 		}
-		last_or = (*it2)->is_or;	
+		last_or = (*it2)->is_or;
 	}
 	if (result) {
 		hit_count++;
 	}
 	return result;
 }
-void KChain::getModelHtml(KModel *model, KWStream &s, int type, int index) {
+void KChain::getModelHtml(KModel* model, KWStream& s, int type, int index) {
 
 	s << "<tr><td>";
 	s << "<input type=hidden name='begin_sub_form' value='" << model->getName()
-			<< "'>";
+		<< "'>";
 	//if (type==0) {
 	s << "<input type=checkbox name='or' value='1' ";
 	if (model->is_or) {
@@ -119,10 +118,10 @@ void KChain::getModelHtml(KModel *model, KWStream &s, int type, int index) {
 	s << "[<a href=\"javascript:delmodel('" << index << "'," << type << ");\">del</a>]";
 	s << "[<a href=\"javascript:downmodel('" << index << "'," << type << ");\">down</a>]";
 	s << model->getName() << "</td><td>";
-	model->get_html(model,s);
+	model->get_html(model, s);
 	s << "<input type=hidden name='end_sub_form' value='1'></td></tr>\n";
 }
-void KChain::getAclShortHtml(KWStream&s) {
+void KChain::getAclShortHtml(KWStream& s) {
 	if (acls.size() == 0) {
 		s << "&nbsp;";
 	}
@@ -135,7 +134,7 @@ void KChain::getAclShortHtml(KWStream&s) {
 		s << "<br>";
 	}
 }
-void KChain::getMarkShortHtml(KWStream &s) {
+void KChain::getMarkShortHtml(KWStream& s) {
 	if (marks.size() == 0) {
 		s << "&nbsp;";
 	}
@@ -170,7 +169,7 @@ KSafeMark KChain::new_mark(const KString& name, KAccess* kaccess) {
 	}
 	return m;
 }
-void KChain::parse_config(KAccess *access,const khttpd::KXmlNodeBody* xml) {
+void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 	assert(acls.empty());
 	assert(marks.empty());
 	KString jumpName;
@@ -179,32 +178,56 @@ void KChain::parse_config(KAccess *access,const khttpd::KXmlNodeBody* xml) {
 	}
 	access->setChainAction(jumpType, &jump, jumpName);
 	for (auto node : xml->childs) {
-		auto qName = node->get_tag();
+		auto model_name = node->get_tag();
 		bool is_acl;
-		if (strncasecmp(qName.c_str(), "acl_", 4) == 0) {
-			qName = qName.substr(4);
+		if (strncasecmp(model_name.c_str(), "acl_", 4) == 0) {
+			model_name = model_name.substr(4);
 			is_acl = true;
-		} else if (strncasecmp(qName.c_str(), "mark_", 5) == 0) {
-			qName = qName.substr(5);
+		} else if (strncasecmp(model_name.c_str(), "mark_", 5) == 0) {
+			model_name = model_name.substr(5);
 			is_acl = false;
+		} else if (node->is_tag(_KS("acl"))) {
+			for (auto&& body : node->body) {
+				auto model_name = body->attributes["name"];
+				if (model_name.empty()) {
+					auto ref = body->attributes["ref"];
+					if (!ref) {
+
+					}
+				}
+				auto m = new_acl(model_name, access);
+				if (!m) {
+					continue;
+				}
+				parse_module_config(m.get(), body);
+				acls.push_back(std::move(m));
+			}
+			continue;
+		} else if (node->is_tag(_KS("mark"))) {
+			for (auto&& body : node->body) {
+				auto model_name = body->attributes["name"];
+				auto m = new_mark(model_name, access);
+				if (!m) {
+					continue;
+				}
+				parse_module_config(m.get(), body);
+				marks.push_back(std::move(m));
+			}
+			continue;
 		} else {
-			klog(KLOG_ERR, "unknow qname [%s] in chain\n", qName.c_str());
+			klog(KLOG_ERR, "unknow qname [%s] in chain\n", model_name.c_str());
 			continue;
 		}
-		for (uint32_t index = 0;; ++index) {
-			auto body = node->get_body(index);
-			if (!body) {
-				break;
-			}
+		for (auto&& body : node->body) {
 			if (is_acl) {
-				auto acl = new_acl(qName, access);
+				auto acl = new_acl(model_name, access);
 				if (!acl) {
 					continue;
 				}
 				parse_module_config(acl.get(), body);
 				acls.push_back(std::move(acl));
 			} else {
-				auto mark = new_mark(qName, access);
+				auto mark = new_mark(model_name, access);
 				if (!mark) {
 					continue;
 				}
@@ -212,5 +235,5 @@ void KChain::parse_config(KAccess *access,const khttpd::KXmlNodeBody* xml) {
 				marks.push_back(std::move(mark));
 			}
 		}
-	}	
+	}
 }
