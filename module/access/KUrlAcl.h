@@ -54,7 +54,7 @@ public:
 	const char *getName() override {
 		return "url";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		KStringStream url;
 		if (raw) {
 			rq->sink->data.raw_url->GetUrl(url);

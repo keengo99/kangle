@@ -35,7 +35,7 @@ public:
 	virtual ~KGSpeedLimitMark() {
 		gsl->release();
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)override {
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		gsl->addRef();
 		rq->pushSpeedLimit(gsl);
 		return true;

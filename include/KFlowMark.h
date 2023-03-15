@@ -14,8 +14,7 @@ public:
 			fi->release();
 		}
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
-	{
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		if (fi) {
 			fi->addRef();
 			rq->pushFlowInfo(fi);

@@ -15,7 +15,7 @@ public:
 	const char *getName() override {
 		return "ssl_serial";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		kssl_session *ssl = rq->sink->get_ssl();
 		if (ssl) {
 			char *serial = ssl_var_lookup(ssl->ssl, "CERT_SERIALNUMBER");

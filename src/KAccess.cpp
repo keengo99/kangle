@@ -134,10 +134,15 @@
 using namespace std;
 
 KAccess* kaccess[2] = { 0 };
-std::map<KString, KAcl*> KAccess::aclFactorys[2];
-std::map<KString, KMark*> KAccess::markFactorys[2];
+std::map<KString, KAcl*> KAccess::acl_factorys[2];
+std::map<KString, KMark*> KAccess::mark_factorys[2];
 
-void bind_access_config(kconfig::KConfigTree* tree, KAccess *access) {
+void parse_module_config(KModel* m, const khttpd::KXmlNodeBody* xml) {
+	m->revers = (xml->attributes["revers"] == "1");
+	m->is_or = (xml->attributes["or"] == "1");
+	m->parse_config(xml);
+}
+void bind_access_config(kconfig::KConfigTree* tree, KAccess* access) {
 	if (tree->add(_KS(""), access) != nullptr) {
 		access->add_ref();
 	}
@@ -146,9 +151,8 @@ void bind_access_config(kconfig::KConfigTree* tree, KAccess *access) {
 
 int32_t KAccess::ShutdownMarkModule() {
 	int32_t result = 0;
-	std::map<KString, KMark*>::iterator it;
 	for (int i = 0; i < 2; i++) {
-		for (it = KAccess::markFactorys[i].begin(); it != markFactorys[i].end(); it++) {
+		for (auto it = KAccess::mark_factorys[i].begin(); it != mark_factorys[i].end(); ++it) {
 			result += (*it).second->shutdown();
 		}
 	}
@@ -189,46 +193,44 @@ bool KAccess::isGlobal() {
 	return globalFlag;
 }
 bool KAccess::addAclModel(u_short type, KAcl* m, bool replace) {
-
 	if (type > 1) {
 		m->add_ref();
 		for (u_short i = 0; i < 2; i++) {
 			addAclModel(i, m, replace);
-			//aclFactorys[i].insert(std::pair<KString,KAcl *>(m->getName(),m));
 		}
 		return true;
 	}
-	std::map<KString, KAcl*>::iterator it = aclFactorys[type].find(m->getName());
-	if (it != aclFactorys[type].end()) {
+	auto it = acl_factorys[type].find(m->getName());
+	if (it != acl_factorys[type].end()) {
 		if (!replace) {
 			m->release();
 			return false;
 		}
 		(*it).second->release();
-		aclFactorys[type].erase(it);
+		acl_factorys[type].erase(it);
 	}
-	aclFactorys[type].insert(std::pair<KString, KAcl*>(m->getName(), m));
+	acl_factorys[type].insert(std::pair<KString, KAcl*>(m->getName(), m));
 	return true;
 }
+
 bool KAccess::addMarkModel(u_short type, KMark* m, bool replace) {
 	if (type > 1) {
 		m->add_ref();
 		for (u_short i = 0; i < 2; i++) {
 			addMarkModel(i, m, replace);
-			//markFactorys[i].insert(std::pair<KString,KMark *>(m->getName(),m));
 		}
 		return true;
 	}
-	std::map<KString, KMark*>::iterator it = markFactorys[type].find(m->getName());
-	if (it != markFactorys[type].end()) {
+	auto it = mark_factorys[type].find(m->getName());
+	if (it != mark_factorys[type].end()) {
 		if (!replace) {
 			m->release();
 			return false;
 		}
 		(*it).second->release();
-		markFactorys[type].erase(it);
+		mark_factorys[type].erase(it);
 	}
-	markFactorys[type].insert(std::pair<KString, KMark*>(m->getName(), m));
+	mark_factorys[type].insert(std::pair<KString, KMark*>(m->getName(), m));
 	return true;
 }
 void KAccess::loadModel() {
@@ -397,7 +399,7 @@ void KAccess::loadModel() {
 	addMarkModel(RESPONSE, new KMarkMark());
 	addMarkModel(REQUEST_RESPONSE, new KConnectionCloseMark());
 }
-kgl_jump_type KAccess::checkPostMap(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) {
+kgl_jump_type KAccess::checkPostMap(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 	if (post_map == NULL) {
 		return JUMP_ALLOW;
 	}
@@ -417,16 +419,16 @@ kgl_jump_type KAccess::checkPostMap(KHttpRequest* rq, KHttpObject* obj, KFetchOb
 	}
 	return JUMP_DENY;
 }
-kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) {
+kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 	kgl_jump_type jumpType = default_jump_type;
 	unsigned checked_table = 0;
 	KJump* jump = default_jump;
 	kfiber_rwlock_rlock(rwlock);
 	if (begin) {
 		jumpType = begin->match(rq, obj, checked_table, &jump, fo);
-		if (fo && *fo) {
+		if (fo) {
 			kfiber_rwlock_runlock(rwlock);
-			if ((*fo)->before_cache()) {
+			if (fo->before_cache()) {
 				return JUMP_DENY;
 			}
 			return JUMP_ALLOW;
@@ -439,15 +441,14 @@ kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KFetchObject** 
 	switch (jumpType) {
 	case JUMP_SERVER:
 	{
-		if (fo) {
-			assert(!rq->has_final_source());
-			KPoolableRedirect* as = (KPoolableRedirect*)jump;
-			KRedirectSource* fo2 = as->makeFetchObject(rq, NULL);
-			as->add_ref();
-			fo2->bind_base_redirect(new KBaseRedirect(as, KConfirmFile::Never));
-			jumpType = JUMP_ALLOW;
-			*fo = fo2;
-		}
+
+		assert(!rq->has_final_source());
+		KPoolableRedirect* as = (KPoolableRedirect*)jump;
+		KRedirectSource* fo2 = as->makeFetchObject(rq, NULL);
+		as->add_ref();
+		fo2->bind_base_redirect(new KBaseRedirect(as, KConfirmFile::Never));
+		jumpType = JUMP_ALLOW;
+		fo.reset(fo2);
 		break;
 	}
 #ifdef ENABLE_WRITE_BACK
@@ -471,18 +472,18 @@ kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KFetchObject** 
 #endif
 #ifdef ENABLE_PROXY_PROTOCOL
 			if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_PROXY | WORK_MODEL_SSL_PROXY)) {
-				*fo = new KTcpFetchObject(false);
+				fo.reset(new KTcpFetchObject(false));
 				break;
 			}
 #endif
-			* fo = new KHttpProxyFetchObject();
+			fo.reset(new KHttpProxyFetchObject());
 		}
 		break;
 	}
 	kfiber_rwlock_runlock(rwlock);
 	return jumpType;
 }
-KSafeTable KAccess::getTable(const KString &table_name) {
+KSafeTable KAccess::getTable(const KString& table_name) {
 	auto it = tables.find(table_name);
 	if (it != tables.end()) {
 		return (*it).second;
@@ -499,7 +500,7 @@ KString KAccess::htmlAccess(const char* vh) {
 	s << "ref:" << katom_get((void*)&ref) << " ";
 	s << (type == REQUEST ? klang["lang_requestAccess"] : klang["lang_responseAccess"]) << " " << LANG_ACCESS_FIRST << ":";
 	{
-		auto locker = read_lock();		
+		auto locker = read_lock();
 		buildChainAction(default_jump_type, default_jump, s);
 		s << "</div>";
 		for (auto it = tables.begin(); it != tables.end(); ++it) {
@@ -513,7 +514,7 @@ KString KAccess::htmlAccess(const char* vh) {
 	}
 	return s.str();
 }
-bool KAccess::parseChainAction(const KString& action, kgl_jump_type& jumpType,KString& jumpName) {
+bool KAccess::parseChainAction(const KString& action, kgl_jump_type& jumpType, KString& jumpName) {
 	if (strcasecmp(action.c_str(), "deny") == 0) {
 		jumpType = JUMP_DENY;
 	}
@@ -568,7 +569,7 @@ bool KAccess::parseChainAction(const KString& action, kgl_jump_type& jumpType,KS
 	}
 	return true;
 }
-void KAccess::buildChainAction(kgl_jump_type jumpType, KJump* jump, KWStream & s) {
+void KAccess::buildChainAction(kgl_jump_type jumpType, KJump* jump, KWStream& s) {
 	bool jname = false;
 	switch (jumpType) {
 	case JUMP_DROP:
@@ -606,7 +607,7 @@ void KAccess::buildChainAction(kgl_jump_type jumpType, KJump* jump, KWStream & s
 		s << jump->name;
 	}
 }
-void KAccess::setChainAction(kgl_jump_type& jump_type, KJump** jump, const KString &name) {
+void KAccess::setChainAction(kgl_jump_type& jump_type, KJump** jump, const KString& name) {
 	if (*jump) {
 		(*jump)->release();
 		*jump = nullptr;
@@ -623,7 +624,7 @@ void KAccess::setChainAction(kgl_jump_type& jump_type, KJump** jump, const KStri
 		if (*jump == nullptr) {
 			fprintf(stderr, "cann't get table name=[%s]\n", name.c_str());
 			jump_type = JUMP_DENY;
-			throw KXmlException("cann't found table");			
+			throw KXmlException("cann't found table");
 		}
 		break;
 	}
@@ -706,10 +707,10 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 		setChainAction(this->default_jump_type, &this->default_jump, jump_name);
 		break;
 	}
-	case kconfig::EvSubDir|kconfig::EvUpdate:
+	case kconfig::EvSubDir | kconfig::EvUpdate:
 	{
 		auto xml = ev->get_xml();
-		if (xml->is_tag(_KS("table"))) {			
+		if (xml->is_tag(_KS("table"))) {
 			auto body = xml->get_first();
 			if (!body) {
 				return false;
@@ -724,10 +725,11 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 				klog(KLOG_ERR, "cann't parse table config\n");
 				return false;
 			}
+			return true;
 		}
 		return true;
 	}
-	case kconfig::EvNew| kconfig::EvSubDir:
+	case kconfig::EvNew | kconfig::EvSubDir:
 	{
 		auto xml = ev->get_xml();
 		if (xml->is_tag(_KS("table"))) {
@@ -753,23 +755,65 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 			tables[table->name] = std::move(table);
 			return true;
 		}
+		if (xml->is_tag(_KS("named_acl"))) {
+			auto locker = write_lock();
+			auto m = new_acl(xml->attributes()["module"], xml->get_first());
+			if (!m) {
+				return false;
+			}
+			auto result = this->named_acls.emplace(xml->attributes()["name"], new KNamedModel(std::move(m)));
+			if (result.second) {
+				tree->bind(result.first->second->add_ref());
+			}
+			return true;
+		}
+		if (xml->is_tag(_KS("named_mark"))) {
+			auto locker = write_lock();
+			auto m = new_mark(xml->attributes()["module"], xml->get_first());
+			if (!m) {
+				return false;
+			}
+			auto result = this->named_marks.emplace(xml->attributes()["name"], new KNamedModel(std::move(m)));
+			if (result.second) {
+				tree->bind(result.first->second->add_ref());
+			}
+			return true;
+		}
 		break;
 	}
 	case kconfig::EvRemove | kconfig::EvSubDir:
 	{
 		auto xml = ev->get_xml();
-		if (xml->is_tag(_KS("table"))) {			
+		if (xml->is_tag(_KS("table"))) {
 			auto body = xml->get_first();
 			assert(body);
 			if (!body) {
 				return false;
 			}
 			auto locker = write_lock();
-			KSafeTable table(static_cast<KTable *>(tree->unbind()));
+			KSafeTable table(static_cast<KTable*>(tree->unbind()));
 			//printf("remove table name=[%s]\n", table->name.c_str());
 			tables.erase(table->name);
 			table->clear();
 			return true;
+		}
+		if (xml->is_tag(_KS("named_acl"))) {
+			auto named_model = static_cast<KNamedModel*>(tree->unbind());
+			assert(named_model);
+			named_model->release();
+			auto locker = write_lock();
+			auto result = named_acls.erase(xml->attributes()["name"]);
+			assert(result > 0);
+			return result>0;
+		}
+		if (xml->is_tag(_KS("named_mark"))) {
+			auto named_model = static_cast<KNamedModel*>(tree->unbind());
+			assert(named_model);
+			named_model->release();
+			auto locker = write_lock();
+			auto result = named_marks.erase(xml->attributes()["name"]);
+			assert(result > 0);
+			return result>0;
 		}
 		break;
 	}

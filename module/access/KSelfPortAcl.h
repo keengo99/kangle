@@ -42,7 +42,7 @@ public:
 	const char *getName() override {
 		return "self_port";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		return rq->sink->get_self_port() == port;
 	}
 	void get_display(KWStream &s) override {

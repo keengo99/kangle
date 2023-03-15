@@ -16,7 +16,7 @@ public:
 	const char *getName() override {
 		return "connection_close";
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,  KFetchObject** fo) override
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
 	{
 		KBIT_SET(rq->sink->data.flags,RQ_CONNECTION_CLOSE);
 		return true;

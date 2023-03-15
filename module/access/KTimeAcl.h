@@ -43,7 +43,7 @@ public:
 	const char *getName() override {
 		return "time";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		return t.checkTime(kgl_current_sec);
 	}
 	void get_display(KWStream &s) override {

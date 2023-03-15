@@ -44,8 +44,8 @@ KRedirectMark::~KRedirectMark() {
 KMark* KRedirectMark::new_instance() {
 	return new KRedirectMark;
 }
-bool KRedirectMark::mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) {
-	if (!dst || !fo) {
+bool KRedirectMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo){
+	if (!dst) {
 		return false;
 	}
 	assert(rq->sink->data.url->path);
@@ -53,8 +53,7 @@ bool KRedirectMark::mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) 
 		rq->rewrite_url(dst);
 	} else {
 		if (push_redirect_header(rq, dst, (int)strlen(dst), code)) {
-			*fo = new KBufferFetchObject(nullptr, 0);
-			//jump_type = JUMP_DROP;
+			fo.reset(new KBufferFetchObject(nullptr, 0));
 		}
 	}
 	return true;

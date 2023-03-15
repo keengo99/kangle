@@ -43,7 +43,7 @@ public:
 	const char *getName() override {
 		return "host";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		return KMultiAcl::match(rq->sink->data.url->host);
 	}
 };
@@ -71,7 +71,7 @@ public:
 		}
 		s << "'>";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		return vhc.find(rq->sink->data.url->host)!=NULL;		
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {

@@ -397,10 +397,10 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KApacheHtac
 		error->set(STATUS_SERVICE_UNAVAILABLE, "virtual host is closed");
 		return NULL;
 	}
-	KFetchObject* fo = nullptr;
-	int jump_type = svh->bindFile(rq, rq->ctx.obj, result, htresponse, &fo);
-	if (fo) {
-		return fo;
+	KSafeSource sfo;
+	int jump_type = svh->bindFile(rq, rq->ctx.obj, result, htresponse, sfo);
+	if (sfo) {
+		return sfo.release();
 	}
 	if (jump_type==JUMP_DENY) {
 		//bind´íÎó.Èç·Ç·¨url.
@@ -427,7 +427,7 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KApacheHtac
 			rq->file = newFile;
 		}
 	}
-	fo = svh->vh->findPathRedirect(rq, rq->file, (indexPath ? indexPath : rq->sink->data.url->path), result, redirect_result);
+	auto fo = svh->vh->findPathRedirect(rq, rq->file, (indexPath ? indexPath : rq->sink->data.url->path), result, redirect_result);
 	if (indexPath) {
 		free(indexPath);
 	}
@@ -714,22 +714,17 @@ int checkResponse(KHttpRequest* rq, KHttpObject* obj) {
 		return JUMP_ALLOW;
 	}
 	rq->ctx.response_checked = 1;
-	KFetchObject* fo = nullptr;
-	int action = kaccess[RESPONSE]->check(rq, obj, &fo);
-	assert(!fo);
+	KSafeSource fo;
+	int action = kaccess[RESPONSE]->check(rq, obj, fo);
 	if (fo) {
-		klog(KLOG_ERR, "response check not support new source\n");
-		delete fo;
-		fo = nullptr;
+		klog(KLOG_ERR, "response check not support new source\n");		
 	}
 #ifndef HTTP_PROXY
 #ifdef ENABLE_USER_ACCESS
 	if (action == JUMP_ALLOW && rq->sink->data.opaque) {
-		action = static_cast<KSubVirtualHost*>(rq->sink->data.opaque)->vh->checkResponse(rq, &fo);
-		assert(!fo);
+		action = static_cast<KSubVirtualHost*>(rq->sink->data.opaque)->vh->checkResponse(rq, fo);
 		if (fo) {
 			klog(KLOG_ERR, "virtualhost response check not support new source\n");
-			delete fo;
 		}
 	}
 #endif

@@ -21,7 +21,7 @@ class KMapRedirectMark : public KMark{
 public:
 	KMapRedirectMark();
 	virtual ~KMapRedirectMark();
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject **fo) override;
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override;
 	KMark *new_instance()override;
 	const char *getName()override;
 	void get_html(KModel* model, KWStream& s) override;

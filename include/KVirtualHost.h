@@ -98,9 +98,9 @@ public:
 		uint32_t flags;
 	};
 #ifdef ENABLE_USER_ACCESS	
-	int checkRequest(KHttpRequest *rq, KFetchObject **fo);
-	int checkResponse(KHttpRequest *rq, KFetchObject** fo);
-	int checkPostMap(KHttpRequest *rq, KFetchObject** fo);
+	int checkRequest(KHttpRequest *rq, KSafeSource& fo);
+	int checkResponse(KHttpRequest *rq, KSafeSource& fo);
+	int checkPostMap(KHttpRequest *rq, KSafeSource& fo);
 	KString user_access;
 #endif
 	KString doc_root;

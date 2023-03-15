@@ -31,7 +31,7 @@ public:
 	}
 	virtual ~KFlagMark() {
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override {
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		if (clear) {
 			KBIT_CLR(rq->ctx.filter_flags,flag);
 		} else {

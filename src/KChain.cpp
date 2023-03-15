@@ -29,15 +29,13 @@
 #include<list>
 #include "kmalloc.h"
 using namespace std;
-void parse_module_config(KModel* m, const khttpd::KXmlNodeBody* xml) {
-	m->revers = (xml->attributes["revers"] == "1");
-	m->is_or = (xml->attributes["or"] == "1");
-	m->parse_config(xml);
+
+void parse_module_child_config(KModel* m, const KMap<khttpd::KXmlKey, khttpd::KXmlNode>& childs) {
 	kconfig::KXmlChanged changed = { 0 };
 	kgl_config_diff diff{ 0 };
 	changed.type = kconfig::EvNew;
 	changed.diff = &diff;
-	for (auto node : xml->childs) {
+	for (auto node : childs) {
 		changed.new_xml = node;
 		changed.diff->new_to = changed.new_xml->get_body_count();
 		m->parse_child(&changed);
@@ -56,41 +54,46 @@ void KChain::clear() {
 		jump->release();
 		jump = nullptr;
 	}
+	for (auto it = acls.begin(); it != acls.end(); ++it) {
+		(*it)->release();
+	}
 	acls.clear();
+	for (auto it = marks.begin(); it != marks.end(); ++it) {
+		(*it)->release();
+	}
 	marks.clear();
 }
-bool KChain::match(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) {
+bool KChain::match(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 	bool result = true;
 	bool last_or = false;
 	//OR NEXT
-	for (auto it = acls.begin(); it != acls.end(); it++) {
+	for (auto it = acls.begin(); it != acls.end(); ++it) {
 		if (result && last_or) {
 			last_or = (*it)->is_or;
 			continue;
 		}
-		result = ((*it)->match(rq, obj) != (*it)->revers);
+		result = ((*it)->match(rq, obj) != (*it)->revers);		
 		last_or = (*it)->is_or;
 		if (!result && !last_or) {
 			break;
-		}
+		}	
 	}
 	if (!result) {
 		return false;
 	}
 	last_or = false;
-	for (auto it2 = marks.begin(); it2 != marks.end(); it2++) {
+	for (auto it = marks.begin(); it != marks.end(); ++it) {
 		if (result && last_or) {
-			last_or = (*it2)->is_or;
+			last_or = (*it)->is_or;
 			continue;
 		}
-		result = ((*it2)->mark(rq, obj, fo) != (*it2)->revers);
-		if (fo && *fo) {
-			break;
-		}
+		result = ((*it)->process(rq, obj, fo) != (*it)->revers);		
 		if (!result && !last_or) {
 			break;
 		}
-		last_or = (*it2)->is_or;
+		if (fo) {
+			return true;
+		}
 	}
 	if (result) {
 		hit_count++;
@@ -121,8 +124,8 @@ void KChain::getModelHtml(KModel* model, KWStream& s, int type, int index) {
 	model->get_html(model, s);
 	s << "<input type=hidden name='end_sub_form' value='1'></td></tr>\n";
 }
-void KChain::getAclShortHtml(KWStream& s) {
-	if (acls.size() == 0) {
+void KChain::get_acl_short_html(KWStream& s) {
+	if (acls.empty()) {
 		s << "&nbsp;";
 	}
 	for (auto it = acls.begin(); it != acls.end(); ++it) {
@@ -134,11 +137,11 @@ void KChain::getAclShortHtml(KWStream& s) {
 		s << "<br>";
 	}
 }
-void KChain::getMarkShortHtml(KWStream& s) {
-	if (marks.size() == 0) {
+void KChain::get_mark_short_html(KWStream& s) {
+	if (marks.empty()) {
 		s << "&nbsp;";
 	}
-	for (auto it = marks.begin(); it != marks.end(); it++) {
+	for (auto it = marks.begin(); it != marks.end(); ++it) {
 		s << ((*it)->revers ? "!" : "") << (*it)->getName() << ": ";
 		(*it)->get_display(s);
 		if ((*it)->is_or) {
@@ -146,28 +149,6 @@ void KChain::getMarkShortHtml(KWStream& s) {
 		}
 		s << "<br>";
 	}
-}
-KSafeAcl KChain::new_acl(const KString& name, KAccess* kaccess) {
-	auto it = KAccess::aclFactorys[kaccess->type].find(name);
-	if (it == KAccess::aclFactorys[kaccess->type].end()) {
-		return nullptr;
-	}
-	KSafeAcl m((*it).second->new_instance());
-	if (m) {
-		m->isGlobal = kaccess->isGlobal();
-	}
-	return m;
-}
-KSafeMark KChain::new_mark(const KString& name, KAccess* kaccess) {
-	auto it = KAccess::markFactorys[kaccess->type].find(name);
-	if (it == KAccess::markFactorys[kaccess->type].end()) {
-		return nullptr;
-	}
-	KSafeMark m((*it).second->new_instance());
-	if (m) {
-		m->isGlobal = kaccess->isGlobal();
-	}
-	return m;
 }
 void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 	assert(acls.empty());
@@ -179,39 +160,53 @@ void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 	access->setChainAction(jumpType, &jump, jumpName);
 	for (auto node : xml->childs) {
 		auto model_name = node->get_tag();
-		bool is_acl;
+		bool is_acl = false;
 		if (strncasecmp(model_name.c_str(), "acl_", 4) == 0) {
-			model_name = model_name.substr(4);
 			is_acl = true;
+			model_name = model_name.substr(4);
 		} else if (strncasecmp(model_name.c_str(), "mark_", 5) == 0) {
-			model_name = model_name.substr(5);
 			is_acl = false;
+			model_name = model_name.substr(5);
 		} else if (node->is_tag(_KS("acl"))) {
 			for (auto&& body : node->body) {
-				auto model_name = body->attributes["name"];
+				auto model_name = body->attributes["module"];
 				if (model_name.empty()) {
 					auto ref = body->attributes["ref"];
-					if (!ref) {
-
+					if (ref) {
+						auto m = access->get_named_acl(ref);
+						if (m) {
+							acls.push_back(m.release());
+						}					
 					}
+					continue;
 				}
-				auto m = new_acl(model_name, access);
+				auto m = access->new_acl(model_name, body);
 				if (!m) {
 					continue;
 				}
-				parse_module_config(m.get(), body);
-				acls.push_back(std::move(m));
+				parse_module_child_config(m.get(), body->childs);
+				acls.push_back(m.release());
 			}
 			continue;
 		} else if (node->is_tag(_KS("mark"))) {
 			for (auto&& body : node->body) {
-				auto model_name = body->attributes["name"];
-				auto m = new_mark(model_name, access);
+				auto model_name = body->attributes["module"];
+				if (model_name.empty()) {
+					auto ref = body->attributes["ref"];
+					if (ref) {
+						auto m = access->get_named_mark(ref);
+						if (m) {
+							marks.push_back(m.release());
+						}
+					}
+					continue;
+				}
+				auto m = access->new_mark(model_name, body);
 				if (!m) {
 					continue;
 				}
-				parse_module_config(m.get(), body);
-				marks.push_back(std::move(m));
+				parse_module_child_config(m.get(), body->childs);
+				marks.push_back(m.release());
 			}
 			continue;
 		} else {
@@ -220,19 +215,19 @@ void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 		}
 		for (auto&& body : node->body) {
 			if (is_acl) {
-				auto acl = new_acl(model_name, access);
-				if (!acl) {
+				auto m = access->new_acl(model_name, body);
+				if (!m) {
 					continue;
 				}
-				parse_module_config(acl.get(), body);
-				acls.push_back(std::move(acl));
+				parse_module_child_config(m.get(), body->childs);
+				acls.push_back(m.release());
 			} else {
-				auto mark = new_mark(model_name, access);
-				if (!mark) {
+				auto m = access->new_mark(model_name, body);
+				if (!m) {
 					continue;
 				}
-				parse_module_config(mark.get(), body);
-				marks.push_back(std::move(mark));
+				parse_module_child_config(m.get(), body->childs);
+				marks.push_back(m.release());
 			}
 		}
 	}

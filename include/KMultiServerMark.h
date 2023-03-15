@@ -13,10 +13,9 @@ public:
 			brd->release();
 		}
 	}
-	bool mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) override {
-		if (brd && fo) {
-			assert(*fo == nullptr);
-			*fo = brd->rd->makeFetchObject(rq, rq->file);
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+		if (brd) {
+			fo.reset(brd->rd->makeFetchObject(rq, rq->file));
 		}
 		return true;
 	}

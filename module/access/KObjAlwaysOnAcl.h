@@ -35,7 +35,7 @@ public:
 	const char *getName() override {
 		return "obj_always_on";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		return rq->ctx.always_on_model;
 	}
 	void get_display(KWStream& s) override {

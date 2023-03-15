@@ -19,7 +19,7 @@ public:
 			delete cookie;
 		}
 	}
-	bool mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) override
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
 	{
 		bool result = false;
 		if (obj == NULL || obj->data == NULL) {

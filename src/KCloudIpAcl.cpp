@@ -107,7 +107,7 @@ const char *KCloudIpAcl::getName()
 {
 	return "cloud_ip";
 }
-bool KCloudIpAcl::match(KHttpRequest *rq, KHttpObject *obj)
+bool KCloudIpAcl::match(KHttpRequest* rq, KHttpObject* obj)
 {
 	const char *client_ip = rq->getClientIp();	
 	bool result = false;

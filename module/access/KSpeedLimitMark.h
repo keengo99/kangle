@@ -30,7 +30,7 @@ public:
 	}	
 	virtual ~KSpeedLimitMark() {
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override {
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		KSpeedLimit *sl = new KSpeedLimit;
 		sl->setSpeedLimit(speed_limit);
 		rq->pushSpeedLimit(sl);

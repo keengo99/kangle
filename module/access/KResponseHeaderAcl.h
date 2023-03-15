@@ -22,7 +22,7 @@ class KResponseHeaderAcl : public KHeaderAcl {
 	KAcl *new_instance() override {
 		return new KResponseHeaderAcl();
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		if(obj->data==NULL){
 			return false;
 		}

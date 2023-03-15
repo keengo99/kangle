@@ -51,7 +51,7 @@ KAcl *KMultiHostAcl::new_instance() {
 const char *KMultiHostAcl::getName() {
 	return "map_host";
 }
-bool KMultiHostAcl::match(KHttpRequest *rq, KHttpObject *obj) {
+bool KMultiHostAcl::match(KHttpRequest* rq, KHttpObject* obj) {
 	loadFile(rq);
 	map<char *, bool,lessp_icase >::iterator it;
 	bool result = false;

@@ -15,7 +15,7 @@ public:
 	const char *getName() override {
 		return "self_ports";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		return KMultiIntAcl::match(rq->sink->get_self_port());
 	}
 };
@@ -32,7 +32,7 @@ public:
 	const char *getName() override {
 		return "listen_ports";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		sockaddr_i addr = { 0 };
 		rq->sink->get_self_addr(&addr);
 		return KMultiIntAcl::match(ksocket_addr_port(&addr));

@@ -15,6 +15,7 @@
 #include "KHttpHeader.h"
 #include "KHttpBufferParser.h"
 #include "KConfig.h"
+#include "KModel.h"
 #ifdef ENABLE_WRITE_BACK
 class KHttpRequest;
 class KFetchObject;
@@ -25,7 +26,7 @@ public:
 	{
 		header = NULL;
 	}
-	void buildRequest(KHttpRequest *rq, KFetchObject **fo);
+	void buildRequest(KHttpRequest *rq, KSafeSource& fo);
 	KString getMsg();
 	void setMsg(KString msg);
 

@@ -17,7 +17,7 @@ public:
 	const char *getName() override {
 		return "work_model";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		return KBIT_TEST(rq->sink->get_server_model(),flag)>0;
 	}
 	void get_display(KWStream& s)override {

@@ -71,14 +71,13 @@ public:
 	{
 		ad->Init();
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
-	{
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		KAccessContext cn;
 		uint32_t result = ad->process(rq, &cn, obj ? KF_NOTIFY_RESPONSE_MARK : KF_NOTIFY_REQUEST_MARK);
 		if (KBIT_TEST(result, KF_STATUS_REQ_FINISHED)) {
 			if (cn.buffer) {
 				kassert(KBIT_TEST(ad->notify_type, KF_NOTIFY_RESPONSE_MARK | KF_NOTIFY_RESPONSE_ACL) == 0);
-				*fo = new KBufferFetchObject(cn.buffer->getHead(),cn.buffer->getLen());
+				fo.reset(new KBufferFetchObject(cn.buffer->getHead(), cn.buffer->getLen()));
 				if (rq->sink->data.status_code == 0) {
 					rq->response_status(STATUS_OK);
 				}
@@ -127,8 +126,7 @@ public:
 	{
 		delete ad;
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override
-	{
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		KAccessContext cn;
 		uint32_t ret = ad->process(rq, &cn, obj ? KF_NOTIFY_RESPONSE_ACL : KF_NOTIFY_REQUEST_ACL);
 		return KBIT_TEST(ret, KF_STATUS_REQ_TRUE);

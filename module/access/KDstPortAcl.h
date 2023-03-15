@@ -42,7 +42,7 @@ public:
 	const char *getName() override {
 		return "dst_port";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		if (rq->sink->data.url->port == port) {
 			return true;
 		}

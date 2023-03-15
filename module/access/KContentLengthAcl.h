@@ -45,7 +45,7 @@ public:
 	const char *getName() override {
 		return "content_length";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		INT64 content_length = obj->getTotalContentSize();
 		if (content_length < minlen) {
 			return false;

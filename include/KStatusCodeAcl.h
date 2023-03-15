@@ -22,7 +22,7 @@ public:
 	const char *getName() override {
 		return "status_code";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		if (obj && obj->data) {
 			switch (op) {
 			case ACL_OP_EQ:

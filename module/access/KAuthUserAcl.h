@@ -35,7 +35,7 @@ public:
 	const char *getName() override {
 		return "auth_user";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		if(rq->auth==NULL){
 			return false;
 		}
@@ -61,7 +61,7 @@ public:
 	KAcl *new_instance() override {
 		return new KRegAuthUserAcl();
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		if(rq->auth==NULL){
 			return false;
 		}

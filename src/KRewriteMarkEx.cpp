@@ -112,7 +112,7 @@ bool KRewriteRule::parse(const KXmlAttribute& attribute)
 	return true;
 }
 bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
-						std::list<KRewriteCond *> *conds,const KString &prefix,const char *rewriteBase, KFetchObject** fo) {
+						std::list<KRewriteCond *> *conds,const KString &prefix,const char *rewriteBase, KSafeSource &fo) {
 	size_t len = strlen(rq->sink->data.url->path);
 	if (len < prefix.size()) {
 		return false;
@@ -182,7 +182,7 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 			if (KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL)) {
 				ssl = "s";
 			}
-			*fo = server_container->get(NULL, rq->sink->data.url->host, rq->sink->data.url->port, ssl, 0);
+			fo.reset(server_container->get(NULL, rq->sink->data.url->host, rq->sink->data.url->port, ssl, 0));
 		} else {
 			bool internal_flag = internal;
 			const char *u = url->c_str();
@@ -205,13 +205,13 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 						subString
 						);
 					if (proxy_host) {
-						*fo = server_container->get(proxy_host->c_str());
+						fo.reset(server_container->get(proxy_host->c_str()));
 						delete proxy_host;
 					}
 				}
 			} else {
 				if (push_redirect_header(rq, u, (int)strlen(u), code)) {
-					*fo = new KBufferFetchObject(nullptr, 0);
+					fo.reset(new KBufferFetchObject(nullptr, 0));
 				}
 			}
 		}
@@ -265,12 +265,8 @@ KRewriteMarkEx::~KRewriteMarkEx(void) {
 		delete (*it);
 	}
 }
-bool KRewriteMarkEx::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) {
+bool KRewriteMarkEx::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 	bool result = true;
-	assert(fo);
-	if (!fo) {
-		return false;
-	}
 	std::list<KRewriteRule *>::iterator it2;
 	for (it2 = rules.begin(); it2 != rules.end(); it2++) {
 		std::list<KRewriteCond *> *conds = NULL;
@@ -281,7 +277,7 @@ bool KRewriteMarkEx::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)
 			result = false;
 			break;
 		}
-		if (*fo) {
+		if (fo) {
 			break;
 		}
 	}

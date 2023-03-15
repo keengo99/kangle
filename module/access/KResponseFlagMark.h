@@ -30,7 +30,7 @@ public:
 	}
 	virtual ~KResponseFlagMark() {
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)override {
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		bool result = false;
 		if (flag > 0) {
 			KBIT_SET(obj->index.flags, flag);
@@ -126,8 +126,7 @@ public:
 	}
 	virtual ~KExtendFlagMark() {
 	}
-
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override {
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		if (no_extend) {
 			KBIT_SET(rq->ctx.filter_flags,RQ_NO_EXTEND);
 		} else {

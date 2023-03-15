@@ -23,7 +23,7 @@
 #include "KXmlEvent.h"
 #include "KXmlDocument.h"
 #include "KStream.h"
-
+#if 0
 class KXmlParser : public KXmlEvent {
 public:
 	virtual ~KXmlParser()
@@ -31,6 +31,7 @@ public:
 
 	}
 };
+
 class KXmlBuilder {
 public:
 	virtual ~KXmlBuilder()
@@ -50,4 +51,5 @@ public:
 	KXmlSupport();
 	virtual ~KXmlSupport();
 };
+#endif
 #endif /*KXMLSUPPORT_H_*/

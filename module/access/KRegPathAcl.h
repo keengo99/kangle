@@ -54,7 +54,7 @@ public:
 	const char *getName() override {
 		return "reg_path";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		if (raw) {
 			return path.match(rq->sink->data.raw_url->path,strlen(rq->sink->data.raw_url->path),0)>0;
 		}
@@ -123,7 +123,7 @@ public:
 	const char *getName() override {
 		return "reg_param";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		char *param = (raw?rq->sink->data.raw_url->param:rq->sink->data.url->param);
 		if (param==NULL || *param=='\0') {
 			return false;

@@ -42,7 +42,7 @@ public:
 	const char *getName() override {
 		return "loadavg";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		readAvg();
 		if(loadavg>maxavg){
 			return true;

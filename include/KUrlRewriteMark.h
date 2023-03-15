@@ -9,8 +9,7 @@ public:
 		code = 0;
 		icase = true;
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)override
-	{
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		KStringStream u;
 		rq->sink->data.url->GetUrl(u);
 		/*
@@ -32,8 +31,7 @@ public:
 		if (nu) {
 			if (code>0) {
 				if (push_redirect_header(rq, nu->c_str(), nu->size(), code)) {
-					*fo = new KBufferFetchObject(nullptr, 0);
-					//jump_type = JUMP_DROP;
+					fo.reset(new KBufferFetchObject(nullptr, 0));
 				}
 			} else {
 				rq->rewrite_url(nu->c_str(),0,NULL);

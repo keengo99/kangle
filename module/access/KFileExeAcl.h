@@ -38,7 +38,7 @@ public:
 	const char *getName() override {
 		return "file_ext";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		if (rq->file) {
 			return KMultiAcl::match(rq->file->getExt());
 		}
@@ -74,7 +74,7 @@ public:
 	const char *getName() override  {
 		return "filename";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		if (rq->file==NULL) {
 			return false;
 		}

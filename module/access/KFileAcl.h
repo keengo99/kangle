@@ -38,7 +38,7 @@ public:
 	const char *getName() override {
 		return "file";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		if (rq->file==NULL) {
 			return false;
 		}

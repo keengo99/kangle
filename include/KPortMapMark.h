@@ -21,7 +21,7 @@ public:
 	virtual ~KPortMapMark()
 	{
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
 	{
 		if (!KBIT_TEST(rq->sink->get_server_model(),WORK_MODEL_TCP) || rq->is_source_empty()) {
 			return false;
@@ -44,7 +44,7 @@ public:
 		}
 		rq->sink->data.raw_url->host = strdup(rq->sink->data.url->host);
 		rq->sink->data.raw_url->port = rq->sink->data.url->port;
-		*fo = new KTcpFetchObject(false);
+		fo.reset(new KTcpFetchObject(false));
 		return true;
 	}
 	KMark * new_instance()override

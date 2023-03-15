@@ -22,7 +22,7 @@ public:
 	const char *getName() override {
 		return "mark";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override  {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override  {
 		switch (op) {
 		case MARKACL_OP_EQ:
 			return rq->sink->data.mark==mark;

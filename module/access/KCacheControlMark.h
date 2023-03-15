@@ -31,7 +31,7 @@ public:
 	}
 	virtual ~KCacheControlMark() {
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override {
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 #ifdef ENABLE_FORCE_CACHE
 		if (force) {
 			if (!obj->force_cache(static_flag)) {

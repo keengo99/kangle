@@ -13,7 +13,7 @@ public:
 			xfree(header);
 		}
 	}
-	bool mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) override {
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		if (header == NULL) {
 			return false;
 		}

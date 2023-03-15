@@ -28,11 +28,13 @@
 #include "global.h"
 #include "KLineFile.h"
 #include "KReg.h"
+#include "KMutex.h"
+
 class KAuthMark: public KMark {
 public:
 	KAuthMark();
 	virtual ~KAuthMark();
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override;
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo);
 	KMark * new_instance() override;
 	const char *getName() override;
 	void get_html(KModel *model,KWStream &s) override;

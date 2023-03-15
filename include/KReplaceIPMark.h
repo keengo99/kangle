@@ -17,8 +17,7 @@ public:
 			delete val;
 		}
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
-	{
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		if (header.empty()) {
 #ifdef ENABLE_PROXY_PROTOCOL
 			auto proxy = rq->sink->get_proxy_info();
@@ -139,8 +138,7 @@ public:
 			}
 		}
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
-	{
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		KHttpHeader *h = rq->sink->data.remove(_KS("x-real-ip-sign"));
 		if (h == NULL) {
 			return false;

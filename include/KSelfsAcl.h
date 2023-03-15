@@ -17,7 +17,7 @@ public:
 	const char *getName() override {
 		return "selfs";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		char ip[MAXIPLEN];
 		rq->sink->get_self_ip(ip,sizeof(ip));
 		return KMultiAcl::match(ip);

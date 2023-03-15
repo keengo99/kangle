@@ -14,7 +14,7 @@ public:
 			delete val;
 		}
 	}
-	bool mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo)override {
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		bool result = false;
 		if (!attr.empty()) {
 			KHttpHeader* h;

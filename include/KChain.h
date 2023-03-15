@@ -28,20 +28,17 @@
 #include "kmalloc.h"
 #define CHAIN_CONTEXT	"chain"
 class KAccess;
-using KSafeAcl = KSharedObj<KAcl>;
-using KSafeMark = KSharedObj<KMark>;
 
 class KChain {
 public:
 	KChain();
 	virtual ~KChain();
-	bool match(KHttpRequest *rq, KHttpObject *obj, KFetchObject **fo);
+	bool match(KHttpRequest *rq, KHttpObject *obj, KSafeSource &fo);
 	uint32_t hit_count;
-	KSafeAcl new_acl(const KString &name,KAccess *kaccess);
-	KSafeMark new_mark(const KString&name, KAccess* kaccess);
+	
 	void parse_config(KAccess *access, const khttpd::KXmlNodeBody* xml);
-	void getAclShortHtml(KWStream&s);
-	void getMarkShortHtml(KWStream&s);
+	void get_acl_short_html(KWStream&s);
+	void get_mark_short_html(KWStream& s);
 	void clear();
 	friend class KAccess;
 	friend class KTable;
@@ -50,8 +47,9 @@ private:
 private:
 	kgl_jump_type jumpType;
 	KJump *jump;
-	std::list<KSafeAcl> acls;
-	std::list<KSafeMark> marks;
+	std::list<KAcl *> acls;
+	std::list<KMark *> marks;
+
 };
 
 #endif /*KCHAIN_H_*/

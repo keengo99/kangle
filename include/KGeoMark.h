@@ -35,7 +35,7 @@ public:
 		kassert(flush_timer == false);
 		kfiber_rwlock_destroy(lock);
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override {
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		kfiber_rwlock_rlock(lock);
 		geo_lable *lable = (geo_lable *)im.find(rq->getClientIp());
 		if (lable == NULL) {

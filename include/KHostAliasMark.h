@@ -26,7 +26,7 @@ public:
 			u->relase();
 		}
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override {
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		KUrl *u = rq->sink->data.url;
 		auto it = m.find(u);
 		if (it!=m.end()) {

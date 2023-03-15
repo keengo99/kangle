@@ -13,7 +13,7 @@ public:
 	void get_display(KWStream& s) override;
 	KAcl *new_instance() override;
 	const char *getName() override;
-	bool match(KHttpRequest *rq, KHttpObject *obj) override;
+	bool match(KHttpRequest* rq, KHttpObject* obj) override;
 	void parse_config(const khttpd::KXmlNodeBody* xml) override;
 private:
 	bool loadFile(KHttpRequest *rq);

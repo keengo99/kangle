@@ -13,7 +13,7 @@ public:
 	~KStubStatusMark()
 	{
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
 	{
 		rq->response_status(STATUS_OK);
 		rq->response_header(kgl_expand_string("Content-Type"), kgl_expand_string("text/plain"));
@@ -24,7 +24,7 @@ public:
 		s << "server accepts handled requests\n";
 		s << " " <<(INT64)katom_get64((void *)&kgl_total_servers) << " " << (INT64)katom_get64((void *)&kgl_total_accepts) << " " << (INT64)katom_get64((void *)&kgl_total_requests) << " \n";
 		s << "Reading: " << (int)katom_get((void *)&kgl_reading) << " Writing: " << (int)katom_get((void *)&kgl_writing) << " Waiting: " << (int)katom_get((void *)&kgl_waiting) << " \n";
-		*fo = new KBufferFetchObject(s.getHead(), s.getLen());
+		fo.reset(new KBufferFetchObject(s.getHead(), s.getLen()));
 		//jump_type = JUMP_DROP;
 		return true;
 	}

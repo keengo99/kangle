@@ -15,7 +15,7 @@ public:
 	 test a string the lastSubString must be delete if exsit when reset it;
 	 */
 	virtual bool test(const char *str, KRegSubString **lastSubString) = 0;
-	virtual std::string getString() = 0;
+	//virtual KString getString() = 0;
 	virtual bool parse(const char *str, bool nc) = 0;
 };
 /*
@@ -27,11 +27,13 @@ public:
 
 	}
 	bool test(const char *str, KRegSubString **lastSubString) override ;
+#if 0
 	std::string getString() override {
 		std::stringstream s;
 		s << "-" << type;
 		return s.str();
 	}
+#endif
 	bool parse(const char *str, bool nc) override {
 		type = str[1];
 		return true;
@@ -44,9 +46,9 @@ private:
  */
 class KRegexTestor: public KRewriteCondTestor {
 public:
-	std::string getString() override {
-		return reg.getModel();
-	}
+	//std::string getString() override {
+	//	return reg.getModel();
+	//}
 	bool parse(const char *str, bool nc) override {
 		return reg.setModel(str, (nc ? PCRE_CASELESS : 0));
 	}
@@ -93,9 +95,9 @@ public:
 		}
 		return false;
 	}
-	std::string getString() override {
-		return str;
-	}
+	//std::string getString() override {
+	//	return str;
+	//}
 	bool parse(const char *buf, bool nc) override {
 		if (*buf == '\0') {
 			return false;
@@ -159,7 +161,7 @@ class KRewriteRule {
 public:
 	KRewriteRule();
 	~KRewriteRule();
-	bool mark(KHttpRequest *rq, KHttpObject *obj, std::list<KRewriteCond *> *conds, const KString &prefix, const char* rewriteBase, KFetchObject** fo);
+	bool mark(KHttpRequest *rq, KHttpObject *obj, std::list<KRewriteCond *> *conds, const KString &prefix, const char* rewriteBase, KSafeSource& fo);
 	bool parse(const KXmlAttribute &attribute);
 	void buildXml(std::stringstream &s);
 	bool revert;
@@ -175,7 +177,7 @@ class KRewriteMarkEx: public KMark {
 public:
 	KRewriteMarkEx(void);
 	~KRewriteMarkEx(void);
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override;
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override;
 	KMark * new_instance() override;
 	const char *getName() override;
 	void get_display(KWStream& s) override;

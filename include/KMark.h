@@ -22,21 +22,19 @@
 #define 	MARK_CONTEXT		"mark"
 class KHttpRequest;
 class KHttpObject;
-class KFetchObject;
-/**
- * ±ê¼Ç
- */
-class KMark: public KModel {
+class KMark : public KModel
+{
 public:
 	KMark() {
-	};
-	virtual ~KMark() {
-	};
-	virtual bool mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject **fo) = 0;
-	virtual KMark* new_instance() = 0;
-	virtual int32_t shutdown()
-	{
+	}
+	virtual int32_t shutdown() {
 		return 0;
 	}
+	virtual KMark* new_instance() = 0;
+	virtual bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) = 0;
+protected:
+	virtual ~KMark() {
+	}
 };
+using KSafeMark = KSharedObj<KMark>;
 #endif /*KMARK_H_*/

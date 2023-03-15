@@ -29,6 +29,7 @@
 #include "KFiberLocker.h"
 #include "KConfigTree.h"
 #include "KSharedObj.h"
+#include "KNamedModel.h"
 
 #define BEGIN_TABLE	"BEGIN"
 #define REQUEST		0
@@ -45,12 +46,14 @@ class KVirtualHostEvent;
 class WhmContext;
 using KSafeTable = KSharedObj<KTable>;
 void bind_access_config(kconfig::KConfigTree* tree, KAccess* access);
-class KAccess: public kconfig::KConfigListen {
+void parse_module_config(KModel* m, const khttpd::KXmlNodeBody* xml);
+class KAccess : public kconfig::KConfigListen
+{
 public:
-	KAccess(bool is_global, u_short type);	
+	KAccess(bool is_global, u_short type);
 	void clear();
 	KAccess* add_ref() {
-		katom_inc((void *)&ref);
+		katom_inc((void*)&ref);
 		return this;
 	}
 	void release() {
@@ -61,11 +64,35 @@ public:
 	kconfig::KConfigEventFlag config_flag() const override {
 		return kconfig::ev_self | kconfig::ev_subdir;
 	}
+	KSafeAcl new_acl(const KString& name, const khttpd::KXmlNodeBody* xml) {
+		auto it = KAccess::acl_factorys[type].find(name);
+		if (it == KAccess::acl_factorys[type].end()) {
+			return nullptr;
+		}
+		KSafeAcl m((*it).second->new_instance());
+		if (m) {
+			m->isGlobal = isGlobal();
+		}
+		parse_module_config(m.get(), xml);
+		return m;
+	}
+	KSafeMark new_mark(const KString& name, const khttpd::KXmlNodeBody* xml) {
+		auto it = KAccess::mark_factorys[type].find(name);
+		if (it == KAccess::mark_factorys[type].end()) {
+			return nullptr;
+		}
+		KSafeMark m((*it).second->new_instance());
+		if (m) {
+			m->isGlobal = isGlobal();
+		}
+		parse_module_config(m.get(), xml);
+		return m;
+	}
 	void parse_config(const KXmlAttribute& attr);
 	bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) override;
-	kgl_jump_type check(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo);
+	kgl_jump_type check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo);
 	//POSTMAP 只在RESPONSE里有效，在映射完物理文件后调用
-	kgl_jump_type checkPostMap(KHttpRequest *rq,KHttpObject *obj, KFetchObject** fo);
+	kgl_jump_type checkPostMap(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo);
 	static void loadModel();
 public:
 	u_short get_type() {
@@ -73,22 +100,37 @@ public:
 	}
 	static int32_t ShutdownMarkModule();
 	void setChainAction(kgl_jump_type& jump_type, KJump** jump, const KString& name);
-	bool parseChainAction(const KString &action, kgl_jump_type&jumpType,KString &jumpName);
-	static void buildChainAction(kgl_jump_type jumpType, KJump *jump, KWStream &s);
+	bool parseChainAction(const KString& action, kgl_jump_type& jumpType, KString& jumpName);
+	static void buildChainAction(kgl_jump_type jumpType, KJump* jump, KWStream& s);
+
 	bool isGlobal();
 public:
-	KString htmlAccess(const char *vh="");
-	void listTable(KVirtualHostEvent *ctx);
+	KString htmlAccess(const char* vh = "");
+	void listTable(KVirtualHostEvent* ctx);
 public:
 	friend class KChain;
 	friend class KTable;
-	static std::map<KString,KAcl *> aclFactorys[2];
-	static std::map<KString,KMark *> markFactorys[2];
-	static bool addAclModel(u_short type,KAcl *acl,bool replace=false);
-	static bool addMarkModel(u_short type,KMark *acl,bool replace=false);
+	static std::map<KString, KAcl*> acl_factorys[2];
+	static std::map<KString, KMark*> mark_factorys[2];
+	static bool addAclModel(u_short type, KAcl* acl, bool replace = false);
+	static bool addMarkModel(u_short type, KMark* acl, bool replace = false);
 private:
 	~KAccess();
 	void inter_destroy();
+	KSafeAcl get_named_acl(const KString& name) {
+		auto it = named_acls.find(name);
+		if (it == named_acls.end()) {
+			return nullptr;
+		}
+		return (*it).second->as_acl();
+	}
+	KSafeMark get_named_mark(const KString& name) {
+		auto it = named_marks.find(name);
+		if (it == named_marks.end()) {
+			return nullptr;
+		}
+		return (*it).second->as_mark();
+	}
 	KFiberReadLocker read_lock() {
 		return KFiberReadLocker(rwlock);
 	}
@@ -97,16 +139,18 @@ private:
 	}
 	kfiber_rwlock* rwlock;
 	kgl_jump_type default_jump_type;
-	KJump *default_jump;	
+	KJump* default_jump;
 	KSafeTable begin;
 	KSafeTable post_map;
 	u_short type;
 	bool globalFlag;
 	volatile uint32_t ref;
-	std::map<KString,KSafeTable> tables;
-	KSafeTable getTable(const KString &table_name);
-	std::vector<KString> getTableNames(KString skipName,bool show_global);
+	std::map<KString, KSafeTable> tables;
+	std::map<KString, KSafeNamedModel> named_acls;
+	std::map<KString, KSafeNamedModel> named_marks;
+	KSafeTable getTable(const KString& table_name);
+	std::vector<KString> getTableNames(KString skipName, bool show_global);
 };
 using KSafeAccess = KSharedObj<KAccess>;
-extern KAccess *kaccess[2];
+extern KAccess* kaccess[2];
 #endif /*KACCESS_H_*/

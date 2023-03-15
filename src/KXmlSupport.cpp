@@ -23,12 +23,3 @@
 #include "KXml.h"
 
 using namespace std;
-
-KXmlSupport::KXmlSupport()
-{
-}
-
-KXmlSupport::~KXmlSupport()
-{
-}
-

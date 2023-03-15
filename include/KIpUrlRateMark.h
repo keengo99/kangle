@@ -26,7 +26,7 @@ public:
 	const char *getName() override {
 		return "ip_url_rate";
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,  KFetchObject** fo) override {
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		if (match(rq,obj)) {
 			//jump_type = JUMP_DROP;
 			return true;

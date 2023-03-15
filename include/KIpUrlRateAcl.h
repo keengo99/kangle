@@ -44,7 +44,7 @@ public:
 		}		
 		s << "'>";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		if (kgl_current_sec - lastFlushTime > 5) {
 			rate.flush(kgl_current_sec,second);
 			lastFlushTime = kgl_current_sec;

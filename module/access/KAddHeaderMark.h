@@ -19,8 +19,7 @@ public:
 			free(val);
 		}
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject **fo) override
-	{
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		if (attr && val) {
 			auto s = KRewriteMarkEx::getString(NULL,val,rq,NULL,NULL);
 			if (s==NULL) {
@@ -112,8 +111,7 @@ public:
 			free(val);
 		}
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
-	{
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		if (attr && val) {
 			auto s = KRewriteMarkEx::getString(NULL, val, rq, NULL, NULL);
 			if (s == NULL) {

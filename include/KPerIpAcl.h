@@ -45,7 +45,7 @@ public:
 		add_ref();
 		rq->registerConnectCleanHook(per_ip_mark_call_back,cd);
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		const char *ip = rq->getClientIp();
 		std::map<char *, unsigned,lessp>::iterator it_ip;
 		bool matched = false;

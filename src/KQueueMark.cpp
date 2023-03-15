@@ -12,7 +12,7 @@ KQueueMark::~KQueueMark()
 		queue = NULL;
 	}
 }
-bool KQueueMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)
+bool KQueueMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo)
 {
 	if (queue && rq->queue == NULL) {
 		rq->queue = queue;
@@ -58,7 +58,7 @@ KPerQueueMark::~KPerQueueMark()
 		matcher = next;
 	}
 }
-bool KPerQueueMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)
+bool KPerQueueMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo)
 {
 	if (rq->queue) {
 		return false;

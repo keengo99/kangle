@@ -12,7 +12,7 @@ public:
 	~KMinObjVerifiedMark()
 	{
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
 	{
 		rq->sink->data.min_obj_verified = v;
 		if (hard) {

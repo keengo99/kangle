@@ -11,8 +11,7 @@ public:
 	~KTimeoutMark()
 	{
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
-	{
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		rq->sink->set_time_out(v);
 		return true;
 	}

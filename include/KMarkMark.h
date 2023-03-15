@@ -10,7 +10,7 @@ public:
 	~KMarkMark()
 	{
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
 	{
 		rq->sink->data.mark = v;
 		return true;

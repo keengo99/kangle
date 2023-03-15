@@ -38,8 +38,7 @@ public:
 		}
 		lock.Unlock();	
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
-	{	
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		const char *ip = rq->getClientIp();
 		lock.Lock();
 		std::map<char *,KSpeedLimit *,lessp>::iterator it;

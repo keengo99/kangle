@@ -291,7 +291,7 @@ void KSubVirtualHost::setDocRoot(const char *doc_root, const char *dir) {
 	}
 	KFileName::tripDir3(this->doc_root,PATH_SPLIT_CHAR);
 }
-kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit, KApacheHtaccessContext& htctx, KFetchObject** fo) {
+kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool &exsit, KApacheHtaccessContext& htctx, KSafeSource &fo) {
 	//	char *tripedDir = KFileName::tripDir2(rq->sink->data.url->path, '/');
 #ifdef _WIN32
 	int path_len = (int)strlen(rq->sink->data.url->path);
@@ -359,7 +359,7 @@ kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool 
 			return JUMP_DENY;
 		}
 		if (*(http->dst->host) == '-') {
-			*fo = new KHttpProxyFetchObject();
+			fo.reset(new KHttpProxyFetchObject());
 			//rq->append_source(new KHttpProxyFetchObject());
 			return JUMP_ALLOW;
 		}
@@ -379,7 +379,7 @@ kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool 
 			}
 #endif//}}
 		}
-		*fo = server_container->get(http->ip, http->dst->host, tport, tssl, http->life_time);
+		fo.reset(server_container->get(http->ip, http->dst->host, tport, tssl, http->life_time));
 		return JUMP_ALLOW;
 	}//end subdir_http
 
@@ -411,7 +411,7 @@ kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest *rq, KHttpObject *obj,bool 
 	KRedirectSource*fo2 = rd->makeFetchObject(rq, rq->file);
 	KBaseRedirect *brd = new KBaseRedirect(rd, KConfirmFile::Never);
 	fo2->bind_base_redirect(brd);
-	*fo = fo2;
+	fo.reset(fo2);
 	return JUMP_ALLOW;
 }
 bool KSubVirtualHost::bindFile(KHttpRequest *rq,bool &exsit,bool searchDefaultFile,bool searchAlias)

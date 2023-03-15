@@ -21,7 +21,7 @@
 
 class KSelfIpAcl : public KIpAclBase {
 public:
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		sockaddr_i addr;
 		if (!rq->sink->get_self_addr(&addr)) {
 			return false;

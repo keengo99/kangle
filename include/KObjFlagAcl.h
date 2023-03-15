@@ -9,8 +9,7 @@ public:
 	virtual ~KObjFlagAcl() {
 	}
 
-	bool match(KHttpRequest *rq,KHttpObject *obj) override
-	{
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		return KBIT_TEST(obj->index.flags,flag)>0;
 	}
 	void get_display(KWStream& s) override {

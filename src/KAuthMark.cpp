@@ -137,7 +137,7 @@ KAuthMark::~KAuthMark() {
 		delete reg_user;
 	}
 }
-bool KAuthMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) {
+bool KAuthMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 	KString path;
 #ifndef HTTP_PROXY
 	auto svh = rq->get_virtual_host();
@@ -149,7 +149,7 @@ bool KAuthMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) {
 
 	if (!loadAuthFile(path)) {
 		klog(KLOG_ERR, "cann't load auth file[%s]\n", path.c_str());
-		*fo = new KDeniedSource(STATUS_SERVER_ERROR,_KS("failed load auth file"));
+		fo.reset(new KDeniedSource(STATUS_SERVER_ERROR, _KS("failed load auth file")));
 		return false;
 	}
 	if (checkLogin(rq)) {
@@ -158,13 +158,13 @@ bool KAuthMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) {
 	if (auth_type == AUTH_BASIC) {
 		KHttpBasicAuth *auth = new KHttpBasicAuth();		
 		auth->realm = xstrdup(realm?realm:PROGRAM_NAME);
-		*fo = new KAuthSource(auth);
+		fo.reset(new KAuthSource(auth));
 		//rq->auth = auth;
 	} else if (auth_type == AUTH_DIGEST) {
 #ifdef ENABLE_DIGEST_AUTH
 		KHttpDigestAuth *auth = new KHttpDigestAuth();
 		auth->init(rq,realm?realm:PROGRAM_NAME);
-		*fo = new KAuthSource(auth);
+		fo.reset(new KAuthSource(auth));
 #endif
 	}
 	//KBIT_SET(rq->ctx.filter_flags,RQ_SEND_AUTH);

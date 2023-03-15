@@ -10,7 +10,7 @@ public:
 	}
 	virtual ~KBlackListMark() {
 	}
-	bool mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) override {
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		KIpList* bls = NULL;
 		if (isGlobal) {
 			bls = conf.gvm->vhs.blackList;
@@ -68,7 +68,7 @@ public:
 	virtual ~KCheckBlackListMark() {
 
 	}
-	bool mark(KHttpRequest* rq, KHttpObject* obj, KFetchObject** fo) override {
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		KIpList* bls = NULL;
 		if (isGlobal) {
 			bls = conf.gvm->vhs.blackList;

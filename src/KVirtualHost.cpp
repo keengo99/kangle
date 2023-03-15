@@ -353,19 +353,19 @@ void KVirtualHost::parse_log_config(const KXmlAttribute& attr) {
 }
 #endif
 #ifdef ENABLE_USER_ACCESS
-int KVirtualHost::checkRequest(KHttpRequest* rq, KFetchObject** fo) {
+int KVirtualHost::checkRequest(KHttpRequest* rq, KSafeSource& fo) {
 	if (!access[REQUEST]) {
 		return JUMP_ALLOW;
 	}
 	return access[REQUEST]->check(rq, NULL, fo);
 }
-int KVirtualHost::checkResponse(KHttpRequest* rq, KFetchObject** fo) {
+int KVirtualHost::checkResponse(KHttpRequest* rq, KSafeSource& fo) {
 	if (!access[RESPONSE]) {
 		return JUMP_ALLOW;
 	}
 	return access[RESPONSE]->check(rq, rq->ctx.obj, fo);
 }
-int KVirtualHost::checkPostMap(KHttpRequest* rq, KFetchObject** fo) {
+int KVirtualHost::checkPostMap(KHttpRequest* rq, KSafeSource& fo) {
 	if (!access[RESPONSE]) {
 		return JUMP_ALLOW;
 	}

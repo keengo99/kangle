@@ -10,7 +10,7 @@ public:
 	~KCounterMark()
 	{
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
 	{
 		lock.Lock();
 		counter++;
@@ -32,28 +32,6 @@ public:
 		s << counter;
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
-	}
-	int whmCall(WhmContext *ctx) override
-	{
-		const char *op = ctx->getUrlValue()->getx("op");
-		if (op==NULL) {
-			ctx->setStatus("op is missing");
-			return 404;
-		}
-		if (strcmp(op,"get")==0) {
-			lock.Lock();
-			ctx->add("counter",counter);
-			lock.Unlock();
-			return 200;
-		}
-		if (strcmp(op,"get_reset")==0) {
-			lock.Lock();
-			ctx->add("counter",counter);
-			counter = 0;
-			lock.Unlock();
-			return 200;
-		}
-		return 400;
 	}
 private:
 	KMutex lock;

@@ -17,16 +17,17 @@
  */
 #ifndef KMODEL_H_INCLUDE
 #define KMODEL_H_INCLUDE
-#include "KXmlSupport.h"
-#include "KHtmlSupport.h"
+#include <memory>
 #include "KConfigTree.h"
-#include "KCountable.h"
 
 #define MODEL_ACL 	1
 #define MODEL_MARK	2
 typedef int kgl_jump_type;
 class KAccess;
-class WhmContext;
+class KFetchObject;
+class KHttpObject;
+class KHttpRequest;
+using KSafeSource = std::unique_ptr<KFetchObject>;
 /*
  * 控制模块基类
  */
@@ -39,11 +40,6 @@ public:
 		ref = 1;
 	}
 	virtual const char *getName() = 0;
-	virtual int whmCall(WhmContext *ctx)
-	{
-		return 500;
-	}
-	
 	virtual void parse_config(const khttpd::KXmlNodeBody* xml) = 0;
 	virtual void parse_child(const kconfig::KXmlChanged* changed) {
 	}
@@ -61,7 +57,6 @@ public:
 			delete this;
 		}
 	}
-	KString name;
 	bool revers;
 	bool is_or;
 	bool isGlobal;
@@ -70,5 +65,6 @@ protected:
 	virtual ~KModel() {
 	}
 };
+using KSafeModel = KSharedObj<KModel>;
 
 #endif /*KMODEL_H_*/

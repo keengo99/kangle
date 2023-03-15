@@ -50,7 +50,7 @@ public:
 	const char *getName() override {
 		return "path";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		KUrl *url;
 		if (raw) {
 			url = rq->sink->data.raw_url;

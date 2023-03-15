@@ -43,7 +43,7 @@ public:
 	const char *getName() override {
 		return "meth";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj)  override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		return meth.matchMethod(rq->sink->data.meth);
 	}
 	void get_display(KWStream& s) override {

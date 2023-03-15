@@ -60,7 +60,7 @@ bool KTable::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* 
 bool KTable::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 	return true;
 }
-kgl_jump_type KTable::match(KHttpRequest* rq, KHttpObject* obj, unsigned& checked_table, KJump** jump, KFetchObject** fo) {
+kgl_jump_type KTable::match(KHttpRequest* rq, KHttpObject* obj, unsigned& checked_table, KJump** jump, KSafeSource &fo) {
 	KTable *m_table = NULL;
 	for (auto&& chain_file : chains) {
 		for (auto&& chain : chain_file.second) {
@@ -68,7 +68,7 @@ kgl_jump_type KTable::match(KHttpRequest* rq, KHttpObject* obj, unsigned& checke
 				continue;
 			}
 			bool result = chain->match(rq, obj, fo);
-			if (fo && *fo) {
+			if (fo) {
 				return chain->jumpType;
 			}
 			if (!result) {
@@ -118,7 +118,7 @@ void KTable::htmlTable(KWStream &s,const char *vh,u_short accessType) {
 	<td> << LANG_OPERATOR
 		<< "</td><td>" << klang["id"] << "</td>";
 #endif
-	s << "<td>" << LANG_ACTION << "</td><td>" << klang["acl"] << "</td><td>" << klang["mark"] << "</td><td>";
+	s << "<td>" << LANG_ACTION << "</td><td>acl</td><td>mark</td><td>";
 	s << LANG_HIT_COUNT << "</td></tr>\n";
 	int j = 0;
 	int id = 0;
@@ -175,9 +175,9 @@ void KTable::htmlTable(KWStream &s,const char *vh,u_short accessType) {
 				s << ":" << chain->jump->name;
 			}
 			s << "</td><td>";
-			chain->getAclShortHtml(s);
+			chain->get_acl_short_html(s);
 			s << "</td><td>";
-			chain->getMarkShortHtml(s);
+			chain->get_mark_short_html(s);
 			s << "</td>";
 			s << "<td>" << chain->hit_count << "</td>";
 			s << "</tr>\n";

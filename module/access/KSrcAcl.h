@@ -21,7 +21,7 @@
 
 class KSrcAcl : public KIpAclBase {
 public:
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		ip_addr addr;
 		if (!ksocket_get_ipaddr(rq->getClientIp(), &addr)) {
 			return false;

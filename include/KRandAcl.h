@@ -26,7 +26,7 @@ public:
 	const char *getName() override {
 		return "rand";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		return (rand() % total) < count;
 	}
 	void get_display(KWStream& s) override {

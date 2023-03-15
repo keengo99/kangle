@@ -18,7 +18,7 @@ public:
 		set_url_param(np, rq->sink->data.url);
 		return result;
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
 	{
 		if (rq->sink->data.url->param==NULL) {
 			return false;

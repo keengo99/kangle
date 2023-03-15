@@ -14,7 +14,7 @@ public:
 	~KRemoveParamMark()
 	{
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override {
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		KUrl *url = (raw?rq->sink->data.raw_url:rq->sink->data.url);
 		char *param = url->param;
 		if (param==NULL) {

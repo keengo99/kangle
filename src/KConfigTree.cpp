@@ -998,6 +998,10 @@ namespace kconfig {
 		register_qname(_KS("cmd@name"));
 		register_qname(_KS("request"));
 		register_qname(_KS("response"));
+		register_qname(_KS("named_acl@name"));
+		register_qname(_KS("named_mark@name"));
+		register_qname(_KS("acl"));
+		register_qname(_KS("mark"));
 		register_qname(_KS("table@name"));
 		register_qname(_KS("vhs"));
 		register_qname(_KS("vh@name"));

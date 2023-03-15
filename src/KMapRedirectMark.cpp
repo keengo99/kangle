@@ -26,7 +26,7 @@ KMapRedirectMark::~KMapRedirectMark()
 {
 	vhc.iterator(map_redirect_free_iterator,NULL);
 }
-bool KMapRedirectMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo)
+bool KMapRedirectMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo)
 {
 	KMapRedirectItem *item = (KMapRedirectItem *)vhc.find(rq->sink->data.url->host);
 	if (item == NULL) {
@@ -50,7 +50,7 @@ bool KMapRedirectMark::mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** f
 	}
 	rq->sink->data.url->GetPath(s);
 	if (push_redirect_header(rq, s.buf(), s.size(), item->code)) {
-		*fo = new KBufferFetchObject(nullptr, 0);
+		fo.reset(new KBufferFetchObject(nullptr, 0));
 		//jump_type = JUMP_DROP;
 	}
 	return true;

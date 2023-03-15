@@ -19,7 +19,7 @@ public:
 	KAcl *new_instance() override  {
 		return new KWhiteListAcl();
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		const char *host = this->host;
 		if (host == NULL) {
 			host = rq->sink->data.url->host;
@@ -80,8 +80,7 @@ public:
 	KMark * new_instance() override {
 		return new KWhiteListMark();
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj, KFetchObject** fo) override
-	{
+	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		const char *host = this->host;
 		if (host == NULL) {
 			host = rq->sink->data.url->host;

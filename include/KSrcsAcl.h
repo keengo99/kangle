@@ -17,7 +17,7 @@ public:
 	const char *getName() override {
 		return "srcs";
 	}
-	bool match(KHttpRequest *rq, KHttpObject *obj) override {
+	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		return im.find(rq->getClientIp()) != NULL;
 	}
 	void get_html(KModel *model,KWStream &s) override {

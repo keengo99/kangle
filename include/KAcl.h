@@ -37,10 +37,11 @@ class KAcl : public KModel {
 public:
 	KAcl() {
 	}
-	virtual ~KAcl() {
-	}
 	virtual KAcl* new_instance() = 0;
 	virtual bool match(KHttpRequest* rq, KHttpObject* obj) = 0;
+protected:
+	virtual ~KAcl() {
+	}
 };
-
-#endif /*KACL_H_*/
+using KSafeAcl = KSharedObj<KAcl>;
+#endif
