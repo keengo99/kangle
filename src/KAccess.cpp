@@ -761,8 +761,7 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 			if (!m) {
 				return false;
 			}
-			auto named_model = KSafeNamedModel(new KNamedModel(std::move(m)));
-			auto result = this->named_acls.insert(std::make_pair(xml->attributes()["name"],std::move(named_model)));
+			auto result = this->named_acls.insert(std::make_pair(xml->attributes()["name"], KSafeNamedModel(new KNamedModel(std::move(m)))));
 			if (result.second) {
 				tree->bind(result.first->second->add_ref());
 			}
@@ -774,8 +773,7 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 			if (!m) {
 				return false;
 			}
-			auto named_model = KSafeNamedModel(new KNamedModel(std::move(m)));
-			auto result = this->named_marks.insert(std::make_pair(xml->attributes()["name"],std::move(named_model)));
+			auto result = this->named_marks.insert(std::make_pair(xml->attributes()["name"], KSafeNamedModel(new KNamedModel(std::move(m)))));
 			if (result.second) {
 				tree->bind(result.first->second->add_ref());
 			}
@@ -801,7 +799,9 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 		}
 		if (xml->is_tag(_KS("named_acl"))) {
 			auto named_model = static_cast<KNamedModel*>(tree->unbind());
-			assert(named_model);
+			if (!named_model) {
+				return false;
+			}
 			named_model->release();
 			auto locker = write_lock();
 			auto result = named_acls.erase(xml->attributes()["name"]);
@@ -810,7 +810,9 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 		}
 		if (xml->is_tag(_KS("named_mark"))) {
 			auto named_model = static_cast<KNamedModel*>(tree->unbind());
-			assert(named_model);
+			if (!named_model) {
+				return false;
+			}
 			named_model->release();
 			auto locker = write_lock();
 			auto result = named_marks.erase(xml->attributes()["name"]);
