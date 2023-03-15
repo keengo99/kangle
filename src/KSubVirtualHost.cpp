@@ -52,8 +52,6 @@ KSubVirtualHost::KSubVirtualHost(KVirtualHost *vh) {
 	dir = NULL;
 	doc_root = NULL;
 	type = subdir_local;	
-	allSuccess = true;
-	fromTemplete = false;
 	bind_host = NULL;
 	wide = false;
 #ifdef ENABLE_SVH_SSL
@@ -72,7 +70,6 @@ KSubVirtualHost::~KSubVirtualHost() {
 		xfree(dir);
 	}
 	free_subtype_data();
-	//{{ent
 #ifdef ENABLE_SVH_SSL
 	if (ssl_ctx) {
 		kgl_release_ssl_ctx(ssl_ctx);
@@ -80,7 +77,7 @@ KSubVirtualHost::~KSubVirtualHost() {
 	if (ssl_param) {
 		free(ssl_param);
 	}
-#endif//}}
+#endif
 }
 void KSubVirtualHost::free_subtype_data()
 {
@@ -107,7 +104,7 @@ void KSubVirtualHost::release()
 	vh->destroy();
 }
 #ifdef ENABLE_SVH_SSL
-bool KSubVirtualHost::set_ssl_info(const char *crt, const char *key)
+bool KSubVirtualHost::set_ssl_info(const char *crt, const char *key, bool ssl_from_ext)
 {
 	KString certfile,keyfile;
 	if (*crt == '-') {
@@ -129,6 +126,7 @@ bool KSubVirtualHost::set_ssl_info(const char *crt, const char *key)
 		vh->cert_file = crt;
 		vh->key_file = key;
 	}
+	this->ssl_from_ext = ssl_from_ext;
 	return true;
 }
 #endif
@@ -196,7 +194,7 @@ void KSubVirtualHost::setDocRoot(const char *doc_root, const char *dir) {
 		if (ssl_key != NULL) {
 			*ssl_key = '\0';
 			ssl_key++;
-			set_ssl_info(ssl_crt, ssl_key);
+			set_ssl_info(ssl_crt, ssl_key, false);
 		}
 #endif
 	}

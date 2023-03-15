@@ -93,7 +93,7 @@ public:
 	KSubVirtualHost(KVirtualHost *vh);
 	void setDocRoot(const char *doc_root,const char *dir);
 #ifdef ENABLE_SVH_SSL
-	bool set_ssl_info(const char *crt, const char *key);
+	bool set_ssl_info(const char *crt, const char *key, bool ssl_from_ext);
 #endif
 	void release() override;
 	bool MatchHost(const char *host);
@@ -101,8 +101,6 @@ public:
 	/**
 	* 完成url到物理文件的转换
 	* exsit标识文件是否存在
-	* htresponse htaccess转换后的access对象
-	* handled 是否已经处理了rq,如htaccess已经发送数据给rq(重定向,拒绝等等)
 	*/
 	kgl_jump_type bindFile(KHttpRequest *rq,KHttpObject *obj,bool &exsit, KApacheHtaccessContext &htctx, KSafeSource& fo);
 	bool bindFile(KHttpRequest *rq,bool &exsit,bool searchDefaultFile,bool searchAlias);
@@ -112,8 +110,7 @@ public:
 	KVirtualHost *vh;
 	domain_t bind_host;
 	bool wide;
-	bool allSuccess;
-	bool fromTemplete;
+	bool ssl_from_ext;
 	subdir_type type;
 #ifdef ENABLE_SVH_SSL
 	kgl_ssl_ctx *ssl_ctx;

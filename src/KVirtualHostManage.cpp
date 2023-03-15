@@ -45,39 +45,70 @@ void free_ssl_certifycate(void* arg) {
 	delete cert;
 }
 bool KVirtualHostManage::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+	auto xml = ev->get_xml();
 	switch (ev->type) {
 	case kconfig::EvSubDir | kconfig::EvNew:
 	{
-		assert(tree->ls == nullptr);
-		auto vh = new KVirtualHost(ev->get_xml()->attributes()["name"]);
-		vh->parse_xml(ev->get_xml()->attributes(), nullptr);
-		if (tree->bind(vh)) {
-			vh->addRef();
+		if (xml->is_tag(_KS("vh"))) {
+			assert(tree->ls == nullptr);
+			auto vh = new KVirtualHost(xml->attributes()["name"]);
+			vh->parse_xml(ev->get_xml()->attributes(), nullptr);
+			if (tree->bind(vh)) {
+				vh->addRef();
+			}
+			if (!this->addVirtualHost(tree, vh)) {
+				tree->unbind();
+				vh->destroy();
+			}
+			return true;
 		}
-		if (!this->addVirtualHost(tree, vh)) {
-			tree->unbind();
-			vh->destroy();
+#ifdef ENABLE_SVH_SSL
+		if (xml->is_tag(_KS("ssl"))) {
+			auto attr = xml->attributes();
+			add_ssl(attr("domain"), attr("certificate"), attr("certificate_key"));
+			return true;
 		}
+#endif
 		break;
 	}
 	case kconfig::EvSubDir | kconfig::EvUpdate:
 	{
-		auto old_vh = static_cast<KVirtualHost*>((KBaseVirtualHost*)tree->unbind());
-		defer(old_vh->destroy());
-		auto new_vh = new KVirtualHost(old_vh->name);
-		new_vh->parse_xml(ev->get_xml()->attributes(), old_vh);
-		if (tree->bind(new_vh)) {
-			new_vh->addRef();
+		if (xml->is_tag(_KS("vh"))) {
+			auto old_vh = static_cast<KVirtualHost*>((KBaseVirtualHost*)tree->unbind());
+			defer(old_vh->destroy());
+			auto new_vh = new KVirtualHost(old_vh->name);
+			new_vh->parse_xml(xml->attributes(), old_vh);
+			if (tree->bind(new_vh)) {
+				new_vh->addRef();
+			}
+			this->updateVirtualHost(tree, new_vh, old_vh);
+			return true;
 		}
-		this->updateVirtualHost(tree, new_vh, old_vh);
+#ifdef ENABLE_SVH_SSL
+		if (xml->is_tag(_KS("ssl"))) {
+			auto attr = xml->attributes();
+			update_ssl(attr("domain"), attr("certificate"), attr("certificate_key"));
+			return true;
+		}
+#endif
 		break;
 	}
 	case kconfig::EvSubDir | kconfig::EvRemove:
 	{
-		auto vh = static_cast<KVirtualHost*>((KBaseVirtualHost*)tree->unbind());
-		defer(vh->destroy());
-		if (this->removeVirtualHost(tree, vh)) {
+		if (xml->is_tag(_KS("vh"))) {
+			auto vh = static_cast<KVirtualHost*>((KBaseVirtualHost*)tree->unbind());
+			defer(vh->destroy());
+			if (this->removeVirtualHost(tree, vh)) {
+			}
+			return true;
 		}
+#ifdef ENABLE_SVH_SSL
+		if (xml->is_tag(_KS("ssl"))) {
+			auto attr = xml->attributes();
+			remove_ssl(attr("domain"));
+			return true;
+		}
+#endif
 		break;
 	}
 	}
@@ -107,27 +138,10 @@ KVirtualHostManage::~KVirtualHostManage() {
 	}
 #endif
 }
-#if 0
-void KVirtualHostManage::copy(KVirtualHostManage* vm) {
-	kassert(this == conf.gvm);
-	lock.Lock();
-	//globalVh.swap(&vm->globalVh);
-	avh.swap(vm->avh);
-	gtvhs.swap(vm->gtvhs);
-#ifdef ENABLE_SVH_SSL
-	KDomainMap* tmp_ssl_config = ssl_config;
-	ssl_config = vm->ssl_config;
-	vm->ssl_config = tmp_ssl_config;
-#endif
-	InternalBindAllVirtualHost();
-	vm->InternalUnbindAllVirtualHost();
-	lock.Unlock();
-}
-#endif
 kserver* KVirtualHostManage::RefsServer(u_short port) {
 	auto lock = locker();
 	return dlisten.RefsServer(port);
-	
+
 }
 void KVirtualHostManage::getAllVh(std::list<KString>& vhs, bool status, bool onlydb) {
 	auto lock = locker();
@@ -308,7 +322,7 @@ bool KVirtualHostManage::removeVirtualHost(kconfig::KConfigTree* ct, KVirtualHos
 	}
 	return result;
 }
-bool KVirtualHostManage::internalAddVirtualHost(kconfig::KConfigTree *ct,KVirtualHost* vh, KVirtualHost* ov) {
+bool KVirtualHostManage::internalAddVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh, KVirtualHost* ov) {
 #ifdef ENABLE_USER_ACCESS
 	vh->access_config_listen(ct, ov);
 #endif
@@ -440,9 +454,6 @@ void KVirtualHostManage::getVhDetail(KWStream& s, KVirtualHost* vh, bool edit, i
 	if (vh && edit) {
 		list<KSubVirtualHost*>::iterator it;
 		for (it = vh->hosts.begin(); it != vh->hosts.end(); it++) {
-			if ((*it)->fromTemplete) {
-				continue;
-			}
 			if ((*it)->wide) {
 				s << "*";
 			}
@@ -666,7 +677,7 @@ void KVirtualHostManage::getVhDetail(KWStream& s, KVirtualHost* vh, bool edit, i
 	s << "</table>\n";
 	s << "<input type=submit value='" << LANG_SUBMIT << "'>";
 	s << "</form>";
-	}
+}
 void KVirtualHostManage::getVhIndex(KWStream& s, KVirtualHost* vh, int id, int t) {
 	vh->lock.Lock();
 	s << "<tr id='tr" << id << "' style='background-color: #ffffff' onmouseover=\"setbgcolor('tr";
@@ -771,7 +782,7 @@ void KVirtualHostManage::getVhIndex(KWStream& s, KVirtualHost* vh, int id, int t
 	//*/
 	s << "</tr>\n";
 	vh->lock.Unlock();
-	}
+}
 #ifdef ENABLE_VH_FLOW
 void KVirtualHostManage::dumpLoad(KVirtualHostEvent* ctx, bool revers, const char* prefix, int prefix_len) {
 	KStringBuf s2;
@@ -1021,7 +1032,7 @@ void KVirtualHostManage::InternalBindVirtualHost(KVirtualHost* vh) {
 			}
 			KSslCertificate* cert = (KSslCertificate*)ssl_config->find(svh->bind_host, svh->wide);
 			if (cert) {
-				svh->set_ssl_info(cert->cert_file.c_str(), cert->key_file.c_str());
+				svh->set_ssl_info(cert->cert_file.c_str(), cert->key_file.c_str(), true);
 			}
 		}
 	}
@@ -1038,8 +1049,39 @@ void KVirtualHostManage::InternalBindVirtualHost(KVirtualHost* vh) {
 	}
 #endif
 }
-bool KVirtualHostManage::BindSsl(const char* domain, const char* cert_file, const char* key_file) {
 #ifdef ENABLE_SVH_SSL
+bool KVirtualHostManage::remove_ssl(const char* domain) {
+	auto lock = locker();
+	if (ssl_config == NULL) {
+		ssl_config = new KDomainMap;
+	}
+	KSslCertificate* ssl = (KSslCertificate*)ssl_config->unbind(domain);
+	if (ssl) {
+		delete ssl;
+		return true;
+	}
+	return false;
+}
+bool KVirtualHostManage::update_ssl(const char* domain, const char* cert_file, const char* key_file) {
+	KSslCertificate* cert = new KSslCertificate;
+	cert->cert_file = cert_file;
+	cert->key_file = key_file;
+	auto lock = locker();
+	if (ssl_config == NULL) {
+		ssl_config = new KDomainMap;
+	}
+	KSslCertificate* old_ssl = (KSslCertificate*)ssl_config->unbind(domain);
+	if (old_ssl) {
+		delete old_ssl;
+	}
+	if (!ssl_config->bind(domain, cert, kgl_bind_unique)) {
+		delete cert;
+		return false;
+	}
+	return true;
+}
+bool KVirtualHostManage::add_ssl(const char* domain, const char* cert_file, const char* key_file) {
+
 	KSslCertificate* cert = new KSslCertificate;
 	cert->cert_file = cert_file;
 	cert->key_file = key_file;
@@ -1051,7 +1093,6 @@ bool KVirtualHostManage::BindSsl(const char* domain, const char* cert_file, cons
 	if (!result) {
 		delete cert;
 	}
-#endif
 	return true;
 }
-
+#endif

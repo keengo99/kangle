@@ -242,9 +242,6 @@ static int getVhDomain(WhmContext *ctx)
 	}
 	list<KSubVirtualHost *>::iterator it;
 	for (it = vh->hosts.begin(); it != vh->hosts.end(); it++) {
-		if(!(*it)->allSuccess){
-			continue;
-		}
 		ctx->add("domain",(*it)->host);
 	}
 	vh->getParsedFileExt(ctx);
@@ -640,8 +637,7 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 			const char *domain = uv->getx("domain");
 			if (domain) {
 				bool domain_finded = false;
-				std::list<KSubVirtualHost *>::iterator it;
-				for (it = vh->hosts.begin(); it != vh->hosts.end(); it++) {
+				for (auto it = vh->hosts.begin(); it != vh->hosts.end(); ++it) {
 					if ((*it)->MatchHost(domain)) {
 						domain_finded = true;
 						ssl_ctx = kgl_get_ssl_ctx((*it)->ssl_ctx);

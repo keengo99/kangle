@@ -1003,6 +1003,7 @@ namespace kconfig {
 		register_qname(_KS("acl"));
 		register_qname(_KS("mark"));
 		register_qname(_KS("table@name"));
+		register_qname(_KS("ssl@domain"));
 		register_qname(_KS("vhs"));
 		register_qname(_KS("vh@name"));
 		register_qname(_KS("error@code"));

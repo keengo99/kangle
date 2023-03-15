@@ -125,9 +125,6 @@ const char* KExtendProgramString::interGetValue(const char* name) {
 		s.clear();
 		std::list<KSubVirtualHost*>::iterator it;
 		for (it = vh->hosts.begin(); it != vh->hosts.end(); it++) {
-			if (!(*it)->allSuccess) {
-				continue;
-			}
 			if (s.size() > 0) {
 				s << split_char;
 			}

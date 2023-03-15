@@ -23,13 +23,5 @@
 #include "KAccess.h"
 #include "KXmlAttribute.h"
 #ifndef HTTP_PROXY
-
-class KHttpServerParser {
-public:
-	KHttpServerParser();
-	virtual ~KHttpServerParser();
-private:
-	bool ParseSsl(KVirtualHostManage *vhm, std::map<std::string, std::string> &attribute);
-};
 #endif
 #endif /*KLOGPARSER_H_*/

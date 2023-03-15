@@ -443,7 +443,6 @@ void KVirtualHost::copy_to(KVirtualHost* vh) {
 	for (auto&& item : hosts) {
 		KSubVirtualHost* svh = new KSubVirtualHost(vh);
 		svh->setHost(item->host);
-		svh->fromTemplete = true;
 		svh->setDocRoot(vh->doc_root.c_str(), item->dir);
 		vh->hosts.push_back(svh);
 	}

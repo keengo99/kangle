@@ -32,7 +32,11 @@ public:
 	void UnBindGlobalListen(KListenHost* services);
 	void BindGlobalListens(std::vector<KListenHost*>& services);
 	void UnBindGlobalListens(std::vector<KListenHost*>& services);
-	bool BindSsl(const char* domain, const char* cert_file, const char* key_file);
+#ifdef ENABLE_SVH_SSL
+	bool add_ssl(const char* domain, const char* cert_file, const char* key_file);
+	bool remove_ssl(const char* domain);
+	bool update_ssl(const char* domain, const char* cert_file, const char* key_file);
+#endif
 	bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) override;
 	kconfig::KConfigEventFlag config_flag() const override {
 		return kconfig::ev_subdir | kconfig::ev_skip_vary;

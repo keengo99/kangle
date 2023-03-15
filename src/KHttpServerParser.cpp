@@ -35,24 +35,5 @@
 #include "extern.h"
 #include "kmalloc.h"
 #ifndef HTTP_PROXY
-using namespace std;
-KHttpServerParser::KHttpServerParser() {
 
-}
-KHttpServerParser::~KHttpServerParser() {
-
-}
-bool KHttpServerParser::ParseSsl(KVirtualHostManage *vhm, std::map<std::string,std::string> &attribute)
-{
-	std::string domain = attribute["domain"];
-	if (domain.empty()) {
-		klog(KLOG_ERR, "set ssl failed domain is empty\n", domain.c_str());
-		return false ;
-	}
-	if (!vhm->BindSsl(domain.c_str(), attribute["certificate"].c_str(), attribute["certificate_key"].c_str())) {
-		klog(KLOG_ERR, "set ssl for domain [%s] failed\n", domain.c_str());
-		return false;
-	}
-	return true;
-}
 #endif

@@ -384,6 +384,9 @@ static void init_config() {
 
 	kconfig::listen(_KS("vhs"), &conf.gvm->vhs);
 	kconfig::listen(_KS("vh"), conf.gvm);
+#ifdef ENABLE_SVH_SSL
+	kconfig::listen(_KS("ssl"), conf.gvm);
+#endif
 #ifdef ENABLE_BLACK_LIST
 	static auto firewall_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev)->bool {
 		on_firewall_event(tree, ev);
