@@ -886,7 +886,7 @@ bool KAcserverManager::remove_server(const KString& name, KString& err_msg) {
 }
 #endif
 KRedirect* KAcserverManager::refsRedirect(const KString& target) {
-	int jumpType;
+	kgl_jump_type jumpType;
 	KString name;
 	if (strncasecmp(target.c_str(), "cdn:", 4) == 0) {
 		KRedirect* rd = NULL;

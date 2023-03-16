@@ -22,7 +22,7 @@
 
 #define MODEL_ACL 	1
 #define MODEL_MARK	2
-typedef int kgl_jump_type;
+typedef uint32_t kgl_jump_type;
 class KAccess;
 class KFetchObject;
 class KHttpObject;

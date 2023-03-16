@@ -62,11 +62,11 @@ struct KConfigFileLess
 class KChain;
 #define TABLE_CONTEXT 	"table"
 using KSafeChain = std::unique_ptr<KChain>;
-class KTable : public KJump, public kconfig::KConfigListen {
+class KTable final: public KJump, public kconfig::KConfigListen {
 public:
 	~KTable();
 	KTable(KAccess *access,const KString& name);
-	kgl_jump_type match(KHttpRequest *rq, KHttpObject *obj, unsigned& checked_table, KJump **jump, KSafeSource& fo);
+	kgl_jump_type match(KHttpRequest *rq, KHttpObject *obj, unsigned& checked_table, KSafeJump &jump, KSafeSource& fo);
 	void htmlTable(KWStream &s,const char *vh,u_short accessType);
 	bool parse_config(KAccess *access,const khttpd::KXmlNodeBody* xml);
 	kconfig::KConfigEventFlag config_flag() const {

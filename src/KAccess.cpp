@@ -158,14 +158,13 @@ int32_t KAccess::ShutdownMarkModule() {
 	}
 	return result;
 }
-KAccess::KAccess(bool is_global, u_short type) {
+KAccess::KAccess(bool is_global, uint8_t type) {
 	rwlock = kfiber_rwlock_init();
-	default_jump = NULL;
 	default_jump_type = JUMP_ALLOW;
 	begin = NULL;
 	post_map = NULL;
 	string err_msg;
-	this->globalFlag = is_global;
+	this->global_flag = is_global;
 	this->type = type;
 	ref = 1;
 }
@@ -190,7 +189,7 @@ void KAccess::clear() {
 	inter_destroy();
 }
 bool KAccess::isGlobal() {
-	return globalFlag;
+	return global_flag;
 }
 bool KAccess::addAclModel(u_short type, KAcl* m, bool replace) {
 	if (type > 1) {
@@ -400,34 +399,29 @@ void KAccess::loadModel() {
 	addMarkModel(REQUEST_RESPONSE, new KConnectionCloseMark());
 }
 kgl_jump_type KAccess::checkPostMap(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
-	if (post_map == NULL) {
+	auto lock = read_lock();
+	if (!post_map) {
 		return JUMP_ALLOW;
 	}
-	kgl_jump_type jumpType = default_jump_type;
 	unsigned checked_table = 0;
-	KJump* jump = default_jump;
-	kfiber_rwlock_rlock(rwlock);
-	if (post_map) {
-		jumpType = post_map->match(rq, obj, checked_table, &jump, fo);
-		if (jumpType == JUMP_RETURN) {
-			jumpType = default_jump_type;
-		}
+	KSafeJump jump;
+	auto jumpType = post_map->match(rq, obj, checked_table, jump, fo);
+	if (jumpType == JUMP_RETURN) {
+		jumpType = default_jump_type;
 	}
-	kfiber_rwlock_runlock(rwlock);
 	if (jumpType == JUMP_ALLOW) {
 		return JUMP_ALLOW;
 	}
 	return JUMP_DENY;
 }
 kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
+	auto lock = read_lock();
 	kgl_jump_type jumpType = default_jump_type;
 	unsigned checked_table = 0;
-	KJump* jump = default_jump;
-	kfiber_rwlock_rlock(rwlock);
+	KSafeJump jump(default_jump);
 	if (begin) {
-		jumpType = begin->match(rq, obj, checked_table, &jump, fo);
+		jumpType = begin->match(rq, obj, checked_table, jump, fo);
 		if (fo) {
-			kfiber_rwlock_runlock(rwlock);
 			if (fo->before_cache()) {
 				return JUMP_DENY;
 			}
@@ -441,9 +435,8 @@ kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo
 	switch (jumpType) {
 	case JUMP_SERVER:
 	{
-
 		assert(!rq->has_final_source());
-		KPoolableRedirect* as = (KPoolableRedirect*)jump;
+		KPoolableRedirect* as = static_cast<KPoolableRedirect*>(jump.get());
 		KRedirectSource* fo2 = as->makeFetchObject(rq, NULL);
 		as->add_ref();
 		fo2->bind_base_redirect(new KBaseRedirect(as, KConfirmFile::Never));
@@ -454,7 +447,7 @@ kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo
 #ifdef ENABLE_WRITE_BACK
 	case JUMP_WBACK:
 		if (jump && fo) {
-			KWriteBack* wb = (KWriteBack*)jump;
+			KWriteBack* wb = static_cast<KWriteBack*>(jump.get());
 			wb->buildRequest(rq, fo);
 		}
 		jumpType = JUMP_DENY;
@@ -466,7 +459,7 @@ kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo
 		if (fo) {
 #ifdef HTTP_PROXY
 			if (rq->sink->data.meth == METH_CONNECT) {
-				*fo = new KConnectProxyFetchObject();
+				fo.reset(new KConnectProxyFetchObject());
 				break;
 			}
 #endif
@@ -480,15 +473,16 @@ kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo
 		}
 		break;
 	}
-	kfiber_rwlock_runlock(rwlock);
 	return jumpType;
 }
-KSafeTable KAccess::getTable(const KString& table_name) {
+KSafeTable KAccess::get_table(const KString& table_name) {
 	auto it = tables.find(table_name);
 	if (it != tables.end()) {
 		return (*it).second;
 	}
-	return KSafeTable();
+	auto table = KSafeTable(new KTable(this, table_name));
+	tables.insert(std::make_pair(table_name, table));
+	return table;
 }
 KString KAccess::htmlAccess(const char* vh) {
 	KStringBuf s;
@@ -569,7 +563,7 @@ bool KAccess::parseChainAction(const KString& action, kgl_jump_type& jumpType, K
 	}
 	return true;
 }
-void KAccess::buildChainAction(kgl_jump_type jumpType, KJump* jump, KWStream& s) {
+void KAccess::buildChainAction(kgl_jump_type jumpType, const KSafeJump& jump, KWStream& s) {
 	bool jname = false;
 	switch (jumpType) {
 	case JUMP_DROP:
@@ -607,21 +601,17 @@ void KAccess::buildChainAction(kgl_jump_type jumpType, KJump* jump, KWStream& s)
 		s << jump->name;
 	}
 }
-void KAccess::setChainAction(kgl_jump_type& jump_type, KJump** jump, const KString& name) {
-	if (*jump) {
-		(*jump)->release();
-		*jump = nullptr;
-	}
+void KAccess::setChainAction(kgl_jump_type& jump_type, KSafeJump& jump, const KString& name) {
 	switch (jump_type) {
 #ifdef ENABLE_MULTI_TABLE
 	case JUMP_TABLE:
 	{
 		if (name[0] == '~') {
-			*jump = (KJump*)kaccess[type]->getTable(name).release();
+			jump = kaccess[type]->get_table(name);
 		} else {
-			*jump = (KJump*)getTable(name).release();
+			jump = get_table(name);
 		}
-		if (*jump == nullptr) {
+		if (!jump) {
 			fprintf(stderr, "cann't get table name=[%s]\n", name.c_str());
 			jump_type = JUMP_DENY;
 			throw KXmlException("cann't found table");
@@ -630,8 +620,8 @@ void KAccess::setChainAction(kgl_jump_type& jump_type, KJump** jump, const KStri
 	}
 #endif
 	case JUMP_SERVER:
-		*jump = (KJump*)conf.gam->refsAcserver(name);
-		if (*jump == NULL) {
+		jump.reset(conf.gam->refsAcserver(name));
+		if (!jump) {
 			klog(KLOG_ERR, "cann't get server name=[%s]\n", name.c_str());
 			jump_type = JUMP_DENY;
 			throw KXmlException("cann't found server");
@@ -639,8 +629,8 @@ void KAccess::setChainAction(kgl_jump_type& jump_type, KJump** jump, const KStri
 		break;
 #ifdef ENABLE_WRITE_BACK
 	case JUMP_WBACK:
-		*jump = (KJump*)writeBackManager.refsWriteBack(name);
-		if (*jump == NULL) {
+		jump.reset(writeBackManager.refsWriteBack(name));
+		if (!jump) {
 			klog(KLOG_ERR, "cann't get writeback name=[%s]\n", name.c_str());
 			jump_type = JUMP_DENY;
 			throw KXmlException("cann't found writeback");
@@ -676,7 +666,7 @@ void KAccess::parse_config(const KXmlAttribute& attr) {
 	auto locker = write_lock();
 	KString jump_name;
 	parseChainAction(attr["action"], default_jump_type, jump_name);
-	setChainAction(this->default_jump_type, &this->default_jump, jump_name);
+	setChainAction(this->default_jump_type, default_jump, jump_name);
 }
 bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	switch (ev->type) {
@@ -704,7 +694,7 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 		auto locker = write_lock();
 		KString jump_name;
 		parseChainAction("allow", default_jump_type, jump_name);
-		setChainAction(this->default_jump_type, &this->default_jump, jump_name);
+		setChainAction(this->default_jump_type, default_jump, jump_name);
 		break;
 	}
 	case kconfig::EvSubDir | kconfig::EvUpdate:
@@ -738,8 +728,7 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 				return false;
 			}
 			auto locker = write_lock();
-			KSafeTable table(new KTable(this, body->attributes["name"]));
-			//printf("new table name=[%s]\n", table->name.c_str());
+			auto table = get_table(body->attributes["name"]);
 			if (!table->parse_config(this, body)) {
 				klog(KLOG_ERR, "cann't parse table config\n");
 				return false;
@@ -806,7 +795,7 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 			auto locker = write_lock();
 			auto result = named_acls.erase(xml->attributes()["name"]);
 			assert(result > 0);
-			return result>0;
+			return result > 0;
 		}
 		if (xml->is_tag(_KS("named_mark"))) {
 			auto named_model = static_cast<KNamedModel*>(tree->unbind());
@@ -817,7 +806,7 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 			auto locker = write_lock();
 			auto result = named_marks.erase(xml->attributes()["name"]);
 			assert(result > 0);
-			return result>0;
+			return result > 0;
 		}
 		break;
 	}

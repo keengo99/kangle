@@ -60,7 +60,7 @@ bool KTable::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* 
 bool KTable::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 	return true;
 }
-kgl_jump_type KTable::match(KHttpRequest* rq, KHttpObject* obj, unsigned& checked_table, KJump** jump, KSafeSource &fo) {
+kgl_jump_type KTable::match(KHttpRequest* rq, KHttpObject* obj, unsigned& checked_table, KSafeJump &jump, KSafeSource &fo) {
 	KTable *m_table = NULL;
 	for (auto&& chain_file : chains) {
 		for (auto&& chain : chain_file.second) {
@@ -69,17 +69,17 @@ kgl_jump_type KTable::match(KHttpRequest* rq, KHttpObject* obj, unsigned& checke
 			}
 			bool result = chain->match(rq, obj, fo);
 			if (fo) {
-				return chain->jumpType;
+				return chain->jump_type;
 			}
 			if (!result) {
 				continue;
 			}
-			switch (chain->jumpType) {
+			switch (chain->jump_type) {
 			case JUMP_CONTINUE:
 				break;
 			case JUMP_TABLE:
 			{
-				m_table = static_cast<KTable*>(chain->jump);
+				m_table = static_cast<KTable*>(chain->jump.get());
 				if (!m_table) {
 					return JUMP_DENY;
 				}
@@ -94,8 +94,8 @@ kgl_jump_type KTable::match(KHttpRequest* rq, KHttpObject* obj, unsigned& checke
 				break;
 			}
 			default:
-				*jump = chain->jump;
-				return chain->jumpType;
+				jump = chain->jump;
+				return chain->jump_type;
 			}
 		}
 	}
@@ -142,7 +142,7 @@ void KTable::htmlTable(KWStream &s,const char *vh,u_short accessType) {
 				<< "'>down</a>]"
 				s << "</td><td>";
 #endif
-			switch (chain->jumpType) {
+			switch (chain->jump_type) {
 			case JUMP_DENY:
 				s << LANG_DENY;
 				break;

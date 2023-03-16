@@ -47,10 +47,10 @@ class WhmContext;
 using KSafeTable = KSharedObj<KTable>;
 void bind_access_config(kconfig::KConfigTree* tree, KAccess* access);
 void parse_module_config(KModel* m, const khttpd::KXmlNodeBody* xml);
-class KAccess : public kconfig::KConfigListen
+class KAccess final: public kconfig::KConfigListen
 {
 public:
-	KAccess(bool is_global, u_short type);
+	KAccess(bool is_global, uint8_t type);
 	void clear();
 	KAccess* add_ref() {
 		katom_inc((void*)&ref);
@@ -95,13 +95,13 @@ public:
 	kgl_jump_type checkPostMap(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo);
 	static void loadModel();
 public:
-	u_short get_type() {
+	uint8_t get_type() {
 		return type;
 	}
 	static int32_t ShutdownMarkModule();
-	void setChainAction(kgl_jump_type& jump_type, KJump** jump, const KString& name);
+	void setChainAction(kgl_jump_type& jump_type, KSafeJump& jump, const KString& name);
 	bool parseChainAction(const KString& action, kgl_jump_type& jumpType, KString& jumpName);
-	static void buildChainAction(kgl_jump_type jumpType, KJump* jump, KWStream& s);
+	static void buildChainAction(kgl_jump_type jumpType, const KSafeJump& jump, KWStream& s);
 
 	bool isGlobal();
 public:
@@ -138,17 +138,17 @@ private:
 		return KFiberWriteLocker(rwlock);
 	}
 	kfiber_rwlock* rwlock;
+	volatile uint32_t ref;
+	uint8_t type;
+	bool global_flag;
 	kgl_jump_type default_jump_type;
-	KJump* default_jump;
+	KSafeJump default_jump;
 	KSafeTable begin;
 	KSafeTable post_map;
-	u_short type;
-	bool globalFlag;
-	volatile uint32_t ref;
 	std::map<KString, KSafeTable> tables;
 	std::map<KString, KSafeNamedModel> named_acls;
 	std::map<KString, KSafeNamedModel> named_marks;
-	KSafeTable getTable(const KString& table_name);
+	KSafeTable get_table(const KString& table_name);
 	std::vector<KString> getTableNames(KString skipName, bool show_global);
 };
 using KSafeAccess = KSharedObj<KAccess>;

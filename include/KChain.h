@@ -29,27 +29,25 @@
 #define CHAIN_CONTEXT	"chain"
 class KAccess;
 
-class KChain {
+class KChain final
+{
 public:
 	KChain();
-	virtual ~KChain();
-	bool match(KHttpRequest *rq, KHttpObject *obj, KSafeSource &fo);
-	uint32_t hit_count;
-	
-	void parse_config(KAccess *access, const khttpd::KXmlNodeBody* xml);
-	void get_acl_short_html(KWStream&s);
+	~KChain();
+	bool match(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo);
+	void parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml);
+	void get_acl_short_html(KWStream& s);
 	void get_mark_short_html(KWStream& s);
 	void clear();
 	friend class KAccess;
 	friend class KTable;
 private:
-	void getModelHtml(KModel *model, KWStream &s, int type, int index);
+	void getModelHtml(KModel* model, KWStream& s, int type, int index);
 private:
-	kgl_jump_type jumpType;
-	KJump *jump;
-	std::list<KAcl *> acls;
-	std::list<KMark *> marks;
-
+	uint32_t hit_count;
+	kgl_jump_type jump_type;
+	KSafeJump jump;
+	std::list<KAcl*> acls;
+	std::list<KMark*> marks;
 };
-
 #endif /*KCHAIN_H_*/

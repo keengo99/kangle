@@ -43,17 +43,13 @@ void parse_module_child_config(KModel* m, const KMap<khttpd::KXmlKey, khttpd::KX
 }
 KChain::KChain() {
 	hit_count = 0;
-	jump = nullptr;
-	jumpType = JUMP_CONTINUE;
+	jump_type = JUMP_CONTINUE;
 }
 KChain::~KChain() {
 	clear();
 }
 void KChain::clear() {
-	if (jump) {
-		jump->release();
-		jump = nullptr;
-	}
+	jump = nullptr;
 	for (auto it = acls.begin(); it != acls.end(); ++it) {
 		(*it)->release();
 	}
@@ -154,10 +150,10 @@ void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 	assert(acls.empty());
 	assert(marks.empty());
 	KString jumpName;
-	if (!access->parseChainAction(xml->attributes["action"], jumpType, jumpName)) {
+	if (!access->parseChainAction(xml->attributes["action"], jump_type, jumpName)) {
 		throw KXmlException("chain action error");
 	}
-	access->setChainAction(jumpType, &jump, jumpName);
+	access->setChainAction(jump_type, jump, jumpName);
 	for (auto node : xml->childs) {
 		auto model_name = node->get_tag();
 		bool is_acl = false;
