@@ -1491,6 +1491,19 @@ bool KHttpManage::start_vhs(bool& hit) {
 			"id").c_str()), urlValue);
 		return sendHttp(s.str());
 	}
+	if (strcmp(rq->sink->data.url->path, "/vhbase") == 0) {
+		hit = true;
+		conf.gvm->vh_base_action(urlValue, err_msg);
+		if (err_msg.size() > 0) {
+			return sendErrPage(err_msg.c_str());
+		}
+		KStringBuf s;
+		s << "/vhlist?id=" << getUrlValue("id") << "&t=" << getUrlValue("t");
+		if (getUrlValue("action") != "vh_edit" && getUrlValue("action") != "vh_add") {
+			s << "&name=" << getUrlValue("name");
+		}
+		return sendRedirect(s.str().c_str());
+	}
 	if (strcmp(rq->sink->data.url->path, "/reload_vh") == 0) {
 		do_config(false);
 		hit = true;

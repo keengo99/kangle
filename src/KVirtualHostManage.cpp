@@ -170,7 +170,7 @@ KVirtualHost* KVirtualHostManage::refsVirtualHostByName(const KString& name) {
 void KVirtualHostManage::shutdown() {
 	dlisten.Close();
 }
-void KVirtualHostManage::getMenuHtml(KWStream& s, KVirtualHost* v, KStringBuf& url, int t) {
+void KVirtualHostManage::getMenuHtml(KWStream& s, KVirtualHost* v, KStringBuf& url) {
 	KBaseVirtualHost* vh = &vhs;
 	if (v) {
 		vh = v;
@@ -180,12 +180,6 @@ void KVirtualHostManage::getMenuHtml(KWStream& s, KVirtualHost* v, KStringBuf& u
 		<< "<LINK href=/main.css type='text/css' rel=stylesheet></head>";
 	s << "<body><table border=0><tr><td>";
 	s << "[<a href='/vhlist'>" << klang["LANG_VHS"] << "</a>]";
-	if (t) {
-		s << " ==> [<a href='/vhlist?t=1&id=0'>" << klang["all_tvh"] << "</a>]";
-		if (v) {
-			url << "t=" << t << "&";
-		}
-	}
 	if (v) {
 		s << " ==> " << v->name;
 	}
@@ -219,25 +213,24 @@ void KVirtualHostManage::getMenuHtml(KWStream& s, KVirtualHost* v, KStringBuf& u
 	s << "<hr>";
 }
 void KVirtualHostManage::getHtml(KWStream& s, const KString& name, int id, KUrlValue& attribute) {
-	int t = atoi(attribute.get("t").c_str());
 	KStringBuf url;
 	KBaseVirtualHost* vh = &vhs;
-	KVirtualHost* v = NULL;
+	KSafeVirtualHost v;
 	if (!name.empty()) {
-		v = refsVirtualHostByName(name);
+		v.reset(refsVirtualHostByName(name));
 		if (v) {
-			vh = v;
+			vh = v.get();
 		}
 	}
-	getMenuHtml(s, v, url, t);
+	getMenuHtml(s, v.get(), url);
 	url << "id=" << id;
 	if (id == 0 && !v) {
 		auto lock = locker();
-		getAllVhHtml(s, t);
+		getAllVhHtml(s);
 	} else {
-		vh->lock.Lock();
+		auto locker = vh->get_locker();
 		if (id == 0) {
-			getVhDetail(s, (KVirtualHost*)vh, true, t);
+			getVhDetail(s, v.get(), true);
 		} else if (id == 1) {
 			vh->getIndexHtml(url.str(), s);
 		} else if (id == 2) {
@@ -245,10 +238,7 @@ void KVirtualHostManage::getHtml(KWStream& s, const KString& name, int id, KUrlV
 		} else if (id == 3) {
 			vh->getErrorPageHtml(url.str(), s);
 		} else if (id == 4) {
-			if (v) {
-				v->destroy();
-			}
-			getVhDetail(s, v, false, t);
+			getVhDetail(s, v.get(), false);
 		} else if (id == 5) {
 			vh->getAliasHtml(url.str(), s);
 		} else if (id == 6) {
@@ -262,10 +252,6 @@ void KVirtualHostManage::getHtml(KWStream& s, const KString& name, int id, KUrlV
 		} else if (id == 8) {
 			vh->getMimeTypeHtml(url.str(), s);
 		}
-		vh->lock.Unlock();
-	}
-	if (v) {
-		v->destroy();
 	}
 	s << endTag();
 	s << "</body></html>";
@@ -407,7 +393,7 @@ query_vh_result KVirtualHostManage::queryVirtualHost(KVirtualHostContainer* vhc,
 	return result;
 }
 
-void KVirtualHostManage::getVhDetail(KWStream& s, KVirtualHost* vh, bool edit, int t) {
+void KVirtualHostManage::getVhDetail(KWStream& s, KVirtualHost* vh, bool edit) {
 	//	string host;
 	string action = "vh_add";
 	if (edit) {
@@ -417,7 +403,7 @@ void KVirtualHostManage::getVhDetail(KWStream& s, KVirtualHost* vh, bool edit, i
 	if (vh) {
 		name = vh->name;
 	}
-	s << "<form name='frm' action='/vhbase?action=" << action << "&t=" << t;
+	s << "<form name='frm' action='/vhbase?action=" << action;
 	s << "' method='post'>";
 	s << "<table border=1>";
 	s << "<tr><td>" << LANG_NAME << "</td>";
@@ -439,43 +425,6 @@ void KVirtualHostManage::getVhDetail(KWStream& s, KVirtualHost* vh, bool edit, i
 #ifndef _WIN32
 	s << "<input name='chroot' type='checkbox' value='1'" << ((vh && vh->chroot) ? "checked" : "") << ">chroot";
 #endif
-#ifdef ENABLE_BASED_PORT_VH
-	s << "<tr><td>" << klang["bind"] << "</td>";
-	s << "<td><textarea name='bind' rows='3' cols='25'>";
-	if (vh && edit) {
-		for (auto it2 = vh->binds.begin(); it2 != vh->binds.end(); it2++) {
-			s << (*it2) << "\n";
-		}
-	}
-	s << "</textarea></td></tr>\n";
-#endif
-	s << "<tr><td>" << klang["vh_host"] << "</td>";
-	s << "<td><textarea name='host' rows='4' cols='25'>";
-	if (vh && edit) {
-		list<KSubVirtualHost*>::iterator it;
-		for (it = vh->hosts.begin(); it != vh->hosts.end(); it++) {
-			if ((*it)->wide) {
-				s << "*";
-			}
-			s << (*it)->host;
-			if (strcmp((*it)->dir, "/") != 0
-#ifdef ENABLE_SVH_SSL
-				|| (*it)->ssl_param != NULL
-#endif
-				) {
-				s << "|" << (*it)->dir;
-#ifdef ENABLE_SVH_SSL
-				if ((*it)->ssl_param != NULL) {
-					s << KGL_SSL_PARAM_SPLIT_CHAR << (*it)->ssl_param;
-				}
-#endif
-			}
-			s << "\n";
-		}
-	}
-	s << "</textarea></td></tr>\n";
-
-	s << "</td></tr>\n";
 	s << "<tr><td>" << klang["inherit"]
 		<< "</td><td><input name='inherit' type='radio' value='1' ";
 	if (vh == NULL || vh->inherit) {
@@ -678,21 +627,18 @@ void KVirtualHostManage::getVhDetail(KWStream& s, KVirtualHost* vh, bool edit, i
 	s << "<input type=submit value='" << LANG_SUBMIT << "'>";
 	s << "</form>";
 }
-void KVirtualHostManage::getVhIndex(KWStream& s, KVirtualHost* vh, int id, int t) {
+void KVirtualHostManage::getVhIndex(KWStream& s, KVirtualHost* vh, int id) {
 	vh->lock.Lock();
 	s << "<tr id='tr" << id << "' style='background-color: #ffffff' onmouseover=\"setbgcolor('tr";
 	s << id << "','#bbbbbb')\" onmouseout=\"setbgcolor('tr" << id << "','#ffffff')\">";
 	s << "<td>";
 	s << "[<a href=\"javascript:if(confirm('really delete')){ window.location='/vhbase?";
-	s << "name=" << vh->name << "&action=vh_delete&t=" << t << "';}\">" << LANG_DELETE << "</a>]";
-	if (t) {
-		s << "[<a href='/vhlist?id=4&templete=" << vh->name << "'>" << klang["new_vh"] << "</a>]";
-	}
+	s << "name=" << vh->name << "&action=vh_delete';}\">" << LANG_DELETE << "</a>]";
 	s << "</td><td ";
 	if (vh->closed) {
 		s << "bgcolor='#bbbbbb'";
 	}
-	s << "><a href='/vhlist?id=0&name=" << vh->name << "&t=" << t << "'";
+	s << "><a href='/vhlist?id=0&name=" << vh->name << "'";
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
 	if (vh->ssl_ctx) {
 		s << " class=\"ssl_enabled\"";
@@ -907,17 +853,52 @@ void KVirtualHostManage::dumpFlow() {
 	}
 }
 #endif
-void KVirtualHostManage::getAllVhHtml(KWStream& s, int t) {
+bool KVirtualHostManage::vh_base_action(KUrlValue& uv, KString& err_msg) {
+	auto action = uv.attribute.remove("action");
+	auto name = uv["name"];
+	KBaseVirtualHost* bvh = &vhs;
+	KSafeVirtualHost vh;
+	bool result = false;
+	bool reinherit = true;
+	bool skip_warning = false;
+	if (name.size() > 0) {
+		vh.reset(refsVirtualHostByName(name));
+		bvh = vh.get();
+	}
+	if (action == "vh_add" || action == "vh_edit") {
+		KStringBuf path;
+		path << "vh@" << name;
+		auto xml = uv.to_xml(_KS("vh"), name.c_str(), name.size());
+		if (kconfig::KConfigResult::Success != kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvUpdate | kconfig::FlagCreate | kconfig::FlagCopyChilds)) {
+			err_msg = "cann't add or edit vh";
+			return false;
+		}
+		return true;
+	} else {
+		if (name.size() > 0 && vh == nullptr) {
+			err_msg = "cann't find vh";
+			return false;
+		}
+		if (action == "vh_delete") {
+			KStringBuf path;
+			path << "vh@" << name;
+			if (kconfig::KConfigResult::Success != kconfig::remove(path.str().str(), 0)) {
+				err_msg = "remove vh failed";
+				return false;
+			}
+			return true;
+		}
+	}
+	return true;
+}
+void KVirtualHostManage::getAllVhHtml(KWStream& s) {
 	map<string, KVirtualHost*>::iterator it;
 	s << "<script language='javascript'>\r\n"
 		"	function setbgcolor(id,color){"
 		"		document.getElementById(id).style.backgroundColor = color;"
 		"	}"
 		"</script>\r\n";
-	s << "[<a href='/vhlist?id=4&t=" << t << "'>" << (t ? klang["new_tvh"] : klang["new_vh"]) << "</a>] ";
-	if (!t) {
-		s << avh.size();
-	}
+	s << "[<a href='/vhlist?id=4'>" << klang["new_vh"] << "</a>] ";
 	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>" << LANG_NAME << "</td>";
 	s << "<td>" << klang["vh_host"] << "</td><td>" << klang["doc_root"] << "</td>";
 #ifdef ENABLE_VH_RUN_AS
@@ -946,10 +927,10 @@ void KVirtualHostManage::getAllVhHtml(KWStream& s, int t) {
 	int id = 0;
 	//vh
 	for (auto it = avh.begin(); it != avh.end(); it++, id++) {
-		getVhIndex(s, (*it).second, id, t);
+		getVhIndex(s, (*it).second, id);
 	}
 	s << "</table>";
-	s << "[<a href='/vhlist?id=4&t=" << t << "'>" << (t ? klang["new_tvh"] : klang["new_vh"]) << "</a>]";
+	s << "[<a href='/vhlist?id=4'>" << klang["new_vh"] << "</a>]";
 }
 void KVirtualHostManage::BindGlobalListen(KListenHost* listen) {
 	auto lock = locker();

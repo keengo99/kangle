@@ -280,7 +280,6 @@ namespace kconfig {
 			{
 				uint8_t remove_flag : 1;
 				uint8_t default_config : 1;
-				uint8_t readonly : 1;
 				uint8_t need_save : 1;
 				KConfigFileSource source;
 			};

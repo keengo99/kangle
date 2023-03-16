@@ -712,7 +712,7 @@ namespace kconfig {
 		return sources[static_cast<int>(source)];
 	}
 	bool KConfigFile::update(const char* name, size_t size, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type) {
-		if (readonly) {
+		if (!this->get_source_driver()->enable_save()) {
 			return false;
 		}
 		auto nodes = this->nodes->clone();

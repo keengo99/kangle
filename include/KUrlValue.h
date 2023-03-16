@@ -3,6 +3,8 @@
 #include<map>
 #include<string>
 #include "KXmlAttribute.h"
+#include "KXmlDocument.h"
+#include "KConfigTree.h"
 class KUrlValue
 {
 public:
@@ -31,6 +33,11 @@ public:
 	bool parse(const char *param);
 	bool parse(char* param);
 	KXmlAttribute attribute;
+	khttpd::KSafeXmlNode to_xml(const char *tag,size_t len,const char *vary=nullptr,size_t vary_len=0) {
+		auto xml = kconfig::new_xml(tag, len,vary,vary_len);
+		xml->attributes().swap(attribute);
+		return xml;
+	}
 	const KString &operator[](const KString&name) const
 	{
 		return attribute[name];

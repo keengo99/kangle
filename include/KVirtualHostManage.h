@@ -15,14 +15,15 @@
 #include "KMutex.h"
 #include "KDynamicListen.h"
 class KGTempleteVirtualHost;
-void on_vh_manage_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+
 class KVirtualHostManage : public kconfig::KConfigListen
 {
 public:
 	KVirtualHostManage();
 	virtual ~KVirtualHostManage();
-	void getMenuHtml(KWStream& s, KVirtualHost* vh, KStringBuf& url, int t);
+	void getMenuHtml(KWStream& s, KVirtualHost* vh, KStringBuf& url);
 	void getHtml(KWStream& s, const KString& vh_name, int id, KUrlValue& attribute);
+	bool vh_base_action(KUrlValue& attribute, KString& err_msg);
 	void GetListenHtml(KWStream& s);
 	void GetListenWhm(WhmContext* ctx);
 	void shutdown();
@@ -81,11 +82,11 @@ public:
 		return KFiberLocker(lock);
 	}
 private:
-	void getVhIndex(KWStream& s, KVirtualHost* vh, int id, int t);
+	void getVhIndex(KWStream& s, KVirtualHost* vh, int id);
 	bool internalAddVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh, KVirtualHost* ov);
 	bool internalRemoveVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh);
-	void getAllVhHtml(KWStream& s, int tvh);
-	void getVhDetail(KWStream& s, KVirtualHost* vh, bool edit, int t);
+	void getAllVhHtml(KWStream& s);
+	void getVhDetail(KWStream& s, KVirtualHost* vh, bool edit);
 	/*
 	 * 所有虚拟主机列表
 	 */
