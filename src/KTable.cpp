@@ -24,7 +24,7 @@
 #include "kmalloc.h"
 #include "time_utils.h"
 
-void KTable::clear() {	
+void KTable::clear() {
 	chains.clear();
 }
 KSafeChain KTable::parse_chain(const khttpd::KXmlNodeBody* xml) {
@@ -40,7 +40,7 @@ void KTable::on_file_event(std::vector<KSafeChain>& chain, kconfig::KConfigEvent
 	}
 	//remove
 	for (uint32_t index = ev->diff->from; index < ev->diff->old_to; ++index) {
-		chain.erase(chain.begin()+ ev->diff->from);
+		chain.erase(chain.begin() + ev->diff->from);
 	}
 	chain.shrink_to_fit();
 }
@@ -48,8 +48,8 @@ bool KTable::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* 
 	if (!ev->get_xml()->is_tag(_KS("chain"))) {
 		return false;
 	}
-	auto locker = access->write_lock();	
-	auto result = chains.emplace(std::piecewise_construct,std::forward_as_tuple(ev->file->get_index(), ev->file->get_name()), std::tuple<>());
+	auto locker = access->write_lock();
+	auto result = chains.emplace(std::piecewise_construct, std::forward_as_tuple(ev->file->get_index(), ev->file->get_name()), std::tuple<>());
 	auto it = result.first;
 	on_file_event((*it).second, ev);
 	if ((*it).second.size() == 0) {
@@ -60,8 +60,8 @@ bool KTable::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* 
 bool KTable::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 	return true;
 }
-kgl_jump_type KTable::match(KHttpRequest* rq, KHttpObject* obj, unsigned& checked_table, KSafeJump &jump, KSafeSource &fo) {
-	KTable *m_table = NULL;
+kgl_jump_type KTable::match(KHttpRequest* rq, KHttpObject* obj, unsigned& checked_table, KSafeJump& jump, KSafeSource& fo) {
+	KTable* m_table = NULL;
 	for (auto&& chain_file : chains) {
 		for (auto&& chain : chain_file.second) {
 			if (!chain) {
@@ -101,47 +101,56 @@ kgl_jump_type KTable::match(KHttpRequest* rq, KHttpObject* obj, unsigned& checke
 	}
 	return JUMP_CONTINUE;
 }
-void KTable::htmlTable(KWStream &s,const char *vh,u_short accessType) {
+void KTable::htmlTable(KWStream& s, const char* vh, u_short accessType) {
 	s << name << "," << LANG_REFS << get_ref();
-#if 0
+
 	s << "[<a href=\"javascript:if(confirm('" << LANG_CONFIRM_DELETE << name
-			<< "')){ window.location='tabledel?vh=" << vh << "&access_type=" << accessType
-			<< "&table_name=" << name << "';}\">" << LANG_DELETE << "</a>]";
+		<< "')){ window.location='tabledel?vh=" << vh << "&access_type=" << accessType
+		<< "&table_name=" << name << "';}\">" << LANG_DELETE << "</a>]";
+#if 0
 	s << "[<a href=\"javascript:if(confirm('" << LANG_CONFIRM_EMPTY << name
-			<< "')){ window.location='tableempty?vh=" << vh << "&access_type=" << accessType
-			<< "&table_name=" << name << "';}\">" << LANG_EMPTY << "</a>]";
+		<< "')){ window.location='tableempty?vh=" << vh << "&access_type=" << accessType
+		<< "&table_name=" << name << "';}\">" << LANG_EMPTY << "</a>]";
 	s << "[<a href=\"javascript:tablerename(" << accessType << ",'" << name << "');\">"
-			<< LANG_RENAME << "</a>]";
+		<< LANG_RENAME << "</a>]";
 #endif
 	s << "<table border=1 cellspacing=0 width=100%><tr>";
+	s << "<td>" << LANG_OPERATOR << "</td>";
 #if 0
-	<td> << LANG_OPERATOR
-		<< "</td><td>" << klang["id"] << "</td>";
+	< td > " << klang["id"] << " < / td > ";
 #endif
-	s << "<td>" << LANG_ACTION << "</td><td>acl</td><td>mark</td><td>";
+		s << "<td>" << LANG_ACTION << "</td><td>acl</td><td>mark</td><td>";
 	s << LANG_HIT_COUNT << "</td></tr>\n";
-	int j = 0;
 	int id = 0;
 	for (auto&& chain_file : chains) {
+		int j = 0;
 		for (auto&& chain : chain_file.second) {
 			if (!chain) {
+				++j;
 				continue;
 			}
 			s << "<tr><td>";
+			s << "[<a href=\"javascript:if(confirm('confirm delete chain";
+			s << "')){ window.location='/delchain?vh="
+				<< vh << "&file="
+				<< chain_file.first.name
+				<< "&access_type = " << accessType
+				<< "&id=" << j
+				<< "&table_name=" << name << "';}\">"
+				<< LANG_DELETE << "</a>][<a href='editchainform?vh=" << vh
+				<< "&access_type=" << accessType
+				<< "&id=" << j
+				<< "&table_name=" << name
+				<< "'>" << LANG_EDIT << "</a>]";
 #if 0
-			s << "[< a href = \"javascript:if(confirm('Are you sure to delete the chain";
-			s << "')){ window.location='delchain?vh=" << vh << "&access_type=" << accessType
-				<< "&id=" << j << "&table_name=" << name << "';}\">"
-				<< LANG_DELETE << "</a>][<a href='editchainform?vh=" << vh << "&access_type="
-				<< accessType << "&id=" << j << "&table_name=" << name
-				<< "'>" << LANG_EDIT << "</a>][<a href='addchain?vh=" << vh << "&access_type="
+			s << "[< a href = 'addchain?vh=" << vh << "&access_type="
 				<< accessType << "&id=" << j << "&table_name=" << name
 				<< "'>" << LANG_INSERT << "</a>]"
 				<< "[<a href='downchain?vh=" << vh << "&access_type="
 				<< accessType << "&id=" << j << "&table_name=" << name
 				<< "'>down</a>]"
-				s << "</td><td>";
 #endif
+				s << "</td><td>";
 			switch (chain->jump_type) {
 			case JUMP_DENY:
 				s << LANG_DENY;
@@ -187,11 +196,11 @@ void KTable::htmlTable(KWStream &s,const char *vh,u_short accessType) {
 	s << "</table>";
 #if 0
 	s << "[<a href='addchain?vh=" << vh << "&access_type=" << accessType
-			<< "&add=1&id=-1&table_name=" << name << "'>" << LANG_INSERT
-			<< "</a>]<br><br>";
+		<< "&add=1&id=-1&table_name=" << name << "'>" << LANG_INSERT
+		<< "</a>]<br><br>";
 #endif
 }
-KTable::KTable(KAccess *access,const KString&name) : KJump(name) {
+KTable::KTable(KAccess* access, const KString& name) : KJump(name) {
 	this->access = access;
 }
 KTable::~KTable() {

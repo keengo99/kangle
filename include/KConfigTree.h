@@ -241,7 +241,7 @@ namespace kconfig {
 		void set_remove_flag(bool flag) {
 			this->remove_flag = flag;
 		}
-		KConfigFileSourceDriver *get_source_driver() const;
+		KConfigFileSourceDriver* get_source_driver() const;
 		KConfigFileSource get_source() const {
 			return source;
 		}
@@ -296,7 +296,7 @@ namespace kconfig {
 		bool diff(KConfigTree* name, khttpd::KXmlNode* o, khttpd::KXmlNode* n, int* notice_count);
 		bool diff_body(KConfigTree* name, khttpd::KXmlNodeBody* o, khttpd::KXmlNodeBody* n, int* notice_count);
 	};
-	
+
 	class KConfigEventNode
 	{
 	public:

@@ -88,6 +88,12 @@ public:
 		parse_module_config(m.get(), xml);
 		return m;
 	}
+	const char* get_qname() {
+		if (type == 0) {
+			return "request";
+		}
+		return "response";
+	}
 	void parse_config(const KXmlAttribute& attr);
 	bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) override;
 	kgl_jump_type check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo);

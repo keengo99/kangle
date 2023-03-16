@@ -48,6 +48,13 @@
 #include "KXmlAttribute.h"
 //由vh的引用，计算连接数的差异
 #define VH_REFS_CONNECT_DELTA 1
+template<class T>
+struct KVirtualHostDeleter
+{
+	void operator()(T* t) const noexcept {
+		t->destroy();
+	}
+};
 /**
 * 虚拟主机类
 */
@@ -355,4 +362,5 @@ public:
 	void reload_access();
 #endif
 };
+using KSafeVirtualHost = std::unique_ptr<KVirtualHost, KVirtualHostDeleter<KVirtualHost>>;
 #endif /*KVIRTUALHOST_H_*/

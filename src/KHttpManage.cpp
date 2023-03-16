@@ -426,7 +426,7 @@ bool KHttpManage::config() {
 		s << "<tr><td>" << LANG_OPERATOR << "</td><td>" << LANG_IP << "</td><td>" << LANG_PORT << "</td><td>" << klang["listen_type"] << "</td></tr>";
 		for (auto it = conf.services.begin(); it != conf.services.end(); ++it) {
 			int index = 0;
-			for (auto &&lh : (*it).second) {
+			for (auto&& lh : (*it).second) {
 				if (lh) {
 					s << "<tr><td>";
 					s << "[<a href=\"javascript:if(confirm('really delete')){ window.location='/deletelisten?file=" << (*it).first << "&id=";
@@ -1308,7 +1308,7 @@ bool KHttpManage::start_listen(bool& hit) {
 		hit = true;
 		KStringBuf s;
 		int id = atoi(getUrlValue("id").c_str());
-		const KListenHost *host = nullptr;
+		const KListenHost* host = nullptr;
 		auto file = getUrlValue("file");
 		if (getUrlValue("action") == "edit") {
 			auto it = conf.services.find(file);
@@ -1317,7 +1317,7 @@ bool KHttpManage::start_listen(bool& hit) {
 			}
 			try {
 				host = (*it).second.at(id).get();
-			}catch(std::out_of_range) {
+			} catch (std::out_of_range) {
 				return sendErrPage("cann't find such listen");
 			}
 		}
@@ -1428,16 +1428,15 @@ bool KHttpManage::start_access(bool& hit) {
 	int type = !!atoi(getUrlValue("access_type").c_str());
 	KStringBuf accesslist;
 	auto name = getUrlValue("vh");
-	KVirtualHost* vh = NULL;
+	KSafeVirtualHost vh;
 	KSafeAccess access(kaccess[type]->add_ref());
 #ifndef HTTP_PROXY
-	if (name.size() > 0) {
-		vh = conf.gvm->refsVirtualHostByName(name);
-		if (vh == NULL) {
+	if (!name.empty()) {
+		vh.reset(conf.gvm->refsVirtualHostByName(name));
+		if (!vh) {
 			return sendHttp("cann't find such vh");
 		}
-		if (vh->user_access.size() == 0) {
-			vh->destroy();
+		if (vh->user_access.empty()) {
 			return sendHttp("vh do not support user access");
 		}
 		access = vh->access[type];
@@ -1447,15 +1446,32 @@ bool KHttpManage::start_access(bool& hit) {
 	if (strcmp(rq->sink->data.url->path, "/accesslist") == 0) {
 		KStringBuf s;
 		if (vh) {
-			vh->destroy();
 			conf.gvm->getHtml(s, name, type + 6, urlValue);
 		} else if (access) {
 			s << access->htmlAccess();
 		}
 		return sendHttp(s.str());
 	}
-	if (vh) {
-		vh->destroy();
+	if (strcmp(rq->sink->data.url->path, "/tableadd") == 0) {
+		KStringBuf name;
+		KStringBuf s;
+		name << "table@"_CS << getUrlValue("table_name");
+		s << access->get_qname() << "/"_CS << name;
+		auto xml = kconfig::new_xml(name.c_str(), name.size());
+		kconfig::update(s.str().str(), 0, xml.get(), kconfig::EvUpdate | kconfig::FlagCreate | kconfig::FlagCopyChilds);
+		return sendRedirect(accesslist.c_str());
+	}
+	if (strcmp(rq->sink->data.url->path, "/tabledel") == 0) {
+		KStringBuf s;
+		s << access->get_qname() << "/table@"_CS << getUrlValue("table_name");
+		kconfig::remove(s.str().str(), 0);
+		return sendRedirect(accesslist.c_str());
+	}
+	if (strcmp(rq->sink->data.url->path, "/delchain") == 0) {
+		KStringBuf s;
+		s << access->get_qname() << "/table@"_CS << getUrlValue("table_name") << "/chain";
+		kconfig::remove(getUrlValue("file").str(), s.str().str(), urlValue.attribute.get_int("id"));
+		return sendRedirect(accesslist.c_str());
 	}
 	hit = false;
 	return false;
@@ -1735,7 +1751,7 @@ function sortrq(index)\
 		s << "</body></html>";
 		return sendHttp(s.str());
 	}
-	
+
 #ifdef ENABLE_VH_RUN_AS
 	if (strcmp(rq->sink->data.url->path, "/cmdform") == 0) {
 		KString errMsg;
@@ -1918,7 +1934,7 @@ void init_manager_handler() {
 					if (v->key.tag->len > 0) {
 						st.write_all(_KS("<"));
 						st.write_all(v->key.tag->data, v->key.tag->len);
-						if (v->key.vary && v->key.vary->len>0) {
+						if (v->key.vary && v->key.vary->len > 0) {
 							st.write_all(_KS(" vary='"));
 							st.write_all(v->key.vary->data, v->key.vary->len);
 							st.write_all(_KS("'"));
@@ -1926,7 +1942,7 @@ void init_manager_handler() {
 						st.write_all(_KS("/>"));
 					} else if (v->key.vary && v->key.vary->len > 0) {
 						st.write_all(_KS("<"));
-						st.write_all(v->key.vary->data, v->key.vary->len);						
+						st.write_all(v->key.vary->data, v->key.vary->len);
 						st.write_all(_KS(" is_vary='1'/>"));
 					}
 				}

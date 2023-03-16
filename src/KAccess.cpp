@@ -490,6 +490,22 @@ KString KAccess::htmlAccess(const char* vh) {
 		s << "<html><LINK href=/main.css type='text/css' rel=stylesheet>\n";
 		s << "<body>";
 	}
+	s << "<script language=javascript>\n";
+	s << "function show(url) { \n";
+	s
+		<< "window.open(url,'','height=210,width=450,resize=no,scrollbars=no,toolsbar=no,top=200,left=200');\n";
+	s << "}"
+		"function tableadd() {"
+		"	tbl = prompt('" << LANG_INPUT_TABLE_MSG << ":','" << LANG_DEFAULT_INPUT_TABLE_NAME << "');"
+		"	if(tbl==null){ return;}"
+		"	window.location='tableadd?vh=" << vh << "&access_type=" << type << "&table_name=' + tbl;"
+		"}"
+		"function tablerename(access_type,name_from){"
+		"	tbl = prompt('" << LANG_RENAME_TABLE_INPUT_MSG << "',name_from);"
+		"	if(tbl==null){ return; }"
+		"	window.location='tablerename?vh=" << vh << "&access_type='+access_type+'&name_from='+name_from+'&name_to='+tbl;"
+		"}"
+		"</script>";
 	s << "<div>";
 	s << "ref:" << katom_get((void*)&ref) << " ";
 	s << (type == REQUEST ? klang["lang_requestAccess"] : klang["lang_responseAccess"]) << " " << LANG_ACCESS_FIRST << ":";
@@ -497,6 +513,8 @@ KString KAccess::htmlAccess(const char* vh) {
 		auto locker = read_lock();
 		buildChainAction(default_jump_type, default_jump, s);
 		s << "</div>";
+		s << "[<a href=\"javascript:tableadd()\">" << LANG_ADD
+			<< LANG_TABLE << "</a>]<br><br>";
 		for (auto it = tables.begin(); it != tables.end(); ++it) {
 			s << "<div>";
 			(*it).second->htmlTable(s, vh, type);

@@ -219,7 +219,7 @@ namespace kconfig {
 			this->node = std::move(node);
 			this->last_modified = last_modified;
 		}
-		~KConfigFileInfo() {			
+		~KConfigFileInfo() {
 		}
 		void parse() {
 			klog(KLOG_ERR, "now parse config [%s %s]\n", file->get_name()->data, file->get_filename()->data);
@@ -526,7 +526,7 @@ namespace kconfig {
 		child.erase(node);
 	}
 	KMapNode<KConfigTree>* KConfigTree::find_child(khttpd::KXmlKey* name) {
-		static kgl_ref_str_t empty_tag{ nullptr ,0,1};
+		static kgl_ref_str_t empty_tag{ nullptr ,0,1 };
 		decltype(child.find<kgl_ref_str_t>(nullptr)) it;
 		if (is_subdir()) {
 			int new_flag;
@@ -708,7 +708,7 @@ namespace kconfig {
 		update(std::move(tree_node));
 		return true;
 	}
-	KConfigFileSourceDriver *KConfigFile::get_source_driver() const {
+	KConfigFileSourceDriver* KConfigFile::get_source_driver() const {
 		return sources[static_cast<int>(source)];
 	}
 	bool KConfigFile::update(const char* name, size_t size, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type) {
@@ -759,7 +759,7 @@ namespace kconfig {
 		}
 		this->last_modified = last_modified;
 		update(std::move(load()));
-		return last_modified!=0;
+		return last_modified != 0;
 	}
 	bool remove_config_file(const kgl_ref_str_t* name) {
 		auto it = config_files.find(name);
@@ -808,11 +808,11 @@ namespace kconfig {
 	class KConfigScanInfoProvider : public KConfigFileScanInfo
 	{
 	public:
-		void new_file(kgl_ref_str_t *name, kgl_ref_str_t *filename, time_t last_modified, bool is_default) {
+		void new_file(kgl_ref_str_t* name, kgl_ref_str_t* filename, time_t last_modified, bool is_default) {
 			int new_flag;
 			auto it = config_files.insert(name, &new_flag);
 			//printf("file [%s] new_flag=[%d]\n",name->data,new_flag);
-			KConfigFile*cfg_file;
+			KConfigFile* cfg_file;
 			if (new_flag) {
 				cfg_file = new KConfigFile(&events, name, filename, current_source);
 				cfg_file->set_remove_flag(!is_default);
@@ -836,7 +836,7 @@ namespace kconfig {
 				auto node = cfg_file->load();
 				auto index = cfg_file->get_index();
 				auto info = std::unique_ptr<KConfigFileInfo>(new KConfigFileInfo(KSafeConfigFile(cfg_file->add_ref()), std::move(node), last_modified));
-				files.emplace(cfg_file->get_index(), std::move(info));				
+				files.emplace(cfg_file->get_index(), std::move(info));
 			} else {
 				cfg_file->set_remove_flag(false);
 			}
@@ -909,7 +909,7 @@ namespace kconfig {
 			events.check_at_once();
 			is_first_config = false;
 		}
-}
+	}
 	khttpd::KXmlNode* find_child(const khttpd::KXmlNode* node, uint32_t name_id, const char* vary, size_t len) {
 		khttpd::KXmlKey key;
 		kgl_ref_str_t tag = { 0 };
@@ -929,8 +929,9 @@ namespace kconfig {
 		auto key_tag = kstring_from2(name, len);
 		auto it = qname_config.find(key_tag);
 		uint32_t key_tag_id = 0;
+		khttpd::KXmlKey* tag = nullptr;
 		if (it) {
-			auto tag = it->value();
+			tag = it->value();
 			key_tag_id = tag->tag_id;
 			kstring_release(key_tag);
 			key_tag = kstring_refs(tag->tag);
@@ -939,18 +940,19 @@ namespace kconfig {
 		if (vary) {
 			key_vary = kstring_from2(vary, vary_len);
 		}
-		return khttpd::KSafeXmlNode(new khttpd::KXmlNode(key_tag, key_vary, key_tag_id));
+		auto xml = khttpd::KSafeXmlNode(new khttpd::KXmlNode(key_tag, key_vary, key_tag_id));
+		if (tag && key_vary) {
+			xml->attributes().emplace(kstring_refs(tag->vary), kstring_refs(key_vary));
+		}
+		return xml;
 	}
 	khttpd::KSafeXmlNode new_xml(const char* name, size_t len) {
-		khttpd::KXmlKey key(name, len);
-		auto it = qname_config.find(key.tag);
-		if (it) {
-			auto tag = it->value();
-			key.tag_id = tag->tag_id;
-			kstring_release(key.tag);
-			key.tag = kstring_refs(tag->tag);
+		auto vary = (char*)memchr(name, '@', len);
+		if (vary == nullptr) {
+			return new_xml(name, len, nullptr, 0);
 		}
-		return khttpd::KSafeXmlNode(new khttpd::KXmlNode(&key));
+		size_t name_len = vary - name;
+		return new_xml(name, name_len, vary + 1, len - name_len - 1);
 	}
 	khttpd::KXmlNode* find_child(const khttpd::KXmlNodeBody* node, const char* name, size_t len) {
 		khttpd::KXmlKey key(name, len);
@@ -1027,11 +1029,16 @@ namespace kconfig {
 	}
 	KConfigResult remove(KConfigFile* file, const kgl_ref_str_t& path, uint32_t index) {
 		const char* name = (const char*)kgl_memrchr(path.data, '/', path.len);
+		size_t path_len;
+		khttpd::KSafeXmlNode xml;
 		if (!name) {
-			name = path.data;
+			path_len = 0;
+			xml = new_xml(path.data, path.len);
+		} else {
+			path_len = name - path.data;
+			xml = new_xml(name + 1, path.len - path_len - 1);
 		}
-		size_t path_len = name - path.data;
-		if (!file->update(path.data, path_len, index, kconfig::new_xml(name, path.len - path_len).get(), kconfig::EvRemove)) {
+		if (!file->update(path.data, path_len, index, xml.get(), kconfig::EvRemove)) {
 			return KConfigResult::ErrNotFound;
 		}
 		if (!file->save()) {
@@ -1074,10 +1081,7 @@ namespace kconfig {
 		need_reboot_flag = true;
 	}
 	KConfigFile* find_file(const kgl_ref_str_t& name) {
-		kgl_ref_str_t name2;
-		name2.data = name.data;
-		name2.len = (uint16_t)name.len;
-		auto it = config_files.find(&name2);
+		auto it = config_files.find(&name);
 		if (!it) {
 			return nullptr;
 		}
@@ -1239,7 +1243,7 @@ namespace kconfig {
 			}
 
 			return true;
-			}, ev_subdir|ev_skip_vary);
+			}, ev_subdir | ev_skip_vary);
 		assert(listen(_KS("/vh"), &test_vh_event, &test_ev));
 		t->reload(_KS("<config></config>"));
 

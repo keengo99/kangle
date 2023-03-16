@@ -68,11 +68,11 @@ bool KChain::match(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 			last_or = (*it)->is_or;
 			continue;
 		}
-		result = ((*it)->match(rq, obj) != (*it)->revers);		
+		result = ((*it)->match(rq, obj) != (*it)->revers);
 		last_or = (*it)->is_or;
 		if (!result && !last_or) {
 			break;
-		}	
+		}
 	}
 	if (!result) {
 		return false;
@@ -83,7 +83,7 @@ bool KChain::match(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 			last_or = (*it)->is_or;
 			continue;
 		}
-		result = ((*it)->process(rq, obj, fo) != (*it)->revers);		
+		result = ((*it)->process(rq, obj, fo) != (*it)->revers);
 		if (!result && !last_or) {
 			break;
 		}
@@ -172,7 +172,7 @@ void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 						auto m = access->get_named_acl(ref);
 						if (m) {
 							acls.push_back(m.release());
-						}					
+						}
 					}
 					continue;
 				}
