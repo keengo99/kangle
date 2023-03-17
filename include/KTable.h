@@ -32,20 +32,19 @@
 
 struct KConfigFileKey
 {
-	KConfigFileKey(uint16_t index, kgl_ref_str_t* name) {
+	KConfigFileKey(uint16_t index, const KString &name) : name(name){
 		this->index = index;
-		this->name = kstring_refs(name);
 	}
-	KConfigFileKey(const KConfigFileKey& a) {
+	KConfigFileKey(uint16_t index, KString&& name) : name(std::forward<KString>(name)) {
+		this->index = index;
+	}
+	KConfigFileKey(const KConfigFileKey& a) : name(a.name) {
 		this->index = a.index;
-		this->name = kstring_refs(a.name);
 	}
-	KConfigFileKey& operator=(const KConfigFileKey& a) = delete;
 	~KConfigFileKey() {
-		kstring_release(name);
 	}
 	uint16_t index;
-	kgl_ref_str_t* name;
+	KString name;
 };
 struct KConfigFileLess
 {
@@ -56,7 +55,7 @@ struct KConfigFileLess
 		} else if (result > 0) {
 			return false;
 		}
-		return kgl_string_cmp(a.name, b.name);
+		return a.name < b.name;
 	}
 };
 class KChain;

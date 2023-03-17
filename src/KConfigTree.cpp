@@ -458,8 +458,8 @@ namespace kconfig {
 				return;
 			}
 			//update
-			ev.old_xml = file_node->update(xml);
-			defer(ev.old_xml->release());
+			auto old_xml = file_node->update(xml);
+			ev.old_xml = old_xml.get();
 			if (ev_type == EvNone) {
 				return;
 			}
@@ -772,7 +772,7 @@ namespace kconfig {
 		file->release();
 		return true;
 	}
-	bool add_config_file(kgl_ref_str_t* name, kgl_ref_str_t* filename, KConfigTree* tree, KConfigFileSource source) {
+	bool add_config_file(const kgl_ref_str_t* name, const kgl_ref_str_t* filename, KConfigTree* tree, KConfigFileSource source) {
 		int new_flag;
 		auto it = config_files.insert(name, &new_flag);
 		if (!new_flag) {
@@ -808,7 +808,7 @@ namespace kconfig {
 	class KConfigScanInfoProvider : public KConfigFileScanInfo
 	{
 	public:
-		void new_file(kgl_ref_str_t* name, kgl_ref_str_t* filename, time_t last_modified, bool is_default) {
+		void new_file(const kgl_ref_str_t* name, const kgl_ref_str_t* filename, time_t last_modified, bool is_default) {
 			int new_flag;
 			auto it = config_files.insert(name, &new_flag);
 			//printf("file [%s] new_flag=[%d]\n",name->data,new_flag);
@@ -844,7 +844,7 @@ namespace kconfig {
 		std::multimap<uint16_t, std::unique_ptr<KConfigFileInfo>> files;
 		KConfigFileSource current_source;
 	};
-	bool reload_config(kgl_ref_str_t* name, bool force) {
+	bool reload_config(const kgl_ref_str_t* name, bool force) {
 		auto locker = lock();
 		auto it = config_files.find(name);
 		if (!it) {

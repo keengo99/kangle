@@ -108,7 +108,7 @@ namespace kconfig {
 	public:
 		KConfigTree(KConfigTree* parent, khttpd::KXmlKey* a) :KConfigTree(parent, a->tag, a->vary) {
 		}
-		KConfigTree(KConfigTree* parent, kgl_ref_str_t* tag, kgl_ref_str_t* vary) :key(kstring_refs(tag), kstring_refs(vary)) {
+		KConfigTree(KConfigTree* parent, const kgl_ref_str_t* tag, const kgl_ref_str_t* vary) :key(kstring_refs(tag), kstring_refs(vary)) {
 			this->parent = parent;
 			init();
 		}
@@ -176,7 +176,7 @@ namespace kconfig {
 	public:
 		virtual ~KConfigFileScanInfo() {
 		}
-		virtual void new_file(kgl_ref_str_t* name, kgl_ref_str_t* filename, time_t last_modified, bool is_default) = 0;
+		virtual void new_file(const kgl_ref_str_t* name, const kgl_ref_str_t* filename, time_t last_modified, bool is_default) = 0;
 	};
 	class KConfigFileSourceDriver
 	{
@@ -200,7 +200,7 @@ namespace kconfig {
 	class KConfigFile
 	{
 	public:
-		KConfigFile(KConfigTree* ev, kgl_ref_str_t* name, kgl_ref_str_t* filename, KConfigFileSource source) {
+		KConfigFile(KConfigTree* ev, const kgl_ref_str_t* name, const kgl_ref_str_t* filename, KConfigFileSource source) {
 			this->name = kstring_refs(name);
 			this->filename = kstring_refs(filename);
 			this->ev = ev;
@@ -212,7 +212,7 @@ namespace kconfig {
 				delete this;
 			}
 		}
-		void update_filename(kgl_ref_str_t* filename) {
+		void update_filename(const kgl_ref_str_t* filename) {
 			kstring_release(this->filename);
 			this->filename = kstring_refs(filename);
 		}
@@ -254,10 +254,10 @@ namespace kconfig {
 		bool is_default() const {
 			return default_config;
 		}
-		kgl_ref_str_t* get_name() const {
+		const kgl_ref_str_t* get_name() const {
 			return name;
 		}
-		kgl_ref_str_t* get_filename() const {
+		const kgl_ref_str_t* get_filename() const {
 			return filename;
 		}
 		bool save();
@@ -308,10 +308,10 @@ namespace kconfig {
 			xml->release();
 			file->release();
 		}
-		khttpd::KXmlNode* update(khttpd::KXmlNode* xml) {
+		khttpd::KSafeXmlNode update(khttpd::KXmlNode* xml) {
 			auto old = this->xml;
 			this->xml = xml->add_ref();
-			return old;
+			return khttpd::KSafeXmlNode(old);
 		}
 		KConfigFile* file;
 		khttpd::KXmlNode* xml;
@@ -332,8 +332,8 @@ namespace kconfig {
 	KConfigTree* find(const char** name, size_t* size);
 	KConfigTree* find(const char* name, size_t size);
 	bool remove_config_file(const kgl_ref_str_t* name);
-	bool add_config_file(kgl_ref_str_t* name, kgl_ref_str_t* filename, KConfigTree* tree, KConfigFileSource source);
-	bool reload_config(kgl_ref_str_t* name, bool force);
+	bool add_config_file(const kgl_ref_str_t* name, const kgl_ref_str_t* filename, KConfigTree* tree, KConfigFileSource source);
+	bool reload_config(const kgl_ref_str_t* name, bool force);
 	void reload();
 	void init(on_begin_parse_f cb);
 	uint32_t register_qname(const char* name, size_t len);
