@@ -42,6 +42,7 @@ public:
 	friend class KAccess;
 	friend class KTable;
 private:
+	void get_edit_html(KWStream& s, u_short accessType);
 	void getModelHtml(KModel* model, KWStream& s, int type, int index);
 private:
 	uint32_t hit_count;

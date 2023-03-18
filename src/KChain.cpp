@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010, NanChang BangTeng Inc
  * All Rights Reserved.
  *
@@ -22,7 +22,6 @@
 #include "KChain.h"
 #include "KModel.h"
 #include "lang.h"
- //#include "KFilter.h"
 #include "KModelManager.h"
 #include "KTable.h"
 #include "KHttpLib.h"
@@ -95,6 +94,41 @@ bool KChain::match(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 		hit_count++;
 	}
 	return result;
+}
+void KChain::get_edit_html(KWStream& s, u_short accessType) {
+	int index = 0;
+	for (auto it = acls.begin(); it != acls.end(); ++it) {
+		getModelHtml((*it), s, 0, index);
+		index++;
+	}
+	s << "<tr><td>" << klang["available_acls"] << "</td><td>";
+	s
+		<< "<select onChange='addmodel(this.options[this.options.selectedIndex].value,0)'><option value=''>";
+	s << klang["select_acls"] << "</option>";
+	for (auto itf = KAccess::acl_factorys[accessType].begin(); itf
+		!= KAccess::acl_factorys[accessType].end(); itf++) {
+		s << "<option value='" << (*itf).first << "'>" << (*itf).first
+			<< "</option>";
+	}
+	s << "</select>\n";
+	//s << "<table><div id='acls' class='acls'>test</div></table>\n";
+	s << "</td></tr>\n";
+	index = 0;
+	for (auto it = marks.begin(); it != marks.end(); ++it) {
+		getModelHtml((*it), s, 1, index);
+		index++;
+	}
+	//ʾmark
+	s << "<tr><td>" << klang["available_marks"] << "</td><td>";
+	s << "<select onChange='";
+	s << "addmodel(this.options[this.options.selectedIndex].value,1)'>";
+	s << "<option value=''>" << klang["select_marks"] << "</option>";
+	for (auto itf2 = KAccess::mark_factorys[accessType].begin(); itf2
+		!= KAccess::mark_factorys[accessType].end(); itf2++) {
+		s << "<option value='" << (*itf2).first << "'>" << (*itf2).first << "</option>";
+	}
+	s << "</select>";
+	s << "</td></tr>\n";
 }
 void KChain::getModelHtml(KModel* model, KWStream& s, int type, int index) {
 

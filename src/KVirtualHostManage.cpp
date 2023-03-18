@@ -651,18 +651,16 @@ void KVirtualHostManage::getVhIndex(KWStream& s, KVirtualHost* vh, int id) {
 	for (it2 = vh->hosts.begin(); it2 != vh->hosts.end(); it2++) {
 		s << "<a href=# title=\"";
 		if (strcmp((*it2)->dir, "/") != 0
-			//{{ent
 #ifdef ENABLE_SVH_SSL
 			|| (*it2)->ssl_param != NULL
-#endif//}}
+#endif
 			) {
 			s << (*it2)->dir;
-			//{{ent
 #ifdef ENABLE_SVH_SSL
 			if ((*it2)->ssl_param != NULL) {
 				s << KGL_SSL_PARAM_SPLIT_CHAR << (*it2)->ssl_param;
 			}
-#endif//}}
+#endif
 		}
 		s << "\"";
 #ifdef ENABLE_SVH_SSL
@@ -780,17 +778,15 @@ void KVirtualHostManage::dumpFlow(KVirtualHostEvent* ctx, bool revers, const cha
 		if (extend == 4) {
 			s << "\t" << (INT64)post_flow;
 		}
-		//{{ent
 #ifdef ENABLE_BLACK_LIST
 		if (vh->blackList && extend >= 3) {
 			INT64 total_error_upstream, total_request, total_upstream;
 			vh->blackList->getStat(total_request, total_error_upstream, total_upstream, true);
 			s << "\t" << total_error_upstream << "\t" << total_upstream << "\t" << total_request;
 		}
-#endif//}}
+#endif
 		s << "\n";
 	}
-	//{{ent
 #ifdef ENABLE_BLACK_LIST
 	if (extend > 0 && extend < 3) {
 		for (auto it = avh.begin(); it != avh.end(); it++) {
@@ -816,7 +812,7 @@ void KVirtualHostManage::dumpFlow(KVirtualHostEvent* ctx, bool revers, const cha
 			s2 << "\n";
 		}
 	}
-#endif//}}
+#endif
 	ctx->add("flow", s.c_str());
 	if (extend > 0 && s2.size() > 0) {
 		ctx->add("stat", s2.c_str());

@@ -414,6 +414,77 @@ kgl_jump_type KAccess::checkPostMap(KHttpRequest* rq, KHttpObject* obj, KSafeSou
 	}
 	return JUMP_DENY;
 }
+void KAccess::add_chain_form(KWStream& s, const char* vh, const KString& table_name, const KString& file, uint16_t index, size_t id, bool add) {
+	KChain* m_chain = NULL;
+	auto locker = write_lock();
+	auto m_table = get_table(table_name);
+	if (!m_table) {
+		return;
+	}
+	if (!add) {
+		m_chain = m_table->find_chain(file, index, id);
+		if (m_chain == nullptr) {
+			s << "not found chain to edit";
+			return;
+		}
+	}
+	if (*vh == '\0') {
+		s << "<html><head><title>add "
+			<< " access</title><LINK href=/main.css type='text/css' rel=stylesheet>\n";
+		s << "</head><body>\n";
+	}
+	s << "<script language='javascript'>\n";
+	s << "function delmodel(model,mark){\n";
+	s << "if(confirm('are you sure to delete this model')){\n";
+	s << "	window.location='/delmodel?vh=" << vh << "&access_type=" << type << "&table_name="
+		<< table_name << "&id=" << id
+		<< "&model='+model+'&mark='+mark;\n";
+	s << "}\n};\n";
+	s << "function downmodel(model,mark){\n";
+	s << "	window.location='/downmodel?vh=" << vh << "&access_type=" << type << "&table_name="
+		<< table_name << "&id=" << id
+		<< "&model='+model+'&mark='+mark;\n";
+	s << "};\n";
+	s << "function addmodel(model,mark){\n";
+	s << "if(model!=''){\n";
+	//s << "  accessaddform.action='/test';\n";
+	s << "	accessaddform.modelflag.value='1';\n";
+	s << "	accessaddform.modelname.value=model;\n";
+	s << "	accessaddform.mark.value=mark;\n";
+	s << "	accessaddform.submit();\n";
+	//	s << "window.location='/addmodel?access_type=" << type << "&table_name="
+	//			<< table_name << "&id=" << index << "&model='+model+'&mark='+mark;";
+	s << "}\n};\n";
+	s << "</script>\n";
+
+	s << "<form action='/editchain?access_type=" << type << "&vh=" << vh
+		<< "' method=post name='accessaddform'>\n";
+	s << "<input type=hidden name=modelflag value='0'>\n";
+	s << "<input type=hidden name=modelname value=''>\n";
+	s << "<input type=hidden name=mark value='0'>\n";
+	s << "<input type=hidden name=table_name value='" << table_name << "'>\n";
+	s << "<input type=hidden name='file' value='" << file << "'/>\n";
+	s << "<input type=hidden name=index value='" << index << "'>\n";
+	s << "<input type=hidden name=id value='" << id << "'>\n";
+	s << "<input type=hidden name=add value='" << add << "'>\n";
+	s << (type == REQUEST ? klang["lang_requestAccess"] : klang["lang_responseAccess"]) << " " << table_name;
+	s << ":";
+	int jump_type = JUMP_DENY;
+	KSafeJump jump = NULL;
+	if (m_chain) {
+		jump_type = m_chain->jump_type;
+		jump = m_chain->jump;
+	}
+	s << "<table  border=1 cellspacing=0><tr><td>" << LANG_ACTION
+		<< "</td><td>";
+	//	bool show[]= {true,false,true,true,true,false,false};
+	htmlChainAction(s, jump_type, jump.get(), true, m_table->name);
+	s << "</td></tr>\n";
+	m_table->add_chain_form(m_chain, type, s);
+	s << "</table>\n";
+	s << "<input type=submit value=" << LANG_SUBMIT << ">";
+	s << "</form>";
+}
 kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 	auto lock = read_lock();
 	kgl_jump_type jumpType = default_jump_type;
@@ -680,6 +751,117 @@ void KAccess::listTable(KVirtualHostEvent* ctx) {
 	}
 	kfiber_rwlock_runlock(rwlock);
 }
+void KAccess::htmlChainAction(KWStream& s, kgl_jump_type jump_type, KJump* jump, bool showTable, const KString& skipTable) {
+	kgl_jump_type jump_value = 0;
+	s << "\n<input type=radio ";
+	if (jump_type == JUMP_DENY) {
+		s << "checked";
+	}
+	s << " value='" << JUMP_DENY << "' name=jump_type>" << LANG_DENY;
+	jump_value++;
+	if (skipTable.size() > 0) {
+		s << "<input type=radio ";
+		if (jump_type == JUMP_RETURN) {
+			s << "checked";
+		}
+		s << " value='" << JUMP_RETURN << "' name=jump_type>"
+			<< klang["return"];
+		jump_value++;
+	}
+	if (type == RESPONSE || !isGlobal()) {
+		s << "\n<input type=radio ";
+		if (jump_type == JUMP_ALLOW) {
+			s << "checked";
+		}
+		s << " value='" << JUMP_ALLOW << "' name=jump_type>" << LANG_ALLOW;
+		jump_value++;
+	}
+	//CONTINUE
+	if (showTable) {
+		s << "\n<input type=radio ";
+		if (jump_type == JUMP_CONTINUE) {
+			s << "checked";
+		}
+		s << " value='" << JUMP_CONTINUE << "' name=jump_type>\n"
+			<< klang["LANG_CONTINUE"];
+		jump_value++;
+	}
+	vector<KString> table_names;
+
+#ifdef ENABLE_WRITE_BACK
+	table_names = writeBackManager.getWriteBackNames();
+	htmlRadioAction(s, &jump_value, jump_type, jump, JUMP_WBACK, "wback", table_names);
+#endif
+
+	if (type == REQUEST) {
+		s << "<input type=radio ";
+		if (jump_type == JUMP_PROXY) {
+			s << "checked";
+		}
+		s << " value='" << JUMP_PROXY << "' name=jump_type>" << klang["proxy"];
+		jump_value++;
+		if (isGlobal()) {
+#ifndef HTTP_PROXY
+			s << "<input type=radio ";
+			if (jump_type == JUMP_VHS) {
+				s << "checked";
+			}
+			s << " value='" << JUMP_VHS << "' name=jump_type>" << klang["vhs"];
+			jump_value++;
+#endif
+		}
+		table_names.clear();
+		table_names = conf.gam->getAcserverNames(false);
+		htmlRadioAction(s, &jump_value, jump_type, jump, JUMP_SERVER, "server", table_names);
+	}
+	if (showTable) {
+		table_names = getTableNames(skipTable, false);
+		if (!this->isGlobal()) {
+			auto gtable_names = kaccess[type]->getTableNames("", true);
+			for (auto it = gtable_names.begin(); it != gtable_names.end(); it++) {
+				table_names.push_back(*it);
+			}
+		}
+		htmlRadioAction(s, &jump_value, jump_type, jump, JUMP_TABLE, "table", table_names);
+	}
+}
+bool KAccess::add_model(const KString& table_name, const KString& file, size_t id, const KString& acl, bool mark) {
+	KStringBuf path;
+	path << get_qname() << "/table@" << table_name << "/chain#"_CS << id << (mark ? "/mark"_CS : "/acl"_CS);
+	auto acl_xml = kconfig::new_xml(mark ? "mark"_CS : "acl"_CS);
+	acl_xml->attributes().emplace("module"_CS, acl);
+	return kconfig::KConfigResult::Success == kconfig::update(file.str(), path.str().str(), khttpd::last_pos, acl_xml.get(), kconfig::EvNew);
+}
+
+void KAccess::htmlRadioAction(KWStream& s, kgl_jump_type* jump_value, int jump_type, KJump* jump, int my_jump_type, const KString& my_type_name,
+	std::vector<KString>& table_names) {
+	if (table_names.size() > 0) {
+		s << "<input type=radio ";
+		if (jump_type == my_jump_type) {
+			s << "checked";
+		}
+		s << " value='" << my_jump_type << "' name=jump_type>\n"
+			<< klang[my_type_name.c_str()];
+		s << "<select name=" << my_type_name
+			<< " onclick='javascript:accessaddform.jump_type["
+			<< *jump_value;
+		s << "].checked=true;' \nonChange='javascript:accessaddform.jump_type["
+			<< *jump_value << "].checked=true;'>\n";
+		for (size_t i = 0; i < table_names.size(); i++) {
+			//if (skipTable == table_names[i])
+			//	continue;
+			s << "<option ";
+			if (jump_type == my_jump_type && jump && jump->name == table_names[i]) {
+				s << "selected";
+			}
+			s << " value='" << table_names[i] << "'>" << table_names[i]
+				<< "</option>\n";
+		}
+		s << "</select>\n";
+		(*jump_value)++;
+	}
+}
+
 void KAccess::parse_config(const KXmlAttribute& attr) {
 	auto locker = write_lock();
 	KString jump_name;

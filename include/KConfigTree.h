@@ -75,6 +75,9 @@ namespace kconfig {
 		}
 		virtual KConfigEventFlag config_flag() const = 0;
 		virtual bool on_config_event(KConfigTree* tree, KConfigEvent* ev) = 0;
+		virtual void check_xml(KConfigTree* tree, khttpd::KXmlNode* xml) {
+
+		}
 	};
 
 	template <typename F>
@@ -157,13 +160,14 @@ namespace kconfig {
 		}
 		void check_at_once();
 		bool notice(KConfigFile* file, khttpd::KXmlNode* xml, KConfigEventType ev_type, kgl_config_diff* diff);
-
+		void check_xml(khttpd::KXmlNode* xml);
 		khttpd::KXmlKey key;
 		KMap<khttpd::KXmlKey, KConfigTree> child;
 		KConfigTree* parent;
 		KConfigEventNode* node;
 		KConfigListen* ls;
 	private:
+
 		void notice(KConfigTree* ev_tree, KConfigFile* file, khttpd::KXmlNode* xml, KConfigEventType ev_type, kgl_config_diff* diff);
 		void init() {
 			this->node = nullptr;
@@ -337,7 +341,11 @@ namespace kconfig {
 	void reload();
 	void init(on_begin_parse_f cb);
 	uint32_t register_qname(const char* name, size_t len);
+
 	khttpd::KSafeXmlNode new_xml(const char* name, size_t len);
+	inline khttpd::KSafeXmlNode new_xml(const kgl_ref_str_t& name) {
+		return new_xml(name.data, name.len);
+	}
 	khttpd::KSafeXmlNode new_xml(const char* name, size_t len, const char* vary, size_t vary_len);
 	khttpd::KXmlNode* find_child(const khttpd::KXmlNodeBody* node, const char* name, size_t len);
 	khttpd::KXmlNode* find_child(const khttpd::KXmlNodeBody* node, uint32_t name_id, const char* vary, size_t len);

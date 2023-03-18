@@ -1470,9 +1470,44 @@ bool KHttpManage::start_access(bool& hit) {
 	if (strcmp(rq->sink->data.url->path, "/delchain") == 0) {
 		KStringBuf s;
 		s << access->get_qname() << "/table@"_CS << getUrlValue("table_name") << "/chain";
-		kconfig::remove(getUrlValue("file").str(), s.str().str(), urlValue.attribute.get_int("id"));
+		kconfig::remove(getUrlValue("file"_CS).str(), s.str().str(), urlValue.attribute.get_int("id"));
 		return sendRedirect(accesslist.c_str());
 	}
+	if (strcmp(rq->sink->data.url->path, "/editchain") == 0) {
+		KStringBuf url;
+		if (getUrlValue("modelflag") == "1") {
+			bool mark = false;
+			if (getUrlValue("mark") == "1") {
+				mark = true;
+			}
+			access->add_model(getUrlValue("table_name"_CS), getUrlValue("file"_CS), atoi(getUrlValue("id").c_str()), getUrlValue("modelname"), mark);
+			url << "/editchainform?access_type=" << getUrlValue("access_type")
+				<< "&table_name=" << getUrlValue("table_name")
+				<< "&file=" << getUrlValue("file")
+				<< "&index=" << getUrlValue("index")
+				<< "&id=" << getUrlValue("id") 
+				<< "&vh=" << getUrlValue("vh");
+			return sendRedirect(url.c_str());
+		}
+		/*
+		access->editChain(getUrlValue("table_name"), atoi(getUrlValue(
+			"id").c_str()), &urlValue);
+			*/
+		return sendRedirect(accesslist.c_str());
+	}
+
+	if (strcmp(rq->sink->data.url->path, "/editchainform") == 0) {
+		//sendHeader(200);
+		KStringBuf s;
+		KStringBuf url;
+		if (vh) {
+			conf.gvm->getMenuHtml(s, vh.get(), url);
+		}
+		access->add_chain_form(s, name.c_str(), getUrlValue("table_name"), getUrlValue("file"), urlValue.attribute.get_int("index"), atoi(getUrlValue("id").c_str()), (getUrlValue("add") == "1" ? true : false));
+		s << endTag();
+		return sendHttp(s.str());
+	}
+
 	hit = false;
 	return false;
 }

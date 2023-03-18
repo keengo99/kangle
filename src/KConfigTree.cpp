@@ -263,7 +263,18 @@ namespace kconfig {
 		} else {
 			name_len = size;
 		}
-		nodes = find_child(nodes->get_first(), name, name_len);
+		uint32_t nodes_index = 0;
+		auto index_str = (const char*)memchr(name, '#', name_len);
+		size_t name_len2 = name_len;
+		if (index_str) {
+			name_len2 = index_str - name;
+			nodes_index = atoi(index_str + 1);
+		}
+		auto child_nodes = nodes->get_body(nodes_index);
+		if (!child_nodes) {
+			return false;
+		}
+		nodes = find_child(child_nodes, name, name_len2);
 		if (!nodes) {
 			return false;
 		}
@@ -402,6 +413,7 @@ namespace kconfig {
 		}
 		return ret;
 	}
+
 	void KConfigTree::notice(KConfigTree* ev_tree, KConfigFile* file, khttpd::KXmlNode* xml, KConfigEventType ev_type, kgl_config_diff* diff) {
 		assert(xml);
 		KConfigEventNode* file_node;
@@ -503,6 +515,16 @@ namespace kconfig {
 			ev_tree->ls->on_config_event(this, &ev);
 		}
 		return;
+	}
+	void KConfigTree::check_xml(khttpd::KXmlNode* xml) {
+		if (is_self()) {
+			ls->check_xml(this, xml);
+			return;
+		}
+		if (parent->is_subdir()) {
+			parent->ls->check_xml(this, xml);
+			return;
+		}
 	}
 	bool KConfigTree::notice(KConfigFile* file, khttpd::KXmlNode* xml, KConfigEventType ev_type, kgl_config_diff* diff) {
 		try {
@@ -606,13 +628,16 @@ namespace kconfig {
 	bool KConfigFile::diff(KConfigTree* ev_node, khttpd::KXmlNode* o, khttpd::KXmlNode* n, int* notice_count) {
 		KMapNode<KConfigTree>* child_node = nullptr;
 		kgl_config_diff diff = { 0 };
-
 		if (ev_node) {
 			khttpd::KXmlKey* xml = o ? &o->key : &n->key;
 			child_node = ev_node->find_child(xml);
 			ev_node = child_node ? child_node->value() : nullptr;
+			if (ev_node && n) {
+				ev_node->check_xml(n);
+			}
 		}
 		if (!o) {
+			assert(n != nullptr);
 			if (ev_node) {
 				diff.new_to = n->get_body_count();
 				bool notice_result = ev_node->notice(this, n, EvNew, &diff);

@@ -72,9 +72,11 @@ public:
 		return kconfig::ev_subdir|kconfig::ev_merge;
 	}
 	bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+	KChain *find_chain(const KString& file,uint16_t index, size_t id);
 	void clear();
 	friend class KAccess;
 private:
+	void add_chain_form(KChain* chain, uint8_t accessType, KWStream& s);
 	void on_file_event(std::vector<KSafeChain>& chain, kconfig::KConfigEvent* ev);
 	KSafeChain parse_chain(const khttpd::KXmlNodeBody* xml);
 	//ÐÂµÄÁ´

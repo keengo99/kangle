@@ -47,7 +47,7 @@ class WhmContext;
 using KSafeTable = KSharedObj<KTable>;
 void bind_access_config(kconfig::KConfigTree* tree, KAccess* access);
 void parse_module_config(KModel* m, const khttpd::KXmlNodeBody* xml);
-class KAccess final: public kconfig::KConfigListen
+class KAccess final : public kconfig::KConfigListen
 {
 public:
 	KAccess(bool is_global, uint8_t type);
@@ -94,9 +94,11 @@ public:
 		}
 		return "response";
 	}
+	bool add_model(const KString& table_name, const KString& file, size_t id, const KString& acl, bool mark);
 	void parse_config(const KXmlAttribute& attr);
 	bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) override;
 	kgl_jump_type check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo);
+	void add_chain_form(KWStream& s, const char* vh, const KString& table_name, const KString& file, uint16_t index, size_t id, bool add);
 	//POSTMAP 只在RESPONSE里有效，在映射完物理文件后调用
 	kgl_jump_type checkPostMap(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo);
 	static void loadModel();
@@ -123,6 +125,8 @@ public:
 private:
 	~KAccess();
 	void inter_destroy();
+	void htmlChainAction(KWStream& s, kgl_jump_type jump_type, KJump* jump, bool showTable, const KString& skipTable);
+	void htmlRadioAction(KWStream& s, kgl_jump_type* jump_value, int jump_type, KJump* jump, int my_jump_type, const KString& my_type_name, std::vector<KString>& table_names);
 	KSafeAcl get_named_acl(const KString& name) {
 		auto it = named_acls.find(name);
 		if (it == named_acls.end()) {

@@ -32,6 +32,12 @@ KSafeChain KTable::parse_chain(const khttpd::KXmlNodeBody* xml) {
 	chain->parse_config(access, xml);
 	return chain;
 }
+void KTable::add_chain_form(KChain* chain, uint8_t accessType, KWStream& s) {
+	if (chain) {
+		chain->get_edit_html(s, accessType);
+	}
+	return;
+}
 void KTable::on_file_event(std::vector<KSafeChain>& chain, kconfig::KConfigEvent* ev) {
 	uint32_t old_count = ev->diff->old_to - ev->diff->from;
 	//new
@@ -131,17 +137,21 @@ void KTable::htmlTable(KWStream& s, const char* vh, u_short accessType) {
 			}
 			s << "<tr><td>";
 			s << "[<a href=\"javascript:if(confirm('confirm delete chain";
-			s << "')){ window.location='/delchain?vh="
-				<< vh << "&file="
-				<< chain_file.first.name
+			s << "')){ window.location='/delchain?vh=" << vh
+				<< "&file="	<< chain_file.first.name
 				<< "&access_type = " << accessType
 				<< "&id=" << j
 				<< "&table_name=" << name << "';}\">"
-				<< LANG_DELETE << "</a>][<a href='editchainform?vh=" << vh
+				<< LANG_DELETE << "</a>]"
+
+				<< "[<a href='editchainform?vh=" << vh
+				<< "&file=" << chain_file.first.name
+				<< "&index=" << chain_file.first.index
 				<< "&access_type=" << accessType
 				<< "&id=" << j
 				<< "&table_name=" << name
 				<< "'>" << LANG_EDIT << "</a>]";
+
 #if 0
 			s << "[< a href = 'addchain?vh=" << vh << "&access_type="
 				<< accessType << "&id=" << j << "&table_name=" << name
@@ -205,4 +215,15 @@ KTable::KTable(KAccess* access, const KString& name) : KJump(name) {
 }
 KTable::~KTable() {
 	clear();
+}
+KChain *KTable::find_chain(const KString& file, uint16_t index, size_t id) {
+	KConfigFileKey key(index, file);
+	auto it = chains.find(key);
+	if (it == chains.end()) {
+		return nullptr;
+	}
+	if (id >= (*it).second.size()) {
+		return nullptr;
+	}
+	return ((*it).second)[id].get();
 }
