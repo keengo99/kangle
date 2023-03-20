@@ -231,7 +231,7 @@ namespace kconfig {
 		}
 	}
 
-	bool update_xml_node(khttpd::KXmlNode* nodes, const char* name, size_t size, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type) {
+	bool update_xml_node(khttpd::KXmlNodeBody* nodes, const char* name, size_t size, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type) {
 		size_t name_len;
 		while (size > 1 && *name == '/') {
 			name++;
@@ -240,7 +240,7 @@ namespace kconfig {
 		if (size <= 0 || *name == '/') {
 			switch (ev_type) {
 			case kconfig::EvNew:
-				nodes->insert(xml, index);
+				nodes->add(xml, index);
 				return true;
 			case kconfig::EvRemove:
 				return nodes->update(&xml->key, index, nullptr);
@@ -264,11 +264,11 @@ namespace kconfig {
 			name_len2 = index_str - name;
 			nodes_index = atoi(index_str + 1);
 		}
-		auto child_nodes = nodes->get_body(nodes_index);
+		auto child_nodes = find_child(nodes, name, name_len2);
 		if (!child_nodes) {
 			return false;
 		}
-		nodes = find_child(child_nodes, name, name_len2);
+		nodes = child_nodes->get_body(nodes_index);
 		if (!nodes) {
 			return false;
 		}
@@ -727,8 +727,11 @@ namespace kconfig {
 		if (!this->get_source_driver()->enable_save()) {
 			return false;
 		}
+		if (!this->nodes) {
+			return false;
+		}
 		auto nodes = this->nodes->clone();
-		if (!update_xml_node(nodes.get(), name, size, index, xml, ev_type)) {
+		if (!update_xml_node(nodes->get_first(), name, size, index, xml, ev_type)) {
 			return false;
 		}
 		update(std::move(nodes));

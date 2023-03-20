@@ -450,8 +450,7 @@ void KAccess::add_chain_form(KWStream& s, const char* vh, const KString& table_n
 	s << "};\n";
 	s << "function addmodel(model,mark){\n";
 	s << "if(model!=''){\n";
-	s << " accessaddform.model_index = prompt('add index',-1);\n";
-	//s << "  accessaddform.action='/test';\n";
+	s << "  accessaddform.model.value=prompt('add index','-1');\n";
 	s << "	accessaddform.modelflag.value='1';\n";
 	s << "	accessaddform.modelname.value=model;\n";
 	s << "	accessaddform.mark.value=mark;\n";
@@ -466,7 +465,7 @@ void KAccess::add_chain_form(KWStream& s, const char* vh, const KString& table_n
 	s << "<input type=hidden name=modelflag value='0'>\n";
 	s << "<input type=hidden name=modelname value=''>\n";
 	s << "<input type=hidden name=mark value='0'>\n";
-	s << "<input type=hidden name=model_index value=''>\n";
+	s << "<input type=hidden name=model value=''>\n";
 	s << "<input type=hidden name=table_name value='" << table_name << "'>\n";
 	s << "<input type=hidden name='file' value='" << file << "'/>\n";
 	s << "<input type=hidden name=index value='" << index << "'>\n";
@@ -537,7 +536,7 @@ kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo
 			if (rq->sink->data.meth == METH_CONNECT) {
 				fo.reset(new KConnectProxyFetchObject());
 				break;
-	}
+			}
 #endif
 #ifdef ENABLE_PROXY_PROTOCOL
 			if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_PROXY | WORK_MODEL_SSL_PROXY)) {
@@ -546,7 +545,7 @@ kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo
 			}
 #endif
 			fo.reset(new KHttpProxyFetchObject());
-}
+		}
 		break;
 	}
 	return jumpType;

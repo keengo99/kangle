@@ -1454,23 +1454,47 @@ bool KHttpManage::start_access(bool& hit) {
 	}
 	if (strcmp(rq->sink->data.url->path, "/tableadd") == 0) {
 		KStringBuf name;
-		KStringBuf s;
+		KStringBuf path;
+		auto file = getUrlValue("file");
+		if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
+			path << "vh@" << vh_name << "/";
+		}
 		name << "table@"_CS << getUrlValue("table_name");
-		s << access->get_qname() << "/"_CS << name;
+		path << access->get_qname() << "/"_CS << name;
 		auto xml = kconfig::new_xml(name.c_str(), name.size());
-		kconfig::update(s.str().str(), 0, xml.get(), kconfig::EvUpdate | kconfig::FlagCreate | kconfig::FlagCopyChilds);
+		kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvUpdate | kconfig::FlagCreate | kconfig::FlagCopyChilds);
 		return sendRedirect(accesslist.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/tabledel") == 0) {
-		KStringBuf s;
-		s << access->get_qname() << "/table@"_CS << getUrlValue("table_name");
-		kconfig::remove(s.str().str(), 0);
+		KStringBuf path;
+		auto file = getUrlValue("file");
+		if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
+			path << "vh@" << vh_name << "/";
+		}
+		path << access->get_qname() << "/table@"_CS << getUrlValue("table_name");
+		kconfig::remove(path.str().str(), 0);
 		return sendRedirect(accesslist.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/delchain") == 0) {
-		KStringBuf s;
-		s << access->get_qname() << "/table@"_CS << getUrlValue("table_name") << "/chain";
-		kconfig::remove(getUrlValue("file"_CS).str(), s.str().str(), urlValue.attribute.get_int("id"));
+		KStringBuf path;
+		auto file = getUrlValue("file");
+		if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
+			path << "vh@" << vh_name << "/";
+		}
+		path << access->get_qname() << "/table@"_CS << getUrlValue("table_name") << "/chain";
+		kconfig::remove(file.str(), path.str().str(), urlValue.attribute.get_int("id"));
+		return sendRedirect(accesslist.c_str());
+	}
+	if (strcmp(rq->sink->data.url->path, "/addchain") == 0) {
+		KStringBuf path;
+		auto file = getUrlValue("file");
+		if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
+			path << "vh@" << vh_name << "/";
+		}
+		path << access->get_qname() << "/table@" << getUrlValue("table_name") << "/chain"_CS;
+		auto xml = kconfig::new_xml("chain"_CS);
+		xml->attributes().emplace("action"_CS, "continue"_CS);
+		kconfig::update(file.str(), path.str().str(), (uint32_t)urlValue.attribute.get_int("id"), xml.get(), kconfig::EvNew);
 		return sendRedirect(accesslist.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/editchain") == 0) {
@@ -1480,14 +1504,16 @@ bool KHttpManage::start_access(bool& hit) {
 			if (getUrlValue("mark") == "1") {
 				mark = true;
 			}
+			auto file = getUrlValue("file");
 			KStringBuf path;
-			if (vh_name) {
+			if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
 				path << "vh@" << vh_name << "/";
 			}
 			path << access->get_qname() << "/table@" << getUrlValue("table_name") << "/chain#"_CS << getUrlValue("id") << (mark ? "/mark"_CS : "/acl"_CS);
 			auto acl_xml = kconfig::new_xml(mark ? "mark"_CS : "acl"_CS);
 			acl_xml->attributes().emplace("module"_CS, getUrlValue("modelname"));
-			kconfig::update(getUrlValue("file"_CS).str(), path.str().str(), (uint32_t)urlValue.attribute.get_int("model_index"), acl_xml.get(), kconfig::EvNew);
+			auto result = kconfig::update(file.str(), path.str().str(), (uint32_t)urlValue.attribute.get_int("model"), acl_xml.get(), kconfig::EvNew);
+			printf("result=[%d]\n", result);
 
 			url << "/editchainform?access_type=" << getUrlValue("access_type")
 				<< "&table_name=" << getUrlValue("table_name")
@@ -1505,7 +1531,8 @@ bool KHttpManage::start_access(bool& hit) {
 			mark = true;
 		}
 		KStringBuf path;
-		if (vh_name) {
+		auto file = getUrlValue("file");
+		if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
 			path << "vh@" << vh_name << "/";
 		}
 		path << access->get_qname() << "/table@" << getUrlValue("table_name") << "/chain#" << getUrlValue("id");
@@ -1514,7 +1541,7 @@ bool KHttpManage::start_access(bool& hit) {
 		} else {
 			path << "/acl";
 		}
-		kconfig::remove(getUrlValue("file").str(), path.str().str(), (uint32_t)urlValue.attribute.get_int("model"));
+		kconfig::remove(file.str(), path.str().str(), (uint32_t)urlValue.attribute.get_int("model"));
 		KStringBuf url;
 		url << "/editchainform?access_type=" << getUrlValue("access_type")
 			<< "&table_name=" << getUrlValue("table_name")

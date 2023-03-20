@@ -128,6 +128,7 @@ void KTable::htmlTable(KWStream& s, const char* vh, u_short accessType) {
 		s << "<td>" << LANG_ACTION << "</td><td>acl</td><td>mark</td><td>";
 	s << LANG_HIT_COUNT << "</td></tr>\n";
 	int id = 0;
+	KString last_file;
 	for (auto&& chain_file : chains) {
 		int j = 0;
 		for (auto&& chain : chain_file.second) {
@@ -135,16 +136,17 @@ void KTable::htmlTable(KWStream& s, const char* vh, u_short accessType) {
 				++j;
 				continue;
 			}
+			last_file = chain_file.first.name;
 			s << "<tr><td>";
 			s << "[<a href=\"javascript:if(confirm('confirm delete chain";
 			s << "')){ window.location='/delchain?vh=" << vh
-				<< "&file="	<< chain_file.first.name
-				<< "&access_type = " << accessType
+				<< "&file=" << chain_file.first.name
+				<< "&access_type=" << accessType
 				<< "&id=" << j
 				<< "&table_name=" << name << "';}\">"
 				<< LANG_DELETE << "</a>]"
 
-				<< "[<a href='editchainform?vh=" << vh
+				<< "[<a href='/editchainform?vh=" << vh
 				<< "&file=" << chain_file.first.name
 				<< "&index=" << chain_file.first.index
 				<< "&access_type=" << accessType
@@ -152,11 +154,14 @@ void KTable::htmlTable(KWStream& s, const char* vh, u_short accessType) {
 				<< "&table_name=" << name
 				<< "'>" << LANG_EDIT << "</a>]";
 
+			s << "[<a href='/addchain?vh=" << vh
+				<< "&file=" << chain_file.first.name
+				<< "&access_type=" << accessType
+				<< "&id=" << j
+				<< "&table_name=" << name
+				<< "'>" << LANG_INSERT << "</a>]";
 #if 0
-			s << "[< a href = 'addchain?vh=" << vh << "&access_type="
-				<< accessType << "&id=" << j << "&table_name=" << name
-				<< "'>" << LANG_INSERT << "</a>]"
-				<< "[<a href='downchain?vh=" << vh << "&access_type="
+			<< "[<a href='downchain?vh=" << vh << "&access_type="
 				<< accessType << "&id=" << j << "&table_name=" << name
 				<< "'>down</a>]"
 #endif
@@ -204,11 +209,11 @@ void KTable::htmlTable(KWStream& s, const char* vh, u_short accessType) {
 		}
 	}
 	s << "</table>";
-#if 0
-	s << "[<a href='addchain?vh=" << vh << "&access_type=" << accessType
+	s << "[<a href='/addchain?vh=" << vh
+		<< "&file=" << last_file
+		<< "&access_type=" << accessType
 		<< "&add=1&id=-1&table_name=" << name << "'>" << LANG_INSERT
 		<< "</a>]<br><br>";
-#endif
 }
 KTable::KTable(KAccess* access, const KString& name) : KJump(name) {
 	this->access = access;
@@ -216,7 +221,7 @@ KTable::KTable(KAccess* access, const KString& name) : KJump(name) {
 KTable::~KTable() {
 	clear();
 }
-KChain *KTable::find_chain(const KString& file, uint16_t index, size_t id) {
+KChain* KTable::find_chain(const KString& file, uint16_t index, size_t id) {
 	KConfigFileKey key(index, file);
 	auto it = chains.find(key);
 	if (it == chains.end()) {
