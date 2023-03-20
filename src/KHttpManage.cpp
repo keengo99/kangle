@@ -1455,24 +1455,38 @@ bool KHttpManage::start_access(bool& hit) {
 	if (strcmp(rq->sink->data.url->path, "/tableadd") == 0) {
 		KStringBuf name;
 		KStringBuf path;
-		auto file = getUrlValue("file");
-		if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
+		KStringBuf file;
+		if (vh && vh->has_user_access()) {
+			vh->get_access_file(file);
+		}
+		if (strncmp(file.c_str(), _KS("@vh|")) != 0) {
 			path << "vh@" << vh_name << "/";
 		}
 		name << "table@"_CS << getUrlValue("table_name");
 		path << access->get_qname() << "/"_CS << name;
 		auto xml = kconfig::new_xml(name.c_str(), name.size());
-		kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvUpdate | kconfig::FlagCreate | kconfig::FlagCopyChilds);
+		if (!file.empty()) {
+			kconfig::update(file.str().str(), path.str().str(), 0, xml.get(), kconfig::EvUpdate | kconfig::FlagCreate | kconfig::FlagCopyChilds);
+		} else {
+			kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvUpdate | kconfig::FlagCreate | kconfig::FlagCopyChilds);
+		}
 		return sendRedirect(accesslist.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/tabledel") == 0) {
 		KStringBuf path;
-		auto file = getUrlValue("file");
+		KStringBuf file;
+		if (vh && vh->has_user_access()) {
+			vh->get_access_file(file);
+		}
 		if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
 			path << "vh@" << vh_name << "/";
 		}
 		path << access->get_qname() << "/table@"_CS << getUrlValue("table_name");
-		kconfig::remove(path.str().str(), 0);
+		if (!file.empty()) {
+			kconfig::remove(file.str().str(), path.str().str(), 0);
+		} else {
+			kconfig::remove(path.str().str(), 0);
+		}
 		return sendRedirect(accesslist.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/delchain") == 0) {
@@ -1488,13 +1502,22 @@ bool KHttpManage::start_access(bool& hit) {
 	if (strcmp(rq->sink->data.url->path, "/addchain") == 0) {
 		KStringBuf path;
 		auto file = getUrlValue("file");
+		if (!file && vh && vh->has_user_access()) {
+			KStringBuf tfile;
+			vh->get_access_file(tfile);
+			tfile.str().swap(file);
+		}
 		if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
 			path << "vh@" << vh_name << "/";
 		}
 		path << access->get_qname() << "/table@" << getUrlValue("table_name") << "/chain"_CS;
 		auto xml = kconfig::new_xml("chain"_CS);
 		xml->attributes().emplace("action"_CS, "continue"_CS);
-		kconfig::update(file.str(), path.str().str(), (uint32_t)urlValue.attribute.get_int("id"), xml.get(), kconfig::EvNew);
+		if (file) {
+			kconfig::update(file.str(), path.str().str(), (uint32_t)urlValue.attribute.get_int("id"), xml.get(), kconfig::EvNew);
+		} else {
+			kconfig::update(path.str().str(), (uint32_t)urlValue.attribute.get_int("id"), xml.get(), kconfig::EvNew);
+		}
 		return sendRedirect(accesslist.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/editchain") == 0) {

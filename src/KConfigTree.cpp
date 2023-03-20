@@ -551,7 +551,7 @@ namespace kconfig {
 	khttpd::KSafeXmlNode KConfigFile::load() {
 		auto fs = find_source_driver(source);
 		auto xml = fs->load(this);
-		if (begin_parse_cb) {
+		if (begin_parse_cb && xml) {
 			if (!begin_parse_cb(this, xml.get())) {
 				return nullptr;
 			}

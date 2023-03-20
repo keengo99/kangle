@@ -317,6 +317,15 @@ public:
 	void setAccess(const KString &access_file);
 	KString htaccess;
 	KSafeAccess access[2];
+	bool has_user_access() {
+		if (user_access && user_access[0] != '-') {
+			return true;
+		}
+		return false;
+	}
+	void get_access_file(KWStream& s) {
+		s << "@vh|" << name << "_access";
+	}
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
 	kgl_ssl_ctx *ssl_ctx;
 	bool setSSLInfo(const KString &certfile, const KString&keyfile, const KString&cipher,const KString&protocols);

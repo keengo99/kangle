@@ -377,13 +377,13 @@ void KVirtualHost::setAccess(const KString& access_file) {
 
 void KVirtualHost::reload_access() {
 	KStringBuf s;
-	s << "@vh|" << name << "_access";
+	get_access_file(s);
 	auto locker = kconfig::lock();
 	kconfig::reload_config(s.str().data(), false);
 }
 void KVirtualHost::access_config_listen(kconfig::KConfigTree* tree, KVirtualHost* ov) {
 	KStringBuf s;
-	s << "@vh|" << name << "_access";
+	get_access_file(s);
 	if (ov) {
 		if (ov->user_access == user_access) {
 			return;
