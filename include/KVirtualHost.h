@@ -256,8 +256,7 @@ public:
 	/*
 	 check if a file will map to the rd
 	 */
-	bool isPathRedirect(KHttpRequest *rq, KFileName *file, bool fileExsit,
-			KRedirect *rd);
+	bool isPathRedirect(KHttpRequest *rq, KFileName *file, bool fileExsit, KRedirect *rd);
 	KFetchObject *findFileExtRedirect(KHttpRequest *rq, KFileName *file,bool fileExsit,bool &result);
 	//KFetchObject *findDefaultRedirect(KHttpRequest *rq,KFileName *file,bool fileExsit);
 	KString name;
@@ -321,8 +320,8 @@ public:
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
 	kgl_ssl_ctx *ssl_ctx;
 	bool setSSLInfo(const KString &certfile, const KString&keyfile, const KString&cipher,const KString&protocols);
-	KString get_cert_file() override;
-	KString get_key_file() override;
+	KString get_cert_file() const override;
+	KString get_key_file() const override;
 	kgl_ssl_ctx* refs_ssl_ctx() override {
 		if (ssl_ctx == nullptr) {
 			this->ssl_ctx = KSslConfig::refs_ssl_ctx();

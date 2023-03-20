@@ -80,17 +80,35 @@ kgl_ssl_ctx* KSslConfig::new_ssl_ctx(const char* certfile, const char* keyfile) 
 	ssl_ctx->ctx = ctx;
 	return ssl_ctx;
 }
-KString KSslConfig::get_cert_file() {
-	if (isAbsolutePath(cert_file.c_str())) {
+KString KSslCertificate::get_cert_file(const KString& doc_root) const {
+	if (cert_file.empty()) {
 		return cert_file;
 	}
-	return  conf.path + cert_file;
+	if (cert_file[0] == '-') {
+		return conf.path + (cert_file.c_str() + 1);
+	}
+	if (!isAbsolutePath(cert_file.c_str())) {
+		return doc_root + cert_file;
+	}
+	return cert_file;
 }
-KString KSslConfig::get_key_file() {
-	if (isAbsolutePath(key_file.c_str())) {
+KString KSslCertificate::get_key_file(const KString& doc_root) const {
+	if (key_file.empty()) {
 		return key_file;
 	}
-	return  conf.path + key_file;
+	if (key_file[0] == '-') {
+		return conf.path + (key_file.c_str() + 1);
+	}
+	if (!isAbsolutePath(key_file.c_str())) {
+		return doc_root + key_file;
+	}
+	return key_file;
+}
+KString KSslCertificate::get_cert_file() const {
+	return get_cert_file(conf.path);
+}
+KString KSslCertificate::get_key_file() const {
+	return get_cert_file(conf.path);
 }
 #endif
 KConfigBase::KConfigBase() {
@@ -107,27 +125,6 @@ KGlobalConfig::KGlobalConfig() {
 	dem = NULL;
 	select_count = 0;
 }
-
-class KExtConfig
-{
-public:
-	KExtConfig(char* content) {
-		this->content = content;
-		next = NULL;
-	}
-	~KExtConfig() {
-		if (content) {
-			xfree(content);
-		}
-		if (next) {
-			delete next;
-		}
-	}
-	std::string file;
-	char* content;
-	bool merge;
-	KExtConfig* next;
-};
 
 bool get_size_radio(INT64 size, int radio, const char radio_char, KWStream& s) {
 	INT64 t;
@@ -214,41 +211,107 @@ INT64 get_size(const char* size) {
 	bool is_radio = false;
 	return get_radio_size(size, is_radio);
 }
-
-static bool on_begin_parse(kconfig::KConfigFile* file, khttpd::KXmlNode* node) {
-	if (!kconfig::is_first()) {
-		return true;
+void upgrade_chain_access(const kgl_ref_str_t& access, khttpd::KXmlNode* node) {
+	node = kconfig::find_child(node->get_first(), access.data, access.len);
+	if (!node) {
+		return;
 	}
-	if (file->is_default()) {
-#ifdef MALLOCDEBUG
-		auto malloc_debug = kconfig::find_child(node->get_first(), _KS("mallocdebug"));
-		if (malloc_debug) {
-			conf.mallocdebug = atoi(malloc_debug->get_text()) == 1;
+	for (auto it = kconfig::find_first_child(node->get_first(), "table"_CS); it && it->value()->is_tag("table"_CS); it = it->next()) {
+		auto chain = kconfig::find_child(it->value()->get_first(), _KS("chain"));
+		if (!chain) {
+			continue;
 		}
-		if (conf.mallocdebug) {
-			start_hook_alloc();
-		}
-#endif
-		auto worker_thread = kconfig::find_child(node->get_first(), _KS("worker_thread"));
-		if (worker_thread) {
-			conf.select_count = atoi(worker_thread->get_text());
-		}
-		int select_count = conf.select_count;
-		if (select_count <= 0) {
-			select_count = kgl_cpu_number;
-		}
-		if (select_count > 1) {
-			if (!selector_manager_grow(select_count)) {
-				fprintf(stderr, "cann't grow worker thread..\n");
-			} else {
-				fprintf(stderr, "worker thread grow to [%d] success.\n", get_selector_count());
+		for (auto&& module : chain->body) {
+			for (auto it2 = module->childs.first(); it2;) {
+				auto it_next = it2->next();
+				auto module_node = it2->value();
+				if (kgl_ncasecmp(module_node->key.tag->data, module_node->key.tag->len, _KS("acl_")) == 0) {
+					for (auto&& body : module_node->body) {
+						auto new_module = kconfig::new_child(module, _KS("acl"));
+						body->clone_to(new_module);
+						new_module->attributes.emplace(KString(_KS("module")), KString(module_node->key.tag->data + 4, module_node->key.tag->len - 4));
+					}
+					module_node->release();
+					module->childs.erase(it2);
+				} else if (kgl_ncasecmp(module_node->key.tag->data, module_node->key.tag->len, _KS("mark_")) == 0) {
+					for (auto&& body : module_node->body) {
+						auto new_module = kconfig::new_child(module, _KS("mark"));
+						body->clone_to(new_module);
+						new_module->attributes.emplace(KString(_KS("module")), KString(module_node->key.tag->data + 5, module_node->key.tag->len - 5));
+					}
+					module_node->release();
+					module->childs.erase(it2);
+				}
+				it2 = it_next;
 			}
 		}
 	}
-	auto vh_database = kconfig::find_child(node->get_first(), _KS("vh_database"));
-	if (vh_database) {
-		vhd.parse_config(vh_database->get_first());
+}
+static bool on_begin_parse(kconfig::KConfigFile* file, khttpd::KXmlNode* node) {
+	if (kconfig::is_first()) {
+		if (file->is_default()) {
+#ifdef MALLOCDEBUG
+			auto malloc_debug = kconfig::find_child(node->get_first(), _KS("mallocdebug"));
+			if (malloc_debug) {
+				conf.mallocdebug = atoi(malloc_debug->get_text()) == 1;
+			}
+			if (conf.mallocdebug) {
+				start_hook_alloc();
+			}
+#endif
+			auto worker_thread = kconfig::find_child(node->get_first(), _KS("worker_thread"));
+			if (worker_thread) {
+				conf.select_count = atoi(worker_thread->get_text());
+			}
+			int select_count = conf.select_count;
+			if (select_count <= 0) {
+				select_count = kgl_cpu_number;
+			}
+			if (select_count > 1) {
+				if (!selector_manager_grow(select_count)) {
+					fprintf(stderr, "cann't grow worker thread..\n");
+				} else {
+					fprintf(stderr, "worker thread grow to [%d] success.\n", get_selector_count());
+				}
+			}
+		}
+		auto vh_database = kconfig::find_child(node->get_first(), _KS("vh_database"));
+		if (vh_database) {
+			vhd.parse_config(vh_database->get_first());
+		}
 	}
+	//bind listen
+	auto it = kconfig::find_first_child(node->get_first(), "listen"_CS);
+	if (it) {
+		//TODO handle
+		auto xml = it->value();
+		for (auto&& body : xml->body) {
+			KSslCertificate ssl_cert;
+			ssl_cert.parse_certificate(body->attributes);
+			if (ssl_cert.cert_file) {
+				KStringBuf name,value;
+				name << khttpd::internal_xml_attribute << "cert_file";
+				value << kfile_last_modified(ssl_cert.get_cert_file().c_str());
+				body->attributes.emplace(name.str(), value.str());
+			}
+			if (ssl_cert.key_file) {
+				KStringBuf name, value;
+				name << khttpd::internal_xml_attribute << "key_file";
+				value << kfile_last_modified(ssl_cert.get_key_file().c_str());
+				body->attributes.emplace(name.str(), value.str());
+			}
+		}
+	}
+	
+	for(auto it = kconfig::find_first_child(node->get_first(), "vh"_CS);it && it->value()->is_tag(_KS("vh")); it = it->next()) {
+		auto vh_node = it->value();
+		upgrade_chain_access("request"_CS, vh_node);
+		upgrade_chain_access("response"_CS, vh_node);
+		//printf("vh name=[%s]\n", it->value()->attributes()("name"));
+		//TODO;
+	}
+	upgrade_chain_access("request"_CS, node);
+	upgrade_chain_access("response"_CS, node);
 	return true;
 }
 static void init_config() {
@@ -256,7 +319,7 @@ static void init_config() {
 	conf.wl_time = 1800;
 #ifdef ENABLE_TF_EXCHANGE
 	conf.max_post_size = 8388608;
-#endif	
+#endif
 #ifdef ENABLE_DISK_CACHE
 	conf.diskWorkTime.set(NULL);
 #endif

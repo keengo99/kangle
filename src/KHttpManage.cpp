@@ -1427,12 +1427,12 @@ bool KHttpManage::start_access(bool& hit) {
 	hit = true;
 	int type = !!atoi(getUrlValue("access_type").c_str());
 	KStringBuf accesslist;
-	auto name = getUrlValue("vh");
+	auto vh_name = getUrlValue("vh");
 	KSafeVirtualHost vh;
 	KSafeAccess access(kaccess[type]->add_ref());
 #ifndef HTTP_PROXY
-	if (!name.empty()) {
-		vh.reset(conf.gvm->refsVirtualHostByName(name));
+	if (!vh_name.empty()) {
+		vh.reset(conf.gvm->refsVirtualHostByName(vh_name));
 		if (!vh) {
 			return sendHttp("cann't find such vh");
 		}
@@ -1446,7 +1446,7 @@ bool KHttpManage::start_access(bool& hit) {
 	if (strcmp(rq->sink->data.url->path, "/accesslist") == 0) {
 		KStringBuf s;
 		if (vh) {
-			conf.gvm->getHtml(s, name, type + 6, urlValue);
+			conf.gvm->getHtml(s, vh_name, type + 6, urlValue);
 		} else if (access) {
 			s << access->htmlAccess();
 		}
@@ -1480,22 +1480,51 @@ bool KHttpManage::start_access(bool& hit) {
 			if (getUrlValue("mark") == "1") {
 				mark = true;
 			}
-			access->add_model(getUrlValue("table_name"_CS), getUrlValue("file"_CS), atoi(getUrlValue("id").c_str()), getUrlValue("modelname"), mark);
+			KStringBuf path;
+			if (vh_name) {
+				path << "vh@" << vh_name << "/";
+			}
+			path << access->get_qname() << "/table@" << getUrlValue("table_name") << "/chain#"_CS << getUrlValue("id") << (mark ? "/mark"_CS : "/acl"_CS);
+			auto acl_xml = kconfig::new_xml(mark ? "mark"_CS : "acl"_CS);
+			acl_xml->attributes().emplace("module"_CS, getUrlValue("modelname"));
+			kconfig::update(getUrlValue("file"_CS).str(), path.str().str(), (uint32_t)urlValue.attribute.get_int("model_index"), acl_xml.get(), kconfig::EvNew);
+
 			url << "/editchainform?access_type=" << getUrlValue("access_type")
 				<< "&table_name=" << getUrlValue("table_name")
 				<< "&file=" << getUrlValue("file")
 				<< "&index=" << getUrlValue("index")
-				<< "&id=" << getUrlValue("id") 
+				<< "&id=" << getUrlValue("id")
 				<< "&vh=" << getUrlValue("vh");
 			return sendRedirect(url.c_str());
 		}
-		/*
-		access->editChain(getUrlValue("table_name"), atoi(getUrlValue(
-			"id").c_str()), &urlValue);
-			*/
 		return sendRedirect(accesslist.c_str());
 	}
+	if (strcmp(rq->sink->data.url->path, "/delmodel") == 0) {
+		bool mark = false;
+		if (getUrlValue("mark") == "1") {
+			mark = true;
+		}
+		KStringBuf path;
+		if (vh_name) {
+			path << "vh@" << vh_name << "/";
+		}
+		path << access->get_qname() << "/table@" << getUrlValue("table_name") << "/chain#" << getUrlValue("id");
+		if (mark) {
+			path << "/mark";
+		} else {
+			path << "/acl";
+		}
+		kconfig::remove(getUrlValue("file").str(), path.str().str(), (uint32_t)urlValue.attribute.get_int("model"));
+		KStringBuf url;
+		url << "/editchainform?access_type=" << getUrlValue("access_type")
+			<< "&table_name=" << getUrlValue("table_name")
+			<< "&file=" << getUrlValue("file")
+			<< "&index=" << getUrlValue("index")
+			<< "&id=" << getUrlValue("id")
+			<< "&vh=" << getUrlValue("vh");
+		return sendRedirect(url.c_str());
 
+	}
 	if (strcmp(rq->sink->data.url->path, "/editchainform") == 0) {
 		//sendHeader(200);
 		KStringBuf s;
@@ -1503,7 +1532,7 @@ bool KHttpManage::start_access(bool& hit) {
 		if (vh) {
 			conf.gvm->getMenuHtml(s, vh.get(), url);
 		}
-		access->add_chain_form(s, name.c_str(), getUrlValue("table_name"), getUrlValue("file"), urlValue.attribute.get_int("index"), atoi(getUrlValue("id").c_str()), (getUrlValue("add") == "1" ? true : false));
+		access->add_chain_form(s, vh_name.c_str(), getUrlValue("table_name"), getUrlValue("file"), urlValue.attribute.get_int("index"), atoi(getUrlValue("id").c_str()), (getUrlValue("add") == "1" ? true : false));
 		s << endTag();
 		return sendHttp(s.str());
 	}

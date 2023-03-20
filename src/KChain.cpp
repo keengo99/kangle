@@ -140,16 +140,16 @@ void KChain::getModelHtml(KModel* model, KWStream& s, int type, int index) {
 	if (model->is_or) {
 		s << "checked";
 	}
-	s << ">OR NEXT";
+	s << ">OR_NEXT";
 	s << "<input type=checkbox name='revers' value='1' ";
 	if (model->revers) {
 		s << "checked";
 	}
-	s << ">" << LANG_REVERS;
+	s << ">NOT";
 
 	//}
 	s << "[<a href=\"javascript:delmodel('" << index << "'," << type << ");\">del</a>]";
-	s << "[<a href=\"javascript:downmodel('" << index << "'," << type << ");\">down</a>]";
+	//s << "[<a href=\"javascript:downmodel('" << index << "'," << type << ");\">down</a>]";
 	s << model->getName() << "</td><td>";
 	model->get_html(model, s);
 	s << "<input type=hidden name='end_sub_form' value='1'></td></tr>\n";
@@ -189,15 +189,7 @@ void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 	}
 	access->setChainAction(jump_type, jump, jumpName);
 	for (auto node : xml->childs) {
-		auto model_name = node->get_tag();
-		bool is_acl = false;
-		if (strncasecmp(model_name.c_str(), "acl_", 4) == 0) {
-			is_acl = true;
-			model_name = model_name.substr(4);
-		} else if (strncasecmp(model_name.c_str(), "mark_", 5) == 0) {
-			is_acl = false;
-			model_name = model_name.substr(5);
-		} else if (node->is_tag(_KS("acl"))) {
+		if (node->is_tag(_KS("acl"))) {
 			for (auto&& body : node->body) {
 				auto model_name = body->attributes["module"];
 				if (model_name.empty()) {
@@ -217,7 +209,6 @@ void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 				parse_module_child_config(m.get(), body->childs);
 				acls.push_back(m.release());
 			}
-			continue;
 		} else if (node->is_tag(_KS("mark"))) {
 			for (auto&& body : node->body) {
 				auto model_name = body->attributes["module"];
@@ -238,27 +229,8 @@ void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 				parse_module_child_config(m.get(), body->childs);
 				marks.push_back(m.release());
 			}
-			continue;
 		} else {
-			klog(KLOG_ERR, "unknow qname [%s] in chain\n", model_name.c_str());
-			continue;
-		}
-		for (auto&& body : node->body) {
-			if (is_acl) {
-				auto m = access->new_acl(model_name, body);
-				if (!m) {
-					continue;
-				}
-				parse_module_child_config(m.get(), body->childs);
-				acls.push_back(m.release());
-			} else {
-				auto m = access->new_mark(model_name, body);
-				if (!m) {
-					continue;
-				}
-				parse_module_child_config(m.get(), body->childs);
-				marks.push_back(m.release());
-			}
+			klog(KLOG_ERR, "unknow qname [%s] in chain\n", node->get_tag().c_str());
 		}
 	}
 }

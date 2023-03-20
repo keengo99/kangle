@@ -48,6 +48,7 @@
 #include "khttp.h"
 #include "KDynamicString.h"
 #include "KAutoArray.h"
+#include "KXmlAttribute.h"
 
 #define AUTOUPDATE_OFF    0
 #define AUTOUPDATE_ON   1
@@ -72,17 +73,24 @@ class KSslCertificate
 {
 public:
 #ifdef KSOCKET_SSL
+	virtual ~KSslCertificate() {
+	}
 	KString cert_file;
 	KString key_file;
+	void parse_certificate(const KXmlAttribute& attr) {
+		cert_file = attr["certificate"];
+		key_file = attr["certificate_key"];
+	}
+	virtual KString get_cert_file() const;
+	virtual KString get_key_file() const;
+	KString get_cert_file(const KString& doc_root) const;
+	KString get_key_file(const KString& doc_root) const;
 #endif
 };
 class KSslConfig : public KSslCertificate
 {
 public:
 #ifdef KSOCKET_SSL
-	virtual KString get_cert_file();
-	virtual KString get_key_file();
-
 	kgl_ssl_ctx* new_ssl_ctx(const char* certfile, const char* keyfile);
 	virtual kgl_ssl_ctx* refs_ssl_ctx() {
 		return new_ssl_ctx(get_cert_file().c_str(), get_key_file().c_str());
@@ -259,7 +267,7 @@ public:
 #endif
 	INT64 max_bigobj_size = 1024 * 1024 * 1024;
 #endif
-	char access_log[128] = {0 };
+	char access_log[128] = { 0 };
 	char log_rotate[32] = { 0 };
 	char logHandle[512] = { 0 };
 	char server_software[32] = { 0 };

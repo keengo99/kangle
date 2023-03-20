@@ -436,8 +436,11 @@ void KAccess::add_chain_form(KWStream& s, const char* vh, const KString& table_n
 	s << "<script language='javascript'>\n";
 	s << "function delmodel(model,mark){\n";
 	s << "if(confirm('are you sure to delete this model')){\n";
-	s << "	window.location='/delmodel?vh=" << vh << "&access_type=" << type << "&table_name="
-		<< table_name << "&id=" << id
+	s << "	window.location='/delmodel?vh=" << vh << "&access_type=" << type
+		<< "&table_name=" << table_name
+		<< "&file=" << file
+		<< "&index=" << index
+		<< "&id=" << id
 		<< "&model='+model+'&mark='+mark;\n";
 	s << "}\n};\n";
 	s << "function downmodel(model,mark){\n";
@@ -447,6 +450,7 @@ void KAccess::add_chain_form(KWStream& s, const char* vh, const KString& table_n
 	s << "};\n";
 	s << "function addmodel(model,mark){\n";
 	s << "if(model!=''){\n";
+	s << " accessaddform.model_index = prompt('add index',-1);\n";
 	//s << "  accessaddform.action='/test';\n";
 	s << "	accessaddform.modelflag.value='1';\n";
 	s << "	accessaddform.modelname.value=model;\n";
@@ -462,6 +466,7 @@ void KAccess::add_chain_form(KWStream& s, const char* vh, const KString& table_n
 	s << "<input type=hidden name=modelflag value='0'>\n";
 	s << "<input type=hidden name=modelname value=''>\n";
 	s << "<input type=hidden name=mark value='0'>\n";
+	s << "<input type=hidden name=model_index value=''>\n";
 	s << "<input type=hidden name=table_name value='" << table_name << "'>\n";
 	s << "<input type=hidden name='file' value='" << file << "'/>\n";
 	s << "<input type=hidden name=index value='" << index << "'>\n";
@@ -532,7 +537,7 @@ kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo
 			if (rq->sink->data.meth == METH_CONNECT) {
 				fo.reset(new KConnectProxyFetchObject());
 				break;
-			}
+	}
 #endif
 #ifdef ENABLE_PROXY_PROTOCOL
 			if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_PROXY | WORK_MODEL_SSL_PROXY)) {
@@ -541,7 +546,7 @@ kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo
 			}
 #endif
 			fo.reset(new KHttpProxyFetchObject());
-		}
+}
 		break;
 	}
 	return jumpType;
@@ -825,14 +830,6 @@ void KAccess::htmlChainAction(KWStream& s, kgl_jump_type jump_type, KJump* jump,
 		htmlRadioAction(s, &jump_value, jump_type, jump, JUMP_TABLE, "table", table_names);
 	}
 }
-bool KAccess::add_model(const KString& table_name, const KString& file, size_t id, const KString& acl, bool mark) {
-	KStringBuf path;
-	path << get_qname() << "/table@" << table_name << "/chain#"_CS << id << (mark ? "/mark"_CS : "/acl"_CS);
-	auto acl_xml = kconfig::new_xml(mark ? "mark"_CS : "acl"_CS);
-	acl_xml->attributes().emplace("module"_CS, acl);
-	return kconfig::KConfigResult::Success == kconfig::update(file.str(), path.str().str(), khttpd::last_pos, acl_xml.get(), kconfig::EvNew);
-}
-
 void KAccess::htmlRadioAction(KWStream& s, kgl_jump_type* jump_value, int jump_type, KJump* jump, int my_jump_type, const KString& my_type_name,
 	std::vector<KString>& table_names) {
 	if (table_names.size() > 0) {

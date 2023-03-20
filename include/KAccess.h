@@ -94,7 +94,6 @@ public:
 		}
 		return "response";
 	}
-	bool add_model(const KString& table_name, const KString& file, size_t id, const KString& acl, bool mark);
 	void parse_config(const KXmlAttribute& attr);
 	bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) override;
 	kgl_jump_type check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo);

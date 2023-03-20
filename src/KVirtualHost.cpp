@@ -590,29 +590,11 @@ void KVirtualHost::setApp(int app) {
 	apps.shrink_to_fit();
 }
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
-KString KVirtualHost::get_cert_file() {
-	if (cert_file.empty()) {
-		return cert_file;
-	}
-	if (cert_file[0] == '-') {
-		return conf.path + (cert_file.c_str() + 1);
-	}
-	if (!isAbsolutePath(cert_file.c_str())) {
-		return doc_root + cert_file;
-	}
-	return cert_file;
+KString KVirtualHost::get_cert_file() const {
+	return KSslCertificate::get_cert_file(doc_root);
 }
-KString KVirtualHost::get_key_file() {
-	if (key_file.empty()) {
-		return key_file;
-	}
-	if (key_file[0] == '-') {
-		return conf.path + (key_file.c_str() + 1);
-	}
-	if (!isAbsolutePath(key_file.c_str())) {
-		return doc_root + key_file;
-	}
-	return key_file;
+KString KVirtualHost::get_key_file() const {
+	return KSslCertificate::get_key_file(doc_root);
 }
 bool KVirtualHost::setSSLInfo(const KString& certfile, const KString& keyfile, const KString& cipher, const KString& protocols) {
 	this->cert_file = certfile;

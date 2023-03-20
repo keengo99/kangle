@@ -32,8 +32,7 @@ KSafeListen parse_listen(const KXmlAttribute& attribute) {
 	m_host->ip = attribute["ip"];
 	m_host->port = attribute["port"];
 #ifdef KSOCKET_SSL
-	m_host->cert_file = attribute["certificate"];
-	m_host->key_file = attribute["certificate_key"];
+	m_host->parse_certificate(attribute);
 	if (!attribute["alpn"].empty()) {
 		m_host->alpn = (u_char)atoi(attribute["alpn"].c_str());
 	} else {
