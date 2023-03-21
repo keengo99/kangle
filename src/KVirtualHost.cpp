@@ -48,6 +48,7 @@
 
 
 KVirtualHost::KVirtualHost(const KString& name) {
+	ref = 1;
 	this->name = name;
 	flags = 0;
 #ifdef ENABLE_VH_LOG_FILE
@@ -71,8 +72,6 @@ KVirtualHost::KVirtualHost(const KString& name) {
 #endif
 #ifdef ENABLE_VH_QUEUE
 	queue = NULL;
-	max_queue = 0;
-	max_worker = 0;
 #endif
 	inherit = true;
 	app_share = 1;
@@ -517,7 +516,7 @@ int KVirtualHost::GetConnectionCount() {
 	if (cur_connect) {
 		return cur_connect->getConnectionCount();
 	}
-	return refs - VH_REFS_CONNECT_DELTA;
+	return katom_get((void *)&ref) - VH_REFS_CONNECT_DELTA;
 }
 #endif
 #ifdef ENABLE_VH_QUEUE
@@ -669,9 +668,7 @@ bool KVirtualHost::parse_xml(const KXmlAttribute& attr, KVirtualHost* ov) {
 	setFlow(attr.get_int("fflow") == 1, ov);
 #endif
 #ifdef ENABLE_VH_QUEUE
-	max_worker = attr.get_int("max_worker");
-	max_queue = attr.get_int("max_queue");
-	initQueue(ov);
+	initQueue((unsigned)attr.get_int("max_worker"), (unsigned)attr.get_int("max_queue"), ov);
 #endif
 	SetStatus(attr.get_int("status"));
 	if (ov != nullptr) {

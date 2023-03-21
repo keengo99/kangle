@@ -245,7 +245,7 @@ static int getVhDomain(WhmContext *ctx)
 		ctx->add("domain",(*it)->host);
 	}
 	vh->getParsedFileExt(ctx);
-	vh->destroy();
+	vh->release();
 	return WHM_OK;
 }
 #ifdef ENABLE_BLACK_LIST
@@ -339,7 +339,7 @@ static int getVhDetail(WhmContext *ctx)
 	//ctx->add("flow_limit",vh->flow_limit);
 	//ctx->add("flow",vh->flow);
 #endif
-	vh->destroy();
+	vh->release();
 	return WHM_OK;
 }
 int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *context) {

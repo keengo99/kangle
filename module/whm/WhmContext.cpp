@@ -20,7 +20,7 @@ WhmContext::~WhmContext() {
 		delete (*it);
 	}
 	if(vh){
-		vh->destroy();
+		vh->release();
 	}
 	if(ds){
 		delete ds;
@@ -58,7 +58,7 @@ void WhmContext::add(KString&name, KString&value) {
 void WhmContext::buildVh(KVirtualHost *vh)
 {
 	if(this->vh){
-		this->vh->destroy();
+		this->vh->release();
 	}
 	if(ds){
 		delete ds;
@@ -71,17 +71,16 @@ void WhmContext::buildVh(KVirtualHost *vh)
 }
 bool WhmContext::buildVh()
 {
-
 	const char *name = urlValue.getx("vh");
 	if(name==NULL){
 		return false;
 	}
-	if(this->vh){
-		this->vh->destroy();
-	}
 	if(ds){
 		delete ds;
 		ds = NULL;
+	}
+	if (this->vh) {
+		this->vh->release();
 	}
 	vh = conf.gvm->refsVirtualHostByName(name);
 	if(vh){

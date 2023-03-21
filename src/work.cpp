@@ -506,7 +506,7 @@ KGL_RESULT stageHttpManage(KHttpRequest* rq) {
 		auto svh = conf.sysHost->getFirstSubVirtualHost();
 		rq->sink->data.bind_opaque(svh);
 		if (svh) {
-			svh->vh->addRef();
+			svh->vh->add_ref();
 			return fiber_http_start(rq);
 		}
 		assert(false);

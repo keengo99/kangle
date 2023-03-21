@@ -28,7 +28,7 @@ public:
 	~WhmShellContext()
 	{
 		if (vh) {
-			vh->destroy();
+			vh->release();
 		}
 		if(ds){
 			delete ds;
@@ -44,9 +44,8 @@ public:
 		if(this->vh){
 			return;
 		}
-		this->vh = vh;
 		if (vh) {
-			vh->addRef();
+			this->vh = vh->add_ref();
 		}
 		if(this->vh){
 			if(ds==NULL){

@@ -54,11 +54,11 @@ typedef KWinCgiEnv KCmdEnv;
 #else
 typedef KCgiEnv KCmdEnv;
 #endif
-//#ifdef _WIN32
+#ifdef _WIN32
 #define USER_T	KString
-//#else
-//#define USER_T	int
-//#endif
+#else
+#define USER_T	int
+#endif
 #define isAbsolutePath kgl_is_absolute_path
 int get_path(char *argv0, KString &path);
 int get_param(int argc, char **argv, int &i,const char *param, char *value);

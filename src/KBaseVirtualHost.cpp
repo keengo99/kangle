@@ -811,7 +811,7 @@ bool KBaseVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KCon
 		assert(false);
 		auto bvh = (KBaseVirtualHost*)tree->unbind();
 		assert(bvh == this);
-		static_cast<KVirtualHost*>(bvh)->destroy();
+		static_cast<KVirtualHost*>(bvh)->release();
 		return true;
 	}
 	case kconfig::EvNew:

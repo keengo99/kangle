@@ -51,14 +51,14 @@ bool KVirtualHostManage::on_config_event(kconfig::KConfigTree* tree, kconfig::KC
 	{
 		if (xml->is_tag(_KS("vh"))) {
 			assert(tree->ls == nullptr);
-			auto vh = new KVirtualHost(xml->attributes()["name"]);
+			KSafeVirtualHost vh(new KVirtualHost(xml->attributes()["name"]));
 			vh->parse_xml(ev->get_xml()->attributes(), nullptr);
-			if (tree->bind(vh)) {
-				vh->addRef();
+			if (tree->bind(vh.get())) {
+				vh->add_ref();
 			}
-			if (!this->addVirtualHost(tree, vh)) {
+			if (!this->addVirtualHost(tree, vh.get())) {
 				tree->unbind();
-				vh->destroy();
+				vh->release();
 			}
 			return true;
 		}
@@ -74,14 +74,13 @@ bool KVirtualHostManage::on_config_event(kconfig::KConfigTree* tree, kconfig::KC
 	case kconfig::EvSubDir | kconfig::EvUpdate:
 	{
 		if (xml->is_tag(_KS("vh"))) {
-			auto old_vh = static_cast<KVirtualHost*>((KBaseVirtualHost*)tree->unbind());
-			defer(old_vh->destroy());
-			auto new_vh = new KVirtualHost(old_vh->name);
-			new_vh->parse_xml(xml->attributes(), old_vh);
-			if (tree->bind(new_vh)) {
-				new_vh->addRef();
+			KSafeVirtualHost old_vh(static_cast<KVirtualHost*>(tree->unbind()));
+			KSafeVirtualHost new_vh(new KVirtualHost(old_vh->name));
+			new_vh->parse_xml(xml->attributes(), old_vh.get());
+			if (tree->bind(new_vh.get())) {
+				new_vh->add_ref();
 			}
-			this->updateVirtualHost(tree, new_vh, old_vh);
+			this->updateVirtualHost(tree, new_vh.get(), old_vh.get());
 			return true;
 		}
 #ifdef ENABLE_SVH_SSL
@@ -96,9 +95,8 @@ bool KVirtualHostManage::on_config_event(kconfig::KConfigTree* tree, kconfig::KC
 	case kconfig::EvSubDir | kconfig::EvRemove:
 	{
 		if (xml->is_tag(_KS("vh"))) {
-			auto vh = static_cast<KVirtualHost*>((KBaseVirtualHost*)tree->unbind());
-			defer(vh->destroy());
-			if (this->removeVirtualHost(tree, vh)) {
+			KSafeVirtualHost vh(static_cast<KVirtualHost*>((KBaseVirtualHost*)tree->unbind()));			
+			if (this->removeVirtualHost(tree, vh.get())) {
 			}
 			return true;
 		}
@@ -127,7 +125,7 @@ KVirtualHostManage::~KVirtualHostManage() {
 		if (this == conf.gvm) {
 			InternalUnBindVirtualHost((*it4).second);
 		}
-		(*it4).second->destroy();
+		(*it4).second->release();
 	}
 	avh.clear();
 	kassert(this != conf.gvm || dlisten.IsEmpty());
@@ -158,14 +156,12 @@ int KVirtualHostManage::getNextInstanceId() {
 	return katom_inc((void*)&curInstanceId);
 }
 KVirtualHost* KVirtualHostManage::refsVirtualHostByName(const KString& name) {
-	KVirtualHost* vh = NULL;
 	auto lock = locker();
 	auto it = avh.find(name);
 	if (it != avh.end()) {
-		vh = (*it).second;
-		vh->addRef();
+		return (*it).second->add_ref();
 	}
-	return vh;
+	return nullptr;
 }
 void KVirtualHostManage::shutdown() {
 	dlisten.Close();
@@ -277,12 +273,8 @@ bool KVirtualHostManage::updateVirtualHost(kconfig::KConfigTree* ct, KVirtualHos
 }
 bool KVirtualHostManage::updateVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh) {
 
-	KVirtualHost* ov = refsVirtualHostByName(vh->name);
-	bool result = updateVirtualHost(ct, vh, ov);
-	if (ov) {
-		ov->destroy();
-	}
-	return result;
+	KSafeVirtualHost ov(refsVirtualHostByName(vh->name));
+	return updateVirtualHost(ct, vh, ov.get());
 }
 /*
  * 增加虚拟主机
@@ -321,7 +313,7 @@ bool KVirtualHostManage::internalAddVirtualHost(kconfig::KConfigTree* ct, KVirtu
 		InternalBindVirtualHost(vh);
 	}
 	avh.insert(pair<KString, KVirtualHost*>(vh->name, vh));
-	vh->addRef();
+	vh->add_ref();
 	return true;
 }
 void KVirtualHostManage::UnBindGlobalVirtualHost(kserver* server) {
@@ -341,7 +333,7 @@ bool KVirtualHostManage::internalRemoveVirtualHost(kconfig::KConfigTree* ct, KVi
 	}
 	avh.erase(it);
 	kassert(this == conf.gvm);
-	vh->destroy();
+	vh->release();
 	return true;
 }
 int KVirtualHostManage::find_domain(const char* site, WhmContext* ctx) {
@@ -386,7 +378,7 @@ query_vh_result KVirtualHostManage::queryVirtualHost(KVirtualHostContainer* vhc,
 				(*rq_svh)->release();
 				(*rq_svh) = NULL;
 			}
-			svh->vh->addRef();
+			svh->vh->add_ref();
 			(*rq_svh) = svh;
 		}
 	}
@@ -585,11 +577,11 @@ void KVirtualHostManage::getVhDetail(KWStream& s, KVirtualHost* vh, bool edit) {
 #ifdef ENABLE_VH_QUEUE
 	s << "<tr><td>" << klang["max_worker"]
 		<< "</td><td><input name='max_worker' value='";
-	s << (vh ? vh->max_worker : 0) << "'></td></tr>\n";
+	s << (vh && vh->queue ? vh->queue->getMaxWorker() : 0) << "'></td></tr>\n";
 
 	s << "<tr><td>" << klang["max_queue"]
 		<< "</td><td><input name='max_queue' value='";
-	s << (vh ? vh->max_queue : 0) << "'></td></tr>\n";
+	s << (vh && vh->queue ? vh->queue->getMaxQueue() : 0) << "'></td></tr>\n";
 #endif
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
 	s << "<tr><td>" << klang["cert_file"] << "</td><td>";

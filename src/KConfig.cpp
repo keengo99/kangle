@@ -341,7 +341,7 @@ static void init_config() {
 	conf.sysHost->addMimeType("*", "text/plain", kgl_compress_unknow, 0);
 #endif
 	conf.sysHost->hosts.push_back(svh);
-	conf.sysHost->addRef();
+	conf.sysHost->add_ref();
 	init_manager_handler();
 #ifdef _WIN32
 	_setmaxstdio(2048);

@@ -101,7 +101,7 @@ void KSubVirtualHost::free_subtype_data()
 }
 void KSubVirtualHost::release()
 {
-	vh->destroy();
+	vh->release();
 }
 #ifdef ENABLE_SVH_SSL
 bool KSubVirtualHost::set_ssl_info(const char *crt, const char *key, bool ssl_from_ext)
