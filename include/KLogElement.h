@@ -122,9 +122,11 @@ public:
 	INT64 log_file_size;
 	INT64 logs_size;
 	unsigned logs_day;
+#ifndef _WIN32
 	//unsigned max;
 	unsigned uid;
 	unsigned gid;
+#endif
 	u_char place;
 	bool mkdir_flag;
 	bool log_handle;

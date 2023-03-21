@@ -345,8 +345,10 @@ void KVirtualHost::parse_log_config(const KXmlAttribute& attr) {
 	logger->log_handle = (attr["log_handle"] == "on" || attr["log_handle"] == "1");
 	logger->mkdir_flag = (attr["log_mkdir"] == "on" || attr["log_handle"] == "1");
 #ifdef ENABLE_VH_RUN_AS
+#ifndef _WIN32
 	logger->uid = id[0];
 	logger->gid = id[1];
+#endif
 #endif
 	logger->addRef();
 }

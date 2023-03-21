@@ -99,9 +99,11 @@ bool KLogElement::open() {
 		log_file_size = sbuf.st_size;
 	}
 	int flag = 0;
+#ifndef _WIN32
 	if (uid > 0 || gid > 0) {
 		flag = KFILE_NOFOLLOW;
 	}
+#endif
 	fp.open(path.c_str(), fileAppend, flag);
 	if (!fp.opened() && mkdir_flag) {
 		fprintf(stderr, "cann't open log file=[%s] try to create the dir\n", path.c_str());
