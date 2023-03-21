@@ -43,6 +43,7 @@
 #include "extern.h"
 #include "lang.h"
 #include "KDefer.h"
+#include "KChain.h"
 #include "kmd5.h"
 namespace kangle {
 	KString get_connect_per_ip();
@@ -1521,23 +1522,23 @@ bool KHttpManage::start_access(bool& hit) {
 		return sendRedirect(accesslist.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/editchain") == 0) {
-		KStringBuf url;
+		KStringBuf path;
+		bool mark = false;
+		if (getUrlValue("mark") == "1") {
+			mark = true;
+		}
+		auto file = getUrlValue("file");
+		if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
+			path << "vh@" << vh_name << "/";
+		}
+		path << access->get_qname() << "/table@" << getUrlValue("table_name") << "/chain"_CS;
+		auto id = getUrlValue("id");
 		if (getUrlValue("modelflag") == "1") {
-			bool mark = false;
-			if (getUrlValue("mark") == "1") {
-				mark = true;
-			}
-			auto file = getUrlValue("file");
-			KStringBuf path;
-			if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
-				path << "vh@" << vh_name << "/";
-			}
-			path << access->get_qname() << "/table@" << getUrlValue("table_name") << "/chain#"_CS << getUrlValue("id") << (mark ? "/mark"_CS : "/acl"_CS);
+			path << "#"_CS << id << (mark ? "/mark"_CS : "/acl"_CS);
+			KStringBuf url;
 			auto acl_xml = kconfig::new_xml(mark ? "mark"_CS : "acl"_CS);
 			acl_xml->attributes().emplace("module"_CS, getUrlValue("modelname"));
 			auto result = kconfig::update(file.str(), path.str().str(), (uint32_t)urlValue.attribute.get_int("model"), acl_xml.get(), kconfig::EvNew);
-			printf("result=[%d]\n", result);
-
 			url << "/editchainform?access_type=" << getUrlValue("access_type")
 				<< "&table_name=" << getUrlValue("table_name")
 				<< "&file=" << getUrlValue("file")
@@ -1546,6 +1547,7 @@ bool KHttpManage::start_access(bool& hit) {
 				<< "&vh=" << getUrlValue("vh");
 			return sendRedirect(url.c_str());
 		}
+		auto result = kconfig::update(file.str(), path.str().str(), (uint32_t)atoi(id.c_str()), KChain::to_xml(urlValue).get(), kconfig::EvUpdate);
 		return sendRedirect(accesslist.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/delmodel") == 0) {

@@ -131,25 +131,22 @@ void KChain::get_edit_html(KWStream& s, u_short accessType) {
 	s << "</td></tr>\n";
 }
 void KChain::getModelHtml(KModel* model, KWStream& s, int type, int index) {
-
-	s << "<tr><td>";
-	s << "<input type=hidden name='begin_sub_form' value='" << model->getName()
+	s << "<tr><td><input type=hidden name='begin_sub_form' value='"
+		<< (type == 0 ? "acl_"_CS : "mark_"_CS)
+		<< model->getName()
 		<< "'>";
-	//if (type==0) {
-	s << "<input type=checkbox name='or' value='1' ";
+
+	s << "<input type = checkbox name = 'or' value = '1' ";
 	if (model->is_or) {
 		s << "checked";
 	}
-	s << ">OR_NEXT";
+	s << ">OR";
 	s << "<input type=checkbox name='revers' value='1' ";
 	if (model->revers) {
 		s << "checked";
 	}
 	s << ">NOT";
-
-	//}
 	s << "[<a href=\"javascript:delmodel('" << index << "'," << type << ");\">del</a>]";
-	//s << "[<a href=\"javascript:downmodel('" << index << "'," << type << ");\">down</a>]";
 	s << model->getName() << "</td><td>";
 	model->get_html(model, s);
 	s << "<input type=hidden name='end_sub_form' value='1'></td></tr>\n";
@@ -162,7 +159,7 @@ void KChain::get_acl_short_html(KWStream& s) {
 		s << ((*it)->revers ? "!" : "") << (*it)->getName() << ": ";
 		(*it)->get_display(s);
 		if ((*it)->is_or) {
-			s << " [OR NEXT]";
+			s << " [OR]";
 		}
 		s << "<br>";
 	}
@@ -175,7 +172,7 @@ void KChain::get_mark_short_html(KWStream& s) {
 		s << ((*it)->revers ? "!" : "") << (*it)->getName() << ": ";
 		(*it)->get_display(s);
 		if ((*it)->is_or) {
-			s << " [OR NEXT]";
+			s << " [OR]";
 		}
 		s << "<br>";
 	}
@@ -233,4 +230,29 @@ void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 			klog(KLOG_ERR, "unknow qname [%s] in chain\n", node->get_tag().c_str());
 		}
 	}
+}
+khttpd::KSafeXmlNode KChain::to_xml(KUrlValue& uv) {
+	auto xml = kconfig::new_xml("chain"_CS);
+	KStringBuf action;
+	action << uv.attribute["jump_type"];
+	if (uv.attribute["jump_type"] == "server") {
+		action << ":" << uv.attribute["server"];
+	} else if (uv.attribute["jump_type"] == "table") {
+		action << ":" << uv.attribute["table"];
+	} else if (uv.attribute["jump_type"] == "wback") {
+		action << ":" << uv.attribute["wback"];
+	}
+	xml->attributes().emplace("action"_CS, action.str());
+	for (auto it = uv.subs.begin(); it != uv.subs.end(); ++it) {
+		if (strncmp((*it).first.c_str(), _KS("acl_"))==0) {
+			auto acl = (*it).second->to_xml(_KS("acl"));
+			acl->attributes().emplace("module"_CS, (*it).first.substr(4));
+			xml->insert(acl.get(), khttpd::last_pos);
+		} else if (strncmp((*it).first.c_str(), _KS("mark_")) == 0) {
+			auto mark = (*it).second->to_xml(_KS("mark"));
+			mark->attributes().emplace("module"_CS, (*it).first.substr(5));
+			xml->insert(mark.get(), khttpd::last_pos);
+		}	
+	}
+	return xml;
 }

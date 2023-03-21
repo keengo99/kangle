@@ -761,15 +761,14 @@ void KAccess::htmlChainAction(KWStream& s, kgl_jump_type jump_type, KJump* jump,
 	if (jump_type == JUMP_DENY) {
 		s << "checked";
 	}
-	s << " value='" << JUMP_DENY << "' name=jump_type>" << LANG_DENY;
+	s << " value='deny' name=jump_type>" << LANG_DENY;
 	jump_value++;
 	if (skipTable.size() > 0) {
 		s << "<input type=radio ";
 		if (jump_type == JUMP_RETURN) {
 			s << "checked";
 		}
-		s << " value='" << JUMP_RETURN << "' name=jump_type>"
-			<< klang["return"];
+		s << " value='return' name=jump_type>" << klang["return"];
 		jump_value++;
 	}
 	if (type == RESPONSE || !isGlobal()) {
@@ -777,7 +776,7 @@ void KAccess::htmlChainAction(KWStream& s, kgl_jump_type jump_type, KJump* jump,
 		if (jump_type == JUMP_ALLOW) {
 			s << "checked";
 		}
-		s << " value='" << JUMP_ALLOW << "' name=jump_type>" << LANG_ALLOW;
+		s << " value='allow' name=jump_type>" << LANG_ALLOW;
 		jump_value++;
 	}
 	//CONTINUE
@@ -786,11 +785,11 @@ void KAccess::htmlChainAction(KWStream& s, kgl_jump_type jump_type, KJump* jump,
 		if (jump_type == JUMP_CONTINUE) {
 			s << "checked";
 		}
-		s << " value='" << JUMP_CONTINUE << "' name=jump_type>\n"
+		s << " value='continue' name=jump_type>\n"
 			<< klang["LANG_CONTINUE"];
 		jump_value++;
 	}
-	vector<KString> table_names;
+	std::vector<KString> table_names;
 
 #ifdef ENABLE_WRITE_BACK
 	table_names = writeBackManager.getWriteBackNames();
@@ -804,16 +803,6 @@ void KAccess::htmlChainAction(KWStream& s, kgl_jump_type jump_type, KJump* jump,
 		}
 		s << " value='" << JUMP_PROXY << "' name=jump_type>" << klang["proxy"];
 		jump_value++;
-		if (isGlobal()) {
-#ifndef HTTP_PROXY
-			s << "<input type=radio ";
-			if (jump_type == JUMP_VHS) {
-				s << "checked";
-			}
-			s << " value='" << JUMP_VHS << "' name=jump_type>" << klang["vhs"];
-			jump_value++;
-#endif
-		}
 		table_names.clear();
 		table_names = conf.gam->getAcserverNames(false);
 		htmlRadioAction(s, &jump_value, jump_type, jump, JUMP_SERVER, "server", table_names);
@@ -836,7 +825,7 @@ void KAccess::htmlRadioAction(KWStream& s, kgl_jump_type* jump_value, int jump_t
 		if (jump_type == my_jump_type) {
 			s << "checked";
 		}
-		s << " value='" << my_jump_type << "' name=jump_type>\n"
+		s << " value='" << my_type_name << "' name=jump_type>\n"
 			<< klang[my_type_name.c_str()];
 		s << "<select name=" << my_type_name
 			<< " onclick='javascript:accessaddform.jump_type["

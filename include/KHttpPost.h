@@ -18,11 +18,10 @@ public:
 		*hot = '\0';
 		return buffer;
 	}
-	bool urldecode;
-	int totalLen;
-	char *buffer;
+
 private:
-	bool parseUrlParam(char *param,KUrlValue *uv);
-	char *hot;
-	//KUrlValue *urlValue;
+	bool parseUrlParam(char *param, size_t len, KUrlValue *uv);
+	char *hot;	
+	char* buffer;
+	int totalLen;
 };

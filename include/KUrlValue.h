@@ -10,8 +10,6 @@ class KUrlValue
 public:
 	KUrlValue();
 	virtual ~KUrlValue();
-	KUrlValue *getSub(const KString&name,int index) const;
-	KUrlValue *getNextSub(const KString&name,int &index) const;
 	const KString &get(const KString&name) const;
 	/*
 	得到一个值，不会返回NULL,不存在则返回""
@@ -27,11 +25,9 @@ public:
 	{
 		return attribute;
 	}
-	bool add(const KString&name,const KString&value);
 	void put(const KString& name, const KString& value);
-	void add(KUrlValue *subform);
 	bool parse(const char *param);
-	bool parse(char* param);
+	bool parse(char* param, size_t len);
 	KXmlAttribute attribute;
 	khttpd::KSafeXmlNode to_xml(const char *tag,size_t len,const char *vary=nullptr,size_t vary_len=0) {
 		auto xml = kconfig::new_xml(tag, len,vary,vary_len);
@@ -42,11 +38,7 @@ public:
 	{
 		return attribute[name];
 	}
-	std::map<KString,KUrlValue *> subs;
-	KUrlValue *next;
-private:
-	bool flag;
-	KUrlValue *sub;
+	std::multimap<KString,KUrlValue *> subs;
 };
 
 #endif /*KURLVALUE_H_*/

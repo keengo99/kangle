@@ -38,6 +38,7 @@ public:
 	void parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml);
 	void get_acl_short_html(KWStream& s);
 	void get_mark_short_html(KWStream& s);
+	static khttpd::KSafeXmlNode to_xml(KUrlValue& uv);
 	void clear();
 	friend class KAccess;
 	friend class KTable;
@@ -45,6 +46,7 @@ private:
 	void get_edit_html(KWStream& s, u_short accessType);
 	void getModelHtml(KModel* model, KWStream& s, int type, int index);
 private:
+
 	uint32_t hit_count;
 	kgl_jump_type jump_type;
 	KSafeJump jump;

@@ -400,7 +400,7 @@ void KVirtualHost::access_config_listen(kconfig::KConfigTree* tree, KVirtualHost
 			accessFile << doc_root;
 			accessFile << user_access;
 		}
-		
+
 		kconfig::add_config_file(s.str().data(), accessFile.str().data(), tree, kconfig::KConfigFileSource::Vh);
 	}
 	return;
@@ -578,7 +578,7 @@ void KVirtualHost::setApp(int app) {
 	apps.clear();
 	this->app = (uint8_t)app;
 	KStringBuf s;
-	for (int i = 0; i < app; i++) {		
+	for (int i = 0; i < app; i++) {
 		if (app_share) {
 			s << getUser();
 		} else {
@@ -712,7 +712,7 @@ bool KVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigE
 		}
 		//[[fallthrough]]
 	case kconfig::EvSubDir | kconfig::EvUpdate:
-	{		
+	{
 		if (xml->is_tag(_KS("host"))) {
 			std::list<KSubVirtualHost*> hosts;
 			defer(for (auto&& host : hosts) {
@@ -763,10 +763,10 @@ bool KVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigE
 			return true;
 		}
 		if (xml->is_tag(_KS("bind"))) {
-			std::list<KString> binds;		
+			std::list<KString> binds;
 			conf.gvm->updateVirtualHost(this, binds);
 			return true;
-		}		
+		}
 		break;
 	}
 	return false;
