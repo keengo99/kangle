@@ -51,7 +51,7 @@ public:
 	//}}
 	void killAllProcess(KVirtualHost *vh=NULL);
 	bool killProcess(const char *user,int pid);
-	bool killProcess2(USER_T user,int pid);
+	bool killProcess2(const KString & user,int pid);
 	void setName(const char *name) {
 		this->name = name;
 	}
@@ -63,9 +63,8 @@ private:
 	{
 		//printf("refs virtualhost process app [%s]\n",app.c_str());
 		KVirtualHostProcess *gc = NULL;
-		std::map<USER_T, KVirtualHostProcess *>::iterator it;
 		lock.Lock();
-		it = pools.find(app);
+		auto it = pools.find(app);
 		if (it != pools.end()) {
 			gc = (*it).second;
 			if (gc->status == VProcess_Close) {
@@ -89,7 +88,7 @@ private:
 			gc->max_request = rd->maxRequest;
 			//gc->maxConnect = rd->maxConnect;
 			gc->addRef();
-			pools.insert(std::pair<USER_T, KVirtualHostProcess *> (app, gc));
+			pools.insert(std::pair<KString, KVirtualHostProcess *> (app, gc));
 		}
 		lock.Unlock();
 		return gc;
@@ -100,7 +99,7 @@ private:
 	KString name;
 	Proto_t proto;
 	KMutex lock;
-	std::map<USER_T, KVirtualHostProcess *> pools;
+	std::map<KString, KVirtualHostProcess *> pools;
 };
 /*
  * api的进程管理器

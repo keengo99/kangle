@@ -60,7 +60,7 @@ void WhmShell::initContext(WhmShellContext *sc,WhmContext *context)
 	sc->attribute = context->getUrlValue()->attribute;	
 	sc->bindVirtualHost(context->getVh());
 	KStringBuf s;
-	s << this->name << ":" << time(NULL) << "_" << (int64_t)sc << "_" << index++;
+	s << this->name << ":" << (int64_t)time(NULL) << "_" << (int64_t)sc << "_" << index++;
 	sc->session = s.str();
 	readStdin(sc,context);
 }

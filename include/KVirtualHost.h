@@ -270,7 +270,7 @@ public:
 	//KString add_dir;
 	bool setRunAs(const KString& user, const KString& group);
 
-#ifdef _WIN32
+#ifndef _WIN32
 	int id[2];
 #endif
 	/*

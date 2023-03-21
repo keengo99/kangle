@@ -72,15 +72,18 @@ class KHttpFilterManage;
 class KSslCertificate
 {
 public:
+	void parse_certificate(const KXmlAttribute& attr) {
+#ifdef KSOCKET_SSL
+		cert_file = attr["certificate"];
+		key_file = attr["certificate_key"];
+#endif
+	}
 #ifdef KSOCKET_SSL
 	virtual ~KSslCertificate() {
 	}
 	KString cert_file;
 	KString key_file;
-	void parse_certificate(const KXmlAttribute& attr) {
-		cert_file = attr["certificate"];
-		key_file = attr["certificate_key"];
-	}
+
 	virtual KString get_cert_file() const;
 	virtual KString get_key_file() const;
 	KString get_cert_file(const KString& doc_root) const;

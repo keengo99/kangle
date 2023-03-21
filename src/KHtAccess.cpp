@@ -347,7 +347,7 @@ bool KApacheConfig::load(KFileName* file, std::stringstream& s) {
 #endif
 void KApacheConfig::getXml(KStringBuf& s)
 {
-	s << "<!--converted by kangle " << time(NULL) << " -->\n";
+	s << "<!--converted by kangle " << (int64_t)time(NULL) << " -->\n";
 	s << "<config version='" << VERSION << "'>\n";
 	for (auto it2 = listens.begin(); it2 != listens.end(); it2++) {
 		s << "\t<listen ip='" << (*it2).ip << "' ";

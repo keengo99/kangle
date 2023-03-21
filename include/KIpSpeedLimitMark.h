@@ -80,7 +80,7 @@ public:
 	void get_display(KWStream& s) override {
 		s << get_size(speed_limit) << "/second ,record:";
 		lock.Lock();
-		s << ips.size();
+		s << (int64_t)ips.size();
 		lock.Unlock();
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {

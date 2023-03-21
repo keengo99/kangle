@@ -130,11 +130,10 @@ void KProcessManage::getProcessInfo(KWStream&s) {
 	s << "</table>";
 }
 void KProcessManage::killAllProcess(KVirtualHost *vh) {
-	std::map<USER_T, KVirtualHostProcess *>::iterator it;
 	lock.Lock();
 	if (vh) {
 		for(size_t i=0;i<vh->apps.size();i++){
-			it = pools.find(vh->apps[i]);
+			auto it = pools.find(vh->apps[i]);
 			if (it!=pools.end()) {
 				(*it).second->killProcess(0);
 				(*it).second->release();
@@ -142,7 +141,7 @@ void KProcessManage::killAllProcess(KVirtualHost *vh) {
 			}
 		}
 	} else {
-		for (it = pools.begin(); it != pools.end(); it++) {
+		for (auto it = pools.begin(); it != pools.end(); it++) {
 			(*it).second->killProcess(0);
 			(*it).second->release();
 		}
@@ -158,11 +157,10 @@ bool KProcessManage::killProcess(const char * user,int pid) {
 //#endif
 }
 
-bool KProcessManage::killProcess2(USER_T user,int pid) {
+bool KProcessManage::killProcess2(const KString &user,int pid) {
 	bool result = false;
 	lock.Lock();
-	std::map<USER_T, KVirtualHostProcess *>::iterator it;
-	it = pools.find(user);
+	auto it = pools.find(user);
 	if (it != pools.end()) {
 		result = (*it).second->killProcess(pid);
 		if(result){

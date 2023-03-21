@@ -280,6 +280,7 @@ static bool on_begin_parse(kconfig::KConfigFile* file, khttpd::KXmlNode* node) {
 			vhd.parse_config(vh_database->get_first());
 		}
 	}
+#ifdef KSOCKET_SSL
 	//bind listen
 	auto it = kconfig::find_first_child(node->get_first(), "listen"_CS);
 	if (it) {
@@ -302,7 +303,7 @@ static bool on_begin_parse(kconfig::KConfigFile* file, khttpd::KXmlNode* node) {
 			}
 		}
 	}
-	
+#endif	
 	for(auto it = kconfig::find_first_child(node->get_first(), "vh"_CS);it && it->value()->is_tag(_KS("vh")); it = it->next()) {
 		auto vh_node = it->value();
 		upgrade_chain_access("request"_CS, vh_node);
