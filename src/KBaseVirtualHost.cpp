@@ -151,12 +151,12 @@ bool KBaseVirtualHost::getErrorPage(int code, KString& errorPage) {
 		auto locker = get_locker();
 		auto it = errorPages.find(code);
 		if (it != errorPages.end()) {
-			errorPage = (*it).second.s;
+			errorPage = (*it).second;
 			return true;
 		} else {
 			it = errorPages.find(0);
 			if (it != errorPages.end()) {
-				errorPage = (*it).second.s;
+				errorPage = (*it).second;
 				return true;
 			}
 		}
@@ -245,17 +245,13 @@ void KBaseVirtualHost::getErrorPageHtml(const KString& url, KWStream& s) {
 	s << "</td><td>" << klang["error_url"] << "</td></tr>\n";
 	for (auto it = errorPages.begin(); it != errorPages.end(); it++) {
 		s << "<tr><td>";
-		if ((*it).second.inherited) {
-			s << klang["inherited"];
-		} else {
-			s
-				<< "[<a href=\"javascript:if(confirm('really delete?')){ window.location='/vhbase?action=errorpagedelete&code=";
-			s << (*it).first << "&" << url << "';}\">" << LANG_DELETE
-				<< "</a>]";
-		}
+
+		s << "[<a href=\"javascript:if(confirm('really delete?')){ window.location='/vhbase?action=errorpagedelete&code=";
+		s << (*it).first << "&" << url << "';}\">" << LANG_DELETE << "</a>]";
+
 		s << "</td>";
 		s << "<td>" << (*it).first << "</td>";
-		s << "<td>" << (*it).second.s << "</td>";
+		s << "<td>" << (*it).second << "</td>";
 		s << "</tr>\n";
 	}
 	s << "</table>\n";
@@ -293,31 +289,24 @@ void KBaseVirtualHost::getAliasHtml(const KString& url, KWStream& s) {
 		<< klang["id"] << "</td><td>" << klang["url_path"] << "</td>";
 	s << "<td>" << klang["phy_path"] << "</td>";
 	s << "<td>" << klang["internal"] << "</td>";
-	s << "<td>" << LANG_HIT_COUNT << "</td></tr>\n";
+	s << "</tr>\n";
 	int i = 1;
 	for (auto it = aliass.begin(); it != aliass.end(); it++) {
 		s << "<tr><td>";
-		if ((*it)->inherited) {
-			s << klang["inherited"];
-		} else {
-			s
-				<< "[<a href=\"javascript:if(confirm('really delete?')){ window.location='/vhbase?action=aliasdelete&path=";
-			s << (*it)->get_path() << "&" << url << "';}\">" << LANG_DELETE
-				<< "</a>]";
-		}
+
+		s
+			<< "[<a href=\"javascript:if(confirm('really delete?')){ window.location='/vhbase?action=aliasdelete&path=";
+		s << (*it)->get_path() << "&" << url << "';}\">" << LANG_DELETE
+			<< "</a>]";
+
 		s << "</td>";
 		s << "<td>";
-		if (!(*it)->inherited) {
-			s << i;
-			i++;
-		} else {
-			s << "&nbsp;";
-		}
+		s << i;
+		i++;
 		s << "</td>";
 		s << "<td>" << (*it)->get_path() << "</td>";
 		s << "<td>" << (*it)->get_to() << "</td>";
 		s << "<td>" << ((*it)->internal ? klang["internal"] : "&nbsp;") << "</td>";
-		s << "<td>" << (*it)->hit_count << "</td>";
 		s << "</tr>\n";
 	}
 	s << "</table>\n";
@@ -540,7 +529,6 @@ bool KBaseVirtualHost::addRedirect(bool file_ext, const KString& value, const KS
 bool KBaseVirtualHost::addErrorPage(int code, const KString& url) {
 	lock.Lock();
 	errorPages[code] = url;
-	errorPages[code].inherited = false;
 	lock.Unlock();
 	return true;
 }
@@ -631,7 +619,7 @@ void KBaseVirtualHost::getErrorEnv(const char* split, KStringBuf& s) {
 		if (s.size() > 0) {
 			s << split;
 		}
-		s << (*it2).first << "=" << (*it2).second.s;
+		s << (*it2).first << "=" << (*it2).second;
 	}
 	lock.Unlock();
 }

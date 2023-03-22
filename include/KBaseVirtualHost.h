@@ -33,27 +33,13 @@ public:
 	virtual void buildVh(KVirtualHost* vh) = 0;
 	virtual void add(const char* name, const char* value, bool encode = false) = 0;
 };
-class KBaseString
-{
-public:
-	KBaseString() {
-		inherited = false;
-	}
-	KBaseString(const KString& s) {
-		inherited = false;
-		this->s = s;
-	}
-	bool inherited;
-	KString s;
-};
 using KIndexItem = KString;
+using KBaseString = KString;
 class KBaseAlias
 {
 public:
 	KBaseAlias(const char* path, const char* to, bool internal) {
-		inherited = false;
 		set(path, to);
-		hit_count = 0;
 		ref = 1;
 		this->internal = internal;
 	}
@@ -99,13 +85,11 @@ public:
 			return false;
 		}
 		if (0 == filencmp(value, path, path_len)) {
-			hit_count++;
 			return true;
 		}
 		return false;
 	}
 	char* matched(const char* value, int len) {
-		hit_count++;
 		assert(len >= path_len);
 		int left_len = len - path_len;
 		int new_len = left_len + to_len;
@@ -120,14 +104,11 @@ public:
 	}
 	char* path;
 	char* to;
-	bool inherited;
 	bool internal;
-	int hit_count;
 	int path_len;
 	int to_len;
 private:
 	volatile uint32_t ref;
-
 	void set(const char* path, const char* to) {
 		orig_path = path;
 		orig_to = to;
