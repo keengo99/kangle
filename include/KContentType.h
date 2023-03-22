@@ -111,8 +111,7 @@ public:
 		if (defaultMimeType) {
 			delete defaultMimeType;
 		}
-		std::map<char *,mime_type *,lessp_icase>::iterator it;
-		for(it = mimetypes.begin();it!=mimetypes.end();it++){
+		for(auto it = mimetypes.begin();it!=mimetypes.end();it++){
 			xfree((*it).first);
 			delete (*it).second;
 		}
@@ -120,8 +119,7 @@ public:
 	//合并mime类型到m中。
 	void mergeTo(KMimeType *m,bool overwrite)
 	{
-		std::map<char *,mime_type *,lessp_icase>::iterator it;
-		for(it=mimetypes.begin();it!=mimetypes.end();it++) {
+		for(auto it=mimetypes.begin();it!=mimetypes.end();it++) {
 			mime_type *type = (*it).second;
 			m->add((*it).first,type->type,type->compress,type->max_age,overwrite);
 		}
@@ -138,8 +136,7 @@ public:
 			}
 			return type;
 		}
-		std::map<char *,mime_type *,lessp_icase>::iterator it;
-		it = mimetypes.find((char *)ext);
+		auto it = mimetypes.find((char *)ext);
 		if (it != mimetypes.end()) {
 			type = (*it).second->apply(obj);
 		} else if(defaultMimeType) {
@@ -150,7 +147,6 @@ public:
 	bool remove(const char *ext)
 	{
 		bool result = false;
-		std::map<char *,mime_type *,lessp_icase>::iterator it;
 		if(*ext=='*'){
 			if(defaultMimeType){
 				delete defaultMimeType;
@@ -158,7 +154,7 @@ public:
 				result = true;
 			}
 		} else {
-			it = mimetypes.find((char *)ext);
+			auto it = mimetypes.find((char *)ext);
 			if(it!=mimetypes.end()){
 				free((*it).first);
 				delete (*it).second;
@@ -170,7 +166,6 @@ public:
 	}
 	void add(const char *ext,const char *type,kgl_compress_type compress,int max_age,bool overwrite=true)
 	{
-		std::map<char *,mime_type *,lessp_icase>::iterator it;
 		if (*ext=='*') {
 			if(defaultMimeType==NULL){
 				defaultMimeType = new mime_type;
@@ -179,7 +174,7 @@ public:
 			}
 			defaultMimeType->set(type, compress,max_age);
 		} else {
-			it = mimetypes.find((char *)ext);
+			auto it = mimetypes.find((char *)ext);
 			if (it==mimetypes.end()) {
 				mime_type *m_type = new mime_type;
 				m_type->set(type, compress,max_age);

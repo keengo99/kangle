@@ -39,26 +39,18 @@ public:
 	KBaseString() {
 		inherited = false;
 	}
-	KBaseString(const KString &s) {
+	KBaseString(const KString& s) {
 		inherited = false;
 		this->s = s;
 	}
 	bool inherited;
 	KString s;
 };
-struct KIndexItem
-{
-	KIndexItem(const int &id, const KString& s) : index(s) {
-		this->id = id;
-	}
-	int id;
-	KBaseString index;
-};
-
+using KIndexItem = KString;
 class KBaseAlias
 {
 public:
-	KBaseAlias(const char* path, const char* to,bool internal) {
+	KBaseAlias(const char* path, const char* to, bool internal) {
 		inherited = false;
 		set(path, to);
 		hit_count = 0;
@@ -102,7 +94,7 @@ public:
 	const char* get_to() const {
 		return orig_to.c_str();
 	}
-	bool match(const char* value, int len)  {
+	bool match(const char* value, int len) {
 		if (len < path_len) {
 			return false;
 		}
@@ -112,7 +104,7 @@ public:
 		}
 		return false;
 	}
-	char* matched(const char* value, int len)  {
+	char* matched(const char* value, int len) {
 		hit_count++;
 		assert(len >= path_len);
 		int left_len = len - path_len;
@@ -163,7 +155,7 @@ private:
 	KString orig_path;
 };
 using KAlias = KSharedObj<KBaseAlias>;
-class KBaseVirtualHost: public kconfig::KConfigListen
+class KBaseVirtualHost : public kconfig::KConfigListen
 {
 public:
 	KBaseVirtualHost();
@@ -174,10 +166,10 @@ public:
 	KAlias find_alias(bool internal, const char* path, size_t path_len);
 	KBaseRedirect* refs_path_redirect(const char* path, int path_len);
 	KFetchObject* find_path_redirect(KHttpRequest* rq, KFileName* file, const char* path, size_t path_len, bool fileExsit, bool& result);
-	KFetchObject* find_file_redirect(KHttpRequest* rq, KFileName* file, const char *file_ext, bool fileExsit, bool& result);
+	KFetchObject* find_file_redirect(KHttpRequest* rq, KFileName* file, const char* file_ext, bool fileExsit, bool& result);
 	virtual bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) override;
 	virtual kconfig::KConfigEventFlag config_flag() const override {
-		return kconfig::ev_subdir|kconfig::ev_self;
+		return kconfig::ev_subdir | kconfig::ev_self;
 	}
 	void swap(KBaseVirtualHost* a);
 	std::list<KIndexItem> indexFiles;
@@ -191,7 +183,7 @@ public:
 	void getRedirectHtml(const KString& url, KWStream& s);
 	void getAliasHtml(const KString& url, KWStream& s);
 	bool addAlias(const KString& path, const KString& to, const char* doc_root, bool internal, int id, KString& errMsg);
-	bool addIndexFile(const KString& index, int id = 100);
+	//bool addIndexFile(const KString& index);
 	void listIndex(KVirtualHostEvent* ev);
 	bool delIndexFile(const KString& index);
 	void getParsedFileExt(KVirtualHostEvent* ctx);
@@ -201,11 +193,6 @@ public:
 	bool delErrorPage(int code);
 	bool getErrorPage(int code, KString& errorPage);
 	bool getIndexFile(KHttpRequest* rq, KFileName* file, KFileName** newFile, char** newPath);
-	/**
-	* 继承给vh,clearFlag标识是否先清除继承的设置再继承(用于重新继承)
-	*/
-	void inheriTo(KVirtualHost* vh, bool clearFlag = false);
-	void changeInherit(bool remove);
 	char* getMimeType(KHttpObject* obj, const char* ext) {
 		char* type = NULL;
 		lock.Lock();
@@ -218,15 +205,8 @@ public:
 	void addMimeType(const char* ext, const char* type, kgl_compress_type compress, int max_age);
 	bool delMimeType(const char* ext);
 	void getMimeTypeHtml(const KString& url, KWStream& s);
-	friend class KNsVirtualHost;
 	friend class KHttpServerParser;
 	friend class KVirtualHostManage;
-	/*
-	 克隆基本设置到vh.
-	 copyInherit 是否复制继承的设置
-	 changeInherit 复制设置时inherit改变情况，2=不改变，0=变成不继承，1=变成继承
-	 */
-	void cloneTo(KVirtualHost* vh, bool copyInherit, int changeInherit);
 	/*
 		变量
 	*/
@@ -262,13 +242,6 @@ public:
 	KBaseRedirect* parse_file_map(const KXmlAttribute& attr);
 	KPathRedirect* parse_path_map(const KXmlAttribute& attr);
 	KAlias parse_alias(const KXmlAttribute& attr);
-protected:
-
-private:	
-	/*
-	 改变 继承变量,remove是否删除继承.
-	 */
-	void internalChangeInherit(bool remove);
 
 protected:
 	KMutex lock;

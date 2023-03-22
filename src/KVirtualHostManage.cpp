@@ -95,7 +95,7 @@ bool KVirtualHostManage::on_config_event(kconfig::KConfigTree* tree, kconfig::KC
 	case kconfig::EvSubDir | kconfig::EvRemove:
 	{
 		if (xml->is_tag(_KS("vh"))) {
-			KSafeVirtualHost vh(static_cast<KVirtualHost*>((KBaseVirtualHost*)tree->unbind()));			
+			KSafeVirtualHost vh(static_cast<KVirtualHost*>((KBaseVirtualHost*)tree->unbind()));
 			if (this->removeVirtualHost(tree, vh.get())) {
 			}
 			return true;
@@ -853,9 +853,9 @@ bool KVirtualHostManage::vh_base_action(KUrlValue& uv, KString& err_msg) {
 		vh.reset(refsVirtualHostByName(name));
 		bvh = vh.get();
 	}
+	KStringBuf path;
+	path << "vh@" << name;
 	if (action == "vh_add" || action == "vh_edit") {
-		KStringBuf path;
-		path << "vh@" << name;
 		auto xml = uv.to_xml(_KS("vh"), name.c_str(), name.size());
 		if (kconfig::KConfigResult::Success != kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvUpdate | kconfig::FlagCreate | kconfig::FlagCopyChilds)) {
 			err_msg = "cann't add or edit vh";
@@ -867,9 +867,19 @@ bool KVirtualHostManage::vh_base_action(KUrlValue& uv, KString& err_msg) {
 			err_msg = "cann't find vh";
 			return false;
 		}
+		if (action == "indexadd") {
+			path << "/index";
+			auto xml = kconfig::new_xml("index"_CS);
+			xml->attributes().emplace("file"_CS, uv.attribute["file"]);
+			auto result = kconfig::add(path.str().str(), uv.attribute.get_int("index"), xml.get());
+			return result == kconfig::KConfigResult::Success;
+		}
+		if (action == "indexdelete") {
+			path << "/index";
+			auto result = kconfig::remove(path.str().str(), uv.attribute.get_int("index"));
+			return result == kconfig::KConfigResult::Success;
+		}
 		if (action == "vh_delete") {
-			KStringBuf path;
-			path << "vh@" << name;
 			if (kconfig::KConfigResult::Success != kconfig::remove(path.str().str(), 0)) {
 				err_msg = "remove vh failed";
 				return false;
@@ -880,7 +890,6 @@ bool KVirtualHostManage::vh_base_action(KUrlValue& uv, KString& err_msg) {
 	return true;
 }
 void KVirtualHostManage::getAllVhHtml(KWStream& s) {
-	map<string, KVirtualHost*>::iterator it;
 	s << "<script language='javascript'>\r\n"
 		"	function setbgcolor(id,color){"
 		"		document.getElementById(id).style.backgroundColor = color;"
