@@ -109,23 +109,12 @@ kgl_jump_type KTable::match(KHttpRequest* rq, KHttpObject* obj, unsigned& checke
 }
 void KTable::htmlTable(KWStream& s, const char* vh, u_short accessType) {
 	s << name << "," << LANG_REFS << get_ref();
-
 	s << "[<a href=\"javascript:if(confirm('" << LANG_CONFIRM_DELETE << name
 		<< "')){ window.location='tabledel?vh=" << vh << "&access_type=" << accessType
 		<< "&table_name=" << name << "';}\">" << LANG_DELETE << "</a>]";
-#if 0
-	s << "[<a href=\"javascript:if(confirm('" << LANG_CONFIRM_EMPTY << name
-		<< "')){ window.location='tableempty?vh=" << vh << "&access_type=" << accessType
-		<< "&table_name=" << name << "';}\">" << LANG_EMPTY << "</a>]";
-	s << "[<a href=\"javascript:tablerename(" << accessType << ",'" << name << "');\">"
-		<< LANG_RENAME << "</a>]";
-#endif
 	s << "<table border=1 cellspacing=0 width=100%><tr>";
 	s << "<td>" << LANG_OPERATOR << "</td>";
-#if 0
-	< td > " << klang["id"] << " < / td > ";
-#endif
-		s << "<td>" << LANG_ACTION << "</td><td>acl</td><td>mark</td><td>";
+	s << "<td>" << LANG_ACTION << "</td><td>acl</td><td>mark</td><td>";
 	s << LANG_HIT_COUNT << "</td></tr>\n";
 	int id = 0;
 	KString last_file;
@@ -160,11 +149,6 @@ void KTable::htmlTable(KWStream& s, const char* vh, u_short accessType) {
 				<< "&id=" << j
 				<< "&table_name=" << name
 				<< "'>" << LANG_INSERT << "</a>]";
-#if 0
-			<< "[<a href='downchain?vh=" << vh << "&access_type="
-				<< accessType << "&id=" << j << "&table_name=" << name
-				<< "'>down</a>]"
-#endif
 				s << "</td><td>";
 			switch (chain->jump_type) {
 			case JUMP_DENY:

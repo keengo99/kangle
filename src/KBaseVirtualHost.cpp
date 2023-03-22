@@ -220,8 +220,7 @@ void KBaseVirtualHost::listIndex(KVirtualHostEvent* ev) {
 	ev->add("indexs", s.str().c_str(), false);
 }
 void KBaseVirtualHost::getIndexHtml(const KString& url, KWStream& s) {
-	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>" << klang["id"] << "</td><td>"
-		<< klang["index"] << "</td></tr>";
+	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>id</td><td>file</td></tr>";
 	int j = 0;
 	for (auto it = indexFiles.begin(); it != indexFiles.end(); ++it, ++j) {
 		s << "<tr><td>";
@@ -235,8 +234,7 @@ void KBaseVirtualHost::getIndexHtml(const KString& url, KWStream& s) {
 	s << "</table>";
 	s << "<form action='/vhbase?action=indexadd&" << url << "' method='post'>";
 	s << klang["id"] << ":<input name='index' value='-1' size=4>";
-	s << klang["index"] << ":<input name='file'><input type='submit' value='"
-		<< LANG_ADD << "'>";
+	s << klang["index"] << ":<input name='file'><input type='submit' value='" << LANG_ADD << "'>";
 	s << "</form>";
 }
 void KBaseVirtualHost::getErrorPageHtml(const KString& url, KWStream& s) {
