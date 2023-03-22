@@ -108,7 +108,7 @@ KString KSslCertificate::get_cert_file() const {
 	return get_cert_file(conf.path);
 }
 KString KSslCertificate::get_key_file() const {
-	return get_cert_file(conf.path);
+	return get_key_file(conf.path);
 }
 #endif
 KConfigBase::KConfigBase() {
