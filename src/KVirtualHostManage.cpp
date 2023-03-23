@@ -874,6 +874,11 @@ bool KVirtualHostManage::vh_base_action(KUrlValue& uv, KString& err_msg) {
 			result = kconfig::remove(path.str().str(), uv.attribute.get_int("index"));
 		} else if (action == "vh_delete") {
 			result = kconfig::remove(path.str().str(), 0);
+		} else if (action == "redirectadd") {
+			path << "/map";
+			auto xml = kconfig::new_xml("map"_CS);
+			xml->attributes().swap(uv.attribute);
+			result = kconfig::add(path.str().str(), khttpd::last_pos, xml.get());
 		}
 	}
 	switch (result) {

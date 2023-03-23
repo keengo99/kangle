@@ -14,6 +14,7 @@
 #include "KRedirect.h"
 #include <string>
 #include <bitset>
+#include <forward_list>
 #include "KXml.h"
 #include "KReg.h"
 enum class KConfirmFile : uint8_t
@@ -35,8 +36,8 @@ inline const char *kgl_get_confirm_file_tips(KConfirmFile confirm_file)
 }
 struct KParamItem
 {
-	std::string name;
-	std::string value;
+	KString name;
+	KString value;
 };
 class KRedirectMethods
 {
@@ -73,14 +74,12 @@ class KBaseRedirect : public KAtomCountable {
 public:
 	KBaseRedirect() {
 		rd = NULL;
-		global = false;
 		confirm_file = KConfirmFile::Exsit;
 	}
 	/**
 	* 调用此处rd必须先行addRef。
 	*/
 	KBaseRedirect(KRedirect *rd, KConfirmFile confirmFile) {
-		global = false;
 		this->rd = rd;
 		this->confirm_file = confirmFile;
 	}
@@ -95,12 +94,10 @@ public:
 			return !file_exsit;
 		}
 	}
-	//{{ent
 #ifdef ENABLE_UPSTREAM_PARAM
 	void buildParams(KWStream &s)
 	{
-		std::list<KParamItem>::iterator it;
-		for (it = params.begin(); it != params.end(); it++) {
+		for (auto it = params.begin(); it != params.end(); ++it) {
 			if (it != params.begin()) {
 				s << " ";
 			}
@@ -142,14 +139,12 @@ public:
 			KParamItem item;
 			item.name = name;
 			item.value = value;
-			params.push_back(item);
+			params.push_front(item);
 		}
 	}
-	std::list<KParamItem> params;
+	std::forward_list<KParamItem> params;
 #endif
-	//}}
 	KRedirectMethods allowMethod;
-	bool global;
 	KConfirmFile confirm_file;
 	KRedirect *rd;
 protected:

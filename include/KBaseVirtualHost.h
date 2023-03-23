@@ -166,7 +166,7 @@ public:
 	bool addAlias(const KString& path, const KString& to, const char* doc_root, bool internal, int id, KString& errMsg);
 	//bool addIndexFile(const KString& index);
 	void listIndex(KVirtualHostEvent* ev);
-	bool delIndexFile(const KString& index);
+	//bool delIndexFile(const KString& index);
 	void getParsedFileExt(KVirtualHostEvent* ctx);
 	bool addRedirect(bool file_ext, const KString& value, KRedirect* rd, const KString& allowMethod, KConfirmFile confirmFile, const KString& params);
 	bool addRedirect(bool file_ext, const KString& value, const KString& target, const KString& allowMethod, KConfirmFile confirmFile, const KString& params);
@@ -195,8 +195,7 @@ public:
 	bool getEnvValue(const char* name, KString& value);
 	bool addEnvValue(const char* name, const char* value);
 	void buildEnv(KWStream& s) {
-		std::map<char*, char*, lessp_icase>::iterator it5;
-		for (it5 = envs.begin(); it5 != envs.end(); it5++) {
+		for (auto it5 = envs.begin(); it5 != envs.end(); ++it5) {
 			s << (*it5).first << "='" << (*it5).second << "' ";
 		}
 	}
@@ -204,8 +203,7 @@ public:
 		std::map<char*, char*, lessp_icase> attr;
 		char* buf = strdup(str);
 		buildAttribute(buf, attr);
-		std::map<char*, char*, lessp_icase>::iterator it;
-		for (it = attr.begin(); it != attr.end(); it++) {
+		for (auto it = attr.begin(); it != attr.end(); ++it) {
 			addEnvValue((*it).first, (*it).second);
 		}
 		free(buf);

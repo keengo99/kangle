@@ -211,6 +211,26 @@ INT64 get_size(const char* size) {
 	bool is_radio = false;
 	return get_radio_size(size, is_radio);
 }
+void upgrade_vh_map(khttpd::KXmlNode* node) {
+	auto node_body = node->get_first();
+	auto it = kconfig::find_first_child(node_body, "map"_CS);
+	if (!it) {
+		return;
+	}
+	auto map_node = it->value();
+	for (auto&& body : map_node->body) {
+		khttpd::KXmlNodeBody* new_node_body;
+		if (body->attributes["file_ext"]) {
+			new_node_body = kconfig::new_child(node_body, _KS("map_file"));
+		} else {
+			new_node_body = kconfig::new_child(node_body, _KS("map_path"));
+		}
+		new_node_body->attributes.swap(body->attributes);
+		new_node_body->childs.swap(body->childs);
+	}
+	map_node->release();
+	node_body->childs.erase(it);
+}
 void upgrade_chain_access(const kgl_ref_str_t& access, khttpd::KXmlNode* node) {
 	node = kconfig::find_child(node->get_first(), access.data, access.len);
 	if (!node) {
@@ -308,11 +328,16 @@ static bool on_begin_parse(kconfig::KConfigFile* file, khttpd::KXmlNode* node) {
 		auto vh_node = it->value();
 		upgrade_chain_access("request"_CS, vh_node);
 		upgrade_chain_access("response"_CS, vh_node);
+		upgrade_vh_map(vh_node);
 		//printf("vh name=[%s]\n", it->value()->attributes()("name"));
 		//TODO;
 	}
 	upgrade_chain_access("request"_CS, node);
 	upgrade_chain_access("response"_CS, node);
+	auto vhs = kconfig::find_child(node->get_first(), _KS("vhs"));
+	if (vhs) {
+		upgrade_vh_map(vhs);
+	}
 	return true;
 }
 static void init_config() {

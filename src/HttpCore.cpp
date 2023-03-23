@@ -694,9 +694,8 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 	}
 #endif
 #ifdef ENABLE_UPSTREAM_PARAM
-	if (brd && brd->params.size() > 0) {
-		std::list<KParamItem>::iterator it;
-		for (it = brd->params.begin(); it != brd->params.end(); it++) {
+	if (brd && !brd->params.empty()) {
+		for (auto it = brd->params.begin(); it != brd->params.end(); ++it) {
 			auto s = KRewriteMarkEx::getString(NULL, (*it).value.c_str(), rq, NULL, NULL);
 			if (s) {
 				env->add_env((*it).name.c_str(), (*it).name.size(), (const char*)s->c_str(), s->size());
