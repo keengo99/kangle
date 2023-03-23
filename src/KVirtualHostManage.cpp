@@ -879,6 +879,13 @@ bool KVirtualHostManage::vh_base_action(KUrlValue& uv, KString& err_msg) {
 			auto xml = kconfig::new_xml("map"_CS);
 			xml->attributes().swap(uv.attribute);
 			result = kconfig::add(path.str().str(), khttpd::last_pos, xml.get());
+		} else if (action == "mimetypeadd") {
+			path << "/mime_type@"_CS << uv.attribute["ext"];
+			auto xml = uv.to_xml(_KS("mime_type"), uv.attribute["ext"].c_str(), uv.attribute["ext"].size());
+			result = kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvUpdate | kconfig::FlagCreate | kconfig::FlagCopyChilds);
+		} else if (action == "mimetypedelete") {
+			path << "/mime_type@"_CS << uv.attribute["ext"];
+			result = kconfig::remove(path.str().str(), 0);
 		}
 	}
 	switch (result) {
