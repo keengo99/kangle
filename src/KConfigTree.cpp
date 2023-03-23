@@ -724,9 +724,6 @@ namespace kconfig {
 		return sources[static_cast<int>(source)];
 	}
 	bool KConfigFile::update(const char* name, size_t size, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type) {
-		if (!this->get_source_driver()->enable_save()) {
-			return false;
-		}
 		if (!this->nodes) {
 			return false;
 		}
@@ -1074,6 +1071,9 @@ namespace kconfig {
 			path_len = name - path.data;
 			xml = new_xml(name + 1, path.len - path_len - 1);
 		}
+		if (!file->get_source_driver()->enable_save()) {
+			return KConfigResult::ErrSaveFile;
+		}
 		if (!file->update(path.data, path_len, index, xml.get(), kconfig::EvRemove)) {
 			return KConfigResult::ErrNotFound;
 		}
@@ -1129,6 +1129,9 @@ namespace kconfig {
 			name = path.data;
 		}
 		size_t path_len = name - path.data;
+		if (!file->get_source_driver()->enable_save()) {
+			return KConfigResult::ErrSaveFile;
+		}
 		if (!file->update(path.data, path_len, index, xml, ev_type)) {
 			return KConfigResult::ErrNotFound;
 		}

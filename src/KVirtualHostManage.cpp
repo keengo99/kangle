@@ -846,22 +846,19 @@ bool KVirtualHostManage::vh_base_action(KUrlValue& uv, KString& err_msg) {
 	auto name = uv["name"];
 	KBaseVirtualHost* bvh = &vhs;
 	KSafeVirtualHost vh;
-	bool result = false;
-	bool reinherit = true;
-	bool skip_warning = false;
+	kconfig::KConfigResult result = kconfig::KConfigResult::ErrUnknow;
+	KStringBuf path;
+
 	if (name.size() > 0) {
 		vh.reset(refsVirtualHostByName(name));
 		bvh = vh.get();
+		path << "vh@" << name;
+	} else {
+		path << "vhs";
 	}
-	KStringBuf path;
-	path << "vh@" << name;
 	if (action == "vh_add" || action == "vh_edit") {
 		auto xml = uv.to_xml(_KS("vh"), name.c_str(), name.size());
-		if (kconfig::KConfigResult::Success != kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvUpdate | kconfig::FlagCreate | kconfig::FlagCopyChilds)) {
-			err_msg = "cann't add or edit vh";
-			return false;
-		}
-		return true;
+		result = kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvUpdate | kconfig::FlagCreate | kconfig::FlagCopyChilds);
 	} else {
 		if (name.size() > 0 && vh == nullptr) {
 			err_msg = "cann't find vh";
@@ -871,23 +868,27 @@ bool KVirtualHostManage::vh_base_action(KUrlValue& uv, KString& err_msg) {
 			path << "/index";
 			auto xml = kconfig::new_xml("index"_CS);
 			xml->attributes().emplace("file"_CS, uv.attribute["file"]);
-			auto result = kconfig::add(path.str().str(), uv.attribute.get_int("index"), xml.get());
-			return result == kconfig::KConfigResult::Success;
-		}
-		if (action == "indexdelete") {
+			result = kconfig::add(path.str().str(), uv.attribute.get_int("index"), xml.get());
+		} else if (action == "indexdelete") {
 			path << "/index";
-			auto result = kconfig::remove(path.str().str(), uv.attribute.get_int("index"));
-			return result == kconfig::KConfigResult::Success;
-		}
-		if (action == "vh_delete") {
-			if (kconfig::KConfigResult::Success != kconfig::remove(path.str().str(), 0)) {
-				err_msg = "remove vh failed";
-				return false;
-			}
-			return true;
+			result = kconfig::remove(path.str().str(), uv.attribute.get_int("index"));
+		} else if (action == "vh_delete") {
+			result = kconfig::remove(path.str().str(), 0);
 		}
 	}
-	return true;
+	switch (result) {
+	case kconfig::KConfigResult::Success:
+		return true;
+	case kconfig::KConfigResult::ErrNotFound:
+		err_msg = "not found";
+		return false;
+	case kconfig::KConfigResult::ErrSaveFile:
+		err_msg = "config file cann't save";
+		return false;
+	default:
+		err_msg = "unknow error";
+		return false;
+	}
 }
 void KVirtualHostManage::getAllVhHtml(KWStream& s) {
 	s << "<script language='javascript'>\r\n"
