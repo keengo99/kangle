@@ -264,7 +264,7 @@ namespace kconfig {
 			name_len2 = index_str - name;
 			nodes_index = atoi(index_str + 1);
 		}
-		auto child_nodes = find_child(nodes, name, name_len2);
+		auto child_nodes = find_child(nodes, name, name_len2, KBIT_TEST(ev_type, FlagCreateParent));
 		if (!child_nodes) {
 			return false;
 		}
@@ -538,7 +538,7 @@ namespace kconfig {
 			int new_flag;
 			it = child.insert(name, &new_flag);
 			if (new_flag) {
-				it->value(new KConfigTree(this, is_skip_vary() ? &empty_tag : name->tag, name->vary));
+				it->value(new KConfigTree(this, is_skip_vary() ? &empty_tag : name->tag, name->vary, name->tag_id));
 			}
 		} else {
 			it = child.find(name);
@@ -935,6 +935,52 @@ namespace kconfig {
 			return nullptr;
 		}
 		return it->value();
+	}	
+	khttpd::KXmlNode* find_child(khttpd::KXmlNodeBody* node, const char* name, size_t len, bool create_flag) {
+		khttpd::KXmlKey key(name, len);
+		auto it2 = qname_config.find(key.tag);
+		if (it2) {
+			auto tag = it2->value();
+			key.tag_id = tag->tag_id;
+		}
+		KMapNode<khttpd::KXmlNode>* it;
+		if (create_flag) {
+			int new_flag;
+			it = node->childs.insert(&key, &new_flag);
+			if (new_flag) {
+				khttpd::KXmlNode* child_node = new khttpd::KXmlNode(&key);
+				it->value(child_node);
+				return child_node;
+			}
+		} else {
+			it = node->childs.find(&key);
+		}
+		if (!it) {
+			return nullptr;
+		}
+		return it->value();
+	}
+	KMapNode<khttpd::KXmlNode>* find_first_child(const khttpd::KXmlNodeBody* node, const kgl_ref_str_t& a) {
+		khttpd::KXmlKeyTag tag(kstring_refs(&a), 0);
+		auto it = qname_config.find(&a);
+		if (it) {
+			tag.tag_id = it->value()->tag_id;
+		}
+		auto it2 = node->find_any_child(&tag);
+		if (!it2) {
+			return nullptr;
+		}
+		for (;;) {
+			auto last = it2->prev();
+			if (!last) {
+				return it2;
+			}
+			auto data = last->value();
+			if (data->cmp(&tag) != 0) {
+				return it2;
+			}
+			it2 = last;
+		}
 	}
 	khttpd::KSafeXmlNode new_xml(const char* name, size_t len, const char* vary, size_t vary_len) {
 		auto key_tag = kstring_from2(name, len);
@@ -965,41 +1011,6 @@ namespace kconfig {
 		size_t name_len = vary - name;
 		return new_xml(name, name_len, vary + 1, len - name_len - 1);
 	}
-	khttpd::KXmlNode* find_child(const khttpd::KXmlNodeBody* node, const char* name, size_t len) {
-		khttpd::KXmlKey key(name, len);
-		auto it2 = qname_config.find(key.tag);
-		if (it2) {
-			auto tag = it2->value();
-			key.tag_id = tag->tag_id;
-		}
-		auto it = node->childs.find(&key);
-		if (!it) {
-			return nullptr;
-		}
-		return it->value();
-	}
-	KMapNode<khttpd::KXmlNode>* find_first_child(const khttpd::KXmlNodeBody* node, const kgl_ref_str_t& a) {
-		khttpd::KXmlKeyTag tag(kstring_refs(&a), 0);
-		auto it = qname_config.find(&a);
-		if (it) {
-			tag.tag_id = it->value()->tag_id;
-		}
-		auto it2 = node->find_any_child(&tag);
-		if (!it2) {
-			return nullptr;
-		}
-		for (;;) {
-			auto last = it2->prev();
-			if (!last) {
-				return it2;
-			}
-			auto data = last->value();
-			if (data->cmp(&tag) != 0) {
-				return it2;
-			}
-			it2 = last;
-		}
-	}
 	khttpd::KXmlNodeBody* new_child(khttpd::KXmlNodeBody* node, const char* name, size_t len, const char* vary, size_t vary_len) {
 		auto xml = new_xml(name, len, vary, vary_len);
 		return node->add(xml.get(), khttpd::last_pos);
@@ -1008,7 +1019,7 @@ namespace kconfig {
 		auto xml = new_xml(name, len);
 		return node->add(xml.get(), khttpd::last_pos);
 	}
-	uint32_t register_qname(const char* name, size_t len) {
+	uint32_t register_qname(const char* name, size_t len, bool vary_icase) {
 		auto key = new khttpd::KXmlKey(name, len);
 		auto old_key = qname_config.add(key->tag, key);
 		if (old_key) {
@@ -1016,7 +1027,10 @@ namespace kconfig {
 			delete old_key;
 			return key->tag_id;
 		}
-		key->tag_id = ++cur_know_qname_id;
+		key->tag_id = (++cur_know_qname_id)<<1;
+		if (vary_icase) {
+			key->tag_id |= 1;
+		}
 		return key->tag_id;
 
 	}
@@ -1038,11 +1052,17 @@ namespace kconfig {
 		register_qname(_KS("acl"));
 		register_qname(_KS("mark"));
 		register_qname(_KS("table@name"));
-		register_qname(_KS("ssl@domain"));
+		register_qname(_KS("ssl@domain"),true);
 		register_qname(_KS("vhs"));
 		register_qname(_KS("vh@name"));
 		register_qname(_KS("error@code"));
-		register_qname(_KS("mime_type@ext"));
+#ifdef _WIN32
+		register_qname(_KS("mime_type@ext"),true);
+		register_qname(_KS("map_file@ext"),true);
+#else
+		register_qname(_KS("mime_type@ext"), false);
+		register_qname(_KS("map_file@ext"), false);
+#endif
 		assert(kconfig::test());
 		begin_parse_cb = cb;
 	}

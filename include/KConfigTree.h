@@ -37,6 +37,7 @@ namespace kconfig {
 	constexpr KConfigEventType EvSubDir = (1 << 4);
 	constexpr KConfigEventType FlagCopyChilds = (1 << 5);
 	constexpr KConfigEventType FlagCreate = (1 << 6);
+	constexpr KConfigEventType FlagCreateParent = (1 << 7);
 	enum class KConfigFileSource : uint8_t
 	{
 		System = 0,
@@ -106,9 +107,9 @@ namespace kconfig {
 	class KConfigTree
 	{
 	public:
-		KConfigTree(KConfigTree* parent, khttpd::KXmlKey* a) :KConfigTree(parent, a->tag, a->vary) {
+		KConfigTree(KConfigTree* parent, khttpd::KXmlKey* a) :KConfigTree(parent, a->tag, a->vary,a->tag_id) {
 		}
-		KConfigTree(KConfigTree* parent, const kgl_ref_str_t* tag, const kgl_ref_str_t* vary) :key(kstring_refs(tag), kstring_refs(vary)) {
+		KConfigTree(KConfigTree* parent, const kgl_ref_str_t* tag, const kgl_ref_str_t* vary, uint32_t tag_id) :key(kstring_refs(tag), kstring_refs(vary),tag_id) {
 			this->parent = parent;
 			init();
 		}
@@ -133,6 +134,9 @@ namespace kconfig {
 				if (is_skip_vary()) {
 					return result;
 				}
+			}
+			if (key.is_vary_icase()) {
+				return kgl_string_case_cmp(key.vary, a->vary);
 			}
 			return kgl_string_cmp(key.vary, a->vary);
 		}
@@ -336,14 +340,14 @@ namespace kconfig {
 	bool reload_config(const kgl_ref_str_t* name, bool force);
 	void reload();
 	void init(on_begin_parse_f cb);
-	uint32_t register_qname(const char* name, size_t len);
+	uint32_t register_qname(const char* name, size_t len, bool vary_icase=false);
 
 	khttpd::KSafeXmlNode new_xml(const char* name, size_t len);
 	inline khttpd::KSafeXmlNode new_xml(const kgl_ref_str_t& name) {
 		return new_xml(name.data, name.len);
 	}
 	khttpd::KSafeXmlNode new_xml(const char* name, size_t len, const char* vary, size_t vary_len);
-	khttpd::KXmlNode* find_child(const khttpd::KXmlNodeBody* node, const char* name, size_t len);
+	khttpd::KXmlNode* find_child(khttpd::KXmlNodeBody* node, const char* name, size_t len, bool create_flag=false);
 	khttpd::KXmlNode* find_child(const khttpd::KXmlNodeBody* node, uint32_t name_id, const char* vary, size_t len);
 	KMapNode<khttpd::KXmlNode>* find_first_child(const khttpd::KXmlNodeBody* node, const kgl_ref_str_t& a);
 	khttpd::KXmlNodeBody* new_child(khttpd::KXmlNodeBody* node, const char* name, size_t len);

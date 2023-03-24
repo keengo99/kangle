@@ -59,4 +59,5 @@ struct lessf {
 		return filecmp(__x, __y) < 0;
 	}
 };
+
 #endif	/* !_EXTERN_H_INCLUDED_ */

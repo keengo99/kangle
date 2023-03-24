@@ -92,7 +92,6 @@ KFetchObject* KBaseVirtualHost::find_path_redirect(KHttpRequest* rq, KFileName* 
 void KBaseVirtualHost::clear() {
 	auto locker = get_locker();
 	for (auto it = redirects.begin(); it != redirects.end(); ++it) {
-		xfree((*it).first);
 		(*it).second->release();
 	}
 	redirects.clear();
@@ -352,16 +351,16 @@ void KBaseVirtualHost::getRedirectItemHtml(const KString& url, const KString& va
 	s << "</tr>";
 }
 void KBaseVirtualHost::getRedirectHtml(const KString& url, KWStream& s) {
-	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>"
-		<< klang["map_type"];
-	s << "</td><td>" << LANG_VALUE << "</td><td>" << klang["extend"]
-		<< "</td><td>" << klang["allow_method"] << "</td><td>"
+	s << "<table border=1><tr><td>" 
+		<< LANG_OPERATOR << "</td><td>"	
+		<< klang["map_type"] << "</td><td>" 
+		<< LANG_VALUE << "</td><td>" 
+		<< klang["extend"] << "</td><td>" 
+		<< klang["allow_method"] << "</td><td>"
 		<< klang["confirm_file"] << "</td>";
-	//{{ent
 #ifdef ENABLE_UPSTREAM_PARAM
 	s << "<td>" << klang["params"] << "</td>";
 #endif
-	//}}
 	s << "</tr>";
 	for (auto it2 = pathRedirects.begin(); it2 != pathRedirects.end(); it2++) {
 		getRedirectItemHtml(url, (*it2)->path, false, (*it2), s);
@@ -369,12 +368,8 @@ void KBaseVirtualHost::getRedirectHtml(const KString& url, KWStream& s) {
 	for (auto it = redirects.begin(); it != redirects.end(); it++) {
 		getRedirectItemHtml(url, (*it).first, true, (*it).second, s);
 	}
-	//if (defaultRedirect) {
-	//	getRedirectItemHtml(url, "*", true, defaultRedirect, s);
-	//}
 	s << "</table>";
-	s << "<form action='/vhbase?action=redirectadd&" << url
-		<< "' method='post'>";
+	s << "<form action='/vhbase?action=redirectadd&" << url	<< "' method='post'>";
 	s << "<table border=0><tr><td>";
 	s << "<select name='type'>";
 	s << "<option value='file_ext'>" << klang["file_ext"] << "</option>";
@@ -431,7 +426,6 @@ bool KBaseVirtualHost::addRedirect(bool file_ext, const KString& value, KRedirec
 	if (file_ext) {
 		auto it = redirects.find((char*)value.c_str());
 		if (it != redirects.end()) {
-			xfree((*it).first);
 			(*it).second->release();
 			redirects.erase(it);
 		}
@@ -441,7 +435,6 @@ bool KBaseVirtualHost::addRedirect(bool file_ext, const KString& value, KRedirec
 		nrd->parseParams(params);
 #endif
 		redirects.insert(pair<char*, KBaseRedirect*>(xstrdup(value.c_str()), nrd));
-		//}
 	} else {
 		KPathRedirect* pr = new KPathRedirect(value.c_str(), rd);
 		pr->allowMethod.setMethod(allowMethod.c_str());
@@ -531,7 +524,7 @@ bool KBaseVirtualHost::addAlias(const KString& path, const KString& to, const ch
 void KBaseVirtualHost::getParsedFileExt(KVirtualHostEvent* ctx) {
 	lock.Lock();
 	for (auto it2 = redirects.begin(); it2 != redirects.end(); it2++) {
-		ctx->add("file_ext", (*it2).first);
+		ctx->add("file_ext", (*it2).first.c_str());
 	}
 	lock.Unlock();
 }
@@ -666,29 +659,17 @@ bool KBaseVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KCon
 			return true;
 		}
 		if (xml->is_tag(_KS("map_file"))) {
-			std::map<char*, KBaseRedirect*, lessf> file_maps;
-			defer(
-				for (auto it = file_maps.begin(); it != file_maps.end(); ++it) {
-					(*it).second->release();
-					xfree((*it).first);
-				}
-			);
-			for (auto&& body : xml->body) {
-				auto attr2 = body->attributes;
-				auto file_ext = attr2("file_ext", nullptr);
-				if (file_ext != nullptr) {
-					if (file_maps.find((char*)file_ext) == file_maps.end()) {
-						auto rd = parse_file_map(attr2);
-						if (rd) {
-							file_maps.insert(std::pair<char*, KBaseRedirect*>(strdup(file_ext), rd));
-						}
+			auto locker = get_locker();
+			auto attr2 = xml->attributes();
+			auto file_ext = attr2("ext", nullptr);
+			if (file_ext != nullptr) {
+				if (redirects.find((char*)file_ext) == redirects.end()) {
+					auto rd = parse_file_map(attr2);
+					if (rd) {
+						redirects.emplace(file_ext, rd);
 					}
 				}
-			}
-			{
-				auto locker = get_locker();
-				file_maps.swap(redirects);
-			}
+			}			
 			return true;
 		}
 		if (xml->is_tag(_KS("map_path"))) {
@@ -755,11 +736,11 @@ bool KBaseVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KCon
 		}
 		if (xml->is_tag(_KS("map_file"))) {
 			auto locker = this->get_locker();
-			for (auto it = redirects.begin(); it != redirects.end(); ++it) {
+			auto it = redirects.find(attr["ext"]);
+			if (it != redirects.end()) {
 				(*it).second->release();
-				xfree((*it).first);
+				redirects.erase(it);
 			}
-			redirects.clear();
 			return true;
 		}
 		if (xml->is_tag(_KS("map_path"))) {

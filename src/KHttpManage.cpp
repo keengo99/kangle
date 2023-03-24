@@ -1457,19 +1457,20 @@ bool KHttpManage::start_access(bool& hit) {
 		KStringBuf name;
 		KStringBuf path;
 		KStringBuf file;
+		auto flag = kconfig::EvUpdate | kconfig::FlagCreate | kconfig::FlagCopyChilds | kconfig::FlagCreateParent;
 		if (vh && vh->has_user_access()) {
 			vh->get_access_file(file);
 		}
-		if (strncmp(file.c_str(), _KS("@vh|")) != 0) {
+		if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
 			path << "vh@" << vh_name << "/";
 		}
 		name << "table@"_CS << getUrlValue("table_name");
 		path << access->get_qname() << "/"_CS << name;
 		auto xml = kconfig::new_xml(name.c_str(), name.size());
 		if (!file.empty()) {
-			kconfig::update(file.str().str(), path.str().str(), 0, xml.get(), kconfig::EvUpdate | kconfig::FlagCreate | kconfig::FlagCopyChilds);
+			kconfig::update(file.str().str(), path.str().str(), 0, xml.get(), flag);
 		} else {
-			kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvUpdate | kconfig::FlagCreate | kconfig::FlagCopyChilds);
+			kconfig::update(path.str().str(), 0, xml.get(), flag);
 		}
 		return sendRedirect(accesslist.c_str());
 	}

@@ -416,10 +416,8 @@ void KVirtualHost::copy_to(KVirtualHost* vh) {
 #ifdef ENABLE_UPSTREAM_PARAM
 		br->params = file_rd.second->params;
 #endif
-		KStringBuf s;
-		file_rd.second->allowMethod.getMethod(s);
-		br->allowMethod.setMethod(s.c_str());
-		vh->redirects.insert(std::pair<char*, KBaseRedirect*>(xstrdup(file_rd.first), br));
+		br->allowMethod = file_rd.second->allowMethod;
+		vh->redirects.insert(std::pair<KString, KBaseRedirect*>(file_rd.first, br));
 	}
 	for (auto&& path : pathRedirects) {
 		if (path->rd) {
@@ -430,9 +428,7 @@ void KVirtualHost::copy_to(KVirtualHost* vh) {
 #ifdef ENABLE_UPSTREAM_PARAM
 		prd->params = path->params;
 #endif
-		KStringBuf s;
-		path->allowMethod.getMethod(s);
-		prd->allowMethod.setMethod(s.c_str());
+		prd->allowMethod = path->allowMethod;
 		vh->pathRedirects.push_back(prd);
 	}
 	vh->indexFiles = indexFiles;

@@ -67,6 +67,10 @@ public:
 	{
 		return meths[method];
 	}
+	KRedirectMethods& operator=(KRedirectMethods& a) {
+		meths = a.meths;
+		return *this;
+	}
 private:
 	std::bitset<MAX_METHOD> meths;
 };
