@@ -875,10 +875,33 @@ bool KVirtualHostManage::vh_base_action(KUrlValue& uv, KString& err_msg) {
 		} else if (action == "vh_delete") {
 			result = kconfig::remove(path.str().str(), 0);
 		} else if (action == "redirectadd") {
-			path << "/map";
-			auto xml = kconfig::new_xml("map"_CS);
-			xml->attributes().swap(uv.attribute);
-			result = kconfig::add(path.str().str(), khttpd::last_pos, xml.get());
+			auto type = uv.attribute.remove("type"_CS);
+			auto value = uv.attribute.remove("value"_CS);
+			khttpd::KSafeXmlNode xml;
+			if (type == "file_ext") {
+				path << "/map_file";
+				xml = kconfig::new_xml(_KS("map_file"), value.c_str(), value.size());
+				uv.attribute.emplace("ext", value);
+				xml->attributes().swap(uv.attribute);
+				result = kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvUpdate | kconfig::FlagCreate | kconfig::FlagCopyChilds);
+			} else {
+				path << "/map_path";
+				xml = kconfig::new_xml("map_path"_CS);
+				uv.attribute.emplace("path", value);
+				xml->attributes().swap(uv.attribute);
+				result = kconfig::add(path.str().str(), khttpd::last_pos, xml.get());
+			}
+		} else if (action == "redirectdelete") {
+			auto type = uv.attribute["type"];
+			uint32_t index = 0;
+			if (type == "file_ext") {
+				path << "/map_file";
+				path << "@" << uv.attribute["value"];
+			} else {
+				path << "/map_path";
+				index = uv.attribute.get_int("index");
+			}
+			result = kconfig::remove(path.str().str(), index);
 		} else if (action == "mimetypeadd") {
 			path << "/mime_type@"_CS << uv.attribute["ext"];
 			auto xml = uv.to_xml(_KS("mime_type"), uv.attribute["ext"].c_str(), uv.attribute["ext"].size());

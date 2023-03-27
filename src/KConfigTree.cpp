@@ -35,6 +35,14 @@ namespace kconfig {
 	void register_source_driver(KConfigFileSource s, KConfigFileSourceDriver* dr) {
 		sources[static_cast<int>(s)] = dr;
 	}
+	static KString get_default_config_filename() {
+#ifdef KANGLE_ETC_DIR
+		KString config_dir = KANGLE_ETC_DIR;
+#else
+		KString config_dir = conf.path + "/etc";
+#endif
+		return config_dir + CONFIG_FILE;
+	}
 	class KDefaultConfigFileDriver : public KConfigFileSourceDriver
 	{
 	public:
@@ -115,6 +123,12 @@ namespace kconfig {
 			if (result != KGL_OK) {
 				unlink(tmpfile.c_str());
 				return false;
+			}
+			auto filename = f->get_filename();
+			KString default_file;
+			if (f->is_default()) {
+				default_file = get_default_config_filename();
+				filename = default_file.data();
 			}
 			if (0 != unlink(f->get_filename()->data)) {
 				unlink(tmpfile.c_str());
@@ -208,10 +222,7 @@ namespace kconfig {
 	class KConfigFileInfo
 	{
 	public:
-		KConfigFileInfo(KSafeConfigFile file, khttpd::KSafeXmlNode node, time_t last_modified) {
-			this->file = std::move(file);
-			this->node = std::move(node);
-			this->last_modified = last_modified;
+		KConfigFileInfo(KSafeConfigFile file, khttpd::KSafeXmlNode node, time_t last_modified) : file{ std::move(file) }, node{ std::move(node) }, last_modified{ last_modified } {
 		}
 		~KConfigFileInfo() {
 		}

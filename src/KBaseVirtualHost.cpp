@@ -318,13 +318,14 @@ void KBaseVirtualHost::getAliasHtml(const KString& url, KWStream& s) {
 	s << "</form>";
 
 }
-void KBaseVirtualHost::getRedirectItemHtml(const KString& url, const KString& value, bool file_ext, KBaseRedirect* brd, KWStream& s) {
+void KBaseVirtualHost::getRedirectItemHtml(const KString& url, const KString& value, int index, bool file_ext, KBaseRedirect* brd, KWStream& s) {
 	s << "<tr><td>";
 	s << "[<a href=\"javascript:if(confirm('really delete?')){ window.location='/vhbase?action=redirectdelete&type=";
 	s << (file_ext ? "file_ext" : "path");
+	s << "&index=" << index;
 	s << "&value=";
 	s << url_encode(url_encode(value.c_str()).c_str());
-	s << "&" << url << "';}\">" << LANG_DELETE << "</a>]";	
+	s << "&" << url << "';}\">" << LANG_DELETE << "</a>]";
 	s << "</td>";
 	s << "<td>" << (file_ext ? klang["file_ext"] : klang["path"]) << "</td>";
 	s << "<td>" << value << "</td>";
@@ -351,25 +352,29 @@ void KBaseVirtualHost::getRedirectItemHtml(const KString& url, const KString& va
 	s << "</tr>";
 }
 void KBaseVirtualHost::getRedirectHtml(const KString& url, KWStream& s) {
-	s << "<table border=1><tr><td>" 
-		<< LANG_OPERATOR << "</td><td>"	
-		<< klang["map_type"] << "</td><td>" 
-		<< LANG_VALUE << "</td><td>" 
-		<< klang["extend"] << "</td><td>" 
+	s << "<table border=1><tr><td>"
+		<< LANG_OPERATOR << "</td><td>"
+		<< klang["map_type"] << "</td><td>"
+		<< LANG_VALUE << "</td><td>"
+		<< klang["extend"] << "</td><td>"
 		<< klang["allow_method"] << "</td><td>"
 		<< klang["confirm_file"] << "</td>";
 #ifdef ENABLE_UPSTREAM_PARAM
 	s << "<td>" << klang["params"] << "</td>";
 #endif
 	s << "</tr>";
+	int index = 0;
 	for (auto it2 = pathRedirects.begin(); it2 != pathRedirects.end(); it2++) {
-		getRedirectItemHtml(url, (*it2)->path, false, (*it2), s);
+		getRedirectItemHtml(url, (*it2)->path, index, false, (*it2), s);
+		++index;
 	}
+	index = 0;
 	for (auto it = redirects.begin(); it != redirects.end(); it++) {
-		getRedirectItemHtml(url, (*it).first, true, (*it).second, s);
+		getRedirectItemHtml(url, (*it).first, index, true, (*it).second, s);
+		++index;
 	}
 	s << "</table>";
-	s << "<form action='/vhbase?action=redirectadd&" << url	<< "' method='post'>";
+	s << "<form action='/vhbase?action=redirectadd&" << url << "' method='post'>";
 	s << "<table border=0><tr><td>";
 	s << "<select name='type'>";
 	s << "<option value='file_ext'>" << klang["file_ext"] << "</option>";
@@ -663,13 +668,16 @@ bool KBaseVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KCon
 			auto attr2 = xml->attributes();
 			auto file_ext = attr2("ext", nullptr);
 			if (file_ext != nullptr) {
-				if (redirects.find((char*)file_ext) == redirects.end()) {
-					auto rd = parse_file_map(attr2);
-					if (rd) {
-						redirects.emplace(file_ext, rd);
-					}
+				auto it = redirects.find((char*)file_ext);
+				if (it != redirects.end()) {
+					(*it).second->release();
+					redirects.erase(it);
 				}
-			}			
+				auto rd = parse_file_map(attr2);
+				if (rd) {
+					redirects.emplace(file_ext, rd);
+				}
+			}
 			return true;
 		}
 		if (xml->is_tag(_KS("map_path"))) {
@@ -694,7 +702,7 @@ bool KBaseVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KCon
 		}
 		if (xml->is_tag(_KS("alias"))) {
 			std::list<KAlias> alias;
-			for (auto &&body : xml->body) {
+			for (auto&& body : xml->body) {
 				auto as = parse_alias(body->attributes);
 				if (!as) {
 					continue;

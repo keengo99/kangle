@@ -158,7 +158,7 @@ public:
 	std::map<KString, KBaseRedirect*, kstring_lessf> redirects;
 	std::list<KPathRedirect*> pathRedirects;
 	std::list<KAlias> aliass;
-	void getRedirectItemHtml(const KString& url, const KString& value, bool file_ext, KBaseRedirect* brd, KWStream& s);
+	void getRedirectItemHtml(const KString& url, const KString& value,int index, bool file_ext, KBaseRedirect* brd, KWStream& s);
 	void getIndexHtml(const KString& url, KWStream& s);
 	void getErrorPageHtml(const KString& url, KWStream& s);
 	void getRedirectHtml(const KString& url, KWStream& s);
