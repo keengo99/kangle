@@ -236,22 +236,28 @@ KGL_RESULT handle_connect_method(KHttpRequest* rq) {
 	if (rq->sink->data.url->path == NULL) {
 		rq->sink->data.url->path = strdup("/");
 	}
-	switch (kaccess[REQUEST].check(rq, NULL)) {
+	KSafeSource fo;
+	switch (kaccess[REQUEST]->check(rq, NULL, fo)) {
 	case JUMP_DROP:
 		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 		return KGL_EDENIED;
 	case JUMP_DENY:
+		if (fo) {
+			rq->append_source(fo.release());
+		}
 		return handle_denied_request(rq);
 	default:
+		if (fo) {
+			rq->append_source(fo.release());
+		}
 		break;
 	}
 	if (!rq->has_final_source()) {
 		return send_error2(rq, STATUS_METH_NOT_ALLOWED, "CONNECT Not allowed.");
 	}
-	rq->sink->data.http_minor = 0;
+	rq->sink->data.set_http_version(1, 0);
 	rq->ctx.obj = new KHttpObject(rq);
-	rq->ctx.new_object = 1;
-	return load_object(rq);
+	return load_object_from_source(rq);
 #endif
 	return send_error2(rq, STATUS_METH_NOT_ALLOWED, "The requested method CONNECT is not allowed");
 }

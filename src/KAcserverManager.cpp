@@ -33,20 +33,24 @@
 #include "kselector_manager.h"
 #include "KDsoExtendManage.h"
 #include "KDefer.h"
+#include "KProcessManage.h"
 
 using namespace std;
 void on_api_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	KAcserverManager* am = (KAcserverManager*)data;
 	am->on_api_event(tree, ev->get_xml(), ev->type);
 }
+#ifdef ENABLE_VH_RUN_AS
 void on_cmd_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	KAcserverManager* am = (KAcserverManager*)data;
 	am->on_cmd_event(tree, ev->get_xml(), ev->type);
 }
+#endif
 void on_server_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	KAcserverManager* am = (KAcserverManager*)data;
 	am->on_server_event(tree, ev->get_xml(), ev->type);
 }
+#ifdef ENABLE_VH_RUN_AS
 void KAcserverManager::on_cmd_event(kconfig::KConfigTree* tree, const khttpd::KXmlNode* xml, kconfig::KConfigEventType ev) {
 	auto attr = xml->attributes();
 	auto name = attr["name"];
@@ -96,6 +100,7 @@ void KAcserverManager::on_cmd_event(kconfig::KConfigTree* tree, const khttpd::KX
 		break;
 	}
 }
+#endif
 void KAcserverManager::on_api_event(kconfig::KConfigTree* tree, const khttpd::KXmlNode* xml, kconfig::KConfigEventType ev) {
 	auto attr = xml->attributes();
 	auto name = attr["name"];
@@ -281,6 +286,9 @@ void KAcserverManager::shutdown() {
 KAcserverManager::~KAcserverManager() {
 	shutdown();
 }
+void KAcserverManager::killAllProcess(KVirtualHost* vh) {
+	spProcessManage.killAllProcess(vh);
+}
 #ifdef ENABLE_VH_RUN_AS
 void KAcserverManager::refreshCmd(time_t nowTime) {
 
@@ -295,10 +303,7 @@ void KAcserverManager::refreshCmd(time_t nowTime) {
 	lock.RUnlock();
 
 }
-void KAcserverManager::killAllProcess(KVirtualHost* vh) {
 
-	spProcessManage.killAllProcess(vh);
-}
 void KAcserverManager::killCmdProcess(USER_T user) {
 
 	spProcessManage.killProcess2(user, 0);

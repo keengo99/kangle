@@ -638,7 +638,9 @@ bool KVirtualHost::parse_xml(const KXmlAttribute& attr, KVirtualHost* ov) {
 	early_data = attr.get_int("early_data") == 1;
 	setSSLInfo(attr["certificate"], attr["certificate_key"], attr["cipher"], attr["protocols"]);
 #endif
+#ifdef ENABLE_VH_RUN_AS
 	setRunAs(attr["user"], attr["group"]);
+#endif
 #ifndef _WIN32
 	chroot = (attr["chroot"] == "on" || attr["chroot"] == "1");
 #endif

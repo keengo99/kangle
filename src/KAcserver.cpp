@@ -97,13 +97,14 @@ KSockPoolHelper *KPoolableRedirect::parse_nodes(const char *node_string)
 }
 void KPoolableRedirect::build_proto_html(KPoolableRedirect *mserver, KWStream &s)
 {
-#ifndef HTTP_PROXY
 	s << klang["protocol"] << ":";
 	s << "<input type='radio' name='proto' value='http' ";
 	if (mserver == NULL || mserver->proto == Proto_http) {
 		s << "checked";
 	}
-	s << ">http <input type='radio' name='proto' value='fastcgi' ";
+	s << ">http";
+#ifndef HTTP_PROXY
+	s << "<input type='radio' name='proto' value='fastcgi' ";
 	if (mserver && mserver->proto == Proto_fcgi) {
 		s << "checked";
 	}
@@ -131,7 +132,6 @@ void KPoolableRedirect::build_proto_html(KPoolableRedirect *mserver, KWStream &s
 	}
 	s << ">hmux";
 #endif
-	//{{ent
 #ifdef WORK_MODEL_TCP
 	//tcp
 	s << "<input type='radio' name='proto' value='tcp' ";
@@ -139,7 +139,7 @@ void KPoolableRedirect::build_proto_html(KPoolableRedirect *mserver, KWStream &s
 		s << "checked";
 	}
 	s << ">tcp";
-#endif//}}
+#endif
 #ifdef ENABLE_PROXY_PROTOCOL
 	//proxy
 	s << "<input type='radio' name='proto' value='proxy' ";
@@ -149,7 +149,6 @@ void KPoolableRedirect::build_proto_html(KPoolableRedirect *mserver, KWStream &s
 	s << ">proxy";
 #endif
 	s << "<br>";
-
 }
 KRedirectSource*KPoolableRedirect::makeFetchObject(KHttpRequest *rq, KFileName *file) {
 	KBIT_CLR(rq->ctx.filter_flags,RQ_FULL_PATH_INFO);

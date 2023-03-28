@@ -32,26 +32,27 @@ public:
 	KAcserverManager();
 	virtual ~KAcserverManager();
 	void on_server_event(kconfig::KConfigTree* tree, const khttpd::KXmlNode* xml, kconfig::KConfigEventType ev);
-	void on_cmd_event(kconfig::KConfigTree* tree, const khttpd::KXmlNode* xml, kconfig::KConfigEventType ev);
 	void on_api_event(kconfig::KConfigTree* tree, const khttpd::KXmlNode* xml, kconfig::KConfigEventType ev);
 	void acserverList(KWStream& s, const KString& name = "");
 	void apiList(KWStream& s, const KString& name = "");
-#ifdef ENABLE_VH_RUN_AS	
+#ifdef ENABLE_VH_RUN_AS
+	void on_cmd_event(kconfig::KConfigTree* tree, const khttpd::KXmlNode* xml, kconfig::KConfigEventType ev);
 	void cmdList(KWStream& s, const KString& name = "");
 #ifdef ENABLE_ADPP
 	/*
 	 * flush the cmd extend process cpu usage.
 	 */
 	void flushCpuUsage(ULONG64 cpuTime);
-#endif
-	void shutdown();
+#endif	
 	void refreshCmd(time_t nowTime);
 	void getProcessInfo(KWStream &s);
 	void killCmdProcess(USER_T user);
+
+#endif	
 	void killAllProcess(KVirtualHost* vh);
+	void shutdown();
 	/* 全部准备好了，可以加载所有的api了。*/
 	void loadAllApi();
-#endif
 	void unloadAllApi();
 	bool remove_server(const KString &name, KString& err_msg);
 #ifdef ENABLE_MULTI_SERVER
@@ -144,5 +145,7 @@ private:
 };
 void on_server_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent *ev);
 void on_api_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+#ifdef ENABLE_VH_RUN_AS
 void on_cmd_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+#endif
 #endif /*KACSERVERMANAGER_H_*/

@@ -395,13 +395,13 @@ static void init_config() {
 		return true;
 		}, kconfig::ev_subdir | kconfig::ev_skip_vary);
 	kconfig::listen(_KS("server"), &server_config_listener);
-
+#ifdef ENABLE_VH_RUN_AS
 	static auto cmd_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) -> bool {
 		conf.gam->on_cmd_event(tree, ev->get_xml(), ev->type);
 		return true;
 		}, kconfig::ev_subdir | kconfig::ev_skip_vary);
 	kconfig::listen(_KS("cmd"), &cmd_config_listener);
-
+#endif
 	static auto api_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) -> bool {
 		conf.gam->on_api_event(tree, ev->get_xml(), ev->type);
 		return true;

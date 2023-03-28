@@ -34,6 +34,8 @@
 #include "KVirtualHostDatabase.h"
 #include "KLogHandle.h"
 #include "KCache.h"
+#include "KHttpServer.h"
+
 using namespace std;
 void on_firewall_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 #ifdef ENABLE_BLACK_LIST
