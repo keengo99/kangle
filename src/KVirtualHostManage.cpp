@@ -909,6 +909,21 @@ bool KVirtualHostManage::vh_base_action(KUrlValue& uv, KString& err_msg) {
 		} else if (action == "mimetypedelete") {
 			path << "/mime_type@"_CS << uv.attribute["ext"];
 			result = kconfig::remove(path.str().str(), 0);
+		} else if (action == "errorpagedelete") {
+			path << "/error@"_CS << uv.attribute["code"];
+			result = kconfig::remove(path.str().str(), 0);
+		} else if (action == "errorpageadd") {
+			path << "/error@"_CS << uv.attribute["code"];
+			auto xml = uv.to_xml(_KS("error"), uv.attribute["code"].c_str(), uv.attribute["code"].size());
+			result = kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvUpdate | kconfig::FlagCreate | kconfig::FlagCopyChilds);
+		} else if (action == "aliasdelete") {
+			path << "/alias"_CS;
+			result = kconfig::remove(path.str().str(), uv.attribute.get_int("index"));
+		} else if (action == "aliasadd") {
+			auto index = uv.attribute.remove("index");
+			path << "/alias"_CS;
+			auto xml = uv.to_xml(_KS("alias"));
+			result = kconfig::update(path.str().str(), atoi(index.c_str()), xml.get(), kconfig::EvNew);
 		}
 	}
 	switch (result) {

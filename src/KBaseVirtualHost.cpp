@@ -255,7 +255,7 @@ void KBaseVirtualHost::getErrorPageHtml(const KString& url, KWStream& s) {
 	s << "<form action='/vhbase?action=errorpageadd&" << url
 		<< "' method='post'>";
 	s << klang["error_code"] << ":<input name='code'>";
-	s << klang["error_url"] << ":<input name='url'>";
+	s << klang["error_url"] << ":<input name='file'>";
 	s << "<input type='submit' value='" << LANG_ADD << "'>";
 	s << "</form>";
 
@@ -287,19 +287,18 @@ void KBaseVirtualHost::getAliasHtml(const KString& url, KWStream& s) {
 	s << "<td>" << klang["phy_path"] << "</td>";
 	s << "<td>" << klang["internal"] << "</td>";
 	s << "</tr>\n";
-	int i = 1;
+	int index = 0;
 	for (auto it = aliass.begin(); it != aliass.end(); it++) {
 		s << "<tr><td>";
 
-		s
-			<< "[<a href=\"javascript:if(confirm('really delete?')){ window.location='/vhbase?action=aliasdelete&path=";
-		s << (*it)->get_path() << "&" << url << "';}\">" << LANG_DELETE
+		s << "[<a href=\"javascript:if(confirm('really delete?')){ window.location='/vhbase?action=aliasdelete&index=" << index
+			<< "&" << url << "';}\">" << LANG_DELETE
 			<< "</a>]";
 
 		s << "</td>";
 		s << "<td>";
-		s << i;
-		i++;
+		s << index;
+		++index;
 		s << "</td>";
 		s << "<td>" << (*it)->get_path() << "</td>";
 		s << "<td>" << (*it)->get_to() << "</td>";
@@ -309,8 +308,7 @@ void KBaseVirtualHost::getAliasHtml(const KString& url, KWStream& s) {
 	s << "</table>\n";
 	s << "<form action='/vhbase?action=aliasadd&" << url << "' method='post'>";
 	s << "<table border='0'>";
-	s << "<tr><td>" << klang["id"] << "</td><td><input name='index' value='" << klang["last"]
-		<< "' size=4></td></tr>";
+	s << "<tr><td>" << klang["id"] << "</td><td><input name='index' value='-1' size=4></td></tr>";
 	s << "<tr><td>" << klang["url_path"] << "</td><td><input name='path'></td></tr>";
 	s << "<tr><td>" << klang["phy_path"] << "</td><td><input name='to'></td></tr>";
 	s << "<tr><td><input type='checkbox' name='internal' value='1'>" << klang["internal"] << "</td>";
