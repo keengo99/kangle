@@ -40,8 +40,7 @@ KFetchObject* KBaseVirtualHost::find_file_redirect(KHttpRequest* rq, KFileName* 
 		result = true;
 		if ((*it).second->rd) {
 			auto fo = (*it).second->rd->makeFetchObject(rq, file);
-			(*it).second->addRef();
-			fo->bind_base_redirect((*it).second);
+			fo->bind_base_redirect((*it).second->add_ref());
 			return fo;
 		}
 	}
@@ -65,7 +64,7 @@ KBaseRedirect* KBaseVirtualHost::refs_path_redirect(const char* path, int path_l
 	auto locker = get_locker();
 	for (auto it = pathRedirects.begin(); it != pathRedirects.end(); ++it) {
 		if ((*it)->match(path, path_len)) {
-			(*it)->addRef();
+			(*it)->add_ref();
 			return (*it);
 		}
 	}
@@ -79,8 +78,7 @@ KFetchObject* KBaseVirtualHost::find_path_redirect(KHttpRequest* rq, KFileName* 
 				result = true;
 				if ((*it2)->rd) {
 					auto fo = (*it2)->rd->makeFetchObject(rq, file);
-					(*it2)->addRef();
-					fo->bind_base_redirect((*it2));
+					fo->bind_base_redirect((*it2)->add_ref());
 					return fo;
 				}
 				return nullptr;

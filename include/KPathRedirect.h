@@ -74,11 +74,12 @@ public:
 private:
 	std::bitset<MAX_METHOD> meths;
 };
-class KBaseRedirect : public KAtomCountable {
+class KBaseRedirect {
 public:
 	KBaseRedirect() {
-		rd = NULL;
+		rd = nullptr;
 		confirm_file = KConfirmFile::Exsit;
+		ref = 1;
 	}
 	/**
 	* 调用此处rd必须先行addRef。
@@ -86,6 +87,16 @@ public:
 	KBaseRedirect(KRedirect *rd, KConfirmFile confirmFile) {
 		this->rd = rd;
 		this->confirm_file = confirmFile;
+		ref = 1;
+	}
+	void release() {
+		if (katom_dec((void*)&ref) == 0) {
+			delete this;
+		}
+	}
+	KBaseRedirect* add_ref() {
+		katom_inc((void*)&ref);
+		return this;
 	}
 	bool MatchConfirmFile(bool file_exsit)
 	{
@@ -150,15 +161,16 @@ public:
 #endif
 	KRedirectMethods allowMethod;
 	KConfirmFile confirm_file;
+	volatile uint32_t ref;
 	KRedirect *rd;
 protected:
-	~KBaseRedirect() {
+	virtual ~KBaseRedirect() {
 		if (rd) {
 			rd->release();
 		}
 	}
 };
-class KPathRedirect : public KBaseRedirect {
+class KPathRedirect final: public KBaseRedirect {
 public:
 	KPathRedirect(const char *path, KRedirect *rd);
 	bool match(const char *path, int len);

@@ -53,7 +53,7 @@ public:
 	char **subStrings;
 	int count;
 };
-class KReg
+class KReg final
 {
 public:
 	KReg();
