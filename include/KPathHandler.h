@@ -133,7 +133,7 @@ public:
 			return nullptr;
 		}
 		kgl_ref_str_t key;
-		key.data = name;
+		key.data = (char *)name;
 		key.len = name_len;
 		auto node = child.find(&key);
 		if (!node) {

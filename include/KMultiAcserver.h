@@ -47,10 +47,10 @@ public:
 	static std::string form(KMultiAcserver *mserver);
 	void parse(std::map<std::string,std::string> &attribute);
 	void parseNode(const char *nodeString);
-	kconfig::KConfigEventFlag config_flag() const {
+	kconfig::KConfigEventFlag config_flag() const override {
 		return kconfig::ev_subdir;
 	}
-	bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
+	bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) override;
 	const char *getType() override
 	{
 		return "mserver";

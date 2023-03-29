@@ -41,7 +41,7 @@ public:
 	virtual ~KMultinAcl() {
 		freeMap();
 	}
-	std::string getHtml(KModel *model) {
+	std::string getHtml(KModel *model) override {
 		std::stringstream s;
 		s << "<input name=v size=40 value='";
 		KMultinAcl *acl = (KMultinAcl *) (model);
@@ -78,7 +78,7 @@ public:
 		}
 		return s.str();
 	}
-	std::string getDisplay() {
+	std::string getDisplay() override {
 		std::stringstream s;
 		if (icase) {
 			s << "[I]";
