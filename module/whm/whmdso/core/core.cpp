@@ -638,7 +638,7 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 			if (domain) {
 				bool domain_finded = false;
 				for (auto it = vh->hosts.begin(); it != vh->hosts.end(); ++it) {
-					if ((*it)->MatchHost(domain)) {
+					if ((*it)->match_host(domain)) {
 						domain_finded = true;
 						ssl_ctx = kgl_get_ssl_ctx((*it)->ssl_ctx);
 						break;

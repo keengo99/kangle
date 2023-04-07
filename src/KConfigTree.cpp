@@ -29,6 +29,7 @@ namespace kconfig {
 	static on_begin_parse_f begin_parse_cb = nullptr;
 	static KConfigFileSourceDriver* sources[static_cast<int>(KConfigFileSource::Size)] = { 0 };
 	KConfigFile* find_file(const kgl_ref_str_t& name);
+	khttpd::KXmlNode* insert_child(khttpd::KXmlNodeBody* node, const char* name, size_t len);
 	KConfigFileSourceDriver* find_source_driver(KConfigFileSource s) {
 		return sources[static_cast<int>(s)];
 	}
@@ -216,9 +217,8 @@ namespace kconfig {
 	public:
 		bool enable_scan() override {
 			return false;
-		};
+		}
 	};
-
 	class KConfigFileInfo
 	{
 	public:
@@ -275,7 +275,7 @@ namespace kconfig {
 			name_len2 = index_str - name;
 			nodes_index = atoi(index_str + 1);
 		}
-		auto child_nodes = find_child(nodes, name, name_len2, KBIT_TEST(ev_type, FlagCreateParent));
+		auto child_nodes = KBIT_TEST(ev_type, FlagCreateParent) ? insert_child(nodes, name, name_len2) : find_child(nodes, name, name_len2);
 		if (!child_nodes) {
 			return false;
 		}
@@ -419,7 +419,7 @@ namespace kconfig {
 		return ret;
 	}
 
-	void KConfigTree::notice(KConfigTree* ev_tree, KConfigFile* file, khttpd::KXmlNode* xml, KConfigEventType ev_type, kgl_config_diff* diff) {
+	bool KConfigTree::notice(KConfigTree* ev_tree, KConfigFile* file, khttpd::KXmlNode* xml, KConfigEventType ev_type, kgl_config_diff* diff) {
 		assert(xml);
 		KConfigEventNode* file_node;
 		KConfigEventNode* last_node;
@@ -449,7 +449,7 @@ namespace kconfig {
 			}
 			assert(file_node);
 			if (!file_node) {
-				return;
+				return true;
 			}
 			if (ev_type == EvRemove) {
 				//remove
@@ -470,15 +470,15 @@ namespace kconfig {
 					if (this != ev_tree) {
 						ev.type |= EvSubDir;
 					}
-					ev_tree->ls->on_config_event(this, &ev);
+					return ev_tree->ls->on_config_event(this, &ev);
 				}
-				return;
+				return true;
 			}
 			//update
 			auto old_xml = file_node->update(xml);
 			ev.old_xml = old_xml.get();
 			if (ev_type == EvNone) {
-				return;
+				return true;
 			}
 			ev.new_xml = xml;
 			assert(ev_type == EvUpdate);
@@ -486,9 +486,9 @@ namespace kconfig {
 				if (this != ev_tree) {
 					ev.type |= EvSubDir;
 				}
-				ev_tree->ls->on_config_event(this, &ev);
+				return ev_tree->ls->on_config_event(this, &ev);
 			}
-			return;
+			return true;
 		}
 		last_node = node;
 		//new
@@ -517,19 +517,17 @@ namespace kconfig {
 			if (this != ev_tree) {
 				ev.type |= EvSubDir;
 			}
-			ev_tree->ls->on_config_event(this, &ev);
+			return ev_tree->ls->on_config_event(this, &ev);
 		}
-		return;
+		return true;
 	}
 	bool KConfigTree::notice(KConfigFile* file, khttpd::KXmlNode* xml, KConfigEventType ev_type, kgl_config_diff* diff) {
 		try {
 			if (is_self()) {
-				notice(this, file, xml, ev_type, diff);
-				return true;
+				return notice(this, file, xml, ev_type, diff);
 			}
 			if (parent->is_subdir()) {
-				notice(parent, file, xml, ev_type, diff);
-				return true;
+				return notice(parent, file, xml, ev_type, diff);
 			}
 		} catch (std::exception& a) {
 			klog(KLOG_ERR, "config event exception happend [%s]\n", a.what());
@@ -932,6 +930,7 @@ namespace kconfig {
 			is_first_config = false;
 		}
 	}
+
 	khttpd::KXmlNode* find_child(const khttpd::KXmlNode* node, uint32_t name_id, const char* vary, size_t len) {
 		khttpd::KXmlKey key;
 		kgl_ref_str_t tag = { 0 };
@@ -946,26 +945,30 @@ namespace kconfig {
 			return nullptr;
 		}
 		return it->value();
-	}	
-	khttpd::KXmlNode* find_child(khttpd::KXmlNodeBody* node, const char* name, size_t len, bool create_flag) {
+	}
+	khttpd::KXmlNode* insert_child(khttpd::KXmlNodeBody* node, const char* name, size_t len) {
 		khttpd::KXmlKey key(name, len);
 		auto it2 = qname_config.find(key.tag);
 		if (it2) {
 			auto tag = it2->value();
 			key.tag_id = tag->tag_id;
 		}
-		KMapNode<khttpd::KXmlNode>* it;
-		if (create_flag) {
-			int new_flag;
-			it = node->childs.insert(&key, &new_flag);
-			if (new_flag) {
-				khttpd::KXmlNode* child_node = new khttpd::KXmlNode(&key);
-				it->value(child_node);
-				return child_node;
-			}
-		} else {
-			it = node->childs.find(&key);
+		int new_flag;
+		auto it = node->childs.insert(&key, &new_flag);
+		if (new_flag) {
+			khttpd::KXmlNode* child_node = new khttpd::KXmlNode(&key);
+			it->value(child_node);
 		}
+		return it->value();
+	}
+	khttpd::KXmlNode* find_child(const khttpd::KXmlNodeBody* node, const char* name, size_t len) {
+		khttpd::KXmlKey key(name, len);
+		auto it2 = qname_config.find(key.tag);
+		if (it2) {
+			auto tag = it2->value();
+			key.tag_id = tag->tag_id;
+		}
+		auto it = node->childs.find(&key);
 		if (!it) {
 			return nullptr;
 		}
@@ -1038,7 +1041,7 @@ namespace kconfig {
 			delete old_key;
 			return key->tag_id;
 		}
-		key->tag_id = (++cur_know_qname_id)<<1;
+		key->tag_id = (++cur_know_qname_id) << 1;
 		if (vary_icase) {
 			key->tag_id |= 1;
 		}
@@ -1063,13 +1066,13 @@ namespace kconfig {
 		register_qname(_KS("acl"));
 		register_qname(_KS("mark"));
 		register_qname(_KS("table@name"));
-		register_qname(_KS("ssl@domain"),true);
+		register_qname(_KS("ssl@domain"), true);
 		register_qname(_KS("vhs"));
 		register_qname(_KS("vh@name"));
 		register_qname(_KS("error@code"));
 #ifdef _WIN32
-		register_qname(_KS("mime_type@ext"),true);
-		register_qname(_KS("map_file@ext"),true);
+		register_qname(_KS("mime_type@ext"), true);
+		register_qname(_KS("map_file@ext"), true);
 #else
 		register_qname(_KS("mime_type@ext"), false);
 		register_qname(_KS("map_file@ext"), false);

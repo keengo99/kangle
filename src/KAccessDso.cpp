@@ -51,7 +51,7 @@ static const char* get_value(const kgl_config_body* cn, const char* name)
 }
 static kgl_config_node* find_child(const kgl_config_body* cn, const char* name) {
 	khttpd::KXmlNodeBody* xml = (khttpd::KXmlNodeBody*)cn;
-	return (kgl_config_node *)kconfig::find_child(xml, name, strlen(name), false);
+	return (kgl_config_node *)kconfig::find_child(xml, name, strlen(name));
 }
 static void set_value(kgl_config_body* cn, const char* name, const char* value) {
 	khttpd::KXmlNodeBody* body = (khttpd::KXmlNodeBody*)cn;

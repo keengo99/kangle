@@ -49,7 +49,7 @@ public:
 	 */
 	bool updateVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh);
 	bool updateVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh, KVirtualHost* ov);
-	void updateVirtualHost(KVirtualHost* vh, std::list<KSubVirtualHost*>& hosts);
+	//void updateVirtualHost(KVirtualHost* vh, std::list<KSubVirtualHost*>& hosts);
 	void updateVirtualHost(KVirtualHost* vh, std::list<KString>& binds);
 	/*
 	 * 增加虚拟主机

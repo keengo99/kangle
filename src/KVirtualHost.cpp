@@ -202,6 +202,27 @@ KFetchObject* KVirtualHost::findFileExtRedirect(KHttpRequest* rq, KFileName* fil
 	}
 	return conf.gvm->vhs.find_file_redirect(rq, file, file_ext, fileExsit, result);
 }
+void KVirtualHost::get_host_html(const KString& url, KWStream& s) {
+	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>host</td><td>dir</td></tr>";
+	int j = 0;
+	for (auto it = hosts.begin(); it != hosts.end(); ++it, ++j) {
+		s << "<tr><td>";
+		s << "[<a href=\"javascript:if(confirm('really delete?')){ window.location='/vhbase?action=host_del&index=" << j;
+		s << "&" << url << "';}\">" << LANG_DELETE << "</a>]</td><td>";
+		if ((*it)->wide) {
+			s << "*";
+			if (*(*it)->host) {
+				s << ".";
+			}
+		}
+		s << (*it)->host << "</td><td>" << ((*it)->dir ? (*it)->dir : "") << "</td></tr>";
+	}
+	s << "</table>";
+	s << "<form action='/vhbase?action=host_add&" << url << "' method='post'>";
+	s << "host:<input name='host' value=''>";
+	s << "dir:<input name='dir'><input type='submit' value='" << LANG_ADD << "'>";
+	s << "</form>";
+}
 void KVirtualHost::closeToken(Token_t token) {
 	if (token == NULL) {
 		return;
@@ -437,12 +458,14 @@ void KVirtualHost::copy_to(KVirtualHost* vh) {
 	vh->binds = binds;
 	vh->access[0] = access[0];
 	vh->access[1] = access[1];
+#if 0
 	for (auto&& item : hosts) {
 		KSubVirtualHost* svh = new KSubVirtualHost(vh);
 		svh->setHost(item->host);
 		svh->setDocRoot(vh->doc_root.c_str(), item->dir);
 		vh->hosts.push_back(svh);
 	}
+#endif
 }
 bool KVirtualHost::loadApiRedirect(KApiPipeStream* st, int workType) {
 	lock.Lock();
@@ -514,7 +537,7 @@ int KVirtualHost::GetConnectionCount() {
 	if (cur_connect) {
 		return cur_connect->getConnectionCount();
 	}
-	return katom_get((void *)&ref) - VH_REFS_CONNECT_DELTA;
+	return katom_get((void*)&ref) - VH_REFS_CONNECT_DELTA;
 }
 #endif
 #ifdef ENABLE_VH_QUEUE
@@ -606,7 +629,20 @@ bool KVirtualHost::setSSLInfo(const KString& certfile, const KString& keyfile, c
 	return true;
 }
 #endif
-bool KVirtualHost::parse_xml(const KXmlAttribute& attr, KVirtualHost* ov) {
+bool KVirtualHost::parse_xml(const khttpd::KXmlNodeBody* body, KVirtualHost* ov) {
+	auto host_xml = kconfig::find_child(body, _KS("host"));
+	for (uint32_t index = 0;; ++index) {
+		auto body = host_xml->get_body(index);
+		if (!body) {
+			break;
+		}
+		auto svh = parse_host(body);
+		if (!svh) {
+			continue;
+		}
+		hosts.push_back(svh);
+	}
+	auto attr = body->attr();
 	envs.clear();
 	parseEnv(attr("envs"));
 	setDocRoot(attr["doc_root"]);
@@ -711,6 +747,8 @@ bool KVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigE
 	case kconfig::EvSubDir | kconfig::EvUpdate:
 	{
 		if (xml->is_tag(_KS("host"))) {
+			return false;
+			/*
 			std::list<KSubVirtualHost*> hosts;
 			defer(for (auto&& host : hosts) {
 				host->release();
@@ -728,6 +766,7 @@ bool KVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigE
 			}
 			conf.gvm->updateVirtualHost(this, hosts);
 			return true;
+			*/
 		}
 		if (xml->is_tag(_KS("bind"))) {
 			std::list<KString> binds;
@@ -755,9 +794,12 @@ bool KVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigE
 	break;
 	case kconfig::EvSubDir | kconfig::EvRemove:
 		if (xml->is_tag(_KS("host"))) {
+			return false;
+			/*
 			std::list<KSubVirtualHost*> hosts;
 			conf.gvm->updateVirtualHost(this, hosts);
 			return true;
+			*/
 		}
 		if (xml->is_tag(_KS("bind"))) {
 			std::list<KString> binds;

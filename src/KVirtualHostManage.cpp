@@ -52,7 +52,7 @@ bool KVirtualHostManage::on_config_event(kconfig::KConfigTree* tree, kconfig::KC
 		if (xml->is_tag(_KS("vh"))) {
 			assert(tree->ls == nullptr);
 			KSafeVirtualHost vh(new KVirtualHost(xml->attributes()["name"]));
-			vh->parse_xml(ev->get_xml()->attributes(), nullptr);
+			vh->parse_xml(ev->get_xml()->get_first(), nullptr);
 			if (tree->bind(vh.get())) {
 				vh->add_ref();
 			}
@@ -76,7 +76,7 @@ bool KVirtualHostManage::on_config_event(kconfig::KConfigTree* tree, kconfig::KC
 		if (xml->is_tag(_KS("vh"))) {
 			KSafeVirtualHost old_vh(static_cast<KVirtualHost*>(tree->unbind()));
 			KSafeVirtualHost new_vh(new KVirtualHost(old_vh->name));
-			new_vh->parse_xml(xml->attributes(), old_vh.get());
+			new_vh->parse_xml(xml->get_first(), old_vh.get());
 			if (tree->bind(new_vh.get())) {
 				new_vh->add_ref();
 			}
@@ -187,20 +187,16 @@ void KVirtualHostManage::getMenuHtml(KWStream& s, KVirtualHost* v, KStringBuf& u
 	} else {
 		s << "[<a href='/vhlist?id=0'>" << klang["all_vh"] << "</a>] ";// [<a href='/vhlist?t=1&id=0'>" << klang["all_tvh"];
 	}
-	s << "[<a href='/vhlist?" << url << "id=1'>" << klang["index"]
-		<< "</a>] ";
-	s << "[<a href='/vhlist?" << url << "id=2'>" << klang["map_extend"]
-		<< "</a>] ";
-	s << "[<a href='/vhlist?" << url << "id=3'>" << klang["error_page"]
-		<< "</a>] ";
-	s << "[<a href='/vhlist?" << url << "id=5'>" << klang["alias"]
-		<< "</a>] ";
-	s << "[<a href='/vhlist?" << url << "id=8'>" << klang["mime_type"]
-		<< "</a>] ";
+	s << "[<a href='/vhlist?" << url << "id=1'>" << klang["index"] << "</a>] ";
+	s << "[<a href='/vhlist?" << url << "id=2'>" << klang["map_extend"] << "</a>] ";
+	s << "[<a href='/vhlist?" << url << "id=3'>" << klang["error_page"] << "</a>] ";
+	s << "[<a href='/vhlist?" << url << "id=5'>" << klang["alias"] << "</a>] ";
+	s << "[<a href='/vhlist?" << url << "id=8'>" << klang["mime_type"] << "</a>] ";
 #ifndef HTTP_PROXY
 	if (v) {
-		s << "[<a href='/vhlist?" << url << "id=6'>" << klang["lang_requestAccess"] << "</a>]";
-		s << "[<a href='/vhlist?" << url << "id=7'>" << klang["lang_responseAccess"] << "</a>]";
+		s << "[<a href='/vhlist?" << url << "id=9'>" << klang["vh_host"] << "</a>] ";
+		s << "[<a href='/vhlist?" << url << "id=6'>" << klang["lang_requestAccess"] << "</a>] ";
+		s << "[<a href='/vhlist?" << url << "id=7'>" << klang["lang_responseAccess"] << "</a>] ";
 	}
 #endif
 	s << "</td><td align=right>";
@@ -247,6 +243,10 @@ void KVirtualHostManage::getHtml(KWStream& s, const KString& name, int id, KUrlV
 			}
 		} else if (id == 8) {
 			vh->getMimeTypeHtml(url.str(), s);
+		} else if (id == 9) {
+			if (v) {
+				v->get_host_html(url.str(), s);
+			}
 		}
 	}
 	s << endTag();
@@ -924,6 +924,15 @@ bool KVirtualHostManage::vh_base_action(KUrlValue& uv, KString& err_msg) {
 			path << "/alias"_CS;
 			auto xml = uv.to_xml(_KS("alias"));
 			result = kconfig::update(path.str().str(), atoi(index.c_str()), xml.get(), kconfig::EvNew);
+		} else if (action == "host_add") {
+			path << "/host"_CS;
+			auto xml = kconfig::new_xml("host"_CS);
+			xml->get_first()->set_text(uv.attribute["host"]);
+			xml->attributes().emplace("dir", uv.attribute["dir"]);
+			result = kconfig::update(path.str().str(), khttpd::last_pos, xml.get(), kconfig::EvNew);
+		} else if (action == "host_del") {
+			path << "/host"_CS;
+			result = kconfig::remove(path.str().str(), uv.attribute.get_int("index"));
 		}
 	}
 	switch (result) {
@@ -1034,6 +1043,7 @@ void KVirtualHostManage::InternalUnBindVirtualHost(KVirtualHost* vh) {
 	}
 #endif
 }
+/*
 void KVirtualHostManage::updateVirtualHost(KVirtualHost* vh, std::list<KSubVirtualHost*>& hosts) {
 	auto vm_locker = locker();
 	InternalUnBindVirtualHost(vh);
@@ -1043,6 +1053,7 @@ void KVirtualHostManage::updateVirtualHost(KVirtualHost* vh, std::list<KSubVirtu
 	}
 	InternalBindVirtualHost(vh);
 }
+*/
 void KVirtualHostManage::updateVirtualHost(KVirtualHost* vh, std::list<KString>& binds) {
 	auto vm_locker = locker();
 	InternalUnBindVirtualHost(vh);

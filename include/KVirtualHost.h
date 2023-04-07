@@ -47,7 +47,7 @@
 #include "KConnectionLimit.h"
 #include "KXmlAttribute.h"
 //由vh的引用，计算连接数的差异
-#define VH_REFS_CONNECT_DELTA 1
+#define VH_REFS_CONNECT_DELTA 2
 /**
 * 虚拟主机类
 */
@@ -65,7 +65,7 @@ public:
 	bool is_global() override {
 		return false;
 	}
-	bool parse_xml(const KXmlAttribute& attr, KVirtualHost* ov);
+	bool parse_xml(const khttpd::KXmlNodeBody* body, KVirtualHost* ov);
 	bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) override;
 	kconfig::KConfigEventFlag config_flag() const override {
 		return kconfig::ev_subdir;
@@ -266,6 +266,7 @@ public:
 		return true;
 	}
 	std::list<KSubVirtualHost*> hosts;
+	void get_host_html(const KString& url, KWStream& s);
 #ifdef ENABLE_VH_RUN_AS
 	//KString add_dir;
 	bool setRunAs(const KString& user, const KString& group);

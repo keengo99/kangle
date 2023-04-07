@@ -106,7 +106,7 @@ void on_fiber_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 		return;
 	}
 	auto attr = ev->get_xml()->attributes();
-	conf.fiber_stack_size = get_size(attr.get_string("stack_size", ""));
+	conf.fiber_stack_size = (int)get_size(attr.get_string("stack_size", ""));
 	if (conf.fiber_stack_size > 0) {
 		conf.fiber_stack_size = kgl_align(conf.fiber_stack_size, 4096);
 	}
