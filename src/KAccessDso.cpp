@@ -37,7 +37,7 @@ static int write_string(void* server_ctx, const char* str, int len, int build_fl
 static const char* get_text(const kgl_config_body*cn)
 {
 	const khttpd::KXmlNodeBody* xml = (const khttpd::KXmlNodeBody*)cn;
-	return xml->get_text();
+	return xml->get_text_cstr();
 }
 static int64_t get_int(const kgl_config_body* cn, const char* name)
 {

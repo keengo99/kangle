@@ -131,7 +131,7 @@ public:
 		is_or = body->attributes["or"] == "1";		
 		nc = body->attributes["nc"] == "1";
 		
-		const char* test = body->get_text("");
+		const char* test = body->get_text_cstr("");
 		if (*test == '!') {
 			revert = true;
 			test++;

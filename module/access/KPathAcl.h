@@ -94,7 +94,7 @@ public:
 		if (attribute["path"].size() > 0) {
 			setPath(attribute["path"].c_str());
 		} else {
-			setPath(xml->get_text());
+			setPath(xml->get_text_cstr());
 		}
 		if (attribute["raw"]=="1") {
 			raw = true;

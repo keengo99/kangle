@@ -202,6 +202,23 @@ KFetchObject* KVirtualHost::findFileExtRedirect(KHttpRequest* rq, KFileName* fil
 	}
 	return conf.gvm->vhs.find_file_redirect(rq, file, file_ext, fileExsit, result);
 }
+#ifdef ENABLE_BASED_PORT_VH
+void KVirtualHost::get_bind_html(const KString& url, KWStream& s) {
+	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>" << klang["bind"] << "</td></tr>";
+	int j = 0;
+	for (auto it = binds.begin(); it != binds.end(); ++it, ++j) {
+		s << "<tr><td>";
+		s << "[<a href=\"javascript:if(confirm('really delete?')){ window.location='/vhbase?action=bind_del&index=" << j;
+		s << "&" << url << "';}\">" << LANG_DELETE << "</a>]</td><td>";
+		s << (*it) << "</td></tr>";
+	}
+	s << "</table>";
+	s << "<form action='/vhbase?action=bind_add&" << url << "' method='post'>";
+	s << klang["bind"] << ":<input name='bind' value='' placeHolder= '*:443s'>";
+	s << "<input type='submit' value='" << LANG_ADD << "'>";
+	s << "</form>";
+}
+#endif
 void KVirtualHost::get_host_html(const KString& url, KWStream& s) {
 	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>host</td><td>dir</td></tr>";
 	int j = 0;
@@ -775,15 +792,17 @@ bool KVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigE
 				if (!body) {
 					break;
 				}
-				auto bind = body->get_text(nullptr);
+				auto bind = body->get_text();
 				if (!bind) {
 					continue;
 				}
-				if (*bind == '@' || *bind == '#' || *bind == '!') {
+				if (bind[0] == '!') {
+					binds.push_back(bind.substr(1));
+				} else if (bind.find(':') != KString::npos) {
 					binds.push_back(bind);
-				} else if (isdigit(*bind)) {
+				} else {
 					KStringBuf s;
-					s << "!*:" << bind;
+					s << "*:" << bind;
 					binds.push_back(s.c_str());
 				}
 			}

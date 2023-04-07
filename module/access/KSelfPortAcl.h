@@ -53,7 +53,7 @@ public:
 		if(attribute["port"].size()>0){
 			port = atoi(attribute["port"].c_str());
 		} else {
-			port = atoi(xml->get_text());
+			port = atoi(xml->get_text_cstr());
 		}
 	}
 private:

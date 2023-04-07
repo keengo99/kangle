@@ -195,12 +195,12 @@ void KVirtualHostManage::getMenuHtml(KWStream& s, KVirtualHost* v, KStringBuf& u
 #ifndef HTTP_PROXY
 	if (v) {
 		s << "[<a href='/vhlist?" << url << "id=9'>" << klang["vh_host"] << "</a>] ";
+		s << "[<a href='/vhlist?" << url << "id=10'>" << klang["bind"] << "</a>] ";
 		s << "[<a href='/vhlist?" << url << "id=6'>" << klang["lang_requestAccess"] << "</a>] ";
 		s << "[<a href='/vhlist?" << url << "id=7'>" << klang["lang_responseAccess"] << "</a>] ";
 	}
 #endif
 	s << "</td><td align=right>";
-	//s << "[<a href=\"javascript:if(confirm('really reload')){ window.location='/reload_vh';}\">" << klang["reload_vh"] << "</a>]";
 	s << "</td></tr></table>";
 	s << "<hr>";
 }
@@ -221,32 +221,50 @@ void KVirtualHostManage::getHtml(KWStream& s, const KString& name, int id, KUrlV
 		getAllVhHtml(s);
 	} else {
 		auto locker = vh->get_locker();
-		if (id == 0) {
+		switch (id) {
+		case 0:
 			getVhDetail(s, v.get(), true);
-		} else if (id == 1) {
+			break;
+		case 1:
 			vh->getIndexHtml(url.str(), s);
-		} else if (id == 2) {
+			break;
+		case 2:
 			vh->getRedirectHtml(url.str(), s);
-		} else if (id == 3) {
+			break;
+		case 3:
 			vh->getErrorPageHtml(url.str(), s);
-		} else if (id == 4) {
+			break;
+		case 4:
 			getVhDetail(s, v.get(), false);
-		} else if (id == 5) {
+			break;
+		case 5:
 			vh->getAliasHtml(url.str(), s);
-		} else if (id == 6) {
+			break;
+		case 6:
 			if (v && v->access[0]) {
 				s << v->access[0]->htmlAccess(name.c_str());
 			}
-		} else if (id == 7) {
+			break;
+		case 7:
 			if (v && v->access[1]) {
 				s << v->access[1]->htmlAccess(name.c_str());
 			}
-		} else if (id == 8) {
+			break;
+		case 8:
 			vh->getMimeTypeHtml(url.str(), s);
-		} else if (id == 9) {
+			break;
+		case 9:
 			if (v) {
 				v->get_host_html(url.str(), s);
 			}
+			break;
+		case 10:
+			if (v) {
+				v->get_bind_html(url.str(), s);
+			}
+			break;
+		default:
+			break;
 		}
 	}
 	s << endTag();
@@ -933,6 +951,14 @@ bool KVirtualHostManage::vh_base_action(KUrlValue& uv, KString& err_msg) {
 		} else if (action == "host_del") {
 			path << "/host"_CS;
 			result = kconfig::remove(path.str().str(), uv.attribute.get_int("index"));
+		} else if (action == "bind_add"_CS) {
+			path << "/bind"_CS;
+			auto xml = kconfig::new_xml("bind"_CS);
+			xml->get_first()->set_text(uv.attribute["bind"]);
+			result = kconfig::update(path.str().str(), khttpd::last_pos, xml.get(), kconfig::EvNew);
+		} else if (action == "bind_del"_CS) {
+			path << "/bind"_CS;
+			result = kconfig::remove(path.str().str(), uv.attribute.get_int("index"));
 		}
 	}
 	switch (result) {
@@ -1037,9 +1063,7 @@ void KVirtualHostManage::InternalUnBindVirtualHost(KVirtualHost* vh) {
 	}
 #ifdef ENABLE_BASED_PORT_VH
 	for (auto&& bind : vh->binds) {
-		if (bind[0] == '!') {
-			dlisten.RemoveDynamic(bind.c_str() + 1, vh);
-		}
+		dlisten.RemoveDynamic(bind.c_str(), vh);
 	}
 #endif
 }
@@ -1083,9 +1107,7 @@ void KVirtualHostManage::InternalBindVirtualHost(KVirtualHost* vh) {
 	}
 #ifdef ENABLE_BASED_PORT_VH
 	for (auto&& bind : vh->binds) {
-		if (bind[0] == '!') {
-			dlisten.AddDynamic(bind.c_str() + 1, vh);
-		}
+		dlisten.AddDynamic(bind.c_str(), vh);
 	}
 #endif
 }

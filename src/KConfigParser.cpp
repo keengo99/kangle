@@ -268,11 +268,11 @@ void on_main_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	case kconfig::EvNew:
 	case kconfig::EvUpdate:
 		if (xml->is_tag(_KS("lang"))) {
-			SAFE_STRCPY(conf.lang, xml->get_text());
+			SAFE_STRCPY(conf.lang, xml->get_text_cstr());
 			return;
 		}
 		if (xml->is_tag(_KS("keep_alive_count"))) {
-			conf.keep_alive_count = atoi(xml->get_text());
+			conf.keep_alive_count = atoi(xml->get_text_cstr());
 			return;
 		}
 		if (xml->is_tag(_KS("timeout"))) {
@@ -282,47 +282,47 @@ void on_main_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 				conf.set_time_out(atoi((*it).second.c_str()));
 				conf.set_connect_time_out(atoi(xml->attributes()["connect"].c_str()));
 			} else {
-				conf.set_time_out(atoi(xml->get_text()));
+				conf.set_time_out(atoi(xml->get_text_cstr()));
 			}
 			selector_manager_set_timeout(conf.connect_time_out, conf.time_out);
 			http_config.time_out = conf.time_out;
 			return;
 		}
 		if (xml->is_tag(_KS("connect_timeout"))) {
-			conf.set_connect_time_out(atoi(xml->get_text()));
+			conf.set_connect_time_out(atoi(xml->get_text_cstr()));
 			return;
 		}
 		if (xml->is_tag(_KS("auth_delay"))) {
-			conf.auth_delay = atoi(xml->get_text());
+			conf.auth_delay = atoi(xml->get_text_cstr());
 			return;
 		}
 		if (xml->is_tag(_KS("access_log"))) {
-			SAFE_STRCPY(conf.access_log, xml->get_text());
+			SAFE_STRCPY(conf.access_log, xml->get_text_cstr());
 			return;
 		}
 		if (xml->is_tag(_KS("access_log_handle"))) {
-			SAFE_STRCPY(conf.logHandle, xml->get_text());
+			SAFE_STRCPY(conf.logHandle, xml->get_text_cstr());
 			return;
 		}
 		if (xml->is_tag(_KS("log_handle_concurrent"))) {
-			conf.maxLogHandle = atoi(xml->get_text());
+			conf.maxLogHandle = atoi(xml->get_text_cstr());
 			return;
 		}
 		if (xml->is_tag(_KS("log_event_id"))) {
-			conf.log_event_id = atoi(xml->get_text());
+			conf.log_event_id = atoi(xml->get_text_cstr());
 			return;
 		}
 		if (xml->is_tag(_KS("server_software"))) {
-			SAFE_STRCPY(conf.server_software, xml->get_text());
+			SAFE_STRCPY(conf.server_software, xml->get_text_cstr());
 			parse_server_software();
 			return;
 		}
 		if (xml->is_tag(_KS("cookie_stick_name"))) {
-			SAFE_STRCPY(conf.cookie_stick_name, xml->get_text());
+			SAFE_STRCPY(conf.cookie_stick_name, xml->get_text_cstr());
 			return;
 		}
 		if (xml->is_tag(_KS("hostname"))) {
-			SAFE_STRCPY(conf.hostname, xml->get_text());
+			SAFE_STRCPY(conf.hostname, xml->get_text_cstr());
 			return;
 		}
 		if (xml->is_tag(_KS("cdnbest"))) {
@@ -331,11 +331,11 @@ void on_main_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 			return;
 		}
 		if (xml->is_tag(_KS("http2https_code"))) {
-			conf.http2https_code = atoi(xml->get_text());
+			conf.http2https_code = atoi(xml->get_text_cstr());
 			return;
 		}
 		if (xml->is_tag(_KS("max_connect_info"))) {
-			conf.max_connect_info = atoi(xml->get_text());
+			conf.max_connect_info = atoi(xml->get_text_cstr());
 			return;
 		}
 #ifdef KSOCKET_UNIX	
@@ -345,43 +345,43 @@ void on_main_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 		}
 #endif
 		if (xml->is_tag(_KS("path_info"))) {
-			conf.path_info = (atoi(xml->get_text()) == 1 || strcmp(xml->get_text(), "on") == 0);
+			conf.path_info = (atoi(xml->get_text_cstr()) == 1 || strcmp(xml->get_text_cstr(), "on") == 0);
 			return;
 		}
 		if (xml->is_tag(_KS("min_free_thread"))) {
-			conf.min_free_thread = atoi(xml->get_text());
+			conf.min_free_thread = atoi(xml->get_text_cstr());
 			return;
 		}
 #ifdef ENABLE_ADPP
 		if (xml->is_tag(_KS("process_cpu_usage"))) {
-			conf.process_cpu_usage = atoi(xml->get_text());
+			conf.process_cpu_usage = atoi(xml->get_text_cstr());
 			return;
 		}
 #endif
 #ifdef ENABLE_TF_EXCHANGE
 		if (xml->is_tag(_KS("max_post_size"))) {
-			conf.max_post_size = get_size(xml->get_text());
+			conf.max_post_size = get_size(xml->get_text_cstr());
 			return;
 		}
 #endif
 #ifdef ENABLE_VH_FLOW
 		if (xml->is_tag(_KS("flush_flow_time"))) {
-			conf.flush_flow_time = atoi(xml->get_text());
+			conf.flush_flow_time = atoi(xml->get_text_cstr());
 			return;
 		}
 #endif
 		if (xml->is_tag(_KS("upstream_sign"))) {
-			SAFE_STRCPY(conf.upstream_sign, xml->get_text());
+			SAFE_STRCPY(conf.upstream_sign, xml->get_text_cstr());
 			conf.upstream_sign_len = (int)strlen(conf.upstream_sign);
 			return;
 		}
 		if (xml->is_tag(_KS("read_hup"))) {
-			conf.read_hup = (atoi(xml->get_text()) == 1);
+			conf.read_hup = (atoi(xml->get_text_cstr()) == 1);
 			return;
 		}
 #ifdef ENABLE_LOG_DRILL
 		if (xml->is_tag(_KS("log_drill"))) {
-			conf.log_drill = atoi(xml->get_text());
+			conf.log_drill = atoi(xml->get_text_cstr());
 			if (conf.log_drill > 65536) {
 				conf.log_drill = 65536;
 			}

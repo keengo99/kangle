@@ -1247,7 +1247,7 @@ namespace kconfig {
 			ctx.ev_count++;
 			if (ev->type != EvRemove) {
 				assert(strcmp(xml->key.tag->data, "int") == 0);
-				ctx.int_value = atoi(xml->get_text());
+				ctx.int_value = atoi(xml->get_text_cstr());
 				ctx.attr_value = atoi(xml->attributes()["v"].c_str());
 			}
 			return true;

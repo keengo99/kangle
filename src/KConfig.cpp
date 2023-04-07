@@ -275,7 +275,7 @@ static bool on_begin_parse(kconfig::KConfigFile* file, khttpd::KXmlNode* node) {
 #ifdef MALLOCDEBUG
 			auto malloc_debug = kconfig::find_child(node->get_first(), _KS("mallocdebug"));
 			if (malloc_debug) {
-				conf.mallocdebug = atoi(malloc_debug->get_text()) == 1;
+				conf.mallocdebug = atoi(malloc_debug->get_text_cstr()) == 1;
 			}
 			if (conf.mallocdebug) {
 				start_hook_alloc();
@@ -283,7 +283,7 @@ static bool on_begin_parse(kconfig::KConfigFile* file, khttpd::KXmlNode* node) {
 #endif
 			auto worker_thread = kconfig::find_child(node->get_first(), _KS("worker_thread"));
 			if (worker_thread) {
-				conf.select_count = atoi(worker_thread->get_text());
+				conf.select_count = atoi(worker_thread->get_text_cstr());
 			}
 			int select_count = conf.select_count;
 			if (select_count <= 0) {

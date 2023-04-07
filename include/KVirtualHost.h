@@ -258,6 +258,7 @@ public:
 
 #ifdef ENABLE_BASED_PORT_VH
 	std::list<KString> binds;
+	void get_bind_html(const KString& url, KWStream& s);
 #endif
 	bool empty() {
 		if (!hosts.empty()) {
@@ -356,7 +357,7 @@ private:
 	KSubVirtualHost* parse_host(const khttpd::KXmlNodeBody* body) {
 		KSubVirtualHost* svh = new KSubVirtualHost(this);
 		svh->setDocRoot(this->doc_root.c_str(), body->attributes("dir", nullptr));
-		svh->setHost(body->get_text(""));
+		svh->setHost(body->get_text_cstr(""));
 		return svh;
 	}
 public:
