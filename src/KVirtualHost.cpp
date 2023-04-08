@@ -647,18 +647,7 @@ bool KVirtualHost::setSSLInfo(const KString& certfile, const KString& keyfile, c
 }
 #endif
 bool KVirtualHost::parse_xml(const khttpd::KXmlNodeBody* body, KVirtualHost* ov) {
-	auto host_xml = kconfig::find_child(body, _KS("host"));
-	for (uint32_t index = 0;; ++index) {
-		auto body = host_xml->get_body(index);
-		if (!body) {
-			break;
-		}
-		auto svh = parse_host(body);
-		if (!svh) {
-			continue;
-		}
-		hosts.push_back(svh);
-	}
+
 	auto attr = body->attr();
 	envs.clear();
 	parseEnv(attr("envs"));
@@ -727,6 +716,19 @@ bool KVirtualHost::parse_xml(const khttpd::KXmlNodeBody* body, KVirtualHost* ov)
 	if (ov != nullptr) {
 		auto locker = ov->get_locker();
 		ov->copy_to(this);
+	}
+	//parse host
+	auto host_xml = kconfig::find_child(body, _KS("host"));
+	for (uint32_t index = 0;; ++index) {
+		auto body = host_xml->get_body(index);
+		if (!body) {
+			break;
+		}
+		auto svh = parse_host(body);
+		if (!svh) {
+			continue;
+		}
+		hosts.push_back(svh);
 	}
 	return true;
 }

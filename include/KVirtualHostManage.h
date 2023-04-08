@@ -72,7 +72,6 @@ public:
 #endif
 	KBaseVirtualHost vhs;
 public:
-	friend class KHttpServerParser;
 	friend class KHttpManage;
 	friend class KDynamicListen;
 	static KDynamicListen* get_listen() {
