@@ -340,7 +340,7 @@ void on_main_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 		}
 #ifdef KSOCKET_UNIX	
 		if (xml->is_tag(_KS("unix_socket"))) {
-			conf.unix_socket = (atoi(xml->get_text()) == 1 || strcmp(xml->get_text(), "on") == 0);
+			conf.unix_socket = (atoi(xml->get_text_cstr()) == 1 || strcmp(xml->get_text_cstr(), "on") == 0);
 			return;
 		}
 #endif
