@@ -23,6 +23,7 @@ func HandleWebsocket(res http.ResponseWriter, req *http.Request) {
 	if req.FormValue("port") == "9900" {
 		//检查via,确保经过了http2代理过来的。
 		via := req.Header.Get("Via")
+		//fmt.Printf("via=[%v]\n", via)
 		vias := strings.Split(via, ", ")
 		common.AssertSame(len(vias), 2)
 		item := strings.Split(vias[1], " ")

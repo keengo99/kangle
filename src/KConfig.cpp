@@ -222,12 +222,11 @@ void upgrade_vh_map(khttpd::KXmlNode* node) {
 		khttpd::KXmlNodeBody* new_node_body;
 		auto file_ext = body->attributes.remove("file_ext");
 		if (file_ext) {
-			new_node_body = kconfig::new_child(node_body, _KS("map_file"));
-			body->attributes.emplace("ext", file_ext);
+			new_node_body = kconfig::new_child(node_body, _KS("map_file"), file_ext.c_str(), file_ext.size());
 		} else {
 			new_node_body = kconfig::new_child(node_body, _KS("map_path"));
 		}
-		new_node_body->attributes.swap(body->attributes);
+		new_node_body->attributes.merge(body->attributes);
 		new_node_body->childs.swap(body->childs);
 	}
 	map_node->release();
