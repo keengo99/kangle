@@ -473,7 +473,7 @@ bool KHttpManage::config() {
 			s << "selected";
 		}
 		s << " >" << LANG_OFF << "</option></select><br>";
-		s << "" << LANG_TOTAL_MEM_CACHE << ":<input type=text name=mem_cache size=8 value='" << get_size(conf.mem_cache) << "'><br>";
+		s << "" << LANG_TOTAL_MEM_CACHE << ":<input type=text name=memory size=8 value='" << get_size(conf.mem_cache) << "'><br>";
 #ifdef ENABLE_DISK_CACHE
 		s << LANG_TOTAL_DISK_CACHE << ":<input type=text name=disk size=8 value='" << get_size(conf.disk_cache) << (conf.disk_cache_is_radio ? "%" : "") << "'><br>";
 		s << klang["disk_cache_dir"] << ":<input type=text name=disk_dir value='" << conf.disk_cache_dir2 << "'>[<a href='/format_disk_cache_dir.km'>" << klang["format_disk_cache"] << "</a>]<br>";

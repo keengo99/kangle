@@ -166,7 +166,7 @@ void on_cache_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	conf.mem_cache = get_size(xml->get_first()->attributes.get_string("memory", "1G"));
 	conf.refresh_time = xml->get_first()->attributes.get_int("refresh_time", 30);
 #ifdef ENABLE_DISK_CACHE
-	conf.max_bigobj_size = get_size(xml->get_first()->attributes("memory", "1G"));
+	conf.max_bigobj_size = get_size(xml->get_first()->attributes("max_bigobj_size", "1G"));
 	conf.disk_cache = get_radio_size(xml->get_first()->attributes("disk", "0"), conf.disk_cache_is_radio);
 	SAFE_STRCPY(conf.disk_cache_dir2, xml->get_first()->attributes("disk_dir", ""));
 	if (!kconfig::is_first()) {
