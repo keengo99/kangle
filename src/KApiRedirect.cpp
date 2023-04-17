@@ -185,7 +185,7 @@ bool KApiRedirect::load(const KString &file)
 }
 #endif
 bool KApiRedirect::parse_config(const khttpd::KXmlNode* node) {
-	auto attr = node->attributes();
+	auto& attr = node->attributes();
 	auto type = attr("type",nullptr);
 	if (type!=nullptr) {
 		this->type = KApiRedirect::getTypeValue(type);

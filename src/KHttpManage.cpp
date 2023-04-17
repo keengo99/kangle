@@ -444,7 +444,6 @@ bool KHttpManage::config() {
 		s << "[<a href='/newlistenform'>" << klang["new_listen"] << "</a>]<br>";
 		s << klang["connect_time_out"] << ":<input name='connect_time_out' size=5 value='" << conf.connect_time_out << "'><br>";
 		s << LANG_TIME_OUT << ":<input name='time_out' size=5 value='" << conf.time_out << "'><br>";
-		s << klang["keep_alive_count"] << ":<input name='keep_alive_count' size=6 value='" << conf.keep_alive_count << "'>" << "<br>";
 		s << klang["worker_thread"] << ":<select name='worker_thread'>";
 		for (int i = 0; i < 10; i++) {
 			int count = (1 << i) / 2;
@@ -494,13 +493,13 @@ bool KHttpManage::config() {
 
 	} else if (item == 2) {
 		s << klang["access_log"] << "<input type=text name='access_log' value=\"" << conf.access_log << "\"></br>\n";
-		s << LANG_LOG_ROTATE_TIME << "<input type=text name=log_rotate_time value=\"" << conf.log_rotate << "\"></br>\n";
-		s << klang["log_rotate_size"] << ":<input type=text name=log_rotate_size size=6 value=\"" << get_size(conf.log_rotate_size) << "\"></br>\n";
+		s << LANG_LOG_ROTATE_TIME << "<input type=text name=rotate_time value=\"" << conf.log_rotate << "\"></br>\n";
+		s << klang["log_rotate_size"] << ":<input type=text name=rotate_size size=6 value=\"" << get_size(conf.log_rotate_size) << "\"></br>\n";
 		s << klang["error_rotate_size"] << ":<input type=text name='error_rotate_size' size=6 value=\"" << get_size(conf.error_rotate_size) << "\"></br>\n";
-		s << klang["log_level"] << "<input type=text name=log_level value='" << conf.log_level << "'></br>\n";
+		s << klang["log_level"] << "<input type=text name=level value='" << conf.log_level << "'></br>\n";
 		s << klang["logs_day"] << "<input type=text name='logs_day' value='" << conf.logs_day << "'></br>\n";
 		s << klang["logs_size"] << "<input type=text name='logs_size' value='" << get_size(conf.logs_size) << "'></br>\n";
-		s << "log_radio:<input type=text name='log_radio' value='" << conf.log_radio << "'></br>\n";
+		s << "log_radio:<input type=text name='radio' value='" << conf.log_radio << "'></br>\n";
 		s << "<input type=checkbox name='log_handle' value='1' ";
 		if (conf.log_handle) {
 			s << "checked";
@@ -511,56 +510,24 @@ bool KHttpManage::config() {
 	} else if (item == 3) {
 		s << klang["max_connection"] << ": <input type=text size=5 name=max value=" << conf.max << "><br>";
 
-		s << LANG_TOTAL_THREAD_EACH_IP << ":<input type=text size=3 title='";
-#if 0
-		ipLock.Lock();
-		KPerIpConnect* per_ip = conf.per_ip_head;
-		while (per_ip) {
-			char ips2[MAXIPLEN];
-			ksocket_ipaddr_ip(&per_ip->src.addr, ips2, sizeof(ips2));
-			s << ips2;
-			if (per_ip->src.mask_num > 0) {
-				s << "/" << (int)per_ip->src.mask_num;
-			}
-			s << "\t\t";
-			if (per_ip->deny) {
-				s << "deny";
-			} else {
-				s << per_ip->max;
-			}
-			s << "\n";
-			per_ip = per_ip->next;
-		}
-		ipLock.Unlock();
-#endif
-		s << "' name=max_per_ip value=" << conf.max_per_ip << "><br>";
-		//{{ent
+		s << LANG_TOTAL_THREAD_EACH_IP << ":<input type=text size=3 name=max_per_ip value=" << conf.max_per_ip << "><br>";
+		s << klang["keep_alive_count"] << ":<input name='max_keep_alive' size=6 value='" << conf.keep_alive_count << "'>" << "<br>";
 #ifdef ENABLE_BLACK_LIST
 		s << "<input type=checkbox name=per_ip_deny value=1 ";
 		if (conf.per_ip_deny) {
 			s << "checked";
 		}
 		s << ">per_ip_deny<br>";
-#endif//}}
+#endif
 		s << klang["min_free_thread"] << ":<input type=text size=3 name=min_free_thread value='" << conf.min_free_thread << "'><br>";
 
-#ifdef ENABLE_FATBOY
-		s << klang["bl_time"] << ":<input name='bl_time' size='6' value='" << conf.bl_time << "'><br>";
-		s << klang["wl_time"] << ":<input name='wl_time' size='6' value='" << conf.wl_time << "'><br>";
-#endif
 #ifdef ENABLE_ADPP
 		s << klang["process_cpu_usage"]
 			<< ":<input type=text size=3 name='process_cpu_usage' value="
 			<< conf.process_cpu_usage << "><br>";
 #endif
 
-#ifndef _WIN32
-		//		s << klang["lang_stack_size"]
-		//				<< ":<input type=text name='stack_size' value="
-		//				<< conf.stack_size << "><br>";
-#endif
-		s << klang["io_worker"] << ":<input type=text size=4 name='worker_io' value='" << conf.worker_io << "'><br>";
-		s << "max_io:<input type=text size=4 name='max_io' value='" << conf.max_io << "'><br>";
+
 		s << klang["dns_worker"] << ":<input type=text size=4 name='worker_dns' value='" << conf.worker_dns << "'><br>";
 		s << "fiber stack size:<input type=text name='fiber_stack_size' size=4 value='" << get_size(conf.fiber_stack_size) << "'><br>";
 	} else if (item == 4) {
@@ -568,9 +535,9 @@ bool KHttpManage::config() {
 #ifdef ENABLE_TF_EXCHANGE	
 		s << klang["max_post_size"] << ":<input name='max_post_size' size='4' value='" << get_size(conf.max_post_size) << "'><br>\n";
 #endif
+		s << klang["io_worker"] << ":<input type=text size=4 name='worker_io' value='" << conf.worker_io << "'><br>";
+		s << "max_io:<input type=text size=4 name='max_io' value='" << conf.max_io << "'><br>";
 		s << "io_buffer:" << get_size(conf.io_buffer) << "<br>";
-		//async io
-		//s << "<input type=checkbox name='async_io' value='1' " << (conf.async_io ?"checked":"") << ">" << klang["async_io"] << "<br>\n";
 		s << "upstream sign : <code title='len=" << conf.upstream_sign_len << "'>" << conf.upstream_sign << "</code><br>\n";
 		s << "<!-- read_hup=" << conf.read_hup << " -->\n";
 	} else if (item == 5) {
@@ -623,7 +590,10 @@ bool KHttpManage::config() {
 		s << ">mallocdebug";
 		s << "<br>";
 #endif
-		//{{ent
+#ifdef ENABLE_FATBOY
+		s << klang["bl_time"] << ":<input name='bl_time' size='6' value='" << conf.bl_time << "'><br>";
+		s << klang["wl_time"] << ":<input name='wl_time' size='6' value='" << conf.wl_time << "'><br>";
+#endif
 #ifdef ENABLE_BLACK_LIST
 		s << "<pre>";
 		if (*conf.block_ip_cmd) {
@@ -674,7 +644,7 @@ bool KHttpManage::configsubmit() {
 		attr.emplace("rw", getUrlValue("time_out"));
 		attr.emplace("connect", getUrlValue("connect_time_out"));
 		kconfig::update("timeout"_CS, 0, nullptr, &attr, kconfig::EvUpdate | kconfig::FlagCreate);
-		kconfig::update("keep_alive_count"_CS, 0, &getUrlValue("keep_alive_count"), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		//kconfig::update("keep_alive_count"_CS, 0, &getUrlValue("keep_alive_count"), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 		kconfig::update("worker_thread"_CS, 0, &getUrlValue("worker_thread"), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 		int worker_thread = atoi(getUrlValue("worker_thread").c_str());
 		if (worker_thread != conf.select_count) {
@@ -686,66 +656,36 @@ bool KHttpManage::configsubmit() {
 		kconfig::update("cache"_CS, 0, nullptr, &urlValue.attribute, kconfig::EvUpdate | kconfig::FlagCreate);
 		goto skip_save;
 	} else if (item == 2) {
-		auto access_log = getUrlValue("access_log");
-		SAFE_STRCPY(conf.log_rotate, getUrlValue("log_rotate_time").c_str());
-		conf.log_rotate_size = get_size(getUrlValue("log_rotate_size").c_str());
-		conf.error_rotate_size = get_size(getUrlValue("error_rotate_size").c_str());
-		conf.log_radio = atoi(getUrlValue("log_radio").c_str());
-		conf.log_level = atoi(getUrlValue("log_level").c_str());
-		conf.logs_day = atoi(getUrlValue("logs_day").c_str());
-		conf.logs_size = get_size(getUrlValue("logs_size").c_str());
-		conf.maxLogHandle = atoi(getUrlValue("log_handle_concurrent").c_str());
-		SAFE_STRCPY(conf.logHandle, getUrlValue("access_log_handle").c_str());
-		::logHandle.setLogHandle(conf.logHandle);
-		conf.log_handle = getUrlValue("log_handle") == "1";
-		set_logger();
-		if (access_log != conf.access_log) {
-			SAFE_STRCPY(conf.access_log, access_log.c_str());
-			accessLogger.place = LOG_FILE;
-			KString logpath;
-			if (!isAbsolutePath(conf.access_log)) {
-				logpath = conf.path;
-			}
-			logpath += conf.access_log;
-			accessLogger.setPath(logpath);
-		}
+		kconfig::update("access_log"_CS, 0, &removeUrlValue("access_log"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("access_log_handle"_CS, 0, &removeUrlValue("access_log_handle"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("log_handle_concurrent"_CS, 0, &removeUrlValue("log_handle_concurrent"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("log"_CS, 0, nullptr, &urlValue.attribute, kconfig::EvUpdate | kconfig::FlagCreate);
 	} else if (item == 3) {
-		size_t max_per_ip = atoi(getUrlValue("max_per_ip").c_str());
-		conf.per_ip_deny = atoi(getUrlValue("per_ip_deny").c_str());
-#ifdef ENABLE_FATBOY
-		conf.bl_time = atoi(getUrlValue("bl_time").c_str());
-		conf.wl_time = atoi(getUrlValue("wl_time").c_str());
-#endif
-		conf.max = atoi(getUrlValue("max").c_str());
-		conf.min_free_thread = atoi(getUrlValue("min_free_thread").c_str());
-		if (conf.max_per_ip != max_per_ip) {
-			conf.max_per_ip = (unsigned)max_per_ip;
-		}
-
+		KXmlAttribute connect_attr;
+		connect_attr.emplace("max"_CS, getUrlValue("max"));
+		connect_attr.emplace("max_per_ip"_CS, getUrlValue("max_per_ip"));
+		connect_attr.emplace("per_ip_deny"_CS, getUrlValue("per_ip_deny"));
+		connect_attr.emplace("max_keep_alive"_CS, getUrlValue("max_keep_alive"));
+		kconfig::update("connect"_CS, 0, nullptr, &connect_attr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("min_free_thread"_CS, 0, &getUrlValue("min_free_thread"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 #ifdef ENABLE_ADPP
-		conf.process_cpu_usage = atoi(getUrlValue("process_cpu_usage").c_str());
+		kconfig::update("process_cpu_usage"_CS, 0, &getUrlValue("process_cpu_usage"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 #endif
-		conf.worker_io = atoi(getUrlValue("worker_io").c_str());
-		conf.worker_dns = atoi(getUrlValue("worker_dns").c_str());
-		conf.max_io = atoi(getUrlValue("max_io").c_str());
-		kasync_worker_set(conf.ioWorker, conf.worker_io, conf.max_io);
-		kasync_worker_set(conf.dnsWorker, conf.worker_dns, 512);
-		int fiber_stack_size = (int)get_size(getUrlValue("fiber_stack_size").c_str());
-		fiber_stack_size = kgl_align(fiber_stack_size, 4096);
-		conf.fiber_stack_size = fiber_stack_size;
-		http_config.fiber_stack_size = fiber_stack_size;
+		KXmlAttribute dns_attr;
+		dns_attr.emplace("worker"_CS, getUrlValue("worker_dns"));
+		kconfig::update("dns"_CS, 0, nullptr, &dns_attr, kconfig::EvUpdate | kconfig::FlagCreate);
+
+		KXmlAttribute fiber_attr;
+		fiber_attr.emplace("stack_size"_CS, getUrlValue("fiber_stack_size"));
+		kconfig::update("fiber"_CS, 0, nullptr, &fiber_attr, kconfig::EvUpdate | kconfig::FlagCreate);
+
 	} else if (item == 4) {
 		//data exchange
-#ifdef ENABLE_TF_EXCHANGE
-#if 0
-		conf.tmpfile = atoi(getUrlValue("tmpfile").c_str());
-		if (conf.tmpfile < 0 || conf.tmpfile>2) {
-			conf.tmpfile = 1;
-		}
-#endif
-		conf.max_post_size = get_size(getUrlValue("max_post_size").c_str());
-#endif
-		//conf.async_io = (getUrlValue("async_io")=="1");
+		KXmlAttribute io_attr;
+		io_attr.emplace("worker"_CS, getUrlValue("worker_io"));
+		io_attr.emplace("max"_CS, getUrlValue("max_io"));
+		kconfig::update("io"_CS, 0, nullptr, &io_attr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("max_post_size"_CS, 0, &getUrlValue("max_post_size"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 	} else if (item == 5) {
 #ifdef MALLOCDEBUG
 		if (getUrlValue("mallocdebug") == "1") {
@@ -775,8 +715,6 @@ bool KHttpManage::configsubmit() {
 			conf.gzip_level = -1;
 		}
 		conf.min_compress_length = atoi(getUrlValue("min_compress_length").c_str());
-		//conf.setHostname(getUrlValue("hostname").c_str());
-		//{{ent
 #ifdef KANGLE_ENT
 		auto server_software = getUrlValue("server_software");
 		if (server_software != conf.server_software) {
@@ -785,7 +723,10 @@ bool KHttpManage::configsubmit() {
 
 		}
 #endif
-		//}}
+#ifdef ENABLE_FATBOY
+		conf.bl_time = atoi(getUrlValue("bl_time").c_str());
+		conf.wl_time = atoi(getUrlValue("wl_time").c_str());
+#endif
 	} else if (item == 6) {
 		KString errMsg;
 		if (!changeAdminPassword(&urlValue, errMsg)) {

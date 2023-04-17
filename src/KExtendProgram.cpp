@@ -397,7 +397,7 @@ bool KExtendProgram::postLoad(KExtendProgramString* ds) {
 	return true;
 }
 bool KExtendProgram::parse_config(const khttpd::KXmlNode* xml) {
-	auto attr = xml->attributes();
+	auto& attr = xml->attributes();
 	life_time = attr.get_int("life_time");
 	idleTime = attr.get_int("idle_time");
 	maxRequest = attr.get_int("max_request");

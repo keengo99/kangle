@@ -30,7 +30,7 @@ KUpstream* KCmdPoolableRedirect::GetUpstream(KHttpRequest* rq)
 	return pm.GetUpstream(rq, this);
 }
 bool KCmdPoolableRedirect::parse_config(const khttpd::KXmlNode* node) {
-	auto attr = node->attributes();
+	auto& attr = node->attributes();
 	auto proto = KPoolableRedirect::parseProto(attr("proto"));
 	if (this->proto != proto) {
 		this->proto = proto;

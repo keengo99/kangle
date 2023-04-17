@@ -64,7 +64,7 @@ bool KVirtualHostManage::on_config_event(kconfig::KConfigTree* tree, kconfig::KC
 		}
 #ifdef ENABLE_SVH_SSL
 		if (xml->is_tag(_KS("ssl"))) {
-			auto attr = xml->attributes();
+			auto& attr = xml->attributes();
 			add_ssl(attr("domain"), attr("certificate"), attr("certificate_key"));
 			return true;
 		}
@@ -85,7 +85,7 @@ bool KVirtualHostManage::on_config_event(kconfig::KConfigTree* tree, kconfig::KC
 		}
 #ifdef ENABLE_SVH_SSL
 		if (xml->is_tag(_KS("ssl"))) {
-			auto attr = xml->attributes();
+			auto& attr = xml->attributes();
 			update_ssl(attr("domain"), attr("certificate"), attr("certificate_key"));
 			return true;
 		}

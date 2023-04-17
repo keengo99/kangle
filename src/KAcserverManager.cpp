@@ -52,7 +52,7 @@ void on_server_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEve
 }
 #ifdef ENABLE_VH_RUN_AS
 void KAcserverManager::on_cmd_event(kconfig::KConfigTree* tree, const khttpd::KXmlNode* xml, kconfig::KConfigEventType ev) {
-	auto attr = xml->attributes();
+	auto &attr = xml->attributes();
 	auto name = attr["name"];
 	switch (ev) {
 	case kconfig::EvNew | kconfig::EvSubDir: {
@@ -102,7 +102,7 @@ void KAcserverManager::on_cmd_event(kconfig::KConfigTree* tree, const khttpd::KX
 }
 #endif
 void KAcserverManager::on_api_event(kconfig::KConfigTree* tree, const khttpd::KXmlNode* xml, kconfig::KConfigEventType ev) {
-	auto attr = xml->attributes();
+	auto& attr = xml->attributes();
 	auto name = attr["name"];
 	switch (ev) {
 	case kconfig::EvNew | kconfig::EvSubDir:

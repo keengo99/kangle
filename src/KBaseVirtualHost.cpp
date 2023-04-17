@@ -640,7 +640,7 @@ bool KBaseVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KCon
 	case kconfig::EvSubDir | kconfig::EvUpdate:
 	{
 		auto xml = ev->get_xml();
-		auto attr = xml->attributes();
+		auto& attr = xml->attributes();
 		if (xml->is_tag(_KS("error"))) {
 			this->addErrorPage(attr.get_int("code"), attr("file"));
 			return true;
@@ -661,7 +661,7 @@ bool KBaseVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KCon
 		}
 		if (xml->is_tag(_KS("map_file"))) {
 			auto locker = get_locker();
-			auto attr2 = xml->attributes();
+			auto& attr2 = xml->attributes();
 			auto file_ext = attr2("ext", nullptr);
 			if (file_ext != nullptr) {
 				auto it = redirects.find((char*)file_ext);
@@ -716,7 +716,7 @@ bool KBaseVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KCon
 	case kconfig::EvSubDir | kconfig::EvRemove:
 	{
 		auto xml = ev->get_xml();
-		auto attr = xml->attributes();
+		auto& attr = xml->attributes();
 		if (xml->is_tag(_KS("error"))) {
 			this->delErrorPage(attr.get_int("code"));
 			return true;

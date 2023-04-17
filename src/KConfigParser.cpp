@@ -46,7 +46,7 @@ void on_firewall_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 		*conf.unblock_ip_cmd = '\0';
 		*conf.flush_ip_cmd = '\0';
 	} else {
-		auto attr = ev->get_xml()->attributes();
+		auto& attr = ev->get_xml()->attributes();
 		conf.bl_time = attr.get_int("bl_time");
 		conf.wl_time = attr.get_int("wl_time", 1800);
 		SAFE_STRCPY(conf.block_ip_cmd, attr("block_ip_cmd"));
@@ -68,7 +68,7 @@ void on_compress_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 		conf.gzip_level = 5;
 		conf.br_level = 5;
 	} else {
-		auto attr = ev->get_xml()->attributes();
+		auto& attr = ev->get_xml()->attributes();
 		conf.only_compress_cache = attr.get_int("only_cache", 0);
 		conf.min_compress_length = attr.get_int("min_length", 512);
 		conf.gzip_level = attr.get_int("gzip_level", 5);
@@ -82,7 +82,7 @@ void on_connect_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 		conf.keep_alive_count = 0;
 		conf.per_ip_deny = 0;
 	} else {
-		auto attr = ev->get_xml()->attributes();
+		auto& attr = ev->get_xml()->attributes();
 		conf.max = attr.get_int("max");
 		conf.max_per_ip = attr.get_int("max_per_ip");
 		conf.keep_alive_count = attr.get_int("max_keep_alive");
@@ -94,7 +94,7 @@ void on_run_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 		conf.run_user = "";
 		conf.run_group = "";
 	} else {
-		auto attr = ev->get_xml()->attributes();
+		auto& attr = ev->get_xml()->attributes();
 		conf.run_user = attr["user"];
 		conf.run_group = attr["group"];
 	}
@@ -105,7 +105,7 @@ void on_fiber_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 		http_config.fiber_stack_size = conf.fiber_stack_size;
 		return;
 	}
-	auto attr = ev->get_xml()->attributes();
+	auto& attr = ev->get_xml()->attributes();
 	conf.fiber_stack_size = (int)get_size(attr.get_string("stack_size", ""));
 	if (conf.fiber_stack_size > 0) {
 		conf.fiber_stack_size = kgl_align(conf.fiber_stack_size, 4096);
@@ -116,7 +116,7 @@ void on_dns_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	if (ev == nullptr || ev->type == kconfig::EvRemove) {
 		conf.worker_dns = 8;
 	} else {
-		auto attr = ev->get_xml()->attributes();
+		auto& attr = ev->get_xml()->attributes();
 		conf.worker_dns = attr.get_int("worker", 8);
 	}
 	if (conf.dnsWorker == NULL) {
@@ -131,7 +131,7 @@ void on_io_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 		conf.max_io = 0;
 		conf.io_buffer = 262144;
 	} else {
-		auto attr = ev->get_xml()->attributes();
+		auto& attr = ev->get_xml()->attributes();
 		conf.worker_io = attr.get_int("worker", 2);
 		conf.max_io = attr.get_int("max", 0);
 		conf.io_buffer = attr.get_int("buffer", 262144);
@@ -202,12 +202,14 @@ void on_log_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 		conf.logs_size = get_size("1G");
 		conf.log_rotate_size = get_size("100M");
 		conf.error_rotate_size = get_size("100M");
-		SAFE_STRCPY(conf.access_log, "access.log");
+		if (*conf.access_log == '\0') {
+			SAFE_STRCPY(conf.access_log, "access.log");
+		}
 		klog_start();
 		::logHandle.setLogHandle(conf.logHandle);
 		return;
 	}
-	auto attr = ev->get_xml()->attributes();
+	auto& attr = ev->get_xml()->attributes();
 	switch (ev->type) {
 	case kconfig::EvNew:
 	case kconfig::EvUpdate:
@@ -232,7 +234,7 @@ void on_log_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 void on_admin_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	conf.admin_lock.Lock();
 	defer(conf.admin_lock.Unlock());
-	auto attr = ev->get_xml()->attributes();
+	auto& attr = ev->get_xml()->attributes();
 	switch (ev->type) {
 	case kconfig::EvNew:
 	case kconfig::EvUpdate:
@@ -248,7 +250,7 @@ void on_admin_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	}
 }
 void on_ssl_client_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
-	auto attr = ev->get_xml()->attributes();
+	auto& attr = ev->get_xml()->attributes();
 	switch (ev->type) {
 	case kconfig::EvNew:
 	case kconfig::EvUpdate:
@@ -269,10 +271,6 @@ void on_main_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	case kconfig::EvUpdate:
 		if (xml->is_tag(_KS("lang"))) {
 			SAFE_STRCPY(conf.lang, xml->get_text_cstr());
-			return;
-		}
-		if (xml->is_tag(_KS("keep_alive_count"))) {
-			conf.keep_alive_count = atoi(xml->get_text_cstr());
 			return;
 		}
 		if (xml->is_tag(_KS("timeout"))) {
@@ -326,7 +324,7 @@ void on_main_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 			return;
 		}
 		if (xml->is_tag(_KS("cdnbest"))) {
-			auto attr = xml->attributes();
+			auto& attr = xml->attributes();
 			SAFE_STRCPY(conf.error_url, attr("error"));
 			return;
 		}

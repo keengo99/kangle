@@ -464,7 +464,7 @@ bool KMultiAcserver::parse_config(const khttpd::KXmlNode* xml) {
 	if (!KPoolableRedirect::parse_config(xml)) {
 		return false;
 	}
-	auto attributes = xml->attributes();
+	auto& attributes = xml->attributes();
 #ifdef ENABLE_MSERVER_ICP
 	setIcp(attributes["icp"].c_str());
 #endif
