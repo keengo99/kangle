@@ -656,9 +656,12 @@ bool KHttpManage::configsubmit() {
 		kconfig::update("cache"_CS, 0, nullptr, &urlValue.attribute, kconfig::EvUpdate | kconfig::FlagCreate);
 		goto skip_save;
 	} else if (item == 2) {
-		kconfig::update("access_log"_CS, 0, &removeUrlValue("access_log"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
-		kconfig::update("access_log_handle"_CS, 0, &removeUrlValue("access_log_handle"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
-		kconfig::update("log_handle_concurrent"_CS, 0, &removeUrlValue("log_handle_concurrent"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		auto v = removeUrlValue("access_log"_CS);
+		kconfig::update("access_log"_CS, 0, &v, nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		v = removeUrlValue("access_log_handle"_CS);
+		kconfig::update("access_log_handle"_CS, 0, &v, nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		v = removeUrlValue("log_handle_concurrent"_CS);
+		kconfig::update("log_handle_concurrent"_CS, 0, &v, nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 		kconfig::update("log"_CS, 0, nullptr, &urlValue.attribute, kconfig::EvUpdate | kconfig::FlagCreate);
 	} else if (item == 3) {
 		KXmlAttribute connect_attr;
