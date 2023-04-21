@@ -556,13 +556,11 @@ bool KHttpManage::config() {
 #ifdef ENABLE_BROTLI
 		s << "<a href=# title='(0-9,0=disable)'>br level</a><input name=br_level size=3 value='" << conf.br_level << "'><br>";
 #endif
-		//{{ent
 #ifdef KANGLE_ENT
 		s << klang["server_software"]
 			<< "<input type=text name='server_software' value='"
 			<< conf.server_software << "'><br>";
 #endif
-		//}}
 		s << klang["hostname"] << "<input type=text name='hostname' value='";
 		if (*conf.hostname) {
 			s << conf.hostname;
@@ -591,8 +589,8 @@ bool KHttpManage::config() {
 		s << "<br>";
 #endif
 #ifdef ENABLE_FATBOY
-		s << klang["bl_time"] << ":<input name='bl_time' size='6' value='" << conf.bl_time << "'><br>";
-		s << klang["wl_time"] << ":<input name='wl_time' size='6' value='" << conf.wl_time << "'><br>";
+		s << klang["bl_time"] << ":" << conf.bl_time << "<br>";
+		s << klang["wl_time"] << ":" << conf.wl_time << "<br>";
 #endif
 #ifdef ENABLE_BLACK_LIST
 		s << "<pre>";
@@ -610,7 +608,6 @@ bool KHttpManage::config() {
 		}
 		s << "</pre>";
 #endif
-		//}}
 	} else if (item == 6) {
 		s << LANG_ADMIN_USER << ":<input name=user value='"
 			<< conf.admin_user << "'><br>";
@@ -651,10 +648,8 @@ bool KHttpManage::configsubmit() {
 			conf.select_count = worker_thread;
 			kconfig::set_need_reboot();
 		}
-		goto skip_save;
 	} else if (item == 1) {
 		kconfig::update("cache"_CS, 0, nullptr, &urlValue.attribute, kconfig::EvUpdate | kconfig::FlagCreate);
-		goto skip_save;
 	} else if (item == 2) {
 		auto v = removeUrlValue("access_log"_CS);
 		kconfig::update("access_log"_CS, 0, &v, nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
@@ -691,53 +686,33 @@ bool KHttpManage::configsubmit() {
 		kconfig::update("max_post_size"_CS, 0, &getUrlValue("max_post_size"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 	} else if (item == 5) {
 #ifdef MALLOCDEBUG
-		if (getUrlValue("mallocdebug") == "1") {
-			conf.mallocdebug = true;
-		} else {
-			conf.mallocdebug = false;
-		}
+		kconfig::update("mallocdebug"_CS, 0, &getUrlValue("mallocdebug"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 #endif
-#ifdef KSOCKET_UNIX	
-		if (getUrlValue("unix_socket") == "1") {
-			conf.unix_socket = true;
-		} else {
-			conf.unix_socket = false;
-		}
+#ifdef KSOCKET_UNIX
+		kconfig::update("unix_socket"_CS, 0, &getUrlValue("unix_socket"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 #endif
-		if (getUrlValue("path_info") == "1") {
-			conf.path_info = true;
-		} else {
-			conf.path_info = false;
-		}
-		conf.gzip_level = atoi(getUrlValue("gzip_level").c_str());
+		kconfig::update("path_info"_CS, 0, &getUrlValue("path_info"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		KXmlAttribute compress_attr;
+		compress_attr.emplace("gzip_level"_CS, getUrlValue("gzip_level"));
 #ifdef ENABLE_BROTLI
-		conf.br_level = atoi(getUrlValue("br_level").c_str());
+		compress_attr.emplace("br_level"_CS, getUrlValue("br_level"));
 #endif
-		conf.only_compress_cache = atoi(getUrlValue("only_compress_cache").c_str());
-		if (conf.gzip_level > 9 || conf.gzip_level < -1) {
-			conf.gzip_level = -1;
-		}
-		conf.min_compress_length = atoi(getUrlValue("min_compress_length").c_str());
-#ifdef KANGLE_ENT
-		auto server_software = getUrlValue("server_software");
-		if (server_software != conf.server_software) {
-			SAFE_STRCPY(conf.server_software, server_software.c_str());
-			parse_server_software();
-
-		}
-#endif
+		compress_attr.emplace("only_cache"_CS, getUrlValue("only_compress_cache"));
+		compress_attr.emplace("min_length"_CS, getUrlValue("min_compress_length"));
+		kconfig::update("compress"_CS, 0, nullptr, &compress_attr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("server_software"_CS, 0, &getUrlValue("server_software"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("hostname"_CS, 0, &getUrlValue("hostname"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 #ifdef ENABLE_FATBOY
-		conf.bl_time = atoi(getUrlValue("bl_time").c_str());
-		conf.wl_time = atoi(getUrlValue("wl_time").c_str());
+		//KXmlAttribute fw_attr;
+		//fw_attr.emplace("bl_time"_CS, getUrlValue("bl_time"));
+		//fw_attr.emplace("wl_time"_CS, getUrlValue("wl_time"));
 #endif
 	} else if (item == 6) {
 		KString errMsg;
 		if (!changeAdminPassword(&urlValue, errMsg)) {
 			return sendErrPage(errMsg.c_str());
 		}
-		goto skip_save;
 	}
-skip_save:
 	url << "/config?item=" << item;
 	return sendRedirect(url.str().c_str());
 }
@@ -1365,7 +1340,6 @@ bool KHttpManage::start_listen(bool& hit) {
 		s << "</body></html>";
 		return sendHttp(s.str());
 	}
-
 	return false;
 }
 bool KHttpManage::start_access(bool& hit) {
