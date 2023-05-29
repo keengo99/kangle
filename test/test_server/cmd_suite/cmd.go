@@ -11,17 +11,17 @@ func check_common(path string) {
 	})
 }
 func check_mp_fastcgi() {
-	check_common("http://cmd.test:9999/test.fastcgi_mp")
+	check_common("http://cmd.localtest.me:9999/test.fastcgi_mp")
 }
 func check_sp_fastcgi() {
-	check_common("http://cmd.test:9999/test.fastcgi_sp")
+	check_common("http://cmd.localtest.me:9999/test.fastcgi_sp")
 }
 func check_mp_http() {
-	check_common("http://cmd.test:9999/test.http_mp")
+	check_common("http://cmd.localtest.me:9999/test.http_mp")
 }
 func check_sp_http() {
-	check_common("http://cmd.test:9999/test.http_sp")
+	check_common("http://cmd.localtest.me:9999/test.http_sp")
 }
 func check_fastcgi() {
-	check_common("http://cmd.test:9999/test.fastcgi")
+	check_common("http://cmd.localtest.me:9999/test.fastcgi")
 }

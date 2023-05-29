@@ -294,7 +294,6 @@ int fiber_main(void* arg, int argc)
 		}
 	} else {
 		s = get_stdin_socket();
-		ksocket_no_block(s);
 		klog(KLOG_NOTICE, "stdin handle=[%x]\n", (int)s);
 	}
 	if (fastcgi) {
