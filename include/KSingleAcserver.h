@@ -40,4 +40,5 @@ public:
 public:
 	KSockPoolHelper *sockHelper;
 };
+using KSafeSingleAcserver = KSharedObj<KSingleAcserver>;
 #endif /* KSingleAcserver_H_ */

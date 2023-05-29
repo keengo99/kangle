@@ -363,7 +363,6 @@ private:
 public:
 #ifdef ENABLE_USER_ACCESS
 	void access_config_listen(kconfig::KConfigTree* tree, KVirtualHost* ov);
-	void reload_access();
 #endif
 };
 using KSafeVirtualHost = KSharedObj<KVirtualHost>;

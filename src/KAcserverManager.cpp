@@ -780,6 +780,14 @@ std::vector<KString> KAcserverManager::getAcserverNames(bool onlyHttp) {
 	lock.RUnlock();
 	return table_names;
 }
+KSafeSingleAcserver KAcserverManager::findSingleAcserver(const KString& name) {
+	auto locker = this->get_rlocker();
+	auto ac = getSingleAcserver(name);
+	if (ac == nullptr) {
+		return KSafeSingleAcserver();
+	}
+	return KSafeSingleAcserver(static_cast<KSingleAcserver *>(ac->add_ref()));
+}
 KSingleAcserver* KAcserverManager::refsSingleAcserver(const KString& name) {
 	lock.RLock();
 	KSingleAcserver* ac = getSingleAcserver(name);

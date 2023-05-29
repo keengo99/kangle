@@ -68,7 +68,7 @@ static kserver *kserver_new(KVirtualHostContainer* vhc)
 }
 void KListen::sync_flag(kgl_ssl_ctx *ssl_ctx)
 {
-	key->set_work_model(&server->flags);
+	key->set_work_model((uint32_t *)&server->flags);
 #ifdef ENABLE_HTTP3
 	if ((key->h3 == 0 || key->ssl==0) && h3_server) {
 		h3_server->shutdown();
@@ -121,7 +121,7 @@ void KDynamicListen::Delete(KListenKey *key,KVirtualHost *vh)
 		conf.gvm->UnBindGlobalVirtualHost(listen->server);
 	}
 	delete key;
-	if (listen->IsEmpty()) {
+	if (listen->empty()) {
 		kassert(kserver_is_empty(listen->server));
 		kserver_close(listen->server);
 #ifdef ENABLE_HTTP3
@@ -179,7 +179,7 @@ void KDynamicListen::add(KListenKey *key, KSslConfig *ssl_config, KVirtualHost *
 	}
 #ifdef KSOCKET_SSL
 	if (need_load_ssl) {
-		ssl_ctx = kserver_load_ssl(&server->flags, ssl_config);
+		ssl_ctx = kserver_load_ssl((uint32_t *)&server->flags, ssl_config);
 	}
 #endif
 	listen->sync_flag(ssl_ctx);
@@ -327,7 +327,7 @@ bool KDynamicListen::init_listen(KListenKey *lk, KListen *listen, kgl_ssl_ctx *s
 	bool result = kserver_start(listen->server, lk, ssl_ctx);
 #ifdef ENABLE_HTTP3
 	if (result && listen->h3_server) {		
-		kgl_set_flag(&listen->server->flags, WORK_MODEL_ALT_H3, listen->h3_server->start());		
+		kgl_set_flag((uint32_t *)&listen->server->flags, WORK_MODEL_ALT_H3, listen->h3_server->start());
 	}
 #endif
 	return result;
@@ -459,7 +459,7 @@ void KDynamicListen::UnbindGlobalVirtualHost(KVirtualHost *vh)
 static iterator_ret listen_whm_iterator(void *data, void *argv)
 {
 	KListen *listen = (KListen *)data;
-	kassert(!listen->IsEmpty());
+	kassert(!listen->empty());
 	WhmContext *ctx = (WhmContext *)argv;
 	kserver *server = listen->server;
 	if (KBIT_TEST(listen->server->flags, KGL_SERVER_START)) {

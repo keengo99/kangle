@@ -413,13 +413,6 @@ int KVirtualHost::checkPostMap(KHttpRequest* rq, KSafeSource& fo) {
 void KVirtualHost::setAccess(const KString& access_file) {
 	this->user_access = access_file;
 }
-
-void KVirtualHost::reload_access() {
-	KStringBuf s;
-	get_access_file(s);
-	auto locker = kconfig::lock();
-	kconfig::reload_config(s.str().data(), false);
-}
 void KVirtualHost::access_config_listen(kconfig::KConfigTree* tree, KVirtualHost* ov) {
 	KStringBuf s;
 	get_access_file(s);

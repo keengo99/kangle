@@ -112,6 +112,7 @@ public:
 		return remove_item("api", name, err_msg);
 	}
 	bool apiForm(KXmlAttribute& attribute, KString& errMsg);
+	KSafeSingleAcserver findSingleAcserver(const KString& name);
 	KSingleAcserver* refsSingleAcserver(const KString& name);
 	KPoolableRedirect* refsAcserver(const KString& name);
 	KRedirect* refsRedirect(const KString &target);

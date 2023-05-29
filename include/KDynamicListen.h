@@ -207,7 +207,7 @@ public:
 		delete key;
 	}
 	void sync_flag(kgl_ssl_ctx *ssl_ctx);
-	bool IsEmpty()
+	bool empty()
 	{
 		return key->dynamic==0 && key->global==0;
 	}
@@ -245,7 +245,6 @@ public:
 	}
 private:
 	krb_tree listens;
-	//KListen *Find(KListenKey *lk);
 	void add(KListenKey *key, KSslConfig *ssl_config, KVirtualHost *vh);
 	void Delete(KListenKey *key,KVirtualHost *vh);
 	void parse_port(const char *port, KListenKey *lk,KVirtualHost *vh);
