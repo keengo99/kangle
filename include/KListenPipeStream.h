@@ -19,7 +19,7 @@ public:
 	void unlink_unix()
 	{
 #ifdef KSOCKET_UNIX
-		if(unix_path.size()>0){
+		if(!unix_path.empty()){
 			if (unlink(unix_path.c_str())!=0) {
 				int err = errno;
 				klog(KLOG_ERR,"cann't unlink unix socket [%s] error =%d %s\n",unix_path.c_str(),err,strerror(err));
@@ -86,7 +86,9 @@ public:
 		this->port = port;
 	}
 	friend class KCmdPoolableRedirect;
+#ifdef KSOCKET_UNIX
 	std::string unix_path;
+#endif
 private:
 	int port;
 

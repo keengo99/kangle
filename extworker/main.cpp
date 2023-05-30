@@ -105,7 +105,7 @@ void sigcatch(int sig) {
 	default:
 		program_quit = true;
 		killallProcess();
-		exit(0);
+		_exit(0);
 	}
 }
 #endif
