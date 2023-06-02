@@ -129,9 +129,9 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 	client->send_host(s.buf(), (hlen_t)s.size());
 	if (client->IsMultiStream()) {
 		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
-			client->send_header(kgl_expand_string(":scheme"), kgl_expand_string("https"));
+			client->send_header(kgl_header_scheme, kgl_expand_string("https"));
 		} else {
-			client->send_header(kgl_expand_string(":scheme"), kgl_expand_string("http"));
+			client->send_header(kgl_header_scheme, kgl_expand_string("http"));
 		}
 	}
 	KHttpHeader* av = rq->sink->data.get_header();
