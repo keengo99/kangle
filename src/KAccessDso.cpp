@@ -155,11 +155,11 @@ void KAccessDso::parse_child(const kconfig::KXmlChanged* changed) {
 }
 void KAccessDso::getHtml(KModel* model, KWStream& s)
 {
-	
+	return build(KF_ACCESS_BUILD_HTML, s);
 }
 void KAccessDso::getDisplay(KWStream& s)
 {
-	return build(0,s);
+	return build(KF_ACCESS_BUILD_SHORT,s);
 }
 void KAccessDso::build(uint32_t type, KWStream& s)
 {

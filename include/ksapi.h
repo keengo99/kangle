@@ -430,6 +430,9 @@ typedef struct _kgl_vary_conext
 #define KF_NOTIFY_REPLACE                 0x01000000
 
 #define KGL_BUILD_HTML_ENCODE   1
+#define KF_ACCESS_BUILD_TYPE    uint32_t
+#define KF_ACCESS_BUILD_SHORT   0
+#define KF_ACCESS_BUILD_HTML    1
 typedef struct _kgl_access_build
 {
 	KCONN cn;
