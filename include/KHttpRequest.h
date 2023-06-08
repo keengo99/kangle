@@ -378,6 +378,7 @@ public:
 	void ReleaseQueue();
 #endif
 	KGL_RESULT open_next(KFetchObject* fo, kgl_input_stream* in, kgl_output_stream* out, const char* queue);
+	KFetchObject *replace_next(KFetchObject* fo, KFetchObject* next_fo);
 private:
 	void close_source();
 };

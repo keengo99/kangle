@@ -5,7 +5,7 @@
 #include "KHttpServer.h"
 #include "KPathHandler.h"
 #include "KHttpRequest.h"
-
+#include "KModel.h"
 
 class KAutoBuffer;
 class KHttpObject;
@@ -28,7 +28,7 @@ KGL_RESULT stageHttpManage(KHttpRequest *rq);
 //KGL_RESULT on_upstream_finished_header(KHttpRequest *rq);
 KGL_RESULT on_upstream_finished_header(KHttpRequest* rq, kgl_response_body* body);
 KGL_RESULT prepare_write_body(KHttpRequest* rq, kgl_response_body* body);
-KGL_RESULT handle_denied_request(KHttpRequest* rq);
+KGL_RESULT handle_denied_request(KHttpRequest* rq, KSafeSource fo);
 KGL_RESULT open_queued_fetchobj(KHttpRequest* rq, KFetchObject* fo, kgl_input_stream* in, kgl_output_stream* out, KRequestQueue* queue);
 KGL_RESULT send_memory_object(KHttpRequest* rq);
 KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj);

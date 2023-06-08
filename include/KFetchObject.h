@@ -51,7 +51,6 @@ class KFetchObject
 {
 public:
 	KFetchObject() {
-		flags = 0;
 	}
 	virtual ~KFetchObject();
 	virtual void on_readhup(KHttpRequest* rq) {
@@ -60,15 +59,9 @@ public:
 	virtual KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) = 0;
 
 	virtual bool NeedTempFile(bool upload, KHttpRequest* rq);
-
-	union
-	{
-		struct
-		{
-			uint32_t filter : 1;
-		};
-		uint32_t flags;
-	};
+	virtual bool is_filter() {
+		return false;
+	}
 	virtual bool before_cache() {
 		return false;
 	}

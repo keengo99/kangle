@@ -12,14 +12,17 @@ public:
 		memset(&ctx, 0, sizeof(ctx));
 		ctx.module = model_ctx;
 	}
-	bool before_cache() override {
+	virtual bool is_filter() override {
+		KDsoRedirect* dr = static_cast<KDsoRedirect*>(brd->rd);
+		return !KBIT_TEST(((kgl_upstream*)dr->us)->flags, KGL_UPSTREAM_FINAL_SOURCE);
+	}
+	virtual bool before_cache() override {
 		KDsoRedirect* dr = static_cast<KDsoRedirect*>(brd->rd);
 		return KBIT_TEST(((kgl_upstream*)dr->us)->flags, KGL_UPSTREAM_BEFORE_CACHE);
 	}
-	inline kgl_upstream *GetAsyncUpstream()
+	inline kgl_upstream *get_upstream()
 	{
-		KDsoRedirect *dr = static_cast<KDsoRedirect *>(brd->rd);
-		return (kgl_upstream *)dr->us;
+		return static_cast<KDsoRedirect *>(brd->rd)->us;
 	}
 	void on_readhup(KHttpRequest* rq) override;
 	bool NeedTempFile(bool upload, KHttpRequest *rq) override

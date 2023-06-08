@@ -386,6 +386,7 @@ typedef struct _kgl_async_context_function
 
 	kgl_get_variable_f get_variable;	
 	KGL_RESULT(*open_next)(KREQUEST rq, KCONN cn, kgl_input_stream* in, kgl_output_stream* out, const char* queue);
+	KGL_RESULT(*replace_next)(KREQUEST rq, KCONN cn, const char* us);
 	KGL_RESULT(*support_function) (
 		KREQUEST    rq,
 		KCONN       cn,
@@ -513,6 +514,7 @@ struct _kgl_upstream
 	int32_t size;
 	/* open upstream before cache handle */
 #define KGL_UPSTREAM_BEFORE_CACHE  1
+#define KGL_UPSTREAM_FINAL_SOURCE  2
 	int32_t flags;
 	const char* name;
 	void* (*create_ctx)();

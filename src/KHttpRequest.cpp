@@ -721,7 +721,7 @@ void KHttpRequest::insert_source(KFetchObject* fo) {
 	fo_head = fo;
 }
 void KHttpRequest::append_source(KFetchObject* fo) {
-	if (fo->filter == 0 && KBIT_TEST(ctx.filter_flags, RQ_NO_EXTEND) && !KBIT_TEST(sink->data.flags, RQ_IS_ERROR_PAGE)) {
+	if (!fo->is_filter() && KBIT_TEST(ctx.filter_flags, RQ_NO_EXTEND) && !KBIT_TEST(sink->data.flags, RQ_IS_ERROR_PAGE)) {
 		//无扩展处理
 		if (fo->needQueue(this)) {
 			delete fo;
@@ -762,9 +762,17 @@ bool KHttpRequest::has_final_source() {
 	if (!fo_last) {
 		return false;
 	}
-	return !fo_last->filter;
+	return !fo_last->is_filter();
 }
-
+KFetchObject* KHttpRequest::replace_next(KFetchObject* fo, KFetchObject* next_fo) {
+	assert(next_fo);
+	next_fo = nullptr;
+	assert(fo->next != nullptr || fo == fo_last);
+	KFetchObject* old_next = fo->next;
+	fo->next = next_fo;
+	fo_last = next_fo;
+	return old_next;
+}
 KGL_RESULT KHttpRequest::open_next(KFetchObject* fo, kgl_input_stream* in, kgl_output_stream* out, const char* queue) {
 	KBIT_SET(sink->data.flags, RQ_NEXT_CALLED);
 	KGL_RESULT result;

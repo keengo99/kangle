@@ -163,7 +163,7 @@ query_vh_result query_virtual(KHttpRequest* rq, const char* hostname, int len, i
 }
 KGL_RESULT handle_denied_request(KHttpRequest* rq) {
 	KFetchObject* fo = rq->fo_head;
-	while (fo && fo->filter) {
+	while (fo && fo->is_filter()) {
 		fo = fo->next;
 	}
 	if (fo) {

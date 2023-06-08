@@ -280,7 +280,7 @@ KACCEPT_CALLBACK(fastcgi_handle) {
 }
 int fiber_main(void* arg, int argc)
 {
-	klog(KLOG_NOTICE, "test_child running fastcgi=[%d]...\n", (int)fastcgi);
+	klog(KLOG_NOTICE, "test_child running fastcgi=[%d] port=[%d]...\n", (int)fastcgi, port);
 	SOCKET s;
 	ksocket_init(s);
 	char** argv = (char**)arg;
@@ -294,6 +294,7 @@ int fiber_main(void* arg, int argc)
 		}
 	} else {
 		s = get_stdin_socket();
+		ksocket_no_block(s);
 		klog(KLOG_NOTICE, "stdin handle=[%x]\n", (int)s);
 	}
 	if (fastcgi) {
@@ -336,5 +337,6 @@ int main(int argc, char** argv)
 	selector_manager_set_timeout(300, 300);
 	kfiber_create2(get_perfect_selector(), fiber_main, (void*)argv, argc, 0, NULL);
 	selector_manager_start(NULL, false);
+	klog(KLOG_NOTICE, "test_child exit now.\n");
 	return 0;
 }

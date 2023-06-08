@@ -366,11 +366,10 @@ static KGL_RESULT support_function(
 		KDsoRedirect* rd = new KDsoRedirect("", us);
 		KRedirectSource* fo = rd->makeFetchObject(rq, *ret);
 		fo->bind_base_redirect(new KBaseRedirect(rd, KConfirmFile::Never));
-		fo->filter = 1;
 		if (KBIT_TEST(us->flags, KGL_UPSTREAM_BEFORE_CACHE)) {
 			rq->insert_source(fo);
 		} else {
-			if (rq->fo_last && !rq->fo_last->filter) {
+			if (rq->fo_last && !rq->fo_last->is_filter()) {
 				delete fo;
 				//EXSIT final source.
 				return KGL_EEXSIT;
