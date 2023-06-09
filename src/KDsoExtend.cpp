@@ -30,10 +30,13 @@ static void kgl_kfiber_cond_destroy(KFIBER_COND cond)
 {
 	((kfiber_cond*)cond)->f->release((kfiber_cond*)cond);
 }
-static const char* get_header_name(KHttpHeader* header, int* len)
-{
+static const char* get_know_header(kgl_header_type header, hlen_t* len) {
+	*len = (int)kgl_header_type_string[header].value.len;
+	return kgl_header_type_string[header].value.data;
+}
+static const char* get_header_name(KHttpHeader* header, hlen_t* len) {
 	if (header->name_is_know) {
-		*len = (int)kgl_header_type_string[header->know_header].value.len;
+		*len = (hlen_t)kgl_header_type_string[header->know_header].value.len;
 		return kgl_header_type_string[header->know_header].value.data;
 	}
 	*len = header->name_len;
@@ -139,6 +142,8 @@ static kgl_dso_function dso_function = {
 	register_clean_callback,
 	klog,
 	get_header_name,
+	get_know_header,
+	kgl_build_know_header_value,
 	NULL,
 	kgl_parse_response_header
 };

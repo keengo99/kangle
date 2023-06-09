@@ -637,10 +637,11 @@ typedef struct _kgl_dso_function
 	void* (*alloc_memory) (KREQUEST rq, int  size, KF_ALLOC_MEMORY_TYPE type);
 	KGL_RESULT(*register_clean_callback)(KREQUEST rq, kgl_cleanup_f cb, void* arg, KF_ALLOC_MEMORY_TYPE type);
 	void(*log)(int level, const char* fmt, ...);
-	const char* (*get_header_name)(KHttpHeader* header, int* len);
+	const char* (*get_header_name)(KHttpHeader* header, hlen_t* len);
+	const char* (*get_know_header)(kgl_header_type type, hlen_t* len);
+	bool (*build_know_header_value)(KHttpHeader* header, const char* val, int val_len, void* (*kgl_malloc)(void*,size_t), void* arg);
 	kgl_header_type(*parse_response_header)(const char* attr, hlen_t attr_len);
 	kgl_header_type(*parse_request_header)(const char* attr, hlen_t attr_len);
-	
 } kgl_dso_function;
 
 
