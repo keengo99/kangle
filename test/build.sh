@@ -7,8 +7,8 @@ export GO111MODULE=on
 if [ ! -d $PROJECT_PATH/bin ] ; then
 	mkdir $PROJECT_PATH/bin
 fi
-cd $PROJECT_PATH/test_server
+cd $PROJECT_PATH/test_framework
 echo "building main ..."
 go mod tidy
-go build -o ../bin/main.exe test_server/main
-go build -o ../bin/benchmark.exe test_server/benchmark
+go build -o ../bin/main.exe test_framework/main
+go build -o ../bin/benchmark.exe test_framework/benchmark
