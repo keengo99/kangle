@@ -36,16 +36,19 @@ func FlushDiskCache() {
 	resp, _ := common.Http1Client.Get("http://127.0.0.1:9911/flush_disk_cache.km")
 	common.Assert("reload_config", resp.StatusCode == 200)
 }
-func CreateExtConfig(name string, content string) error {
-	file := config.Cfg.BasePath + "/ext/" + name + ".xml"
-	fmt.Printf("create ext file [%s]\n", file)
-	config_file, err := os.Create(file)
+func CreateFile(filename string, content string) error {
+	config_file, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
 	defer config_file.Close()
 	_, err = config_file.WriteString(content)
 	return err
+}
+func CreateExtConfig(name string, content string) error {
+	file := config.Cfg.BasePath + "/ext/" + name + ".xml"
+	fmt.Printf("create ext file [%s]\n", file)
+	return CreateFile(file, content)
 }
 func CleanExtConfig(name string) error {
 	file := config.Cfg.BasePath + "/ext/" + name + ".xml"
@@ -104,8 +107,64 @@ func CreateMainConfig(malloc_debug int) (err error) {
 	_, err = config_file.WriteString(fmt.Sprintf(str, malloc_debug))
 	return
 }
-
+func createSslFile() {
+	str := `-----BEGIN CERTIFICATE-----
+MIIDETCCAfkCFGqw5HR92Ds5slo2Pfq8z3Bxdo1iMA0GCSqGSIb3DQEBCwUAMEUx
+CzAJBgNVBAYTAkNOMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRl
+cm5ldCBXaWRnaXRzIFB0eSBMdGQwHhcNMjIwMjIyMDMyMDM4WhcNMjMwMjIyMDMy
+MDM4WjBFMQswCQYDVQQGEwJDTjETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UE
+CgwYSW50ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOC
+AQ8AMIIBCgKCAQEA4fPjieRPLf83Hgevm8x39KmfuJ5eVH/r5lPw9uBBC8VOdeqI
+Qdq96Cmi9VHdKvDxpEYoeQ5fkLqQzX/DKOWOPHpj+Wgp5C7c81fEHlSvMhKlQUbE
+7XkonEsBkdtJ6FrLufTsagfJ6BTTGgp8vRn6JpGEPecC7OLL/DTQsJxwdgmVdpXr
+wjGHC6LgoVUOfrASCTg4rZJDHKiKjfZtRa4N5iGUjFR3hEnTftpnubZAQi0tzaCE
+g6M0sga80tAAegdRhs+j4WKrm1lCipjNIi+klwbTlLeMENjrI3nvrwsfafzLP44v
+UYYgnwW7xlyG8AyveTYueoAvItVDyFpKMt1JlQIDAQABMA0GCSqGSIb3DQEBCwUA
+A4IBAQApjHj3b8SzeOOLdaJX0i6T/A3MN74HH7x3fMZMCrpmwWjTLq8KoKimyZgh
+XzPiaBVra2SVZE63RgWE3wkLOp84K0WF/cKVS5+ebaZ52aqy6ODVAsx14rjhlIRQ
+BgX7FBXWVJN/5DHru5sgsAA4UQLKF9/zh6IlWgtH5qJ3K6jx8JY90R9QMX1gJnJX
+ppspxmzNu2IPbg7wui6LAg0ETslp4ablsbeP8ew9lKQCR3ZbCunpiyn8FbGl8pAY
+lf+S1EJI0uY6kqmt3zmRTpv5ysIm7NLdcPdUYIquK0ceOr69LGni80g5r6vsGAWC
+ze3XUTzbzWM1/+07065mw7bYgl/U
+-----END CERTIFICATE-----`
+	err := CreateFile(config.Cfg.BasePath+"/etc/server.crt", str)
+	if err != nil {
+		panic(err.Error())
+	}
+	str = `-----BEGIN RSA PRIVATE KEY-----
+MIIEpgIBAAKCAQEA4fPjieRPLf83Hgevm8x39KmfuJ5eVH/r5lPw9uBBC8VOdeqI
+Qdq96Cmi9VHdKvDxpEYoeQ5fkLqQzX/DKOWOPHpj+Wgp5C7c81fEHlSvMhKlQUbE
+7XkonEsBkdtJ6FrLufTsagfJ6BTTGgp8vRn6JpGEPecC7OLL/DTQsJxwdgmVdpXr
+wjGHC6LgoVUOfrASCTg4rZJDHKiKjfZtRa4N5iGUjFR3hEnTftpnubZAQi0tzaCE
+g6M0sga80tAAegdRhs+j4WKrm1lCipjNIi+klwbTlLeMENjrI3nvrwsfafzLP44v
+UYYgnwW7xlyG8AyveTYueoAvItVDyFpKMt1JlQIDAQABAoIBAQCtqGVruFYGkw0I
+fn3AL0DOgIOqP8VeCkcC6ebbxvUXF9i6lbuNaZHlWgLNqtJhy3bce7Nlft+B+3GJ
+DzWuO+e6oZIuwJjZsA7O09h+OzW/NUdfSQXXQfQtUxRsxm4iL44+aHg+8aeDQGYS
+sJa4O7vfYp2Reffsmk6OkwUFh+aDQF6bWo0Dop6Ov1F3I/Q4/4BSMwGULf4TlvRC
+CebwlS9icjbM9sdZ+/+iywMupatbpjQ2iKohJvBYrapK0Kg1t+HyNBZo7rmbCku1
++8lbfpkaNWAsdpHL0LoYcgIIPar2/BbPjED0BYsA70wj7LbT3JRqvWLJO1rMad5r
+gvXeclCtAoGBAPZWU/2RkDI3pTtbsr9DNhJq1ZuzvgWr/MHCyKv8eUn4Bq8vwjZr
+GzyLfijUnO887at/UM7m2rkG89FS4cMxT2RdXqriQfauKR1FRDeOrSLrYtx/260y
+H4Ry1sDNJ7DrQb118ooC3ppi4mg2tT+McUj/+KKvTRM2CGd51On0w+ufAoGBAOrQ
+3PcB09CUbgdPmUF4HLFIpaHNpi5gs6Hq8DtImxIr/dPytdHo7+yprmYxyMYzZ4d8
+fdMXgS7wmOUAeiztO6/GbdqdBQ4lUIRp5C2cx82iZek80uTCOA1b97pa1oVjasbm
+FwaW/bANHP5FTre8ENMiuOAIbDC9LdHyWRxQIX5LAoGBAIyS0RVXtvjhRlpsRsHc
+wgOakdFrrhmgfvm3hTqYNkLe1jmswGC7mGxhkhoM0o23sE14tw2LMe/6prKiYJE6
+F3tHyRktSsVRt8arW3V05xqRRvZbxGm+u7uiqSiXKnpMllRe9YyKfKuPmHIuHhpo
+s9EbubBk50/6OquKG9Vyx0czAoGBAIU0EHUKk1a6LKR3EhAii9xBwrvDxiZ+8sfC
+V565tEYdsHLgNyYphpjxNJ6CVUuh83PXOiVaKw0urP0TRTthJD+1R7IA6tI4drF2
+xFrfmjRbkIY728KrLlLdvez4BMNMP1EvSxaQ5r5M4gqX1GzEAaNUCh4EiSMo3epA
+GS7Hggh7AoGBALFfnYEL0BtqGL9Sm7pLk1smtQ5F1T4mR3VsPnBZED1+513b/54V
+mBktbUKiCi0n5NrLYQFnSLMAmGtn8stH+rSmB9pvk/YlSXbtRhmoeltO+WOx8i+4
+7raWgb152Nm97jiGKEb/AmEPj13m7Inu0XLfWdQI4ScpRNVeNqclzVhT
+-----END RSA PRIVATE KEY-----`
+	err = CreateFile(config.Cfg.BasePath+"/etc/server.key", str)
+	if err != nil {
+		panic(err.Error())
+	}
+}
 func Prepare(kangle_path string, only_prepare bool) {
+	fmt.Printf("prepare kangle_path [%v] test_base_path=[%v] for test.\n", kangle_path, config.Cfg.BasePath)
 	os.Mkdir(config.Cfg.BasePath+"/etc", 0755)
 	os.Mkdir(config.Cfg.BasePath+"/var", 0755)
 	os.Mkdir(config.Cfg.BasePath+"/ext", 0755)
@@ -120,6 +179,7 @@ func Prepare(kangle_path string, only_prepare bool) {
 	common.CopyFile(kangle_path+"/filter"+common.DllExtendFile(), config.Cfg.BasePath+"/bin/filter"+common.DllExtendFile())
 	common.CopyFile(kangle_path+"/webdav"+common.DllExtendFile(), config.Cfg.BasePath+"/bin/webdav"+common.DllExtendFile())
 	common.CopyFile(kangle_path+"/webdav_client_example"+common.ExeExtendFile(), config.Cfg.BasePath+"/bin/webdav_client_example"+common.ExeExtendFile())
+	createSslFile()
 	Start(only_prepare)
 	time.Sleep(time.Second)
 }

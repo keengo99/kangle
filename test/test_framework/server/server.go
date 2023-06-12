@@ -91,27 +91,25 @@ func Start() {
 			panic(err)
 		}
 	}()
-	go func() {
-		crt, err := tls.LoadX509KeyPair(fmt.Sprintf("%s/etc/server.crt", config.Cfg.BasePath), fmt.Sprintf("%s/etc/server.key", config.Cfg.BasePath))
+	crt, err := tls.LoadX509KeyPair(fmt.Sprintf("%s/etc/server.crt", config.Cfg.BasePath), fmt.Sprintf("%s/etc/server.key", config.Cfg.BasePath))
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+	tlsConfig := &tls.Config{}
+	tlsConfig.Certificates = []tls.Certificate{crt}
+	tlsConfig.Time = time.Now
+	tlsConfig.Rand = rand.Reader
+	l, err := tls.Listen("tcp", "127.0.0.1:4413", tlsConfig)
+	if err != nil {
+		log.Fatalln(err.Error())
+	}
+	for {
+		conn, err := l.Accept()
 		if err != nil {
-			log.Fatalln(err.Error())
+			fmt.Println(err.Error())
+			continue
+		} else {
+			go HandleTlsClientConnect(conn)
 		}
-		tlsConfig := &tls.Config{}
-		tlsConfig.Certificates = []tls.Certificate{crt}
-		tlsConfig.Time = time.Now
-		tlsConfig.Rand = rand.Reader
-		l, err := tls.Listen("tcp", "127.0.0.1:4413", tlsConfig)
-		if err != nil {
-			log.Fatalln(err.Error())
-		}
-		for {
-			conn, err := l.Accept()
-			if err != nil {
-				fmt.Println(err.Error())
-				continue
-			} else {
-				go HandleTlsClientConnect(conn)
-			}
-		}
-	}()
+	}
 }

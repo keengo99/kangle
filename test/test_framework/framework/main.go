@@ -1,4 +1,4 @@
-package kangle
+package framework
 
 import (
 	"flag"
@@ -7,7 +7,6 @@ import (
 	"test_framework/common"
 	"test_framework/config"
 	"test_framework/kangle"
-	"time"
 
 	"os"
 
@@ -45,11 +44,6 @@ func ProcessSuites(suites []string) {
 		}
 	}()
 	suite.Init(suites)
-	if *server_model {
-		for {
-			time.Sleep(time.Second)
-		}
-	}
 
 	if *malloc_debug {
 		kangle.CreateMainConfig(1)
@@ -67,6 +61,11 @@ func ProcessSuites(suites []string) {
 	}
 	if *prepare_config {
 		return
+	}
+	if *server_model {
+		server.Start()
+	} else {
+		go server.Start()
 	}
 	for i := 0; i < *test_count; i++ {
 		if *alpn >= 0 {
@@ -109,7 +108,6 @@ func Main() {
 		return
 	}
 	common.InitClient(true)
-
 	if len(*kangle_base) > 0 {
 		config.Cfg.BasePath = *kangle_base
 	} else {
@@ -127,9 +125,7 @@ func Main() {
 		config.Cfg.UpstreamSsl,
 		config.Cfg.UpstreamHttp2)
 	kangle.CheckExtDir()
-	if !*prepare_config {
-		server.Start()
-	}
+
 	//server.StartFcgiServer()
 	var suites []string
 	if len(*test_case) == 0 {
