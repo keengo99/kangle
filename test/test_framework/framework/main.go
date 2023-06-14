@@ -111,7 +111,8 @@ func Main() {
 	if len(*kangle_base) > 0 {
 		config.Cfg.BasePath = *kangle_base
 	} else {
-		config.Cfg.BasePath = filepath.Dir(filepath.Dir(os.Args[0]) + "/../")
+		path, _ := os.Executable()
+		config.Cfg.BasePath = filepath.Dir(filepath.Dir(path))
 	}
 	if *upstream == "s" {
 		config.Cfg.UpstreamSsl = true
@@ -125,7 +126,6 @@ func Main() {
 		config.Cfg.UpstreamSsl,
 		config.Cfg.UpstreamHttp2)
 	kangle.CheckExtDir()
-
 	//server.StartFcgiServer()
 	var suites []string
 	if len(*test_case) == 0 {
