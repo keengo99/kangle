@@ -498,12 +498,19 @@ void get_default_response_body(KREQUEST r, kgl_response_body* body) {
 }
 KGL_RESULT check_write_header_finish(kgl_output_stream_ctx* st, int64_t body_size, kgl_response_body* body) {
 	KHttpRequest* rq = (KHttpRequest*)st;
+	if (is_status_code_no_body(rq->sink->data.status_code)) {
+		rq->response_connection();
+		if (!rq->start_response_body(0)) {
+			return  KGL_EINVALID_PARAMETER;
+		}
+		return KGL_NO_BODY;
+	}
 	rq->response_content_length(body_size);
 	rq->response_connection();
 	if (!rq->start_response_body(body_size)) {
 		return  KGL_EINVALID_PARAMETER;
 	}
-	if (rq->sink->data.meth == METH_HEAD || is_status_code_no_body(rq->sink->data.status_code)) {
+	if (rq->sink->data.meth == METH_HEAD) {
 		return KGL_NO_BODY;
 	}
 	if (body) {
