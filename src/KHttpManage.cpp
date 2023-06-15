@@ -1833,10 +1833,8 @@ function sortrq(index)\
 
 	}
 	if (strcmp(rq->sink->data.url->path, "/changelang") == 0) {
-		strncpy(conf.lang, getUrlValue("lang").c_str(), sizeof(conf.lang) - 1);
-		if (!saveConfig()) {
-			return sendErrorSaveConfig();
-		}
+		auto lang = getUrlValue("lang");
+		kconfig::update("lang"_CS, 0, &lang, nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 		return sendRedirect("/");
 	}
 	if (strcmp(rq->sink->data.url->path, "/process") == 0) {
