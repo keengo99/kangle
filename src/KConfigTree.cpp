@@ -131,15 +131,15 @@ namespace kconfig {
 				default_file = get_default_config_filename();
 				filename = default_file.data();
 			}
-			if (0 != unlink(f->get_filename()->data)) {
+			if (0 != unlink(filename->data)) {
 				unlink(tmpfile.c_str());
 				return false;
 			}
-			if (0 != rename(tmpfile.c_str(), f->get_filename()->data)) {
+			if (0 != rename(tmpfile.c_str(), filename->data)) {
 				return false;
 			}
 			//update last_modified
-			f->set_last_modified(kfile_last_modified(f->get_filename()->data));
+			f->set_last_modified(kfile_last_modified(filename->data));
 			return true;
 		}
 	};
