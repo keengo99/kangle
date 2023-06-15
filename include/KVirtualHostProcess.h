@@ -26,12 +26,6 @@ enum VProcess_Status
 	VProcess_Poweron,
 	VProcess_Close
 };
-struct KVirtualHostProcessQueue
-{
-	kselector* selector;
-	kfiber* fiber;
-	KVirtualHostProcessQueue* next;
-};
 class KListenPipeStream;
 /*
  * 一个虚拟主机进程模型
@@ -158,7 +152,7 @@ public:
 		struct sockaddr_un unix_addr;
 #endif
 	};
-	KVirtualHostProcessQueue* queue;
+	kfiber_waiter* queue;
 	time_t lastCheckTime;
 protected:
 	time_t lastActive;
@@ -171,14 +165,6 @@ protected:
 #endif
 private:
 	void NoticePowerResult(bool result);
-	void AddQueue()
-	{
-		KVirtualHostProcessQueue* qi = new KVirtualHostProcessQueue();
-		qi->selector = kgl_get_tls_selector();
-		qi->fiber = kfiber_self();
-		qi->next = queue;
-		queue = qi;
-	}
 };
 struct VProcessPowerParam
 {

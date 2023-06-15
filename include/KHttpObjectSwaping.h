@@ -19,13 +19,6 @@ enum swap_in_result {
 class KHttpRequest;
 class KHttpObject;
 class KHttpObjectBody;
-//typedef kev_result (*swap_http_obj_call_back)(KHttpRequest *rq, KHttpObject *obj, swap_in_result result);
-class KHttpObjectSwapWaiter {
-public:
-	//kselector *selector;
-	kfiber *fiber;
-	KHttpObjectSwapWaiter *next;
-};
 class KHttpObjectSwaping
 {
 public:
@@ -47,7 +40,7 @@ private:
 #endif
 	void swapin_body_result(KHttpObjectBody *data, char *buf, int got, kbuf **last);
 	void notice(KHttpObject *obj, KHttpObjectBody *data, swap_in_result result);
-	KHttpObjectSwapWaiter *waiter;
+	kfiber_waiter *waiter;
 };
 #endif
 #endif

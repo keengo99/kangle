@@ -108,7 +108,7 @@ public:
 	}
 	int get_time_out() override
 	{
-		return cn->st.tmo;
+		return cn->st.base.tmo;
 	}
 	void flush() override
 	{

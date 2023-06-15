@@ -165,12 +165,9 @@ clean:
 swap_in_result KHttpObjectSwaping::wait(KMutex* lock)
 {
 	kfiber* fiber = kfiber_self();
-	KHttpObjectSwapWaiter* waiter = new KHttpObjectSwapWaiter;
-	waiter->fiber = fiber;
-	assert(waiter->fiber);
-	waiter->next = this->waiter;
+	kfiber_add_waiter(&waiter, fiber, &fiber);	
 	lock->Unlock();
-	return (swap_in_result)__kfiber_wait(fiber, this);
+	return (swap_in_result)__kfiber_wait(fiber, &fiber);
 }
 void KHttpObjectSwaping::notice(KHttpObject* obj, KHttpObjectBody* data, swap_in_result result)
 {
@@ -185,18 +182,14 @@ void KHttpObjectSwaping::notice(KHttpObject* obj, KHttpObjectBody* data, swap_in
 	} else if (result != swap_in_busy) {
 		KBIT_SET(obj->index.flags, FLAG_DEAD);
 	}
+	kfiber_waiter* waiter = this->waiter;
+	this->waiter = nullptr;
 	lock->Unlock();
 	if (result == swap_in_success) {
 		kassert(obj->data->i.status_code > 0);
 		cache.getHash(obj->h)->IncMemObjectSize(obj);
 	}
-	KHttpObjectSwapWaiter* next;
-	while (waiter) {
-		next = waiter->next;
-		kfiber_wakeup_ts(waiter->fiber, this, (int)result);
-		delete waiter;
-		waiter = next;
-	}
+	kfiber_wakeup_all_waiter(waiter, (int)result);
 	delete osData;
 }
 #endif

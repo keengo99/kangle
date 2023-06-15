@@ -103,9 +103,10 @@ KUpstream* KVirtualHostProcess::GetUpstream(KHttpRequest* rq, KExtendProgram* rd
 		NoticePowerResult(true);
 		return us;
 	}
-	AddQueue();
+	kfiber* fiber = kfiber_self();
+	kfiber_add_waiter(&queue, fiber, &fiber);
 	lock.Unlock();
-	if (kfiber_wait(this) != 0) {
+	if (kfiber_wait(&fiber) != 0) {
 		return NULL;
 	}
 #endif
@@ -114,7 +115,7 @@ KUpstream* KVirtualHostProcess::GetUpstream(KHttpRequest* rq, KExtendProgram* rd
 void KVirtualHostProcess::NoticePowerResult(bool result)
 {
 	lock.Lock();
-	KVirtualHostProcessQueue* queue = this->queue;
+	auto * queue = this->queue;
 	this->queue = NULL;
 	if (result) {
 		status = VProcess_Poweron;
@@ -122,10 +123,5 @@ void KVirtualHostProcess::NoticePowerResult(bool result)
 		status = VProcess_Poweroff;
 	}
 	lock.Unlock();
-	while (queue) {
-		KVirtualHostProcessQueue* next = queue->next;
-		kfiber_wakeup_ts(queue->fiber,this, result ? 0 : -1);
-		delete queue;
-		queue = next;
-	}
+	kfiber_wakeup_all_waiter(queue, result ? 0 : -1);
 }

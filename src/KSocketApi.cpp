@@ -12,7 +12,7 @@ static SOCKET get_system_socket(KSOCKET_CLIENT s)
 KSELECTOR tcp_get_selector(KSOCKET_CLIENT s)
 {
 	kconnection *c = (kconnection *)s;
-	return (KSELECTOR)c->st.selector;
+	return (KSELECTOR)c->st.base.selector;
 }
 void tcp_set_opaque(KSOCKET_CLIENT s, KOPAQUE data)
 {
