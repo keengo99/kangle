@@ -22,7 +22,7 @@ class KHttpObjectBody;
 //typedef kev_result (*swap_http_obj_call_back)(KHttpRequest *rq, KHttpObject *obj, swap_in_result result);
 class KHttpObjectSwapWaiter {
 public:
-	kselector *selector;
+	//kselector *selector;
 	kfiber *fiber;
 	KHttpObjectSwapWaiter *next;
 };

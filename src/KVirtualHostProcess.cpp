@@ -20,7 +20,7 @@ KTHREAD_FUNCTION VProcessPowerWorker(void *param)
 	assert(process);
 	KVirtualHost *vh = vpp->vh;
 	vpp->st = process->PowerThread(vh, vpp->rd);
-	kfiber_wakeup2(vpp->selector, vpp->fiber, vpp->process, 0);
+	kfiber_wakeup_ts(vpp->fiber, vpp->process, 0);
 	KTHREAD_RETURN;
 }
 void getProcessInfo(const USER_T &user,const KString &name,KProcess *process,KPoolableSocketContainer *ps,KWStream &s)
@@ -58,7 +58,6 @@ KPipeStream* KVirtualHostProcess::Power(KHttpRequest* rq, KExtendProgram* rd)
 	param.process = this;
 	param.rd = rd;
 	param.fiber = kfiber_self();
-	param.selector = kgl_get_tls_selector();
 	if (!kthread_pool_start(VProcessPowerWorker, &param)) {		
 		return NULL;
 	}
@@ -125,7 +124,7 @@ void KVirtualHostProcess::NoticePowerResult(bool result)
 	lock.Unlock();
 	while (queue) {
 		KVirtualHostProcessQueue* next = queue->next;
-		kfiber_wakeup2(queue->selector, queue->fiber,this, result ? 0 : -1);
+		kfiber_wakeup_ts(queue->fiber,this, result ? 0 : -1);
 		delete queue;
 		queue = next;
 	}

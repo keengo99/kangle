@@ -163,7 +163,6 @@ typedef struct _kgl_async_http
 	int32_t life_time;
 	int32_t flags;
 	int32_t port;
-	//int32_t selector;
 } kgl_async_http;
 
 

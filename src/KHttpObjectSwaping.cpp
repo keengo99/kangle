@@ -167,9 +167,7 @@ swap_in_result KHttpObjectSwaping::wait(KMutex* lock)
 	kfiber* fiber = kfiber_self();
 	KHttpObjectSwapWaiter* waiter = new KHttpObjectSwapWaiter;
 	waiter->fiber = fiber;
-	waiter->selector = kgl_get_tls_selector();
 	assert(waiter->fiber);
-	assert(waiter->selector);
 	waiter->next = this->waiter;
 	lock->Unlock();
 	return (swap_in_result)__kfiber_wait(fiber, this);
@@ -195,7 +193,7 @@ void KHttpObjectSwaping::notice(KHttpObject* obj, KHttpObjectBody* data, swap_in
 	KHttpObjectSwapWaiter* next;
 	while (waiter) {
 		next = waiter->next;
-		kfiber_wakeup2(waiter->selector, waiter->fiber, this, (int)result);
+		kfiber_wakeup_ts(waiter->fiber, this, (int)result);
 		delete waiter;
 		waiter = next;
 	}

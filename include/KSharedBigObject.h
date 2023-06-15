@@ -16,7 +16,6 @@
 struct BigObjectReadQueue
 {
 	kfiber* rq;
-	kselector* selector;
 	char* buf;
 	int64_t from;
 	int64_t length;

@@ -259,7 +259,6 @@ int KSharedBigObject::read(KHttpRequest* rq, KHttpObject* obj, int64_t offset, c
 	BigObjectReadQueue* queue = new BigObjectReadQueue;
 	queue->rq = kfiber_self();
 	queue->buf = buf;
-	queue->selector = kgl_get_tls_selector();
 	queue->from = offset;
 	queue->length = length;
 	block->wait_queue.push_back(queue);
@@ -344,7 +343,7 @@ void KSharedBigObject::close_write(KHttpObject* obj, int64_t write_from) {
 	//通知等待队列失败
 	std::list<BigObjectReadQueue*>::iterator it;
 	for (it = notice_queues.begin(); it != notice_queues.end(); it++) {
-		kfiber_wakeup2((*it)->selector, (*it)->rq, (*it)->buf, -2);
+		kfiber_wakeup_ts((*it)->rq, (*it)->buf, -2);
 		delete (*it);
 	}
 }
@@ -452,7 +451,7 @@ KGL_RESULT KSharedBigObject::write(KHttpObject* obj, int64_t offset, const char*
 		int64_t block_length = (int64_t)length - buf_start;
 		block_length = KGL_MIN((int64_t)(*it)->length, block_length);
 		memcpy((*it)->buf, buf + (int)buf_start, (int)block_length);
-		kfiber_wakeup2((*it)->selector, (*it)->rq, (*it)->buf, (int)block_length);
+		kfiber_wakeup_ts((*it)->rq, (*it)->buf, (int)block_length);
 		delete (*it);
 	}
 	if (result == KGL_OK) {

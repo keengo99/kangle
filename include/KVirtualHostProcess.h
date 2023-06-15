@@ -186,7 +186,6 @@ struct VProcessPowerParam
 	KVirtualHostProcess* process;
 	KExtendProgram* rd;
 	KPipeStream* st;
-	kselector* selector;
 	kfiber* fiber;
 };
 void getProcessInfo(const USER_T& user, const KString& name, KProcess* process, KPoolableSocketContainer* ps, KWStream& s);
