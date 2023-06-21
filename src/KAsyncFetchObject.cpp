@@ -98,8 +98,8 @@ KUpstream* proxy_connect(KHttpRequest* rq) {
 	/* simuate request must replace host and port */
 	if (rq->ctx.simulate) {
 		KSimulateSink* ss = static_cast<KSimulateSink*>(rq->sink);
-		if (ss->host && *ss->host) {
-			host = ss->host;
+		if (ss->host) {
+			host = ss->host.c_str();
 			if (ss->port > 0) {
 				port = ss->port;
 			}

@@ -65,6 +65,7 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 	ss->life_time = ctx->life_time;
 	
 	ss->header = ctx->header;
+	ss->header_finish = ctx->header_finish;
 	ss->body = ctx->body;
 	ss->post = ctx->post;
 
@@ -82,13 +83,13 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 	if (!user_agent) {
 		//add default user-agent header
 		timeLock.Lock();
-		rq->sink->parse_header(kgl_expand_string("User-Agent"), conf.serverName, conf.serverNameLength, false);
+		rq->sink->parse_header(_KS("User-Agent"), conf.serverName, conf.serverNameLength, false);
 		timeLock.Unlock();
 	}
 	rq->sink = ss;
 	rq->ctx.simulate = 1;
 	if (KBIT_TEST(ctx->flags, KF_SIMULATE_GZIP)) {
-		rq->sink->parse_header(kgl_expand_string("Accept-Encoding"), kgl_expand_string("gzip"), false);
+		rq->sink->parse_header(_KS("Accept-Encoding"), _KS("gzip"), false);
 	}
 	rq->sink->data.meth = KHttpKeyValue::get_method(ctx->meth, (int)strlen(ctx->meth));
 	rq->sink->data.left_read = ctx->post_len;
@@ -173,21 +174,20 @@ kev_result KSimulateSink::read_header() {
 }
 KSimulateSink::KSimulateSink() : KSingleConnectionSink(NULL, NULL)
 {
-	memset(&header_manager, 0, sizeof(KHttpHeaderManager));
 	status_code = 0;
-	host = NULL;
+	header = NULL;
+	header_finish = NULL;
 	body = NULL;
 	post = NULL;	
 	arg = NULL;
+	life_time = 0;
+	port = 0;
 	sockaddr_i addr;
 	ksocket_getaddr("127.0.0.1", 0, PF_INET, AI_NUMERICHOST, &addr);
 	cn = kconnection_new(&addr);
 }
 KSimulateSink::~KSimulateSink()
 {
-	if (host) {
-		xfree(host);
-	}
 	if (body) {
 		this->body(arg, NULL, response_left==0);
 	}
@@ -199,19 +199,18 @@ int KSimulateSink::end_request()
 }
 
 typedef struct {
-	char *save_file;
+	KString save_file;
+	time_t last_modified;
 	int code;
+	bool gzip;
 	KWStream* st;
 } async_download_worker;
-
-int WINAPI async_download_header_hook(void *arg, int code, KHttpHeader *header)
-{
-	async_download_worker *dw = (async_download_worker *)arg;
-	dw->code = code;
-	if (code == 200) {
-
-		KFileStream *fs = new KFileStream;
-		fs->last_modified = 0;
+int WINAPI async_download_header_finish(void* arg, uint16_t status_code, int64_t body_size) {
+	async_download_worker* dw = (async_download_worker*)arg;
+	dw->code = status_code;
+	if (status_code == STATUS_OK) {
+		KFileStream* fs = new KFileStream;
+		fs->last_modified = dw->last_modified;
 		KStringBuf filename;
 		filename << dw->save_file << ASYNC_DOWNLOAD_TMP_EXT;
 		if (!fs->open(filename.c_str())) {
@@ -219,23 +218,29 @@ int WINAPI async_download_header_hook(void *arg, int code, KHttpHeader *header)
 			return 1;
 		}
 		dw->st = fs;
-		while (header) {
-			if (kgl_is_attr(header, _KS("Content-Encoding")) && kgl_mem_case_same(header->buf + header->val_offset, header->val_len, kgl_expand_string("gzip"))) {
-				KGzipDecompress *st = new KGzipDecompress(false, dw->st, true);
-				dw->st = st;				
-			} else if (kgl_is_attr(header, _KS("Last-Modified"))) {
-				fs->last_modified = kgl_parse_http_time((u_char*)header->buf + header->val_offset, header->val_len);
-			}
-			header = header->next;
+		if (dw->gzip) {
+			KGzipDecompress* st = new KGzipDecompress(false, dw->st, true);
+			dw->st = st;
 		}
-
+	}
+	return 0;
+}
+int WINAPI async_download_header_hook(void *arg, const char *name,int name_len,const char *val,int val_len)
+{
+	async_download_worker *dw = (async_download_worker *)arg;
+	if (kgl_is_attr(name,name_len, _KS("Content-Encoding")) && kgl_mem_case_same(val, val_len, kgl_expand_string("gzip"))) {
+		dw->gzip = true;
+		return 0;
+	}
+	if (kgl_is_attr(name, name_len, _KS("Last-Modified"))) {
+		dw->last_modified = kgl_parse_http_time((u_char*)val, val_len);
+		return 0;
 	}
 	return 0;
 }
 int WINAPI async_download_body_hook(void *arg, const char *data, int len)
 {
 	async_download_worker *dw = (async_download_worker *)arg;
-
 	if (data == NULL) {
 		if (dw->st) {
 			KGL_RESULT ret = dw->st->write_end(KGL_OK);
@@ -244,8 +249,8 @@ int WINAPI async_download_body_hook(void *arg, const char *data, int len)
 			KStringBuf filename;
 			filename << dw->save_file << ASYNC_DOWNLOAD_TMP_EXT;
 			if (ret==KGL_OK && len == 1 && (dw->code==200 || dw->code==206)) {
-				unlink(dw->save_file);
-				if (0 != rename(filename.c_str(), dw->save_file)) {
+				unlink(dw->save_file.c_str());
+				if (0 != rename(filename.c_str(), dw->save_file.c_str())) {
 					dw->code += 2000;
 				}
 			} else {
@@ -269,14 +274,13 @@ int kgl_async_download(const char *url, const char *file, int *status)
 	assert(!kfiber_is_main());
 	async_download_worker download_ctx;
 	memset(&download_ctx, 0, sizeof(async_download_worker));
-	download_ctx.save_file = strdup(file);
+	download_ctx.save_file = file;
 	kgl_async_http ctx;
 	memset(&ctx, 0, sizeof(ctx));
 	struct stat buf;
 	int ret = stat(file, &buf);
 	char tmp_buf[42];
-	KHttpHeader *header = nullptr;
-	
+	KHttpHeader *header = nullptr;	
 	if (ret == 0) {
 		mk1123time(buf.st_mtime, tmp_buf, 41);
 		header = new_http_header(_KS("If-Modified-Since"), tmp_buf, 41);
@@ -288,6 +292,7 @@ int kgl_async_download(const char *url, const char *file, int *status)
 	ctx.post_len = 0;
 	ctx.flags = KF_SIMULATE_GZIP;
 	ctx.header = async_download_header_hook;
+	ctx.header_finish = async_download_header_finish;
 	ctx.body = async_download_body_hook;
 	ctx.post = NULL;
 	kfiber* fiber = NULL;
@@ -302,7 +307,6 @@ clean:
 	if (header) {
 		xfree_header(header);
 	}
-	xfree(download_ctx.save_file);
 	return ret;
 }
 void async_download(const char* url, const char* file, result_callback cb, void* arg)

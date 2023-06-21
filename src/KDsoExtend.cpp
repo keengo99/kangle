@@ -171,6 +171,16 @@ static kgl_kfiber_function fiber_function = {
 	(void (*)(KFIBER, void*, int))kfiber_wakeup,
 	(int (*)(void*))kfiber_wait
 };
+static kgl_chan_function chan_function = {
+	(KFIBER_CHAN(*)())kfiber_chan_create,
+	(int (*)(KFIBER_CHAN , KOPAQUE))kfiber_chan_send,
+	(int (*)(KFIBER_CHAN , KOPAQUE *, KFIBER *))kfiber_chan_recv,
+	(int (*)(KFIBER_CHAN)) kfiber_chan_close,
+	(void (*)(KFIBER_CHAN, KFIBER, int))kfiber_chan_wakeup,
+	(KFIBER_CHAN(*)(KFIBER_CHAN))kfiber_chan_add_ref,
+	(int (*)(KFIBER_CHAN))kfiber_chan_get_ref,
+	(void (*)(KFIBER_CHAN))kfiber_chan_release
+};
 bool KDsoExtend::load(const char* filename, const KXmlAttribute& attribute)
 {
 	this->attribute = attribute;
@@ -196,6 +206,7 @@ bool KDsoExtend::load(const char* filename, const KXmlAttribute& attribute)
 	version.fiber = &fiber_function;
 	version.mutex = &mutex_function;
 	version.cond = &cond_function;
+	version.chan = &chan_function;
 	version.cn = this;
 	if (!kgl_dso_init(&version)) {
 		klog(KLOG_ERR, "cann't load dso extend [%s] kgl_dso_init return false\n", name);

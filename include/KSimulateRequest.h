@@ -34,9 +34,8 @@ public:
 	}
 	bool response_header(const char *name, int name_len, const char *val, int val_len) override
 	{
-		KHttpHeader *header = new_pool_http_header(name, name_len, val, val_len,(kgl_malloc)kgl_pnalloc, cn->pool);
 		if (header) {
-			header_manager.append(header);
+			return header(arg, name, name_len, val, val_len) == 0;
 		}
 		return true;
 	}
@@ -48,8 +47,8 @@ public:
 	//返回头长度,-1表示出错
 	int internal_start_response_body(int64_t body_size, bool is_100_continue) override
 	{
-		if (header) {
-			header(arg, status_code, header_manager.header);
+		if (header_finish) {
+			header_finish(arg, status_code, body_size);
 		}
 		return 0;
 	}
@@ -71,10 +70,6 @@ public:
 			return post(arg, buf, len);
 		}
 		return -1;
-	}
-	bool HasHeaderDataToSend() 
-	{
-		return false;
 	}
 	int internal_write(WSABUF *buf, int bc) override
 	{
@@ -115,11 +110,11 @@ public:
 
 	}
 	http_header_hook header;
+	http_header_finish_hook header_finish;
 	http_post_hook post;
 	http_body_hook body;
 
-	KHttpHeaderManager header_manager;
-	char *host;
+	KString host;
 	uint16_t port;
 	uint16_t status_code;
 	int life_time;

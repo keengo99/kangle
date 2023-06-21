@@ -1597,8 +1597,6 @@ bool KHttpManage::start(bool& hit) {
 	}
 	if (strcmp(rq->sink->data.url->path, "/acserver") == 0) {
 		return extends();
-		//	return sendHttp(
-		//			conf.gam->acserverList(getUrlValue("name")).c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/apilist") == 0) {
 		return extends(2);
@@ -1608,50 +1606,10 @@ bool KHttpManage::start(bool& hit) {
 	}
 	if (strcmp(rq->sink->data.url->path, "/macserver") == 0) {
 		return extends(1);
-		//return sendHttp(conf.gam->macserverList());
 	}
 	if (strcmp(rq->sink->data.url->path, "/extends") == 0) {
 		return extends();
 	}
-#ifdef ENABLE_WRITE_BACK
-	if (strcmp(rq->sink->data.url->path, "/writeback") == 0) {
-		return sendHttp(
-			writeBackManager.writebackList(getUrlValue("name")).c_str());
-	}
-	if (strcmp(rq->sink->data.url->path, "/writebackadd") == 0) {
-		KString err_msg;
-		auto msg = getUrlValue("msg");
-		if (writeBackManager.newWriteBack(getUrlValue("name"), getUrlValue(
-			"msg"), err_msg)) {
-			if (!saveConfig()) {
-				return sendErrorSaveConfig();
-			}
-			return sendRedirect("/writeback");
-		}
-		return sendErrPage(err_msg.c_str());
-	}
-	if (strcmp(rq->sink->data.url->path, "/writebackedit") == 0) {
-		KString err_msg;
-		KWriteBack m_a;
-		m_a.name = getUrlValue("name");
-		m_a.setMsg(getUrlValue("msg"));
-		//	m_a.ip=inet_addr(getUrlValue("ip").c_str());
-		//	m_a.port=atoi(getUrlValue("port").c_str());
-		if (writeBackManager.editWriteBack(getUrlValue("namefrom"), m_a,
-			err_msg)) {
-			//conf.m_kfilter.SaveConfig();
-			return sendRedirect("/writeback");
-		}
-		return sendErrPage(err_msg.c_str());
-	}
-	if (strcasecmp(rq->sink->data.url->path, "/writebackdelete") == 0) {
-		KString err_msg;
-		if (writeBackManager.delWriteBack(getUrlValue("name"), err_msg)) {
-			return sendRedirect("/writeback");
-		}
-		return sendErrPage(err_msg.c_str());
-	}
-#endif
 #ifdef ENABLE_MULTI_SERVER
 	if (strcmp(rq->sink->data.url->path, "/macserveradd") == 0) {
 		KString err_msg;

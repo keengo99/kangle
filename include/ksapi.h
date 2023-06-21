@@ -137,7 +137,8 @@ typedef struct _kgl_timer
 /* 读入post回调,返回length */
 typedef int (WINAPI* http_post_hook) (void* arg, char* buf, int len);
 /* 返回0成功，其他错误*/
-typedef int (WINAPI* http_header_hook)(void* arg, int code, KHttpHeader* header);
+typedef int (WINAPI* http_header_hook)(void* arg, const char* name, int name_len, const char* val, int val_len);
+typedef int (WINAPI* http_header_finish_hook)(void* arg, uint16_t status_code, int64_t body_size);
 /* http内容回调 data=NULL 结束,len=1表示正常结束 ,返回0成功，其他错误*/
 typedef int (WINAPI* http_body_hook)(void* arg, const char* data, int len);
 
@@ -154,12 +155,14 @@ typedef struct _kgl_async_http
 	const char* url;
 	const char* queue;
 	KHttpHeader* rh;
-	http_header_hook header;
 
-	http_post_hook post;
+	http_header_hook header;
+	http_header_finish_hook header_finish;	
 	http_body_hook body;
 
+	http_post_hook post;
 	int64_t post_len;
+
 	int32_t life_time;
 	int32_t flags;
 	int32_t port;
@@ -244,6 +247,7 @@ typedef LPVOID KHTTPOBJECT;
 typedef LPVOID KFIBER;
 typedef LPVOID KFIBER_MUTEX;
 typedef LPVOID KFIBER_COND;
+typedef LPVOID KFIBER_CHAN;
 typedef LPVOID KFIBER_RWLOCK;
 
 typedef KGL_RESULT(*kgl_get_variable_f) (KREQUEST r, KGL_VAR type, const char* name, LPVOID value, LPDWORD size);
@@ -593,6 +597,17 @@ typedef struct _kgl_cond_function
 	void (*destroy)(KFIBER_COND mutex);
 } kgl_cond_function;
 
+typedef struct _kgl_chan_function {
+	KFIBER_CHAN(*init)();
+	int (*send)(KFIBER_CHAN ch, KOPAQUE data);
+	int (*recv)(KFIBER_CHAN ch, KOPAQUE* data, KFIBER *sender);
+	int (*close)(KFIBER_CHAN ch);
+	void (*wakeup_sender)(KFIBER_CHAN ch, KFIBER sender, int got);
+	KFIBER_CHAN(*add_ref)(KFIBER_CHAN ch);
+	int (*get_ref)(KFIBER_CHAN ch);
+	void (*release)(KFIBER_CHAN ch);
+} kgl_chan_function;
+
 typedef struct _kgl_kfiber_function
 {
 	int (*create) (kgl_fiber_start_func start, void* arg, int len, int stk_size, KFIBER* fiber);
@@ -658,6 +673,7 @@ typedef struct _kgl_dso_version
 	kgl_kfiber_function* fiber;
 	kgl_mutex_function* mutex;
 	kgl_cond_function* cond;
+	kgl_chan_function* chan;
 } kgl_dso_version;
 
 #define KGL_REGISTER_ACCESS(dso_version,access) dso_version->f->global_support_function(dso_version->cn,KGL_REQ_REGISTER_ACCESS,access,NULL)
