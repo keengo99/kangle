@@ -11,6 +11,7 @@ import (
 	"os"
 
 	"path/filepath"
+	"time"
 	"runtime"
 	"test_framework/server"
 	"test_framework/suite"
@@ -66,6 +67,7 @@ func ProcessSuites(suites []string) {
 		server.Start()
 	} else {
 		go server.Start()
+		time.Sleep(time.Second)
 	}
 	for i := 0; i < *test_count; i++ {
 		if *alpn >= 0 {
