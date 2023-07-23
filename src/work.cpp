@@ -160,7 +160,7 @@ namespace kangle {
 				max_per_ip += 10;
 			}
 		}
-		kgl_pool_cleanup_t* pt;
+		kgl_cleanup_t* pt;
 		intmap::iterator it2;
 		ip_addr ip;
 		ip_lock.Lock();
@@ -179,9 +179,7 @@ namespace kangle {
 			klist_append(&all_connection, &c->queue_edge);
 #endif
 			ip_lock.Unlock();
-			pt = kgl_pool_cleanup_add(c->pool, 0);
-			pt->handler = del_request;
-			pt->data = c;
+			pt = kgl_cleanup_add(c->pool, del_request, c);
 			return success_result;
 		}
 		ksocket_ipaddr(&c->addr, &ip);
@@ -199,9 +197,7 @@ namespace kangle {
 		klist_append(&all_connection, &c->queue_edge);
 #endif
 		ip_lock.Unlock();
-		pt = kgl_pool_cleanup_add(c->pool, 0);
-		pt->handler = del_request_per_ip;
-		pt->data = c;
+		pt = kgl_cleanup_add(c->pool, del_request_per_ip, c);
 		return success_result;
 	max_per_ip:
 		ip_lock.Unlock();

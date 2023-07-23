@@ -99,7 +99,6 @@ public:
 	struct {
 		uint32_t filter_flags;
 		uint32_t internal:1;
-		//uint32_t replace : 1;
 		uint32_t simulate : 1;
 		uint32_t skip_access : 1;
 		uint32_t cache_hit_part : 1;
@@ -115,14 +114,13 @@ public:
 		uint32_t read_huped : 1;
 		uint32_t upstream_expected_done : 1;
 		//precondition类型
-		uint32_t precondition_flag:3;
-		//int64_t content_range_length;
+		uint32_t precondition_flag : 3;
 		int64_t left_read;	//final fetchobj 使用
 		KHttpObject* obj;
 		KHttpObject* old_obj;
 		kgl_sub_request* sub_request;
 		kgl_response_body body;
-		kgl_request_body *in_body;
+		kgl_request_body* in_body;
 	} ctx;
 	KFetchObject* fo_head;
 	KFetchObject* fo_last;
@@ -182,7 +180,7 @@ protected:
 class KHttpRequest : public KHttpRequestData
 {
 public:
-	inline KHttpRequest(KSink* sink) {	
+	inline KHttpRequest(KSink* sink) {
 		this->sink = sink;
 	}
 	~KHttpRequest();
@@ -259,7 +257,7 @@ public:
 	}
 	void parse_connection(const char* val, const char* end);
 	void readhup();
-	
+
 	bool rewrite_url(const char* newUrl, int errorCode = 0, const char* prefix = NULL);
 	void EnterRequestQueue();
 	void LeaveRequestQueue();
@@ -272,7 +270,7 @@ public:
 	inline bool response_status(uint16_t status_code) {
 		return sink->response_status(status_code);
 	}
-	bool response_content_range(kgl_request_range *range, int64_t content_length);
+	bool response_content_range(kgl_request_range* range, int64_t content_length);
 	inline bool response_header(kgl_header_type name, const char* val, hlen_t val_len, bool lock_value = false) {
 		return sink->response_header(name, val, val_len, lock_value);
 	}
@@ -293,7 +291,7 @@ public:
 	inline bool response_connection() {
 		return sink->response_connection();
 	}
-	
+
 	/**
 	* if lock_header true the header param will locked by sink until startResponseBody be called.
 	*/
@@ -312,7 +310,7 @@ public:
 	KGL_RESULT write_all(WSABUF* buf, int vc);
 	KGL_RESULT write_all(const char* buf, int len);
 	KGL_RESULT write_end(KGL_RESULT result);
-	KGL_RESULT sendfile(KASYNC_FILE fp, int64_t* len) ;
+	KGL_RESULT sendfile(KASYNC_FILE fp, int64_t* len);
 
 	KGL_RESULT write_buf(kbuf* buf, int length = -1);
 	/* override KWStream function end */
@@ -326,16 +324,12 @@ public:
 	const char* getClientIp() {
 		return sink->get_client_ip();
 	}
-	void registerRequestCleanHook(kgl_cleanup_f callBack, void* data) {
+	void registerRequestCleanHook(kgl_cleanup_f cb, void* data) {
 		assert(sink->pool);
-		kgl_pool_cleanup_t* cn = kgl_pool_cleanup_add(sink->pool, 0);
-		cn->data = data;
-		cn->handler = callBack;
+		kgl_cleanup_add(sink->pool, cb, data);
 	}
-	void registerConnectCleanHook(kgl_cleanup_f callBack, void* data) {
-		kgl_pool_cleanup_t* cn = kgl_pool_cleanup_add(sink->get_connection_pool(), 0);
-		cn->data = data;
-		cn->handler = callBack;
+	void registerConnectCleanHook(kgl_cleanup_f cb, void* data) {
+		kgl_cleanup_add(sink->get_connection_pool(), cb, data);
 	}
 	void pushFlowInfo(KFlowInfo* fi) {
 		return sink->push_flow_info(fi);
@@ -372,13 +366,13 @@ public:
 		result->len = header->val_len;
 		return true;
 	}
-	
+
 #ifdef ENABLE_REQUEST_QUEUE
 	bool NeedQueue();
 	void ReleaseQueue();
 #endif
 	KGL_RESULT open_next(KFetchObject* fo, kgl_input_stream* in, kgl_output_stream* out, const char* queue);
-	KFetchObject *replace_next(KFetchObject* fo, KFetchObject* next_fo);
+	KFetchObject* replace_next(KFetchObject* fo, KFetchObject* next_fo);
 private:
 	void close_source();
 };

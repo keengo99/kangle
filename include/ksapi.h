@@ -249,6 +249,7 @@ typedef LPVOID KFIBER_MUTEX;
 typedef LPVOID KFIBER_COND;
 typedef LPVOID KFIBER_CHAN;
 typedef LPVOID KFIBER_RWLOCK;
+typedef LPVOID KGL_POOL;
 
 typedef KGL_RESULT(*kgl_get_variable_f) (KREQUEST r, KGL_VAR type, const char* name, LPVOID value, LPDWORD size);
 
@@ -577,8 +578,6 @@ typedef struct _kgl_file_function
 } kgl_file_function;
 
 
-
-
 typedef struct _kgl_mutex_function
 {
 	KFIBER_MUTEX(*init)(int limit);
@@ -619,6 +618,20 @@ typedef struct _kgl_kfiber_function
 	void (*wakeup)(KFIBER fiber, void* obj, int retval);
 	int (*wait)(void* obj);
 } kgl_kfiber_function;
+
+typedef struct _kgl_pool_function
+{
+	KGL_POOL(*get_connection_pool)(KREQUEST rq);
+	KGL_POOL(*get_request_pool)(KREQUEST rq);
+	void * (*palloc)(KGL_POOL pool, size_t size);
+	void* (*pnalloc)(KGL_POOL pool, size_t size);
+	void* (*pmemalign)(KGL_POOL pool, size_t size, size_t alignment);
+	kgl_cleanup_t* (*cleanup_add)(KGL_POOL pool, kgl_cleanup_f handler, void* data);
+	/* if found old handler return it.else create a new */
+	kgl_cleanup_t* (*cleanup_insert)(KGL_POOL pool, kgl_cleanup_f handler);
+	void* (*cleanup_get_data)(kgl_cleanup_t* c);
+	void  (*cleanup_set_data)(kgl_cleanup_t* c, void* data);
+} kgl_pool_function;
 
 typedef struct _kgl_http_object_function
 {
@@ -674,6 +687,7 @@ typedef struct _kgl_dso_version
 	kgl_mutex_function* mutex;
 	kgl_cond_function* cond;
 	kgl_chan_function* chan;
+	kgl_pool_function* pool;
 } kgl_dso_version;
 
 #define KGL_REGISTER_ACCESS(dso_version,access) dso_version->f->global_support_function(dso_version->cn,KGL_REQ_REGISTER_ACCESS,access,NULL)
