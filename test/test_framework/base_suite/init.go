@@ -39,6 +39,7 @@ func (b *base) Init() error {
 	server.Handle("/websocket2", HandleWebsocket)
 	server.Handle("/broken_cache", HandleBrokenCache)
 	server.Handle("/upstream_http_protocol", HandleUpstreamHttpProtocol)
+	server.Handle("/flush", HandleFlush)
 	str := `<!--#start 200-->
 <config>
 	<request>
@@ -168,5 +169,6 @@ func init() {
 	s.AddCase("htaccess", "check apache htaccess", check_htaccess)
 	s.AddCase("directory", "check directory", check_directory)
 	s.AddCase("config", "check config reload", check_config)
+	s.AddCase("flush", "upstream flush", check_flush)
 	s.AddCase("bug", "bug", check_bug)
 }

@@ -165,6 +165,10 @@ bool KHttpResponseParser::parse_unknow_header(KHttpRequest* rq, const char* attr
 			obj->need_compress = 1;
 			return true;
 		}
+		if (kgl_mem_case_same(attr,attr_len,_KS("X-No-Buffer"))) {
+			KBIT_SET(rq->ctx.filter_flags,RF_NO_BUFFER);
+			return true;
+		}
 	}
 	if (kgl_mem_case_same(attr, attr_len, _KS("Trailer"))) {
 		//has trailer header will no cache.

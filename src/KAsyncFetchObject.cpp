@@ -227,18 +227,25 @@ KGL_RESULT KAsyncFetchObject::ParseBody(KHttpRequest* rq) {
 }
 
 KGL_RESULT KAsyncFetchObject::ReadBody(KHttpRequest* rq) {
+	KGL_RESULT result;
 	int len;
 	for (;;) {
 		if (us_buffer.used > 0) {
-			KGL_RESULT ret = ParseBody(rq);
-			if (ret != KGL_OK) {
-				return ret;
+			result = ParseBody(rq);
+			if (result != KGL_OK) {
+				return result;
 			}
 		}
 		if (!KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE) && !checkContinueReadBody(rq)) {
 			return KGL_OK;
 		}
 		rq->readhup();
+		if (KBIT_TEST(rq->ctx.filter_flags, RF_NO_BUFFER) && body.ctx) {
+			result = body.f->flush(body.ctx);
+			if (result!=KGL_OK) {
+				return result;
+			}
+		}
 		char* buf = (char*)getUpstreamBuffer(&len);
 		int got = client->read(buf, len);
 		if (got == 0) {
@@ -246,7 +253,7 @@ KGL_RESULT KAsyncFetchObject::ReadBody(KHttpRequest* rq) {
 			while (header) {
 				kgl_str_t name;
 				kgl_get_header_name(header, &name);
-				KGL_RESULT result = out->f->write_trailer(out->ctx, name.data, (hlen_t)name.len, header->buf + header->val_offset, (hlen_t)header->val_len);
+				result = out->f->write_trailer(out->ctx, name.data, (hlen_t)name.len, header->buf + header->val_offset, (hlen_t)header->val_len);
 				if (result != KGL_OK) {
 					return result;
 				}
