@@ -226,7 +226,7 @@ void upgrade_vh_map(khttpd::KXmlNode* node) {
 		} else {
 			new_node_body = kconfig::new_child(node_body, _KS("map_path"));
 		}
-		new_node_body->attributes.merge(body->attributes);
+		new_node_body->attributes.insert(body->attributes.begin(), body->attributes.end());
 		new_node_body->childs.swap(body->childs);
 	}
 	map_node->release();
