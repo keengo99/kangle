@@ -1,9 +1,11 @@
 package common
 
 import (
+	"compress/gzip"
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"strconv"
@@ -101,11 +103,21 @@ func skipBody(resp *http.Response, report chan int) (total_read int64) {
 		report <- n
 	}
 }
+func ReadGzip(resp *http.Response) string {
+	r, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		panic(err.Error())
+	}
+	return readData(r)
+}
 func Read(resp *http.Response) string {
+	return readData(resp.Body)
+}
+func readData(r io.Reader) string {
 	var content string
 	buf := make([]byte, 4096)
 	for {
-		n, _ := resp.Body.Read(buf)
+		n, _ := r.Read(buf)
 		if n <= 0 {
 			return content
 		}

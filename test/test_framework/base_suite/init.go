@@ -28,6 +28,7 @@ func (b *base) Init() error {
 	server.Handle("/br", HandleBr)
 	server.Handle("/gzip", HandleGzip)
 	server.Handle("/gzip_br", HandleGzipBr)
+	server.Handle("/chunk_compress", handle_chunk_compress)
 
 	server.Handle("/dynamic", HandleDynamic)
 	server.Handle("/no-cache", HandleNoCache)
@@ -124,6 +125,7 @@ func init() {
 	s.AddCase("br_unknow", "br和unknow的encoding", check_br_unknow_encoding)
 	s.AddCase("encoding_pri", "不同顺序请求encoding的优先级", check_encoding_priority)
 	s.AddCase("compress", "gzip/br压缩", check_compress)
+	s.AddCase("chunk_compress", "块压缩", check_chunk_compress)
 	s.AddCase("bigobj", "大物件缓存最简单缓存", check_big_object)
 	s.AddCase("weak_etag", "weak etag测试", check_weak_etag_range)
 	s.AddCase("bigobj_range", "大物件简单部分缓存", check_simple_range)

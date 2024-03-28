@@ -10,6 +10,24 @@ import (
 	"test_framework/kangle"
 )
 
+func handle_chunk_compress(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("X-Gzip", "on")
+	w.Header().Add("Cache-Control", "no-cache, no-store")
+	w.Header().Add("Server", TEST_SERVER_NAME)
+	f, _ := w.(http.Flusher)
+	f.Flush()
+	w.Write([]byte(r.FormValue("body")))
+}
+func check_chunk_compress() {
+	common.Get("/chunk_compress?body=helloworld", map[string]string{"Accept-Encoding": "gzip"}, func(resp *http.Response, err error) {
+		common.AssertSame(resp.Header.Get("Content-Encoding"), "gzip")
+		common.AssertSame(common.ReadGzip(resp), "helloworld")
+	})
+	common.Get("/chunk_compress?body=", map[string]string{"Accept-Encoding": "gzip"}, func(resp *http.Response, err error) {
+		common.AssertSame(resp.Header.Get("Content-Encoding"), "gzip")
+		common.AssertSame(common.ReadGzip(resp), "")
+	})
+}
 func check_gzip() {
 	common.Get("/gzip", map[string]string{"Accept-Encoding": "gzip,deflate"}, func(resp *http.Response, err error) {
 		//Assert("gzip-first-response", read(resp) == "gzip")

@@ -250,15 +250,13 @@ KGL_RESULT kgzip_close(kgl_response_body_ctx* ctx, KGL_RESULT result) {
 	unsigned total_length;
 	u_char out[8];
 	int n;
-	if (result != KGL_OK) {
-		goto done;
-	}
-	if (gzip->strm.total_in <= 0) {
+	if (gzip->strm.total_in < 0) {
 		result = KGL_EDATA_FORMAT;
 		goto done;
 	}
-	result = kgzip_compress(gzip, Z_FINISH);
-	if (result != KGL_OK) {
+	KGL_RESULT result2 = kgzip_compress(gzip, Z_FINISH);
+	if (result2 != KGL_OK) {
+		result = result2;
 		goto done;
 	}
 	for (n = 0; n < 4; n++) {
@@ -270,9 +268,15 @@ KGL_RESULT kgzip_close(kgl_response_body_ctx* ctx, KGL_RESULT result) {
 		out[n+4] = (total_length & 0xff);
 		total_length >>= 8;
 	}
-	result = forward_write(ctx, (char *)out, 8);
+	result2 = forward_write(ctx, (char *)out, 8);
+	if (result2 != KGL_OK) {
+		result = result2;
+	}
 done:
-	result = forward_close(ctx, result);
+	result2 = forward_close(ctx, result);
+	if (result2 != KGL_OK) {
+		result = result2;
+	}
 	deflateEnd(&gzip->strm);
 	delete gzip;
 	return result;
