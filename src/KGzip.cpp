@@ -250,11 +250,12 @@ KGL_RESULT kgzip_close(kgl_response_body_ctx* ctx, KGL_RESULT result) {
 	unsigned total_length;
 	u_char out[8];
 	int n;
+	KGL_RESULT result2;
 	if (gzip->strm.total_in < 0) {
 		result = KGL_EDATA_FORMAT;
 		goto done;
 	}
-	KGL_RESULT result2 = kgzip_compress(gzip, Z_FINISH);
+	result2 = kgzip_compress(gzip, Z_FINISH);
 	if (result2 != KGL_OK) {
 		result = result2;
 		goto done;
