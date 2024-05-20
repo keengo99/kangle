@@ -283,6 +283,7 @@ KHttpHeaderIteratorResult handle_http_header(void* arg, KHttpHeader* header) {
 #endif
 		return KHttpHeaderIteratorResult::Continue;
 	}
+#if 0
 	if (kgl_is_attr(header, _KS("Content-Type"))) {
 #ifdef ENABLE_INPUT_FILTER
 		if (rq->if_ctx == NULL) {
@@ -296,6 +297,7 @@ KHttpHeaderIteratorResult handle_http_header(void* arg, KHttpHeader* header) {
 #endif
 		}
 	}
+#endif
 	return KHttpHeaderIteratorResult::Continue;
 }
 void KHttpRequest::beginRequest() {

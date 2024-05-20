@@ -69,7 +69,9 @@ static kgl_access footer_model = {
 	process,
 	NULL
 };
+extern kgl_access kgl_param_model;
 void register_access(kgl_dso_version *ver)
 {	
 	KGL_REGISTER_ACCESS(ver, &footer_model);
+	KGL_REGISTER_ACCESS(ver, &kgl_param_model);
 }

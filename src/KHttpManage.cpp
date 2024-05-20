@@ -552,10 +552,14 @@ bool KHttpManage::config() {
 		s << " >" << LANG_OFF << "</option></select><br>";
 
 		s << "min compress length:<input name='min_compress_length' size=6 value='" << conf.min_compress_length << "'><br>";
-		s << "<a href=# title='(0-9,0=disable)'>gzip level</a><input name=gzip_level size=3 value='" << conf.gzip_level << "'><br>";
+		s << "<a href=# title='(0-9,0=disable)'>gzip level</a><input name=gzip_level size=3 value='" << conf.gzip_level << "'>";
 #ifdef ENABLE_BROTLI
-		s << "<a href=# title='(0-9,0=disable)'>br level</a><input name=br_level size=3 value='" << conf.br_level << "'><br>";
+		s << "<a href=# title='(0-9,0=disable)'>br level</a><input name=br_level size=3 value='" << conf.br_level << "'>";
 #endif
+#ifdef ENABLE_ZSTD
+		s << "<a href=# title='(0-9,0=disable)'>zstd level</a><input name=zstd_level size=3 value='" << conf.zstd_level << "'>";
+#endif
+		s << "<br>";
 #ifdef KANGLE_ENT
 		s << klang["server_software"]
 			<< "<input type=text name='server_software' value='"
@@ -696,6 +700,9 @@ bool KHttpManage::configsubmit() {
 		compress_attr.emplace("gzip_level"_CS, getUrlValue("gzip_level"));
 #ifdef ENABLE_BROTLI
 		compress_attr.emplace("br_level"_CS, getUrlValue("br_level"));
+#endif
+#ifdef ENABLE_ZSTD
+		compress_attr.emplace("zstd_level"_CS, getUrlValue("zstd_level"));
 #endif
 		compress_attr.emplace("only_cache"_CS, getUrlValue("only_compress_cache"));
 		compress_attr.emplace("min_length"_CS, getUrlValue("min_compress_length"));
@@ -1871,8 +1878,8 @@ void init_manager_handler() {
 		if (rq->sink->data.url->param) {
 			url.parse((const char*)rq->sink->data.url->param);
 		}
-		auto file = url.attribute["file"];
-		if (file == KXmlAttribute::empty) {
+		auto &&file = url.attribute["file"];
+		if (file == KString::empty_string) {
 			kconfig::reload();
 			return send_http2(rq, nullptr, STATUS_NO_CONTENT, nullptr);
 		}

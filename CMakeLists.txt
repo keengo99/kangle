@@ -29,7 +29,7 @@ file(GLOB TESTDSO_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/module/testdso/*.cpp)
 file(GLOB FILTER_SOURCE_FILES 
       ${CMAKE_CURRENT_SOURCE_DIR}/module/filter/*.cpp
       ${CMAKE_CURRENT_SOURCE_DIR}/module/filter/*.h)
-
+list(APPEND FILTER_SOURCE_FILES src/KReg.cpp)
 
 list(APPEND EXTWORKER_SOURCE_FILES 
     src/EdcodeUtils.cpp 
@@ -77,6 +77,12 @@ if (ENABLE_BROTLI)
 	    #      list(APPEND KANGLE_LIBS "brotlicommon" "brotlienc")
     endif()
 endif()
+if (ZSTD_DIR)
+    get_filename_component(ZSTD_DIR ${ZSTD_DIR} REALPATH)
+    add_subdirectory(${ZSTD_DIR}/build/cmake ${CMAKE_CURRENT_BINARY_DIR}/zstd EXCLUDE_FROM_ALL)
+    list(APPEND KANGLE_LIBS "libzstd_static")
+    set(ENABLE_ZSTD ON)
+endif()
 if (NOT (CMAKE_SYSTEM_NAME MATCHES "Windows"))
     set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g2")
 endif()
@@ -95,6 +101,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Windows")
     list(APPEND KANGLE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdinclude")
     list(APPEND KANGLE_LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/win32lib/${CMAKE_VS_PLATFORM_NAME}")
     list(APPEND KANGLE_LIBS zdll pcre)
+    list(APPEND FILTER_LIBS pcre)
     list(APPEND EXTWORKER_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/KWinCgiEnv.cpp")
     list(APPEND VHS_SQLITE_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/module/vhs_sqlite/vhs_sqlite.def")
     set(ZLIB_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdinclude")
@@ -106,6 +113,7 @@ else()
 		message(FATAL_ERROR "cann't found zlib")
 	endif()
 	list(APPEND KANGLE_LIBS ZLIB::ZLIB)
+    list(APPEND FILTER_LIBS ${PCRE_LIBRARIES})
 	list(APPEND KANGLE_LIBS ${PCRE_LIBRARIES})
 	if (CMAKE_SYSTEM_NAME MATCHES "Linux")
 		list(APPEND KANGLE_LIBS dl)
@@ -171,6 +179,7 @@ if (NOT HTTP_PROXY)
     set_property(TARGET filter PROPERTY  PREFIX "")
     target_include_directories(filter PUBLIC ${KANGLE_INCLUDE_DIR})
     target_link_directories(filter PUBLIC ${KANGLE_LIBS_DIR})
+    target_link_libraries(filter ${FILTER_LIBS} khttpd)
 
     install(TARGETS extworker vhs_sqlite
      RUNTIME DESTINATION bin 

@@ -78,5 +78,5 @@ private:
 	std::map<const char *,KParamValue *,lessp_url_name> m;
 };
 #endif
-int url_decode(char *url_msg, int url_len = 0,KUrl *url=NULL,bool space2plus=true);
+//int url_decode(char *url_msg, int url_len = 0,kgl_url *url=NULL,bool space2plus=true);
 #endif

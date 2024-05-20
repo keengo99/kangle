@@ -130,6 +130,8 @@ bool KHttpResponseParser::parse_header(KHttpRequest* rq, kgl_header_type attr, c
 			obj->uk.url->set_content_encoding(KGL_ENCODING_COMPRESS);
 		} else if (kgl_mem_case_same(val, val_len, _KS("br"))) {
 			obj->uk.url->set_content_encoding(KGL_ENCODING_BR);
+		} else if (kgl_mem_case_same(val, val_len, _KS("zstd"))) {
+			obj->uk.url->set_content_encoding(KGL_ENCODING_ZSTD);
 		} else if (kgl_mem_case_same(val, val_len, _KS("identity"))) {
 			obj->uk.url->accept_encoding = (u_char)~0;
 		} else if (val_len > 0) {

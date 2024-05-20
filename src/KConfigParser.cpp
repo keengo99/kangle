@@ -67,12 +67,14 @@ void on_compress_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 		conf.min_compress_length = 512;
 		conf.gzip_level = 5;
 		conf.br_level = 5;
+		conf.zstd_level = 5;
 	} else {
 		auto& attr = ev->get_xml()->attributes();
 		conf.only_compress_cache = attr.get_int("only_cache", 0);
 		conf.min_compress_length = attr.get_int("min_length", 512);
 		conf.gzip_level = attr.get_int("gzip_level", 5);
 		conf.br_level = attr.get_int("br_level", 5);
+		conf.zstd_level = attr.get_int("zstd_level", 5);
 	}
 }
 void on_connect_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {

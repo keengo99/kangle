@@ -2,9 +2,8 @@
 #include "KHttpRequest.h"
 #include "KHttpObject.h"
 #include "KGzip.h"
-#ifdef ENABLE_BROTLI
 #include "KBrotli.h"
-#endif
+#include "KZstd.h"
 
 bool pipe_compress_stream(KHttpRequest* rq, KHttpObject* obj, int64_t content_len, kgl_response_body* body) {
 	if (content_len >= 0 && content_len < conf.min_compress_length) {
@@ -32,8 +31,19 @@ bool pipe_compress_stream(KHttpRequest* rq, KHttpObject* obj, int64_t content_le
 	if (KBIT_TEST(obj->index.flags, FLAG_DEAD) && conf.only_compress_cache == 1) {
 		return false;
 	}
+	if (!obj->need_compress) {
+		return false;
+	}
+#ifdef ENABLE_ZSTD
+	if (conf.zstd_level > 0 && KBIT_TEST(rq->sink->data.raw_url->accept_encoding, KGL_ENCODING_ZSTD)) {
+		if (pipe_zstd_compress(conf.zstd_level, body)) {
+			obj->AddContentEncoding(KGL_ENCODING_ZSTD, kgl_expand_string("zstd"));
+			return true;
+		}
+	}
+#endif
 #ifdef ENABLE_BROTLI
-	if (obj->need_compress && conf.br_level > 0 && KBIT_TEST(rq->sink->data.raw_url->accept_encoding, KGL_ENCODING_BR)) {		
+	if (conf.br_level > 0 && KBIT_TEST(rq->sink->data.raw_url->accept_encoding, KGL_ENCODING_BR)) {		
 		if (pipe_brotli_compress(conf.br_level, body)) {
 			obj->AddContentEncoding(KGL_ENCODING_BR, kgl_expand_string("br"));
 			return true;
@@ -41,7 +51,7 @@ bool pipe_compress_stream(KHttpRequest* rq, KHttpObject* obj, int64_t content_le
 	}
 #endif
 	//客户端支持gzip压缩格式
-	if (obj->need_compress && conf.gzip_level > 0 && KBIT_TEST(rq->sink->data.raw_url->accept_encoding, KGL_ENCODING_GZIP)) {
+	if (conf.gzip_level > 0 && KBIT_TEST(rq->sink->data.raw_url->accept_encoding, KGL_ENCODING_GZIP)) {
 		if (pipe_gzip_compress(conf.gzip_level, body)) {
 			obj->AddContentEncoding(KGL_ENCODING_GZIP, kgl_expand_string("gzip"));
 			return true;

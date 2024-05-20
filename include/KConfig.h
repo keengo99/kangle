@@ -190,15 +190,11 @@ public:
 	//Ñ¹Ëõ¼¶±ð(1-9)
 	int gzip_level;
 	int br_level;
+	int zstd_level;
 	bool path_info;
-
-
 #ifdef ENABLE_ADPP
 	int process_cpu_usage;
 #endif
-
-
-
 #ifdef ENABLE_TF_EXCHANGE
 	INT64 max_post_size = 8388608;
 #endif

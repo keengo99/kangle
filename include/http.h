@@ -54,13 +54,7 @@ inline bool is_internal_header(KHttpHeader *av) {
 class KHttpEnv;
 void log_access(KHttpRequest *rq);
 void upstream_sign_request(KHttpRequest *rq, KHttpEnv *s);
-
-char *url_encode(const char *s, size_t len, size_t *new_length);
-std::string url_encode(const char *s, size_t len = 0);
-bool parse_url(const char *src, KUrl *url);
-
 KFetchObject *bindVirtualHost(KHttpRequest *rq, RequestError *error, KApacheHtaccessContext &htresponse);
-
 //void prepare_write_stream(KHttpRequest *rq);
 KGL_RESULT load_object_from_source(KHttpRequest* rq);
 KGL_RESULT send_auth2(KHttpRequest *rq, KAutoBuffer *body = NULL);

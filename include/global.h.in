@@ -34,6 +34,7 @@
 #cmakedefine KANGLE_VERSION 	"@KANGLE_VERSION@"
 #cmakedefine ENABLE_JEMALLOC
 #cmakedefine ENABLE_DISK_CACHE
+#cmakedefine ENABLE_ZSTD
 #ifndef PROGRAM_NAME
 #define PROGRAM_NAME     "kangle"
 #endif
