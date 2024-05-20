@@ -52,6 +52,8 @@ cd test
 ## cmake options
 ### brotli support.
 `cmake .. -DENABLE_BROTLI=ON`
+### zstd support.
+`cmake .. -DZSTD_DIR=zstd_dir`
 ### build release
 `cmake .. -DCMAKE_BUILD_TYPE=Release`
 ### use boringssl
