@@ -23,8 +23,26 @@ static KGL_RESULT build(kgl_access_build *build_ctx, uint32_t build_type)
 	std::stringstream s;
 	kgl_footer* mark = (kgl_footer*)build_ctx->module;
 	switch (build_type) {
-	case 0:
-		build_ctx->write_string(build_ctx->cn, _KS("footer"), 0);
+	case KF_ACCESS_BUILD_SHORT:
+		build_ctx->write_string(build_ctx->cn, _KS("***"), 0);
+		return KGL_OK;
+	case KF_ACCESS_BUILD_HTML:
+		s << "<textarea name='footer'>";
+		if (mark && mark->data) {
+			s << mark->data->data;
+		}
+		s << "</textarea>";
+		s << "<input type=checkbox name=head value='1' ";
+		if (mark && mark->head) {
+			s << "checked";
+		}
+		s << ">add to head";
+		s << "<input type=checkbox name=replace value='1' ";
+		if (mark && mark->replace) {
+			s << "checked";
+		}
+		s << ">replace";
+		build_ctx->write_string(build_ctx->cn, s.str().c_str(), (int)s.str().length(), 0);
 		return KGL_OK;
 	default:
 		return KGL_ENOT_SUPPORT;
