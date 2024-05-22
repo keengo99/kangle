@@ -14,13 +14,13 @@ public:
 			fi->release();
 		}
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		if (fi) {
 			fi->addRef();
 			rq->pushFlowInfo(fi);
-			return true;
+			return KF_STATUS_REQ_TRUE;
 		}
-		return false;
+		return KF_STATUS_REQ_FALSE;
 	}
 	KMark *new_instance() override
 	{

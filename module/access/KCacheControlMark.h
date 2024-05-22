@@ -31,7 +31,7 @@ public:
 	}
 	virtual ~KCacheControlMark() {
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 #ifdef ENABLE_FORCE_CACHE
 		if (force) {
 			if (!obj->force_cache(static_flag)) {
@@ -49,7 +49,7 @@ public:
 				KBIT_SET(obj->index.flags,OBJ_MUST_REVALIDATE);
 			}
 		}
-		return true;
+		return KF_STATUS_REQ_TRUE;
 	}
 	void get_display(KWStream& s) override {
 		s << "max_age:" << max_age;

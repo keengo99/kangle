@@ -12,13 +12,13 @@ KQueueMark::~KQueueMark()
 		queue = NULL;
 	}
 }
-bool KQueueMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo)
+uint32_t KQueueMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo)
 {
 	if (queue && rq->queue == NULL) {
 		rq->queue = queue;
 		queue->addRef();
 	}
-	return true;
+	return KF_STATUS_REQ_TRUE;
 }
 void KQueueMark::parse_config(const khttpd::KXmlNodeBody* xml) {
 	auto attribute = xml->attr();
@@ -58,10 +58,10 @@ KPerQueueMark::~KPerQueueMark()
 		matcher = next;
 	}
 }
-bool KPerQueueMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo)
+uint32_t KPerQueueMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo)
 {
 	if (rq->queue) {
-		return false;
+		return KF_STATUS_REQ_FALSE;
 	}
 	KStringStream*url = NULL;
 	KRegSubString *ss = NULL;
@@ -92,17 +92,17 @@ bool KPerQueueMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo)
 		delete url;
 	}
 	if (ss == NULL) {
-		return false;
+		return KF_STATUS_REQ_FALSE;
 	}
 	char *key = ss->getString(1);
 	if (key == NULL) {
 		delete ss;
-		return false;
+		return KF_STATUS_REQ_FALSE;
 	}
 	KRequestQueue *queue = get_request_queue(rq, key, max_worker, max_queue);
 	rq->queue = queue;
 	delete ss;
-	return true;
+	return KF_STATUS_REQ_TRUE;
 }
 void KPerQueueMark::parse_config(const khttpd::KXmlNodeBody* xml)
 {

@@ -29,7 +29,7 @@ public:
 		queue = NULL;
 	}
 	~KQueueMark();
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override;
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override;
 	KMark* new_instance()override {
 		return new KQueueMark;
 	}
@@ -52,7 +52,7 @@ public:
 		matcher = NULL;
 	}
 	~KPerQueueMark();
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override;
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override;
 	KMark* new_instance() override {
 		return new KPerQueueMark;
 	}

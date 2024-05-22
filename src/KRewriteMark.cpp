@@ -38,7 +38,7 @@ KRewriteMark::~KRewriteMark() {
 KMark *KRewriteMark::new_instance() {
 	return new KRewriteMark;
 }
-bool KRewriteMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo){
+uint32_t KRewriteMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo){
 	return rule.mark(rq, obj,NULL, prefix,NULL , fo);
 }
 const char *KRewriteMark::getName() {

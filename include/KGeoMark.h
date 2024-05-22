@@ -35,12 +35,12 @@ public:
 		kassert(flush_timer == false);
 		kfiber_rwlock_destroy(lock);
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		kfiber_rwlock_rlock(lock);
 		geo_lable *lable = (geo_lable *)im.find(rq->getClientIp());
 		if (lable == NULL) {
 			kfiber_rwlock_runlock(lock);
-			return false;
+			return KF_STATUS_REQ_FALSE;
 		}
 		while (lable) {
 			auto header = rq->sink->data.add_header(this->name.c_str(), (int)this->name.size(), lable->data, lable->len);
@@ -48,7 +48,7 @@ public:
 			lable = lable->next;
 		}
 		kfiber_rwlock_runlock(lock);
-		return true;
+		return KF_STATUS_REQ_TRUE;
 	}
 	void get_display(KWStream &s) override {
 		s << this->name << " " << total_item;

@@ -30,19 +30,19 @@ public:
 	}
 	virtual ~KResponseFlagMark() {
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
-		bool result = false;
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+		uint32_t result = KF_STATUS_REQ_FALSE;
 		if (flag > 0) {
 			KBIT_SET(obj->index.flags, flag);
-			result = true;
+			result = KF_STATUS_REQ_TRUE;
 		}
 		 if (compress) {
 			obj->need_compress = 1;
-			result = true;
+			result = KF_STATUS_REQ_TRUE;
 		}
 		if (identity_encoding && !obj->IsContentEncoding()) {
 			obj->uk.url->accept_encoding = (uint8_t)(~0);
-			result = true;
+			result = KF_STATUS_REQ_TRUE;
 		}
 		return result;
 	}
@@ -126,13 +126,13 @@ public:
 	}
 	virtual ~KExtendFlagMark() {
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		if (no_extend) {
 			KBIT_SET(rq->ctx.filter_flags,RQ_NO_EXTEND);
 		} else {
 			KBIT_CLR(rq->ctx.filter_flags,RQ_NO_EXTEND);
 		}
-		return true;
+		return KF_STATUS_REQ_TRUE;
 	}
 	void get_display(KWStream &s) override {
 		if(no_extend){

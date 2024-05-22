@@ -26,15 +26,15 @@ public:
 			u->relase();
 		}
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		KUrl *u = rq->sink->data.url;
 		auto it = m.find(u);
 		if (it!=m.end()) {
 			free(u->host);
 			u->host = strdup((*it).second.c_str());
-			return true;
+			return KF_STATUS_REQ_TRUE;
 		}
-		return false;
+		return KF_STATUS_REQ_FALSE;
 	}
 	void get_display(KWStream &s) override {
 		s << "total:" << m.size();

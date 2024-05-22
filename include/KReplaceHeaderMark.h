@@ -12,16 +12,16 @@ public:
 	~KReplaceHeaderMark() {
 
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
-		bool result = false;
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		KHttpHeader* header;
 		if (attr.empty()) {
-			return false;
+			return KF_STATUS_REQ_FALSE;
 		}
+		uint32_t result = KF_STATUS_REQ_FALSE;
 		if (obj) {
 			if (obj->in_cache) {
 				//如果已在缓存中，则不重复操作
-				return false;
+				return KF_STATUS_REQ_FALSE;
 			}
 			header = obj->data->headers;
 		} else {
@@ -52,7 +52,7 @@ public:
 					header->buf = new_buf;
 					delete replaced;
 				}
-				result = true;
+				result = KF_STATUS_REQ_TRUE;
 			}
 			break;
 		}

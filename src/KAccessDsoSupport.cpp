@@ -137,6 +137,15 @@ KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, const char *name
 			return add_api_var(buffer, size, rq->sink->data.raw_url->path);
 		}
 		return var_printf(buffer, size, "%s?%s", rq->sink->data.raw_url->path, rq->sink->data.raw_url->param);
+	case KGL_VAR_URL_ADDR:
+	{
+		if (*size < sizeof(kgl_url*)) {
+			return KGL_EINSUFFICIENT_BUFFER;
+		}
+		kgl_url** url_addr = (kgl_url**)buffer;
+		*url_addr = rq->sink->data.url;
+		return KGL_OK;
+	}
 	case KGL_VAR_SCRIPT_NAME:
 		return add_api_var(buffer, size, rq->sink->data.url->path);
 	case KGL_VAR_QUERY_STRING:

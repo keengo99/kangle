@@ -10,7 +10,7 @@ public:
 	}
 	virtual ~KBlackListMark() {
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		KIpList* bls = NULL;
 		if (isGlobal) {
 			bls = conf.gvm->vhs.blackList;
@@ -23,7 +23,7 @@ public:
 		if (bls) {
 			bls->AddDynamic(rq->getClientIp());
 		}
-		return true;
+		return KF_STATUS_REQ_TRUE;
 	}
 	void get_display(KWStream& s) override {
 	}
@@ -68,7 +68,7 @@ public:
 	virtual ~KCheckBlackListMark() {
 
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		KIpList* bls = NULL;
 		if (isGlobal) {
 			bls = conf.gvm->vhs.blackList;
@@ -82,10 +82,10 @@ public:
 			if (bls->find(rq->getClientIp(), time_out, bls != conf.gvm->vhs.blackList)) {
 				//rq->buffer << "HTTP/1.1 403 FORBIDIN\r\nConnection: close\r\n\r\nip is block";
 				//jump_type = JUMP_DROP;
-				return true;
+				return KF_STATUS_REQ_TRUE;
 			}
 		}
-		return false;
+		return KF_STATUS_REQ_FALSE;
 	}
 	void get_display(KWStream& s) override {
 		if (isGlobal) {

@@ -80,14 +80,14 @@ public:
 	KMark * new_instance() override {
 		return new KWhiteListMark();
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		const char *host = this->host;
 		if (host == NULL) {
 			host = rq->sink->data.url->host;
 		}
 		auto svh = rq->get_virtual_host();
 		wlm.add(host, (svh ? svh->vh->name.c_str() : NULL), rq->getClientIp(), false);
-		return true;
+		return KF_STATUS_REQ_TRUE;
 	}
 	const char *getName()override {
 		return "white_list";

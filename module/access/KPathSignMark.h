@@ -13,15 +13,15 @@ public:
 	{
 
 	}
-	bool ReturnWithRewriteParam(KHttpRequest *rq, KStringStream&np, bool result)
+	uint32_t ReturnWithRewriteParam(KHttpRequest *rq, KStringStream&np, uint32_t result)
 	{
 		set_url_param(np, rq->sink->data.url);
 		return result;
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
 	{
 		if (rq->sink->data.url->param==NULL) {
-			return false;
+			return KF_STATUS_REQ_FALSE;
 		}
 		char *hot = rq->sink->data.url->param;
 		const char *sign_value = NULL;
@@ -57,19 +57,19 @@ public:
 			hot = p+1;
 		}
 		if (sign_value==NULL) {
-			return ReturnWithRewriteParam(rq, np, false);
+			return ReturnWithRewriteParam(rq, np, KF_STATUS_REQ_FALSE);
 		}
 		INT64 expire_time =0;
 		if (expire_value==NULL) {
 			expire_value = strchr(sign_value,'-');
 			if (expire_value==NULL) {
-				return ReturnWithRewriteParam(rq, np, false);
+				return ReturnWithRewriteParam(rq, np, KF_STATUS_REQ_FALSE);
 			}
 			expire_value++;
 		}
 		expire_time = string2int(expire_value);		
 		if (expire_time>0 && expire_time < kgl_current_sec) {
-			return ReturnWithRewriteParam(rq, np, false);
+			return ReturnWithRewriteParam(rq, np, KF_STATUS_REQ_FALSE);
 		}
 		KStringBuf s;
 		if (file) {
@@ -77,7 +77,7 @@ public:
 		} else {
 			const char *e = strrchr(rq->sink->data.raw_url->path,'/');
 			if (e==NULL) {
-				return ReturnWithRewriteParam(rq, np, false);
+				return ReturnWithRewriteParam(rq, np, KF_STATUS_REQ_FALSE);
 			}
 			int len = e - rq->sink->data.raw_url->path;
 			s.write_all(rq->sink->data.raw_url->path,len+1);
@@ -89,9 +89,9 @@ public:
 		char expected_sign[33];
 		KMD5(s.buf(), s.size(), expected_sign);
 		if (strncasecmp(expected_sign,sign_value,32)!=0) {
-			return ReturnWithRewriteParam(rq, np, false);
+			return ReturnWithRewriteParam(rq, np, KF_STATUS_REQ_FALSE);
 		}
-		return ReturnWithRewriteParam(rq, np, true);
+		return ReturnWithRewriteParam(rq, np, KF_STATUS_REQ_TRUE);
 	}
 	const char *getName() override  {
 		return "path_sign";

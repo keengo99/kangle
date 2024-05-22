@@ -161,7 +161,7 @@ class KRewriteRule {
 public:
 	KRewriteRule();
 	~KRewriteRule();
-	bool mark(KHttpRequest *rq, KHttpObject *obj, std::list<KRewriteCond *> *conds, const KString &prefix, const char* rewriteBase, KSafeSource& fo);
+	uint32_t mark(KHttpRequest *rq, KHttpObject *obj, std::list<KRewriteCond *> *conds, const KString &prefix, const char* rewriteBase, KSafeSource& fo);
 	bool parse(const KXmlAttribute &attribute);
 	void buildXml(std::stringstream &s);
 	bool revert;
@@ -177,7 +177,7 @@ class KRewriteMarkEx: public KMark {
 public:
 	KRewriteMarkEx(void);
 	~KRewriteMarkEx(void);
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override;
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override;
 	KMark * new_instance() override;
 	const char *getName() override;
 	void get_display(KWStream& s) override;

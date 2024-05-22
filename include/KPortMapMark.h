@@ -21,10 +21,10 @@ public:
 	virtual ~KPortMapMark()
 	{
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
 	{
 		if (!KBIT_TEST(rq->sink->get_server_model(),WORK_MODEL_TCP) || rq->is_source_empty()) {
-			return false;
+			return KF_STATUS_REQ_FALSE;
 		}
 		//rq->append_source(new KTcpFetchObject(false));
 		free(rq->sink->data.url->host);
@@ -45,9 +45,9 @@ public:
 		rq->sink->data.raw_url->host = strdup(rq->sink->data.url->host);
 		rq->sink->data.raw_url->port = rq->sink->data.url->port;
 		fo.reset(new KTcpFetchObject(false));
-		return true;
+		return KF_STATUS_REQ_TRUE;
 	}
-	KMark * new_instance()override
+	KMark * new_instance() override
 	{
 		return new KPortMapMark;
 	}

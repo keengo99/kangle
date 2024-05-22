@@ -12,16 +12,15 @@ KHostRewriteMark::KHostRewriteMark()
 KHostRewriteMark::~KHostRewriteMark()
 {
 }
-bool KHostRewriteMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
-
+uint32_t KHostRewriteMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 	KRegSubString* ss = regHost.matchSubString(rq->sink->data.url->host, (int)strlen(rq->sink->data.url->host), 0);
 	if (ss==NULL) {
-		return false;
+		return KF_STATUS_REQ_FALSE;
 	}
 	auto cdn_host = KRewriteMarkEx::getString(NULL,host.c_str(),rq,NULL,ss);
 	if (cdn_host==NULL) {
 		delete ss;
-		return false;
+		return KF_STATUS_REQ_FALSE;
 	}
 	if (rewrite) {
 		free(rq->sink->data.url->host);
@@ -40,7 +39,7 @@ bool KHostRewriteMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& 
 	}
 	delete ss;
 	delete cdn_host;
-	return true;
+	return KF_STATUS_REQ_TRUE;
 }
 KMark *KHostRewriteMark::new_instance()
 {
@@ -108,7 +107,7 @@ KHostMark::KHostMark()
 KHostMark::~KHostMark()
 {
 }
-bool KHostMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
+uint32_t KHostMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 	if (rewrite) {
 		free(rq->sink->data.url->host);
 		rq->sink->data.url->host = strdup(host.c_str());
@@ -120,7 +119,7 @@ bool KHostMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 	if (proxy) {		
 		fo.reset(server_container->get(NULL, (rewrite ? rq->sink->data.url->host : host.c_str()), (port > 0 ? port : rq->sink->data.url->port), (ssl ? "s" : NULL), life_time));
 	}
-	return true;
+	return KF_STATUS_REQ_TRUE;
 }
 KMark *KHostMark::new_instance()
 {

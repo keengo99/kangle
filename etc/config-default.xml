@@ -17,6 +17,7 @@
 	<server name='apache' type='http' host='localhost' port='82'/>
 	<server name='php' type='fastcgi' host='localhost' port='10080'/>
 	-->
+	<dso_extend name='filter' filename='bin/filter.${dso}'/>
 	<api name='webdav' file='bin/webdav.${dso}'  life_time='60' max_error_count='5'>
 	</api>
 	<api name='whm' file='buildin:whm'/>

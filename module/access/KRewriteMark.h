@@ -31,7 +31,7 @@ class KRewriteMark: public KMark {
 public:
 	KRewriteMark();
 	virtual ~KRewriteMark();
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override;
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override;
 	KMark * new_instance()override;
 	const char *getName()override;
 	void get_display(KWStream& s) override;

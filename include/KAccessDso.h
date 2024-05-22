@@ -71,7 +71,7 @@ public:
 	{
 		ad->Init();
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		KAccessContext cn;
 		uint32_t result = ad->process(rq, &cn, obj ? KF_NOTIFY_RESPONSE_MARK : KF_NOTIFY_REQUEST_MARK);
 		if (KBIT_TEST(result, KF_STATUS_REQ_FINISHED)) {
@@ -80,12 +80,10 @@ public:
 				fo.reset(new KBufferFetchObject(cn.buffer->getHead(), cn.buffer->getLen()));
 				if (rq->sink->data.status_code == 0) {
 					rq->response_status(STATUS_OK);
-				}
+				}			
 			}
-			//jump_type = JUMP_FINISHED;
-			return true;
 		}
-		return KBIT_TEST(result, KF_STATUS_REQ_TRUE);
+		return result;
 	}
 	KMark * new_instance() override
 	{

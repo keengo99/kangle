@@ -21,7 +21,7 @@ static KGL_RESULT zstd_compress(zstd_context* ctx, const uint8_t* str, size_t le
 			out.size = sizeof(buffer);
 			result = ZSTD_compressStream2(ctx->ctx, &out, &in, op);
 			if (out.pos > 0) {
-				KGL_RESULT ret = ctx->down_body.f->write(ctx->down_body.ctx, buffer, out.pos);
+				KGL_RESULT ret = ctx->down_body.f->write(ctx->down_body.ctx, buffer, (int)out.pos);
 				if (ret != KGL_OK) {
 					return ret;
 				}

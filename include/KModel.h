@@ -34,9 +34,9 @@ using KSafeSource = std::unique_ptr<KFetchObject>;
 class KModel {
 public:
 	KModel() {
-		revers = false;
-		isGlobal = true;
+		revers = false;		
 		is_or = false;
+		isGlobal = true;
 		ref = 1;
 	}
 	virtual const char *getName() = 0;

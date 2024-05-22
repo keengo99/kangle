@@ -31,7 +31,8 @@ public:
 		return 0;
 	}
 	virtual KMark* new_instance() = 0;
-	virtual bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) = 0;
+	/* return KF_STATUS_REQ_FALSE, KF_STATUS_REQ_TRUE,KF_STATUS_REQ_FINISHED */
+	virtual uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) = 0;
 protected:
 	virtual ~KMark() {
 	}

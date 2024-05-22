@@ -137,7 +137,7 @@ KAuthMark::~KAuthMark() {
 		delete reg_user;
 	}
 }
-bool KAuthMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
+uint32_t KAuthMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 	KString path;
 #ifndef HTTP_PROXY
 	auto svh = rq->get_virtual_host();
@@ -150,10 +150,10 @@ bool KAuthMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 	if (!loadAuthFile(path)) {
 		klog(KLOG_ERR, "cann't load auth file[%s]\n", path.c_str());
 		fo.reset(new KDeniedSource(STATUS_SERVER_ERROR, _KS("failed load auth file")));
-		return false;
+		return KF_STATUS_REQ_FALSE;
 	}
 	if (checkLogin(rq)) {
-		return true;
+		return KF_STATUS_REQ_TRUE;
 	}
 	if (auth_type == AUTH_BASIC) {
 		KHttpBasicAuth *auth = new KHttpBasicAuth();		
@@ -168,7 +168,7 @@ bool KAuthMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 #endif
 	}
 	//KBIT_SET(rq->ctx.filter_flags,RQ_SEND_AUTH);
-	return false;
+	return KF_STATUS_REQ_FALSE;
 
 }
 bool KAuthMark::checkLogin(KHttpRequest *rq) {

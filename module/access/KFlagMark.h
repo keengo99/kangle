@@ -31,13 +31,13 @@ public:
 	}
 	virtual ~KFlagMark() {
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		if (clear) {
 			KBIT_CLR(rq->ctx.filter_flags,flag);
 		} else {
 			KBIT_SET(rq->ctx.filter_flags,flag);
 		}
-		return true;
+		return KF_STATUS_REQ_TRUE;
 	}
 	void get_display(KWStream& s) override {
 		if (clear) {

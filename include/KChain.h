@@ -34,7 +34,7 @@ class KChain final
 public:
 	KChain();
 	~KChain();
-	bool match(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo);
+	uint32_t match(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo);
 	void parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml);
 	void get_acl_short_html(KWStream& s);
 	void get_mark_short_html(KWStream& s);

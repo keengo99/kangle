@@ -26,11 +26,11 @@ KMapRedirectMark::~KMapRedirectMark()
 {
 	vhc.iterator(map_redirect_free_iterator,NULL);
 }
-bool KMapRedirectMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo)
+uint32_t KMapRedirectMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo)
 {
 	KMapRedirectItem *item = (KMapRedirectItem *)vhc.find(rq->sink->data.url->host);
 	if (item == NULL) {
-		return false;
+		return KF_STATUS_REQ_FALSE;
 	}
 	KStringStream s;
 	int defaultPort = 80;
@@ -51,9 +51,8 @@ bool KMapRedirectMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& 
 	rq->sink->data.url->GetPath(s);
 	if (push_redirect_header(rq, s.buf(), s.size(), item->code)) {
 		fo.reset(new KBufferFetchObject(nullptr, 0));
-		//jump_type = JUMP_DROP;
 	}
-	return true;
+	return KF_STATUS_REQ_TRUE;
 }
 KMark *KMapRedirectMark::new_instance()
 {

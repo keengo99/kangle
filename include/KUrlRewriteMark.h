@@ -9,7 +9,7 @@ public:
 		code = 0;
 		icase = true;
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		KStringStream u;
 		rq->sink->data.url->GetUrl(u);
 		/*
@@ -18,7 +18,7 @@ public:
 		*/
 		KRegSubString *subString = url.matchSubString(u.buf(),u.size(),0);
 		if (subString==NULL) {
-			return false;
+			return KF_STATUS_REQ_FALSE;
 		}
 		auto nu = KRewriteMarkEx::getString(
 			NULL,
@@ -37,11 +37,11 @@ public:
 				rq->rewrite_url(nu->c_str(),0,NULL);
 				delete nu;
 			}
-			return true;
+			return KF_STATUS_REQ_TRUE;
 		}
-		return false;
+		return KF_STATUS_REQ_FALSE;
 	}
-	KMark * new_instance()override
+	KMark * new_instance() override
 	{
 		return new KUrlRewriteMark;
 	}

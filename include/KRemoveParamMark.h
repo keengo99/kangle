@@ -14,11 +14,11 @@ public:
 	~KRemoveParamMark()
 	{
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		KUrl *url = (raw?rq->sink->data.raw_url:rq->sink->data.url);
 		char *param = url->param;
 		if (param==NULL) {
-			return false;
+			return KF_STATUS_REQ_FALSE;
 		}
 		char *hot = param;
 		bool matched = false;
@@ -56,7 +56,7 @@ public:
 		} else {
 			url->param = NULL;
 		}
-		return matched;
+		return matched? KF_STATUS_REQ_TRUE: KF_STATUS_REQ_FALSE;
 	}
 	void get_display(KWStream &s) override {
 		if (raw) {

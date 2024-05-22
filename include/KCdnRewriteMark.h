@@ -8,7 +8,7 @@ class KHostRewriteMark : public KMark
 public:
 	KHostRewriteMark();
 	virtual ~KHostRewriteMark();
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override;
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override;
 	KMark * new_instance() override;
 	const char *getName() override;
 	void get_display(KWStream& s) override;
@@ -28,7 +28,7 @@ class KHostMark : public KMark
 public:
 	KHostMark();
 	virtual ~KHostMark();
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override;
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override;
 	KMark * new_instance() override;
 	const char *getName() override;
 	void get_display(KWStream& s) override;

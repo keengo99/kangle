@@ -13,18 +13,18 @@ public:
 			xfree(header);
 		}
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		if (header == NULL) {
-			return false;
+			return KF_STATUS_REQ_FALSE;
 		}
 		kassert(obj);
 		if (KBIT_TEST(obj->index.flags, OBJ_HAS_VARY)) {
-			return false;
+			return KF_STATUS_REQ_FALSE;
 		}
 		if (!obj->AddVary(rq, header, header_len)) {
 			obj->insert_http_header(kgl_header_vary, header, header_len);
 		}
-		return true;
+		return KF_STATUS_REQ_TRUE;
 	}
 	void get_display(KWStream& s) override {
 		if (header) {

@@ -10,12 +10,12 @@ public:
 	~KCounterMark()
 	{
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
 	{
 		lock.Lock();
 		counter++;
 		lock.Unlock();
-		return true;
+		return KF_STATUS_REQ_TRUE;
 	}
 	KMark * new_instance() override
 	{

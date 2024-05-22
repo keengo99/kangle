@@ -35,10 +35,10 @@ public:
 	virtual ~KGSpeedLimitMark() {
 		gsl->release();
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		gsl->addRef();
 		rq->pushSpeedLimit(gsl);
-		return true;
+		return KF_STATUS_REQ_TRUE;
 	}
 	void get_display(KWStream& s) override {
 		s << "limit: " << gsl->getSpeedLimit() ;

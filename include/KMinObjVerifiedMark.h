@@ -12,7 +12,7 @@ public:
 	~KMinObjVerifiedMark()
 	{
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
 	{
 		rq->sink->data.min_obj_verified = v;
 		if (hard) {
@@ -20,7 +20,7 @@ public:
 		} else {
 			KBIT_CLR(rq->sink->data.min_obj_verified, 1);
 		}
-		return true;
+		return KF_STATUS_REQ_TRUE;
 	}
 	KMark * new_instance()override
 	{

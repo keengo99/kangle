@@ -73,9 +73,12 @@ kgl_jump_type KTable::match(KHttpRequest* rq, KHttpObject* obj, unsigned& checke
 			if (!chain) {
 				continue;
 			}
-			bool result = chain->match(rq, obj, fo);
+			uint32_t result = chain->match(rq, obj, fo);
 			if (fo) {
 				return chain->jump_type;
+			}
+			if (KBIT_TEST(result, KF_STATUS_REQ_FINISHED)) {
+				return JUMP_DENY;
 			}
 			if (!result) {
 				continue;

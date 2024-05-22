@@ -38,7 +38,7 @@ public:
 		}
 		lock.Unlock();	
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		const char *ip = rq->getClientIp();
 		lock.Lock();
 		std::map<char *,KSpeedLimit *,lessp>::iterator it;
@@ -59,7 +59,7 @@ public:
 		speed_limit_context->mark = this;
 		add_ref();
 		rq->registerRequestCleanHook(ip_speed_limit_clean,speed_limit_context);
-		return true;
+		return KF_STATUS_REQ_TRUE;
 	}
 	KMark *new_instance()override
 	{

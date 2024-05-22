@@ -111,11 +111,11 @@ bool KRewriteRule::parse(const KXmlAttribute& attribute)
 	dst = xstrdup(attribute["dst"].c_str());
 	return true;
 }
-bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
+uint32_t KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 						std::list<KRewriteCond *> *conds,const KString &prefix,const char *rewriteBase, KSafeSource &fo) {
 	size_t len = strlen(rq->sink->data.url->path);
 	if (len < prefix.size()) {
-		return false;
+		return KF_STATUS_REQ_FALSE;
 	}
 	//²âÊÔpath
 	KRegSubString *subString = reg.matchSubString(rq->sink->data.url->path + prefix.size(), (int)(len - prefix.size()), 0);
@@ -124,7 +124,7 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 		if (subString) {
 			delete subString;
 		}
-		return false;
+		return KF_STATUS_REQ_FALSE;
 	}
 	KRegSubString *lastCond = NULL;
 	bool result = true;
@@ -153,7 +153,7 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 		if (lastCond) {
 			delete lastCond;
 		}
-		return result;
+		return result? KF_STATUS_REQ_TRUE: KF_STATUS_REQ_FALSE;
 	}
 	auto url = KRewriteMarkEx::getString(
 		NULL,
@@ -223,7 +223,7 @@ bool KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 	if (lastCond) {
 		delete lastCond;
 	}
-	return true;
+	return KF_STATUS_REQ_TRUE;
 }
 bool KFileAttributeTestor::test(const char *str, KRegSubString **lastSubString) {
 	struct _stat64 buf;
@@ -265,19 +265,15 @@ KRewriteMarkEx::~KRewriteMarkEx(void) {
 		delete (*it);
 	}
 }
-bool KRewriteMarkEx::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
-	bool result = true;
-	std::list<KRewriteRule *>::iterator it2;
-	for (it2 = rules.begin(); it2 != rules.end(); it2++) {
+uint32_t KRewriteMarkEx::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
+	uint32_t result = KF_STATUS_REQ_TRUE;
+	for (auto it2 = rules.begin(); it2 != rules.end(); it2++) {
 		std::list<KRewriteCond *> *conds = NULL;
 		if (it2==rules.begin()) {
 			conds = &this->conds;
 		}
-		if (!(*it2)->mark(rq, obj, conds, prefix,(rewriteBase.size()>0?rewriteBase.c_str():NULL), fo)) {
-			result = false;
-			break;
-		}
-		if (fo) {
+		result = (*it2)->mark(rq, obj, conds, prefix, (rewriteBase.size() > 0 ? rewriteBase.c_str() : NULL), fo);
+		if (!result || fo) {
 			break;
 		}
 	}

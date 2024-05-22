@@ -14,15 +14,15 @@ public:
 			delete val;
 		}
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
-		bool result = false;
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+		uint32_t result = KF_STATUS_REQ_FALSE;
 		if (!attr.empty()) {
 			KHttpHeader* h;
 			KHttpObjectBody* data = NULL;
 			if (obj) {
 				if (obj->in_cache) {
 					//如果已经在缓存中，则不重复操作
-					return false;
+					return KF_STATUS_REQ_FALSE;
 				}
 				data = obj->data;
 				h = data->headers;
@@ -30,7 +30,7 @@ public:
 				h = rq->sink->data.get_header();
 				if (strcasecmp(attr.c_str(), "Range") == 0 && rq->sink->data.range) {
 					rq->sink->data.range = nullptr;
-					result = true;
+					result = KF_STATUS_REQ_TRUE;
 				} else if (strcasecmp(attr.c_str(), "Accept-Encoding") == 0 && rq->sink->data.raw_url->encoding != 0) {
 					rq->sink->data.raw_url->encoding = 0;
 					rq->sink->data.url->encoding = 0;
@@ -51,7 +51,7 @@ public:
 					}
 					xfree_header(h);
 					h = next;
-					result = true;
+					result = KF_STATUS_REQ_TRUE;
 					continue;
 				}
 				last = h;

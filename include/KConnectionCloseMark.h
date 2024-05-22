@@ -16,10 +16,10 @@ public:
 	const char *getName() override {
 		return "connection_close";
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
 	{
 		KBIT_SET(rq->sink->data.flags,RQ_CONNECTION_CLOSE);
-		return true;
+		return KF_STATUS_REQ_TRUE;
 	}
 	void get_display(KWStream& s) override {
 	}

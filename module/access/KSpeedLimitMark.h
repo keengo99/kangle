@@ -30,11 +30,11 @@ public:
 	}	
 	virtual ~KSpeedLimitMark() {
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		KSpeedLimit *sl = new KSpeedLimit;
 		sl->setSpeedLimit(speed_limit);
 		rq->pushSpeedLimit(sl);
-		return true;
+		return KF_STATUS_REQ_TRUE;
 	}
 	void get_display(KWStream &s) override {
 		s << speed_limit;

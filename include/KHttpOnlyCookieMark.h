@@ -19,12 +19,12 @@ public:
 			delete cookie;
 		}
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
-	{
-		bool result = false;
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
+	{		
 		if (obj == NULL || obj->data == NULL) {
-			return false;
+			return KF_STATUS_REQ_FALSE;
 		}
+		uint32_t result = KF_STATUS_REQ_FALSE;
 		KHttpHeader* h = obj->data->headers;
 		while (h) {
 			if (h->name_is_know && (h->know_header == kgl_header_set_cookie) && (cookie == NULL || cookie->match(h->buf + h->val_offset, h->val_len, 0) > 0)) {
@@ -37,7 +37,7 @@ public:
 					free(h->buf);
 					h->buf = buf;
 					h->val_len += sizeof(HTTP_ONLY_STRING) - 1;
-					result = true;
+					result = KF_STATUS_REQ_TRUE;
 				}
 				if (secure && kgl_memstr(h->buf + h->val_offset, h->val_len, kgl_expand_string(COOKIE_SECURE_STRING)) == NULL) {
 					int new_len = h->val_len + sizeof(COOKIE_SECURE_STRING);
@@ -47,7 +47,7 @@ public:
 					free(h->buf);
 					h->buf = buf;
 					h->val_len += sizeof(COOKIE_SECURE_STRING) - 1;
-					result = true;
+					result = KF_STATUS_REQ_TRUE;
 				}
 			}//if
 			h = h->next;

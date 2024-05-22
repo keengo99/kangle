@@ -17,7 +17,7 @@ public:
 			delete val;
 		}
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		if (header.empty()) {
 #ifdef ENABLE_PROXY_PROTOCOL
 			auto proxy = rq->sink->get_proxy_info();
@@ -25,11 +25,11 @@ public:
 				char ips[MAXIPLEN];
 				if (ksocket_sockaddr_ip(proxy->src, ips, MAXIPLEN - 1)) {
 					rq->sink->set_client_ip(ips);
-					return true;
+					return KF_STATUS_REQ_TRUE;
 				}
 			}
 #endif
-			return false;
+			return KF_STATUS_REQ_FALSE;
 		}
 		KHttpHeader *h = rq->sink->data.get_header();
 		KHttpHeader *prev = NULL;
@@ -69,13 +69,13 @@ public:
 							rq->sink->data.raw_url->port = 80;
 						}
 					}
-					return true;
+					return KF_STATUS_REQ_TRUE;
 				}
 			}
 			prev = h;
 			h = h->next;
 		}
-		return false;
+		return KF_STATUS_REQ_FALSE;
 	}
 	KMark * new_instance()override
 	{
@@ -138,15 +138,15 @@ public:
 			}
 		}
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		KHttpHeader *h = rq->sink->data.remove(_KS("x-real-ip-sign"));
 		if (h == NULL) {
-			return false;
+			return KF_STATUS_REQ_FALSE;
 		}
 		char *sign = (char *)memchr(h->buf+h->val_offset, '|', h->val_len);
 		if (sign == NULL) {
 			xfree_header(h);
-			return false;
+			return KF_STATUS_REQ_FALSE;
 		}
 		*sign = '\0';		
 		bool matched = false;
@@ -195,7 +195,7 @@ public:
 			}
 		}
 		xfree_header(h);
-		return matched;
+		return matched? KF_STATUS_REQ_TRUE: KF_STATUS_REQ_FALSE;
 	}
 	KMark * new_instance()override
 	{

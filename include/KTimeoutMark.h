@@ -11,9 +11,9 @@ public:
 	~KTimeoutMark()
 	{
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		rq->sink->set_time_out(v);
-		return true;
+		return KF_STATUS_REQ_TRUE;
 	}
 	KMark * new_instance()override
 	{

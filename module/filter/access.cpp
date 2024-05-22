@@ -5,6 +5,10 @@
 #include "kmalloc.h"
 #include "filter.h"
 
+extern kgl_access kgl_param_model;
+extern kgl_access kgl_param_count_model;
+extern kgl_access kgl_post_file_model;
+
 static int notify_type = KF_NOTIFY_RESPONSE_MARK;
 static void *create_access_ctx()
 {
@@ -87,9 +91,10 @@ static kgl_access footer_model = {
 	process,
 	NULL
 };
-extern kgl_access kgl_param_model;
 void register_access(kgl_dso_version *ver)
 {	
 	KGL_REGISTER_ACCESS(ver, &footer_model);
 	KGL_REGISTER_ACCESS(ver, &kgl_param_model);
+	KGL_REGISTER_ACCESS(ver, &kgl_param_count_model);
+	KGL_REGISTER_ACCESS(ver, &kgl_post_file_model);
 }

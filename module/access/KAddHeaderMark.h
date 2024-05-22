@@ -19,11 +19,11 @@ public:
 			free(val);
 		}
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		if (attr && val) {
 			auto s = KRewriteMarkEx::getString(NULL,val,rq,NULL,NULL);
 			if (s==NULL) {
-				return true;
+				return KF_STATUS_REQ_TRUE;
 			}
 			if (obj) {
 				//如果是缓存物件，则不再重复增加header
@@ -35,7 +35,7 @@ public:
 			}
 			delete s;
 		}
-		return true;
+		return KF_STATUS_REQ_TRUE;
 	}
 	KMark * new_instance() override
 	{
@@ -111,7 +111,7 @@ public:
 			free(val);
 		}
 	}
-	bool process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
 		if (attr && val) {
 			auto s = KRewriteMarkEx::getString(NULL, val, rq, NULL, NULL);
 			if (s == NULL) {
@@ -119,7 +119,7 @@ public:
 			}
 			rq->response_header((const char *)attr, attr_len, s->c_str(), s->size());
 		}
-		return true;
+		return KF_STATUS_REQ_TRUE;
 	}
 	KMark *new_instance() override
 	{
