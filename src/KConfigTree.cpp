@@ -98,8 +98,8 @@ namespace kconfig {
 			file->set_remove_flag(false);
 			return parse_xml(content.get());
 		}
-		time_t get_last_modified(KConfigFile* file) override {
-			return kfile_last_modified(file->get_filename()->data);
+		KFileModified get_last_modified(KConfigFile* file) override {
+			return file->get_filename()->data;
 		}
 		bool save(KConfigFile* f, khttpd::KXmlNode* nodes) override {
 			KString tmpfile = f->get_filename()->data;
@@ -139,7 +139,7 @@ namespace kconfig {
 				return false;
 			}
 			//update last_modified
-			f->set_last_modified(kfile_last_modified(filename->data));
+			f->set_last_modified(filename->data);
 			return true;
 		}
 	};
@@ -151,9 +151,8 @@ namespace kconfig {
 	};
 
 	void load_config_file(KStringBuf& name, KFileName* file, KConfigFileScanInfo* provider, bool is_default = false) {
-		time_t last_modified = file->getLastModified();
 		KString filename(file->getName());
-		provider->new_file(name.str().data(), filename.data(), last_modified, is_default);
+		provider->new_file(name.str().data(), filename.data(), KFileModified(file->getLastModified(),file->get_file_size()), is_default);
 	}
 	int handle_ext_config_dir(const char* file, void* param) {
 		kgl_ext_config_context* ctx = (kgl_ext_config_context*)param;
@@ -222,7 +221,7 @@ namespace kconfig {
 	class KConfigFileInfo
 	{
 	public:
-		KConfigFileInfo(KSafeConfigFile file, khttpd::KSafeXmlNode node, time_t last_modified) : file{ std::move(file) }, node{ std::move(node) }, last_modified{ last_modified } {
+		KConfigFileInfo(KSafeConfigFile file, khttpd::KSafeXmlNode node, const KFileModified &last_modified) : file{ std::move(file) }, node{ std::move(node) }, last_modified{ last_modified } {
 		}
 		~KConfigFileInfo() {
 		}
@@ -232,7 +231,7 @@ namespace kconfig {
 			file->set_last_modified(last_modified);
 		}
 		KSafeConfigFile file;
-		time_t last_modified;
+		KFileModified last_modified;
 		khttpd::KSafeXmlNode node;
 	};
 	KConfigTree::~KConfigTree() noexcept {
@@ -464,7 +463,7 @@ namespace kconfig {
 						ev.type = EvUpdate;
 					}
 				} else {
-					last_node = file_node->next;
+					last_node->next = file_node->next;
 				}
 				if (!last_node || ev_tree->is_merge()) {
 					if (this != ev_tree) {
@@ -772,7 +771,7 @@ namespace kconfig {
 	}
 	bool KConfigFile::reload(bool force) {
 		auto fs = find_source_driver(source);
-		time_t last_modified = fs->get_last_modified(this);
+		KFileModified last_modified = fs->get_last_modified(this);
 		if (!force) {
 			if (last_modified == this->last_modified) {
 				return true;
@@ -780,7 +779,7 @@ namespace kconfig {
 		}
 		this->last_modified = last_modified;
 		update(std::move(load()));
-		return last_modified != 0;
+		return !last_modified.empty();
 	}
 	bool remove_config_file(const kgl_ref_str_t* name) {
 		auto it = config_files.find(name);
@@ -829,7 +828,7 @@ namespace kconfig {
 	class KConfigScanInfoProvider : public KConfigFileScanInfo
 	{
 	public:
-		void new_file(const kgl_ref_str_t* name, const kgl_ref_str_t* filename, time_t last_modified, bool is_default) {
+		void new_file(const kgl_ref_str_t* name, const kgl_ref_str_t* filename, const KFileModified &last_modified, bool is_default) {
 			int new_flag;
 			auto it = config_files.insert(name, &new_flag);
 			//printf("file [%s] new_flag=[%d]\n",name->data,new_flag);

@@ -8,6 +8,7 @@
 #include "KStackName.h"
 #include "KStringBuf.h"
 #include "KFiberLocker.h"
+#include "KFileModified.h"
 #include "ksapi.h"
 #define CONFIG_FILE_SIGN  "<!--configfileisok-->"
 #ifndef CONFIG_FILE
@@ -180,7 +181,7 @@ namespace kconfig {
 	public:
 		virtual ~KConfigFileScanInfo() {
 		}
-		virtual void new_file(const kgl_ref_str_t* name, const kgl_ref_str_t* filename, time_t last_modified, bool is_default) = 0;
+		virtual void new_file(const kgl_ref_str_t* name, const kgl_ref_str_t* filename, const KFileModified &last_modified, bool is_default) = 0;
 	};
 	class KConfigFileSourceDriver
 	{
@@ -190,7 +191,7 @@ namespace kconfig {
 		virtual void scan(KConfigFileScanInfo* info) {
 		}
 		virtual khttpd::KSafeXmlNode load(KConfigFile* file) = 0;
-		virtual time_t get_last_modified(KConfigFile* file) = 0;
+		virtual KFileModified get_last_modified(KConfigFile* file) = 0;
 		virtual bool enable_save() {
 			return true;
 		}
@@ -268,11 +269,11 @@ namespace kconfig {
 		void update(khttpd::KSafeXmlNode new_nodes);
 		bool update(const char* name, size_t size, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type);
 
-		void set_last_modified(time_t last_modified) {
+		void set_last_modified(const KFileModified &last_modified) {
 			this->last_modified = last_modified;
 			need_save = 0;
 		}
-		time_t last_modified = 0;
+		KFileModified last_modified;
 	private:
 		khttpd::KSafeXmlNode nodes;
 		KConfigTree* ev;

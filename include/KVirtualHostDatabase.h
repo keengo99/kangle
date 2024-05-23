@@ -37,7 +37,7 @@ public:
 	bool isLoad();
 	void scan(kconfig::KConfigFileScanInfo* info) override;
 	khttpd::KSafeXmlNode load(kconfig::KConfigFile* file) override;
-	time_t get_last_modified(kconfig::KConfigFile* file) override;
+	KFileModified get_last_modified(kconfig::KConfigFile* file) override;
 	bool enable_save() override  {
 		return false;
 	}

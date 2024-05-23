@@ -588,8 +588,7 @@ KString KAccess::htmlAccess(const char* vh) {
 		auto locker = read_lock();
 		buildChainAction(default_jump_type, default_jump, s);
 		s << "</div>";
-		s << "[<a href=\"javascript:tableadd()\">" << LANG_ADD
-			<< LANG_TABLE << "</a>]<br><br>";
+		s << "[<a href=\"javascript:tableadd()\">" << LANG_ADD << LANG_TABLE << "</a>]<br><br>";
 		for (auto it = tables.begin(); it != tables.end(); ++it) {
 			s << "<div>";
 			(*it).second->htmlTable(s, vh, type);

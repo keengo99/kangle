@@ -381,7 +381,7 @@ void KVirtualHostDatabase::scan(kconfig::KConfigFileScanInfo* info) {
 		name << "@vhd|" << attr("name");
 		auto name2 = name.reset();
 		KString vh_name(attr("name"));
-		info->new_file(name2.data(), vh_name.data(), time(NULL), false);
+		info->new_file(name2.data(), vh_name.data(), KFileModified(time(NULL),0), false);
 		body->attributes.clear();
 		body->childs.clear();
 	}
@@ -457,8 +457,8 @@ khttpd::KSafeXmlNode KVirtualHostDatabase::load(kconfig::KConfigFile* file) {
 	loadInfo(body->get_first(), cn);
 	return xml;
 }
-time_t KVirtualHostDatabase::get_last_modified(kconfig::KConfigFile* file) {
-	return 0;
+KFileModified KVirtualHostDatabase::get_last_modified(kconfig::KConfigFile* file) {
+	return KFileModified(0,0);
 }
 void KVirtualHostDatabase::freeConnection(kgl_vh_connection cn) {
 	if (vhm.freeConnection) {

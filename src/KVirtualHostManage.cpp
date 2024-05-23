@@ -241,15 +241,19 @@ void KVirtualHostManage::getHtml(KWStream& s, const KString& name, int id, KUrlV
 			vh->getAliasHtml(url.str(), s);
 			break;
 		case 6:
-			if (v && v->access[0]) {
-				s << v->access[0]->htmlAccess(name.c_str());
-			}
-			break;
 		case 7:
-			if (v && v->access[1]) {
-				s << v->access[1]->htmlAccess(name.c_str());
+		{
+			int	access_type = id == 6 ? REQUEST : RESPONSE;
+			if (v) {
+				if (!v->user_access.empty() && !v->access[access_type]) {
+					v->access[access_type].reset(new KAccess(false, access_type));
+				}
+				if (v->access[access_type]) {
+					s << v->access[access_type]->htmlAccess(name.c_str());
+				}
 			}
 			break;
+		}
 		case 8:
 			vh->getMimeTypeHtml(url.str(), s);
 			break;

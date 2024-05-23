@@ -712,6 +712,9 @@ bool KVirtualHost::parse_xml(const khttpd::KXmlNodeBody* body, KVirtualHost* ov)
 	}
 	//parse host
 	auto host_xml = kconfig::find_child(body, _KS("host"));
+	if (!host_xml) {
+		return true;
+	}
 	for (uint32_t index = 0;; ++index) {
 		auto body = host_xml->get_body(index);
 		if (!body) {
@@ -730,6 +733,7 @@ bool KVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigE
 		return true;
 	}
 	auto xml = ev->get_xml();
+	//printf("***********vh xml->tag=[%s]\n", xml->get_tag().c_str());
 	auto attr = xml->attributes();
 	switch (ev->type) {
 	case kconfig::EvSubDir | kconfig::EvNew:

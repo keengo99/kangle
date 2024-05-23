@@ -80,8 +80,8 @@ class KApacheConfigDriver : public kconfig::KConfigFileSourceDriver
 {
 public:
 	khttpd::KSafeXmlNode load(kconfig::KConfigFile* file) override;
-	time_t get_last_modified(kconfig::KConfigFile* file) override {
-		return kfile_last_modified(file->get_filename()->data);
+	KFileModified get_last_modified(kconfig::KConfigFile* file) override {
+		return file->get_filename()->data;
 	}
 	bool enable_save() override {
 		return false;
