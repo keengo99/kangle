@@ -9,7 +9,7 @@ kangle is a light, high-performance web server/reverse proxy.include a http mana
 * easy used web manage console.
 * each virtualhost can run seperate process and user.
 * xml config file
-* on the fly gzip/br2
+* on the fly gzip/br/zstd compress
 * dso extend.
 * http3 support.
 

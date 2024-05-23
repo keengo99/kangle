@@ -47,16 +47,15 @@ func check_vh_config() {
 	`)
 	kangle.Reload("ext|20.xml_")
 
-	/*
-		kangle.CreateExtConfig("20", `<!--#start 20 -->
+	kangle.CreateExtConfig("20", `<!--#start 20 -->
 		<config>
 			<vh doc_root='www'>
 				<host>vh_config</host>
 			</vh>
 		</config>
 		`)
-		kangle.Reload("ext|20.xml_")
-	*/
+	kangle.Reload("ext|20.xml_")
+
 	kangle.ReloadConfig()
 }
 func check_config() {
