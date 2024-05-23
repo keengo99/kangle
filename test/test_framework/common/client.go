@@ -13,7 +13,7 @@ import (
 	"test_framework/config"
 	"time"
 
-	"github.com/quic-go/quic-go"
+	//"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
 	"golang.org/x/net/http2"
 )
@@ -70,12 +70,12 @@ func InitClient(keepAlive bool) {
 		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
 		DisableKeepAlives:     !keepAlive,
 	}
-	var qconf quic.Config
+	//var qconf quic.Config
 	http3_pr := &http3.RoundTripper{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
-		QuicConfig: &qconf,
+		//QuicConfig: &qconf,
 	}
 	http2.ConfigureTransport(http_auto_tr)
 
