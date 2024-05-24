@@ -268,9 +268,9 @@ FILE *fopen_as(const char *file, const char *mode, int uid, int gid) {
 }
 void my_msleep(int msec) {
 	if (kfiber_is_main()) {
-		kgl_msleep(100);
+		kgl_msleep(msec);
 	} else {
-		kfiber_msleep(500);
+		kfiber_msleep(msec);
 	}
 }
 
