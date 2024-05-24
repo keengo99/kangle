@@ -112,7 +112,7 @@ bool KSubVirtualHost::set_ssl_info(const char* crt, const char* key, bool ssl_fr
 		keyfile = vh->doc_root + key;
 	}
 	assert(ssl_ctx == nullptr);
-	ssl_ctx = vh->new_ssl_ctx(certfile.c_str(), keyfile.c_str());
+	ssl_ctx = vh->new_ssl_ctx(certfile, keyfile);
 	if (ssl_ctx == NULL) {
 		return false;
 	}

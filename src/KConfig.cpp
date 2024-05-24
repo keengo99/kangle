@@ -46,15 +46,15 @@ volatile bool configReload = false;
 using namespace std;
 KGlobalConfig conf;
 #ifdef KSOCKET_SSL
-kgl_ssl_ctx* KSslConfig::new_ssl_ctx(const char* certfile, const char* keyfile) {
+kgl_ssl_ctx* KSslConfig::new_ssl_ctx(const KString &certfile, const KString &keyfile) {
 	void* ssl_ctx_data = NULL;
 	kgl_ssl_ctx* ssl_ctx = kgl_new_ssl_ctx(NULL);
 	ssl_ctx->alpn = alpn;
 #ifdef ENABLE_HTTP2
 	ssl_ctx_data = &ssl_ctx->alpn;
 #endif
-	SSL_CTX* ctx = kgl_ssl_ctx_new_server(certfile,
-		keyfile,
+	SSL_CTX* ctx = kgl_ssl_ctx_new_server(certfile.c_str(),
+		keyfile.c_str(),
 		NULL,
 		NULL,
 		ssl_ctx_data);

@@ -94,9 +94,9 @@ class KSslConfig : public KSslCertificate
 {
 public:
 #ifdef KSOCKET_SSL
-	kgl_ssl_ctx* new_ssl_ctx(const char* certfile, const char* keyfile);
+	kgl_ssl_ctx* new_ssl_ctx(const KString &certfile, const KString &keyfile);
 	virtual kgl_ssl_ctx* refs_ssl_ctx() {
-		return new_ssl_ctx(get_cert_file().c_str(), get_key_file().c_str());
+		return new_ssl_ctx(get_cert_file(), get_key_file());
 	}
 	u_char alpn = 0;
 	bool early_data = false;

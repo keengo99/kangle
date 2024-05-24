@@ -376,6 +376,8 @@ kgl_parse_result KMultiPartInputFilter::parse_header() {
 		case kgl_parse_finished:
 			mb->model = MULTIPART_BODY_MODEL;
 			return ret;
+		default:
+			return kgl_parse_error;
 		}
 	}
 	return kgl_parse_continue;
