@@ -87,7 +87,7 @@ KString KSslCertificate::get_cert_file(const KString& doc_root) const {
 	if (cert_file[0] == '-') {
 		return conf.path + (cert_file.c_str() + 1);
 	}
-	if (!isAbsolutePath(cert_file.c_str())) {
+	if (!kgl_is_absolute_path(cert_file.c_str())) {
 		return doc_root + cert_file;
 	}
 	return cert_file;
@@ -109,6 +109,22 @@ KString KSslCertificate::get_cert_file() const {
 }
 KString KSslCertificate::get_key_file() const {
 	return get_key_file(conf.path);
+}
+void KSslCertificate::attach_modified_event(kconfig::KConfigFile* file, KXmlAttribute& attributes, const KString& doc_root) {
+	if (cert_file) {
+		KStringBuf name;
+		name << khttpd::internal_xml_attribute << "cert_file";
+		KFileModified last_modified(get_cert_file(doc_root).c_str());
+		file->merge_last_modified(get_cert_file(doc_root).c_str());
+		attributes.emplace(name.str(), last_modified.to_string());
+	}
+	if (key_file) {
+		KStringBuf name;
+		name << khttpd::internal_xml_attribute << "key_file";
+		KFileModified last_modified(get_cert_file(doc_root).c_str());
+		file->merge_last_modified(get_cert_file(doc_root).c_str());
+		attributes.emplace(name.str(), last_modified.to_string());
+	}
 }
 #endif
 KConfigBase::KConfigBase() {
@@ -305,33 +321,72 @@ static bool on_begin_parse(kconfig::KConfigFile* file, khttpd::KXmlNode* node) {
 	//bind listen
 	auto it = kconfig::find_first_child(node->get_first(), "listen"_CS);
 	if (it) {
-		//TODO handle
 		auto xml = it->value();
 		for (auto&& body : xml->body) {
+			/* attach listen cert/key file modified notice */
 			KSslCertificate ssl_cert;
 			ssl_cert.parse_certificate(body->attributes);
-			if (ssl_cert.cert_file) {
-				KStringBuf name,value;
-				name << khttpd::internal_xml_attribute << "cert_file";
-				value << kfile_last_modified(ssl_cert.get_cert_file().c_str());
-				body->attributes.emplace(name.str(), value.str());
-			}
-			if (ssl_cert.key_file) {
-				KStringBuf name, value;
-				name << khttpd::internal_xml_attribute << "key_file";
-				value << kfile_last_modified(ssl_cert.get_key_file().c_str());
-				body->attributes.emplace(name.str(), value.str());
-			}
+			ssl_cert.attach_modified_event(file, body->attributes, ""_CS);
 		}
 	}
-#endif	
+	for (auto it = kconfig::find_first_child(node->get_first(), "ssl"_CS); it && it->value()->is_tag(_KS("ssl")); it = it->next()) {
+		auto body = it->value()->get_first();
+		if (body) {
+			/* attach global ssl cert/key file modified notice */
+			KSslCertificate ssl_cert;
+			ssl_cert.parse_certificate(body->attributes);
+			ssl_cert.attach_modified_event(file, body->attributes, ""_CS);
+		}
+	}
+#endif
 	for(auto it = kconfig::find_first_child(node->get_first(), "vh"_CS);it && it->value()->is_tag(_KS("vh")); it = it->next()) {
 		auto vh_node = it->value();
+#ifdef KSOCKET_SSL
+		auto body = vh_node->get_first();
+		if (!body) {
+			continue;
+		}
+		auto doc_root = body->attributes["doc_root"_CS];
+		auto full_doc_root = get_vh_full_doc_root(doc_root);
+		{
+			/* attach vh cert/key file modified notice */
+			KSslCertificate ssl_cert;
+			ssl_cert.parse_certificate(body->attributes);
+			ssl_cert.attach_modified_event(file, body->attributes, full_doc_root);
+		}
+#ifdef ENABLE_SVH_SSL
+		/* attach host dir cert/key file modified notice */
+		auto host_xml = kconfig::find_child(body, _KS("host"));
+		if (!host_xml) {
+			continue;
+		}
+		for (uint32_t index = 0;; ++index) {
+			auto host_body = host_xml->get_body(index);
+			if (!host_body) {
+				break;
+			}
+			auto dir = host_body->attributes["dir"_CS];
+			if (!dir) {
+				continue;
+			}
+			const char* ssl_crt = strchr(dir.c_str(), KGL_SSL_PARAM_SPLIT_CHAR);
+			if (ssl_crt != nullptr) {
+				ssl_crt++;
+				kgl_auto_cstr ssl_param(strdup(ssl_crt));
+				char* ssl_key = strchr(ssl_param.get(), '|');
+				if (ssl_key != NULL) {
+					*ssl_key = '\0';
+					ssl_key++;
+				}
+				KSslCertificate ssl_cert(ssl_param.get(),ssl_key);
+				ssl_cert.attach_modified_event(file, host_body->attributes, full_doc_root);
+			}
+		}
+#endif
+#endif
 		upgrade_chain_access("request"_CS, vh_node);
 		upgrade_chain_access("response"_CS, vh_node);
 		upgrade_vh_map(vh_node);
-		//printf("vh name=[%s]\n", it->value()->attributes()("name"));
-		//TODO;
 	}
 	upgrade_chain_access("request"_CS, node);
 	upgrade_chain_access("response"_CS, node);

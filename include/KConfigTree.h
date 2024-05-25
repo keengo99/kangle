@@ -268,10 +268,18 @@ namespace kconfig {
 		bool save();
 		void update(khttpd::KSafeXmlNode new_nodes);
 		bool update(const char* name, size_t size, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type);
-
-		void set_last_modified(const KFileModified &last_modified) {
+		void set_last_modified(const KFileModified& last_modified) {
 			this->last_modified = last_modified;
 			need_save = 0;
+		}
+		void merge_last_modified(const KFileModified &last_modified) {
+			this->last_modified.size += last_modified.size;
+			if (last_modified.mt_time > this->last_modified.mt_time) {
+				this->last_modified.mt_time = last_modified.mt_time;
+			}
+		}
+		KConfigTree* get_ev() {
+			return this->ev;
 		}
 		KFileModified last_modified;
 	private:
@@ -336,7 +344,7 @@ namespace kconfig {
 	KConfigResult update(const kgl_ref_str_t& file, const kgl_ref_str_t& path, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type);
 	KConfigTree* find(const char** name, size_t* size);
 	KConfigTree* find(const char* name, size_t size);
-	bool remove_config_file(const kgl_ref_str_t* name);
+	KConfigTree *remove_config_file(const kgl_ref_str_t* name);
 	bool add_config_file(const kgl_ref_str_t* name, const kgl_ref_str_t* filename, KConfigTree* tree, KConfigFileSource source);
 	bool reload_config(const kgl_ref_str_t* name, bool force);
 	void reload();

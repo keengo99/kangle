@@ -1,7 +1,7 @@
 #ifndef KFILEMODIFIED_H_INCLUDED
 #define KFILEMODIFIED_H_INCLUDED
 #include "kfile.h"
-
+#include "KStringBuf.h"
 class KFileModified
 {
 public:
@@ -32,7 +32,11 @@ public:
 	bool empty() {
 		return mt_time == 0;
 	}
-private:
+	KString to_string() {
+		KStringBuf s;
+		s << mt_time << "|" << size;
+		return s.str();
+	}
 	time_t mt_time;
 	INT64 size;
 };

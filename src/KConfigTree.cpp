@@ -14,7 +14,7 @@
 #include "KHttpLib.h"
 #include "KFiberLocker.h"
 #include "KXmlException.h"
-
+#define ASSERT_CONFIG_IS_LOCKED() kassert(kfiber_mutex_get_worker(locker)>0)
 namespace kconfig {
 	bool is_first_config = true;
 	bool need_reboot_flag = false;
@@ -217,22 +217,6 @@ namespace kconfig {
 		bool enable_scan() override {
 			return false;
 		}
-	};
-	class KConfigFileInfo
-	{
-	public:
-		KConfigFileInfo(KSafeConfigFile file, khttpd::KSafeXmlNode node, const KFileModified &last_modified) : file{ std::move(file) }, node{ std::move(node) }, last_modified{ last_modified } {
-		}
-		~KConfigFileInfo() {
-		}
-		void parse() {
-			klog(KLOG_ERR, "now parse config [%s %s]\n", file->get_name()->data, file->get_filename()->data);
-			file->update(std::move(node));
-			file->set_last_modified(last_modified);
-		}
-		KSafeConfigFile file;
-		KFileModified last_modified;
-		khttpd::KSafeXmlNode node;
 	};
 	KConfigTree::~KConfigTree() noexcept {
 		clean();
@@ -777,22 +761,33 @@ namespace kconfig {
 				return true;
 			}
 		}
+		auto pre_last_modified = this->last_modified;
 		this->last_modified = last_modified;
-		update(std::move(load()));
+		auto xml = load();
+		if (!force) {
+			/* after load last_modified may be changed */
+			if (pre_last_modified == this->last_modified) {
+				return true;
+			}
+		}
+		update(std::move(xml));
 		return !last_modified.empty();
 	}
-	bool remove_config_file(const kgl_ref_str_t* name) {
+	KConfigTree *remove_config_file(const kgl_ref_str_t* name) {
+		ASSERT_CONFIG_IS_LOCKED();
 		auto it = config_files.find(name);
 		if (!it) {
 			return false;
 		}
 		auto file = it->value();
+		auto tree = file->get_ev();
 		config_files.erase(it);
 		file->clear();
 		file->release();
-		return true;
+		return tree;
 	}
 	bool add_config_file(const kgl_ref_str_t* name, const kgl_ref_str_t* filename, KConfigTree* tree, KConfigFileSource source) {
+		ASSERT_CONFIG_IS_LOCKED();
 		int new_flag;
 		auto it = config_files.insert(name, &new_flag);
 		if (!new_flag) {
@@ -850,17 +845,16 @@ namespace kconfig {
 					cfg_file->update_filename(filename);
 				}
 			}
-			//printf("file last_modified old=[" INT64_FORMAT_HEX "] new =[" INT64_FORMAT_HEX "]\n", cfg_file->last_modified, last_modified);
 			if (cfg_file->last_modified != last_modified) {
-				//changed			
+				//changed
 				auto index = cfg_file->get_index();
-				auto info = std::unique_ptr<KConfigFileInfo>(new KConfigFileInfo(KSafeConfigFile(cfg_file->add_ref()), cfg_file->load(), last_modified));
-				files.emplace(cfg_file->get_index(), std::move(info));
+				//auto info = std::unique_ptr<KConfigFileInfo>(new KConfigFileInfo(KSafeConfigFile(cfg_file->add_ref()), last_modified));
+				files.emplace(cfg_file->get_index(), KSafeConfigFile(cfg_file->add_ref()));
 			} else {
 				cfg_file->set_remove_flag(false);
 			}
 		}
-		std::multimap<uint16_t, std::unique_ptr<KConfigFileInfo>> files;
+		std::multimap<uint16_t, KSafeConfigFile> files;
 		KConfigFileSource current_source;
 	};
 	bool reload_config(const kgl_ref_str_t* name, bool force) {
@@ -909,7 +903,7 @@ namespace kconfig {
 			}
 		}
 		for (auto&& info : provider.files) {
-			info.second->parse();
+			info.second->reload(false);
 		}
 		config_files.iterator([](void* data, void* arg) {
 			KConfigFile* file = (KConfigFile*)data;

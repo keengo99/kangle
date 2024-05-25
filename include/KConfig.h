@@ -49,6 +49,7 @@
 #include "KDynamicString.h"
 #include "KAutoArray.h"
 #include "KXmlAttribute.h"
+#include "KConfigTree.h"
 
 #define AUTOUPDATE_OFF    0
 #define AUTOUPDATE_ON   1
@@ -72,6 +73,11 @@ class KHttpFilterManage;
 class KSslCertificate
 {
 public:
+	KSslCertificate() {
+
+	}
+	KSslCertificate(const KString& cert_file, const KString& key_file) : cert_file{ cert_file }, key_file{ key_file }{
+	}
 	void parse_certificate(const KXmlAttribute& attr) {
 #ifdef KSOCKET_SSL
 		cert_file = attr["certificate"];
@@ -79,6 +85,7 @@ public:
 #endif
 	}
 #ifdef KSOCKET_SSL
+	void attach_modified_event(kconfig::KConfigFile* file, KXmlAttribute& attributes, const KString& doc_root);
 	virtual ~KSslCertificate() {
 	}
 	KString cert_file;

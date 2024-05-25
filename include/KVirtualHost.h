@@ -48,6 +48,20 @@
 #include "KXmlAttribute.h"
 //由vh的引用，计算连接数的差异
 #define VH_REFS_CONNECT_DELTA 2
+inline KString get_vh_full_doc_root(const KString &doc_root) {
+	KString full_path;
+	if (!kgl_is_absolute_path(doc_root.c_str())) {
+		full_path = conf.path + doc_root;
+	} else {
+#ifdef _WIN32
+		if (doc_root[0] == '/') {
+			full_path = conf.diskName + doc_root;
+		}
+#endif
+	}
+	pathEnd(full_path);
+	return full_path;
+}
 /**
 * 虚拟主机类
 */

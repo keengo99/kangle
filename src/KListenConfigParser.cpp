@@ -28,7 +28,6 @@ using namespace std;
 
 KSafeListen parse_listen(const KXmlAttribute& attribute) {
 	KSafeListen m_host(new KListenHost);
-	//m_host->name = attribute["name"];
 	m_host->ip = attribute["ip"];
 	m_host->port = attribute["port"];
 #ifdef KSOCKET_SSL

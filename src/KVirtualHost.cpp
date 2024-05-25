@@ -336,17 +336,7 @@ bool KVirtualHost::setDocRoot(const KString& docRoot) {
 	if (docRoot.empty()) {
 		return false;
 	}
-	doc_root = docRoot;
-	if (!isAbsolutePath(doc_root.c_str())) {
-		doc_root = conf.path + doc_root;
-	} else {
-#ifdef _WIN32
-		if (doc_root[0] == '/') {
-			doc_root = conf.diskName + doc_root;
-		}
-#endif
-	}
-	pathEnd(doc_root);
+	doc_root = get_vh_full_doc_root(docRoot);
 	return true;
 }
 #ifdef ENABLE_VH_LOG_FILE
