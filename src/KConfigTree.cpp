@@ -777,7 +777,7 @@ namespace kconfig {
 		ASSERT_CONFIG_IS_LOCKED();
 		auto it = config_files.find(name);
 		if (!it) {
-			return false;
+			return nullptr;
 		}
 		auto file = it->value();
 		auto tree = file->get_ev();
