@@ -169,19 +169,6 @@ void test_timematch() {
 	t->Show();
 	delete t;
 }
-//{{ent
-#ifdef ENABLE_INPUT_FILTER
-void test_multipart_filter() {
-	const char* str = "--AaB03x\r\nContent-Disposition: form-data; name=\"name\"\r\n\r\nLy\r\n--AaB03x\r\nContent-Disposition: form-data; name=\"files\"; filename=\"file1.txt\"\r\nContent-Type: text/plain\r\n\r\n... contents of file1.txt ...\r\n--AaB03x--";
-	KInputFilterContext ctx(NULL);
-	ctx.parse_boundary(_KS("multipart/form-data; boundary=AaB03x"));
-	ctx.filter = new KMultiPartInputFilter;
-	int len = (int)strlen(str);
-	for (int i = 0; i < len; i++) {
-		ctx.check(str + i, 1, false);
-	}
-}
-#endif
 kev_result test_kgl_addr_timer(KOPAQUE data, void* arg, int got) {
 	printf("test timer..\n");
 	kselector* selector = (kselector*)arg;
@@ -288,7 +275,6 @@ static void test_dechunk2() {
 	}
 	ks_buffer_destroy(buffer);
 }
-#ifdef ENABLE_INPUT_FILTER
 void test_dechunk() {
 	KDechunkEngine* engine = new KDechunkEngine;
 	const char* piece;
@@ -330,7 +316,6 @@ void test_dechunk() {
 	assert(piece_length == 1 && strncmp(piece, "x", piece_length) == 0);
 	delete engine;
 }
-#endif
 void test_white_list() {
 #ifdef ENABLE_BLACK_LIST
 	kgl_current_sec = time(NULL);
@@ -382,9 +367,7 @@ bool test() {
 	test_htaccess();
 	test_container();
 	test_vh_container();
-#ifdef ENABLE_INPUT_FILTER
 	test_dechunk();
-#endif
 	test_dechunk2();
 	test_white_list();
 	test_string();

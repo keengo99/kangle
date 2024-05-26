@@ -126,7 +126,6 @@ public:
 	KFetchObject* fo_last;
 	//物理文件映射
 	KFileName* file;
-	//KHttpTransfer* tr;
 	//http认证
 	KHttpAuth* auth;
 #ifdef ENABLE_REQUEST_QUEUE
@@ -134,20 +133,6 @@ public:
 #endif
 	//限速(叠加)
 	KSpeedLimitHelper* slh;
-
-	//发送上下文
-#ifdef ENABLE_INPUT_FILTER
-	bool hasInputFilter() {
-		if (if_ctx == NULL) {
-			return false;
-		}
-		return !if_ctx->isEmpty();
-	}
-	/************
-	* 输入过滤
-	*************/
-	KInputFilterContext* if_ctx;
-#endif
 	/****************
 * 输出过滤
 *****************/
@@ -211,14 +196,6 @@ public:
 		return sink->data.left_read;
 	}
 	int read(char* buf, int len);
-#ifdef ENABLE_INPUT_FILTER
-	KInputFilterContext* getInputFilterContext() {
-		if (if_ctx == NULL && (sink->data.left_read != 0 || sink->data.url->param)) {
-			if_ctx = new KInputFilterContext(this);
-		}
-		return if_ctx;
-	}
-#endif
 	uint32_t get_upstream_flags();
 	KFetchObject* get_next_source(KFetchObject* fo) {
 		if (fo != fo_head) {

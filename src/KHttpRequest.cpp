@@ -84,12 +84,6 @@ KHttpRequestData::~KHttpRequestData() {
 		delete of_ctx;
 		of_ctx = NULL;
 	}
-#ifdef ENABLE_INPUT_FILTER
-	if (if_ctx) {
-		delete if_ctx;
-		if_ctx = NULL;
-	}
-#endif
 	while (slh) {
 		KSpeedLimitHelper* slh_next = slh->next;
 		delete slh;
@@ -283,21 +277,6 @@ KHttpHeaderIteratorResult handle_http_header(void* arg, KHttpHeader* header) {
 #endif
 		return KHttpHeaderIteratorResult::Continue;
 	}
-#if 0
-	if (kgl_is_attr(header, _KS("Content-Type"))) {
-#ifdef ENABLE_INPUT_FILTER
-		if (rq->if_ctx == NULL) {
-			rq->if_ctx = new KInputFilterContext(rq);
-		}
-#endif
-		if (kgl_ncasecmp(header->buf + header->val_offset, header->val_len, _KS("multipart/form-data")) == 0) {
-			KBIT_SET(rq->sink->data.flags, RQ_POST_UPLOAD);
-#ifdef ENABLE_INPUT_FILTER
-			rq->if_ctx->parse_boundary(header->buf + header->val_offset + 19, header->val_len - 19);
-#endif
-		}
-	}
-#endif
 	return KHttpHeaderIteratorResult::Continue;
 }
 void KHttpRequest::beginRequest() {
@@ -486,44 +465,60 @@ KHttpRequest::~KHttpRequest() {
 		sink->end_request();
 	}
 }
-KGL_RESULT KHttpRequest::write_all(WSABUF* buf, int vc) {
-	while (vc > 0) {
-		int got = sink->write(buf, slh ? 1 : vc);
-		if (got <= 0) {
-			return KGL_EIO;
+KGL_RESULT KHttpRequest::sendfile(KASYNC_FILE fp, int64_t* total_length) {
+	auto max_packet = conf.io_buffer;
+	if (slh && max_packet > NBUFF_SIZE) {
+		max_packet = NBUFF_SIZE;
+	}
+	while (*total_length > 0) {
+		int length = (int)KGL_MIN(*total_length, max_packet);
+		auto msec = get_sleep_msec(length);
+		if (msec > 0) {
+			kfiber_msleep(msec);
 		}
-		int sleep_msec = get_sleep_msec(got);
-		if (sleep_msec > 0) {
-			kfiber_msleep(sleep_msec);
-		}
-		while (got > 0) {
-			if ((int)buf->iov_len > got) {
-				buf->iov_len -= got;
-				buf->iov_base = (char*)buf->iov_base + got;
-				break;
+		do {
+			int got = sink->sendfile((kasync_file*)fp, length);
+			if (got <= 0) {
+				return KGL_EIO;
 			}
-			assert(vc > 0);
-			got -= (int)buf->iov_len;
-			buf++;
-			vc--;
-			assert(got >= 0);
-		}
+			length -= got;
+			*total_length -= got;
+		} while (length > 0);
 	}
 	return KGL_OK;
 }
-#if 0
-int KHttpRequest::write(const char* buf, int len) {
-	int got = sink->write(buf, len);
-	if (got > 0) {
-		assert(!kfiber_is_main());
-		int sleep_msec = get_sleep_msec(got);
-		if (sleep_msec > 0) {
-			kfiber_msleep(sleep_msec);
+KGL_RESULT KHttpRequest::write_all(WSABUF* buf, int total_vc) {
+	while (total_vc > 0) {
+		int vc = total_vc;
+		if (slh) {
+			vc = 1;
+			auto msec = get_sleep_msec(buf->iov_len);
+			if (msec > 0) {
+				kfiber_msleep(msec);
+			}
 		}
+		do  {
+			int got = sink->write(buf, vc);
+			if (got <= 0) {
+				return KGL_EIO;
+			}
+			while (got > 0) {
+				if ((int)buf->iov_len > got) {
+					buf->iov_len -= got;
+					buf->iov_base = (char*)buf->iov_base + got;
+					break;
+				}
+				assert(vc > 0);
+				got -= (int)buf->iov_len;
+				buf++;
+				vc--;
+				total_vc--;
+				assert(got >= 0);
+			}
+		} while (vc > 0);
 	}
-	return got;
+	return KGL_OK;
 }
-#endif
 KGL_RESULT KHttpRequest::write_end(KGL_RESULT result) {
 	assert(ctx.body.ctx);
 	if (result == KGL_OK && sink->get_response_left() > 0) {
@@ -545,34 +540,6 @@ int KHttpRequest::read(char* buf, int len) {
 KSubVirtualHost* KHttpRequest::get_virtual_host() {
 	return static_cast<KSubVirtualHost*>(sink->data.opaque);
 }
-
-#if 0
-int KHttpRequest::checkFilter(KHttpObject* obj) {
-	int action = JUMP_ALLOW;
-	if (KBIT_TEST(obj->index.flags, FLAG_NO_BODY)) {
-		return action;
-	}
-	if (of_ctx) {
-		if (of_ctx->charset == NULL) {
-			of_ctx->charset = obj->getCharset();
-		}
-		kbuf* bodys = obj->data->bodys;
-		kbuf* head = bodys;
-		while (head && head->used > 0) {
-			action = of_ctx->checkFilter(this, head->data, head->used);
-			if (action == JUMP_DENY) {
-				break;
-			}
-			head = head->next;
-		}
-	}
-	return action;
-}
-
-void KHttpRequest::addFilter(KFilterHelper* chain) {
-	getOutputFilterContext()->addFilter(chain);
-}
-#endif
 void KHttpRequest::response_vary(const char* vary) {
 	KHttpField field;
 	field.parse(vary, ',');
@@ -666,22 +633,6 @@ KGL_RESULT KHttpRequest::write_buf(kbuf* buf, int length) {
 		if (result != KGL_OK) {
 			return result;
 		}
-	}
-	return KGL_OK;
-}
-KGL_RESULT KHttpRequest::sendfile(KASYNC_FILE fp, int64_t *length) {
-	int64_t max_packet = conf.io_buffer;
-	while (*length > 0) {
-		int send_length = (int)KGL_MIN(*length, max_packet);
-		int got = sink->sendfile((kasync_file *)fp, send_length);
-		if (got <= 0) {
-			return KGL_EIO;
-		}
-		int msec = get_sleep_msec(got);
-		if (msec > 0) {
-			kfiber_msleep(msec);
-		}
-		(*length) -= got;
 	}
 	return KGL_OK;
 }
