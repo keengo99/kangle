@@ -61,8 +61,8 @@ kgl_ssl_ctx* KSslConfig::new_ssl_ctx(const KString &certfile, const KString &key
 	if (ctx == NULL) {
 		klog(KLOG_ERR,
 			"Cann't init ssl context certificate=[%s],certificate_key=[%s]\n",
-			certfile ? certfile : "",
-			keyfile ? keyfile : "");
+			certfile ? certfile.c_str() : "",
+			keyfile ? keyfile.c_str() : "");
 		kgl_release_ssl_ctx(ssl_ctx);
 		return NULL;
 	}

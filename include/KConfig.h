@@ -76,8 +76,10 @@ public:
 	KSslCertificate() {
 
 	}
+#ifdef KSOCKET_SSL
 	KSslCertificate(const KString& cert_file, const KString& key_file) : cert_file{ cert_file }, key_file{ key_file }{
 	}
+#endif
 	void parse_certificate(const KXmlAttribute& attr) {
 #ifdef KSOCKET_SSL
 		cert_file = attr["certificate"];
