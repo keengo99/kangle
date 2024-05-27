@@ -56,8 +56,9 @@ inline KString get_vh_full_doc_root(const KString &doc_root) {
 #ifdef _WIN32
 		if (doc_root[0] == '/') {
 			full_path = conf.diskName + doc_root;
-		}
+		} else
 #endif
+		full_path = doc_root;
 	}
 	pathEnd(full_path);
 	return full_path;
