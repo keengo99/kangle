@@ -618,6 +618,7 @@ typedef struct _kgl_kfiber_function
 	KFIBER(*ref_self)(bool thread_safe);
 	void (*wakeup)(KFIBER fiber, void* obj, int retval);
 	int (*wait)(void* obj);
+	int (*thread_call)(kgl_fiber_start_func start, void* arg, int len, int* ret);
 } kgl_kfiber_function;
 
 typedef struct _kgl_pool_function

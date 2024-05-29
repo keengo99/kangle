@@ -155,7 +155,8 @@ static kgl_kfiber_function fiber_function = {
 	(KFIBER(*)())kfiber_self,
 	(KFIBER(*)(bool))kfiber_ref_self,
 	(void (*)(KFIBER, void*, int))kfiber_wakeup,
-	(int (*)(void*))kfiber_wait
+	(int (*)(void*))kfiber_wait,
+	(int (*)(kgl_fiber_start_func, void*, int, int*))kfiber_thread_call
 };
 static kgl_chan_function chan_function = {
 	(KFIBER_CHAN(*)())kfiber_chan_create,
