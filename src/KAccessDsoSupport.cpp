@@ -70,11 +70,9 @@ KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, const char *name
 	{
 		kssl_session* ssl = rq->sink->get_ssl();
 		if (ssl) {
-			char* result = ssl_var_lookup(ssl->ssl, name);
+			auto result = ssl_var_lookup(ssl->ssl, name);
 			if (result) {
-				KGL_RESULT ret = add_api_var(buffer, size, result);
-				OPENSSL_free(result);
-				return ret;
+				return add_api_var(buffer, size, result.get());
 			}
 		}
 		return KGL_EUNKNOW;

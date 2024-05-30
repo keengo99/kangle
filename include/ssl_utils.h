@@ -35,11 +35,18 @@
 
 #define SSL_SESSION_get_session_id(s)      (s->session_id)
 #define SSL_SESSION_get_session_id_length(s) (s->session_id_length)
+struct kgl_auto_ssl_free
+{
+	void operator()(char* t) const noexcept {
+		OPENSSL_free(t);
+	}
+};
+
+using kgl_auto_ssl_var = std::unique_ptr<char, kgl_auto_ssl_free>;
 
 bool make_ssl_env(KEnvInterface *env, SSL *ssl);
-char *ssl_var_lookup(SSL *ssl, const char *var);
-char *ssl_ctx_var_lookup(SSL_CTX *ssl_ctx, const char *var);
-void ssl_var_free(void *var);
+kgl_auto_ssl_var ssl_var_lookup(SSL *ssl, const char *var);
+kgl_auto_ssl_var ssl_ctx_var_lookup(SSL_CTX *ssl_ctx, const char *var);
 void kgl_ssl_npn(void *ssl_ctx_data, const unsigned char **out, unsigned int *outlen);
 #endif
 #endif /* SSL_UTILS_H_ */

@@ -652,21 +652,17 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 #endif//}}
 			ctx->add("ssl",ssl_ctx?1:0);
 			if (ssl_ctx) {
-				char *result = NULL;
-				result = ssl_ctx_var_lookup(ssl_ctx,"NOTBEFORE");
+				auto result = ssl_ctx_var_lookup(ssl_ctx,"NOTBEFORE");
 				if (result) {
-					ctx->add("not_before", result);
-					ssl_var_free(result);
+					ctx->add("not_before", result.get());
 				}
 				result = ssl_ctx_var_lookup(ssl_ctx, "NOTAFTER");
 				if (result) {
-					ctx->add("not_after", result);
-					ssl_var_free(result);
+					ctx->add("not_after", result.get());
 				}
 				result = ssl_ctx_var_lookup(ssl_ctx, "SUBJECT");
 				if (result) {
-					ctx->add("subject", result);
-					ssl_var_free(result);
+					ctx->add("subject", result.get());
 				}
 			}
 			return WHM_OK;
