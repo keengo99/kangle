@@ -15,18 +15,21 @@ static const char *ssl_vars[] = { "CERT_ISSUER", "CERT_SUBJECT",
 		"CERT_KEYSIZE", "CERT_SERIALNUMBER", "CERT_SERVER_ISSUER",
 		"CERT_SERVER_SUBJECT", "CERT_SERVER_SERIALNUMBER", NULL };
 static kgl_auto_ssl_var ssl_var_lookup_ssl_cert_serial(X509 *xs) {
-	char *result;
 	BIO *bio;
 	int n;
-	if ((bio = BIO_new(BIO_s_mem())) == NULL)
+	if ((bio = BIO_new(BIO_s_mem())) == NULL) {
 		return nullptr;
+	}
 	i2a_ASN1_INTEGER(bio, X509_get_serialNumber(xs));
 	n = (int)BIO_pending(bio);
-	result = (char *)malloc(n+1);
-	n = BIO_read(bio, result, n);
-	result[n] = '\0';
+	kgl_auto_ssl_var result = kgl_auto_ssl_var((char *)OPENSSL_malloc(n+1));
+	if (!result) {
+		return nullptr;
+	}
+	n = BIO_read(bio, result.get(), n);
+	result.get()[n] = '\0';
 	BIO_free(bio);
-	return kgl_auto_ssl_var(result);
+	return result;
 }
 static void ssl_var_lookup_ssl_cipher_bits(SSL *ssl, int *usekeysize, int *algkeysize) {
 	const SSL_CIPHER *cipher;

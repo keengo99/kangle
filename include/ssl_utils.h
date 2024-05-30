@@ -7,6 +7,7 @@
 
 #ifndef SSL_UTILS_H_
 #define SSL_UTILS_H_
+#include <memory>
 #include "global.h"
 #include "KEnvInterface.h"
 #include "kgl_ssl.h"
@@ -47,6 +48,5 @@ using kgl_auto_ssl_var = std::unique_ptr<char, kgl_auto_ssl_free>;
 bool make_ssl_env(KEnvInterface *env, SSL *ssl);
 kgl_auto_ssl_var ssl_var_lookup(SSL *ssl, const char *var);
 kgl_auto_ssl_var ssl_ctx_var_lookup(SSL_CTX *ssl_ctx, const char *var);
-void kgl_ssl_npn(void *ssl_ctx_data, const unsigned char **out, unsigned int *outlen);
 #endif
 #endif /* SSL_UTILS_H_ */
