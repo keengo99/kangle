@@ -42,7 +42,7 @@ typedef struct _kgl_dso_version
 * `cn` 由kangle提供，调用一些函数时回传。
 * 其中`f` `socket_client` `file` `obj` `fiber` 等指向不同的函数结构,提供不同的功能。
 具体可参考`ksapi.h`里面的定义。
-#### kgl_dso_function
+### kgl_dso_function
 ```
 typedef struct _kgl_dso_function
 {

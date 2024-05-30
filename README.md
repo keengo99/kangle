@@ -64,4 +64,5 @@ cd test
 
 ## Documentation
 
+* [config](./docs/config.md).
 * For develop dso, see the [DSO docs](./docs/dso.md).
