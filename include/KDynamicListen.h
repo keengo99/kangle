@@ -100,14 +100,14 @@ public:
 	}
 	int cmp(const KListenKey *a) const
 	{
-		int ret = port - a->port;
+		int ret = (int)port - (int)a->port;
 		if (ret > 0) {
 			return 1;
 		}
 		if (ret < 0) {
 			return -1;
 		}
-		return strcmp(ip.c_str(),a->ip.c_str());
+		return ip.cmp(a->ip);
 	}
 	void set_work_model(uint32_t *flags)
 	{
@@ -159,7 +159,7 @@ public:
 
 	}
 	KString ip;
-	int port;
+	uint16_t port;
 	bool ipv4;
 	int32_t manage;
 	int32_t dynamic;

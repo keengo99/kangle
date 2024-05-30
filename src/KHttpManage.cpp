@@ -1338,6 +1338,11 @@ bool KHttpManage::start_listen(bool& hit) {
 		}
 		s << ">early_data";
 #endif
+		s << "<input type='checkbox' name='reject_nosni' value='1' ";
+		if (host && host->reject_nosni) {
+			s << "checked";
+		}
+		s << ">reject_nosni";
 		s << "</div></td></tr>";
 #endif
 

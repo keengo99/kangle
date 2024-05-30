@@ -109,6 +109,7 @@ public:
 	}
 	u_char alpn = 0;
 	bool early_data = false;
+	bool reject_nosni = false;
 	KString cipher;
 	KString protocols;
 #endif

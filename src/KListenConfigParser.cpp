@@ -48,6 +48,7 @@ KSafeListen parse_listen(const KXmlAttribute& attribute) {
 	m_host->early_data = attribute["early_data"] == "1";
 	m_host->cipher = attribute["cipher"];
 	m_host->protocols = attribute["protocols"];
+	m_host->reject_nosni = attribute["reject_nosni"] == "1";
 #endif
 	if (!parseWorkModel(attribute["type"].c_str(), m_host->model)) {		
 		return nullptr;

@@ -51,6 +51,11 @@ kgl_ssl_ctx *kserver_load_ssl(uint32_t *flags,KSslConfig *ssl_config)
 	if (ssl_ctx) {
 		KBIT_SET(*flags, WORK_MODEL_SSL);
 	}
+	if (ssl_config->reject_nosni) {
+		KBIT_SET(*flags, KGL_SERVER_REJECT_NOSNI);
+	} else {
+		KBIT_CLR(*flags, KGL_SERVER_REJECT_NOSNI);
+	}
 	return ssl_ctx;
 }
 #endif
@@ -410,7 +415,7 @@ void KDynamicListen::Close()
 }
 void KDynamicListen::parse_port(const char *p, KListenKey *lk, KVirtualHost *vh)
 {
-	lk->port = atoi(p);
+	lk->port = (uint16_t)atoi(p);
 	if (strchr(p, 's')) {
 		lk->ssl = 1;
 #ifdef ENABLE_HTTP3
