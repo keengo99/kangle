@@ -4,11 +4,11 @@ kangle配置支持xml格式的配置文件，主配置文件为`etc/config.xml`�
 * `属性` 指`xml`元素的属性，如`<img src='a.gif'/>` 其中`src`就是`img`其中之一`属性`。
 * `文本内容` 指`xml`元素的`文本内容`，如`<sex>female</sex>`其中`female`就是`sex`的`文本内容` 
 * `子元素` 如`<person><name>abc</name></person>` 其中`name`就是`person`的`子元素`
-## 配置文件加载顺序
+# 配置文件加载顺序
 配置文件第一行设置加载顺序号.格式:
 `<!--#start xxx -->`
 其中`xxx`为顺序号数字，数字越小越先加载，主配置文件加载顺序为100。
-## config
+# config
 `config`为根元素，所有xml配置必须在`<config></config>`之中。
 ### listen
 侦听端口,有如下属性：
