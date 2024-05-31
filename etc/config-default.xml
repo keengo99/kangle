@@ -1,11 +1,10 @@
 <config programVersion='1.0' configVersion='0'>
 	<listen ip='*' port='80' type='http'/>
 	<listen ip='127.0.0.1' port='3311' type='manage' />
-	<keep_alive>60</keep_alive>
-	<timeout>60</timeout>
+	<timeout rw='60'></timeout>
 	<run user=''/>
 	<admin user='admin' password='kangle' admin_ips='127.0.0.1|*'/>
-	<gzip default='0' only_gzip_cache='0' min_gzip_length='256' gzip_level='5'/>
+	<compress default='0' only_gzip_cache='0' min_gzip_length='256' gzip_level='5'/>
 	<cache default='1' max_cache_size='1M' memory='10M' refresh_time='10'/>
 	<connect max_per_ip='0' max='0' />
 	<attack enable='0' max_request='30' total_seconds='20' path_info='1'/>
@@ -25,7 +24,11 @@
 	</request>
 	<response action='allow' >
 	</response>
-	<vhs index='index.html,index.htm' error_404='/404.html' error_403='/403.html'>
+	<vhs >
+		<error code='404' file='/404.html'/>
+		<error code='403' file='/403.html'/>
+		<index file='index.html'/>
+		<index file='index.htm' />
 	<!--
 	  <map file_ext='php' extend='api:php'/>
 	  <map file_ext='php' extend='server:apache'/>
@@ -73,8 +76,8 @@
 	<mime_type ext='hdf' type='application/x-hdf'/>
 	<mime_type ext='hh' type='text/plain'/>
 	<mime_type ext='hqx' type='application/mac-binhex40'/>
-	<mime_type ext='htm' type='text/html' gzip='1'/>
-	<mime_type ext='html' type='text/html' gzip='1'/>
+	<mime_type ext='htm' type='text/html' compress='1'/>
+	<mime_type ext='html' type='text/html' compress='1'/>
 	<mime_type ext='ico' type='image/x-icon'/>
 	<mime_type ext='ief' type='image/ief'/>
 	<mime_type ext='jad' type='text/vnd.sun.j2me.app-descriptor'/>
@@ -83,7 +86,7 @@
 	<mime_type ext='jpe' type='image/jpeg'/>
 	<mime_type ext='jpeg' type='image/jpeg'/>
 	<mime_type ext='jpg' type='image/jpeg'/>
-	<mime_type ext='js' type='application/x-javascript' gzip='1'/>
+	<mime_type ext='js' type='application/x-javascript' compress='1'/>
 	<mime_type ext='latex' type='application/x-latex'/>
 	<mime_type ext='lha' type='application/x-lha-compressed'/>
 	<mime_type ext='lsm' type='text/plain'/>
