@@ -635,7 +635,7 @@ bool KVirtualHost::parse_xml(const khttpd::KXmlNodeBody* body, KVirtualHost* ov)
 	envs.clear();
 	parseEnv(attr("envs"));
 	setDocRoot(attr["doc_root"]);
-	browse = attr["browse"] == "on";
+	browse = (attr["browse"] == "on" || attr["browse"]=="1");
 
 	inherit = (attr["inherit"] == "on" || attr["inherit"] == "1");
 	setAccess(attr["access"]);
