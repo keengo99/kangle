@@ -96,7 +96,7 @@ KGL_RESULT KBigObjectContext::send_data(bool *net_fiber)
 	return result;
 }
 bool KBigObjectContext::create_send_fiber(kfiber** send_fiber) {
-	return 0 == kfiber_create(bigobj_send_fiber, this, 0, conf.fiber_stack_size, send_fiber);
+	return 0 == kfiber_create(bigobj_send_fiber, this, 0, http_config.fiber_stack_size, send_fiber);
 }
 KGL_RESULT KBigObjectContext::stream_write(INT64 offset, const char* buf, int len)
 {

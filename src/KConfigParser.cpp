@@ -103,16 +103,15 @@ void on_run_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 }
 void on_fiber_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	if (ev == nullptr || ev->type == kconfig::EvRemove) {
-		conf.fiber_stack_size = 0;
-		http_config.fiber_stack_size = conf.fiber_stack_size;
+		http_config.fiber_stack_size = 0;
 		return;
 	}
 	auto& attr = ev->get_xml()->attributes();
-	conf.fiber_stack_size = (int)get_size(attr.get_string("stack_size", ""));
-	if (conf.fiber_stack_size > 0) {
-		conf.fiber_stack_size = kgl_align(conf.fiber_stack_size, 4096);
+	auto fiber_stack_size = (int)get_size(attr.get_string("stack_size", ""));
+	if (fiber_stack_size > 0) {
+		fiber_stack_size = kgl_align(fiber_stack_size, 4096);
 	}
-	http_config.fiber_stack_size = conf.fiber_stack_size;
+	http_config.fiber_stack_size = fiber_stack_size;
 }
 void on_dns_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	if (ev == nullptr || ev->type == kconfig::EvRemove) {

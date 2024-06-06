@@ -183,7 +183,7 @@ public:
 #define EXTENDPROGRAM_DEFAULT_LIFETIME    0
 #define EXTENDPROGRAM_DEFAULT_IDLETIME    600
 #define EXTENDPROGRAM_DEFAULT_MAXREQUEST  0
-#define EXTENDPROGRAM_DEFAULT_MAXCONNECT  0
+//#define EXTENDPROGRAM_DEFAULT_MAXCONNECT  0
 extern u_short currend_extend_id;
 class KExtendProgram {
 public:
@@ -191,7 +191,7 @@ public:
 		life_time = EXTENDPROGRAM_DEFAULT_LIFETIME;
 		idleTime = EXTENDPROGRAM_DEFAULT_IDLETIME;
 		maxRequest = EXTENDPROGRAM_DEFAULT_MAXREQUEST;
-		maxConnect = EXTENDPROGRAM_DEFAULT_MAXCONNECT;
+		//maxConnect = EXTENDPROGRAM_DEFAULT_MAXCONNECT;
 		id = ++currend_extend_id;
 		max_error_count = 0;
 	}
@@ -229,7 +229,7 @@ public:
 	int type;
 	int idleTime;
 	unsigned maxRequest;
-	unsigned maxConnect;
+	//unsigned maxConnect;
 	int max_error_count;
 	int life_time;
 	u_short id;

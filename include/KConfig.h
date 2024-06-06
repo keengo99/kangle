@@ -261,7 +261,7 @@ public:
 	std::map<KString, std::vector<KSafeListen>> services;
 	int worker_dns;
 	int worker_io;
-	int fiber_stack_size;
+	//int fiber_stack_size;
 	int max_io;
 	unsigned io_buffer;
 	//默认是否缓存,1=是,其它=不

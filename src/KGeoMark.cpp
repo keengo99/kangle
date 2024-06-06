@@ -1,6 +1,7 @@
 #include "KGeoMark.h"
 #include "kselector_manager.h"
 #include "KSimulateRequest.h"
+#include "KHttpServer.h"
 #define GEO_MARK_TIMER_TICK_MSEC 2000
 int timer_call_back_fiber(void* arg, int argc)
 {
@@ -10,7 +11,7 @@ int timer_call_back_fiber(void* arg, int argc)
 }
 kev_result geo_mark_timer(KOPAQUE data, void *arg,int got)
 {	
-	kfiber_create(timer_call_back_fiber, arg, got, conf.fiber_stack_size, NULL);
+	kfiber_create(timer_call_back_fiber, arg, got, http_config.fiber_stack_size, NULL);
 	return kev_ok;
 }
 kev_result geo_mark_download(KOPAQUE data, void *arg, int status)

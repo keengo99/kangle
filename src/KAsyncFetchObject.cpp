@@ -8,7 +8,7 @@
 #include "KSimulateRequest.h"
 #include "KHttpProxyFetchObject.h"
 #include "KHttp2.h"
-
+#include "KHttpServer.h"
 #include "KHttp2Upstream.h"
 #ifdef ENABLE_BIG_OBJECT
 #include "KBigObjectContext.h"
@@ -442,7 +442,7 @@ void KAsyncFetchObject::create_post_fiber(KHttpRequest* rq, kfiber** post_fiber)
 		void** args = new void* [2];
 		args[0] = rq;
 		args[1] = this;
-		kfiber_create(process_post_fiber, args, 2, conf.fiber_stack_size, post_fiber);
+		kfiber_create(process_post_fiber, args, 2, http_config.fiber_stack_size, post_fiber);
 	}
 }
 KGL_RESULT KAsyncFetchObject::on_read_head_success(KHttpRequest* rq, kfiber** post_fiber) {

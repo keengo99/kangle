@@ -49,6 +49,27 @@ kangle配置支持xml格式的配置文件，主配置文件为`etc/config.xml`�
 
 例如:  
 `<cache cache_part='1' default='1' disk='1g' max_bigobj_size='1g' max_cache_size='256k' memory='1G' refresh_time='30'/>`
+## fiber
+协程相关设置，属性：
+* `stack_size` 协程堆栈大小，
+## ssl_client
+ssl发起连接时相关设置，`属性`:
+* `ca_path` CA目录
+* `chiper` ssl算法设置
+* `protocols` ssl协议设置
+## run_as
+运行身份设置，如果设置了`run_as`必须以超级用户身份启动`kangle`,否则无法切换，`属性`:
+* `user` 运行用户
+* `group` 运行组
+## dns
+设置dns解析工作者数，`属性`:
+* `worker` 工作者数
+## io
+磁盘io相关设置
+* `worker` 最大工作者数，0不限制
+* `max` 最大io并发数，0不限制，超过此数将拒绝
+* `buffer` 一次读写的buffer数。
+
 ## timeout
 配置超时时间，`属性`:
 * `rw` 读写超时时间,单位秒。默认60秒。
@@ -86,11 +107,53 @@ kangle配置支持xml格式的配置文件，主配置文件为`etc/config.xml`�
 * `radio` 如果日太多，可以抽样，比如3抽1，radio就写3.
 
 ## server
-定义上游服务。
+定义上游服务，包含单节点服务和多节点服务。带`属性` `host`，即是单节点服务，共有`属性`:
+* `name` 指示服务名称。
+### 单节点
+`属性`:
+* `host` 格式: `ip:port` ,port可以带s,表示是ssl端口。
+* `proto` 协议，支持http,fcgi,ajp,tcp
+* `life_time` 长连接时间，如果设置为0，则不使用长连接。
+* `self_ip` 连接服务，使用本机ip，在多ip时有用。
+### 多节点
+`属性`:
+* `url_hash` 0或1,根据url进行hash，选择节点.
+* `ip_hash` 0或1,根据访问者ip进行hash,选择节点.
+* `cookie_stick` 0或1, 使用cookie黏着，确保相同的节点服务某个客户，对一些session会话保持有用。
+* `max_error_count` 最多错误次数，对于某一节点，如果连接错误达到该值，将被临时下线。
+* `error_try_time` 对于临时下线的节点，每过多少秒重新测试节点是否健康。
+
+`子元素` 用于定义节点：
+#### node
+`属性`:
+* `weight` 权重，对于多个节点可以设置不同的权重。
+* 其他属性参考，[单节点](#单节点)
+
 ## cmd
-定义命令扩展
+定义命令扩展,`属性`:
+* `name` 指示服务名称。
+* `proto` 协议，支持http,fcgi,ajp,tcp
+* `life_time` 长连接时间，单位:秒，如果设置为0，则不使用长连接。
+* `idle_time` 空闲时间，单位:秒，超过此时间，将关闭相应进程。
+* `max_request` 最多请求数，超过此设置，将关闭进程。
+* `max_error_count` 最多错误次数，对于某一节点，如果连接错误达到该值，将关闭进程。
+* `file` 程序文件名
+* `param` 程序参数
+* `type` 命令扩展类型，`sp`表示单进程多线程，`mp`表示多进程单线程。
+* `port` tcp端口号，对于fastcgi协议的，port设置为0。
+* `worker` 工作者数量，对于`type`是`mp`的情况，可以指定进程数。
+
+`子元素`:
+### env
+环境变量,`属性`用于变量名。
+### pre_event/post_event
+`pre_event`用于在启动进程前，用于执行批处理，`post_event`用于启动后执行。
+
 ## dso_extend
-加载dso扩展
+加载dso扩展,`属性`:
+* `name` 扩展名
+* `filename` dso文件
+* 其他属性用于各自dso使用。
 
 ## request和response
 > `request`请求控制，`response`为回应控制
@@ -166,6 +229,11 @@ kangle配置支持xml格式的配置文件，主配置文件为`etc/config.xml`�
 * `status` 状态，0是正常，其他表示已经关闭。
 * `max_worker`,`max_queue` 设置最大工作者和最大等待队列.
 * `fflow` 是否开启流量统计(0或1,默认0)
+* `log_file` 访问日志文件
+* `log_rotate_time` 访问日志翻转时间，格式同`crontab`
+* `log_rotate_size` 访问日志翻转大小，可以带`K` `M` `G`单位
+* `logs_day` 访问日志保存天数
+* `logs_size` 访问日志总大小
 * `certificate`,`certificate_key`, `cipher` ,`protocols`,`early_data`,`http2`,`http3` 等ssl相关属性可以参考[ssl相关属性](#ssl相关属性)
 
 `vh`还有有如下`子元素`:

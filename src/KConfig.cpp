@@ -605,7 +605,7 @@ void do_config(bool first_time) {
 	if (first_time) {
 		do_config_thread((void*)&first_time, 0);
 	} else {
-		if (kfiber_create(do_config_thread, nullptr, 0, conf.fiber_stack_size, NULL) != 0) {
+		if (kfiber_create(do_config_thread, nullptr, 0, http_config.fiber_stack_size, NULL) != 0) {
 			katom_set((void*)&load_config_progress, 0);
 		}
 	}

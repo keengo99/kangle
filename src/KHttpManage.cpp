@@ -529,7 +529,7 @@ bool KHttpManage::config() {
 
 
 		s << klang["dns_worker"] << ":<input type=text size=4 name='worker_dns' value='" << conf.worker_dns << "'><br>";
-		s << "fiber stack size:<input type=text name='fiber_stack_size' size=4 value='" << get_size(conf.fiber_stack_size) << "'><br>";
+		s << "fiber stack size:<input type=text name='fiber_stack_size' size=4 value='" << get_size(http_config.fiber_stack_size) << "'><br>";
 	} else if (item == 4) {
 		//data exchange
 #ifdef ENABLE_TF_EXCHANGE	

@@ -125,7 +125,7 @@ int kgl_start_simulate_request(KHttpRequest *rq,kfiber **fiber)
 		if (!rq->has_final_source()) {
 			rq->append_source(new KHttpProxyFetchObject());
 		}
-		return kfiber_create(skip_access_request, rq, 0, conf.fiber_stack_size, fiber);
+		return kfiber_create(skip_access_request, rq, 0, http_config.fiber_stack_size, fiber);
 	}
 	return 0;
 }

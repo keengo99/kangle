@@ -5,6 +5,7 @@
 #include "http.h"
 #include "directory.h"
 #include "kforwin32.h"
+#include "KHttpServer.h"
 #ifdef ENABLE_TF_EXCHANGE
 #ifdef _WIN32
 #define tunlink(f)             
@@ -251,7 +252,7 @@ static KGL_RESULT tempfile_write_body(kgl_response_body_ctx* ctx, const char* bu
 		return KGL_EIO;
 	}
 	if (tmp_out->write_fiber == NULL) {
-		kfiber_create(tempfile_write_fiber, tmp_out, 0, conf.fiber_stack_size, &tmp_out->write_fiber);
+		kfiber_create(tempfile_write_fiber, tmp_out, 0, http_config.fiber_stack_size, &tmp_out->write_fiber);
 		if (tmp_out->write_fiber == NULL) {
 			return KGL_ESYSCALL;
 		}

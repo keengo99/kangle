@@ -401,7 +401,7 @@ bool KExtendProgram::parse_config(const khttpd::KXmlNode* xml) {
 	life_time = attr.get_int("life_time");
 	idleTime = attr.get_int("idle_time");
 	maxRequest = attr.get_int("max_request");
-	maxConnect = attr.get_int("max_connect");
+	//maxConnect = attr.get_int("max_connect");
 	max_error_count = attr.get_int("max_error_count");
 	auto envs_node = kconfig::find_child(xml->get_first(), _KS("env"));
 	if (envs_node != nullptr) {
