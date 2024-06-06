@@ -753,26 +753,8 @@ bool KVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigE
 	case kconfig::EvSubDir | kconfig::EvUpdate:
 	{
 		if (xml->is_tag(_KS("host"))) {
+			/* notice parent xml tag event. */
 			return false;
-			/*
-			std::list<KSubVirtualHost*> hosts;
-			defer(for (auto&& host : hosts) {
-				host->release();
-			});
-			for (uint32_t index = 0;; ++index) {
-				auto body = xml->get_body(index);
-				if (!body) {
-					break;
-				}
-				auto svh = parse_host(body);
-				if (!svh) {
-					continue;
-				}
-				hosts.push_back(svh);
-			}
-			conf.gvm->updateVirtualHost(this, hosts);
-			return true;
-			*/
 		}
 		if (xml->is_tag(_KS("bind"))) {
 			std::list<KString> binds;
@@ -802,12 +784,8 @@ bool KVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigE
 	break;
 	case kconfig::EvSubDir | kconfig::EvRemove:
 		if (xml->is_tag(_KS("host"))) {
+			/* notice parent xml tag event. */
 			return false;
-			/*
-			std::list<KSubVirtualHost*> hosts;
-			conf.gvm->updateVirtualHost(this, hosts);
-			return true;
-			*/
 		}
 		if (xml->is_tag(_KS("bind"))) {
 			std::list<KString> binds;

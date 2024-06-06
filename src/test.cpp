@@ -54,13 +54,9 @@
 #include "KAtomLock.h"
 #endif
 #include "KWhiteList.h"
-#ifdef ENABLE_INPUT_FILTER
-#include "KMultiPartInputFilter.h"
-#endif
 #include "KVirtualHostContainer.h"
 #ifndef NDEBUG
 using namespace std;
-char* getString(char* str, char** substr);
 
 void test_file() {
 	const char* test_file = "c:\\windows\\temp\\test.txt";
@@ -358,9 +354,6 @@ void test_mem_function() {
 }
 bool test() {
 	test_mem_function();
-#ifdef ENABLE_HTTP2
-	test_http2();
-#endif
 	test_config();
 	test_url_decode();
 	test_regex();

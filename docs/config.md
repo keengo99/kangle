@@ -10,6 +10,8 @@ kangle配置支持xml格式的配置文件，主配置文件为`etc/config.xml`�
 其中`xxx`为顺序号数字，数字越小越先加载，主配置文件加载顺序为100。
 # config
 `config`为根元素，所有xml配置必须在`<config></config>`之中。
+## worker_thread
+`文本内容`设置工作线程数.必须是2的n次方,默认是0,自动根据cpu数量调整。
 ## listen
 侦听端口,有如下`属性`：
 * `ip` 侦听ip，如`*`,`127.0.0.1`
@@ -64,6 +66,32 @@ kangle配置支持xml格式的配置文件，主配置文件为`etc/config.xml`�
 * `max_per_ip` 每ip最大连接数，默认是0不限制，超过则拒绝该ip的新连接。
 * `per_ip_deny` 超过`max_per_ip`时，是否加入黑名单(0或1),默认是0。
 * `max_keep_alive` 最大长连接数，超过则使用短连接。
+## admin
+设置控制台http认证信息,即`listen`为`manage`和`manages`的服务。
+`属性`:
+* `user` 用户名
+* `password` 密码
+* `admin_ips` 允许ip,多个ip用|分割，可以用`*`代表所有。
+* `auth_type` http认证类型，可以是`Basic`或`Digest`
+
+## log
+日志设置，`属性`:
+* `access` 访问日志文件.
+* `level` 日志级别，级别越大，记录信息越多，默认是2
+* `rotate_time` 访问日志翻转时间,格式同`crontab`
+* `rotate_size` 访问日志翻转大小,可以带单位`K` `M` `G`
+* `logs_day` 总共保存日志天数。
+* `logs_size` 总共保存日志大小。
+* `error_rotate_size` 错误日志翻转大小，可以带单位`K` `M` `G`
+* `radio` 如果日太多，可以抽样，比如3抽1，radio就写3.
+
+## server
+定义上游服务。
+## cmd
+定义命令扩展
+## dso_extend
+加载dso扩展
+
 ## request和response
 > `request`请求控制，`response`为回应控制
 > 每一个请求进来时，从`request`中的`BEGIN` `表`中开始匹配规则`目标`,直接有命中为止，如没有匹配，则使用`request`的`默认目标`
