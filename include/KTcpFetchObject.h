@@ -10,7 +10,7 @@ public:
 		this->proxy_protocol = proxy_protocol;
 #endif
 	}
-	KGL_RESULT buildHead(KHttpRequest *rq)
+	KGL_RESULT buildHead(KHttpRequest *rq) override
 	{
 		buffer = new KSocketBuffer();
 		KStringBuf s;
@@ -41,11 +41,7 @@ public:
 #endif
 		return KGL_OK;
 	}
-	Parse_Result parseHead(KHttpRequest *rq, char *buf, int len)
-	{
-		return Parse_Success;
-	}
-	bool NeedTempFile(bool upload, KHttpRequest *rq)
+	bool NeedTempFile(bool upload, KHttpRequest *rq) override
 	{
 		return false;
 	}
@@ -57,18 +53,14 @@ public:
 class KConnectProxyFetchObject : public KAsyncFetchObject
 {
 public:
-	KGL_RESULT buildHead(KHttpRequest *rq)
+	KGL_RESULT buildHead(KHttpRequest *rq) override
 	{
 		rq->ctx.connection_connect_proxy = true;
 		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_UPGRADE);
 		buffer = new KSocketBuffer();
 		return KGL_OK;
 	}
-	Parse_Result parseHead(KHttpRequest *rq, char *buf, int len)
-	{
-		return Parse_Success;
-	}
-	bool NeedTempFile(bool upload, KHttpRequest *rq)
+	bool NeedTempFile(bool upload, KHttpRequest *rq) override
 	{
 		return false;
 	}

@@ -798,7 +798,7 @@ void KAccess::htmlChainAction(KWStream& s, kgl_jump_type jump_type, KJump* jump,
 		if (jump_type == JUMP_PROXY) {
 			s << "checked";
 		}
-		s << " value='" << JUMP_PROXY << "' name=jump_type>" << klang["proxy"];
+		s << " value='proxy' name=jump_type>" << klang["proxy"];
 		jump_value++;
 		table_names.clear();
 		table_names = conf.gam->getAcserverNames(false);

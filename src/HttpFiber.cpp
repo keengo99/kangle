@@ -970,26 +970,22 @@ KGL_RESULT fiber_http_start(KHttpRequest* rq) {
 	return process_cache_request(rq);
 }
 KGL_RESULT prepare_write_body(KHttpRequest* rq, kgl_response_body* body) {
-	if (!rq->ctx.body.ctx) {
-		if (body) {
-			get_default_response_body(rq, body);
-		}
-		if (!kgl_load_response_body(rq, body)) {
-			if (body) {
-				rq->ctx.body = *body;
-				body->f->close(body->ctx, KGL_ENOT_PREPARE);
-				assert(rq->ctx.body.ctx == nullptr);
-			}
-			return KGL_ENOT_PREPARE;
-		}
-		if (body) {
-			rq->ctx.body = *body;
-			assert(body->ctx);
-		}
+	if (unlikely(rq->ctx.body.ctx)) {
+		return KGL_OK;
 	}
-	return KGL_OK;
+	if (body) {
+		get_default_response_body(rq, body);
+	}
+	bool result = kgl_load_response_body(rq, body);
+	if (body) {
+		rq->ctx.body = *body;
+		assert(body->ctx);
+	}
+	if (likely(result)) {
+		return KGL_OK;
+	}
+	return KGL_ENOT_PREPARE;
 }
-
 KGL_RESULT on_upstream_finished_header(KHttpRequest* rq, kgl_response_body* body) {
 	KHttpObject* obj = rq->ctx.obj;
 	switch (obj->data->i.status_code) {
