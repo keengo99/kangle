@@ -92,6 +92,7 @@ uint32_t KChain::match(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 			break;
 		}
 		if (fo) {
+			++hit_count;
 			return true;
 		}
 	}

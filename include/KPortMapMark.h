@@ -5,25 +5,18 @@
 #include "KHttpRequest.h"
 #include "KTcpFetchObject.h"
 #ifdef WORK_MODEL_TCP
-struct KPortMapItem
-{
-	std::string host;
-	int port;
-	std::string param;
-};
 class KPortMapMark : public KMark
 {
 public:
 	KPortMapMark()
 	{
-		port = 0;
 	}
 	virtual ~KPortMapMark()
 	{
 	}
 	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override
 	{
-		if (!KBIT_TEST(rq->sink->get_server_model(),WORK_MODEL_TCP) || rq->is_source_empty()) {
+		if (!KBIT_TEST(rq->sink->get_server_model(),WORK_MODEL_TCP)) {
 			return KF_STATUS_REQ_FALSE;
 		}
 		//rq->append_source(new KTcpFetchObject(false));
@@ -37,6 +30,7 @@ public:
 			rq->sink->data.url->param = strdup(param.c_str());
 		}
 		rq->sink->data.url->host = strdup(host.c_str());
+		int port = atoi(this->port.c_str());
 		if (port==0) {
 			rq->sink->data.url->port = rq->sink->get_self_port();
 		} else {
@@ -44,6 +38,9 @@ public:
 		}
 		rq->sink->data.raw_url->host = strdup(rq->sink->data.url->host);
 		rq->sink->data.raw_url->port = rq->sink->data.url->port;
+		if (this->port.find('s')) {
+			KBIT_SET(rq->sink->data.url->flags, KGL_URL_ORIG_SSL);
+		}
 		fo.reset(new KTcpFetchObject(false));
 		return KF_STATUS_REQ_TRUE;
 	}
@@ -80,12 +77,12 @@ public:
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
 		host = attribute["host"];
-		port = atoi(attribute["port"].c_str());
+		port = attribute["port"];
 		param = attribute["param"];
 	}
 private:
 	KString host;
-	int port;
+	KString port;
 	KString param;
 };
 #endif
