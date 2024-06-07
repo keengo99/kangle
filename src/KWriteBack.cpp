@@ -3,7 +3,7 @@
 #include "KBufferFetchObject.h"
 #include "kmalloc.h"
 using namespace std;
-
+#ifdef ENABLE_WRITE_BACK
 KString KWriteBack::getMsg()
 {
 	KStringBuf s;
@@ -71,3 +71,4 @@ void KWriteBack::buildRequest(KHttpRequest* rq, KSafeSource& fo)
 	}
 	fo.reset(new KBufferFetchObject(NULL, body.size()));
 }
+#endif

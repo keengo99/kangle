@@ -521,7 +521,7 @@ kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo
 	}
 #ifdef ENABLE_WRITE_BACK
 	case JUMP_WBACK:
-		if (jump && fo) {
+		if (jump) {
 			KWriteBack* wb = static_cast<KWriteBack*>(jump.get());
 			wb->buildRequest(rq, fo);
 		}
@@ -531,21 +531,19 @@ kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo
 	case JUMP_PROXY:
 		jumpType = JUMP_ALLOW;
 		assert(!rq->has_final_source());
-		if (fo) {
 #ifdef HTTP_PROXY
-			if (rq->sink->data.meth == METH_CONNECT) {
-				fo.reset(new KConnectProxyFetchObject());
-				break;
-			}
+		if (rq->sink->data.meth == METH_CONNECT) {
+			fo.reset(new KConnectProxyFetchObject());
+			break;
+		}
 #endif
 #ifdef ENABLE_PROXY_PROTOCOL
-			if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_PROXY | WORK_MODEL_SSL_PROXY)) {
-				fo.reset(new KTcpFetchObject(false));
-				break;
-			}
-#endif
-			fo.reset(new KHttpProxyFetchObject());
+		if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_PROXY | WORK_MODEL_SSL_PROXY)) {
+			fo.reset(new KTcpFetchObject(false));
+			break;
 		}
+#endif
+		fo.reset(new KHttpProxyFetchObject());
 		break;
 	}
 	return jumpType;

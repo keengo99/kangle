@@ -96,7 +96,7 @@
 #define ENABLE_SVH_SSL 1
 #endif
 
-#define ENABLE_WRITE_BACK  1
+//#define ENABLE_WRITE_BACK  1
 #define ENABLE_LIMIT_SPEED 1
 #define CONTENT_FILTER  1
 
