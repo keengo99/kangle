@@ -446,6 +446,11 @@ void KAsyncFetchObject::create_post_fiber(KHttpRequest* rq, kfiber** post_fiber)
 	}
 }
 KGL_RESULT KAsyncFetchObject::on_read_head_success(KHttpRequest* rq, kfiber** post_fiber) {
+#ifdef HTTP_PROXY
+	if (rq->sink->data.meth == METH_CONNECT) {
+		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_UPGRADE);
+	}
+#endif
 	if (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
 		rq->sink->set_no_delay(true);
 		client->set_no_delay(true);

@@ -105,7 +105,8 @@ public:
 		uint32_t have_stored : 1;
 		uint32_t upstream_connection_keep_alive : 1;
 		//connect´úÀí
-		uint32_t connection_connect_proxy : 1;
+		//uint32_t connection_connect_proxy : 1;
+		uint32_t no_http_header : 1;
 		uint32_t always_on_model : 1;
 		uint32_t response_checked : 1;
 		uint32_t upstream_sign : 1;

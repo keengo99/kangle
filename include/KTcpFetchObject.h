@@ -55,7 +55,6 @@ class KConnectProxyFetchObject : public KAsyncFetchObject
 public:
 	KGL_RESULT buildHead(KHttpRequest *rq) override
 	{
-		rq->ctx.connection_connect_proxy = true;
 		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_UPGRADE);
 		buffer = new KSocketBuffer();
 		return KGL_OK;

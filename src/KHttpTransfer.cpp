@@ -104,10 +104,8 @@ bool kgl_load_response_body(KHttpRequest* rq, kgl_response_body* body) {
 			}
 		}
 	}
-#ifdef WORK_MODEL_TCP
-	//端口映射不发送http头
-	if (!KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_TCP))
-#endif
+	if (!rq->ctx.no_http_header) {
 		return build_obj_header(rq, obj, content_len);
+	}
 	return true;
 }

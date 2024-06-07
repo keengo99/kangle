@@ -87,53 +87,64 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 	if (KBIT_TEST(rq->ctx.filter_flags, RF_PROXY_RAW_URL) || !KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
 		url = rq->sink->data.raw_url;
 	}
-	char* path = url->path;
-	size_t path_len;
-	if (url == rq->sink->data.url && KBIT_TEST(url->flags, KGL_URL_ENCODE)) {
-		path = url_encode(url->path, strlen(url->path), &path_len);
-	}
-	if (KBIT_TEST(rq->ctx.filter_flags, RF_PROXY_FULL_URL) && !client->IsMultiStream()) {
-		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
-			s.WSTR("https");
-		} else {
-			s.WSTR("http");
+#ifdef HTTP_PROXY
+	if (rq->sink->data.meth == METH_CONNECT) {
+		s << url->host << ":" << url->port;
+		client->send_method_path(METH_CONNECT, s.buf(), (hlen_t)s.size());
+		//KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_UPGRADE);
+		//rq->ctx.no_http_header = 1;
+	} else {
+#endif
+		char* path = url->path;
+		size_t path_len;
+		if (url == rq->sink->data.url && KBIT_TEST(url->flags, KGL_URL_ENCODE)) {
+			path = url_encode(url->path, strlen(url->path), &path_len);
 		}
-		s.WSTR("://");
+		if (KBIT_TEST(rq->ctx.filter_flags, RF_PROXY_FULL_URL) && !client->IsMultiStream()) {
+			if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
+				s.WSTR("https");
+			} else {
+				s.WSTR("http");
+			}
+			s.WSTR("://");
+			s << url->host;
+			if (url->port != defaultPort) {
+				s.WSTR(":");
+				s << url->port;
+			}
+		}
+		s << path;
+		const char* param = url->param;
+		if (param) {
+			s.WSTR("?");
+			s << param;
+		}
+		uint8_t meth = rq->sink->data.meth;
+		if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE) && client->IsMultiStream()) {
+			meth = METH_CONNECT;
+		}
+		client->send_method_path(meth, s.buf(), (hlen_t)s.size());
+		if (path != url->path) {
+			xfree(path);
+			path = NULL;
+		}
+		s.clear();
 		s << url->host;
 		if (url->port != defaultPort) {
 			s.WSTR(":");
 			s << url->port;
 		}
-	}
-	s << path;
-	const char* param = url->param;
-	if (param) {
-		s.WSTR("?");
-		s << param;
-	}
-	uint8_t meth = rq->sink->data.meth;
-	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE) && client->IsMultiStream()) {
-		meth = METH_CONNECT;
-	}
-	client->send_method_path(meth, s.buf(), (hlen_t)s.size());
-	if (path != url->path) {
-		xfree(path);
-		path = NULL;
-	}
-	s.clear();
-	s << url->host;
-	if (url->port != defaultPort) {
-		s.WSTR(":");
-		s << url->port;
-	}
-	client->send_host(s.buf(), (hlen_t)s.size());
-	if (client->IsMultiStream()) {
-		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
-			client->send_header(kgl_header_scheme, kgl_expand_string("https"));
-		} else {
-			client->send_header(kgl_header_scheme, kgl_expand_string("http"));
+		client->send_host(s.buf(), (hlen_t)s.size());
+		if (client->IsMultiStream()) {
+			if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
+				client->send_header(kgl_header_scheme, kgl_expand_string("https"));
+			} else {
+				client->send_header(kgl_header_scheme, kgl_expand_string("http"));
+			}
 		}
+#ifdef HTTP_PROXY
 	}
+#endif	
 	KHttpHeader* av = rq->sink->data.get_header();
 	kgl_str_t attr;
 	while (av) {
@@ -249,12 +260,15 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 		}
 	}
 #ifdef HTTP_PROXY
-	if (client->container) {
-		KHttpHeader* header = client->container->get_proxy_header(rq->sink->pool);
-		while (header) {
-			kgl_get_header_name(av, &attr);
-			env.add(attr.data, attr.len, header->buf + header->val_offset, header->val_len);
-			header = header->next;
+	{
+		auto container = client->get_container();
+		if (container) {
+			KHttpHeader* header = container->get_proxy_header(rq->sink->pool);
+			while (header) {
+				kgl_get_header_name(header, &attr);
+				env.add(attr.data, (hlen_t)attr.len, header->buf + header->val_offset, header->val_len);
+				header = header->next;
+			}
 		}
 	}
 #endif

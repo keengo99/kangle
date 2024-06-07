@@ -225,7 +225,7 @@ bool check_virtual_host_access_request(KHttpRequest* rq, KSafeSource& fo, int he
 	return false;
 }
 
-KGL_RESULT handle_connect_method(KHttpRequest* rq) {
+KGL_RESULT check_connect_method(KHttpRequest* rq) {
 #ifdef HTTP_PROXY	
 	if (rq->sink->data.url->host == NULL) {
 		return KGL_EDATA_FORMAT;
@@ -236,6 +236,11 @@ KGL_RESULT handle_connect_method(KHttpRequest* rq) {
 	if (rq->sink->data.url->path == NULL) {
 		rq->sink->data.url->path = strdup("/");
 	}
+	rq->sink->data.set_http_version(1, 0);
+	return KGL_OK;
+#endif
+
+#if 0
 	KSafeSource fo;
 	switch (kaccess[REQUEST]->check(rq, NULL, fo)) {
 	case JUMP_DROP:
@@ -258,8 +263,9 @@ KGL_RESULT handle_connect_method(KHttpRequest* rq) {
 	rq->sink->data.set_http_version(1, 0);
 	rq->ctx.obj = new KHttpObject(rq);
 	return load_object_from_source(rq);
-#endif
+
 	return send_error2(rq, STATUS_METH_NOT_ALLOWED, "The requested method CONNECT is not allowed");
+#endif
 }
 void start_request_fiber(KSink* sink, int header_length) {
 	KHttpRequest* rq = new KHttpRequest(sink);
@@ -270,8 +276,10 @@ void start_request_fiber(KSink* sink, int header_length) {
 	rq->beginRequest();
 #ifdef HTTP_PROXY
 	if (rq->sink->data.meth == METH_CONNECT) {
-		handle_connect_method(rq);
-		goto clean;
+		if (check_connect_method(rq) != KGL_OK) {
+			send_error2(rq, STATUS_METH_NOT_ALLOWED, "The requested method CONNECT is not allowed");
+			goto clean;
+		}
 	}
 #endif
 	if (unlikely(rq->ctx.read_huped)) {

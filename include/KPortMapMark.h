@@ -19,7 +19,7 @@ public:
 		if (!KBIT_TEST(rq->sink->get_server_model(),WORK_MODEL_TCP)) {
 			return KF_STATUS_REQ_FALSE;
 		}
-		//rq->append_source(new KTcpFetchObject(false));
+		rq->ctx.no_http_header = 1;
 		free(rq->sink->data.url->host);
 		free(rq->sink->data.raw_url->host);
 		if (rq->sink->data.url->param) {
