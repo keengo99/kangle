@@ -970,7 +970,7 @@ KGL_RESULT fiber_http_start(KHttpRequest* rq) {
 	return process_cache_request(rq);
 }
 KGL_RESULT prepare_write_body(KHttpRequest* rq, kgl_response_body* body) {
-	if (unlikely(rq->ctx.body.ctx)) {
+	if (unlikely(rq->ctx.body.ctx!=NULL)) {
 		return KGL_OK;
 	}
 	if (body) {
