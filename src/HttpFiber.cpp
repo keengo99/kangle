@@ -226,6 +226,9 @@ bool check_virtual_host_access_request(KHttpRequest* rq, KSafeSource& fo, int he
 }
 
 KGL_RESULT check_connect_method(KHttpRequest* rq) {
+	if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_TCP) || rq->sink->data.meth != METH_CONNECT) {
+		return KGL_OK;
+	}
 #ifdef HTTP_PROXY	
 	if (rq->sink->data.url->host == NULL) {
 		return KGL_EDATA_FORMAT;
@@ -249,11 +252,9 @@ void start_request_fiber(KSink* sink, int header_length) {
 	KSafeSource fo;
 	kgl_jump_type jump_type;
 	rq->beginRequest();
-	if (rq->sink->data.meth == METH_CONNECT) {
-		if (check_connect_method(rq) != KGL_OK) {
-			send_error2(rq, STATUS_METH_NOT_ALLOWED, "The requested method CONNECT is not allowed");
-			goto clean;
-		}
+	if (check_connect_method(rq) != KGL_OK) {
+		send_error2(rq, STATUS_METH_NOT_ALLOWED, "The requested method CONNECT is not allowed");
+		goto clean;
 	}
 	if (unlikely(rq->ctx.read_huped)) {
 		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
