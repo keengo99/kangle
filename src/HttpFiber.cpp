@@ -238,33 +238,8 @@ KGL_RESULT check_connect_method(KHttpRequest* rq) {
 	}
 	rq->sink->data.set_http_version(1, 0);
 	return KGL_OK;
-#endif
-
-#if 0
-	KSafeSource fo;
-	switch (kaccess[REQUEST]->check(rq, NULL, fo)) {
-	case JUMP_DROP:
-		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
-		return KGL_EDENIED;
-	case JUMP_DENY:
-		if (fo) {
-			rq->append_source(fo.release());
-		}
-		return handle_denied_request(rq);
-	default:
-		if (fo) {
-			rq->append_source(fo.release());
-		}
-		break;
-	}
-	if (!rq->has_final_source()) {
-		return send_error2(rq, STATUS_METH_NOT_ALLOWED, "CONNECT Not allowed.");
-	}
-	rq->sink->data.set_http_version(1, 0);
-	rq->ctx.obj = new KHttpObject(rq);
-	return load_object_from_source(rq);
-
-	return send_error2(rq, STATUS_METH_NOT_ALLOWED, "The requested method CONNECT is not allowed");
+#else
+	return KGL_EDENIED;
 #endif
 }
 void start_request_fiber(KSink* sink, int header_length) {
@@ -274,20 +249,18 @@ void start_request_fiber(KSink* sink, int header_length) {
 	KSafeSource fo;
 	kgl_jump_type jump_type;
 	rq->beginRequest();
-#ifdef HTTP_PROXY
 	if (rq->sink->data.meth == METH_CONNECT) {
 		if (check_connect_method(rq) != KGL_OK) {
 			send_error2(rq, STATUS_METH_NOT_ALLOWED, "The requested method CONNECT is not allowed");
 			goto clean;
 		}
 	}
-#endif
 	if (unlikely(rq->ctx.read_huped)) {
 		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 		send_error2(rq, STATUS_BAD_REQUEST, "Client close connection");
 		goto clean;
 	}
-	if (unlikely(rq->isBad())) {
+	if (unlikely(rq->is_bad_url())) {
 		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
 		send_error2(rq, STATUS_BAD_REQUEST, "Bad request format.");
 		goto clean;
@@ -297,7 +270,7 @@ void start_request_fiber(KSink* sink, int header_length) {
 		goto clean;
 	}
 #ifdef ENABLE_STAT_STUB
-	if (strcmp(rq->sink->data.url->path, "/kangle.status") == 0) {
+	if (unlikely(strcmp(rq->sink->data.url->path, "/kangle.status") == 0)) {
 		KAutoBuffer s(rq->sink->pool);
 		if (rq->sink->data.meth != METH_HEAD) {
 			s << "OK\n";
@@ -306,7 +279,7 @@ void start_request_fiber(KSink* sink, int header_length) {
 		goto clean;
 	}
 #endif
-	if (rq->ctx.skip_access) {
+	if (unlikely(rq->ctx.skip_access)) {
 		goto skip_access;
 	}
 	jump_type = kaccess[REQUEST]->check(rq, NULL, fo);

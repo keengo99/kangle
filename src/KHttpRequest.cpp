@@ -361,8 +361,8 @@ void KHttpRequest::store_obj() {
 const char* KHttpRequest::get_method() {
 	return KHttpKeyValue::get_method(sink->data.meth)->data;
 }
-bool KHttpRequest::isBad() {
-	if (unlikely(sink->data.url == NULL || sink->data.url->IsBad() || sink->data.meth == METH_UNSET)) {
+bool KHttpRequest::is_bad_url() {
+	if (unlikely(sink->data.url == NULL || sink->data.url->is_bad() || sink->data.meth == METH_UNSET)) {
 		return true;
 	}
 	return false;

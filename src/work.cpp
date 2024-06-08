@@ -221,7 +221,7 @@ void log_access(KHttpRequest* rq) {
 			return;
 		}
 	}
-	if (rq->isBad()) {
+	if (rq->is_bad_url()) {
 		klog(KLOG_ERR, "BAD REQUEST FROM [%s].\n", rq->getClientIp());
 		return;
 	}

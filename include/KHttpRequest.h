@@ -184,7 +184,7 @@ public:
 		return ctx.sub_request;
 	}
 	void store_obj();
-	bool isBad();
+	bool is_bad_url();
 	void set_url_param(char* param);
 #ifdef ENABLE_TF_EXCHANGE
 	bool NeedTempFile(bool upload);
