@@ -145,6 +145,10 @@ KGL_RESULT KAsyncFetchObject::InternalProcess(KHttpRequest* rq, kfiber** post_fi
 			return out->f->error(out->ctx,  STATUS_SERVICE_UNAVAILABLE, _KS("extend is disable"));
 		}
 		assert(client == NULL);
+#ifdef HTTP_PROXY
+		//proxy has upstream will build full url
+		KBIT_SET(rq->ctx.filter_flags, RF_PROXY_FULL_URL);
+#endif
 		client = brd->rd->GetUpstream(rq);
 	}
 	if (client == NULL) {
