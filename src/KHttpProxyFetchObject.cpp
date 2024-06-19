@@ -87,8 +87,6 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 	if (rq->sink->data.meth == METH_CONNECT) {
 		build_url_host_port(url, s);
 		client->send_method_path(METH_CONNECT, s.buf(), (hlen_t)s.size());
-		//KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_UPGRADE);
-		//rq->ctx.no_http_header = 1;
 	} else {
 #endif
 		char* path = url->path;
