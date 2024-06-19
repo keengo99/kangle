@@ -75,21 +75,17 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 	char tmpbuff[50];
 	int via_inserted = FALSE;
 	bool x_forwarded_for_inserted = false;
-	int defaultPort = 80;
 	KStringBuf s;
 	KUpstreamStreamHttpEnv env(client);
 	const char* ips = rq->getClientIp();
 	int ips_len = (int)strlen(ips);
-	if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
-		defaultPort = 443;
-	}
 	KUrl* url = rq->sink->data.url;
 	if (KBIT_TEST(rq->ctx.filter_flags, RF_PROXY_RAW_URL) || !KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
 		url = rq->sink->data.raw_url;
 	}
 #ifdef HTTP_PROXY
 	if (rq->sink->data.meth == METH_CONNECT) {
-		s << url->host << ":" << url->port;
+		build_url_host_port(url, s);
 		client->send_method_path(METH_CONNECT, s.buf(), (hlen_t)s.size());
 		//KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_UPGRADE);
 		//rq->ctx.no_http_header = 1;
@@ -110,11 +106,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 				s.WSTR("http");
 			}
 			s.WSTR("://");
-			s << url->host;
-			if (url->port != defaultPort) {
-				s.WSTR(":");
-				s << url->port;
-			}
+			build_url_host_port(url, s);
 		}
 		s << path;
 		const char* param = url->param;
@@ -132,11 +124,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 			path = NULL;
 		}
 		s.clear();
-		s << url->host;
-		if (url->port != defaultPort) {
-			s.WSTR(":");
-			s << url->port;
-		}
+		build_url_host_port(url, s);
 		client->send_host(s.buf(), (hlen_t)s.size());
 		if (client->IsMultiStream()) {
 			if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
