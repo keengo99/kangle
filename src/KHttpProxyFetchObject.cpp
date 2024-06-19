@@ -94,6 +94,9 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 		//KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_UPGRADE);
 		//rq->ctx.no_http_header = 1;
 	} else {
+		if (client->get_container()) {
+			KBIT_SET(rq->ctx.filter_flags, RF_PROXY_FULL_URL);
+		}
 #endif
 		char* path = url->path;
 		size_t path_len;
