@@ -35,6 +35,13 @@
 #define FOLLOW_LINK_ALL  1
 #define FOLLOW_LINK_OWN  2
 #define FOLLOW_PATH_INFO 4
+struct kgl_auto_aio_free
+{
+	void operator()(char* t) const noexcept {
+		aio_free_buffer(t);
+	}
+};
+using kgl_auto_aio_buffer = std::unique_ptr<char, kgl_auto_aio_free>;
 char *my_strtok(char *msg, char split, char **ptrptr);
 enum CheckLinkState 
 {

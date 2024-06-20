@@ -319,7 +319,7 @@ void KSharedBigObject::close_write(KHttpObject* obj, int64_t write_from) {
 		nobj->data->i.type = BIG_OBJECT;
 		nobj->dc_index_update = 1;
 		bool cache_result = cache.add(nobj, LIST_IN_MEM);
-		char* aio_buffer = NULL;
+		kgl_auto_aio_buffer aio_buffer;
 		int aio_buffer_size = 0;
 		if (cache_result) {
 			//把文件传给新物件
@@ -334,8 +334,7 @@ void KSharedBigObject::close_write(KHttpObject* obj, int64_t write_from) {
 		//写文件头代码
 		if (cache_result && fp) {
 			kfiber_file_seek(fp, seekBegin, 0);
-			kfiber_file_safe_write_full(fp, aio_buffer, &aio_buffer_size);
-			aio_free_buffer(aio_buffer);
+			kfiber_file_safe_write_full(fp, aio_buffer.get(), &aio_buffer_size);
 		}
 	}
 	close(obj);
@@ -370,10 +369,9 @@ bool KSharedBigObject::create(KHttpObject* obj) {
 	KBIT_SET(obj->index.flags, FLAG_IN_DISK | FLAG_BIG_OBJECT_PROGRESS);
 	obj->cache_is_ready = 1;
 	int size;
-	char* buf = obj->build_aio_header(size, nullptr, 0);
+	auto buf = obj->build_aio_header(size, nullptr, 0);
 	if (buf) {
-		kfiber_file_write(fp, buf, size);
-		aio_free_buffer(buf);
+		kfiber_file_write(fp, buf.get(), size);
 	}	
 	kfiber_mutex_unlock(lock);
 	return true;

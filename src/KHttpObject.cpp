@@ -391,7 +391,7 @@ int KHttpObject::build_header(char* buf, char* end, const char* url, int url_len
 	kassert(header_length <= (INT64)index.head_size);
 	return header_length;
 }
-char* KHttpObject::build_aio_header(int& len, const char* url, int url_len)
+kgl_auto_aio_buffer KHttpObject::build_aio_header(int& len, const char* url, int url_len)
 {
 	kgl_auto_cstr u = nullptr;
 	if (!url) {
@@ -404,7 +404,7 @@ char* KHttpObject::build_aio_header(int& len, const char* url, int url_len)
 	len = GetHeaderSize(url_len);
 	char* buf = (char*)aio_alloc_buffer(len);
 	build_header(buf, buf + len, url, url_len);
-	return buf;
+	return kgl_auto_aio_buffer(buf);
 }
 
 bool KHttpObject::save_header(KBufferFile* fp, const char* url, int url_len)
