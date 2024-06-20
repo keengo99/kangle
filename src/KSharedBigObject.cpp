@@ -213,7 +213,7 @@ int KSharedBigObject::read(KHttpRequest* rq, KHttpObject* obj, int64_t offset, c
 		INT64 block_length = block->file_block.to - offset;
 		length = (int)KGL_MIN((INT64)length, block_length);
 		kfiber_file_seek(fp, seekBegin, offset + obj->index.head_size);
-		int result = kfiber_file_read(fp, buf, length);
+		int result = kfiber_file_safe_read(fp, buf, length);
 		kfiber_mutex_unlock(lock);
 		return result;
 	}
@@ -334,7 +334,7 @@ void KSharedBigObject::close_write(KHttpObject* obj, int64_t write_from) {
 		//写文件头代码
 		if (cache_result && fp) {
 			kfiber_file_seek(fp, seekBegin, 0);
-			kfiber_file_write_full(fp, aio_buffer, &aio_buffer_size);
+			kfiber_file_safe_write_full(fp, aio_buffer, &aio_buffer_size);
 			aio_free_buffer(aio_buffer);
 		}
 	}
@@ -387,7 +387,7 @@ KGL_RESULT KSharedBigObject::write(KHttpObject* obj, int64_t offset, const char*
 		return KGL_EIO;
 	}
 	int left = length;
-	if (!kfiber_file_write_full(fp, buf, &left)) {
+	if (!kfiber_file_safe_write_full(fp, buf, &left)) {
 		kfiber_mutex_unlock(lock);
 		return KGL_EIO;
 	}
