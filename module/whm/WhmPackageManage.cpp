@@ -16,7 +16,9 @@ WhmPackageManage packageManage;
 static void flushThread(void* arg, time_t now_time) {
 	packageManage.flush();
 }
-WhmPackageManage::WhmPackageManage() {}
+WhmPackageManage::WhmPackageManage() {
+	flush_thread_started = false;
+}
 WhmPackageManage::~WhmPackageManage() {
 	clean();
 }
