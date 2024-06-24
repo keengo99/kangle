@@ -51,6 +51,6 @@ bool KWhmService::service(KServiceProvider *provider) {
 	}else{
 		*out << "<result whm_version=\"1.0\">whm_call cann't be empty</result>";
 	}
-	package->destroy();
+	package->release();
 	return true;
 }

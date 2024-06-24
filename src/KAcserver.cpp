@@ -25,8 +25,6 @@
 #include "KLang.h"
 #include "kmalloc.h"
 using namespace std;
-KJump::~KJump() {
-}
 KPoolableRedirect::KPoolableRedirect(const KString& name) : KRedirect(name) {
 	proto = Proto_http;
 }

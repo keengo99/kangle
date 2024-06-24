@@ -26,6 +26,7 @@
 KCountableEx会初始化refs为1.
 而KCountable初始化refs为0
 */
+#if 0
 class KCountable {
 public:
 	KCountable() {
@@ -83,6 +84,7 @@ protected:
 	volatile int refs;
 	KMutex refsLock;
 };
+#endif
 class KCountableEx {
 public:
 	KCountableEx() {

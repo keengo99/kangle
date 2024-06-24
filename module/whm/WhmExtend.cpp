@@ -82,7 +82,7 @@ int WhmExtend::whmCall(const char *callName,const char *eventType,WhmContext *co
 				break;
 			} else {
 				ret = package->process(p2+1,context);
-				package->destroy();
+				package->release();
 			}
 			if(p==NULL){
 				break;

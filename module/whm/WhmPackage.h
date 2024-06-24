@@ -15,10 +15,9 @@
 /*
  * whm包,由配置文件生成的whm调用及event信息.
  */
-class WhmPackage: public KXmlEvent, public KCountable {
+class WhmPackage: public KXmlEvent, public KAtomCountable {
 public:
-	WhmPackage();
-	virtual ~WhmPackage();
+	WhmPackage();	
 	int process(const char *callName,WhmContext *context);
 	int getInfo(WhmContext *context);
 	void flush();
@@ -32,6 +31,7 @@ public:
 	bool startCharacter(KXmlContext *context, char *character, int len) override;
 	bool endElement(KXmlContext *context) override;
 private:
+	virtual ~WhmPackage();
 //	WhmContext *whmContext;
 	WhmCallMap *newCallMap(const KString &name, const KString &callName);
 	WhmExtend *findExtend(const KString &name);

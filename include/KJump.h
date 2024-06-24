@@ -49,7 +49,9 @@ public:
 	}
 	KString name;
 protected:
-	virtual ~KJump();
+	virtual ~KJump() {
+
+	}
 private:
 	volatile uint32_t ref;
 };
