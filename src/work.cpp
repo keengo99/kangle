@@ -280,7 +280,7 @@ void log_access(KHttpRequest* rq) {
 #ifdef HTTP_PROXY
 	if (rq->sink->data.meth != METH_CONNECT)
 #endif
-		l << (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL) ? "https://" : "http://");
+		l << (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_ORIG_SSL) ? "https://" : "http://");
 	KUrl* url = rq->sink->data.raw_url;
 	build_url_host_port(url, l);
 #ifdef HTTP_PROXY
