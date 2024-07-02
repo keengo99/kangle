@@ -256,10 +256,6 @@ void log_access(KHttpRequest* rq) {
 	//char* referer = NULL;
 	//const char* user_agent = NULL;
 	char tmp[64];
-	int default_port = 80;
-	if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
-		default_port = 443;
-	}
 	l << rq->getClientIp();
 	//l.WSTR(":");
 	//l << rq->sink->get_remote_port();
@@ -286,13 +282,7 @@ void log_access(KHttpRequest* rq) {
 #endif
 		l << (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL) ? "https://" : "http://");
 	KUrl* url = rq->sink->data.raw_url;
-
-	//referer = (char*)rq->GetHttpValue("Referer");
-	//user_agent = rq->GetHttpValue("User-Agent");
-	l << url->host;
-	if (url->port != default_port) {
-		l << ":" << url->port;
-	}
+	build_url_host_port(url, l);
 #ifdef HTTP_PROXY
 	if (rq->sink->data.meth != METH_CONNECT)
 #endif
