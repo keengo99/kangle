@@ -601,11 +601,12 @@ void do_config(bool first_time) {
 		assert(!first_time);
 		return;
 	}
-	assert(!kfiber_is_main());
 	if (first_time) {
+		assert(!kfiber_is_main());
 		do_config_thread((void*)&first_time, 0);
 	} else {
-		if (kfiber_create(do_config_thread, nullptr, 0, http_config.fiber_stack_size, NULL) != 0) {
+		if (kfiber_create2(get_perfect_selector(), do_config_thread, nullptr, 0, http_config.fiber_stack_size, NULL) != 0) {
+			klog(KLOG_ERR, "create fiber do_config_thread error. do_config FAILED.\n");
 			katom_set((void*)&load_config_progress, 0);
 		}
 	}
