@@ -654,8 +654,12 @@ void KVirtualHostManage::getVhIndex(KWStream& s, KVirtualHost* vh, int id) {
 	}
 	s << "><a href='/vhlist?id=0&name=" << vh->name << "'";
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
-	if (vh->ssl_ctx) {
-		s << " class=\"ssl_enabled\"";
+	if (!vh->cert_file.empty()) {
+		auto ssl_ctx = vh->refs_ssl_ctx();
+		if (ssl_ctx) {
+			s << " class=\"ssl_enabled\"";
+			kgl_release_ssl_ctx(ssl_ctx);
+		}
 	}
 #endif
 	s << ">";
