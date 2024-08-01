@@ -626,7 +626,8 @@ bool KVirtualHost::setSSLInfo(const KString& certfile, const KString& keyfile, c
 		kgl_release_ssl_ctx(ssl_ctx);
 		ssl_ctx = nullptr;
 	}
-	return true;
+	ssl_ctx = refs_ssl_ctx();
+	return ssl_ctx!=nullptr;
 }
 #endif
 bool KVirtualHost::parse_xml(const khttpd::KXmlNodeBody* body, KVirtualHost* ov) {
