@@ -958,14 +958,12 @@ bool KHttpManage::sendMainFrame() {
 	s << "<h3>" << klang["load_info"] << "</h3>";
 	s << "<table>";
 	//connect
-	s << "<tr><td>" << LANG_CONNECT_COUNT << "</td>";
-	s << "<td>" << total_connect << "</td></tr>\n";
+	s << "<tr><td>" << LANG_CONNECT_COUNT << "</td><td>" << total_connect << "</td></tr>\n";
 	//thread
 	int worker_count, free_count;
 	kthread_get_count(&worker_count, &free_count);
-	s << "<tr><td>fiber</td><td>" << kfiber_get_count() << "</td></tr>";
-	s << "<tr><td>" << LANG_WORKING_THREAD << "</td>";
-	s << "<td >" << worker_count << "</td></tr>\n";
+	s << "<tr><td>fiber</td><td>" << kfiber_get_count() << "</td></tr>\n";
+	s << "<tr><td>" << LANG_WORKING_THREAD << "</td><td>" << worker_count << "</td></tr>\n";
 	s << "<tr><td>" << LANG_FREE_THREAD << "</td><td>" << free_count << "</td></tr>\n";
 	s << "<tr><td>" << klang["io_worker_info"] << "</td><td>" << conf.ioWorker->worker << "/" << conf.ioWorker->queue << "</td></tr>\n";
 	s << "<tr><td>" << klang["dns_worker_info"] << "</td><td>" << conf.dnsWorker->worker << "/" << conf.dnsWorker->queue << "</td></tr>\n";
@@ -977,16 +975,13 @@ bool KHttpManage::sendMainFrame() {
 	s << "</table>\n";
 	s << "<h3>" << klang["selector"] << "</h3>";
 	s << "<table>";
-	s << "<tr><td>" << LANG_NAME << "</td><td>";
-	s << kgl_selector_module.name << "</td></tr>";
-	//s << "<tr><td>" << klang["worker_process"] << "</td><td>" << conf.worker << "</td></tr>";
-	s << "<tr><td>" << klang["worker_thread"] << "</td><td>";
-	s << get_selector_count() << "</td></tr>";
+	s << "<tr><td>" << LANG_NAME << "</td><td>" << selector_manager_event_name() << "</td></tr>\n";
+	s << "<tr><td>" << klang["worker_thread"] << "</td><td>" << get_selector_count() << "</td></tr>\n";
+	s << "<tr><td>fiber name:</td><td>" << kfiber_powered_by() << "</td></tr>\n";
 	s << "</table>";
 
 	s << "</td><td valign=top align=right>";
-	s
-		<< "<form action='/changelang' method='post' target=_top><div align=right>";
+	s << "<form action='/changelang' method='post' target=_top><div align=right>";
 	s << "[<a href=\"javascript:if(confirm('really reload')){ window.location='/reload_config';}\">" << klang["reload_config"] << "</a>] ";
 	//s << "[<a href=\"javascript:if(confirm('really reload')){ window.location='/reload_vh';}\">" << klang["reload_vh"] << "</a>] ";
 	s << klang["lang"] << ":<select name='lang'>";
