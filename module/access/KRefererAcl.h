@@ -35,11 +35,11 @@ public:
 		if (!vhc) {
 			return false;
 		}
-		KAutoUrl referer;
-		if (!parse_url(value.data, value.len, referer.u)) {
+		KSafeUrl referer(new KUrl());
+		if (!parse_url(value.data, value.len, referer.get())) {
 			return false;
 		}
-		return  (vhc->find(referer.u->host) != NULL);
+		return  (vhc->find(referer->host) != NULL);
 	}
 	void get_display(KWStream &s) override {
 		int count = 0;

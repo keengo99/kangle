@@ -32,7 +32,7 @@ public:
 		dst = new KUrl;
 	}
 	~SubdirHttp() {
-		dst->relase();
+		dst->release();
 	}
 	KUrl* dst;
 	char* ip;

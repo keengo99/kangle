@@ -110,7 +110,7 @@ KHttpObject::~KHttpObject() {
 		delete data;
 	}
 	if (uk.url) {
-		uk.url->relase();
+		uk.url->release();
 	}
 	if (uk.vary) {
 		delete uk.vary;

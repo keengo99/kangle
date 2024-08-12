@@ -147,7 +147,7 @@ public:
 		runtime_flags = 0;
 		index.last_verified = kgl_current_sec;
 		if (url) {
-			uk.url = url->refs();
+			uk.url = url->add_ref();
 		} else {
 			uk.url = nullptr;
 		}

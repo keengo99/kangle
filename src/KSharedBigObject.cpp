@@ -305,7 +305,7 @@ void KSharedBigObject::close_write(KHttpObject* obj, int64_t write_from) {
 		kgl_memcpy(&nobj->dk, &obj->dk, sizeof(nobj->dk));
 		kgl_memcpy(&nobj->index, &obj->index, sizeof(nobj->index));
 		//assert(KBIT_TEST(nobj->index.flags, FLAG_BIG_OBJECT));
-		nobj->uk.url = obj->uk.url->refs();
+		nobj->uk.url = obj->uk.url->add_ref();
 		if (obj->uk.vary != NULL) {
 			KMutex* lock = obj->getLock();
 			lock->Lock();

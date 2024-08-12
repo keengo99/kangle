@@ -40,7 +40,7 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 	selectable_bind(&ss->cn->st, selector);	
 	selectable_bind_opaque(&ss->cn->st, rq);
 	if (!parse_url(ctx->url, ss->data.raw_url)) {
-		ss->data.raw_url->relase();
+		ss->data.raw_url->release();
 		ss->data.raw_url = new KUrl;
 		KStringBuf nu;
 		nu << ctx->url << "/";

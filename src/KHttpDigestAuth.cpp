@@ -109,13 +109,13 @@ bool KHttpDigestAuth::verifySession(KHttpRequest* rq) {
 	if (uri == NULL || rq->sink->data.raw_url->path == NULL || rq->sink->data.raw_url->host == NULL) {
 		return false;
 	}
-	KAutoUrl url2;
-	parse_url(uri, url2.u);
+	KSafeUrl url2(new KUrl());
+	parse_url(uri, url2.get());
 	if (
-		(url2.u->host && strcmp(url2.u->host, rq->sink->data.raw_url->host) != 0)
-		|| (url2.u->path == NULL)
-		|| (strcmp(url2.u->path, rq->sink->data.raw_url->path) != 0)
-		|| (url2.u->param && (rq->sink->data.raw_url->param == NULL || strcmp(url2.u->param, rq->sink->data.raw_url->param) != 0))
+		(url2->host && strcmp(url2->host, rq->sink->data.raw_url->host) != 0)
+		|| (url2->path == NULL)
+		|| (strcmp(url2->path, rq->sink->data.raw_url->path) != 0)
+		|| (url2->param && (rq->sink->data.raw_url->param == NULL || strcmp(url2->param, rq->sink->data.raw_url->param) != 0))
 		) {
 
 		return false;

@@ -23,7 +23,7 @@ public:
 			auto it = m.begin();
 			KUrl *u = (*it).first;
 			m.erase(it);
-			u->relase();
+			u->release();
 		}
 	}
 	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
@@ -65,7 +65,7 @@ public:
 				std::map<KUrl *,std::string,less_host_port>::iterator it;
 				it = m.find(u);
 				if (it!=m.end()) {
-					u->relase();
+					u->release();
 				} else {
 					m.insert(std::pair<KUrl *,std::string>(u,alias));
 				}

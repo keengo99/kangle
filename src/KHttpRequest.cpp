@@ -173,11 +173,11 @@ char* KHttpRequest::map_url_path(const char* url, KBaseRedirect* caller) {
 		return NULL;
 	}
 	char* filename = NULL;
-	KAutoUrl u;
+	KSafeUrl u(new KUrl());
 	const char* path = url;
-	if (parse_url(url, u.u) && u.u->host != nullptr) {
-		path = u.u->path;
-		conf.gvm->queryVirtualHost((KVirtualHostContainer*)sink->get_server_opaque(), &nsvh, u.u->host, 0);
+	if (parse_url(url, u.get()) && u->host != nullptr) {
+		path = u->path;
+		conf.gvm->queryVirtualHost((KVirtualHostContainer*)sink->get_server_opaque(), &nsvh, u->host, 0);
 		if (nsvh && nsvh->vh == svh->vh) {
 			//ÏàÍ¬µÄvh
 			svh = nsvh;
@@ -368,8 +368,8 @@ bool KHttpRequest::is_bad_url() {
 	return false;
 }
 bool KHttpRequest::rewrite_url(const char* newUrl, int errorCode, const char* prefix) {
-	KAutoUrl url2;
-	if (!parse_url(newUrl, url2.u)) {
+	KSafeUrl url2(new KUrl());
+	if (!parse_url(newUrl, url2.get())) {
 		KStringBuf nu;
 		if (prefix) {
 			if (*prefix != '/') {
@@ -392,15 +392,15 @@ bool KHttpRequest::rewrite_url(const char* newUrl, int errorCode, const char* pr
 			free(basepath);
 			nu << newUrl;
 		}
-		if (!parse_url(nu.c_str(), url2.u)) {
+		if (!parse_url(nu.c_str(), url2.get())) {
 			return false;
 		}
 	}
-	if (url2.u->path == NULL) {
+	if (url2->path == NULL) {
 		return false;
 	}
-	if (KBIT_TEST(url2.u->flags, KGL_URL_ORIG_SSL)) {
-		KBIT_SET(url2.u->flags, KGL_URL_SSL);
+	if (KBIT_TEST(url2->flags, KGL_URL_ORIG_SSL)) {
+		KBIT_SET(url2->flags, KGL_URL_SSL);
 	}
 	KStringStream s;
 	if (errorCode > 0) {
@@ -415,16 +415,16 @@ bool KHttpRequest::rewrite_url(const char* newUrl, int errorCode, const char* pr
 			s << "?" << sink->data.url->param;
 		}
 	}
-	if (url2.u->host == NULL) {
-		url2.u->host = strdup(sink->data.url->host);
+	if (url2->host == NULL) {
+		url2->host = strdup(sink->data.url->host);
 	}
-	url_decode(url2.u->path, 0, url2.u);
+	url_decode(url2->path, 0, url2.get());
 	if (ctx.obj && ctx.obj->uk.url == sink->data.url) {// && !KBIT_TEST(ctx->obj->index.flags,FLAG_URL_FREE)) {
-		ctx.obj->uk.url->relase();
-		ctx.obj->uk.url = url2.u->refs();
+		ctx.obj->uk.url->release();
+		ctx.obj->uk.url = url2->add_ref();
 	}
-	sink->data.url->relase();
-	sink->data.url = url2.u->refs();
+	sink->data.url->release();
+	sink->data.url = url2->add_ref();
 
 	if (errorCode > 0) {
 		if (sink->data.url->param) {
