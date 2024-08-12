@@ -158,11 +158,11 @@ bool read_obj_head(KHttpObjectBody* data, char** hot, int& hotlen)
 						return false;
 					}
 					data->last_modified = *(time_t*)(*hot);
-					hot += sizeof(time_t);
+					(*hot) += sizeof(time_t);
 					hotlen -= sizeof(time_t);
 				} else {
 					data->set_etag(*hot, hotlen);
-					hot += hotlen;
+					(*hot) += hotlen;
 					hotlen = 0;
 				}
 			}
@@ -181,11 +181,11 @@ bool read_obj_head(KHttpObjectBody* data, char** hot, int& hotlen)
 		header->next = NULL;
 		header->buf = buf.release();
 		header->name_attribute = *(uint32_t*)(*hot);
-		*hot += sizeof(uint32_t);
+		(*hot) += sizeof(uint32_t);
 		hotlen -= sizeof(uint32_t);
 
 		if (!header->name_is_know) {
-			header->val_len = buf_len - header->name_len - 2;
+			header->val_len = buf_len - header->name_len - 1;
 			header->val_offset = header->name_len + 1;
 			if (header->know_header>=kgl_header_unknow) {
 				klog(KLOG_ERR,"invalid know_header value=[%d]\n",header->know_header);
@@ -193,7 +193,7 @@ bool read_obj_head(KHttpObjectBody* data, char** hot, int& hotlen)
 				return false;
 			}
 		} else {
-			header->val_len = buf_len - 1;
+			header->val_len = buf_len;
 			header->val_offset = 0;
 		}
 		if (last == NULL) {
