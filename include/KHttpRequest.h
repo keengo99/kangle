@@ -29,7 +29,6 @@
 #include "KBuffer.h"
 #include "KAutoBuffer.h"
 #include "KReadWriteBuffer.h"
-#include "KDomainUser.h"
 #include "KStringBuf.h"
 #include "KHttpAuth.h"
 #include "do_config.h"

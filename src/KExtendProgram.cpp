@@ -4,7 +4,6 @@
 #include "KFileName.h"
 #include "utils.h"
 #include "kmalloc.h"
-#include "KTempleteVirtualHost.h"
 #include "KSequence.h"
 #include "kfile.h"
 #ifndef _WIN32

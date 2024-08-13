@@ -26,6 +26,8 @@
 #include "lang.h"
 #include <list>
 #include "kmalloc.h"
+#include "KUrlValue.h"
+
 #define CHAIN_CONTEXT	"chain"
 class KAccess;
 

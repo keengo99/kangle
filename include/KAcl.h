@@ -26,7 +26,6 @@
 #include "KXmlSupport.h"
 #include "KHttpRequest.h"
 #include "KHttpObject.h"
-#include "KHtmlSupport.h"
 #include "KModel.h"
 #define 	ACL_CONTEXT		"acl"
 

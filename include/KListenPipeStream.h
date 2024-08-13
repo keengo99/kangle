@@ -3,7 +3,6 @@
 #include <errno.h>
 #include "KPipeStream.h"
 #include "global.h"
-#include "KListNode.h"
 #include "KPoolableSocketContainer.h"
 class KListenPipeStream : public KPipeStream
 {

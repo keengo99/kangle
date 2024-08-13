@@ -18,8 +18,10 @@
 class KApacheConfig;
 class KHtModule {
 public:
-	KHtModule();
-	virtual ~KHtModule();
+	KHtModule() {
+	}
+	virtual ~KHtModule() {
+	}
 	virtual bool startContext(KApacheConfig *htaccess,const char *cmd,std::map<char *,char *,lessp_icase> &attribute)
 	{
 		return false;

@@ -14,6 +14,8 @@
 #include "KVirtualHost.h"
 #include "KMutex.h"
 #include "KDynamicListen.h"
+#include "KUrlValue.h"
+
 class KGTempleteVirtualHost;
 
 class KVirtualHostManage : public kconfig::KConfigListen

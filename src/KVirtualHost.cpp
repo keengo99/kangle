@@ -39,7 +39,6 @@
 #include "kmalloc.h"
 #include "KApiRedirect.h"
 #include "KApiPipeStream.h"
-#include "KTempleteVirtualHost.h"
 #include "extern.h"
 #include "KAcserverManager.h"
 #include "KDefer.h"

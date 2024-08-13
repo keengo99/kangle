@@ -36,7 +36,6 @@
 #include "KHttpLib.h"
 #include "KConfigBuilder.h"
 #include "KAcserverManager.h"
-#include "KTempleteVirtualHost.h"
 #include "KHttpServerParser.h"
 #include "kselector_manager.h"
 #include "KCdnContainer.h"

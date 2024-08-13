@@ -19,7 +19,9 @@ class KRedirectSource;
 class KUpstream;
 class KRedirect: public KJump {
 public:
-	KRedirect();
+	KRedirect() {
+		
+	}
 	KRedirect(const KString& name) : KJump(name) {
 	
 	}
@@ -47,7 +49,9 @@ public:
 		return "";
 	}
 protected:
-	virtual ~KRedirect();
+	virtual ~KRedirect() {
+
+	}
 };
 
 #endif /* KREDIRECT_H_ */

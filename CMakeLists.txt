@@ -32,7 +32,6 @@ file(GLOB FILTER_SOURCE_FILES
 list(APPEND FILTER_SOURCE_FILES src/KReg.cpp)
 
 list(APPEND EXTWORKER_SOURCE_FILES 
-    src/EdcodeUtils.cpp 
     src/KHttpExt.cpp 
     src/KApiDso.cpp 
     src/KApiEnv.cpp 

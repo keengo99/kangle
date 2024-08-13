@@ -41,7 +41,6 @@
 #include "global.h"
 #include "KMutex.h"
 #include "KTimeMatch.h"
-#include "KUserManageInterface.h"
 #include "extern.h"
 #include "kasync_worker.h"
 #include "kgl_ssl.h"

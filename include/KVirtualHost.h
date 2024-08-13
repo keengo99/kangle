@@ -38,7 +38,6 @@
 #include "KSubVirtualHost.h"
 #include "KPathRedirect.h"
 #include "KAccess.h"
-#include "KUserManageInterface.h"
 #include "utils.h"
 #include "KBaseVirtualHost.h"
 #include "KRequestQueue.h"

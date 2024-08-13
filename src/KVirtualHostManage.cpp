@@ -29,7 +29,6 @@
 #include "KHttpServerParser.h"
 #include "KAcserverManager.h"
 #include "KVirtualHostDatabase.h"
-#include "KTempleteVirtualHost.h"
 #include "directory.h"
 #include "KHtAccess.h"
 #include "KConfigBuilder.h"

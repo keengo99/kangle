@@ -1,7 +1,6 @@
 #include "KVirtualHostDatabase.h"
 #include "KVirtualHostManage.h"
 #include "KHttpServerParser.h"
-#include "KTempleteVirtualHost.h"
 #include "log.h"
 #include "utils.h"
 #include "extern.h"
