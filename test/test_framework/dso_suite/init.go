@@ -52,5 +52,6 @@ func init() {
 	s.AddCase("http_10_chunk", "http/1.0 meet chunked", check_http10_chunk)
 	s.AddCase("websocket", "dso websocket", test_dso_websocket)
 	s.AddCase("sendfile", "sendfile test", check_sendfile)
+	s.AddCase("broken_header", "broken header", test_broken_static_header)
 	suite.Register(s)
 }

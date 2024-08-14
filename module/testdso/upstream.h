@@ -7,6 +7,7 @@ enum test_model {
 	test_next,
 	test_upload_sleep_forward,
 	test_websocket,
+	test_broken_header,
 	test_chunk,
 	test_sendfile_report
 };
@@ -21,4 +22,5 @@ public:
 };
 void register_global_async_upstream(kgl_dso_version *ver);
 void register_async_upstream(KREQUEST r, kgl_access_context *ctx, test_context *model_ctx,bool before_cache=false);
+extern kgl_dso_version* dso_version;
 #endif

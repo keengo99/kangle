@@ -952,19 +952,26 @@ KGL_RESULT fiber_http_start(KHttpRequest* rq) {
 	return process_cache_request(rq);
 }
 KGL_RESULT prepare_write_body(KHttpRequest* rq, kgl_response_body* body) {
+
 	if (unlikely(rq->ctx.body.ctx!=NULL)) {
 		return KGL_OK;
 	}
 	if (body) {
 		get_default_response_body(rq, body);
 	}
-	bool result = kgl_load_response_body(rq, body);
+	if (likely(kgl_load_response_body(rq, body))) {
+		if (body) {
+			rq->ctx.body = *body;
+			assert(body->ctx);
+		}
+		return KGL_OK;
+	}
 	if (body) {
 		rq->ctx.body = *body;
 		assert(body->ctx);
-	}
-	if (likely(result)) {
-		return KGL_OK;
+		body->f->close(body->ctx, KGL_ENOT_PREPARE);
+		assert(rq->ctx.body.ctx == nullptr);
+		*body = {0};
 	}
 	return KGL_ENOT_PREPARE;
 }

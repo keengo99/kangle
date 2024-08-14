@@ -1,8 +1,5 @@
 #include "filter.h"
 
-/**
-������������Сд��e����*
-*/
 static KGL_RESULT write_all(kgl_response_body_ctx*model_ctx, const char *buf, int size)
 {
 	filter_context* ctx = (filter_context*)model_ctx;

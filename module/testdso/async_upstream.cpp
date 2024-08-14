@@ -22,6 +22,11 @@ static KGL_RESULT open(KREQUEST r, kgl_async_context *ctx)
 	switch (t->model) {
 	case test_next:
 		return KGL_NEXT;
+	case test_broken_header:
+	{
+		assert(KGL_OK == dso_version->f->global_support_function(dso_version->cn, KGL_REQ_SHUTDOWN_SINK, r, NULL));
+		return KGL_NEXT;
+	}
 	case test_websocket:
 	{
 		ctx->out->f->write_status(ctx->out->ctx, 101);

@@ -1,4 +1,5 @@
 #include <string.h>
+#include <assert.h>
 #include "kstring.h"
 #include "ksapi.h"
 #include "kmalloc.h"
@@ -88,6 +89,9 @@ static uint32_t process(KREQUEST rq, kgl_access_context *ctx, DWORD notify)
 	}
 	if (ctx->f->get_variable(rq, KGL_VAR_HEADER, "x-sendfile-test", buf, &len) == KGL_OK) {
 		register_sendfile_log(rq, ctx, new sendfile_log_context);
+	}
+	if (ctx->f->get_variable(rq, KGL_VAR_HEADER, "x-broken-header", buf, &len) == KGL_OK) {
+		assert(KGL_OK == dso_version->f->global_support_function(dso_version->cn, KGL_REQ_SHUTDOWN_SINK, rq, NULL));
 	}
 	return KF_STATUS_REQ_TRUE;
 }

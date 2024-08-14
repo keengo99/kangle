@@ -86,6 +86,7 @@ typedef struct _kgl_in_filter kgl_in_filter;
 #define   KGL_REQ_REGISTER_UPSTREAM                (KGL_REQ_RESERV_COMMAND+11)
 #define   KGL_REQ_REGISTER_VARY                    (KGL_REQ_RESERV_COMMAND+12)
 #define   KGL_REQ_MODULE_SHUTDOWN                  (KGL_REQ_RESERV_COMMAND+13)
+#define   KGL_REQ_SHUTDOWN_SINK                    (KGL_REQ_RESERV_COMMAND+14)
 
 typedef struct _kgl_command_env
 {

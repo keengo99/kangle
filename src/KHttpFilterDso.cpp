@@ -177,6 +177,14 @@ KGL_RESULT global_support_function(
 		}
 		return KGL_EUNKNOW;
 	}
+#ifndef NDEBUG
+	case KGL_REQ_SHUTDOWN_SINK: {
+		/* only for test code */
+		KHttpRequest* rq = (KHttpRequest*)data;
+		rq->sink->shutdown();
+		return KGL_OK;
+	}
+#endif
 	}
 	return KGL_EINVALID_PARAMETER;
 }
