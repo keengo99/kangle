@@ -71,30 +71,6 @@ namespace kconfig {
 			ds.blockModel = false;
 			ds.envChar = '%';
 			auto content = ds.parseDirect(buf.get());
-			char* hot = content.get();
-			while (*hot && isspace((unsigned char)*hot)) {
-				hot++;
-			}
-			char* start = hot;
-			//默认启动顺序为50
-			uint32_t id = 50;
-			if (strncmp(hot, "<!--#", 5) == 0) {
-				hot += 5;
-				if (strncmp(hot, "stop", 4) == 0) {
-					/*
-					 * 扩展没有启动
-					 */
-					return nullptr;
-				} else if (strncmp(hot, "start", 5) == 0) {
-					char* end = strchr(hot, '>');
-					if (end) {
-						start = end + 1;
-					}
-					hot += 6;
-					id = atoi(hot);
-				}
-			}
-			file->set_index(id);
 			file->set_remove_flag(false);
 			return parse_xml(content.get());
 		}
@@ -109,7 +85,7 @@ namespace kconfig {
 				return false;
 			}
 			KAsyncFileStream file(fp);
-			if (f->get_index() != default_file_index) {
+			if (!f->is_default()) {
 				file << "<!--#start " << f->get_index() << " -->\n";
 			}
 			KGL_RESULT result = KGL_OK;
@@ -712,6 +688,40 @@ namespace kconfig {
 		update(std::move(tree_node));
 		return true;
 	}
+	uint16_t KConfigFile::load_index() {
+		auto fp = kfiber_file_open(get_filename()->data, fileRead, KFILE_ASYNC);
+		if (!fp) {
+			return default_file_index;
+		}
+		defer(kfiber_file_close(fp));
+		char buffer[512];
+		auto size = (int)kfiber_file_size(fp);
+		size = KGL_MIN(size, sizeof(buffer)-1);
+		buffer[size] = '\0';
+		if (!kfiber_file_read_full(fp, buffer, &size)) {
+			return default_file_index;
+		}
+		char *hot = buffer;
+		while (*hot && isspace((unsigned char)*hot)) {
+			hot++;
+		}
+		//默认启动顺序为50
+		uint32_t id = default_file_index;
+		if (strncmp(hot, "<!--#", 5) == 0) {
+			hot += 5;
+			if (strncmp(hot, "stop", 4) == 0) {
+				/*
+				 * 扩展没有启动
+				 */
+				return 0;
+			} else if (strncmp(hot, "start", 5) == 0) {
+				hot += 6;
+				id = atoi(hot);
+			}
+		}
+		set_index(id);
+		return id;
+	}
 	KConfigFileSourceDriver* KConfigFile::get_source_driver() const {
 		return sources[static_cast<int>(source)];
 	}
@@ -847,9 +857,12 @@ namespace kconfig {
 			}
 			if (cfg_file->last_modified != last_modified) {
 				//changed
-				auto index = cfg_file->get_index();
+				auto index = cfg_file->load_index();
+				if (index == 0) {
+					return;
+				}
 				//auto info = std::unique_ptr<KConfigFileInfo>(new KConfigFileInfo(KSafeConfigFile(cfg_file->add_ref()), last_modified));
-				files.emplace(cfg_file->get_index(), KSafeConfigFile(cfg_file->add_ref()));
+				files.emplace(index, KSafeConfigFile(cfg_file->add_ref()));
 			} else {
 				cfg_file->set_remove_flag(false);
 			}
@@ -903,6 +916,7 @@ namespace kconfig {
 			}
 		}
 		for (auto&& info : provider.files) {
+			klog(KLOG_ERR, "load config file [%s] index=[%d]\n", info.second->get_filename()->data, info.first);
 			info.second->reload(false);
 		}
 		config_files.iterator([](void* data, void* arg) {
