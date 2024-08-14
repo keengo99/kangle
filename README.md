@@ -51,7 +51,10 @@ cd test
 
 ## cmake options
 ### brotli support.
-`cmake .. -DENABLE_BROTLI=ON`
+* build use brotli source
+`cmake .. -DBROTLI_DIR=brotli_dir`
+* build use system brotli lib
+`cmake .. -DENABLE_BROTLI=1`
 ### zstd support.
 * build use zstd source
 `cmake .. -DZSTD_DIR=zstd_dir`
