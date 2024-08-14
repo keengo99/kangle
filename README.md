@@ -53,7 +53,10 @@ cd test
 ### brotli support.
 `cmake .. -DENABLE_BROTLI=ON`
 ### zstd support.
+* build use zstd source
 `cmake .. -DZSTD_DIR=zstd_dir`
+* build use system zstd lib
+`cmake .. -DENABLE_ZSTD=1`
 ### build release
 `cmake .. -DCMAKE_BUILD_TYPE=Release`
 ### use boringssl
