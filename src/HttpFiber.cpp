@@ -353,9 +353,6 @@ skip_access:
 	}
 	fiber_http_start(rq);
 clean:
-	if (kfiber_has_next()) {
-		return;
-	}
 	stage_end_request(rq, KGL_OK);
 	return;
 }

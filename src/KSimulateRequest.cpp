@@ -10,18 +10,23 @@
 #include "KVirtualHostManage.h"
 #include "KAccessDsoSupport.h"
 #include "HttpFiber.h"
-
+#include "KDefer.h"
 #define ASYNC_DOWNLOAD_TMP_EXT ".tmp"
 #ifdef ENABLE_SIMULATE_HTTP
-int skip_access_request(void* arg, int got)
-{
+int skip_access_request(void* arg, int got) {
 	KHttpRequest* rq = (KHttpRequest*)arg;
-	int result = (int)fiber_http_start(rq);	
-	if (kfiber_has_next()) {
-		return result;
-	}
-
+	int result = (int)fiber_http_start(rq);
 	return stage_end_request(rq, (KGL_RESULT)result);
+}
+static int simuate_start_fiber(void* arg, int got) {
+	KHttpRequest* rq = (KHttpRequest*)arg;
+	defer(delete rq);
+	if (rq->ctx.skip_access) {
+		return skip_access_request(rq, got);
+	}
+	//TODO: do not support now.
+	assert(false);
+	return -1;
 }
 
 KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
@@ -115,11 +120,12 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 		}
 		rq->ctx.skip_access = 1;
 	}
-	ss->read_header();
+	ss->start(0);
 	return rq;
 }
 int kgl_start_simulate_request(KHttpRequest *rq,kfiber **fiber)
 {
+	/*
 	if (rq->ctx.skip_access) {
 		rq->beginRequest();
 		if (!rq->has_final_source()) {
@@ -127,7 +133,8 @@ int kgl_start_simulate_request(KHttpRequest *rq,kfiber **fiber)
 		}
 		return kfiber_create(skip_access_request, rq, 0, http_config.fiber_stack_size, fiber);
 	}
-	return 0;
+	*/
+	return kfiber_create(simuate_start_fiber, rq, 0, http_config.fiber_stack_size, fiber);
 }
 int kgl_simuate_http_request(kgl_async_http *ctx,kfiber **fiber)
 {
@@ -168,9 +175,8 @@ static void WINAPI timer_simulate(void *arg)
 	kgl_simuate_http_request(&ctx);
 	//asyncHttpRequest(METH_GET,"http://www.kangleweb.net/test.php",NULL,test_header_hook,test_body_hook,NULL);
 }
-kev_result KSimulateSink::read_header() {
+void KSimulateSink::start(int header_len) {
 	begin_request();
-	return kev_ok;
 }
 KSimulateSink::KSimulateSink() : KSingleConnectionSink(NULL, NULL)
 {
@@ -192,12 +198,6 @@ KSimulateSink::~KSimulateSink()
 		this->body(arg, NULL, response_left==0);
 	}
 }
-int KSimulateSink::end_request()
-{
-	delete this;
-	return 0;
-}
-
 typedef struct {
 	KString save_file;
 	time_t last_modified;

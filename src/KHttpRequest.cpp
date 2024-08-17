@@ -460,10 +460,12 @@ KHttpRequest::~KHttpRequest() {
 #ifdef ENABLE_REQUEST_QUEUE
 	ReleaseQueue();
 #endif
+#if 0
 	assert(sink);
 	if (sink) {
 		sink->end_request();
 	}
+#endif
 }
 KGL_RESULT KHttpRequest::sendfile(KASYNC_FILE fp, int64_t* total_length) {
 	auto max_packet = conf.io_buffer;

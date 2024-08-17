@@ -97,7 +97,6 @@ static void krequest_start(KSink* sink, int header_len)
 	sink->response_header(kgl_expand_string("Cache-Control"), kgl_expand_string("no-cache,no-store"));
 	sink->start_response_body(len);
 	sink->write_all(buf, len);
-	sink->end_request();
 }
 void init_fastcgi_header(u_char type, u_char pad_length, FCGI_Header* header)
 {

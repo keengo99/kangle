@@ -39,7 +39,7 @@ public:
 		}
 		return true;
 	}
-	kev_result read_header() override;
+	void start(int header_len) override;
 	bool response_connection(const char *val, int val_len) override
 	{
 		return false;
@@ -86,7 +86,6 @@ public:
 		kgl_memcpy(addr, &cn->addr, sizeof(sockaddr_i));
 		return true;
 	}
-	int end_request() override;
 	void shutdown() override
 	{
 
