@@ -308,6 +308,7 @@ int KHttpRequest::EndRequest() {
 		ctx.in_body->f->close(ctx.in_body->ctx);
 		ctx.in_body = nullptr;
 	}
+	sink->end_request();
 	delete this;
 	return 0;
 }
