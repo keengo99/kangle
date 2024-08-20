@@ -149,8 +149,8 @@ void add_log_drill(KHttpRequest *rq, KStringBuf&s)
 		remove_log_drill();
 	}
 	s.WSTR("#[");
-	auto svh = rq->get_virtual_host();
-	if (svh && svh->vh) {
+	auto svh = kangle::get_virtual_host(rq);
+	if (svh) {
 		s.write_all(svh->vh->name.c_str(), (int)svh->vh->name.size());
 	}
 	s.WSTR("]\n");

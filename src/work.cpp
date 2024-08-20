@@ -228,7 +228,7 @@ void log_access(KHttpRequest* rq) {
 	INT64 sended_length = rq->sink->data.send_size;
 	KStringBuf l(512);
 	KLogElement* s = &accessLogger;
-	auto svh = rq->get_virtual_host();
+	auto svh = kangle::get_virtual_host(rq);
 #ifndef HTTP_PROXY
 	if (svh) {
 #ifdef ENABLE_BLACK_LIST
@@ -275,12 +275,13 @@ void log_access(KHttpRequest* rq) {
 	l.write_all((char*)cachedLogTime, 28);
 	timeLock.Unlock();
 	l.WSTR(" \"");
-	l << rq->get_method();
+	auto meth = rq->get_method2();
+	l.write_all(meth->data,meth->len);
 	l.WSTR(" ");
 #ifdef HTTP_PROXY
 	if (rq->sink->data.meth != METH_CONNECT)
 #endif
-		l << (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_ORIG_SSL) ? "https://" : "http://");
+		l << (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_ORIG_SSL) ? "https://"_CS : "http://"_CS);
 	KUrl* url = rq->sink->data.raw_url;
 	build_url_host_port(url, l);
 #ifdef HTTP_PROXY
@@ -288,7 +289,7 @@ void log_access(KHttpRequest* rq) {
 #endif
 		l << url->path;
 	if (url->param) {
-		l << "?" << url->param;
+		l << "?"_CS << url->param;
 	}
 	switch (rq->sink->data.http_version) {
 	case 0x200:
@@ -334,15 +335,13 @@ void log_access(KHttpRequest* rq) {
 	} else {
 		l.WSTR("-");
 	}
-	//*
-	l.WSTR("\"[");
+	
 #ifndef NDEBUG
+	l.WSTR("\"[");
 	l << "F" << (unsigned)rq->sink->data.flags << "f" << (unsigned)rq->ctx.filter_flags;
-	//l << "u" << (int)rq->ctx.upstream_socket;
 	if (!rq->ctx.upstream_expected_done) {
 		l.WSTR("d");
 	}
-#endif
 #ifdef KSOCKET_SSL
 #ifdef SSL_READ_EARLY_DATA_SUCCESS
 	kssl_session* ssl = rq->sink->get_ssl();
@@ -387,14 +386,12 @@ void log_access(KHttpRequest* rq) {
 	if (KBIT_TEST(rq->sink->data.flags, RQ_INPUT_CHUNKED)) {
 		l.WSTR("I");
 	}
-	//{{ent
 	if (KBIT_TEST(rq->ctx.filter_flags, RQF_CC_PASS)) {
 		l.WSTR("p");
 	}
 	if (KBIT_TEST(rq->ctx.filter_flags, RQF_CC_HIT)) {
 		l.WSTR("c");
 	}
-	//}}
 	if (rq->sink->data.first_response_time_msec > 0) {
 		l.WSTR("T");
 		INT64 t2 = rq->sink->data.first_response_time_msec - rq->sink->data.begin_time_msec;
@@ -403,10 +400,7 @@ void log_access(KHttpRequest* rq) {
 	if (rq->sink->data.mark != 0) {
 		l.WSTR("m");
 		l << (int)rq->sink->data.mark;
-	}
-	//l.WSTR("a");
-	//l << rq->ctx.us_code;
-	l.WSTR("]");
+	}	
 	if (conf.log_event_id) {
 		l.WSTR(" ");
 		l.add(rq->sink->data.begin_time_msec, INT64_FORMAT_HEX);
@@ -426,8 +420,10 @@ void log_access(KHttpRequest* rq) {
 		l.write_all(rq->sink->data.if_none_match->data, rq->sink->data.if_none_match->len);
 	}
 #endif
-	l.WSTR("\n");
-	//*/
+	l.WSTR("]\n");
+#else
+	l.WSTR("\"\n");
+#endif
 	if (s->place != LOG_NONE) {
 		s->startLog();
 		s->write(l.c_str(), l.size());

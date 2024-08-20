@@ -15,7 +15,7 @@ public:
 		if (isGlobal) {
 			bls = conf.gvm->vhs.blackList;
 		} else {
-			auto svh = rq->get_virtual_host();
+			auto svh = kangle::get_virtual_host(rq);
 			if (svh) {
 				bls = svh->vh->blackList;
 			}
@@ -73,7 +73,7 @@ public:
 		if (isGlobal) {
 			bls = conf.gvm->vhs.blackList;
 		} else {
-			auto svh = rq->get_virtual_host();
+			auto svh = kangle::get_virtual_host(rq);
 			if (svh) {
 				bls = svh->vh->blackList;
 			}

@@ -16,7 +16,8 @@
 int skip_access_request(void* arg, int got) {
 	KHttpRequest* rq = (KHttpRequest*)arg;
 	int result = (int)fiber_http_start(rq);
-	return stage_end_request(rq, (KGL_RESULT)result);
+	rq->EndRequest();
+	return 0;
 }
 static int simuate_start_fiber(void* arg, int got) {
 	KHttpRequest* rq = (KHttpRequest*)arg;

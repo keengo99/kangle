@@ -245,7 +245,8 @@ KGL_RESULT send_error2(KHttpRequest* rq, int code, const char* reason) {
 		}
 		s << "code=" << code;
 		if (rq->sink->data.opaque) {
-			s << "&vh=" << rq->get_virtual_host()->vh->name.c_str();
+			auto svh = kangle::get_virtual_host(rq);
+			s << "&vh=" << svh->vh->name.c_str();
 		}
 		s << "\"></scr' + 'ipt>');\n";
 		s << "</script>\n";
@@ -392,7 +393,7 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KApacheHtac
 	bool redirect_result = false;
 	char* indexPath = NULL;
 	bool indexFileFindedResult = false;
-	auto svh = rq->get_virtual_host();
+	auto svh = kangle::get_virtual_host(rq);
 	if (svh->vh->closed) {
 		error->set(STATUS_SERVICE_UNAVAILABLE, "virtual host is closed");
 		return NULL;
@@ -495,7 +496,7 @@ done:
 }
 char* find_content_type(KHttpRequest* rq, KHttpObject* obj) {
 	//´¦Àícontent-type
-	auto svh = rq->get_virtual_host();
+	auto svh = kangle::get_virtual_host(rq);
 	char* content_type = NULL;
 	if (svh) {
 		content_type = svh->vh->getMimeType(obj, rq->file->getExt());
@@ -509,7 +510,7 @@ char* find_content_type(KHttpRequest* rq, KHttpObject* obj) {
 bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, KFileName* file, KEnvInterface* env, bool chrooted) {
 	size_t skip_length = 0;
 	char tmpbuff[50];
-	auto svh = rq->get_virtual_host();
+	auto svh = kangle::get_virtual_host(rq);
 	if (chrooted && svh) {
 		skip_length = svh->vh->doc_root.size() - 1;
 	}

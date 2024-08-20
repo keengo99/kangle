@@ -190,6 +190,9 @@ KTHREAD_FUNCTION time_thread(void* arg) {
 			last_msec += sleep_msec;
 		}
 		nowTime = (time_t)(last_msec / 1000);
+#ifdef KGL_DEBUG_TIME
+		kgl_log_total_timespec();
+#endif
 #ifdef MALLOCDEBUG
 		if (quit_program_flag == PROGRAM_QUIT_SHUTDOWN) {
 			break;
@@ -207,12 +210,9 @@ KTHREAD_FUNCTION time_thread(void* arg) {
 			flushFlowFlag = false;
 		}
 #endif
-		//{{ent
 #ifndef HTTP_PROXY
-//}}
 		spProcessManage.refresh(nowTime);
 		conf.gam->refreshCmd(nowTime);
-		//{{ent
 #endif
 #ifdef ENABLE_ADPP
 		if (conf.process_cpu_usage > 0) {
@@ -221,7 +221,6 @@ KTHREAD_FUNCTION time_thread(void* arg) {
 			conf.gam->flushCpuUsage(cpuTime);
 		}
 #endif
-		//}}
 #ifdef MALLOCDEBUG
 		if (dump_memory_object) {
 			dump_memory_leak(0, -1);

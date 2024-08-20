@@ -52,7 +52,7 @@ inline bool is_internal_header(KHttpHeader *av) {
 	//return av->type == kgl_header_internal;
 }
 class KHttpEnv;
-void log_access(KHttpRequest *rq);
+
 void upstream_sign_request(KHttpRequest *rq, KHttpEnv *s);
 KFetchObject *bindVirtualHost(KHttpRequest *rq, RequestError *error, KApacheHtaccessContext &htresponse);
 //void prepare_write_stream(KHttpRequest *rq);
@@ -139,7 +139,6 @@ revalidate:
 	rq->ctx.obj = new KHttpObject(rq);
 	return true;
 }
-KGL_RESULT process_check_cache_expire(KHttpRequest* rq, KHttpObject* obj);
 inline bool in_stop_cache(KHttpRequest *rq) {
 	if (KBIT_TEST(rq->ctx.filter_flags, RF_NO_CACHE)) {
 		return true;

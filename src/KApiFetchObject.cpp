@@ -105,7 +105,10 @@ KGL_RESULT KApiFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_out
 		}
 		bool chrooted = false;
 #ifndef _WIN32
-		chrooted = rq->get_virtual_host()->vh->chroot;
+		auto svh = kangle::get_virtual_host(rq);
+		if (svh) {
+			chrooted = svh->vh->chroot;
+		}
 #endif
 		make_http_env(rq, in, brd, rq->file, &env, chrooted);
 		result = start();

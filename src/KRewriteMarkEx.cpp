@@ -334,7 +334,7 @@ void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KWStream&s) {
 			"SCRIPT_FILENAME") == 0) {
 		if (rq->file==NULL && rq->sink->data.opaque) {
 			bool exsit;
-			rq->get_virtual_host()->bindFile(rq,exsit,true,true);
+			kangle::get_virtual_host(rq)->bindFile(rq,exsit,true,true);
 		}
 		if (rq->file) {
 			s << rq->file->getName();
@@ -342,7 +342,7 @@ void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KWStream&s) {
 		return;
 	}
 	if (strcasecmp(env, "DOCUMENT_ROOT") == 0) {
-		auto svh = rq->get_virtual_host();
+		auto svh = kangle::get_virtual_host(rq);
 		if (svh) {
 			s << svh->doc_root;
 		}
@@ -442,7 +442,7 @@ void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KWStream&s) {
 }
 void KRewriteMarkEx::getString(const char *prefix, const char *str,KHttpRequest *rq, KRegSubString *s1, KRegSubString *s2,KWStream *s)
 {
-	KExtendProgramString ds(NULL,(rq && rq->sink->data.opaque?rq->get_virtual_host()->vh : NULL));	
+	KExtendProgramString ds(NULL,(rq && rq->sink->data.opaque?kangle::get_virtual_host(rq)->vh : NULL));	
 	char *buf = xstrdup(str);
 	char *hot = buf;
 	if (prefix) {

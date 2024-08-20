@@ -76,7 +76,7 @@ bool KMultiHostAcl::loadFile(KHttpRequest *rq) {
 		if (isGlobal) {
 			path = conf.path;
 		} else {
-			auto svh = rq->get_virtual_host();
+			auto svh = kangle::get_virtual_host(rq);
 			assert(svh);
 			path = svh->vh->doc_root;
 		}

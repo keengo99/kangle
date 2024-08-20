@@ -190,7 +190,7 @@ KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, const char *name
 	}
 	case KGL_VAR_DOCUMENT_ROOT:
 	{
-		auto svh = rq->get_virtual_host();
+		auto svh = kangle::get_virtual_host(rq);
 		if (svh == NULL) {
 			return KGL_ENO_DATA;
 		}

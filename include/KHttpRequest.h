@@ -46,7 +46,11 @@
 #include "KHttpParser.h"
 #include "KHttpLib.h"
 #include "KFetchObject.h"
+#include "KRequestQueue.h"
+#include "KSockPoolHelper.h"
 #include "KSink.h"
+
+
 #define KGL_REQUEST_POOL_SIZE 4096
 #ifdef ENABLE_STAT_STUB
 extern volatile uint64_t kgl_total_requests;
@@ -72,7 +76,9 @@ class KHttpTransfer;
 #define		REQUEST_READY	1
 #define 	MIN_SLEEP_TIME	4
 
-
+void log_access(KHttpRequest *rq);
+kev_result on_sink_readhup(KOPAQUE data, void* arg, int got);
+KHttpHeaderIteratorResult handle_http_header(void* arg, KHttpHeader* header);
 class KManageIP
 {
 public:
@@ -168,7 +174,11 @@ public:
 	inline KHttpRequest(KSink* sink) {
 		this->sink = sink;
 	}
-	~KHttpRequest();
+	~KHttpRequest() {
+#ifdef ENABLE_REQUEST_QUEUE
+		ReleaseQueue();
+#endif
+	}
 	KSink* sink;
 	kgl_request_range* get_range() {
 		if (ctx.sub_request) {
@@ -183,20 +193,67 @@ public:
 		return ctx.sub_request;
 	}
 	void store_obj();
-	bool is_bad_url();
-	void set_url_param(char* param);
+	bool is_bad_url() {
+		if (unlikely(sink->data.url == NULL || sink->data.url->is_bad() || sink->data.meth == METH_UNSET)) {
+			return true;
+		}
+		return false;
+	}
+	void set_url_param(char* param) {
+		assert(sink->data.url->param == NULL);
+		sink->data.url->param = xstrdup(param);
+	}
 #ifdef ENABLE_TF_EXCHANGE
-	bool NeedTempFile(bool upload);
+	bool NeedTempFile(bool upload) {
+		KFetchObject* fo = fo_head;
+		while (fo) {
+			if (fo->NeedTempFile(upload, this)) {
+				return true;
+			}
+			fo = fo->next;
+		}
+		return false;
+	}
 #endif
 	KString getInfo();
 	kgl_auto_cstr getUrl();
-	void beginRequest();
-	int EndRequest();
+	void beginRequest() {
+		if (sink->data.url->path) {
+			KFileName::tripDir3(sink->data.url->path, '/');
+		}
+	#ifdef MALLOCDEBUG
+		if (quit_program_flag != PROGRAM_NO_QUIT) {
+			KBIT_SET(sink->data.flags, RQ_CONNECTION_CLOSE);
+		}
+	#endif
+		sink->data.iterator(handle_http_header, this);
+	}
+	void EndRequest() {
+		sink->remove_readhup();
+		store_obj();
+		log_access(this);
+		if (ctx.in_body) {
+			ctx.in_body->f->close(ctx.in_body->ctx);
+			ctx.in_body = nullptr;
+		}
+		sink->end_request();
+	}
 	int64_t get_left() {
 		return sink->data.left_read;
 	}
-	int read(char* buf, int len);
-	uint32_t get_upstream_flags();
+	int read(char* buf, int len) {
+		return sink->read(buf, len);
+	}
+	uint32_t get_upstream_flags() {		
+		uint32_t flags = 0;
+		if (KBIT_TEST(sink->data.flags, RQ_UPSTREAM_ERROR)) {
+			KBIT_SET(flags, KSOCKET_FLAGS_SKIP_POOL);
+		}
+		if (KBIT_TEST(sink->data.flags, RQ_HAS_CONNECTION_UPGRADE)) {
+			KBIT_SET(flags, KSOCKET_FLAGS_WEBSOCKET);
+		}
+		return flags;
+	}
 	KFetchObject* get_next_source(KFetchObject* fo) {
 		if (fo != fo_head) {
 			assert(false);
@@ -233,21 +290,40 @@ public:
 		return follow_link;
 	}
 	void parse_connection(const char* val, const char* end);
-	void readhup();
+	void readhup() {
+		if (!conf.read_hup) {
+			return;
+		}
+		sink->readhup(this, on_sink_readhup);
+	}
 
 	bool rewrite_url(const char* newUrl, int errorCode = 0, const char* prefix = NULL);
-	void EnterRequestQueue();
-	void LeaveRequestQueue();
+	
+	void LeaveRequestQueue() {
+		sink->set_state(STATE_SEND);
+	}
+	void EnterRequestQueue() {
+		sink->set_state(STATE_WAIT);
+	}
+
 	char* map_url_path(const char* url, KBaseRedirect* caller);
-
-
-	KSubVirtualHost* get_virtual_host();
-
-	//void addFilter(KFilterHelper* chain);
 	inline bool response_status(uint16_t status_code) {
 		return sink->response_status(status_code);
 	}
-	bool response_content_range(kgl_request_range* range, int64_t content_length);
+	bool response_content_range(kgl_request_range* range, int64_t content_length)	{
+		KStringBuf s;
+		s.WSTR("bytes ");
+		if (range) {
+			s.add(range->from, INT64_FORMAT);
+			s.WSTR("-");
+			s.add(range->to, INT64_FORMAT);
+			s.WSTR("/");
+		} else {
+			s.WSTR("*/");
+		}	
+		s.add(content_length, INT64_FORMAT);
+		return response_header(kgl_header_content_range, s.buf(), s.size());
+	}
 	inline bool response_header(kgl_header_type name, const char* val, hlen_t val_len, bool lock_value = false) {
 		return sink->response_header(name, val, val_len, lock_value);
 	}
@@ -272,26 +348,95 @@ public:
 	/**
 	* if lock_header true the header param will locked by sink until startResponseBody be called.
 	*/
-	bool response_header(KHttpHeader* header, bool lock_header);
-	bool response_header(const char* name, hlen_t name_len, const char* val, hlen_t val_len);
+	bool response_header(KHttpHeader* header, bool lock_header) {
+		if (header->name_is_know) {
+			assert(header->know_header < kgl_header_unknow);
+			//use KGL_HEADER_VALUE_CONST will lock the header until startResponseBody called
+			return sink->response_header((kgl_header_type)header->know_header, header->buf + header->val_offset, header->val_len, lock_header);
+		}
+		return sink->response_header(header->buf, header->name_len, header->buf + header->val_offset, header->val_len);
+	}
+	bool response_header(const char* name, hlen_t name_len, const char* val, hlen_t val_len) {
+		return sink->response_header(name, name_len, val, val_len);
+	}
 	//发送完header开始发送body时调用
-	bool start_response_body(INT64 body_len);
+	bool start_response_body(INT64 body_len) {
+		return sink->start_response_body(body_len);
+	}
 	inline bool needFilter() {
 		return of_ctx != NULL;
 	}
 	void response_vary(const char* vary);
 	kgl_auto_cstr build_vary(const char* vary);
-	const char* get_method();
-
+	const char* get_method() {
+		return KHttpKeyValue::get_method(sink->data.meth)->data;
+	}
+	const kgl_str_t* get_method2() {
+		return KHttpKeyValue::get_method(sink->data.meth);
+	}
+	
 	/* override KWStream function begin */
 	/*
 	KGL_RESULT write_all(WSABUF* buf, int vc);
 	KGL_RESULT write_all(const char* buf, int len);
 	*/
-	int write(const char* buf, int len);
-	int write(const kbuf* buf, int len);
-	KGL_RESULT write_end(KGL_RESULT result);
-	KGL_RESULT sendfile(KASYNC_FILE fp, int64_t* len);
+	int write(const char* buf, int len) {
+		auto msec = get_sleep_msec(len);
+		if (msec > 0) {
+			kfiber_msleep(msec);
+		}
+		return sink->write_all(buf, len);
+	}
+	int write(const kbuf* buf, int len) {
+		if (!slh) {
+			return sink->write_all(buf, len);
+		}
+		while (len>0) {
+			int got = KGL_MIN(len, buf->used);
+			auto msec = get_sleep_msec(got);
+			if (msec > 0) {
+				kfiber_msleep(msec);
+			}
+			len -= got;
+			int left = sink->write_all(buf->data, got);
+			if (left>0) {
+				return len + left;
+			}
+			buf = buf->next;
+		}
+		return len;
+	}
+	KGL_RESULT write_end(KGL_RESULT result) {		
+		assert(ctx.body.ctx);
+		if (result == KGL_OK && sink->get_response_left() > 0) {
+			//有content-length，又未读完
+			result = KGL_ESOCKET_BROKEN;
+		}
+		ctx.body = { 0 };
+		return result;
+	}
+	KGL_RESULT sendfile(KASYNC_FILE fp, int64_t* total_length) {
+		auto max_packet = conf.io_buffer;
+		if (slh && max_packet > NBUFF_SIZE) {
+			max_packet = NBUFF_SIZE;
+		}
+		while (*total_length > 0) {
+			int length = (int)KGL_MIN(*total_length, max_packet);
+			auto msec = get_sleep_msec(length);
+			if (msec > 0) {
+				kfiber_msleep(msec);
+			}
+			do {
+				int got = sink->sendfile((kasync_file*)fp, length);
+				if (got <= 0) {
+					return KGL_EIO;
+				}
+				length -= got;
+				*total_length -= got;
+			} while (length > 0);
+		}
+		return KGL_OK;
+	}
 
 	KGL_RESULT write_buf(const kbuf* buf, int length) {
 		if (write(buf, length) == 0) {
@@ -305,7 +450,9 @@ public:
 	uint16_t GetSelfPort() {
 		return sink->get_self_port();
 	}
-	void SetSelfPort(uint16_t port, bool ssl);
+	void SetSelfPort(uint16_t port, bool ssl) {
+		sink->set_self_port(port, ssl);
+	}
 	//客户真实ip(有可能被替换)
 	const char* getClientIp() {
 		return sink->get_client_ip();
@@ -331,9 +478,20 @@ public:
 		return fo_head;
 	}
 
-	void insert_source(KFetchObject* fo);
+	void insert_source(KFetchObject* fo) {
+		fo->next = fo_head;
+		if (!fo_last) {
+			fo_last = fo;
+		}
+		fo_head = fo;
+	}
 	void append_source(KFetchObject* fo);
-	bool has_final_source();
+	bool has_final_source() {
+		if (!fo_last) {
+			return false;
+		}
+		return !fo_last->is_filter();
+	}
 	/* 数据源结束 */
 
 	//从堆上分配内存，在rq删除时，自动释放。
@@ -354,13 +512,32 @@ public:
 	}
 
 #ifdef ENABLE_REQUEST_QUEUE
-	bool NeedQueue();
-	void ReleaseQueue();
+	bool NeedQueue() {	
+		KFetchObject* fo = fo_head;
+		while (fo) {
+			if (fo->needQueue(this)) {
+				return true;
+			}
+			fo = fo->next;
+		}
+		return false;
+	}
+	void ReleaseQueue() {		
+		if (queue) {		
+			queue->release();
+			queue = NULL;
+		}
+	}
 #endif
 	KGL_RESULT open_next(KFetchObject* fo, kgl_input_stream* in, kgl_output_stream* out, const char* queue);
 	KFetchObject* replace_next(KFetchObject* fo, KFetchObject* next_fo);
 private:
-	void close_source();
+	void close_source() {
+		destroy_source();
+#ifdef ENABLE_REQUEST_QUEUE
+		ReleaseQueue();
+#endif
+	}
 };
 struct RequestError
 {

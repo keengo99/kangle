@@ -27,7 +27,7 @@ KGL_RESULT KDefaultFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl
 			KPrevDirectoryFetchObject fo;
 			return fo.Open(rq, in, out);
 		}
-		auto svh = rq->get_virtual_host();
+		auto svh = kangle::get_virtual_host(rq);
 		if (!svh->vh->browse) {
 			//Èç¹ûÔÊÐíä¯ÀÀ
 			return out->f->error(out->ctx, STATUS_FORBIDEN,_KS("You don't have permission to browse."));

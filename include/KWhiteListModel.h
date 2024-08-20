@@ -85,7 +85,7 @@ public:
 		if (host == NULL) {
 			host = rq->sink->data.url->host;
 		}
-		auto svh = rq->get_virtual_host();
+		auto svh = kangle::get_virtual_host(rq);
 		wlm.add(host, (svh ? svh->vh->name.c_str() : NULL), rq->getClientIp(), false);
 		return KF_STATUS_REQ_TRUE;
 	}

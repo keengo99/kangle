@@ -46,9 +46,13 @@ void KProcessManage::clean()
 }
 KUpstream* KProcessManage::GetUpstream(KHttpRequest* rq, KExtendProgram* rd)
 {
-	KVirtualHostProcess* gc = refsVirtualHostProcess(rq->get_virtual_host()->vh->getApp(rq), rd);
-	if (gc == NULL) {
-		return NULL;
+	auto svh = kangle::get_virtual_host(rq);
+	if (!svh) {
+		return nullptr;
+	}
+	KVirtualHostProcess* gc = refsVirtualHostProcess(svh->vh->getApp(rq), rd);
+	if (!gc) {
+		return nullptr;
 	}
 	KUpstream* us = gc->GetUpstream(rq, rd);
 	gc->release();

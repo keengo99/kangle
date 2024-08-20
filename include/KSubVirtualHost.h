@@ -124,4 +124,9 @@ private:
 	~KSubVirtualHost();
 	KApacheHtaccessContext make_htaccess(const char* prefix, KFileName* file);
 };
+namespace kangle {
+	inline KSubVirtualHost *get_virtual_host(KHttpRequest *rq) {
+		return static_cast<KSubVirtualHost*>(rq->sink->data.opaque);
+	}
+};
 #endif /* KSUBVIRTUALHOST_H_ */

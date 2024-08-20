@@ -32,7 +32,7 @@ public:
 		return "try_file";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {
-		auto svh = rq->get_virtual_host();
+		auto svh = kangle::get_virtual_host(rq);
 		if (svh==NULL) {
 			return false;
 		}

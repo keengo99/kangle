@@ -16,10 +16,6 @@
 #include "KDefer.h"
 #include "KFilterContext.h"
 
-int stage_end_request(KHttpRequest* rq, KGL_RESULT result) {
-	return rq->EndRequest();
-}
-
 KGL_RESULT handle_x_send_file(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) {
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER)) {
 		return send_error2(rq, STATUS_SERVER_ERROR, "X-Accel-Redirect cann't send body");
@@ -101,7 +97,7 @@ KGL_RESULT process_request_stream(KHttpRequest* rq, kgl_input_stream* in, kgl_ou
 	}
 #ifdef ENABLE_VH_QUEUE
 	if (queue == NULL) {
-		auto svh = rq->get_virtual_host();
+		auto svh = kangle::get_virtual_host(rq);
 		if (svh && svh->vh->queue) {
 			queue = svh->vh->queue;
 		}
@@ -184,7 +180,7 @@ KGL_RESULT handle_denied_request(KHttpRequest* rq) {
 	return KGL_OK;
 }
 bool check_virtual_host_access_request(KHttpRequest* rq, KSafeSource& fo, int header_length) {
-	auto svh = rq->get_virtual_host();
+	auto svh = kangle::get_virtual_host(rq);
 	assert(svh);
 #ifdef ENABLE_VH_RS_LIMIT
 	KSpeedLimit* sl = svh->vh->refsSpeedLimit();
@@ -224,8 +220,7 @@ bool check_virtual_host_access_request(KHttpRequest* rq, KSafeSource& fo, int he
 #endif
 	return false;
 }
-
-KGL_RESULT check_connect_method(KHttpRequest* rq) {
+static inline KGL_RESULT check_connect_method(KHttpRequest* rq) {
 	if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_TCP) || rq->sink->data.meth != METH_CONNECT) {
 		return KGL_OK;
 	}
@@ -246,114 +241,115 @@ KGL_RESULT check_connect_method(KHttpRequest* rq) {
 #endif
 }
 void start_request_fiber(KSink* sink, int header_length) {
-	KHttpRequest* rq = new KHttpRequest(sink);
+	//KHttpRequest* rq = new KHttpRequest(sink);
+	KHttpRequest rq(sink);
 	kgl_input_stream check_in;
 	kgl_output_stream check_out;
 	KSafeSource fo;
 	kgl_jump_type jump_type;
-	rq->beginRequest();
-	if (check_connect_method(rq) != KGL_OK) {
-		send_error2(rq, STATUS_METH_NOT_ALLOWED, "The requested method CONNECT is not allowed");
+	rq.beginRequest();
+	if (check_connect_method(&rq) != KGL_OK) {
+		send_error2(&rq, STATUS_METH_NOT_ALLOWED, "The requested method CONNECT is not allowed");
 		goto clean;
 	}
-	if (unlikely(rq->ctx.read_huped)) {
-		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
-		send_error2(rq, STATUS_BAD_REQUEST, "Client close connection");
+	if (unlikely(rq.ctx.read_huped)) {
+		KBIT_SET(rq.sink->data.flags, RQ_CONNECTION_CLOSE);
+		send_error2(&rq, STATUS_BAD_REQUEST, "Client close connection");
 		goto clean;
 	}
-	if (unlikely(rq->is_bad_url())) {
-		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
-		send_error2(rq, STATUS_BAD_REQUEST, "Bad request format.");
+	if (unlikely(rq.is_bad_url())) {
+		KBIT_SET(rq.sink->data.flags, RQ_CONNECTION_CLOSE);
+		send_error2(&rq, STATUS_BAD_REQUEST, "Bad request format.");
 		goto clean;
 	}
-	if (unlikely(KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_MANAGE))) {
-		stageHttpManage(rq);
+	if (unlikely(KBIT_TEST(rq.GetWorkModel(), WORK_MODEL_MANAGE))) {
+		stageHttpManage(&rq);
 		goto clean;
 	}
 #ifdef ENABLE_STAT_STUB
-	if (unlikely(strcmp(rq->sink->data.url->path, "/kangle.status") == 0)) {
-		KAutoBuffer s(rq->sink->pool);
-		if (rq->sink->data.meth != METH_HEAD) {
+	if (unlikely(strcmp(rq.sink->data.url->path, "/kangle.status") == 0)) {
+		KAutoBuffer s(rq.sink->pool);
+		if (rq.sink->data.meth != METH_HEAD) {
 			s << "OK\n";
 		}
-		send_http2(rq, NULL, STATUS_OK, &s);
+		send_http2(&rq, NULL, STATUS_OK, &s);
 		goto clean;
 	}
 #endif
-	if (unlikely(rq->ctx.skip_access)) {
+	if (unlikely(rq.ctx.skip_access)) {
 		goto skip_access;
 	}
-	jump_type = kaccess[REQUEST]->check(rq, NULL, fo);
+	jump_type = kaccess[REQUEST]->check(&rq, NULL, fo);
 	switch (jump_type) {
 	case JUMP_DROP:
 		goto clean;
 	case JUMP_DENY:
 		if (fo) {
-			rq->append_source(fo.release());
+			rq.append_source(fo.release());
 		}
-		handle_denied_request(rq);
+		handle_denied_request(&rq);
 		goto clean;
 	case JUMP_VHS: {
 		if (fo) {
-			rq->append_source(fo.release());
+			rq.append_source(fo.release());
 			break;
 		}
-		query_vh_result vh_result = query_virtual(rq, rq->sink->data.url->host, 0, header_length);
+		query_vh_result vh_result = query_virtual(&rq, rq.sink->data.url->host, 0, header_length);
 		switch (vh_result) {
 		case query_vh_connect_limit:
-			send_error2(rq, STATUS_SERVER_ERROR, "max connect limit.");
+			send_error2(&rq, STATUS_SERVER_ERROR, "max connect limit.");
 			goto clean;
 		case query_vh_host_not_found:
-			send_error2(rq, STATUS_BAD_REQUEST, "host not found.");
+			send_error2(&rq, STATUS_BAD_REQUEST, "host not found.");
 			goto clean;
 		case query_vh_success: {
-			u_short flags = rq->sink->data.raw_url->flags;
-			rq->sink->data.raw_url->flags = 0;
-			if (check_virtual_host_access_request(rq, fo, header_length)) {
-				KBIT_SET(rq->sink->data.raw_url->flags, flags);
+			u_short flags = rq.sink->data.raw_url->flags;
+			rq.sink->data.raw_url->flags = 0;
+			if (check_virtual_host_access_request(&rq, fo, header_length)) {
+				KBIT_SET(rq.sink->data.raw_url->flags, flags);
 				goto clean;
 			}
 			if (fo) {
-				rq->append_source(fo.release());
+				rq.append_source(fo.release());
 			}
-			if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
+			if (KBIT_TEST(rq.sink->data.raw_url->flags, KGL_URL_REWRITED)) {
 				//rewrite host
 				KSubVirtualHost* new_svh = NULL;
-				conf.gvm->queryVirtualHost((KVirtualHostContainer*)rq->sink->get_server_opaque(), &new_svh, rq->sink->data.url->host, 0);
+				conf.gvm->queryVirtualHost((KVirtualHostContainer*)rq.sink->get_server_opaque(), &new_svh, rq.sink->data.url->host, 0);
 				if (new_svh) {
-					auto svh = rq->get_virtual_host();
+					auto svh = kangle::get_virtual_host(&rq);
 					if (new_svh->vh == svh->vh) {
 						//只有虚拟主机相同，才允许重写host
-						rq->sink->data.bind_opaque(new_svh);
+						rq.sink->data.bind_opaque(new_svh);
 					} else {
 						new_svh->release();
 					}
 				}
 			}
-			KBIT_SET(rq->sink->data.raw_url->flags, flags);
+			KBIT_SET(rq.sink->data.raw_url->flags, flags);
 			break;
 		}
 		default:
-			send_error2(rq, STATUS_SERVER_ERROR, "query vh result unknow.");
+			send_error2(&rq, STATUS_SERVER_ERROR, "query vh result unknow.");
 			goto clean;
 		}
 	}
 	}
 skip_access:
 	{
-		auto fo = rq->fo_head;
+		auto fo = rq.fo_head;
 		while (fo && fo->before_cache()) {
-			get_check_stream(rq, &check_in, &check_out);
-			KGL_RESULT result = fo->Open(rq, &check_in, &check_out);
-			fo = rq->get_next_source(fo);
-			if (!rq->continue_next_source(result)) {
+			get_check_stream(&rq, &check_in, &check_out);
+			KGL_RESULT result = fo->Open(&rq, &check_in, &check_out);
+			fo = rq.get_next_source(fo);
+			if (!rq.continue_next_source(result)) {
 				goto clean;
 			}
 		}
 	}
-	fiber_http_start(rq);
+	fiber_http_start(&rq);
 clean:
-	stage_end_request(rq, KGL_OK);
+	rq.EndRequest();
 	return;
 }
 
@@ -386,7 +382,7 @@ KGL_RESULT handle_error(KHttpRequest* rq, int code, const char* msg) {
 		}
 	}
 #endif
-	KSubVirtualHost* svh = rq->get_virtual_host();
+	KSubVirtualHost* svh = kangle::get_virtual_host(rq);
 	if (svh == NULL || code < 403 || code>499) {
 		return send_error2(rq, code, msg);
 	}
@@ -502,7 +498,7 @@ bool check_request_final_source(KHttpRequest* rq, RequestError* error) {
 		}
 	}
 	if (!rq->ctx.internal && !rq->ctx.skip_access) {
-		KSubVirtualHost* svh = rq->get_virtual_host();
+		KSubVirtualHost* svh = kangle::get_virtual_host(rq);
 		KSafeSource fo;
 		if (svh) {			
 			int jump_type = svh->vh->checkPostMap(rq, fo);			
@@ -638,7 +634,7 @@ done:
 	rq->dead_old_obj();
 	return process_upstream_no_body(rq, &in, &out);
 }
-KGL_RESULT process_check_cache_expire(KHttpRequest* rq, KHttpObject* obj) {
+static inline KGL_RESULT process_check_cache_expire(KHttpRequest* rq, KHttpObject* obj) {
 #ifdef ENABLE_BIG_OBJECT_206
 	if (obj->data->i.type == BIG_OBJECT_PROGRESS) {
 		/**
@@ -873,7 +869,7 @@ swap_in_result swap_in_object(KHttpRequest* rq, KHttpObject* obj) {
 	return swap_in_success;
 }
 
-KGL_RESULT process_cache_request(KHttpRequest* rq) {
+static inline KGL_RESULT process_cache_request(KHttpRequest* rq) {
 	KHttpObject* obj = rq->ctx.obj;
 	if (rq->sink->data.meth != METH_GET && rq->sink->data.meth != METH_HEAD) {
 		KBIT_SET(rq->sink->data.flags, RQ_CACHE_HIT);
@@ -922,7 +918,7 @@ KGL_RESULT fiber_http_start(KHttpRequest* rq) {
 		if (!rq->ctx.obj) {
 			return send_error2(rq, 404, "Not in cache");
 		}
-		return process_cache_request(rq);
+		goto cache_request;
 	}
 	//end purge or only if cached
 	if (in_stop_cache(rq)) {
@@ -946,6 +942,7 @@ KGL_RESULT fiber_http_start(KHttpRequest* rq) {
 		}
 		return load_object_from_source(rq);
 	}
+cache_request:
 	return process_cache_request(rq);
 }
 KGL_RESULT prepare_write_body(KHttpRequest* rq, kgl_response_body* body) {

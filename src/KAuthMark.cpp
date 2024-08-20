@@ -140,7 +140,7 @@ KAuthMark::~KAuthMark() {
 uint32_t KAuthMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 	KString path;
 #ifndef HTTP_PROXY
-	auto svh = rq->get_virtual_host();
+	auto svh = kangle::get_virtual_host(rq);
 	if (svh && !this->isGlobal)
 		path = svh->vh->doc_root;
 	else 
