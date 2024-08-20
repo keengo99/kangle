@@ -489,6 +489,7 @@ KGL_RESULT KHttpRequest::sendfile(KASYNC_FILE fp, int64_t* total_length) {
 	}
 	return KGL_OK;
 }
+/*
 KGL_RESULT KHttpRequest::write_all(WSABUF* buf, int total_vc) {
 	while (total_vc > 0) {
 		int vc = total_vc;
@@ -521,6 +522,7 @@ KGL_RESULT KHttpRequest::write_all(WSABUF* buf, int total_vc) {
 	}
 	return KGL_OK;
 }
+*/
 KGL_RESULT KHttpRequest::write_end(KGL_RESULT result) {
 	assert(ctx.body.ctx);
 	if (result == KGL_OK && sink->get_response_left() > 0) {
@@ -530,11 +532,31 @@ KGL_RESULT KHttpRequest::write_end(KGL_RESULT result) {
 	ctx.body = { 0 };
 	return result;
 }
-KGL_RESULT KHttpRequest::write_all(const char* buf, int len) {
-	WSABUF bufs;
-	bufs.iov_base = (char*)buf;
-	bufs.iov_len = len;
-	return write_all(&bufs, 1);
+int KHttpRequest::write(const char* buf, int len) {
+	auto msec = get_sleep_msec(len);
+	if (msec > 0) {
+		kfiber_msleep(msec);
+	}
+	return sink->write_all(buf, len);
+}
+int KHttpRequest::write(const kbuf* buf, int len) {
+	if (!slh) {
+		return sink->write_all(buf, len);
+	}
+	while (len>0) {
+		int got = KGL_MIN(len, buf->used);
+		auto msec = get_sleep_msec(got);
+		if (msec > 0) {
+			kfiber_msleep(msec);
+		}
+		len -= got;
+		int left = sink->write_all(buf->data, got);
+		if (left>0) {
+			return len + left;
+		}
+		buf = buf->next;
+	}
+	return len;
 }
 int KHttpRequest::read(char* buf, int len) {
 	return sink->read(buf, len);
@@ -604,39 +626,6 @@ kgl_auto_cstr KHttpRequest::build_vary(const char* vary) {
 		return nullptr;
 	}
 	return s.steal();
-}
-KGL_RESULT KHttpRequest::write_buf(kbuf* buf, int length) {
-#define KGL_RQ_WRITE_BUF_COUNT 16
-	WSABUF bufs[KGL_RQ_WRITE_BUF_COUNT];
-	while (buf) {
-		int bc = 0;
-		while (bc < KGL_RQ_WRITE_BUF_COUNT && buf) {
-			if (length == 0) {
-				break;
-			}
-			if (length > 0) {
-				bufs[bc].iov_len = KGL_MIN(length, buf->used);
-				length -= bufs[bc].iov_len;
-			} else {
-				bufs[bc].iov_len = buf->used;
-			}
-			bufs[bc].iov_base = buf->data;
-			buf = buf->next;
-			bc++;
-		}
-		if (bc == 0) {
-			if (length > 0) {
-				return KGL_ENO_DATA;
-			}
-			assert(length == 0);
-			return KGL_OK;
-		}
-		KGL_RESULT result = write_all(bufs, bc);
-		if (result != KGL_OK) {
-			return result;
-		}
-	}
-	return KGL_OK;
 }
 bool KHttpRequest::response_content_range(kgl_request_range* range, int64_t content_length)
 {

@@ -25,10 +25,10 @@ public:
 		if (result != KGL_OK) {
 			return result;
 		}
-		return body.f->close(body.ctx, kgl_write_buf(&body, header, (int)length));
+		return body.f->close(body.ctx, body.f->writev(body.ctx, header, length));
 	}
 private:
 	kbuf* header;
-	int64_t length;
+	int length;
 };
 #endif

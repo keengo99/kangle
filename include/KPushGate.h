@@ -18,12 +18,15 @@ struct kgl_forward_body
 	kgl_response_body down_body;
 };
 template<KGL_RESULT(*forward_write)(kgl_response_body_ctx* , const char* , int)>
-KGL_RESULT unsupport_writev(kgl_response_body_ctx* ctx, WSABUF* bufs, int bc) {
-	for (int i = 0; i < bc; i++) {
-		KGL_RESULT result = forward_write(ctx, (char *)bufs[i].iov_base, bufs[i].iov_len);
+KGL_RESULT unsupport_writev(kgl_response_body_ctx* ctx, const kbuf* bufs, int length) {
+	while (length > 0) {
+		int got = KGL_MIN(length, bufs->used);
+		KGL_RESULT result = forward_write(ctx, (char*)bufs->data, got);
 		if (result != KGL_OK) {
 			return result;
 		}
+		length -= got;
+		bufs = bufs->next;
 	}
 	return KGL_OK;
 }
@@ -58,7 +61,6 @@ KGL_RESULT kgl_empty_flush(kgl_response_body_ctx* out);
 KGL_RESULT forward_sendfile(kgl_response_body_ctx* out, KASYNC_FILE fp, int64_t* len);
 bool forward_support_sendfile(kgl_response_body_ctx* out);
 KGL_RESULT forward_flush(kgl_response_body_ctx* out);
-KGL_RESULT kgl_write_buf(kgl_response_body* body, kbuf* buf, int length);
 void kgl_init_request_in_body(KHttpRequest* rq);
 void get_default_response_body(KREQUEST r, kgl_response_body* body);
 inline bool has_post_data(kgl_input_stream* in) {

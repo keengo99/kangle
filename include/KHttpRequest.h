@@ -284,12 +284,21 @@ public:
 	const char* get_method();
 
 	/* override KWStream function begin */
+	/*
 	KGL_RESULT write_all(WSABUF* buf, int vc);
 	KGL_RESULT write_all(const char* buf, int len);
+	*/
+	int write(const char* buf, int len);
+	int write(const kbuf* buf, int len);
 	KGL_RESULT write_end(KGL_RESULT result);
 	KGL_RESULT sendfile(KASYNC_FILE fp, int64_t* len);
 
-	KGL_RESULT write_buf(kbuf* buf, int length = -1);
+	KGL_RESULT write_buf(const kbuf* buf, int length) {
+		if (write(buf, length) == 0) {
+			return KGL_OK;
+		}
+		return KGL_EIO;
+	}
 	/* override KWStream function end */
 
 	//int checkFilter(KHttpObject* obj);

@@ -125,15 +125,6 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 }
 int kgl_start_simulate_request(KHttpRequest *rq,kfiber **fiber)
 {
-	/*
-	if (rq->ctx.skip_access) {
-		rq->beginRequest();
-		if (!rq->has_final_source()) {
-			rq->append_source(new KHttpProxyFetchObject());
-		}
-		return kfiber_create(skip_access_request, rq, 0, http_config.fiber_stack_size, fiber);
-	}
-	*/
 	return kfiber_create(simuate_start_fiber, rq, 0, http_config.fiber_stack_size, fiber);
 }
 int kgl_simuate_http_request(kgl_async_http *ctx,kfiber **fiber)

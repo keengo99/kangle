@@ -749,7 +749,7 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj) {
 				result = KGL_EUNKNOW;
 				break;
 			}
-			result = kgl_write_buf(&rq->ctx.body, buf, (int)rq->ctx.left_read);
+			result = rq->ctx.body.f->writev(rq->ctx.body.ctx, buf, (int)rq->ctx.left_read);
 		}
 		break;
 	}

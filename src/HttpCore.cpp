@@ -157,7 +157,7 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 	rq->response_connection();
 	rq->start_response_body(send_len);
 	if (body && rq->sink->data.meth!=METH_HEAD) {
-		return rq->write_buf(body->getHead());
+		return rq->write_buf(body->getHead(),body->getLen());
 	}
 	return KGL_OK;
 }

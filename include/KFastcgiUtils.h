@@ -154,7 +154,7 @@ public:
 			if (!sendRecordHeader(type, this_send)) {
 				return false;
 			}
-			if (KGL_OK != client->write_all(buf, this_send)) {
+			if (0 != client->write_all(buf, this_send)) {
 				return false;
 			}
 			len -= this_send;

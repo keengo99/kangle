@@ -18,12 +18,15 @@ static KGL_RESULT write_all(kgl_response_body_ctx*model_ctx, const char *buf, in
 	}
 	return KGL_OK;
 }
-static KGL_RESULT unsupport_writev(kgl_response_body_ctx* ctx, WSABUF* bufs, int bc) {
-	for (int i = 0; i < bc; i++) {
-		KGL_RESULT result = write_all(ctx, (char *)bufs[i].iov_base, bufs[i].iov_len);
+static KGL_RESULT unsupport_writev(kgl_response_body_ctx* ctx, const kbuf* bufs, int length) {
+	while (length >0) {
+		int got = KGL_MIN(length, bufs->used);
+		KGL_RESULT result = write_all(ctx, (char *)bufs->data, got);
 		if (result != KGL_OK) {
 			return result;
 		}
+		length -= got;
+		bufs = bufs->next;
 	}
 	return KGL_OK;
 }

@@ -353,6 +353,7 @@ KGL_RESULT KAsyncFetchObject::SendHeader(KHttpRequest* rq) {
 	}
 	//debug_print_buff(buffer->getHead());
 	client->set_delay();
+	/*
 	WSABUF buf[64];
 	for (;;) {
 		int bc = buffer->getReadBuffer(buf, kgl_countof(buf));
@@ -364,7 +365,15 @@ KGL_RESULT KAsyncFetchObject::SendHeader(KHttpRequest* rq) {
 			return KGL_OK;
 		}
 	}
-	return KGL_EUNKNOW;
+	*/
+	int length = buffer->getLen();
+	int result = client->write_all(buffer->getHead(), length);
+	if (result != 0) {
+		return KGL_ECAN_RETRY_SOCKET_BROKEN;
+	}
+	buffer->readSuccess(length);
+	assert(buffer->getLen() == 0);
+	return KGL_OK;
 }
 
 KGL_RESULT KAsyncFetchObject::PostResult(KHttpRequest* rq, int got) {
@@ -421,25 +430,18 @@ void KAsyncFetchObject::BuildChunkHeader() {
 KGL_RESULT KAsyncFetchObject::SendPost(KHttpRequest* rq) {
 	buildPost(rq);
 	buffer->startRead();
-	KGL_RESULT result = KGL_OK;
 	if (!KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
 		rq->readhup();
 	}
-	WSABUF buf[16];
-	for (;;) {
-		int bc = buffer->getReadBuffer(buf, kgl_countof(buf));
-		//debug_print_wsa_buf(buf, bc);
-		int got = client->write(buf, bc);
-		if (got <= 0) {
-			result = KGL_ESOCKET_BROKEN;
-			break;
-		}
-		if (!buffer->readSuccess(got)) {
-			break;
-		}
+	int length = buffer->getLen();
+	int result = client->write_all(buffer->getHead(), length);
+	if (result != 0) {
+		return KGL_ECAN_RETRY_SOCKET_BROKEN;
 	}
+	buffer->readSuccess(length);
+	assert(buffer->getLen() == 0);
 	buffer->destroy();
-	return result;
+	return KGL_OK;
 }
 void KAsyncFetchObject::create_post_fiber(KHttpRequest* rq, kfiber** post_fiber) {
 	if (*post_fiber == NULL) {

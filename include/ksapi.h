@@ -264,8 +264,8 @@ typedef enum _KF_ALLOC_MEMORY_TYPE
 
 typedef struct
 {
-	KGL_RESULT(*writev)(kgl_response_body_ctx* ctx, WSABUF* bufs, int bc);
-	KGL_RESULT(*write)(kgl_response_body_ctx* ctx, const char* buf, int size);
+	KGL_RESULT (*writev)(kgl_response_body_ctx* ctx, const kbuf* bufs, int size);
+	KGL_RESULT (*write)(kgl_response_body_ctx* ctx, const char* buf, int size);
 	KGL_RESULT(*flush)(kgl_response_body_ctx* ctx);
 	bool (*support_sendfile)(kgl_response_body_ctx* ctx);
 	KGL_RESULT(*sendfile)(kgl_response_body_ctx* ctx, KASYNC_FILE fp, int64_t* length);

@@ -130,7 +130,7 @@ void forward_write_status(kgl_output_stream_ctx* gate, uint16_t status_code) {
 	kgl_forward_output_stream* g = (kgl_forward_output_stream*)gate;
 	return g->down_stream.f->write_status(g->down_stream.ctx, status_code);
 }
-KGL_RESULT forward_writev(kgl_response_body_ctx* ctx, WSABUF* bufs, int bc) {
+KGL_RESULT forward_writev(kgl_response_body_ctx* ctx, const kbuf* bufs, int bc) {
 	kgl_forward_body* g = (kgl_forward_body*)ctx;
 	return g->down_body.f->writev(g->down_body.ctx, bufs, bc);
 }
@@ -459,13 +459,13 @@ KGL_RESULT forward_get_header(kgl_input_stream_ctx* ctx, kgl_parse_header_ctx* c
 KGL_RESULT check_write_unknow_header(kgl_output_stream_ctx* st, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
 	return ((KHttpRequest*)st)->response_header(attr, attr_len, val, val_len) ? KGL_OK : KGL_EINVALID_PARAMETER;
 }
-static KGL_RESULT default_writev(kgl_response_body_ctx* ctx, WSABUF* bufs, int bc) {
+static KGL_RESULT default_writev(kgl_response_body_ctx* ctx, const kbuf *bufs, int length) {
 	KHttpRequest* rq = (KHttpRequest*)ctx;
-	return rq->write_all(bufs, bc);
+	return rq->write_buf(bufs, length);
 }
-static KGL_RESULT default_write(kgl_response_body_ctx* ctx, const char* buf, int size) {
+static KGL_RESULT default_write(kgl_response_body_ctx* ctx, const char* buf, int length) {
 	KHttpRequest* rq = (KHttpRequest*)ctx;
-	return rq->write_all(buf, size);
+	return 0 == rq->write(buf, length) ? KGL_OK : KGL_EIO;
 }
 static KGL_RESULT default_flush(kgl_response_body_ctx* ctx) {
 	KHttpRequest* rq = (KHttpRequest*)ctx;
@@ -553,39 +553,4 @@ void pipe_input_stream(kgl_forward_input_stream* forward_st, kgl_input_stream_fu
 	forward_st->up_stream = *up_stream;
 	up_stream->ctx = (kgl_input_stream_ctx*)forward_st;
 	up_stream->f = f;
-}
-
-KGL_RESULT kgl_write_buf(kgl_response_body* body, kbuf* buf, int length) {
-
-#define KGL_RQ_WRITE_BUF_COUNT 16
-	WSABUF bufs[KGL_RQ_WRITE_BUF_COUNT];
-	while (buf) {
-		int bc = 0;
-		while (bc < KGL_RQ_WRITE_BUF_COUNT && buf) {
-			if (length == 0) {
-				break;
-			}
-			if (length > 0) {
-				bufs[bc].iov_len = KGL_MIN(length, buf->used);
-				length -= bufs[bc].iov_len;
-			} else {
-				bufs[bc].iov_len = buf->used;
-			}
-			bufs[bc].iov_base = buf->data;
-			buf = buf->next;
-			bc++;
-		}
-		if (bc == 0) {
-			if (length > 0) {
-				return KGL_ENO_DATA;
-			}
-			assert(length == 0);
-			return KGL_OK;
-		}
-		KGL_RESULT result = body->f->writev(body->ctx, bufs, bc);
-		if (result != KGL_OK) {
-			return result;
-		}
-	}
-	return KGL_OK;
 }

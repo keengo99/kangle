@@ -71,15 +71,15 @@ public:
 		}
 		return -1;
 	}
-	int internal_write(WSABUF *buf, int bc) override
+	int write_all(const char *str,int length) override
 	{
 		if (body) {
-			if (body(arg, (char*)buf[0].iov_base, buf[0].iov_len) == 0) {
-				on_success_response(buf[0].iov_len);
-				return buf[0].iov_len;
+			if (body(arg, (char*)str, length) == 0) {
+				on_success_response(length);
+				return 0;
 			}
 		}
-		return -1;
+		return length;
 	}
 	bool get_self_addr(sockaddr_i *addr) override
 	{

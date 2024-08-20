@@ -2,7 +2,7 @@
 #include "katom.h"
 volatile int64_t sendfile_total_length = 0;
 volatile int32_t sendfile_total_count = 0;
-KGL_RESULT sendfile_writev(kgl_response_body_ctx* ctx, WSABUF* bufs, int bc) {
+static KGL_RESULT sendfile_writev(kgl_response_body_ctx* ctx, const kbuf* bufs, int bc) {
 	sendfile_log_context* send_ctx = (sendfile_log_context*)ctx;
 	return send_ctx->down.f->writev(send_ctx->down.ctx, bufs, bc);
 }
