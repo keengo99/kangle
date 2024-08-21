@@ -444,9 +444,6 @@ public:
 		}
 		return KGL_EIO;
 	}
-	/* override KWStream function end */
-
-	//int checkFilter(KHttpObject* obj);
 	uint16_t GetSelfPort() {
 		return sink->get_self_port();
 	}
