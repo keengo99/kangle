@@ -975,9 +975,8 @@ bool KHttpManage::sendMainFrame() {
 	s << "</table>\n";
 	s << "<h3>" << klang["selector"] << "</h3>";
 	s << "<table>";
-	s << "<tr><td>" << LANG_NAME << "</td><td>" << selector_manager_event_name() << "</td></tr>\n";
+	s << "<tr><td>" << LANG_NAME << "</td><td>" << selector_manager_event_name() << " " << kfiber_powered_by() << "</td></tr>\n";
 	s << "<tr><td>" << klang["worker_thread"] << "</td><td>" << get_selector_count() << "</td></tr>\n";
-	s << "<tr><td>fiber name:</td><td>" << kfiber_powered_by() << "</td></tr>\n";
 	s << "</table>";
 
 	s << "</td><td valign=top align=right>";

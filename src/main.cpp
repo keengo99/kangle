@@ -747,9 +747,9 @@ static int Usage(bool only_version = false) {
 #endif
 #ifdef ENABLE_BIG_OBJECT
 #ifdef ENABLE_BIG_OBJECT_206
-		" big-object-206"
+		" bo206"
 #else
-		" big-object"
+		" bo"
 #endif
 #endif
 #ifdef IP_TRANSPARENT
@@ -760,22 +760,25 @@ static int Usage(bool only_version = false) {
 #ifdef ENABLE_DISK_CACHE
 		" disk-cache"
 #endif
-#ifndef NDEBUG
-		" debug"
-#endif
 #ifdef ENABLE_BROTLI
 		" brotli"
+#endif
+#ifdef ENABLE_ZSTD
+		" zstd"
+#endif
+#ifndef NDEBUG
+		" debug"
+#else
+		" release"
 #endif
 #ifdef MALLOCDEBUG
 		" malloc-debug"
 #endif
 		"\n", getServerType());
+	printf("async event: %s %s\n", selector_manager_event_name(), kfiber_powered_by());
 	printf("pcre version: %s\n", pcre_version());
 #ifdef KSOCKET_SSL
 	printf("openssl version: %s\n", SSLeay_version(SSLEAY_VERSION));
-#endif
-#ifdef UPDATE_CODE
-	printf("UPDATE_CODE: %s\n", UPDATE_CODE);
 #endif
 	if (!only_version) {
 		printf("Usage: " PROGRAM_NAME " [-hlqnra:] [-d level]\n"
@@ -1110,7 +1113,6 @@ unsigned getpagesize() {
 }
 #endif
 void init_program() {
-	kasync_init();
 	init_http_server_callback(kangle::kgl_on_new_connection, start_request_fiber);
 	selector_manager_init(1, false);
 	for (int i = 0; i < 2; i++) {
@@ -1308,7 +1310,7 @@ int main(int argc, char** argv) {
 #endif
 	srand((unsigned)time(NULL));
 	program_rand_value = rand();
-
+	kasync_init();
 	if (!create_path(argv)) {
 		fprintf(stderr, "cann't create path,don't start kangle in search path\n");
 #ifdef _WIN32
