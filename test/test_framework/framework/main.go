@@ -3,6 +3,7 @@ package framework
 import (
 	"flag"
 	"fmt"
+	"os/signal"
 	"strings"
 	"test_framework/common"
 	"test_framework/config"
@@ -11,10 +12,10 @@ import (
 	"os"
 
 	"path/filepath"
-	"time"
 	"runtime"
 	"test_framework/server"
 	"test_framework/suite"
+	"time"
 )
 
 var (
@@ -98,6 +99,16 @@ func ProcessSuites(suites []string) {
 		kangle.Close()
 	}
 }
+func handle_signal() {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, os.Kill)
+	// Block until a signal is received.
+	<-c
+	buf := make([]byte, 1<<16)
+	runtime.Stack(buf, true)
+	fmt.Printf("%s", buf)
+	os.Exit(1)
+}
 func Main() {
 	fmt.Printf("kangle test...\n")
 	flag.Usage = func() {
@@ -135,6 +146,7 @@ func Main() {
 	} else {
 		suites = strings.Split(*test_case, ",")
 	}
+	go handle_signal()
 	ProcessSuites(suites)
 	b := make([]byte, 1)
 	os.Stdin.Read(b)

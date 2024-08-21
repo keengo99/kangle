@@ -131,7 +131,3 @@ func check_port_is_ok(port int, ssl bool) {
 func check_proxy_port() {
 	check_port_is_ok(9800, false)
 }
-
-func check_bug() {
-
-}

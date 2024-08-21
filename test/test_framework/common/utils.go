@@ -65,6 +65,13 @@ func md5Response(resp *http.Response, decode bool) (string, int) {
 	//fmt.Printf("\n")
 	for {
 		n, err := reader.Read(buf)
+		/*
+			if err != nil && err != io.EOF {
+				fmt.Printf("content-length=[%v] content_encoding=[%v]\n", resp.ContentLength, content_encoding)
+				fmt.Printf("total_read=[%v]\n", total_read)
+				panic(err)
+			}
+		*/
 		if n <= 0 {
 			break
 		}

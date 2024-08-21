@@ -1,7 +1,6 @@
 package base_suite
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 	"test_framework/common"
@@ -288,7 +287,7 @@ func check_weak_etag_range() {
 	})
 
 	common.Get("/range?weak", map[string]string{"x-weak-etag": "1", "Range": "bytes=0-4096"}, func(resp *http.Response, err error) {
-		fmt.Printf("etag=" + resp.Header.Get("etag"))
+		//fmt.Printf("etag=" + resp.Header.Get("etag"))
 		common.AssertContain(resp.Header.Get("etag"), "W/")
 		common.AssertSame(resp.StatusCode, 206)
 		common.Assert("x-big-object-hit", strings.Contains(resp.Header.Get("X-Cache"), "HIT"))
@@ -297,7 +296,7 @@ func check_weak_etag_range() {
 	common.CreateRange(1024)
 	common.Get("/range?weak", map[string]string{"x-weak-etag": "1", "Accept-Encoding": "gzip"}, func(resp *http.Response, err error) {
 		common.AssertContain(resp.Header.Get("etag"), "W/")
-		fmt.Printf("etag=" + resp.Header.Get("etag"))
+		//fmt.Printf("etag=" + resp.Header.Get("etag"))
 		common.Assert("x-big-object-miss", strings.Contains(resp.Header.Get("X-Cache"), "MISS"))
 		common.AssertSame(common.RangeMd5, common.Md5Response(resp, true))
 	})
