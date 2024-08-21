@@ -20,22 +20,6 @@ extern KMutex processLock;
 extern std::map<u_short, KApiDso*> apis;
 volatile bool program_quit = false;
 extern KListenPipeStream ls;
-void debug(const char* fmt, ...) {
-#ifndef NDEBUG
-	//if (m_debug) {
-	va_list ap;
-	va_start(ap, fmt);
-	vprintf(fmt, ap);
-	va_end(ap);
-	//}
-#endif
-}
-void klog(int level, const char* fmt, ...) {
-	va_list ap;
-	va_start(ap, fmt);
-	vprintf(fmt, ap);
-	va_end(ap);
-}
 void killallProcess() {
 #ifndef _WIN32
 	signal(SIGCHLD, SIG_IGN);
