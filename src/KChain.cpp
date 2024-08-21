@@ -58,49 +58,6 @@ void KChain::clear() {
 	}
 	marks.clear();
 }
-uint32_t KChain::match(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
-	uint32_t result = KF_STATUS_REQ_TRUE;
-	bool last_or = false;
-	//OR NEXT
-	for (auto it = acls.begin(); it != acls.end(); ++it) {
-		if (result && last_or) {
-			last_or = (*it)->is_or;
-			continue;
-		}
-		result = ((*it)->match(rq, obj) != (*it)->revers)?KF_STATUS_REQ_TRUE : KF_STATUS_REQ_FALSE;
-		last_or = (*it)->is_or;
-		if (!result && !last_or) {
-			break;
-		}
-	}
-	if (!result) {
-		return KF_STATUS_REQ_FALSE;
-	}
-	last_or = false;
-	for (auto it = marks.begin(); it != marks.end(); ++it) {
-		if (result && last_or) {
-			last_or = (*it)->is_or;
-			continue;
-		}
-		result = (*it)->process(rq, obj, fo);
-		if (KBIT_TEST(result, KF_STATUS_REQ_FINISHED)) {
-			++hit_count;
-			return result;
-		}
-		result =  (!!result != (*it)->revers)? KF_STATUS_REQ_TRUE : KF_STATUS_REQ_FALSE;
-		if (!result && !last_or) {
-			break;
-		}
-		if (fo) {
-			++hit_count;
-			return true;
-		}
-	}
-	if (result) {
-		++hit_count;
-	}
-	return result;
-}
 void KChain::get_edit_html(KWStream& s, u_short accessType) {
 	int index = 0;
 	for (auto it = acls.begin(); it != acls.end(); ++it) {

@@ -69,7 +69,76 @@ public:
 	bool operator ==(KFileName &a);
 	static bool tripDir(KString &dir);
 	static char *tripDir2(const char *dir, const char split_char);
-	static void tripDir3(char *path,const char split_char);
+	static void tripDir3(char* path, const char split_char) {
+		char* src = path;
+		char* hot = path;
+		for (;;) {
+			if (*hot == '\0') {
+				*src = '\0';
+				return;
+			}
+			if (*hot == '/' || *hot == '\\') {
+				*src = split_char;
+				src++;
+				//跳到不是分格符的位置
+				for (;;) {
+					if (!*hot) {
+						*src = '\0';
+						return;
+					}
+					if (*hot == '/' || *hot == '\\') {
+						hot++;
+					} else {
+						break;
+					}
+				}
+			}
+			//不是分格符
+			char* p = hot;
+			//找下面的分格符
+			while (*p && *p != '/' && *p != '\\')
+				p++;
+			//找到了
+			int copy_len = (int)(p - hot);
+			if (*hot == '.') {
+				if (copy_len == 1) {
+					//如果是本目录，则略过
+					if (src > path) {
+						src--;
+						assert(*src == split_char);
+					}
+					hot = p;
+					continue;
+				}
+				if (copy_len == 2 && *(hot + 1) == '.') {
+					//如果是上级目录
+
+					if (src > path) {
+						src--;
+						assert(*src == split_char);
+					}
+					if (src > path) {
+						src--;
+						while (src > path && *src != split_char) {
+							src--;
+						}
+					}
+					hot = p;
+					continue;
+				}
+			}
+			if (src != hot) {
+				kgl_memcpy(src, hot, p - hot);
+				src += copy_len;
+			} else {
+				src = p;
+			}
+			hot = p;
+		}
+		//不可能到这里来的。
+		assert(false);
+		
+	}
 	static char *concatDir(const char *doc_root,const char *file);
 
 	bool isDirectory();

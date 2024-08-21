@@ -179,7 +179,7 @@ KGL_RESULT handle_denied_request(KHttpRequest* rq) {
 	}
 	return KGL_OK;
 }
-bool check_virtual_host_access_request(KHttpRequest* rq, KSafeSource& fo, int header_length) {
+inline bool check_virtual_host_access_request(KHttpRequest* rq, KSafeSource& fo, int header_length) {
 	auto svh = kangle::get_virtual_host(rq);
 	assert(svh);
 #ifdef ENABLE_VH_RS_LIMIT
@@ -207,6 +207,7 @@ bool check_virtual_host_access_request(KHttpRequest* rq, KSafeSource& fo, int he
 		if (fo) {
 			fo = nullptr;
 		}
+		return true;
 	case JUMP_DENY:
 		if (fo) {
 			rq->append_source(fo.release());
@@ -241,10 +242,7 @@ static inline KGL_RESULT check_connect_method(KHttpRequest* rq) {
 #endif
 }
 void start_request_fiber(KSink* sink, int header_length) {
-	//KHttpRequest* rq = new KHttpRequest(sink);
 	KHttpRequest rq(sink);
-	kgl_input_stream check_in;
-	kgl_output_stream check_out;
 	KSafeSource fo;
 	kgl_jump_type jump_type;
 	rq.beginRequest();
@@ -252,11 +250,13 @@ void start_request_fiber(KSink* sink, int header_length) {
 		send_error2(&rq, STATUS_METH_NOT_ALLOWED, "The requested method CONNECT is not allowed");
 		goto clean;
 	}
+#if 0
 	if (unlikely(rq.ctx.read_huped)) {
 		KBIT_SET(rq.sink->data.flags, RQ_CONNECTION_CLOSE);
 		send_error2(&rq, STATUS_BAD_REQUEST, "Client close connection");
 		goto clean;
 	}
+#endif
 	if (unlikely(rq.is_bad_url())) {
 		KBIT_SET(rq.sink->data.flags, RQ_CONNECTION_CLOSE);
 		send_error2(&rq, STATUS_BAD_REQUEST, "Bad request format.");
@@ -276,9 +276,11 @@ void start_request_fiber(KSink* sink, int header_length) {
 		goto clean;
 	}
 #endif
+#if 0
 	if (unlikely(rq.ctx.skip_access)) {
 		goto skip_access;
 	}
+#endif
 	jump_type = kaccess[REQUEST]->check(&rq, NULL, fo);
 	switch (jump_type) {
 	case JUMP_DROP:
@@ -335,8 +337,9 @@ void start_request_fiber(KSink* sink, int header_length) {
 		}
 	}
 	}
-skip_access:
 	{
+		kgl_input_stream check_in;
+		kgl_output_stream check_out;
 		auto fo = rq.fo_head;
 		while (fo && fo->before_cache()) {
 			get_check_stream(&rq, &check_in, &check_out);

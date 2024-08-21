@@ -124,9 +124,24 @@ public:
 		}
 	}
 #ifdef ENABLE_USER_ACCESS
-	int checkRequest(KHttpRequest* rq, KSafeSource& fo);
-	int checkResponse(KHttpRequest* rq, KSafeSource& fo);
-	int checkPostMap(KHttpRequest* rq, KSafeSource& fo);
+	int checkRequest(KHttpRequest* rq, KSafeSource& fo) {
+		if (!access[REQUEST]) {
+			return JUMP_ALLOW;
+		}
+		return access[REQUEST]->check(rq, NULL, fo);
+	}
+	int checkResponse(KHttpRequest* rq, KSafeSource& fo) {
+		if (!access[RESPONSE]) {
+			return JUMP_ALLOW;
+		}
+		return access[RESPONSE]->check(rq, rq->ctx.obj, fo);
+	}
+	int checkPostMap(KHttpRequest* rq, KSafeSource& fo) {
+		if (!access[RESPONSE]) {
+			return JUMP_ALLOW;
+		}
+		return access[RESPONSE]->checkPostMap(rq, rq->ctx.obj, fo);
+	}
 	KString user_access;
 #endif
 	KString doc_root;
