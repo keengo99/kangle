@@ -305,24 +305,16 @@ void log_access(KHttpRequest* rq) {
 		l.WSTR(" HTTP/1.1\" ");
 		break;
 	}
-	l << rq->sink->data.status_code << " ";
-#ifdef _WIN32
-	const char* formatString = "%I64d";
-#else
-	const char* formatString = "%lld";
-#endif
-	sprintf(tmp, formatString, sended_length);
-	l << tmp;
+	l << rq->sink->data.status_code << " "_CS;
+	l.write_all(tmp, sprintf(tmp, INT64_FORMAT, sended_length));
 #ifndef NDEBUG
 	kgl_str_t range;
-	//const char* range = rq->GetHttpValue("Range");
 	if (rq->get_http_value(_KS("Range"),&range)) {
 		l << " \"";
 		l.write_all(range.data, (int)range.len);
 		l << "\"";
 	}
 #endif
-	//s->log(formatString,rq->send_ctx.send_size);
 	l.WSTR(" \"");
 	if (rq->get_http_value(_KS("Referer"),&referer)) {
 		l.write_all(referer.data, (int)referer.len);
@@ -335,7 +327,6 @@ void log_access(KHttpRequest* rq) {
 	} else {
 		l.WSTR("-");
 	}
-	
 #ifndef NDEBUG
 	l.WSTR("\"[");
 	l << "F" << (unsigned)rq->sink->data.flags << "f" << (unsigned)rq->ctx.filter_flags;
@@ -407,19 +398,6 @@ void log_access(KHttpRequest* rq) {
 		l.WSTR("-");
 		l.add((INT64)rq, INT64_FORMAT_HEX);
 	}
-#if 0
-	l.WSTR(" ");
-	l.addHex(rq->sink->data.if_modified_since);
-	l.WSTR(" ");
-	l.addHex(rq->sink->data.if_modified_since);
-	l.WSTR(" ");
-	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_IF_NONE_MATCH)) {
-		l.WSTR("inm");
-	}
-	if (rq->sink->data.if_none_match) {
-		l.write_all(rq->sink->data.if_none_match->data, rq->sink->data.if_none_match->len);
-	}
-#endif
 	l.WSTR("]\n");
 #else
 	l.WSTR("\"\n");
