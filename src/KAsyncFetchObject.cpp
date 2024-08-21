@@ -288,7 +288,6 @@ KGL_RESULT KAsyncFetchObject::ReadHeader(KHttpRequest* rq, kfiber** post_fiber) 
 		}
 		return result;
 	}
-	client->set_no_delay(false);
 	int len;
 	for (;;) {
 		char* buf = (char*)getUpstreamBuffer(&len);
@@ -351,21 +350,6 @@ KGL_RESULT KAsyncFetchObject::SendHeader(KHttpRequest* rq) {
 	if (buffer->startRead() == 0) {
 		return KGL_OK;
 	}
-	//debug_print_buff(buffer->getHead());
-	client->set_delay();
-	/*
-	WSABUF buf[64];
-	for (;;) {
-		int bc = buffer->getReadBuffer(buf, kgl_countof(buf));
-		int got = client->write(buf, bc);
-		if (got <= 0) {
-			return KGL_ECAN_RETRY_SOCKET_BROKEN;
-		}
-		if (!buffer->readSuccess(got)) {
-			return KGL_OK;
-		}
-	}
-	*/
 	int length = buffer->getLen();
 	int result = client->write_all(buffer->getHead(), length);
 	if (result != 0) {
@@ -457,9 +441,7 @@ KGL_RESULT KAsyncFetchObject::on_read_head_success(KHttpRequest* rq, kfiber** po
 		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_UPGRADE);
 	}
 #endif
-	if (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
-		rq->sink->set_no_delay(true);
-		client->set_no_delay(true);
+	if (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {		
 		int tmo = rq->sink->get_time_out();
 		if (tmo < 5) {
 			tmo = 5;
