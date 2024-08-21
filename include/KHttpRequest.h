@@ -510,6 +510,15 @@ public:
 		result->len = header->val_len;
 		return true;
 	}
+	bool get_http_value(kgl_header_type attr, kgl_str_t* result) {
+		auto header = sink->data.find(attr);
+		if (header == nullptr) {
+			return false;
+		}
+		result->data = header->buf + header->val_offset;
+		result->len = header->val_len;
+		return true;
+	}
 
 #ifdef ENABLE_REQUEST_QUEUE
 	bool NeedQueue() {	

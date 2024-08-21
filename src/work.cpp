@@ -316,13 +316,13 @@ void log_access(KHttpRequest* rq) {
 	}
 #endif
 	l.WSTR(" \"");
-	if (rq->get_http_value(_KS("Referer"),&referer)) {
+	if (rq->get_http_value(kgl_header_referer,&referer)) {
 		l.write_all(referer.data, (int)referer.len);
 	} else {
 		l.WSTR("-");
 	}
 	l.WSTR("\" \"");
-	if (rq->get_http_value(_KS("User-Agent"),&user_agent)) {
+	if (rq->get_http_value(kgl_header_user_agent,&user_agent)) {
 		l.write_all(user_agent.data, (int)user_agent.len);
 	} else {
 		l.WSTR("-");
