@@ -20,6 +20,14 @@ extern KMutex processLock;
 extern std::map<u_short, KApiDso*> apis;
 volatile bool program_quit = false;
 extern KListenPipeStream ls;
+void debug(const char* fmt, ...) {
+#ifndef NDEBUG	
+	va_list ap;
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
+#endif
+}
 void killallProcess() {
 #ifndef _WIN32
 	signal(SIGCHLD, SIG_IGN);
@@ -95,10 +103,11 @@ void sigcatch(int sig) {
 #endif
 void seperate_usage();
 int main(int argc, char** argv) {
-	printf("extworker started pid=[%d]\n", getpid());
+	//printf("extworker started pid=[%d]\n", getpid());
 	::argc = argc;
 	::argv = argv;
 	ksocket_startup();
+	kthread_init();
 #ifdef _WIN32
 	CoInitializeEx(NULL, COINIT_MULTITHREADED);
 	SetUnhandledExceptionFilter(CustomUnhandledExceptionFilter);

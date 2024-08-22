@@ -126,7 +126,14 @@ std::map<int, WorkerProcess*> workerProcess;
 /*
  the main process and child process communicate pipe
  */
-
+void debug(const char* fmt, ...) {
+#ifndef NDEBUG	
+	va_list ap;
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
+#endif
+}
 void my_exit(int code) {
 #ifdef _WIN32
 	SetUnhandledExceptionFilter(NULL);
