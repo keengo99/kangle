@@ -129,7 +129,7 @@ static kgl_response_body_function cache_body_function = {
 	cache_close
 };
 bool pipe_cache_stream(KHttpRequest* rq, KHttpObject* obj, cache_model cache_layer, kgl_response_body* body) 	{
-	if (KBIT_TEST(obj->index.flags, ANSW_NO_CACHE|FLAG_DEAD) >0) {
+	if (KBIT_TEST(obj->index.flags, ANSW_NO_CACHE|FLAG_DEAD) >0 || conf.default_cache == 0) {
 		return false;
 	}
 	if (!KBIT_TEST(rq->ctx.filter_flags, RF_NO_DISK_CACHE)) {

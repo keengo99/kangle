@@ -10,7 +10,7 @@ swap_in_result KHttpObjectSwaping::swapin_proress(KHttpObject* obj, KHttpObjectB
 	if (filename == NULL) {
 		return swap_in_failed_other;
 	}
-	kfiber_file* file = kfiber_file_open(filename.get(), fileRead, 0);
+	kfiber_file* file = kfiber_file_open(filename.get(), fileRead, KFILE_NOATIME);
 	if (file == NULL) {
 		return swap_in_failed_open;
 	}
@@ -133,7 +133,7 @@ swap_in_result KHttpObjectSwaping::swapin(KHttpRequest* rq, KHttpObject* obj)
 	KHttpObjectBody* data = NULL;
 	auto filename = obj->get_filename();
 	swap_in_result result = swap_in_failed_other;
-	kfiber_file* file = kfiber_file_open(filename.get(), fileRead, 0);
+	kfiber_file* file = kfiber_file_open(filename.get(), fileRead, KFILE_NOATIME);
 	if (file == NULL) {
 		result = swap_in_failed_open;
 		goto clean;

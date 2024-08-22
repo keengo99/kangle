@@ -57,8 +57,7 @@ bool kgl_load_response_body(KHttpRequest* rq, kgl_response_body* body) {
 			if (content_len > conf.max_bigobj_size
 				|| !obj_can_disk_cache(rq, obj)) {
 				cache_layer = cache_none;
-			}
-			else {
+			} else {
 				cache_layer = cache_disk;
 			}
 		}

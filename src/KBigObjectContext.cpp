@@ -6,7 +6,6 @@
 #include "cache.h"
 #include "KFilterContext.h"
 #include "KSimulateRequest.h"
-#include "KSboFile.h"
 #include "HttpFiber.h"
 #include "KHttpTransfer.h"
 #include "KDefer.h"

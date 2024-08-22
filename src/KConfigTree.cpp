@@ -50,6 +50,7 @@ namespace kconfig {
 		khttpd::KSafeXmlNode load(KConfigFile* file) override {
 			auto fp = kfiber_file_open(file->get_filename()->data, fileRead, KFILE_ASYNC);
 			if (!fp) {
+				klog(KLOG_ERR,"ERROR! cann't open config file [%s] for read\n",file->get_filename()->data);
 				return nullptr;
 			}
 			defer(kfiber_file_close(fp));

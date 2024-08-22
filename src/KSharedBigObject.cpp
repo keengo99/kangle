@@ -135,7 +135,7 @@ bool KSharedBigObject::open_file_handle(KHttpObject* obj) {
 	if (!filename) {
 		return false;
 	}
-	fp = kfiber_file_open(filename.get(), fileReadWrite, 0);
+	fp = kfiber_file_open(filename.get(), fileReadWrite, KFILE_NOATIME);
 	return fp != nullptr;
 }
 void KSharedBigObject::open_read(KHttpObject* obj) {
@@ -354,7 +354,7 @@ bool KSharedBigObject::create(KHttpObject* obj) {
 	}
 	kfiber_mutex_lock(lock);
 	assert(fp == NULL);
-	fp = kfiber_file_open(filename.get(), fileWriteRead, 0);
+	fp = kfiber_file_open(filename.get(), fileWriteRead, KFILE_NOATIME);
 	if (fp == NULL) {
 		kfiber_mutex_unlock(lock);
 		return false;

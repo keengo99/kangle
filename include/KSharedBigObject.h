@@ -6,7 +6,6 @@
 #include "KHttpRequest.h"
 #include "KBigObject.h"
 #include "kfile.h"
-#include "KSboFile.h"
 #include "kfiber.h"
 #include "kfiber_sync.h"
 
