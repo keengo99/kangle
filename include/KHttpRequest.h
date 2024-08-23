@@ -333,9 +333,9 @@ public:
 		return response_header(name, name_len, buf, len);
 	}
 	bool response_last_modified(time_t last_modified) {
-		char tmpbuf[KGL_1123_TIME_LEN + 1];
+		char* tmpbuf = (char *)alloc_request_memory(KGL_1123_TIME_LEN+1);
 		char* end = make_http_time(last_modified, tmpbuf, KGL_1123_TIME_LEN);
-		return response_header(kgl_header_last_modified, tmpbuf, (int)(end - tmpbuf));
+		return response_header(kgl_header_last_modified, tmpbuf, (int)(end - tmpbuf), true);
 	}
 	bool response_content_length(int64_t content_length) {
 		return sink->response_content_length(content_length);

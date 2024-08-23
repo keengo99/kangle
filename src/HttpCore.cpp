@@ -351,7 +351,7 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, boo
 		if (obj->data->i.condition_is_time) {
 			rq->response_last_modified(obj->data->last_modified);
 		} else {
-			rq->response_header(kgl_header_etag, obj->data->etag->data, (int)obj->data->etag->len);
+			rq->response_header(kgl_header_etag, obj->data->etag->data, (int)obj->data->etag->len, true);
 		}
 	}	
 	rq->response_connection();
