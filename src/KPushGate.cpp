@@ -130,9 +130,9 @@ void forward_write_status(kgl_output_stream_ctx* gate, uint16_t status_code) {
 	kgl_forward_output_stream* g = (kgl_forward_output_stream*)gate;
 	return g->down_stream.f->write_status(g->down_stream.ctx, status_code);
 }
-KGL_RESULT forward_writev(kgl_response_body_ctx* ctx, const kbuf* bufs, int bc) {
+KGL_RESULT forward_writev(kgl_response_body_ctx* ctx, const kbuf* bufs, int len) {
 	kgl_forward_body* g = (kgl_forward_body*)ctx;
-	return g->down_body.f->writev(g->down_body.ctx, bufs, bc);
+	return g->down_body.f->writev(g->down_body.ctx, bufs, len);
 }
 KGL_RESULT forward_write(kgl_response_body_ctx* gate, const char* buf, int len) {
 	kgl_forward_body* g = (kgl_forward_body*)gate;
@@ -258,7 +258,7 @@ void st_release(kgl_output_stream_ctx* st) {
 	kgl_default_output_stream_ctx* g = (kgl_default_output_stream_ctx*)st;
 	delete g;
 }
-static kgl_output_stream_function default_stream_function = {
+kgl_output_stream_function default_stream_function = {
 	st_write_status,
 	st_write_header,
 	st_write_unknow_header,
@@ -267,17 +267,7 @@ static kgl_output_stream_function default_stream_function = {
 	st_write_trailer,
 	st_release,
 };
-void new_default_output_stream(KHttpRequest* rq, kgl_output_stream* out) {
-	kgl_default_output_stream_ctx* st = new kgl_default_output_stream_ctx;
-	out->f = &default_stream_function;
-	st->rq = rq;
-	out->ctx = (kgl_output_stream_ctx*)st;
-	return;
-}
-void new_default_stream(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) 	{
-	new_default_input_stream(rq, in);
-	new_default_output_stream(rq, out);
-}
+
 static int64_t default_input_get_read_left(kgl_request_body_ctx* ctx) {
 	KHttpRequest* rq = (KHttpRequest*)ctx;
 	return rq->sink->data.left_read;
@@ -360,18 +350,12 @@ static void default_input_has_filter_release(kgl_request_body_ctx* ctx) {
 		rq->ctx.in_body = nullptr;
 	}
 }
-static kgl_request_body_function default_request_body_function = {
+kgl_request_body_function default_request_body_function = {
 	default_input_get_read_left,
 	default_input_read,
 	default_input_release,
 };
-void kgl_init_request_in_body(KHttpRequest* rq)
-{
-	rq->ctx.in_body = rq->sink->alloc<kgl_request_body>();
-	rq->ctx.in_body->ctx = (kgl_request_body_ctx *)rq;
-	rq->ctx.in_body->f = &default_request_body_function;
-}
-static kgl_input_stream_function default_input_stream_function = {	
+kgl_input_stream_function default_input_stream_function = {	
 	default_request_body_function,
 	default_get_url,
 	default_get_precondition,
@@ -379,7 +363,7 @@ static kgl_input_stream_function default_input_stream_function = {
 	default_get_header_count,
 	default_get_header	
 };
-static kgl_input_stream_function default_has_filter_input_stream_function = {
+kgl_input_stream_function default_has_filter_input_stream_function = {
 	default_input_has_filter_get_left,
 	default_input_has_filter_read,
 	default_input_has_filter_release,
@@ -389,8 +373,18 @@ static kgl_input_stream_function default_has_filter_input_stream_function = {
 	default_get_header_count,
 	default_get_header
 };
-
-
+void kgl_init_request_in_body(KHttpRequest* rq) {
+	rq->ctx.in_body = rq->sink->alloc<kgl_request_body>();
+	rq->ctx.in_body->ctx = (kgl_request_body_ctx*)rq;
+	rq->ctx.in_body->f = &default_request_body_function;
+}
+void new_default_output_stream(KHttpRequest* rq, kgl_output_stream* out) {
+	kgl_default_output_stream_ctx* st = new kgl_default_output_stream_ctx;
+	out->f = &default_stream_function;
+	st->rq = rq;
+	out->ctx = (kgl_output_stream_ctx*)st;
+	return;
+}
 void new_default_input_stream(KHttpRequest* rq, kgl_input_stream* in) {
 	in->ctx = (kgl_input_stream_ctx*)rq;
 	if (rq->ctx.in_body) {
@@ -484,7 +478,7 @@ static KGL_RESULT default_close(kgl_response_body_ctx* ctx, KGL_RESULT result) {
 	KHttpRequest* rq = (KHttpRequest*)ctx;
 	return rq->write_end(result);
 }
-static kgl_response_body_function kgl_default_response_body = {
+kgl_response_body_function kgl_default_response_body = {
 	default_writev,
 	default_write,
 	default_flush,
@@ -492,10 +486,7 @@ static kgl_response_body_function kgl_default_response_body = {
 	default_sendfile,
 	default_close
 };
-void get_default_response_body(KREQUEST r, kgl_response_body* body) {
-	body->ctx = (kgl_response_body_ctx*)r;
-	body->f = &kgl_default_response_body;
-}
+
 KGL_RESULT check_write_header_finish(kgl_output_stream_ctx* st, int64_t body_size, kgl_response_body* body) {
 	KHttpRequest* rq = (KHttpRequest*)st;
 	if (is_status_code_no_body(rq->sink->data.status_code)) {

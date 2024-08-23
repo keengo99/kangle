@@ -26,6 +26,21 @@
 #include "KHttpObject.h"
 #include "KCompressStream.h"
 #include "KCacheStream.h"
+#include "KPushGate.h"
+#include "KFilterContext.h"
 bool kgl_load_response_body(KHttpRequest* rq, kgl_response_body* body);
-bool kgl_load_cache_response_body(KHttpRequest *rq, int64_t *body_size);
+inline bool kgl_load_cache_response_body(KHttpRequest* rq, int64_t* body_size) {
+	get_default_response_body(rq, &rq->ctx.body);
+	if (rq->needFilter()) {
+		int32_t flag = KGL_FILTER_CACHE;
+		if (rq->sink->data.range != nullptr) {
+			flag |= KGL_FILTER_NOT_CHANGE_LENGTH;
+		}
+		if (rq->of_ctx->tee_body(rq, &rq->ctx.body, flag)) {
+			assert(rq->sink->data.range == nullptr);
+			*body_size = -1;
+		}
+	}
+	return true;
+}
 #endif /* KHTTPTRANSFER_H_ */

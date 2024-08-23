@@ -2,9 +2,13 @@
 #define KPUSHGATE_H_99
 #include "ksapi.h"
 #include "KStream.h"
-
 class KHttpRequest;
 
+extern kgl_response_body_function kgl_default_response_body;
+extern kgl_request_body_function default_request_body_function;
+extern kgl_input_stream_function default_has_filter_input_stream_function;
+extern kgl_input_stream_function default_input_stream_function;
+extern kgl_output_stream_function default_stream_function;
 struct kgl_forward_input_stream
 {
 	kgl_input_stream up_stream;
@@ -32,8 +36,10 @@ KGL_RESULT unsupport_writev(kgl_response_body_ctx* ctx, const kbuf* bufs, int le
 }
 void new_default_input_stream(KHttpRequest* rq, kgl_input_stream* in);
 void new_default_output_stream(KHttpRequest* rq, kgl_output_stream* out);
-void new_default_stream(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out);
-
+inline void new_default_stream(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) {
+	new_default_input_stream(rq, in);
+	new_default_output_stream(rq, out);
+}
 bool new_dechunk_body(kgl_output_stream *out, kgl_response_body* down_gate);
 void pipe_response_body(kgl_forward_body* forward_body, kgl_response_body_function* f, kgl_response_body* down_body);
 void pipe_output_stream(kgl_forward_output_stream* forward_st, kgl_output_stream_function* f, kgl_output_stream* down_stream);
@@ -47,7 +53,7 @@ int forward_get_header_count(kgl_input_stream_ctx* ctx);
 kgl_precondition* forward_get_precondition(kgl_input_stream_ctx* ctx, kgl_precondition_flag* flag);
 kgl_request_range *forward_get_range(kgl_input_stream_ctx* ctx);
 KGL_RESULT forward_get_header(kgl_input_stream_ctx* ctx, kgl_parse_header_ctx* parse_ctx, kgl_parse_header_function* parse);
-KGL_RESULT forward_writev(kgl_response_body_ctx* ctx, WSABUF* bufs, int bc);
+KGL_RESULT forward_writev(kgl_response_body_ctx* ctx, const kbuf* bufs, int len);
 KGL_RESULT forward_write(kgl_response_body_ctx* gate, const char* buf, int len);
 KGL_RESULT forward_write_header_finish(kgl_output_stream_ctx* gate,int64_t body_size, kgl_response_body* body);
 KGL_RESULT forward_error(kgl_output_stream_ctx* gate, uint16_t status_code, const char* msg, size_t msg_len);
@@ -62,7 +68,10 @@ KGL_RESULT forward_sendfile(kgl_response_body_ctx* out, KASYNC_FILE fp, int64_t*
 bool forward_support_sendfile(kgl_response_body_ctx* out);
 KGL_RESULT forward_flush(kgl_response_body_ctx* out);
 void kgl_init_request_in_body(KHttpRequest* rq);
-void get_default_response_body(KREQUEST r, kgl_response_body* body);
+inline void get_default_response_body(KREQUEST r, kgl_response_body* body) {
+	body->ctx = (kgl_response_body_ctx*)r;
+	body->f = &kgl_default_response_body;
+}
 inline bool has_post_data(kgl_input_stream* in) {
 	return in->f->body.get_left(in->body_ctx) != 0;
 }

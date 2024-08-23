@@ -30,21 +30,6 @@
 #include "KBigObjectContext.h"
 #include "KBigObjectStream.h"
 #include "cache.h"
-bool kgl_load_cache_response_body(KHttpRequest* rq, int64_t *body_size)
-{
-	get_default_response_body(rq, &rq->ctx.body);
-	if (rq->needFilter()) {
-		int32_t flag = KGL_FILTER_CACHE;
-		if (rq->sink->data.range != nullptr) {
-			flag |= KGL_FILTER_NOT_CHANGE_LENGTH;
-		}
-		if (rq->of_ctx->tee_body(rq, &rq->ctx.body, flag)) {
-			assert(rq->sink->data.range == nullptr);
-			*body_size = -1;
-		}
-	}
-	return true;
-}
 bool kgl_load_response_body(KHttpRequest* rq, kgl_response_body* body) {
 	StreamState result = STREAM_WRITE_SUCCESS;
 	KHttpObject* obj = rq->ctx.obj;

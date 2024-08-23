@@ -10,8 +10,7 @@
 #include "HttpFiber.h"
 #include "KDefer.h"
 #include "KPushGate.h"
-
-
+#include "KHttpRequest.h"
 
 #define UPSTREAM_AUTO_DELAY_BUFFER_SIZE 4194304
 #ifdef ENABLE_BIG_OBJECT_206

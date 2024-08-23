@@ -742,7 +742,8 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj) {
 				result = KGL_EDATA_FORMAT;
 				break;
 			}
-			kbuf* buf = kbuf_init_read(send_buffer, (int)start, rq->sink->pool);
+			kbuf header_buffer;
+			kbuf* buf = kbuf_init_read(send_buffer, (int)start, &header_buffer);
 			assert(buf);
 			if (!buf) {
 				result = KGL_EUNKNOW;
@@ -760,70 +761,7 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj) {
 done:
 	return rq->ctx.body.f->close(rq->ctx.body.ctx, result);
 }
-/**
-* 发送在内存中的object.
-*/
-KGL_RESULT send_memory_object(KHttpRequest* rq) {
-	KHttpObject* obj = rq->ctx.obj;
-	if (!kgl_request_match_if_range(rq, obj)) {
-		rq->sink->data.range = nullptr;
-	}
-	return response_cache_object(rq, obj);
-}
-bool kgl_match_if_range(kgl_precondition_flag flag, kgl_request_range* range, time_t last_modified) {
-	if (!range->if_range_entity) {
-		return true;
-	}
-	if (!KBIT_TEST(flag, kgl_precondition_if_range_date)) {
-		return false;
-	}
-	return range->if_range_date == last_modified;
-}
-bool kgl_match_if_range(kgl_precondition_flag flag, kgl_request_range* range, kgl_len_str_t* etag) {
-	if (!range->if_range_entity) {
-		return true;
-	}
-	if (KBIT_TEST(flag, kgl_precondition_if_range_date)) {
-		return false;
-	}
-	return kgl_mem_same(etag->data, etag->len, range->if_range_entity->data, range->if_range_entity->len);
-}
-bool kgl_request_match_if_range(KHttpRequest* rq, KHttpObject* obj) {
-	kgl_request_range* range = rq->sink->data.range;
-	if (!range) {
-		return false;
-	}
-	if (!obj->data->etag) {
-		return !range->if_range_entity;
-	}
-	if (obj->data->i.condition_is_time) {
-		return kgl_match_if_range(rq->sink->get_precondition_flag(), range, obj->data->last_modified);
-	}
-	return kgl_match_if_range(rq->sink->get_precondition_flag(), range, obj->data->etag);
-}
-bool kgl_request_precondition(KHttpRequest* rq, KHttpObject* obj) {
-	kgl_precondition_flag flag;
-	kgl_precondition* condition = rq->sink->get_precondition(&flag);
-	kgl_request_range* range = rq->sink->data.range;
-	/**
-	* @rfc9110  13.2.2. Precedence of Preconditions
-	* cache server ignore step 1 & 2
-	*/
-	/* step 3 */
-	if (KBIT_TEST(flag, kgl_precondition_mask) == kgl_precondition_if_none_match && condition) {
-		if (!obj->precondition_entity(condition->entity->data, condition->entity->len)) {
-			return false;
-		}
-		return true;
-	}
-	/* step 4 */
-	if (KBIT_TEST(flag, kgl_precondition_mask) == kgl_precondition_if_modified_since && condition) {
-		if (!obj->precondition_time(condition->time)) {
-			return false;
-		}
-	}
-	return true;
-}
+
 /*
 obj is not expire
 */
@@ -833,7 +771,7 @@ KGL_RESULT send_cache_object(KHttpRequest* rq, KHttpObject* obj) {
 	}
 	return send_http2(rq, obj, STATUS_NOT_MODIFIED);
 }
-swap_in_result swap_in_object(KHttpRequest* rq, KHttpObject* obj) {
+static inline swap_in_result swap_in_object(KHttpRequest* rq, KHttpObject* obj) {
 	if (!KBIT_TEST(obj->index.flags, FLAG_IN_MEM)) {
 		KMutex* lock = obj->getLock();
 		//rq->c->removeRequest(rq,true);

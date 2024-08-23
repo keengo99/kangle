@@ -3,7 +3,6 @@
 #include "global.h"
 #include <list>
 #include "krbtree.h"
-#include "KHttpRequest.h"
 #include "KBigObject.h"
 #include "kfile.h"
 #include "kfiber.h"

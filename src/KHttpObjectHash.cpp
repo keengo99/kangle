@@ -16,4 +16,3 @@ void set_obj_size(KHttpObject *obj, INT64 content_length) {
 	hash->MemObjectSizeChange(obj,content_length);	
 	return;
 }
-
