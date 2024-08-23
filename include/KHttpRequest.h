@@ -320,12 +320,15 @@ public:
 			s.WSTR("/");
 		} else {
 			s.WSTR("*/");
-		}	
+		}
 		s.add(content_length, INT64_FORMAT);
 		return response_header(kgl_header_content_range, s.buf(), s.size());
 	}
 	inline bool response_header(kgl_header_type name, const char* val, hlen_t val_len, bool lock_value = false) {
 		return sink->response_header(name, val, val_len, lock_value);
+	}
+	inline bool response_header(kgl_header_type name, int64_t value) {
+		return sink->response_header(name, value);
 	}
 	inline bool response_header(const char* name, hlen_t name_len, int val) {
 		char buf[16];

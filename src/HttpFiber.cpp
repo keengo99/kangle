@@ -503,9 +503,9 @@ bool check_request_final_source(KHttpRequest* rq, RequestError* error) {
 	if (!rq->ctx.internal && !rq->ctx.skip_access) {
 		KSubVirtualHost* svh = kangle::get_virtual_host(rq);
 		KSafeSource fo;
-		if (svh) {			
-			int jump_type = svh->vh->checkPostMap(rq, fo);			
-			if (jump_type== JUMP_DENY) {
+		if (svh) {
+			int jump_type = svh->vh->checkPostMap(rq, fo);
+			if (jump_type == JUMP_DENY) {
 				if (KBIT_TEST(rq->ctx.filter_flags, RQ_SEND_AUTH)) {
 					error->code = AUTH_STATUS_CODE;
 					error->msg = "";
@@ -540,7 +540,7 @@ bool process_check_final_source(KHttpRequest* rq, kgl_input_stream* in, kgl_outp
 	error.msg = "internal error";
 	if (check_request_final_source(rq, &error)) {
 		return true;
-	}	
+	}
 	if (error.code == AUTH_STATUS_CODE) {
 		*result = send_auth2(rq);
 		return false;
@@ -735,18 +735,12 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj) {
 	}
 	case MEMORY_OBJECT:
 	{
-		kbuf* send_buffer = obj->data->bodys;
 		if (rq->ctx.left_read > 0) {
-			if (!send_buffer) {
-				klog(KLOG_ERR, "obj has no body\n");
-				result = KGL_EDATA_FORMAT;
-				break;
-			}
 			kbuf header_buffer;
-			kbuf* buf = kbuf_init_read(send_buffer, (int)start, &header_buffer);
+			kbuf* buf = kbuf_init_read(obj->data->bodys, (int)start, &header_buffer);
 			assert(buf);
 			if (!buf) {
-				result = KGL_EUNKNOW;
+				result = KGL_EDATA_FORMAT;
 				break;
 			}
 			result = rq->ctx.body.f->writev(rq->ctx.body.ctx, buf, (int)rq->ctx.left_read);
@@ -888,7 +882,7 @@ cache_request:
 }
 KGL_RESULT prepare_write_body(KHttpRequest* rq, kgl_response_body* body) {
 
-	if (unlikely(rq->ctx.body.ctx!=NULL)) {
+	if (unlikely(rq->ctx.body.ctx != NULL)) {
 		return KGL_OK;
 	}
 	if (body) {
@@ -906,7 +900,7 @@ KGL_RESULT prepare_write_body(KHttpRequest* rq, kgl_response_body* body) {
 		assert(body->ctx);
 		body->f->close(body->ctx, KGL_ENOT_PREPARE);
 		assert(rq->ctx.body.ctx == nullptr);
-		*body = {0};
+		*body = { 0 };
 	}
 	return KGL_ENOT_PREPARE;
 }

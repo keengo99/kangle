@@ -167,7 +167,7 @@ public:
 		if (!KBIT_TEST(index.flags, ANSW_HAS_CONTENT_RANGE)) {
 			return false;
 		}
-		assert(data);		
+		assert(data);
 		return index.content_range_length == index.content_length;
 	}
 	inline char* getCharset() {
@@ -247,7 +247,7 @@ public:
 #ifdef ENABLE_FORCE_CACHE
 	//Ç¿ÖÆ»º´æ
 	bool force_cache(bool static_flag) {
-		if (KBIT_TEST(index.flags,FLAG_DEAD)) {
+		if (KBIT_TEST(index.flags, FLAG_DEAD)) {
 			return false;
 		}
 		KBIT_CLR(index.flags, ANSW_NO_CACHE);
@@ -341,7 +341,19 @@ public:
 		new_h->next = data->headers;
 		data->headers = new_h;
 	}
-	void ResponseVaryHeader(KHttpRequest* rq);
+	void ResponseVaryHeader(KHttpRequest* rq) {
+		if (uk.vary == NULL) {
+			return;
+		}
+		KMutex* lock = getLock();
+		lock->Lock();
+		if (uk.vary->key == NULL) {
+			lock->Unlock();
+			return;
+		}
+		rq->response_vary(uk.vary->key);
+		lock->Unlock();
+	}
 	bool AddVary(KHttpRequest* rq, const char* val, int val_len);
 	int64_t getTotalContentSize() {
 		if (KBIT_TEST(index.flags, ANSW_HAS_CONTENT_RANGE)) {

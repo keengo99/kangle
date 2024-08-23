@@ -94,12 +94,12 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 	if (rq->auth) {
 		rq->auth->insertHeader(rq);
 	}
+	rq->response_header(kgl_header_server, conf.serverName, conf.serverNameLength, true);
 	timeLock.Lock();
-	rq->response_header(kgl_header_server, conf.serverName, conf.serverNameLength);
 	rq->response_header(kgl_header_date, (char*)cachedDateTime, 29);
 	timeLock.Unlock();
 	if (body) {
-		rq->response_header(kgl_expand_string("Content-Type"), kgl_expand_string("text/html; charset=utf-8"));
+		rq->response_header(kgl_header_content_type, kgl_expand_string("text/html; charset=utf-8"), true);
 	}
 	if (KBIT_TEST(rq->ctx.filter_flags, RF_X_CACHE)) {
 		KStringBuf b;
@@ -116,7 +116,7 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 	INT64 send_len = 0;
 	if (!is_status_code_no_body(status_code)) {
 		send_len = (body ? body->getLen() : 0);
-		rq->response_header(kgl_expand_string("Content-Length"), (int)send_len);
+		rq->response_content_length(send_len);
 	}
 	if (obj) {
 		if (obj->data) {
@@ -137,7 +137,7 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 					if (obj->data->i.condition_is_time) {
 						rq->response_last_modified(obj->data->last_modified);
 					} else {
-						rq->response_header(kgl_header_etag, obj->data->etag->data, (int)obj->data->etag->len);
+						rq->response_header(kgl_header_etag, obj->data->etag->data, (int)obj->data->etag->len, true);
 					}
 				}
 			}
@@ -149,15 +149,15 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 		if (KBIT_TEST(rq->ctx.filter_flags, RF_AGE) && !KBIT_TEST(obj->index.flags, FLAG_DEAD | ANSW_NO_CACHE)) {
 			int current_age = (int)obj->get_current_age(kgl_current_sec);
 			if (current_age > 0) {
-				rq->response_header(kgl_expand_string("Age"), current_age);
+				rq->response_header(kgl_header_age, current_age);
 			}
 		}
 		obj->ResponseVaryHeader(rq);
 	}
 	rq->response_connection();
 	rq->start_response_body(send_len);
-	if (body && rq->sink->data.meth!=METH_HEAD) {
-		return rq->write_buf(body->getHead(),body->getLen());
+	if (body && rq->sink->data.meth != METH_HEAD) {
+		return rq->write_buf(body->getHead(), body->getLen());
 	}
 	return KGL_OK;
 }
@@ -307,8 +307,8 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, boo
 		rq->response_status(status_code);
 	}
 	if (KBIT_TEST(obj->index.flags, ANSW_LOCAL_SERVER)) {
-		rq->response_header(kgl_header_server, conf.serverName, conf.serverNameLength,true);
-		timeLock.Lock();		
+		rq->response_header(kgl_header_server, conf.serverName, conf.serverNameLength, true);
+		timeLock.Lock();
 		rq->response_header(kgl_header_date, (char*)cachedDateTime, 29);
 		timeLock.Unlock();
 	}
@@ -324,7 +324,7 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, boo
 	if (KBIT_TEST(rq->ctx.filter_flags, RF_AGE) && !KBIT_TEST(obj->index.flags, FLAG_DEAD | ANSW_NO_CACHE)) {
 		int current_age = (int)obj->get_current_age(kgl_current_sec);
 		if (current_age > 0) {
-			rq->response_header(kgl_expand_string("Age"), current_age);
+			rq->response_header(kgl_header_age, current_age);
 		}
 	}
 	if (KBIT_TEST(rq->ctx.filter_flags, RF_X_CACHE)) {
@@ -353,14 +353,14 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, boo
 		} else {
 			rq->response_header(kgl_header_etag, obj->data->etag->data, (int)obj->data->etag->len, true);
 		}
-	}	
+	}
 	rq->response_connection();
 	return rq->start_response_body(content_len);
 }
 KGL_RESULT response_redirect(kgl_output_stream* out, const char* url, size_t url_len, uint16_t code) {
 	out->f->write_status(out->ctx, code);
 	timeLock.Lock();
-	out->f->write_header(out->ctx,kgl_header_server, conf.serverName, conf.serverNameLength);
+	out->f->write_header(out->ctx, kgl_header_server, conf.serverName, conf.serverNameLength);
 	out->f->write_header(out->ctx, kgl_header_date, (char*)cachedDateTime, 29);
 	timeLock.Unlock();
 	out->f->write_header(out->ctx, kgl_header_location, url, url_len);
@@ -375,8 +375,8 @@ bool push_redirect_header(KHttpRequest* rq, const char* url, int url_len, int co
 		return false;
 	}
 	rq->response_status(code);
+	rq->response_header(kgl_header_server, conf.serverName, conf.serverNameLength, true);
 	timeLock.Lock();
-	rq->response_header(kgl_header_server, conf.serverName, conf.serverNameLength);
 	rq->response_header(kgl_header_date, (char*)cachedDateTime, 29);
 	timeLock.Unlock();
 	rq->response_header(kgl_expand_string("Location"), url, url_len);
@@ -385,7 +385,7 @@ bool push_redirect_header(KHttpRequest* rq, const char* url, int url_len, int co
 }
 
 
-KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KApacheHtaccessContext &htresponse) {
+KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KApacheHtaccessContext& htresponse) {
 	assert(rq->file == NULL);
 	//file = new KFileName;
 	assert(!rq->has_final_source());
@@ -403,7 +403,7 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KApacheHtac
 	if (sfo) {
 		return sfo.release();
 	}
-	if (jump_type==JUMP_DENY) {
+	if (jump_type == JUMP_DENY) {
 		//bind错误.如非法url.
 		result = false;
 		error->set(STATUS_SERVER_ERROR, "cann't bind file or denied by htaccess.");
@@ -478,7 +478,7 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KApacheHtac
 			//静态文件不支持path_info
 			result = false;
 		}
-	}
+}
 done:
 	if (!result) {
 		if (rq->sink->data.meth == METH_OPTIONS) {
@@ -536,9 +536,9 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 			}
 #endif
 			env->add_http_header(av->buf, av->name_len, av->buf + av->val_offset, av->val_len);
-		}
+			}
 	do_not_insert: av = av->next;
-	}
+		}
 	KStringStream host;
 	rq->sink->data.url->GetHost(host);
 	env->add_http_header(_KS("Host"), host.c_str(), host.size());
@@ -555,15 +555,15 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 	}
 	kgl_precondition_flag flag;
 	kgl_precondition* condition = in->f->get_precondition(in->ctx, &flag);
-	if (condition && condition->time>0) {
-		if (KBIT_TEST(flag,kgl_precondition_if_time)) {
+	if (condition && condition->time > 0) {
+		if (KBIT_TEST(flag, kgl_precondition_if_time)) {
 			char* end = make_http_time(condition->time, tmpbuff, sizeof(tmpbuff));
 			if (KBIT_TEST(flag, kgl_precondition_if_match_unmodified)) {
 				env->add_http_header(_KS("If-Unmodified-Since"), (char*)tmpbuff, end - tmpbuff);
 			} else {
 				env->add_http_header(_KS("If-Modified-Since"), (char*)tmpbuff, end - tmpbuff);
 			}
-		} else {	
+		} else {
 			if (KBIT_TEST(flag, kgl_precondition_if_match_unmodified)) {
 				env->add_http_header(_KS("If-Match"), condition->entity->data, condition->entity->len);
 			} else {
@@ -691,8 +691,8 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 			}
 #endif
 			make_ssl_env(env, ssl->ssl);
+			}
 		}
-	}
 #endif
 #ifdef ENABLE_UPSTREAM_PARAM
 	if (brd && !brd->params.empty()) {
@@ -707,7 +707,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 #endif
 	return env->addEnvEnd();
 
-}
+	}
 
 int checkResponse(KHttpRequest* rq, KHttpObject* obj) {
 	if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_MANAGE) || rq->ctx.response_checked || rq->ctx.skip_access) {
@@ -717,7 +717,7 @@ int checkResponse(KHttpRequest* rq, KHttpObject* obj) {
 	KSafeSource fo;
 	int action = kaccess[RESPONSE]->check(rq, obj, fo);
 	if (fo) {
-		klog(KLOG_ERR, "response check not support new source\n");		
+		klog(KLOG_ERR, "response check not support new source\n");
 	}
 #ifndef HTTP_PROXY
 #ifdef ENABLE_USER_ACCESS

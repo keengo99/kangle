@@ -53,20 +53,6 @@ KHttpObjectBody::KHttpObjectBody(KHttpObjectBody* data)
 		}
 	}
 }
-void KHttpObject::ResponseVaryHeader(KHttpRequest* rq)
-{
-	if (uk.vary == NULL) {
-		return;
-	}
-	KMutex* lock = getLock();
-	lock->Lock();
-	if (uk.vary->key == NULL) {
-		lock->Unlock();
-		return;
-	}
-	rq->response_vary(uk.vary->key);
-	lock->Unlock();
-}
 bool KHttpObject::AddVary(KHttpRequest* rq, const char* val, int val_len)
 {
 	KBIT_SET(index.flags, OBJ_HAS_VARY);
