@@ -24,7 +24,6 @@
 #include "KApiProcess.h"
 class KApiRedirect;
 class KApiProcessManage;
-
 /*
  * 进程管理器。
  * 一个用户名对应一个虚拟进程.

@@ -13,9 +13,6 @@
 #include "kserver.h"
 #include "api_child.h"
 
-#ifdef _WIN32
-extern HANDLE api_child_token;
-#endif
 KApiFetchObject::KApiFetchObject(KApiRedirect* rd) :
 	KApiService(&rd->dso) {
 	rq = NULL;
@@ -32,7 +29,7 @@ Token_t KApiFetchObject::getVhToken(const char* vh_name)
 {
 #ifndef HTTP_PROXY
 	if (rq && rq->sink->data.opaque) {
-		if (static_cast<KSubVirtualHost*>(rq->sink->data.opaque)->vh->user.empty()) {
+		if (kangle::get_virtual_host(rq)->vh->user.empty()) {
 			//只有超级账号运行的虚拟主机才有权限。
 			KVirtualHost* vh = conf.gvm->refsVirtualHostByName(vh_name);
 			if (vh) {
@@ -49,7 +46,6 @@ Token_t KApiFetchObject::getVhToken(const char* vh_name)
 	return NULL;
 }
 Token_t KApiFetchObject::getToken() {
-#if 0
 #ifdef ENABLE_VH_RUN_AS
 #ifdef _WIN32
 	if (api_child_token) {
@@ -57,21 +53,17 @@ Token_t KApiFetchObject::getToken() {
 	}
 #endif
 	if (token == NULL) {
-		if (rq && rq->svh) {
+		if (rq && rq->sink->data.opaque) {
 			bool result;
-			//return rq->svh->vh->getLogonedToken(result);
-			token = rq->svh->vh->createToken(result);
+			token = kangle::get_virtual_host(rq)->vh->createToken(result);
 		} else {
 #ifndef _WIN32
 			token = (Token_t)&id;
 #endif
-			//KVirtualHost::createToken(token);
 		}
 	}
 #endif
 	return token;
-#endif
-	return NULL;
 }
 KGL_RESULT KApiFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out)
 {
@@ -122,7 +114,7 @@ KGL_RESULT KApiFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_out
 		return body.f->close(body.ctx, result);
 	}
 	if (result == KGL_NO_BODY || no_body) {
-		return result;
+		return KGL_NO_BODY;
 	}
 	return result;
 }
@@ -154,8 +146,7 @@ bool KApiFetchObject::initECB(EXTENSION_CONTROL_BLOCK* ecb) {
 	return true;
 }
 bool KApiFetchObject::setStatusCode(const char* status, int len) {
-	//printf("status: %s\n",status);
-	rq->ctx.obj->data->i.status_code = atoi(status);
+	out->f->write_status(out->ctx, (uint16_t)atoi(status));
 	return true;
 }
 KGL_RESULT KApiFetchObject::map_url_path(const char* url, LPVOID file, LPDWORD file_len)
@@ -168,11 +159,10 @@ KGL_RESULT KApiFetchObject::map_url_path(const char* url, LPVOID file, LPDWORD f
 	return result;
 }
 KGL_RESULT KApiFetchObject::addHeader(const char* attr, int len) {
-
 	if (len == 0) {
 		len = (int)strlen(attr);
 	}
-	switch (push_parser.Parse(rq, attr, len)) {
+	switch (push_parser.Parse(out, attr, len)) {
 	case kgl_parse_error:
 		return KGL_EDATA_FORMAT;
 	case kgl_parse_continue:
@@ -193,13 +183,11 @@ KGL_RESULT KApiFetchObject::addHeader(const char* attr, int len) {
 }
 int KApiFetchObject::writeClient(const char* str, int len) {
 	if (!headSended) {
-		if (checkResponse(rq, rq->ctx.obj) == JUMP_DENY) {
-			responseDenied = true;
+		headSended = true;
+		auto result = out->f->write_header_finish(out->ctx, -1, &body);
+		if (result == KGL_NO_BODY) {
+			no_body = true;
 		}
-	}
-	headSended = true;
-	if (responseDenied) {
-		return -1;
 	}
 	if (body.ctx == nullptr) {
 		return -1;

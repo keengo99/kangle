@@ -307,8 +307,8 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, boo
 		rq->response_status(status_code);
 	}
 	if (KBIT_TEST(obj->index.flags, ANSW_LOCAL_SERVER)) {
-		timeLock.Lock();
-		rq->response_header(kgl_header_server, conf.serverName, conf.serverNameLength);
+		rq->response_header(kgl_header_server, conf.serverName, conf.serverNameLength,true);
+		timeLock.Lock();		
 		rq->response_header(kgl_header_date, (char*)cachedDateTime, 29);
 		timeLock.Unlock();
 	}

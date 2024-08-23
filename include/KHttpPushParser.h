@@ -21,10 +21,10 @@ public:
 	{
 		ks_buffer_clean(&buf);
 	}
-	kgl_parse_result Parse(KHttpRequest *rq,const char *str, int len)
+	kgl_parse_result Parse(kgl_output_stream*out,const char *str, int len)
 	{
 		Push(str, len);
-		return InternalParse(rq);	
+		return InternalParse(out);	
 	}
 	const char *GetBody(int *len)
 	{
@@ -32,9 +32,8 @@ public:
 		return buf.buf;
 	}
 	khttp_parser parser;
-	KHttpResponseParser parser_ctx;
 private:
-	kgl_parse_result InternalParse(KHttpRequest *rq)
+	kgl_parse_result InternalParse(kgl_output_stream*out)
 	{
 		khttp_parse_result rs;
 		char* hot = buf.buf;
@@ -50,13 +49,12 @@ private:
 				ks_save_point(&buf, hot);
 				return kgl_parse_continue;
 			case kgl_parse_success:
-				if (!parser_ctx.parse_unknow_header(rq, rs.attr, rs.attr_len, rs.val, rs.val_len, rs.request_line)) {
+				if (KGL_OK != out->f->write_unknow_header(out->ctx, rs.attr, rs.attr_len, rs.val, rs.val_len)) {
 					return kgl_parse_error;
 				}
 				//printf("attr=[%s] val=[%s]\n", rs.attr, rs.val);
 				break;
 			case kgl_parse_finished:
-				parser_ctx.end_parse(rq, -1);
 				return kgl_parse_finished;
 			}
 		}

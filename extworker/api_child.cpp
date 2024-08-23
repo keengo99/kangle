@@ -28,9 +28,7 @@ std::map<pid_t, time_t> processes;
 std::map<u_short, KApiDso*> apis;
 int api_child_key;
 KListenPipeStream ls;
-#ifdef _WIN32
-HANDLE api_child_token = NULL;
-#endif
+
 KMutex processLock;
 using namespace std;
 KChildListen* cl = NULL;

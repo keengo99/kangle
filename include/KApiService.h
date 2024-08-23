@@ -11,7 +11,6 @@ public:
 	{
 		headSended = false;
 		no_body = false;
-		responseDenied = false;
 		this->dso = dso;
 	}
 	virtual ~KApiService()
@@ -47,9 +46,11 @@ public:
 	}
 	KApiEnv env;
 	bool headSended;
-	bool responseDenied;
 	bool no_body;
 	EXTENSION_CONTROL_BLOCK ecb;
 	KApiDso *dso;
 };
+#ifdef _WIN32
+extern HANDLE api_child_token;
+#endif
 #endif

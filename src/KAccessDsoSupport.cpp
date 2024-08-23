@@ -250,7 +250,7 @@ static KGL_RESULT  add_obj_unknow_header(KREQUEST r,
 	if (!parser.parse_unknow_header(rq, attr, attr_len, val, val_len, false)) {
 		return KGL_EINVALID_PARAMETER;
 	}
-	parser.commit_headers(rq);
+	parser.commit_headers(rq->ctx.obj);
 	return KGL_OK;
 }
 
@@ -273,31 +273,6 @@ static KGL_RESULT  response_unknow_header(
 	rq->response_header(attr, attr_len, val, val_len);
 	return KGL_OK;
 }
-#if 0
-static KGL_RESULT  request_write_client(
-	KREQUEST r,
-	KCONN cn,
-	LPVOID                        Buffer,
-	LPDWORD                       lpdwBytes
-)
-{
-	KHttpRequest* rq = (KHttpRequest*)r;
-	KAccessContext* ar = (KAccessContext*)cn;
-	int len = ar->GetBuffer(rq)->write(rq, (char*)Buffer, *lpdwBytes);
-	if (len <= 0) {
-		return KGL_EUNKNOW;
-	}
-	*lpdwBytes = len;
-	return KGL_OK;
-}
-static KGL_RESULT  response_write_client(
-	KCONN cn,
-	LPVOID                        Buffer,
-	LPDWORD                       lpdwBytes
-) {
-	return KGL_ENOT_SUPPORT;
-}
-#endif
 KGL_RESULT base_support_function(KHttpRequest* rq, KF_REQ_TYPE req, PVOID data, PVOID* ret)
 {
 	switch (req) {

@@ -33,6 +33,9 @@ static struct {
 	{ "URL", "REQUEST_URI" },
 	{ NULL,	NULL } 
 };
+#ifdef _WIN32
+HANDLE api_child_token = NULL;
+#endif
 KGL_RESULT set_variable(void* lpvBuffe, LPDWORD lpdwSize, const char* val, bool unicode)
 {
 	char* buffer = (char*)lpvBuffe;

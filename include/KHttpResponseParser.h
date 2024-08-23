@@ -16,7 +16,13 @@ public:
 	bool parse_header(KHttpRequest* rq, kgl_header_type attr, const char* val, int val_len);
 	bool parse_unknow_header(KHttpRequest *rq, const char *attr, int attr_len, const char *val, int val_len, bool request_line);
 	void end_parse(KHttpRequest *rq,int64_t body_size);
-	void commit_headers(KHttpRequest *rq);
+	void commit_headers(KHttpObject *obj) {
+		if (last) {
+			last->next = obj->data->headers;
+			obj->data->headers = steal_header();
+			last = nullptr;
+		}
+	}
 private:
 	time_t serverDate;
 	time_t expireDate;

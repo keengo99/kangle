@@ -179,22 +179,23 @@ bool KHttpResponseParser::parse_unknow_header(KHttpRequest* rq, const char* attr
 	return add_header(attr, attr_len, val, val_len);
 }
 void KHttpResponseParser::end_parse(KHttpRequest* rq,int64_t body_size) {
-	assert(!rq->ctx.obj->in_cache);
+	auto obj = rq->ctx.obj;
+	assert(!obj->in_cache);
 	if (body_size >= 0) {
-		KBIT_SET(rq->ctx.obj->index.flags, ANSW_HAS_CONTENT_LENGTH);
-		rq->ctx.obj->index.content_length = body_size;
+		KBIT_SET(obj->index.flags, ANSW_HAS_CONTENT_LENGTH);
+		obj->index.content_length = body_size;
 	}
 	/*
  * see rfc2616
  * 没有 Last-Modified 我们不缓存.
  * 但如果有 expires or max-age  除外
  */
-	if (!rq->ctx.obj->data->etag) {
-		if (!KBIT_TEST(rq->ctx.obj->index.flags, ANSW_HAS_MAX_AGE | ANSW_HAS_EXPIRES)) {
-			KBIT_SET(rq->ctx.obj->index.flags, ANSW_NO_CACHE);
+	if (!obj->data->etag) {
+		if (!KBIT_TEST(obj->index.flags, ANSW_HAS_MAX_AGE | ANSW_HAS_EXPIRES)) {
+			KBIT_SET(obj->index.flags, ANSW_NO_CACHE);
 		}
 	}
-	if (!KBIT_TEST(rq->ctx.obj->index.flags, ANSW_NO_CACHE)) {
+	if (!KBIT_TEST(obj->index.flags, ANSW_NO_CACHE)) {
 		if (serverDate == 0) {
 			serverDate = kgl_current_sec;
 		}
@@ -212,20 +213,14 @@ void KHttpResponseParser::end_parse(KHttpRequest* rq,int64_t body_size) {
 		unsigned corrected_initial_age = corrected_received_age + response_delay;
 		unsigned resident_time = (unsigned)(kgl_current_sec - responseTime);
 		age = corrected_initial_age + resident_time;
-		if (!KBIT_TEST(rq->ctx.obj->index.flags, ANSW_HAS_MAX_AGE)
-			&& KBIT_TEST(rq->ctx.obj->index.flags, ANSW_HAS_EXPIRES)) {
-			rq->ctx.obj->data->i.max_age = (unsigned)(expireDate - serverDate) - age;
+		if (!KBIT_TEST(obj->index.flags, ANSW_HAS_MAX_AGE)
+			&& KBIT_TEST(obj->index.flags, ANSW_HAS_EXPIRES)) {
+			obj->data->i.max_age = (unsigned)(expireDate - serverDate) - age;
 		}
 	}
-	commit_headers(rq);
+	commit_headers(obj);
 }
-void KHttpResponseParser::commit_headers(KHttpRequest* rq) {
-	if (last) {
-		last->next = rq->ctx.obj->data->headers;
-		rq->ctx.obj->data->headers = steal_header();
-		last = nullptr;
-	}
-}
+
 
 kgl_header_type kgl_parse_response_header(const char* attr, hlen_t attr_len) {
 	if (kgl_mem_case_same(attr, attr_len, _KS("Etag"))) {
