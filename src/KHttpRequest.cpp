@@ -53,7 +53,72 @@
 #include "KCache.h"
 
 using namespace std;
-
+namespace kangle {
+	inline void destroy_source(KHttpRequestData* rq) {
+		while (rq->fo_head) {
+			KFetchObject* fo_next = rq->fo_head->next;
+			delete rq->fo_head;
+			rq->fo_head = fo_next;
+		}
+		rq->fo_last = nullptr;
+	}
+	inline void clean_obj(KHttpRequestData* rq) {
+		if (rq->ctx.obj) {
+			rq->ctx.obj->release();
+			rq->ctx.obj = nullptr;
+		}
+		if (rq->ctx.old_obj) {
+			rq->ctx.old_obj->release();
+			rq->ctx.old_obj = nullptr;
+		}
+	}
+	inline void store_obj(KHttpRequest* rq) {
+		if (rq->ctx.have_stored) {
+			return;
+		}
+		rq->ctx.have_stored = 1;
+		//printf("old_obj = %p\n",old_obj);
+		if (rq->ctx.old_obj) {
+			//send from cache
+			assert(rq->ctx.obj);
+			KBIT_CLR(rq->ctx.filter_flags, RQ_SWAP_OLD_OBJ);
+			if (rq->ctx.obj->data->i.status_code == STATUS_NOT_MODIFIED) {
+				//更新obj
+				//删除新obj
+				assert(rq->ctx.old_obj->in_cache);
+				cache.rate(rq->ctx.old_obj);
+				return;
+			}
+			if (rq->ctx.obj->in_cache == 0) {
+				if (stored_obj(rq, rq->ctx.obj, rq->ctx.old_obj)) {
+					cache.dead(rq->ctx.old_obj, __FILE__, __LINE__);
+					return;
+				}
+			}
+			if (KBIT_TEST(rq->ctx.filter_flags, RF_ALWAYS_ONLINE) ||
+				(KBIT_TEST(rq->ctx.old_obj->index.flags, OBJ_IS_GUEST) && !KBIT_TEST(rq->ctx.filter_flags, RF_GUEST))
+				) {
+				//永久在线，并且新网页没有存储
+				//或者是会员访问了游客缓存
+				//旧网页继续使用
+				cache.rate(rq->ctx.old_obj);
+			} else {
+				cache.dead(rq->ctx.old_obj, __FILE__, __LINE__);
+			}
+			return;
+		}
+		if (rq->ctx.obj == NULL) {
+			return;
+		}
+		//check can store
+		if (rq->ctx.obj->in_cache == 0) {
+			stored_obj(rq, rq->ctx.obj, rq->ctx.old_obj);
+		} else {
+			assert(rq->ctx.obj->in_cache == 1);
+			cache.rate(rq->ctx.obj);
+		}
+	}
+};
 kev_result on_sink_readhup(KOPAQUE data, void* arg, int got) {
 	/**
 	* on_readhup the KOPAQUE data param is no use.
@@ -76,39 +141,9 @@ KOutputFilterContext* KHttpRequestData::getOutputFilterContext() {
 	}
 	return of_ctx;
 }
-KHttpRequestData::~KHttpRequestData() {
-	if (of_ctx) {
-		delete of_ctx;
-		of_ctx = NULL;
-	}
-	while (slh) {
-		KSpeedLimitHelper* slh_next = slh->next;
-		delete slh;
-		slh = slh_next;
-	}
-	if (auth) {
-		delete auth;
-		auth = NULL;
-	}
-	destroy_source();
-	if (file) {
-		delete file;
-		file = NULL;
-	}
-	clean_obj();
-	/* be sure response_body is closed. */
-	assert(ctx.body.ctx == nullptr);
-	assert(ctx.in_body == nullptr);
-}
+
 void KHttpRequestData::clean_obj() {
-	if (ctx.obj) {
-		ctx.obj->release();
-		ctx.obj = nullptr;
-	}
-	if (ctx.old_obj) {
-		ctx.old_obj->release();
-		ctx.old_obj = nullptr;
-	}
+	kangle::clean_obj(this);
 }
 void KHttpRequestData::push_obj(KHttpObject* obj) {
 	assert(ctx.old_obj == NULL);
@@ -136,12 +171,7 @@ void KHttpRequestData::dead_old_obj() {
 	ctx.old_obj = NULL;
 }
 void KHttpRequestData::destroy_source() {
-	while (fo_head) {
-		KFetchObject* fo_next = fo_head->next;
-		delete fo_head;
-		fo_head = fo_next;
-	}
-	fo_last = nullptr;
+	kangle::destroy_source(this);
 }
 void KHttpRequest::parse_connection(const char* val, const char* end) {
 	KHttpFieldValue field(val, end);
@@ -243,51 +273,33 @@ KHttpHeaderIteratorResult handle_http_header(void* arg, KHttpHeader* header) {
 	}
 	return KHttpHeaderIteratorResult::Continue;
 }
+void KHttpRequest::clean() {
+	kangle::store_obj(this);
+	if (of_ctx) {
+		delete of_ctx;
+		of_ctx = NULL;
+	}
+	while (slh) {
+		KSpeedLimitHelper* slh_next = slh->next;
+		delete slh;
+		slh = slh_next;
+	}
+	if (auth) {
+		delete auth;
+		auth = NULL;
+	}
+	kangle::destroy_source(this);
+	if (file) {
+		delete file;
+		file = NULL;
+	}
+	kangle::clean_obj(this);
+	/* be sure response_body is closed. */
+	assert(ctx.body.ctx == nullptr);
+	assert(ctx.in_body == nullptr);
+}
 void KHttpRequest::store_obj() {
-	if (ctx.have_stored) {
-		return;
-	}
-	ctx.have_stored = 1;
-	//printf("old_obj = %p\n",old_obj);
-	if (ctx.old_obj) {
-		//send from cache
-		assert(ctx.obj);
-		KBIT_CLR(ctx.filter_flags, RQ_SWAP_OLD_OBJ);
-		if (ctx.obj->data->i.status_code == STATUS_NOT_MODIFIED) {
-			//更新obj
-			//删除新obj
-			assert(ctx.old_obj->in_cache);
-			cache.rate(ctx.old_obj);
-			return;
-		}
-		if (ctx.obj->in_cache == 0) {
-			if (stored_obj(this, ctx.obj, ctx.old_obj)) {
-				cache.dead(ctx.old_obj, __FILE__, __LINE__);
-				return;
-			}
-		}
-		if (KBIT_TEST(ctx.filter_flags, RF_ALWAYS_ONLINE) ||
-			(KBIT_TEST(ctx.old_obj->index.flags, OBJ_IS_GUEST) && !KBIT_TEST(ctx.filter_flags, RF_GUEST))
-			) {
-			//永久在线，并且新网页没有存储
-			//或者是会员访问了游客缓存
-			//旧网页继续使用
-			cache.rate(ctx.old_obj);
-		} else {
-			cache.dead(ctx.old_obj, __FILE__, __LINE__);
-		}
-		return;
-	}
-	if (ctx.obj == NULL) {
-		return;
-	}
-	//check can store
-	if (ctx.obj->in_cache == 0) {
-		stored_obj(this, ctx.obj, ctx.old_obj);
-	} else {
-		assert(ctx.obj->in_cache == 1);
-		cache.rate(ctx.obj);
-	}
+	kangle::store_obj(this);
 }
 bool KHttpRequest::rewrite_url(const char* newUrl, int errorCode, const char* prefix) {
 	KSafeUrl url2(new KUrl());

@@ -76,7 +76,7 @@ class KHttpTransfer;
 #define		REQUEST_READY	1
 #define 	MIN_SLEEP_TIME	4
 
-void log_access(KHttpRequest *rq);
+void log_access(KHttpRequest* rq);
 kev_result on_sink_readhup(KOPAQUE data, void* arg, int got);
 KHttpHeaderIteratorResult handle_http_header(void* arg, KHttpHeader* header);
 class KManageIP
@@ -100,7 +100,6 @@ public:
 	KHttpRequestData() {
 		memset(this, 0, sizeof(*this));
 	}
-	~KHttpRequestData();
 	struct {
 		uint32_t filter_flags;
 		uint32_t internal:1;
@@ -161,6 +160,7 @@ public:
 		}
 		return msec;
 	}
+
 	void push_obj(KHttpObject* obj);
 	void pop_obj();
 	void dead_old_obj();
@@ -178,7 +178,15 @@ public:
 #ifdef ENABLE_REQUEST_QUEUE
 		ReleaseQueue();
 #endif
+		assert(!file);
+		assert(!slh);
+		assert(!fo_head);
+		assert(!of_ctx);
+		/* be sure response_body is closed. */
+		assert(ctx.body.ctx == nullptr);
+		assert(ctx.in_body == nullptr);
 	}
+	void clean();
 	KSink* sink;
 	kgl_request_range* get_range() {
 		if (ctx.sub_request) {
@@ -221,16 +229,16 @@ public:
 		if (sink->data.url->path) {
 			KFileName::tripDir3(sink->data.url->path, '/');
 		}
-	#ifdef MALLOCDEBUG
+#ifdef MALLOCDEBUG
 		if (quit_program_flag != PROGRAM_NO_QUIT) {
 			KBIT_SET(sink->data.flags, RQ_CONNECTION_CLOSE);
 		}
-	#endif
+#endif
 		sink->data.iterator(handle_http_header, this);
 	}
 	void EndRequest() {
 		sink->remove_readhup();
-		store_obj();
+		clean();
 		log_access(this);
 		if (ctx.in_body) {
 			ctx.in_body->f->close(ctx.in_body->ctx);
@@ -244,7 +252,7 @@ public:
 	int read(char* buf, int len) {
 		return sink->read(buf, len);
 	}
-	uint32_t get_upstream_flags() {		
+	uint32_t get_upstream_flags() {
 		uint32_t flags = 0;
 		if (KBIT_TEST(sink->data.flags, RQ_UPSTREAM_ERROR)) {
 			KBIT_SET(flags, KSOCKET_FLAGS_SKIP_POOL);
@@ -298,7 +306,7 @@ public:
 	}
 
 	bool rewrite_url(const char* newUrl, int errorCode = 0, const char* prefix = NULL);
-	
+
 	void LeaveRequestQueue() {
 		sink->set_state(STATE_SEND);
 	}
@@ -310,7 +318,7 @@ public:
 	inline bool response_status(uint16_t status_code) {
 		return sink->response_status(status_code);
 	}
-	bool response_content_range(kgl_request_range* range, int64_t content_length)	{
+	bool response_content_range(kgl_request_range* range, int64_t content_length) {
 		KStringBuf s;
 		s.WSTR("bytes ");
 		if (range) {
@@ -336,7 +344,7 @@ public:
 		return response_header(name, name_len, buf, len);
 	}
 	bool response_last_modified(time_t last_modified) {
-		char* tmpbuf = (char *)alloc_request_memory(KGL_1123_TIME_LEN+1);
+		char* tmpbuf = (char*)alloc_request_memory(KGL_1123_TIME_LEN + 1);
 		char* end = make_http_time(last_modified, tmpbuf, KGL_1123_TIME_LEN);
 		return response_header(kgl_header_last_modified, tmpbuf, (int)(end - tmpbuf), true);
 	}
@@ -377,7 +385,7 @@ public:
 	const kgl_str_t* get_method2() {
 		return KHttpKeyValue::get_method(sink->data.meth);
 	}
-	
+
 	/* override KWStream function begin */
 	/*
 	KGL_RESULT write_all(WSABUF* buf, int vc);
@@ -394,7 +402,7 @@ public:
 		if (!slh) {
 			return sink->write_all(buf, len);
 		}
-		while (len>0) {
+		while (len > 0) {
 			int got = KGL_MIN(len, buf->used);
 			auto msec = get_sleep_msec(got);
 			if (msec > 0) {
@@ -402,14 +410,14 @@ public:
 			}
 			len -= got;
 			int left = sink->write_all(buf->data, got);
-			if (left>0) {
+			if (left > 0) {
 				return len + left;
 			}
 			buf = buf->next;
 		}
 		return len;
 	}
-	KGL_RESULT write_end(KGL_RESULT result) {		
+	KGL_RESULT write_end(KGL_RESULT result) {
 		assert(ctx.body.ctx);
 		if (result == KGL_OK && sink->get_response_left() > 0) {
 			//ÓÐcontent-length£¬ÓÖÎ´¶ÁÍê
@@ -521,7 +529,7 @@ public:
 	}
 
 #ifdef ENABLE_REQUEST_QUEUE
-	bool NeedQueue() {	
+	bool NeedQueue() {
 		KFetchObject* fo = fo_head;
 		while (fo) {
 			if (fo->needQueue(this)) {
@@ -531,8 +539,8 @@ public:
 		}
 		return false;
 	}
-	void ReleaseQueue() {		
-		if (queue) {		
+	void ReleaseQueue() {
+		if (queue) {
 			queue->release();
 			queue = NULL;
 		}
