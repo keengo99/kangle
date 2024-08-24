@@ -275,6 +275,7 @@ KHttpHeaderIteratorResult handle_http_header(void* arg, KHttpHeader* header) {
 }
 void KHttpRequest::clean() {
 	kangle::store_obj(this);
+	log_access(this);
 	if (of_ctx) {
 		delete of_ctx;
 		of_ctx = NULL;
