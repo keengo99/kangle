@@ -520,7 +520,9 @@ struct _kgl_upstream
 	int32_t size;
 	/* open upstream before cache handle */
 #define KGL_UPSTREAM_BEFORE_CACHE  1
-#define KGL_UPSTREAM_FINAL_SOURCE  2
+#define KGL_UPSTREAM_FILTER        2
+#define KGL_UPSTREAM_NEED_TMP_FILE 4
+#define KGL_UPSTREAM_NEED_QUEUE    8
 	int32_t flags;
 	const char* name;
 	void* (*create_ctx)();

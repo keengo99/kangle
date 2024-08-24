@@ -99,7 +99,7 @@ static KGL_RESULT open(KREQUEST r, kgl_async_context *ctx)
 }
 
 static kgl_upstream async_upstream = {
-	sizeof(kgl_upstream),KGL_UPSTREAM_FINAL_SOURCE,
+	sizeof(kgl_upstream),0,
 	"async_test",
 	create_ctx,
 	free_ctx,
@@ -107,7 +107,7 @@ static kgl_upstream async_upstream = {
 	NULL
 };
 static kgl_upstream before_cache_async_upstream = {
-	sizeof(kgl_upstream),KGL_UPSTREAM_BEFORE_CACHE| KGL_UPSTREAM_FINAL_SOURCE,
+	sizeof(kgl_upstream),KGL_UPSTREAM_BEFORE_CACHE|KGL_UPSTREAM_FILTER,
 	"async_test",
 	create_ctx,
 	free_ctx,

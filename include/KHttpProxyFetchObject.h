@@ -38,10 +38,6 @@ public:
 	virtual ~KHttpProxyFetchObject()
 	{
 	}
-	bool NeedTempFile(bool upload, KHttpRequest* rq) override
-	{
-		return false;
-	}
 protected:
 	bool build_http_header(KHttpRequest* rq);
 	KGL_RESULT buildHead(KHttpRequest* rq) override;

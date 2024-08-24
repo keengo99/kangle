@@ -30,8 +30,10 @@ struct kgl_pop_header {
 class KAsyncFetchObject : public KRedirectSource
 {
 public:
-	KAsyncFetchObject()
-	{
+	KAsyncFetchObject():KAsyncFetchObject(KGL_UPSTREAM_NEED_QUEUE)
+	{		
+	}
+	KAsyncFetchObject(uint32_t flag) : KRedirectSource(flag) {
 		client = NULL;
 		buffer = NULL;
 		memset(&parser, 0, sizeof(parser));
@@ -69,12 +71,6 @@ public:
 	{
 		rq->ctx.upstream_expected_done = 1;
 	}
-#ifdef ENABLE_REQUEST_QUEUE
-	bool needQueue(KHttpRequest *rq) override
-	{
-		return true;
-	}
-#endif
 	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) override;
 public:
 	void WaitPostFiber(KHttpRequest* rq, kfiber *post_fiber)

@@ -724,7 +724,7 @@ bool KHttpManage::configsubmit() {
 	return sendRedirect(url.str().c_str());
 }
 
-KHttpManage::KHttpManage() {
+KHttpManage::KHttpManage() :KFetchObject(0){
 	userType = USER_TYPE_UNAUTH;
 	rq = NULL;
 	postData = NULL;

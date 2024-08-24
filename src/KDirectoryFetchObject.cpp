@@ -16,14 +16,7 @@ KGL_RESULT KPrevDirectoryFetchObject::Open(KHttpRequest* rq, kgl_input_stream* i
 	rq->start_response_body(0);
 	return KGL_OK;
 }
-KDirectoryFetchObject::KDirectoryFetchObject()
-{
-#ifdef _WIN32
-	dp = INVALID_HANDLE_VALUE;
-#else
-	dp = NULL;
-#endif
-}
+
 KDirectoryFetchObject::~KDirectoryFetchObject()
 {
 #ifdef _WIN32

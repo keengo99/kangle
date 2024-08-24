@@ -212,10 +212,10 @@ public:
 		sink->data.url->param = xstrdup(param);
 	}
 #ifdef ENABLE_TF_EXCHANGE
-	bool NeedTempFile(bool upload) {
+	bool NeedTempFile() {
 		KFetchObject* fo = fo_head;
 		while (fo) {
-			if (fo->NeedTempFile(upload, this)) {
+			if (KBIT_TEST(fo->flags, KGL_UPSTREAM_NEED_TMP_FILE)) {
 				return true;
 			}
 			fo = fo->next;
@@ -498,7 +498,7 @@ public:
 		if (!fo_last) {
 			return false;
 		}
-		return !fo_last->is_filter();
+		return !KBIT_TEST(fo_last->flags, KGL_UPSTREAM_FILTER);
 	}
 	/* 数据源结束 */
 
@@ -532,7 +532,7 @@ public:
 	bool NeedQueue() {
 		KFetchObject* fo = fo_head;
 		while (fo) {
-			if (fo->needQueue(this)) {
+			if (KBIT_TEST(fo->flags, KGL_UPSTREAM_NEED_QUEUE)) {
 				return true;
 			}
 			fo = fo->next;

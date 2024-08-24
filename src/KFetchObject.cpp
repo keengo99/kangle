@@ -25,13 +25,6 @@
 #include "KHttpTransfer.h"
 #include "HttpFiber.h"
 
-KFetchObject::~KFetchObject()
-{
-}
-bool KFetchObject::NeedTempFile(bool upload, KHttpRequest *rq)
-{
-	return false;
-}
 KGL_RESULT KFetchObject::PushBody(KHttpRequest *rq, kgl_response_body *out, const char *buf, int len)
 {
 	if (!KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE) && rq->ctx.left_read>=0) {

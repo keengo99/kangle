@@ -50,35 +50,20 @@ class KUpstream;
 class KFetchObject
 {
 public:
-	KFetchObject() {
+	KFetchObject(uint32_t flag) :flags{ flag } {
 	}
-	virtual ~KFetchObject();
+	virtual ~KFetchObject() {}
 	virtual void on_readhup(KHttpRequest* rq) {
-
 	}
 	virtual KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) = 0;
-
-	virtual bool NeedTempFile(bool upload, KHttpRequest* rq);
-	virtual bool is_filter() {
-		return false;
-	}
-	virtual bool before_cache() {
-		return false;
-	}
-#ifdef ENABLE_REQUEST_QUEUE
-	//此数据源是否需要队列功能。对于本地数据不用该功能。
-	//对于上游数据和动态的则返回true
-	virtual bool needQueue(KHttpRequest* rq) {
-		return false;
-	}
-#endif
 	static KGL_RESULT PushBody(KHttpRequest* rq, kgl_response_body* out, const char* buf, int len);
 	KFetchObject* next = nullptr;
+	uint32_t flags;
 };
 class KRedirectSource : public KFetchObject
 {
 public:
-	KRedirectSource() {
+	KRedirectSource(uint32_t flag) : KFetchObject(flag){
 		brd = nullptr;
 	}
 	virtual ~KRedirectSource() {
@@ -96,16 +81,13 @@ protected:
 class KDeniedSource : public KFetchObject
 {
 public:
-	KDeniedSource(uint16_t status_code, const char* reason, size_t reason_len) {
+	KDeniedSource(uint16_t status_code, const char* reason, size_t reason_len) :KFetchObject(KGL_UPSTREAM_BEFORE_CACHE){
 		this->status_code = status_code;
 		this->reason = reason;
 		this->reason_len = int(reason_len);
 	}
 	KDeniedSource(const char* reason, size_t reason_len) : KDeniedSource(STATUS_FORBIDEN, reason, reason_len) {
 
-	}
-	bool before_cache() override {
-		return true;
 	}
 	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) override {
 		return out->f->error(out->ctx, status_code, reason, reason_len);

@@ -15,13 +15,8 @@ public:
 protected:
 	KGL_RESULT buildHead(KHttpRequest* rq) override;
 	void buildPost(KHttpRequest* rq) override;
-	virtual bool is_extend()
-	{
+	virtual bool is_extend() {
 		return false;
-	}
-	bool NeedTempFile(bool upload, KHttpRequest* rq) override
-	{
-		return !is_extend();
 	}
 	bool checkContinueReadBody(KHttpRequest* rq) override
 	{

@@ -7,34 +7,16 @@
 class KDsoAsyncFetchObject : public KRedirectSource
 {
 public:
-	KDsoAsyncFetchObject(void *model_ctx)
+	KDsoAsyncFetchObject(void *model_ctx, uint32_t flag) : KRedirectSource(flag)
 	{
 		memset(&ctx, 0, sizeof(ctx));
 		ctx.module = model_ctx;
-	}
-	virtual bool is_filter() override {
-		KDsoRedirect* dr = static_cast<KDsoRedirect*>(brd->rd);
-		return !KBIT_TEST(((kgl_upstream*)dr->us)->flags, KGL_UPSTREAM_FINAL_SOURCE);
-	}
-	virtual bool before_cache() override {
-		KDsoRedirect* dr = static_cast<KDsoRedirect*>(brd->rd);
-		return KBIT_TEST(((kgl_upstream*)dr->us)->flags, KGL_UPSTREAM_BEFORE_CACHE);
 	}
 	inline kgl_upstream *get_upstream()
 	{
 		return static_cast<KDsoRedirect *>(brd->rd)->us;
 	}
 	void on_readhup(KHttpRequest* rq) override;
-	bool NeedTempFile(bool upload, KHttpRequest *rq) override
-	{
-		return false;
-	}
-#ifdef ENABLE_REQUEST_QUEUE
-	bool needQueue(KHttpRequest *rq) override
-	{
-		return false;
-	}
-#endif
 	~KDsoAsyncFetchObject();
 	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) override;
 	kgl_async_context ctx;

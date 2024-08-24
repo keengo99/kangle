@@ -1,6 +1,7 @@
 #ifndef KVECTOR_BUFFER_FETCHOBJECT_H
 #define KVECTOR_BUFFER_FETCHOBJECT_H
 #include "KFetchObject.h"
+#if 0
 class KVectorBufferFetchObject : public KFetchObject {
 public:
 	KVectorBufferFetchObject(WSABUF *buf, int bc)
@@ -40,4 +41,5 @@ private:
 	WSABUF *buf;
 	int bc;
 };
+#endif
 #endif

@@ -4,6 +4,9 @@
 class KDefaultFetchObject : public KFetchObject
 {
 public:
+	KDefaultFetchObject() : KFetchObject(0) {
+
+	}
 	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) override;
 };
 #endif

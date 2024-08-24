@@ -9,7 +9,7 @@
 class KStaticFetchObject : public KFetchObject 
 {
 public:	
-	KStaticFetchObject()
+	KStaticFetchObject():KFetchObject(0)
 	{
 		fp = NULL;
 	}
@@ -24,10 +24,6 @@ public:
 			kfiber_file_close(fp);
 			fp = NULL;
 		}
-	}
-	bool NeedTempFile(bool upload, KHttpRequest *rq) override
-	{
-		return false;
 	}
 	KGL_RESULT Open(KHttpRequest *rq, kgl_input_stream* in, kgl_output_stream* out) override;
 private:

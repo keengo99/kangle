@@ -32,7 +32,7 @@
 #include "KApiRedirect.h"
 #include "kmalloc.h"
 #define PTR_LEN(end,start) ((u_char *)end - (u_char *)start)
-KFastcgiFetchObject::KFastcgiFetchObject()
+KFastcgiFetchObject::KFastcgiFetchObject() : KAsyncFetchObject(KGL_UPSTREAM_NEED_TMP_FILE|KGL_UPSTREAM_NEED_QUEUE)
 {
 	flags = 0;
 	split_header = nullptr;

@@ -159,7 +159,7 @@ query_vh_result query_virtual(KHttpRequest* rq, const char* hostname, int len, i
 }
 KGL_RESULT handle_denied_request(KHttpRequest* rq) {
 	KFetchObject* fo = rq->fo_head;
-	while (fo && fo->is_filter()) {
+	while (fo && KBIT_TEST(fo->flags,KGL_UPSTREAM_FILTER)) {
 		fo = fo->next;
 	}
 	if (fo) {
@@ -341,7 +341,7 @@ void start_request_fiber(KSink* sink, int header_length) {
 		kgl_input_stream check_in;
 		kgl_output_stream check_out;
 		auto fo = rq.fo_head;
-		while (fo && fo->before_cache()) {
+		while (fo && KBIT_TEST(fo->flags,KGL_UPSTREAM_BEFORE_CACHE)) {
 			get_check_stream(&rq, &check_in, &check_out);
 			KGL_RESULT result = fo->Open(&rq, &check_in, &check_out);
 			fo = rq.get_next_source(fo);

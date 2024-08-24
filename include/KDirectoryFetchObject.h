@@ -10,21 +10,30 @@
 class KPrevDirectoryFetchObject : public KFetchObject
 {
 public:
+	KPrevDirectoryFetchObject() : KFetchObject(0) {
+
+	}
 	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out);
 };
 class KDirectoryFetchObject : public KFetchObject
 {
 public:
-	KDirectoryFetchObject();
+	KDirectoryFetchObject() : KFetchObject(0) {
+#ifdef _WIN32
+		dp = INVALID_HANDLE_VALUE;
+#else
+		dp = NULL;
+#endif
+	}
 	~KDirectoryFetchObject();
 	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out);
 private:
-	KGL_RESULT Write(KHttpRequest *rq, kgl_response_body* st,const char *path);
+	KGL_RESULT Write(KHttpRequest* rq, kgl_response_body* st, const char* path);
 #ifdef _WIN32
 	HANDLE dp;
 	WIN32_FIND_DATA FileData;
 #else
-	DIR *dp;
+	DIR* dp;
 #endif
 };
 #endif

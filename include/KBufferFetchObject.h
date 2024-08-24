@@ -7,16 +7,13 @@
 
 class KBufferFetchObject : public KFetchObject {
 public:
-	KBufferFetchObject(kbuf *buffer,int length)
+	KBufferFetchObject(kbuf *buffer,int length):KFetchObject(KGL_UPSTREAM_BEFORE_CACHE)
 	{
 		header = buffer;
 		this->length = length;
 	}
 	~KBufferFetchObject()
 	{
-	}
-	bool before_cache() override {
-		return true;
 	}
 	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) override
 	{

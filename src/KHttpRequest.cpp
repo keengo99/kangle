@@ -454,9 +454,9 @@ kgl_auto_cstr KHttpRequest::build_vary(const char* vary) {
 }
 
 void KHttpRequest::append_source(KFetchObject* fo) {
-	if (!fo->is_filter() && KBIT_TEST(ctx.filter_flags, RQ_NO_EXTEND) && !KBIT_TEST(sink->data.flags, RQ_IS_ERROR_PAGE)) {
+	if (!KBIT_TEST(fo->flags,KGL_UPSTREAM_FILTER) && KBIT_TEST(ctx.filter_flags, RQ_NO_EXTEND) && !KBIT_TEST(sink->data.flags, RQ_IS_ERROR_PAGE)) {
 		//无扩展处理
-		if (fo->needQueue(this)) {
+		if (KBIT_TEST(fo->flags,KGL_UPSTREAM_NEED_QUEUE)) {
 			delete fo;
 			fo = new KStaticFetchObject();
 		}

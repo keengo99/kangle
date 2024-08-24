@@ -3,6 +3,7 @@
 #include "KFetchObject.h"
 #include "KBuffer.h"
 #include "http.h"
+#if 0
 /**
 * 缓存物件数据源，仅用于内部请求命中
 */
@@ -30,4 +31,5 @@ private:
 	kbuf *hot_buffer;
 	KHttpObject *obj;
 };
+#endif
 #endif

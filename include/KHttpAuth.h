@@ -126,16 +126,13 @@ private:
 class KAuthSource : public KFetchObject
 {
 public:
-	KAuthSource(KHttpAuth *auth) {
+	KAuthSource(KHttpAuth *auth):KFetchObject(KGL_UPSTREAM_BEFORE_CACHE) {
 		this->auth = auth;
 	}
 	~KAuthSource() {
 		delete auth;
 	}
 	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) override;
-	bool before_cache() override {
-		return true;
-	}
 private:
 	KHttpAuth* auth;
 };

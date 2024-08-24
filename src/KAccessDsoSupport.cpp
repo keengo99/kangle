@@ -351,7 +351,7 @@ static KGL_RESULT support_function(
 		if (KBIT_TEST(us->flags, KGL_UPSTREAM_BEFORE_CACHE)) {
 			rq->insert_source(fo);
 		} else {
-			if (rq->fo_last && !rq->fo_last->is_filter()) {
+			if (rq->fo_last && !KBIT_TEST(rq->fo_last->flags, KGL_UPSTREAM_FILTER)) {
 				delete fo;
 				//EXSIT final source.
 				return KGL_EEXSIT;

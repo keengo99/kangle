@@ -13,8 +13,7 @@
 #include "kserver.h"
 #include "api_child.h"
 
-KApiFetchObject::KApiFetchObject(KApiRedirect* rd) :
-	KApiService(&rd->dso) {
+KApiFetchObject::KApiFetchObject(KApiRedirect* rd) :KRedirectSource(0), KApiService(&rd->dso) {
 	rq = NULL;
 	token = NULL;
 	push_parser.parser.first_same = 1;
@@ -25,8 +24,7 @@ KApiFetchObject::~KApiFetchObject() {
 		KVirtualHost::closeToken(token);
 	}
 }
-Token_t KApiFetchObject::getVhToken(const char* vh_name)
-{
+Token_t KApiFetchObject::getVhToken(const char* vh_name) {
 #ifndef HTTP_PROXY
 	if (rq && rq->sink->data.opaque) {
 		if (kangle::get_virtual_host(rq)->vh->user.empty()) {
@@ -65,8 +63,7 @@ Token_t KApiFetchObject::getToken() {
 #endif
 	return token;
 }
-KGL_RESULT KApiFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out)
-{
+KGL_RESULT KApiFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) {
 	KHttpObject* obj = rq->ctx.obj;
 	assert(dso);
 	this->rq = rq;
@@ -76,7 +73,7 @@ KGL_RESULT KApiFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_out
 	if (dso->HttpExtensionProc) {
 		assert(rq);
 		if (brd->rd->is_disable()) {
-			return out->f->error(out->ctx,  STATUS_SERVER_ERROR, _KS("extend is disable"));
+			return out->f->error(out->ctx, STATUS_SERVER_ERROR, _KS("extend is disable"));
 		}
 		KBIT_SET(obj->index.flags, ANSW_LOCAL_SERVER);
 		if (rq->auth) {
@@ -107,7 +104,7 @@ KGL_RESULT KApiFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_out
 	}
 	if (!headSended && result == KGL_OK) {
 		headSended = true;
-		result = out->f->write_header_finish(out->ctx,  -1, &body);
+		result = out->f->write_header_finish(out->ctx, -1, &body);
 	}
 	if (body.ctx) {
 		assert(result != KGL_NO_BODY);
@@ -149,13 +146,12 @@ bool KApiFetchObject::setStatusCode(const char* status, int len) {
 	out->f->write_status(out->ctx, (uint16_t)atoi(status));
 	return true;
 }
-KGL_RESULT KApiFetchObject::map_url_path(const char* url, LPVOID file, LPDWORD file_len)
-{
+KGL_RESULT KApiFetchObject::map_url_path(const char* url, LPVOID file, LPDWORD file_len) {
 	char* filename = rq->map_url_path(url, this->brd);
 	KGL_RESULT result = set_variable(file, file_len, filename);
 	if (filename) {
 		xfree(filename);
-	}	
+	}
 	return result;
 }
 KGL_RESULT KApiFetchObject::addHeader(const char* attr, int len) {
@@ -170,7 +166,7 @@ KGL_RESULT KApiFetchObject::addHeader(const char* attr, int len) {
 	case kgl_parse_finished:
 	{
 		headSended = true;
-		auto result = out->f->write_header_finish(out->ctx, -1,  &body);
+		auto result = out->f->write_header_finish(out->ctx, -1, &body);
 		if (result == KGL_NO_BODY) {
 			no_body = true;
 		}

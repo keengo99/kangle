@@ -41,10 +41,6 @@ public:
 #endif
 		return KGL_OK;
 	}
-	bool NeedTempFile(bool upload, KHttpRequest *rq) override
-	{
-		return false;
-	}
 #ifdef ENABLE_PROXY_PROTOCOL
 	bool proxy_protocol;
 #endif
@@ -58,10 +54,6 @@ public:
 		KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_UPGRADE);
 		buffer = new KSocketBuffer();
 		return KGL_OK;
-	}
-	bool NeedTempFile(bool upload, KHttpRequest *rq) override
-	{
-		return false;
 	}
 };
 #endif

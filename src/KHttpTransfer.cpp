@@ -59,7 +59,7 @@ bool kgl_load_response_body(KHttpRequest* rq, kgl_response_body* body) {
 
 	if (body) {
 #ifdef ENABLE_TF_EXCHANGE
-		if (rq->NeedTempFile(false)) {
+		if (rq->NeedTempFile()) {
 			if (!tee_tempfile_body(body)) {
 				klog(KLOG_ERR, "cann't tee tempfile output body\n");
 			}

@@ -497,7 +497,7 @@ kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo
 	if (begin) {
 		jumpType = begin->match(rq, obj, checked_table, jump, fo);
 		if (fo) {
-			if (fo->before_cache()) {
+			if (KBIT_TEST(fo->flags,KGL_UPSTREAM_BEFORE_CACHE)) {
 				return JUMP_DENY;
 			}
 			return JUMP_ALLOW;
