@@ -337,7 +337,7 @@ bool KVirtualHostDatabase::loadInfo(khttpd::KXmlNodeBody *vh, kgl_vh_connection 
 	return true;
 }
 void KVirtualHostDatabase::scan(kconfig::KConfigFileScanInfo* info) {
-	kassert(kfiber_self() != NULL);
+	kassert(kfiber_self2() != NULL);
 	auto locker = get_locker();
 	lastStatus = false;
 	kgl_vh_connection cn = createConnection();

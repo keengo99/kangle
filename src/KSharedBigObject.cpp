@@ -154,10 +154,10 @@ int64_t KSharedBigObject::open_write(KHttpObject* obj, int64_t from) {
 	krb_node* node = insert(from, new_obj);
 	assert(node);
 	KBigObjectBlock* block = (KBigObjectBlock*)node->data;
-	assert(block->net_fiber != kfiber_self());
+	assert(block->net_fiber != kfiber_self2());
 	write_refs++;
 	//数据块没有读请求,可以加入，否则关闭该网络请求
-	block->net_fiber = kfiber_self();
+	block->net_fiber = kfiber_self2();
 	kfiber_mutex_unlock(lock);
 	return from;
 }
@@ -240,7 +240,7 @@ int KSharedBigObject::read(KHttpRequest* rq, KHttpObject* obj, int64_t offset, c
 			rq->ctx.sub_request->range = rq->sink->alloc<kgl_request_range>();
 		}
 		rq->ctx.sub_request->range->from = offset;
-		block->net_fiber = kfiber_self();
+		block->net_fiber = kfiber_self2();
 		*net_fiber = true;
 		if (nextNode) {
 			KBigObjectBlock* nextBlock = (KBigObjectBlock*)nextNode->data;
@@ -255,14 +255,15 @@ int KSharedBigObject::read(KHttpRequest* rq, KHttpObject* obj, int64_t offset, c
 	}
 
 	/* wait buffer */
+	auto fiber = kfiber_self2();
 	BigObjectReadQueue* queue = new BigObjectReadQueue;
-	queue->rq = kfiber_self();
+	queue->rq = fiber;
 	queue->buf = buf;
 	queue->from = offset;
 	queue->length = length;
 	block->wait_queue.push_back(queue);
 	kfiber_mutex_unlock(lock);
-	return kfiber_wait(buf);
+	return __kfiber_wait(fiber, buf);
 }
 void KSharedBigObject::close_write(KHttpObject* obj, int64_t write_from) {
 	assert(write_from >= 0);
@@ -278,7 +279,7 @@ void KSharedBigObject::close_write(KHttpObject* obj, int64_t write_from) {
 	assert(block);
 	//printf("close write block infomation fiber=%p from=" INT64_FORMAT ",block=%p\n", block->net_fiber, block->file_block.from, block);
 
-	if (block->net_fiber == kfiber_self()) {
+	if (block->net_fiber == kfiber_self2()) {
 		//如果该块的读请求是自已，则清空,并通知等待队列
 		block->net_fiber = NULL;
 		//复原读取点

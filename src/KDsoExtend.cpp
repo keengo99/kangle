@@ -17,6 +17,12 @@ static KFIBER_COND kgl_kfiber_cond_init(bool thread_safe, bool auto_reset) {
 	}
 	return kfiber_cond_init(auto_reset);
 }
+static int kgl_fiber_wait(void* obj) {
+	return __kfiber_wait(kfiber_self2(), obj);
+}
+static void kgl_fiber_wakeup(KFIBER fiber, void* obj, int ret) {
+	kfiber_wakeup((kfiber*)fiber, obj, ret);
+}
 static int kgl_kfiber_cond_wait(KFIBER_COND cond, int* got) {
 	return ((kfiber_cond*)cond)->f->wait((kfiber_cond*)cond, got);
 }
@@ -152,10 +158,10 @@ static kgl_kfiber_function fiber_function = {
 	(int (*) (KSELECTOR, kgl_fiber_start_func , void* , int , int , KFIBER*))kfiber_create2,
 	(int (*)(KFIBER , int*))kfiber_join,
 	(int (*)(int))kfiber_msleep,
-	(KFIBER(*)())kfiber_self,
+	(KFIBER(*)())kfiber_self2,
 	(KFIBER(*)(bool))kfiber_ref_self,
-	(void (*)(KFIBER, void*, int))kfiber_wakeup,
-	(int (*)(void*))kfiber_wait,
+	(void (*)(KFIBER, void*, int))kgl_fiber_wakeup,
+	(int (*)(void*))kgl_fiber_wait,
 	(int (*)(kgl_fiber_start_func, void*, int, int*))kfiber_thread_call
 };
 static kgl_chan_function chan_function = {

@@ -60,11 +60,11 @@ KPipeStream* KVirtualHostProcess::Power(KHttpRequest* rq, KExtendProgram* rd)
 	}
 	param.process = this;
 	param.rd = rd;
-	param.fiber = kfiber_self();
+	param.fiber = kfiber_self2();
 	if (!kthread_pool_start(VProcessPowerWorker, &param)) {		
 		return NULL;
 	}
-	kfiber_wait(param.process);
+	__kfiber_wait(param.fiber,param.process);
 	return param.st;
 }
 kconnection * KVirtualHostProcess::try_connect(sockaddr_i* addr)
@@ -106,10 +106,10 @@ KUpstream* KVirtualHostProcess::GetUpstream(KHttpRequest* rq, KExtendProgram* rd
 		NoticePowerResult(true);
 		return us;
 	}
-	kfiber* fiber = kfiber_self();
+	kfiber* fiber = kfiber_self2();
 	kfiber_add_waiter(&queue, fiber, &fiber);
 	lock.Unlock();
-	if (kfiber_wait(&fiber) != 0) {
+	if (__kfiber_wait(fiber, &fiber) != 0) {
 		return NULL;
 	}
 #endif

@@ -110,9 +110,9 @@ int KTempFile::Read(char* buf, int len) {
 			if (write_is_end) {
 				return 0;
 			}
-			wait_read = kfiber_self();
+			wait_read = kfiber_self2();
 			//printf("no more data to read now wait write. fiber=[%p]\n", wait_read);
-			kfiber_wait(this);
+			__kfiber_wait(wait_read, this);
 			continue;
 		}
 		assert(wait_read == NULL);

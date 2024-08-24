@@ -46,7 +46,7 @@ volatile bool configReload = false;
 using namespace std;
 KGlobalConfig conf;
 #ifdef KSOCKET_SSL
-kgl_ssl_ctx* KSslConfig::new_ssl_ctx(const KString &certfile, const KString &keyfile) {
+kgl_ssl_ctx* KSslConfig::new_ssl_ctx(const KString& certfile, const KString& keyfile) {
 	void* ssl_ctx_data = NULL;
 	kgl_ssl_ctx* ssl_ctx = kgl_new_ssl_ctx(NULL);
 	ssl_ctx->alpn = alpn;
@@ -339,7 +339,7 @@ static bool on_begin_parse(kconfig::KConfigFile* file, khttpd::KXmlNode* node) {
 		}
 	}
 #endif
-	for(auto it = kconfig::find_first_child(node->get_first(), "vh"_CS);it && it->value()->is_tag(_KS("vh")); it = it->next()) {
+	for (auto it = kconfig::find_first_child(node->get_first(), "vh"_CS); it && it->value()->is_tag(_KS("vh")); it = it->next()) {
 		auto vh_node = it->value();
 #ifdef KSOCKET_SSL
 		auto body = vh_node->get_first();
@@ -378,7 +378,7 @@ static bool on_begin_parse(kconfig::KConfigFile* file, khttpd::KXmlNode* node) {
 					*ssl_key = '\0';
 					ssl_key++;
 				}
-				KSslCertificate ssl_cert(ssl_param.get(),ssl_key);
+				KSslCertificate ssl_cert(ssl_param.get(), ssl_key);
 				ssl_cert.attach_modified_event(file, host_body->attributes, full_doc_root);
 			}
 		}
@@ -587,7 +587,7 @@ void load_lang() {
 	}
 }
 int do_config_thread(void* first_time, int argc) {
-	assert(kfiber_self());
+	assert(kfiber_self2());
 	if (first_time != NULL) {
 		init_config();
 		load_lang();

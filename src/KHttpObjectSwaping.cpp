@@ -164,7 +164,7 @@ clean:
 }
 swap_in_result KHttpObjectSwaping::wait(KMutex* lock)
 {
-	kfiber* fiber = kfiber_self();
+	kfiber* fiber = kfiber_self2();
 	kfiber_add_waiter(&waiter, fiber, &fiber);	
 	lock->Unlock();
 	return (swap_in_result)__kfiber_wait(fiber, &fiber);
