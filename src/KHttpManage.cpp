@@ -954,7 +954,7 @@ bool KHttpManage::sendMainFrame() {
 		s << total_run_time / 60 << " " << LANG_MIN << ",";
 		total_run_time %= 60;
 	}
-	s << total_run_time << " " << LANG_SECOND << ".";
+	s << total_run_time << " " << LANG_SECOND << ". pid: " << getpid();
 	s << "<h3>" << klang["load_info"] << "</h3>";
 	s << "<table>";
 	//connect
