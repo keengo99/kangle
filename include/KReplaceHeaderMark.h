@@ -48,7 +48,8 @@ public:
 					}
 					memcpy(new_buf + header->val_offset, replaced->buf(), replaced->size());
 					header->val_len = replaced->size();
-					free(header->buf);
+					xfree_header_buffer(header);
+					header->buf_in_pool = 0;
 					header->buf = new_buf;
 					delete replaced;
 				}

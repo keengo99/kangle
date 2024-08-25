@@ -57,7 +57,7 @@ public:
 							rq->sink->data.client_ip = strdup(ip);
 						}
 					}
-					xfree_header(h);
+					//xfree_header(h);
 					if (KBIT_TEST(rq->sink->data.raw_url->flags,KGL_URL_ORIG_SSL)) {
 						KBIT_SET(rq->sink->data.raw_url->flags,KGL_URL_SSL);
 						if (rq->sink->data.raw_url->port == 80) {
@@ -145,7 +145,7 @@ public:
 		}
 		char *sign = (char *)memchr(h->buf+h->val_offset, '|', h->val_len);
 		if (sign == NULL) {
-			xfree_header(h);
+			//xfree_header(h);
 			return KF_STATUS_REQ_FALSE;
 		}
 		*sign = '\0';		
@@ -194,7 +194,7 @@ public:
 				hot = p + 1;
 			}
 		}
-		xfree_header(h);
+		//xfree_header(h);
 		return matched? KF_STATUS_REQ_TRUE: KF_STATUS_REQ_FALSE;
 	}
 	KMark * new_instance()override

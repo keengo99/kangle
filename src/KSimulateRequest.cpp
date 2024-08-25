@@ -83,19 +83,19 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 		}
 		kgl_str_t attr;
 		kgl_get_header_name(head, &attr);
-		rq->sink->parse_header(attr.data, (int)attr.len, head->buf + head->val_offset, (int)head->val_len, false);
+		rq->sink->parse_header<const char *>(attr.data, (int)attr.len, head->buf + head->val_offset, (int)head->val_len, false);
 		head = head->next;
 	}
 	if (!user_agent) {
 		//add default user-agent header
 		timeLock.Lock();
-		rq->sink->parse_header(_KS("User-Agent"), conf.serverName, conf.serverNameLength, false);
+		rq->sink->parse_header<const char*>(_KS("User-Agent"), conf.serverName, conf.serverNameLength, false);
 		timeLock.Unlock();
 	}
 	rq->sink = ss;
 	rq->ctx.simulate = 1;
 	if (KBIT_TEST(ctx->flags, KF_SIMULATE_GZIP)) {
-		rq->sink->parse_header(_KS("Accept-Encoding"), _KS("gzip"), false);
+		rq->sink->parse_header<const char*>(_KS("Accept-Encoding"), _KS("gzip"), false);
 	}
 	rq->sink->data.meth = KHttpKeyValue::get_method(ctx->meth, (int)strlen(ctx->meth));
 	rq->sink->data.left_read = ctx->post_len;

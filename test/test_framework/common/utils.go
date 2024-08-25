@@ -6,6 +6,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 )
@@ -123,4 +124,8 @@ func ReadHttpProtocol(reader *bufio.Reader, read_body bool) (map[string]string, 
 	}
 	line, _, err := reader.ReadLine()
 	return headers, string(line), err
+}
+func ReadHttpProtocol2(cn net.Conn, read_body bool) (map[string]string, string, error) {
+	reader := bufio.NewReader(cn)
+	return ReadHttpProtocol(reader, read_body)
 }

@@ -135,10 +135,10 @@ static kgl_dso_function dso_function = {
 	klog,
 	get_header_name,
 	get_know_header,
-	kgl_build_know_header_value,
+	(bool (*)(KGL_POOL, KHttpHeader* , const char* , int))kgl_build_know_header_value,
 	NULL,
 	kgl_parse_response_header
-};
+		};
 static kgl_mutex_function mutex_function = {
 	(KFIBER_MUTEX(*)(int))kfiber_mutex_init2,
 	(void (*)(KFIBER_MUTEX , int))kfiber_mutex_set_limit,

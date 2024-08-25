@@ -2,6 +2,7 @@ package base_suite
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -22,7 +23,7 @@ func check_split_post(str string, start int, fn check_string_callback) {
 	time.Sleep(10 * time.Millisecond)
 	cn.Write([]byte(str[start:]))
 	cn.SetReadDeadline(time.Now().Add(2 * time.Second))
-	buf, _ := ioutil.ReadAll(cn)
+	buf, _ := io.ReadAll(cn)
 	fn(string(buf))
 }
 func check_http_1_1_split_chunk_post_pipe_line() {

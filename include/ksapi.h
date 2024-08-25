@@ -671,7 +671,7 @@ typedef struct _kgl_dso_function
 	void(*log)(int level, const char* fmt, ...);
 	const char* (*get_header_name)(KHttpHeader* header, hlen_t* len);
 	const char* (*get_know_header)(kgl_header_type type, hlen_t* len);
-	bool (*build_know_header_value)(KHttpHeader* header, const char* val, int val_len, void* (*kgl_malloc)(void*,size_t), void* arg);
+	bool (*build_know_header_value)(KGL_POOL pool, KHttpHeader* header, const char* val, int val_len);
 	kgl_header_type(*parse_response_header)(const char* attr, hlen_t attr_len);
 	kgl_header_type(*parse_request_header)(const char* attr, hlen_t attr_len);
 } kgl_dso_function;

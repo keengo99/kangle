@@ -172,5 +172,6 @@ func init() {
 	s.AddCase("directory", "check directory", check_directory)
 	s.AddCase("config", "check config reload", check_config)
 	s.AddCase("flush", "upstream flush", check_flush)
+	s.AddCase("big_request_header", "big http11 request header", check_big_request_header)
 	s.AddCase("bug", "bug", check_bug)
 }

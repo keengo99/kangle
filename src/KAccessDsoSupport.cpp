@@ -231,7 +231,7 @@ static KGL_RESULT  set_request_header(
 	hlen_t val_len)
 {
 	KHttpRequest* rq = (KHttpRequest*)r;
-	bool result = rq->sink->parse_header(attr, attr_len, val, val_len, false);
+	bool result = rq->sink->parse_header<const char *>(attr, attr_len, val, val_len, false);
 	if (!result) {
 		return KGL_EINVALID_PARAMETER;
 	}
