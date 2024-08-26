@@ -186,7 +186,6 @@ public:
 		assert(ctx.body.ctx == nullptr);
 		assert(ctx.in_body == nullptr);
 	}
-	void clean();
 	KSink* sink;
 	kgl_request_range* get_range() {
 		if (ctx.sub_request) {
@@ -237,14 +236,13 @@ public:
 		sink->data.iterator(handle_http_header, this);
 	}
 	void EndRequest() {
-		sink->remove_readhup();
-		clean();
-		log_access(this);
 		if (ctx.in_body) {
 			ctx.in_body->f->close(ctx.in_body->ctx);
 			ctx.in_body = nullptr;
 		}
+		sink->remove_readhup();
 		sink->end_request();
+		clean();
 	}
 	int64_t get_left() {
 		return sink->data.left_read;
@@ -555,6 +553,7 @@ private:
 		ReleaseQueue();
 #endif
 	}
+	void clean();
 };
 struct RequestError
 {
