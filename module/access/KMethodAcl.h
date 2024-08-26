@@ -53,6 +53,11 @@ public:
 		auto attribute = xml->attr();
 		if(!attribute["meth"].empty()){
 			meth.setMethod(attribute["meth"].c_str());
+		} else {
+			auto text = xml->get_text();
+			if (!text.empty()) {
+				meth.setMethod(text.c_str());
+			}
 		}
 	}
 private:
