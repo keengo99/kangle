@@ -75,8 +75,13 @@ public:
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
 		nc = (attribute["nc"]=="1");
-		if(attribute["url"].size()>0){
+		if(!attribute["url"].empty()){
 			reg.setModel(attribute["url"].c_str(), (nc?PCRE_CASELESS:0));
+		} else {
+			auto text = xml->get_text();
+			if (!text.empty()) {
+				reg.setModel(text.c_str(), (nc ? PCRE_CASELESS : 0));
+			}
 		}
 		if (attribute["raw"]=="1") {
 			raw = true;

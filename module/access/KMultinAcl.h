@@ -97,6 +97,11 @@ public:
 		}
 		if (attribute["v"].size() > 0) {
 			explode(attribute["v"].c_str());
+		} else {
+			auto text = xml->get_text();
+			if (!text.empty()) {
+				explode(text.c_str());
+			}
 		}
 	}
 protected:
