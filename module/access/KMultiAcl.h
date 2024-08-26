@@ -89,12 +89,13 @@ public:
 		} else {
 			split = '|';
 		}
-		auto text = xml->get_text();
-		if (!text.empty()) {
-			explode(text.c_str());
-		}
 		if (!xml->attributes["v"].empty()) {
 			explode(xml->attributes["v"].c_str());
+		} else {
+			auto text = xml->get_text();
+			if (!text.empty()) {
+				explode(text.c_str());
+			}
 		}
 	}
 protected:
