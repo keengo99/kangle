@@ -167,8 +167,8 @@ bool KHttpResponseParser::parse_unknow_header(KHttpRequest* rq, const char* attr
 			obj->need_compress = 1;
 			return true;
 		}
-		if (kgl_mem_case_same(attr,attr_len,_KS("X-No-Buffer"))) {
-			KBIT_SET(rq->ctx.filter_flags,RF_NO_BUFFER);
+		if (kgl_mem_case_same(attr, attr_len, _KS("X-No-Buffer"))) {
+			KBIT_SET(rq->ctx.filter_flags, RF_NO_BUFFER);
 			return true;
 		}
 	}
@@ -178,7 +178,7 @@ bool KHttpResponseParser::parse_unknow_header(KHttpRequest* rq, const char* attr
 	}
 	return add_header(attr, attr_len, val, val_len);
 }
-void KHttpResponseParser::end_parse(KHttpRequest* rq,int64_t body_size) {
+void KHttpResponseParser::end_parse(KHttpRequest* rq, int64_t body_size) {
 	auto obj = rq->ctx.obj;
 	assert(!obj->in_cache);
 	if (body_size >= 0) {
@@ -223,60 +223,99 @@ void KHttpResponseParser::end_parse(KHttpRequest* rq,int64_t body_size) {
 
 
 kgl_header_type kgl_parse_response_header(const char* attr, hlen_t attr_len) {
-	if (kgl_mem_case_same(attr, attr_len, _KS("Etag"))) {
-		return kgl_header_etag;
+	switch (*attr) {
+	case 'A':
+	case 'a':
+		if (kgl_mem_case_same(attr, attr_len, _KS("Age"))) {
+			return kgl_header_age;
+		}
+		if (kgl_mem_case_same(attr, attr_len, _KS("Alt-Svc"))) {
+			return kgl_header_alt_svc;
+		}
+		break;
+	case 'C':
+	case 'c':
+		if (kgl_mem_case_same(attr, attr_len, _KS("Content-Range"))) {
+			return kgl_header_content_range;
+		}
+		if (kgl_mem_case_same(attr, attr_len, _KS("Content-length"))) {
+			return kgl_header_content_length;
+		}
+		if (kgl_mem_case_same(attr, attr_len, _KS("Content-Type"))) {
+			return kgl_header_content_type;
+		}
+		if (kgl_mem_case_same(attr, attr_len, _KS("Cache-Control"))) {
+			return kgl_header_cache_control;
+		}
+		if (kgl_mem_case_same(attr, attr_len, _KS("Connection"))) {
+			return kgl_header_connection;
+		}
+		if (kgl_mem_case_same(attr, attr_len, _KS("Content-Encoding"))) {
+			return kgl_header_content_encoding;
+		}
+		break;
+	case 'D':
+	case 'd':
+		if (kgl_mem_case_same(attr, attr_len, _KS("Date"))) {
+			return kgl_header_date;
+		}
+		break;
+	case 'E':
+	case 'e':
+		if (kgl_mem_case_same(attr, attr_len, _KS("Etag"))) {
+			return kgl_header_etag;
+		}
+		if (kgl_mem_case_same(attr, attr_len, _KS("Expires"))) {
+			return kgl_header_expires;
+		}
+		break;
+	case 'K':
+	case 'k':
+		if (kgl_mem_case_same(attr, attr_len, _KS("Keep-Alive"))) {
+			return kgl_header_keep_alive;
+		}
+		break;
+	case 'L':
+	case 'l':
+		if (kgl_mem_case_same(attr, attr_len, _KS("Last-Modified"))) {
+			return kgl_header_last_modified;
+		}
+		break;
+	case 'P':
+	case 'p':
+		if (kgl_mem_case_same(attr, attr_len, _KS("Pragma"))) {
+			return kgl_header_pragma;
+		}
+		break;
+	case 'S':
+	case 's':
+		if (kgl_mem_case_same(attr, attr_len, _KS("Server"))) {
+			return kgl_header_server;
+		}
+		if (kgl_mem_case_same(attr, attr_len, _KS("Set-Cookie"))) {
+			return kgl_header_set_cookie;
+		}
+		break;
+	case 'T':
+	case 't':
+		if (kgl_mem_case_same(attr, attr_len, _KS("Transfer-Encoding"))) {
+			return kgl_header_transfer_encoding;
+		}
+		break;
+	case 'U':
+	case 'u':
+		if (kgl_mem_case_same(attr, attr_len, _KS("Upgrade"))) {
+			return kgl_header_upgrade;
+		}
+		break;
+	case 'V':
+	case 'v':
+		if (kgl_mem_case_same(attr, attr_len, _KS("Vary"))) {
+			return kgl_header_vary;
+		}
+		break;
+	default:
+		break;
 	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Content-Range"))) {
-		return kgl_header_content_range;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Content-length"))) {
-		return kgl_header_content_length;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Content-Type"))) {
-		return kgl_header_content_type;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Date"))) {
-		return kgl_header_date;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Last-Modified"))) {
-		return kgl_header_last_modified;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Set-Cookie"))) {
-		return kgl_header_set_cookie;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Pragma"))) {
-		return kgl_header_pragma;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Cache-Control"))) {
-		return kgl_header_cache_control;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Vary"))) {
-		return kgl_header_vary;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Age"))) {
-		return kgl_header_age;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Alt-Svc"))) {
-		return kgl_header_alt_svc;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Keep-Alive"))) {
-		return kgl_header_keep_alive;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Connection"))) {
-		return kgl_header_connection;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Transfer-Encoding"))) {
-		return kgl_header_transfer_encoding;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Content-Encoding"))) {
-		return kgl_header_content_encoding;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Expires"))) {
-		return kgl_header_expires;
-	}
-	if (kgl_mem_case_same(attr, attr_len, _KS("Upgrade"))) {
-		return kgl_header_upgrade;
-	}
-
 	return kgl_header_unknow;
 }

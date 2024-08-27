@@ -86,14 +86,10 @@ kgl_jump_type KTable::match(KHttpRequest* rq, KHttpObject* obj, unsigned& checke
 			case JUMP_TABLE:
 			{
 				m_table = static_cast<KTable*>(chain->jump.get());
-				if (!m_table) {
+				if (!m_table || ++checked_table > 32) {
 					return JUMP_DENY;
 				}
-				if (checked_table++ > 32) {
-					//jump tableÌ«¶à
-					return JUMP_DENY;
-				}
-				int jump_type = m_table->match(rq, obj, checked_table, jump, fo);
+				auto jump_type = m_table->match(rq, obj, checked_table, jump, fo);
 				if (jump_type != JUMP_CONTINUE) {
 					return jump_type;
 				}
