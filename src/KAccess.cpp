@@ -922,8 +922,7 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 					post_map = table;
 				}
 			}
-			tree->bind(static_cast<KTable*>(table->add_ref()));
-			tables[table->name] = std::move(table);
+			tree->bind(table.release());
 			return true;
 		}
 		if (xml->is_tag(_KS("named_acl"))) {
@@ -964,6 +963,11 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 			auto locker = write_lock();
 			KSafeTable table(static_cast<KTable*>(tree->unbind()));
 			//printf("remove table name=[%s]\n", table->name.c_str());
+			if (table.get() == begin.get()) {
+				begin.reset();
+			} else if (table.get() == post_map.get()) {
+				post_map.reset();
+			}
 			tables.erase(table->name);
 			table->clear();
 			return true;
