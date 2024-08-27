@@ -70,18 +70,15 @@ kgl_jump_type KTable::match(KHttpRequest* rq, KHttpObject* obj, unsigned& checke
 	KTable* m_table = NULL;
 	for (auto&& chain_file : chains) {
 		for (auto&& chain : chain_file.second) {
-			if (!chain) {
-				continue;
-			}
 			uint32_t result = chain->match(rq, obj, fo);
 			if (fo) {
 				return chain->jump_type;
 			}
-			if (KBIT_TEST(result, KF_STATUS_REQ_FINISHED)) {
-				return JUMP_DENY;
-			}
 			if (!result) {
 				continue;
+			}
+			if (KBIT_TEST(result, KF_STATUS_REQ_FINISHED)) {
+				return JUMP_DENY;
 			}
 			switch (chain->jump_type) {
 			case JUMP_CONTINUE:
@@ -124,10 +121,6 @@ void KTable::htmlTable(KWStream& s, const char* vh, u_short accessType) {
 	for (auto&& chain_file : chains) {
 		int j = 0;
 		for (auto&& chain : chain_file.second) {
-			if (!chain) {
-				++j;
-				continue;
-			}
 			last_file = chain_file.first.name;
 			s << "<tr><td>";
 			s << "[<a href=\"javascript:if(confirm('confirm delete chain";
@@ -152,7 +145,7 @@ void KTable::htmlTable(KWStream& s, const char* vh, u_short accessType) {
 				<< "&id=" << j
 				<< "&table_name=" << name
 				<< "'>" << LANG_INSERT << "</a>]";
-				s << "</td><td>";
+			s << "</td><td>";
 			switch (chain->jump_type) {
 			case JUMP_DENY:
 				s << LANG_DENY;

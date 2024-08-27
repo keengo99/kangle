@@ -71,7 +71,7 @@ public:
 			}
 			if (fo) {
 				++hit_count;
-				return true;
+				return KF_STATUS_REQ_TRUE;
 			}
 		}
 		if (result) {

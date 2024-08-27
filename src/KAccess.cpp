@@ -406,13 +406,12 @@ kgl_jump_type KAccess::checkPostMap(KHttpRequest* rq, KHttpObject* obj, KSafeSou
 	unsigned checked_table = 0;
 	KSafeJump jump;
 	auto jumpType = post_map->match(rq, obj, checked_table, jump, fo);
-	if (jumpType == JUMP_RETURN) {
-		jumpType = default_jump_type;
+	switch (jumpType) {
+	case JUMP_RETURN:
+		return default_jump_type;
+	default:
+		return jumpType;
 	}
-	if (jumpType == JUMP_ALLOW) {
-		return JUMP_ALLOW;
-	}
-	return JUMP_DENY;
 }
 void KAccess::add_chain_form(KWStream& s, const char* vh, const KString& table_name, const KString& file, uint16_t index, size_t id, bool add) {
 	KChain* m_chain = NULL;
