@@ -227,8 +227,20 @@ INT64 get_size(const char* size) {
 	bool is_radio = false;
 	return get_radio_size(size, is_radio);
 }
-void upgrade_vh_map(khttpd::KXmlNode* node) {
+void upgrade_vh_xml(khttpd::KXmlNode* node) {
 	auto node_body = node->get_first();
+	auto&& attr = node->attributes();
+	auto index = attr["index"];
+	if (!index.empty()) {
+		std::vector<KString> indexs;
+		explode(index.c_str(), ',', indexs);
+		attr.erase("index");
+		for (auto&& index_file : indexs) {
+			auto new_node_body = kconfig::new_child(node_body, _KS("index"));
+			new_node_body->attributes.emplace("file", index_file);
+		}
+	}
+
 	auto it = kconfig::find_first_child(node_body, "map"_CS);
 	if (!it) {
 		return;
@@ -386,13 +398,13 @@ static bool on_begin_parse(kconfig::KConfigFile* file, khttpd::KXmlNode* node) {
 #endif
 		upgrade_chain_access("request"_CS, vh_node);
 		upgrade_chain_access("response"_CS, vh_node);
-		upgrade_vh_map(vh_node);
+		upgrade_vh_xml(vh_node);
 	}
 	upgrade_chain_access("request"_CS, node);
 	upgrade_chain_access("response"_CS, node);
 	auto vhs = kconfig::find_child(node->get_first(), _KS("vhs"));
 	if (vhs) {
-		upgrade_vh_map(vhs);
+		upgrade_vh_xml(vhs);
 	}
 	return true;
 }
