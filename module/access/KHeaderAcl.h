@@ -28,8 +28,7 @@ public:
 	KHeaderAcl() {
 		nc = true;
 	}
-	virtual ~KHeaderAcl() {
-	}
+	virtual ~KHeaderAcl() {}
 	void get_html(KModel* model, KWStream& s) override {
 		s << "attr:<input name=header value='";
 		KHeaderAcl* urlAcl = (KHeaderAcl*)(model);
@@ -37,7 +36,7 @@ public:
 			s << urlAcl->header;
 		}
 		s << "'>";
-		s << "val:<input name=val value='";
+		s << "val:<input name='" << khttpd::KXmlNodeBody::text_as_attribute_name << "' value = '";
 		if (urlAcl) {
 			s << urlAcl->reg.getModel();
 		}
@@ -53,7 +52,7 @@ public:
 	bool match_header(KHttpHeader* next) {
 		while (next) {
 			if (kgl_is_attr(next, header.c_str(), header.size())) {
-				if (reg.match(next->buf+next->val_offset, next->val_len, 0) >= 0) {
+				if (reg.match(next->buf + next->val_offset, next->val_len, 0) >= 0) {
 					return true;
 				}
 			}
@@ -71,13 +70,16 @@ public:
 		auto attribute = xml->attr();
 		header = attribute["header"];
 		nc = attribute["nc"] == "1";
-		reg.setModel(attribute["val"].c_str(), nc ? PCRE_CASELESS : 0);
-		regLen = strlen(reg.getModel());
+		auto text = xml->get_text();
+		if (!text.empty()) {
+			reg.setModel(text.c_str(), nc ? PCRE_CASELESS : 0);
+		} else if (!attribute["val"].empty()) {
+			reg.setModel(attribute["val"].c_str(), nc ? PCRE_CASELESS : 0);
+		}
 	}
 private:
 	KString header;
 	KReg reg;
-	int regLen;
 	bool nc;
 };
 
@@ -87,9 +89,8 @@ public:
 	KHeaderMapAcl() {
 
 	}
-	virtual ~KHeaderMapAcl() {
-	}
-	void get_html(KModel* model,KWStream &s) override {
+	virtual ~KHeaderMapAcl() {}
+	void get_html(KModel* model, KWStream& s) override {
 		s << "name:<input name=name value='";
 		KHeaderMapAcl* urlAcl = (KHeaderMapAcl*)(model);
 		if (urlAcl) {
@@ -98,8 +99,7 @@ public:
 		s << "'>value:";
 		KMultiAcl::get_html(model, s);
 	}
-	KAcl* new_instance() override
-	{
+	KAcl* new_instance() override {
 		return new KHeaderMapAcl;
 	}
 	const char* getName() override {
@@ -126,7 +126,7 @@ public:
 		auto attribute = xml->attr();
 		name = attribute["name"];
 		KMultiAcl::parse_config(xml);
-	}	
+	}
 private:
 	KString name;
 
