@@ -240,7 +240,16 @@ void upgrade_vh_xml(khttpd::KXmlNode* node) {
 			new_node_body->attributes.emplace("file", index_file);
 		}
 	}
-
+	for (auto it = attr.begin(); it != attr.end(); ) {
+		if (strncasecmp((*it).first.c_str(), _KS("error_")) == 0) {
+			auto new_node_body = kconfig::new_child(node_body, _KS("error"));
+			new_node_body->attributes.emplace("code", (*it).first.c_str() + 6);
+			new_node_body->attributes.emplace("file", (*it).second);
+			it = attr.erase(it);
+		} else {
+			++it;
+		}
+	}
 	auto it = kconfig::find_first_child(node_body, "map"_CS);
 	if (!it) {
 		return;
