@@ -983,7 +983,7 @@ namespace kconfig {
 		return it->value();
 	}
 	KMapNode<khttpd::KXmlNode>* find_first_child(const khttpd::KXmlNodeBody* node, const kgl_ref_str_t& a) {
-		khttpd::KXmlKeyTag tag(kstring_refs(&a), 0);
+		khttpd::KXmlKeyTag tag(&a, 0);
 		auto it = qname_config.find(&a);
 		if (it) {
 			tag.tag_id = it->value()->tag_id;

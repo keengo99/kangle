@@ -110,7 +110,7 @@ namespace kconfig {
 	public:
 		KConfigTree(KConfigTree* parent, khttpd::KXmlKey* a) :KConfigTree(parent, a->tag, a->vary,a->tag_id) {
 		}
-		KConfigTree(KConfigTree* parent, const kgl_ref_str_t* tag, const kgl_ref_str_t* vary, uint32_t tag_id) :key(kstring_refs(tag), kstring_refs(vary),tag_id) {
+		KConfigTree(KConfigTree* parent, const kgl_ref_str_t* tag, const kgl_ref_str_t* vary, uint32_t tag_id) :key(tag, vary, tag_id) {
 			this->parent = parent;
 			init();
 		}
