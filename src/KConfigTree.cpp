@@ -1021,7 +1021,7 @@ namespace kconfig {
 		}
 		auto xml = khttpd::KSafeXmlNode(new khttpd::KXmlNode(key_tag, key_vary, key_tag_id));
 		if (tag && key_vary) {
-			xml->attributes().emplace(kstring_refs(tag->vary), kstring_refs(key_vary));
+			xml->attributes().emplace(tag->vary,key_vary);
 		}
 		return xml;
 	}
