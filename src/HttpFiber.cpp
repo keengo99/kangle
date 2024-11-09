@@ -737,7 +737,7 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj) {
 	{
 		if (rq->ctx.left_read > 0) {
 			kbuf header_buffer;
-			kbuf* buf = kbuf_init_read(obj->data->bodys, (int)start, &header_buffer);
+			const kbuf* buf = kbuf_seek(obj->data->bodys, (int)start, &header_buffer);
 			assert(buf);
 			if (!buf) {
 				result = KGL_EDATA_FORMAT;
