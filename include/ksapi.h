@@ -556,7 +556,7 @@ typedef struct _kgl_socket_client_function
 	int (*readv)(KSOCKET_CLIENT s, WSABUF* bufs, int bc);
 	int (*writev)(KSOCKET_CLIENT s, WSABUF* bufs, int bc);
 	bool (*read_full)(KSOCKET_CLIENT s, char* buf, int* len);
-	bool (*writev_full)(KSOCKET_CLIENT s, WSABUF* bufs, int* bc);
+	size_t (*writev_full)(KSOCKET_CLIENT s, WSABUF* bufs, int* bc);
 	KSELECTOR(*get_selector)(KSOCKET_CLIENT s);
 	void(*set_opaque)(KSOCKET_CLIENT s, KOPAQUE data);
 	KOPAQUE(*get_opaque)(KSOCKET_CLIENT s);

@@ -45,7 +45,7 @@ kgl_socket_client_function tcp_socket_provider = {
 	(int (*)(KSOCKET_CLIENT, WSABUF* , int))kfiber_net_readv,
 	(int (*)(KSOCKET_CLIENT, WSABUF* , int))kfiber_net_writev,
 	(bool (*)(KSOCKET_CLIENT, char* , int*))kfiber_net_read_full,
-	(bool (*)(KSOCKET_CLIENT, WSABUF* , int *))kfiber_net_writev_full,	
+	(size_t (*)(KSOCKET_CLIENT, WSABUF* , int *))kfiber_net_writev_full,
 	tcp_get_selector,
 	tcp_set_opaque,
 	tcp_get_opaque,
