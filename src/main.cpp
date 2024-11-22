@@ -720,7 +720,7 @@ void clean_process(int pid) {
 }
 
 static int Usage(bool only_version = false) {
-	printf(PROGRAM_NAME "/" VERSION "(%s) build with support:"
+	printf(PROGRAM_NAME "/" VERSION "(%s) build feature:"
 #ifdef KSOCKET_IPV6
 		" ipv6"
 #endif
@@ -782,6 +782,7 @@ static int Usage(bool only_version = false) {
 		" malloc-debug"
 #endif
 		"\n", getServerType());
+	printf("build time: " __DATE__ " " __TIME__ "\n");
 	printf("async event: %s %s\n", selector_manager_event_name(), kfiber_powered_by());
 	printf("pcre version: %s\n", pcre_version());
 #ifdef KSOCKET_SSL
