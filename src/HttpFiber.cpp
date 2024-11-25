@@ -702,7 +702,6 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj) {
 		}
 		defer(kfiber_file_close(file););
 		int buf_size = conf.io_buffer;
-		char* buffer;
 		if (rq->ctx.body.f->support_sendfile(rq->ctx.body.ctx)) {
 			result = rq->ctx.body.f->sendfile(rq->ctx.body.ctx, file, &rq->ctx.left_read);
 			break;
@@ -712,21 +711,20 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj) {
 			result = KGL_EIO;
 			break;
 		}
-		buffer = (char*)aio_alloc_buffer(buf_size);
+		kgl_auto_aio_buffer buffer((char*)aio_alloc_buffer(buf_size));
 		if (!buffer) {
 			result = KGL_ENO_MEMORY;
 			break;
 		}
-		defer(aio_free_buffer(buffer););
 		while (rq->ctx.left_read > 0) {
-			int got = kfiber_file_read(file, buffer, (int)(KGL_MIN(rq->ctx.left_read, (INT64)buf_size)));
+			int got = kfiber_file_read(file, buffer.get(), (int)(KGL_MIN(rq->ctx.left_read, (INT64)buf_size)));
 			if (got <= 0) {
 				result = KGL_EIO;
 				break;
 			}
 			assert(got <= rq->ctx.left_read && got <= buf_size);
 			rq->ctx.left_read -= got;
-			result = rq->ctx.body.f->write(rq->ctx.body.ctx, kfiber_file_adjust(file, buffer), got);
+			result = rq->ctx.body.f->write(rq->ctx.body.ctx, kfiber_file_adjust(file, buffer.get()), got);
 			if (result != KGL_OK) {
 				break;
 			}

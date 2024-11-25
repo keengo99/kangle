@@ -129,23 +129,22 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_input_strea
 		return body.f->close(body.ctx, KGL_EIO);
 	}
 	int buf_size = conf.io_buffer;
-	char* buf = (char*)aio_alloc_buffer(buf_size);
-	if (buf == NULL) {
+	kgl_auto_aio_buffer buf((char *)aio_alloc_buffer(buf_size));
+	if (!buf) {
 		return body.f->close(body.ctx, KGL_ENO_MEMORY);
 	}
 	while (rq->ctx.left_read > 0) {
 		int len = (int)KGL_MIN(rq->ctx.left_read, (INT64)buf_size);
-		int read_len = kfiber_file_read(fp, buf, len);
+		int read_len = kfiber_file_read(fp, buf.get(), len);
 		if (read_len <= 0) {
 			result = KGL_EIO;
 			break;
 		}
-		result = body.f->write(body.ctx, kfiber_file_adjust(fp, buf), read_len);
+		result = body.f->write(body.ctx, kfiber_file_adjust(fp, buf.get()), read_len);
 		if (result != KGL_OK) {
 			break;
 		}
 		rq->ctx.left_read -= read_len;
 	}
-	aio_free_buffer(buf);
 	return body.f->close(body.ctx, result);
 }
