@@ -328,8 +328,7 @@ kgl_auto_cstr KHttpObject::get_filename(bool part)
 void KHttpObject::write_file_header(KHttpObjectFileHeader* dci_header)
 {
 	memset(dci_header, 0, sizeof(KHttpObjectFileHeader));
-	kgl_memcpy(dci_header->fix_str, CACHE_FIX_STR, sizeof(CACHE_FIX_STR));
-
+	kgl_memcpy(dci_header->fix_str, CACHE_FIX_STR, sizeof(dci_header->fix_str));
 	kgl_memcpy(&dci_header->dbi.index, &index, sizeof(HttpObjectIndex));
 	dci_header->dbi.url_flag_encoding = uk.url->flag_encoding;
 
