@@ -135,7 +135,7 @@ void on_io_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 		auto& attr = ev->get_xml()->attributes();
 		conf.worker_io = attr.get_int("worker", 2);
 		conf.max_io = attr.get_int("max", 0);
-		conf.io_buffer = attr.get_int("buffer", 262144);
+		conf.io_buffer = get_size(attr.get_string("buffer", "256K"));
 	}
 	conf.io_buffer = kgl_align(conf.io_buffer, 1024);
 	if (conf.ioWorker == NULL) {
