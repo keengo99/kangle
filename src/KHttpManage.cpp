@@ -1415,6 +1415,25 @@ bool KHttpManage::start_access(bool& hit) {
 		}
 		return sendRedirect(accesslist.c_str());
 	}
+	if (strcmp(rq->sink->data.url->path, "/accesschangefirst") == 0) {
+		KStringBuf path;
+		KStringBuf file;
+		if (vh && vh->has_user_access()) {
+			vh->get_access_file(file);
+		}
+		if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
+			path << "vh@" << vh_name << "/";
+		}
+		path << access->get_qname();
+		auto xml = kconfig::new_xml(access->get_qname());
+		KAccess::build_action_attribute(xml->attributes(), urlValue);
+		if (!file.empty()) {
+			kconfig::update(file.str().str(), path.str().str(), 0, xml.get(), kconfig::EvUpdate|kconfig::FlagCopyChilds|kconfig::FlagCreate);
+		} else {
+			kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvUpdate|kconfig::FlagCopyChilds|kconfig::FlagCreate);
+		}
+		return sendRedirect(accesslist.c_str());
+	}
 	if (strcmp(rq->sink->data.url->path, "/delchain") == 0) {
 		KStringBuf path;
 		auto file = getUrlValue("file");

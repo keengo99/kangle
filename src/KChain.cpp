@@ -198,18 +198,9 @@ void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 }
 khttpd::KSafeXmlNode KChain::to_xml(KUrlValue& uv) {
 	auto xml = kconfig::new_xml("chain"_CS);
-	KStringBuf action;
-	action << uv.attribute["jump_type"];
-	if (uv.attribute["jump_type"] == "server") {
-		action << ":" << uv.attribute["server"];
-	} else if (uv.attribute["jump_type"] == "table") {
-		action << ":" << uv.attribute["table"];
-	} else if (uv.attribute["jump_type"] == "wback") {
-		action << ":" << uv.attribute["wback"];
-	}
-	xml->attributes().emplace("action"_CS, action.str());
+	KAccess::build_action_attribute(xml->attributes(), uv);
 	for (auto it = uv.subs.begin(); it != uv.subs.end(); ++it) {
-		if (strncmp((*it).first.c_str(), _KS("acl_"))==0) {
+		if (strncmp((*it).first.c_str(), _KS("acl_")) == 0) {
 			auto acl = (*it).second->to_xml(_KS("acl"));
 			acl->attributes().emplace("module"_CS, (*it).first.substr(4));
 			xml->insert(acl.get(), khttpd::last_pos);
@@ -217,7 +208,7 @@ khttpd::KSafeXmlNode KChain::to_xml(KUrlValue& uv) {
 			auto mark = (*it).second->to_xml(_KS("mark"));
 			mark->attributes().emplace("module"_CS, (*it).first.substr(5));
 			xml->insert(mark.get(), khttpd::last_pos);
-		}	
+		}
 	}
 	return xml;
 }

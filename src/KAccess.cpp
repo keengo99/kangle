@@ -496,7 +496,7 @@ kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo
 	if (begin) {
 		jumpType = begin->match(rq, obj, checked_table, jump, fo);
 		if (fo) {
-			if (KBIT_TEST(fo->flags,KGL_UPSTREAM_BEFORE_CACHE)) {
+			if (KBIT_TEST(fo->flags, KGL_UPSTREAM_BEFORE_CACHE)) {
 				return JUMP_DENY;
 			}
 			return JUMP_ALLOW;
@@ -578,13 +578,19 @@ KString KAccess::htmlAccess(const char* vh) {
 		"	window.location='tablerename?vh=" << vh << "&access_type='+access_type+'&name_from='+name_from+'&name_to='+tbl;"
 		"}"
 		"</script>";
-	s << "<div>";
-	s << "ref:" << katom_get((void*)&ref) << " ";
+	s << "<span>";
+	s << "<form action='/accesschangefirst?access_type=" << type << "&vh=" << vh << "' method=post name=accessaddform>";
+	s << LANG_REFS << ":" << katom_get((void*)&ref) << " ";
 	s << (type == REQUEST ? klang["lang_requestAccess"] : klang["lang_responseAccess"]) << " " << LANG_ACCESS_FIRST << ":";
+	s << "</span>";
 	{
+
 		auto locker = read_lock();
-		buildChainAction(default_jump_type, default_jump, s);
-		s << "</div>";
+
+		htmlChainAction(s, default_jump_type, default_jump.get(), false, "");
+		s << "<input type=submit value='" << LANG_CHANGE_FIRST_ACCESS << "'></form>";
+		//buildChainAction(default_jump_type, default_jump, s);
+
 		s << "[<a href=\"javascript:tableadd()\">" << LANG_ADD << LANG_TABLE << "</a>]<br><br>";
 		for (auto it = tables.begin(); it != tables.end(); ++it) {
 			s << "<div>";
@@ -767,14 +773,6 @@ void KAccess::htmlChainAction(KWStream& s, kgl_jump_type jump_type, KJump* jump,
 		s << " value='return' name=jump_type>" << klang["return"];
 		jump_value++;
 	}
-	if (type == RESPONSE || !isGlobal()) {
-		s << "\n<input type=radio ";
-		if (jump_type == JUMP_ALLOW) {
-			s << "checked";
-		}
-		s << " value='allow' name=jump_type>" << LANG_ALLOW;
-		jump_value++;
-	}
 	//CONTINUE
 	if (showTable) {
 		s << "\n<input type=radio ";
@@ -783,6 +781,13 @@ void KAccess::htmlChainAction(KWStream& s, kgl_jump_type jump_type, KJump* jump,
 		}
 		s << " value='continue' name=jump_type>\n"
 			<< klang["LANG_CONTINUE"];
+		jump_value++;
+	} else {
+		s << "\n<input type=radio ";
+		if (jump_type == JUMP_ALLOW) {
+			s << "checked";
+		}
+		s << " value='allow' name=jump_type>" << LANG_ALLOW;
 		jump_value++;
 	}
 	std::vector<KString> table_names;
@@ -793,12 +798,14 @@ void KAccess::htmlChainAction(KWStream& s, kgl_jump_type jump_type, KJump* jump,
 #endif
 
 	if (type == REQUEST) {
+#ifdef HTTP_PROXY
 		s << "<input type=radio ";
 		if (jump_type == JUMP_PROXY) {
 			s << "checked";
 		}
 		s << " value='proxy' name=jump_type>" << klang["proxy"];
 		jump_value++;
+#endif
 		table_names.clear();
 		table_names = conf.gam->getAcserverNames(false);
 		htmlRadioAction(s, &jump_value, jump_type, jump, JUMP_SERVER, "server", table_names);
@@ -997,4 +1004,16 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 	}
 	}
 	return true;
+}
+void KAccess::build_action_attribute(KXmlAttribute& attribute, const KUrlValue& uv) {
+	KStringBuf action;
+	action << uv.attribute["jump_type"];
+	if (uv.attribute["jump_type"] == "server") {
+		action << ":" << uv.attribute["server"];
+	} else if (uv.attribute["jump_type"] == "table") {
+		action << ":" << uv.attribute["table"];
+	} else if (uv.attribute["jump_type"] == "wback") {
+		action << ":" << uv.attribute["wback"];
+	}
+	attribute.emplace("action"_CS, action.str());
 }

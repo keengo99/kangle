@@ -30,6 +30,7 @@
 #include "KConfigTree.h"
 #include "KSharedObj.h"
 #include "KNamedModel.h"
+#include "KUrlValue.h"
 
 #define BEGIN_TABLE	"BEGIN"
 #define REQUEST		0
@@ -88,11 +89,11 @@ public:
 		parse_module_config(m.get(), xml);
 		return m;
 	}
-	const char* get_qname() {
+	kgl_ref_str_t get_qname() {
 		if (type == 0) {
-			return "request";
+			return "request"_CS;
 		}
-		return "response";
+		return "response"_CS;
 	}
 	void parse_config(const KXmlAttribute& attr);
 	bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) override;
@@ -121,6 +122,7 @@ public:
 	static std::map<KString, KMark*> mark_factorys[2];
 	static bool addAclModel(u_short type, KAcl* acl, bool replace = false);
 	static bool addMarkModel(u_short type, KMark* acl, bool replace = false);
+	static void build_action_attribute(KXmlAttribute& attribute, const KUrlValue& uv);
 private:
 	~KAccess();
 	void inter_destroy();
