@@ -193,6 +193,8 @@ void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 			klog(KLOG_ERR, "unknow qname [%s] in chain\n", node->get_tag().c_str());
 		}
 	}
+	acls.shrink_to_fit();
+	marks.shrink_to_fit();
 }
 khttpd::KSafeXmlNode KChain::to_xml(KUrlValue& uv) {
 	auto xml = kconfig::new_xml("chain"_CS);

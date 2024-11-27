@@ -24,7 +24,7 @@
 #include "KHttpRequest.h"
 #include "KSharedObj.h"
 #include "lang.h"
-#include <list>
+#include <vector>
 #include "kmalloc.h"
 #include "KUrlValue.h"
 
@@ -94,7 +94,7 @@ private:
 	uint32_t hit_count;
 	kgl_jump_type jump_type;
 	KSafeJump jump;
-	std::list<KAcl*> acls;
-	std::list<KMark*> marks;
+	std::vector<KAcl*> acls;
+	std::vector<KMark*> marks;
 };
 #endif /*KCHAIN_H_*/
