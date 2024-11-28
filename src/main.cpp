@@ -596,26 +596,31 @@ void sigcatch(int sig) {
 }
 void set_user() {
 #if	!defined(_WIN32)
-	if (conf.run_user.size() > 0) {
+	if (!conf.run_user.empty()) {
 		int uid, gid;
 		if (getuid() != 0) {
 			fprintf(stderr, "I am not root user,cann't run as user[%s]\n", conf.run_user.c_str());
-			return;
 		}
 		bool result = name2uid(conf.run_user.c_str(), uid, gid);
 		if (!result) {
 			klog(KLOG_ERR, "cann't find run_as user [%s]\n", conf.run_user.c_str());
 		}
-		if (result && conf.run_group.size() > 0) {
+		if (result && !conf.run_group.empty()) {
 			result = name2gid(conf.run_group.c_str(), gid);
 			if (!result) {
 				klog(KLOG_ERR, "cann't find run_as group [%s]\n", conf.run_group.c_str());
 			}
 		}
 		if (result) {
-			chown(conf.tmppath.c_str(), uid, gid);
-			setgid(gid);
-			setuid(uid);
+			if (chown(conf.tmppath.c_str(), uid, gid)!=0) {
+				klog(KLOG_ERR,"cann't chown tmp path [%s]\n",conf.tmppath.c_str());
+			}
+			if (setgid(gid)!=0) {
+				klog(KLOG_ERR,"setgid to [%d] error\n",gid);
+			}
+			if (setuid(uid)!=0) {
+				klog(KLOG_ERR,"setuid to [%d] error\n",uid);
+			}
 		}
 
 	}
@@ -1274,7 +1279,9 @@ void StartAll() {
 	init_signal();
 #ifndef _WIN32
 	if (!nodaemon && m_debug == 0) {
-		daemon(1, 0);
+		if (daemon(1, 0)!=0) {
+			klog(KLOG_ERR,"daemon error [%d]\n",errno);
+		}
 	}
 	save_pid();
 	if (!nofork) {

@@ -245,7 +245,9 @@ done:
 				bool token_result = false;
 				Token_t token = ds->getToken(token_result);
 				if (token_result && token) {
-					chown(dst_tmp.c_str(), token[0], token[1]);
+					if (chown(dst_tmp.c_str(), token[0], token[1])!=0) {
+						klog(KLOG_ERR, "chown dst_tmp [%s] error\n", dst_tmp.c_str());
+					}
 				}
 			}
 			result = (0 == rename(dst_tmp.c_str(), dst_file_name.get()));

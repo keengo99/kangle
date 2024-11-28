@@ -204,7 +204,7 @@ bool KApiRedirect::load()
 		dso.path = apiFile;
 		dso.buildin = 1;
 		type = WORK_TYPE_MT;
-		if(strcasecmp(apiFile.c_str()+8,"whm")==0) {
+		if(strcasecmp(apiFile.c_str(),"buildin:whm")==0) {
 #ifdef WHM_MODULE
 			strcpy(dso.apiInfo,"whm");
 			dso.GetExtensionVersion = Whm_GetExtensionVersion;
