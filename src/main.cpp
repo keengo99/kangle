@@ -995,6 +995,9 @@ int parse_args(int argc, char** argv) {
 		if (get_param(argc, argv, i, "-h", NULL)) {
 			return Usage();
 		}
+		if (get_param(argc, argv, i, "-v", NULL)) {
+			return Usage(true);
+		}
 		if (get_param(argc, argv, i, "--worker_index", tmp)) {
 			worker_index = atoi(tmp);
 			continue;
