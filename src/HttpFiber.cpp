@@ -488,7 +488,7 @@ bool check_request_final_source(KHttpRequest* rq, RequestError* error) {
 		//postmap
 		if (htresponse) {
 			KSafeSource fo;
-			if (!rq->ctx.internal && htresponse->access[RESPONSE]->checkPostMap(rq, rq->ctx.obj, fo) == JUMP_DENY) {
+			if (!rq->ctx.internal && htresponse->access[RESPONSE]->check_post_map(rq, rq->ctx.obj, fo) == JUMP_DENY) {
 				if (KBIT_TEST(rq->ctx.filter_flags, RQ_SEND_AUTH)) {
 					error->code = AUTH_STATUS_CODE;
 					error->msg = "";
@@ -516,7 +516,7 @@ bool check_request_final_source(KHttpRequest* rq, RequestError* error) {
 				return false;
 			}
 		}
-		if (kaccess[RESPONSE]->checkPostMap(rq, rq->ctx.obj, fo) == JUMP_DENY) {
+		if (kaccess[RESPONSE]->check_post_map(rq, rq->ctx.obj, fo) == JUMP_DENY) {
 			if (KBIT_TEST(rq->ctx.filter_flags, RQ_SEND_AUTH)) {
 				error->code = AUTH_STATUS_CODE;
 				error->msg = "";

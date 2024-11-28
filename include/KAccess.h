@@ -100,7 +100,7 @@ public:
 	kgl_jump_type check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo);
 	void add_chain_form(KWStream& s, const char* vh, const KString& table_name, const KString& file, uint16_t index, size_t id, bool add);
 	//POSTMAP 只在RESPONSE里有效，在映射完物理文件后调用
-	kgl_jump_type checkPostMap(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo);
+	kgl_jump_type check_post_map(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo);
 	static void loadModel();
 public:
 	uint8_t get_type() {

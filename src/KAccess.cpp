@@ -398,7 +398,7 @@ void KAccess::loadModel() {
 	addMarkModel(RESPONSE, new KMarkMark());
 	addMarkModel(REQUEST_RESPONSE, new KConnectionCloseMark());
 }
-kgl_jump_type KAccess::checkPostMap(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
+kgl_jump_type KAccess::check_post_map(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 	auto lock = read_lock();
 	if (!post_map) {
 		return JUMP_ALLOW;

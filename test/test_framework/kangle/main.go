@@ -163,13 +163,15 @@ mBktbUKiCi0n5NrLYQFnSLMAmGtn8stH+rSmB9pvk/YlSXbtRhmoeltO+WOx8i+4
 		panic(err.Error())
 	}
 }
-func Prepare(kangle_path string, only_prepare bool) {
-	fmt.Printf("prepare kangle_path [%v] test_base_path=[%v] for test.\n", kangle_path, config.Cfg.BasePath)
+func Mkdir() {
 	os.Mkdir(config.Cfg.BasePath+"/etc", 0755)
 	os.Mkdir(config.Cfg.BasePath+"/var", 0755)
 	os.Mkdir(config.Cfg.BasePath+"/ext", 0755)
 	os.Mkdir(config.Cfg.BasePath+"/bin", 0755)
 	os.Mkdir(config.Cfg.BasePath+"/www/dav", 0755)
+}
+func Prepare(kangle_path string, only_prepare bool) {
+	fmt.Printf("prepare kangle_path [%v] test_base_path=[%v] for test.\n", kangle_path, config.Cfg.BasePath)
 	kangleCommand = config.Cfg.BasePath + "/bin/kangle" + common.ExeExtendFile()
 	common.CopyFile(kangle_path+"/kangle"+common.ExeExtendFile(), kangleCommand)
 	common.CopyFile(kangle_path+"/extworker"+common.ExeExtendFile(), config.Cfg.BasePath+"/bin/extworker"+common.ExeExtendFile())

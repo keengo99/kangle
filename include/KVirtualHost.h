@@ -140,7 +140,7 @@ public:
 		if (!access[RESPONSE]) {
 			return JUMP_ALLOW;
 		}
-		return access[RESPONSE]->checkPostMap(rq, rq->ctx.obj, fo);
+		return access[RESPONSE]->check_post_map(rq, rq->ctx.obj, fo);
 	}
 	KString user_access;
 #endif

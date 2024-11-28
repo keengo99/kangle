@@ -45,8 +45,8 @@ func ProcessSuites(suites []string) {
 			kangle.Close()
 		}
 	}()
+	kangle.Mkdir()
 	suite.Init(suites)
-
 	if *malloc_debug {
 		kangle.CreateMainConfig(1)
 	} else {
