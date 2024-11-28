@@ -1,7 +1,6 @@
 package kangle
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -203,9 +202,8 @@ func GetCompileOptions(cfg *config.KangleCompileOptions) error {
 		return err
 	}
 	defer cmd.Wait()
-
-	buf := bufio.NewReader(stdout)
-	feature, err := buf.ReadString('\n')
+	buf, err := io.ReadAll(stdout)
+	feature := string(buf)
 	if err != nil && err != io.EOF {
 		return err
 	}
