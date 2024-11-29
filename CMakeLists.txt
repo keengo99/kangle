@@ -193,10 +193,10 @@ if (NOT HTTP_PROXY)
     target_link_directories(filter PUBLIC ${KANGLE_LIBS_DIR})
     target_link_libraries(filter ${FILTER_LIBS} khttpd)
 
-    install(TARGETS extworker vhs_sqlite
-     RUNTIME DESTINATION bin 
-     LIBRARY DESTINATION bin
-     )
+    install(TARGETS extworker vhs_sqlite filter
+        RUNTIME DESTINATION bin 
+        LIBRARY DESTINATION bin
+    )
 endif()
 add_subdirectory(module/webdav)
 add_subdirectory(test/test_child)
