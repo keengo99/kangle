@@ -19,9 +19,13 @@ int skip_access_request(void* arg, int got) {
 	rq->EndRequest();
 	return 0;
 }
+static void release_simulate_request(KHttpRequest* rq) {
+	delete rq->sink;
+	delete rq;
+}
 static int simuate_start_fiber(void* arg, int got) {
 	KHttpRequest* rq = (KHttpRequest*)arg;
-	defer(delete rq);
+	defer(release_simulate_request(rq));
 	if (rq->ctx.skip_access) {
 		return skip_access_request(rq, got);
 	}
