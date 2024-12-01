@@ -87,6 +87,17 @@ public:
 		}
 		return length;
 	}
+	int write_all(const kbuf* buf, int length) override {
+		while (length > 0) {
+			int send_size = KGL_MIN(length, buf->used);
+			if (write_all(buf->data, send_size)!=0) {
+				break;
+			}
+			length -= send_size;
+			buf = buf->next;
+		}
+		return length;
+	}
 	bool get_self_addr(sockaddr_i *addr) override
 	{
 		kgl_memcpy(addr, &cn->addr, sizeof(sockaddr_i));
