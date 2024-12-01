@@ -106,7 +106,6 @@ public:
 	uint8_t get_type() {
 		return type;
 	}
-	static int32_t ShutdownMarkModule();
 	void setChainAction(kgl_jump_type& jump_type, KSafeJump& jump, const KString& name);
 	bool parseChainAction(const KString& action, kgl_jump_type& jumpType, KString& jumpName);
 	static void buildChainAction(kgl_jump_type jumpType, const KSafeJump& jump, KWStream& s);

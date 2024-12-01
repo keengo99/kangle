@@ -96,22 +96,30 @@ void KChain::get_edit_html(KWStream& s, u_short accessType) {
 void KChain::getModelHtml(KModel* model, KWStream& s, int type, int index) {
 	s << "<tr><td><input type=hidden name='begin_sub_form' value='"
 		<< (type == 0 ? "acl_"_CS : "mark_"_CS)
-		<< model->getName()
-		<< "'>";
-
-	s << "<input type = checkbox name = 'or' value = '1' ";
-	if (model->is_or) {
-		s << "checked";
-	}
-	s << ">OR";
-	s << "<input type=checkbox name='revers' value='1' ";
-	if (model->revers) {
-		s << "checked";
-	}
-	s << ">NOT";
+		<< model->getName() << "'>";
 	s << "[<a href=\"javascript:delmodel('" << index << "'," << type << ");\">del</a>]";
-	s << model->getName() << "</td><td>";
-	model->get_html(model, s);
+	if (model->named.empty()) {
+		s << "<input type = checkbox name = 'or' value = '1' ";
+		if (model->is_or) {
+			s << "checked";
+		}
+		s << ">OR";
+		s << "<input type=checkbox name='revers' value='1' ";
+		if (model->revers) {
+			s << "checked";
+		}
+		s << ">NOT ";
+		s << model->getName();
+	} else {
+		s << "named:" << model->named;
+	}
+	s << "</td><td>";
+	if (model->named.empty()) {
+		model->get_html(model, s);
+	} else {
+		s << "<input type='hidden' name='ref' value='" << model->named << "'/>";
+		s << "named model do not support";
+	}
 	s << "<input type=hidden name='end_sub_form' value='1'></td></tr>\n";
 }
 void KChain::get_acl_short_html(KWStream& s) {
@@ -151,43 +159,45 @@ void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 	for (auto node : xml->childs) {
 		if (node->is_tag(_KS("acl"))) {
 			for (auto&& body : node->body) {
-				auto model_name = body->attributes["module"];
-				if (model_name.empty()) {
-					auto ref = body->attributes["ref"];
-					if (ref) {
-						auto m = access->get_named_acl(ref);
-						if (m) {
-							acls.push_back(m.release());
-						}
+				auto ref = body->attributes["ref"];
+				if (ref) {
+					auto m = access->get_named_acl(ref);
+					if (m) {
+						acls.push_back(m.release());
 					}
-					continue;
+				} else {
+					auto model_name = body->attributes["module"];
+					if (!model_name) {
+						continue;
+					}
+					auto m = access->new_acl(model_name, body);
+					if (!m) {
+						continue;
+					}
+					parse_module_child_config(m.get(), body->childs);
+					acls.push_back(m.release());
 				}
-				auto m = access->new_acl(model_name, body);
-				if (!m) {
-					continue;
-				}
-				parse_module_child_config(m.get(), body->childs);
-				acls.push_back(m.release());
 			}
 		} else if (node->is_tag(_KS("mark"))) {
 			for (auto&& body : node->body) {
-				auto model_name = body->attributes["module"];
-				if (model_name.empty()) {
-					auto ref = body->attributes["ref"];
-					if (ref) {
-						auto m = access->get_named_mark(ref);
-						if (m) {
-							marks.push_back(m.release());
-						}
+				auto ref = body->attributes["ref"];
+				if (ref) {
+					auto m = access->get_named_mark(ref);
+					if (m) {
+						marks.push_back(m.release());
 					}
-					continue;
+				} else {
+					auto model_name = body->attributes["module"];
+					if (!model_name) {
+						continue;
+					}
+					auto m = access->new_mark(model_name, body);
+					if (!m) {
+						continue;
+					}
+					parse_module_child_config(m.get(), body->childs);
+					marks.push_back(m.release());
 				}
-				auto m = access->new_mark(model_name, body);
-				if (!m) {
-					continue;
-				}
-				parse_module_child_config(m.get(), body->childs);
-				marks.push_back(m.release());
 			}
 		} else {
 			klog(KLOG_ERR, "unknow qname [%s] in chain\n", node->get_tag().c_str());

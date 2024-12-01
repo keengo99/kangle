@@ -67,12 +67,32 @@ namespace kconfig {
 			if (!kfiber_file_read_full(fp, buf.get(), &size)) {
 				return nullptr;
 			}
+			file->set_remove_flag(false);
+			char* hot = buf.get();
+			while (*hot && isspace((unsigned char)*hot)) {
+				hot++;
+			}
+			uint32_t id = default_file_index;
+			if (strncmp(hot, "<!--#", 5) == 0) {
+				hot += 5;
+				if (strncmp(hot, "stop", 4) == 0) {
+					/*
+					 * 扩展没有启动
+					 */
+					id = 0;
+					file->set_index(0);
+					return nullptr;
+				} else if (strncmp(hot, "start", 5) == 0) {
+					hot += 6;
+					id = atoi(hot);
+				}
+			}
+			file->set_index(id);
 			KExtConfigDynamicString ds(file->get_filename()->data);
 			ds.dimModel = false;
 			ds.blockModel = false;
 			ds.envChar = '%';
 			auto content = ds.parseDirect(buf.get());
-			file->set_remove_flag(false);
 			return parse_xml(content.get());
 		}
 		KFileModified get_last_modified(KConfigFile* file) override {
@@ -689,6 +709,7 @@ namespace kconfig {
 		update(std::move(tree_node));
 		return true;
 	}
+#if 0
 	uint16_t KConfigFile::load_index() {
 		auto fp = kfiber_file_open(get_filename()->data, fileRead, KFILE_ASYNC);
 		if (!fp) {
@@ -723,6 +744,7 @@ namespace kconfig {
 		set_index(id);
 		return id;
 	}
+#endif
 	KConfigFileSourceDriver* KConfigFile::get_source_driver() const {
 		return sources[static_cast<int>(source)];
 	}
@@ -830,7 +852,13 @@ namespace kconfig {
 	KConfigListen* remove_listen(const char* name, size_t size) {
 		return events.remove(name, size);
 	}
-
+	class config_prepare_parse {
+	public:
+		config_prepare_parse(khttpd::KSafeXmlNode&& body, KSafeConfigFile&& cfg) : body{ body }, cfg{ cfg } {
+		}
+		khttpd::KSafeXmlNode body;
+		KSafeConfigFile cfg;
+	};
 	class KConfigScanInfoProvider : public KConfigFileScanInfo
 	{
 	public:
@@ -857,6 +885,11 @@ namespace kconfig {
 				}
 			}
 			if (cfg_file->last_modified != last_modified) {
+				auto xml = cfg_file->load();
+				prepare_files.emplace(std::piecewise_construct,
+					std::forward_as_tuple(cfg_file->get_index()), std::forward_as_tuple(std::move(xml), 
+					KSafeConfigFile(cfg_file->add_ref())));
+				/*
 				//changed
 				auto index = cfg_file->load_index();
 				if (index == 0) {
@@ -864,11 +897,13 @@ namespace kconfig {
 				}
 				//auto info = std::unique_ptr<KConfigFileInfo>(new KConfigFileInfo(KSafeConfigFile(cfg_file->add_ref()), last_modified));
 				files.emplace(index, KSafeConfigFile(cfg_file->add_ref()));
+				*/
 			} else {
 				cfg_file->set_remove_flag(false);
 			}
 		}
-		std::multimap<uint16_t, KSafeConfigFile> files;
+		//std::multimap<uint16_t, KSafeConfigFile> files;
+		std::multimap<uint16_t, config_prepare_parse> prepare_files;
 		KConfigFileSource current_source;
 	};
 	bool reload_config(const kgl_ref_str_t* name, bool force) {
@@ -916,9 +951,10 @@ namespace kconfig {
 				}
 			}
 		}
-		for (auto&& info : provider.files) {
-			klog(KLOG_ERR, "load config file [%s] index=[%d]\n", info.second->get_filename()->data, info.first);
-			info.second->reload(false);
+		for (auto&& info : provider.prepare_files) {
+			klog(KLOG_ERR, "load config file [%s] index=[%d]\n", info.second.cfg->get_filename()->data, info.first);
+			info.second.cfg->update(info.second.body);
+			//info.second->reload(false);
 		}
 		config_files.iterator([](void* data, void* arg) {
 			KConfigFile* file = (KConfigFile*)data;

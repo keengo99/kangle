@@ -106,6 +106,5 @@ kgl_access kgl_post_file_model = {
 	build,
 	parse,
 	NULL,
-	process,
-	NULL
+	process
 };

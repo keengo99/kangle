@@ -244,9 +244,9 @@ void checkMemoryLeak() {
 }
 int shutdown_fiber(void* arg, int got) {
 	quit_program_flag = PROGRAM_QUIT_IMMEDIATE;
-	KAccess::ShutdownMarkModule();
+	//dso_shutdown_callback();
+	kconfig::shutdown();
 	cache.shutdown_disk(true);
-
 	//conf.gvm->UnBindGlobalListens(conf.service);
 	conf.gvm->shutdown();
 	conf.default_cache = 0;
@@ -269,7 +269,6 @@ int shutdown_fiber(void* arg, int got) {
 		conf.dem->shutdown();
 	}
 	accessLogger.close();
-	kconfig::shutdown();
 	klog(KLOG_ERR, "shutdown\n");
 	errorLogger.close();
 	singleProgram.deletePid();
@@ -286,19 +285,33 @@ int shutdown_fiber(void* arg, int got) {
 void shutdown_safe_process() {
 	exit(0);
 }
-void create_shutdown_fiber() {
+
+void shutdown_all() {
 	/**
-	* we sure call shutdown function use fiber.
+	* be sure call shutdown_fiber safely from everywhere.
 	*/
 	quit_program_flag = PROGRAM_QUIT_IMMEDIATE;
-	kselector* selector = get_selector_by_index(0);
-	kfiber_create2(selector, shutdown_fiber, NULL, 0, 0, NULL);
+	if (kgl_get_tls_selector() != NULL) {
+		if (kfiber_is_main()) {
+			// from main selector call
+			kfiber_create(shutdown_fiber, NULL, 0, 0, NULL);
+		} else {
+			// from fiber call
+			shutdown_fiber(NULL, 0);
+		}
+		return;
+	}
+	/* from other thread call */
+	kfiber* fiber = NULL;
+	kfiber_create_sync(shutdown_fiber, NULL, 0, 0, &fiber);
+	int ret;
+	kfiber_join(fiber, &ret);
 }
 void shutdown_signal(int sig) {
 #ifndef _WIN32
 	/**
-	* on unix from signal do not call any function. only can set flag.
-	* this cause main selector call create_shutdown_fiber.
+	* on unix signal handler do not call any function. only can set flag.
+	* this cause main selector call shutdown_all.
 	*/
 	if (workerProcess.empty()) {
 		if (quit_program_flag > 0) {
@@ -313,7 +326,7 @@ void shutdown_signal(int sig) {
 	}
 	return;
 #endif
-	create_shutdown_fiber();
+	shutdown_all();
 }
 
 #ifdef _WIN32

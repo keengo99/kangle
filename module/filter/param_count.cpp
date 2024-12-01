@@ -120,6 +120,5 @@ kgl_access kgl_param_count_model = {
 	build,
 	parse,
 	NULL,
-	process,
-	NULL
+	process
 };

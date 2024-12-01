@@ -35,6 +35,10 @@ static int tcp_connect(KSOCKET_CLIENT s, const char* local_ip, uint16_t local_po
 	}
 	return kfiber_net_connect(c, bind_address, 0);
 }
+static bool tcp_support_sendfile(KSOCKET_CLIENT s) {
+	kconnection* c = (kconnection*)s;
+	return selectable_support_sendfile(&c->st);
+}
 kgl_socket_client_function tcp_socket_provider = {
 	kfiber_net_getaddr,
 	kgl_addr_release,
@@ -42,14 +46,16 @@ kgl_socket_client_function tcp_socket_provider = {
 	(KSOCKET_CLIENT(*)(const struct sockaddr*, socklen_t))kconnection_new3,
 	(KSOCKET_CLIENT(*)(struct addrinfo* ai, uint16_t port))kconnection_new2,
 	tcp_connect,
-	(int (*)(KSOCKET_CLIENT, WSABUF* , int))kfiber_net_readv,
-	(int (*)(KSOCKET_CLIENT, WSABUF* , int))kfiber_net_writev,
+	(int (*)(KSOCKET_CLIENT, kgl_iovec * , int))kfiber_net_readv,
+	(int (*)(KSOCKET_CLIENT, kgl_iovec* , int))kfiber_net_writev,
 	(bool (*)(KSOCKET_CLIENT, char* , int*))kfiber_net_read_full,
-	(size_t (*)(KSOCKET_CLIENT, WSABUF* , int *))kfiber_net_writev_full,
+	(size_t (*)(KSOCKET_CLIENT, kgl_iovec* , int *))kfiber_net_writev_full,
 	tcp_get_selector,
 	tcp_set_opaque,
 	tcp_get_opaque,
 	(void(*)(KSOCKET_CLIENT))selectable_shutdown,
 	(void(*)(KSOCKET_CLIENT))kconnection_destroy,
+	tcp_support_sendfile,
+	(int (*)(KSOCKET_CLIENT,KASYNC_FILE, int))kfiber_sendfile
 };
 

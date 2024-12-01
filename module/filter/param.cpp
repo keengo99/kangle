@@ -219,6 +219,5 @@ kgl_access kgl_param_model = {
 	build,
 	parse,
 	NULL,
-	process,
-	NULL
+	process
 };

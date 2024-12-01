@@ -237,7 +237,7 @@ namespace kconfig {
 		}
 		bool reload(bool force);
 		bool reload(const char* str, size_t len);
-		uint16_t load_index();
+		//uint16_t load_index();
 		void set_index(uint16_t index) {
 			this->index = index;
 		}

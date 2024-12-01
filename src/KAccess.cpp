@@ -148,16 +148,6 @@ void bind_access_config(kconfig::KConfigTree* tree, KAccess* access) {
 	}
 	return;
 }
-
-int32_t KAccess::ShutdownMarkModule() {
-	int32_t result = 0;
-	for (int i = 0; i < 2; i++) {
-		for (auto it = KAccess::mark_factorys[i].begin(); it != mark_factorys[i].end(); ++it) {
-			result += (*it).second->shutdown();
-		}
-	}
-	return result;
-}
 KAccess::KAccess(bool is_global, uint8_t type) {
 	rwlock = kfiber_rwlock_init();
 	default_jump_type = JUMP_ALLOW;
@@ -937,7 +927,8 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 			if (!m) {
 				return false;
 			}
-			auto result = this->named_acls.insert(std::make_pair(xml->attributes()["name"], KSafeNamedModel(new KNamedModel(std::move(m)))));
+			auto name = xml->attributes()["name"];
+			auto result = this->named_acls.insert(std::make_pair(name, KSafeNamedModel(new KNamedModel(name, std::move(m)))));
 			if (result.second) {
 				tree->bind(result.first->second->add_ref());
 			}
@@ -949,7 +940,8 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 			if (!m) {
 				return false;
 			}
-			auto result = this->named_marks.insert(std::make_pair(xml->attributes()["name"], KSafeNamedModel(new KNamedModel(std::move(m)))));
+			auto name = xml->attributes()["name"];
+			auto result = this->named_marks.insert(std::make_pair(name, KSafeNamedModel(new KNamedModel(name, std::move(m)))));
 			if (result.second) {
 				tree->bind(result.first->second->add_ref());
 			}

@@ -6,7 +6,6 @@
 
 KGL_RESULT global_support_function(PVOID ctx, DWORD req, PVOID data, PVOID *ret);
 KGL_RESULT global_get_variable(PVOID ctx, KGL_GVAR type, const char *name, LPVOID lpvBuffer, LPDWORD lpdwSize);
-
 typedef BOOL(*kgl_dso_init_f)(kgl_dso_version *ver);
 
 typedef BOOL(*kgl_dso_finit_f)(int32_t flags);

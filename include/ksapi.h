@@ -512,7 +512,7 @@ typedef struct _kgl_access
 	KGL_RESULT(*parse_config)(kgl_access_parse_config *parse_ctx);
 	KGL_RESULT(*parse_child)(kgl_access_parse_child *parse_ctx);
 	uint32_t(*process)(KREQUEST rq, kgl_access_context* ctx, DWORD notify);
-	void (*init_shutdown)(void* ctx, bool is_shutdown);
+	//void (*init_shutdown)(void* ctx, bool is_shutdown);
 } kgl_access;
 
 struct _kgl_upstream
@@ -545,6 +545,7 @@ typedef struct _kgl_vary
 	bool (*build)(kgl_vary_context* ctx, const char* value);
 	bool (*response)(kgl_vary_context* ctx, const char* value);
 } kgl_vary;
+
 typedef struct _kgl_socket_client_function
 {
 	int (*resolv)(const char* host, kgl_addr** addr);
@@ -553,15 +554,17 @@ typedef struct _kgl_socket_client_function
 	KSOCKET_CLIENT(*create)(const struct sockaddr* addr, socklen_t addr_len);
 	KSOCKET_CLIENT(*create2)(struct addrinfo* ai, uint16_t port);
 	int (*connect)(KSOCKET_CLIENT s, const char* local_ip, uint16_t local_port);
-	int (*readv)(KSOCKET_CLIENT s, WSABUF* bufs, int bc);
-	int (*writev)(KSOCKET_CLIENT s, WSABUF* bufs, int bc);
+	int (*readv)(KSOCKET_CLIENT s, kgl_iovec* bufs, int bc);
+	int (*writev)(KSOCKET_CLIENT s, kgl_iovec* bufs, int bc);
 	bool (*read_full)(KSOCKET_CLIENT s, char* buf, int* len);
-	size_t (*writev_full)(KSOCKET_CLIENT s, WSABUF* bufs, int* bc);
+	size_t (*writev_full)(KSOCKET_CLIENT s, kgl_iovec* bufs, int* bc);
 	KSELECTOR(*get_selector)(KSOCKET_CLIENT s);
 	void(*set_opaque)(KSOCKET_CLIENT s, KOPAQUE data);
 	KOPAQUE(*get_opaque)(KSOCKET_CLIENT s);
 	void(*shutdown)(KSOCKET_CLIENT s);
 	void(*close)(KSOCKET_CLIENT s);
+	bool (*support_sendfile)(KSOCKET_CLIENT s);
+	int (*sendfile)(KSOCKET_CLIENT cn, KASYNC_FILE file, int length);
 } kgl_socket_client_function;
 
 typedef struct _kgl_file_function

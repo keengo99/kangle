@@ -60,6 +60,7 @@ public:
 	bool revers;
 	bool is_or;
 	bool isGlobal;
+	KString named;
 protected:
 	volatile uint32_t ref;
 	virtual ~KModel() {

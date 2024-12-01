@@ -27,9 +27,6 @@ class KMark : public KModel
 public:
 	KMark() {
 	}
-	virtual int32_t shutdown() {
-		return 0;
-	}
 	virtual KMark* new_instance() = 0;
 	/* return KF_STATUS_REQ_FALSE, KF_STATUS_REQ_TRUE,KF_STATUS_REQ_FINISHED */
 	virtual uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) = 0;

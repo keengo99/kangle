@@ -1481,7 +1481,9 @@ bool KHttpManage::start_access(bool& hit) {
 			path << "#"_CS << id << (mark ? "/mark"_CS : "/acl"_CS);
 			KStringBuf url;
 			auto acl_xml = kconfig::new_xml(mark ? "mark"_CS : "acl"_CS);
-			acl_xml->attributes().emplace("module"_CS, getUrlValue("modelname"));
+			if (getUrlValue("ref").empty()) {
+				acl_xml->attributes().emplace("module"_CS, getUrlValue("modelname"));
+			}
 			auto result = kconfig::update(file.str(), path.str().str(), (uint32_t)urlValue.attribute.get_int("model"), acl_xml.get(), kconfig::EvNew);
 			url << "/editchainform?access_type=" << getUrlValue("access_type")
 				<< "&table_name=" << getUrlValue("table_name")

@@ -114,6 +114,9 @@ public:
 	{
 
 	}
+	void end_request() override {
+		
+	}
 	http_header_hook header;
 	http_header_finish_hook header_finish;
 	http_post_hook post;

@@ -3,7 +3,7 @@
 volatile char cachedDateTime[sizeof("Mon, 28 Sep 1970 06:00:00 GMT")+2];
 volatile char cachedLogTime[sizeof("[28/Sep/1970:12:00:00 +0600]")+2];
 KMutex timeLock;
-extern void create_shutdown_fiber();
+extern void shutdown_all();
 void kgl_update_http_time()
 {
 	timeLock.Lock();
@@ -16,6 +16,6 @@ void kgl_update_http_time()
 		configReload = false;
 	}
 	if (unlikely(quit_program_flag == PROGRAM_QUIT_PREPARE)) {
-        create_shutdown_fiber();
+        shutdown_all();
     }
 }

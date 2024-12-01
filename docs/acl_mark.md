@@ -1,9 +1,9 @@
 # acl和mark模块
-acl可以认为是匹配模块,mark是标记模块
-各acl或mark模块可以使用
-* `named_acl`和`named_mark`,用于定义命名模块,可用于一些共享模块,用以共享数据.父元素可以是`request`或`response`
-* `acl`和`mark` 用于匿名模块,或引用命名模块,父元素是`chain`
-* `module` 属性用于指示模块.或者`ref`用于引用命名模块.
+acl和mark知识要点:
+* acl是匹配模块,mark是标记模块
+* `named_acl`和`named_mark`定义命名模块,可用于一些共享模块,用以共享数据.父元素可以是`request`或`response`
+* `acl`和`mark` 定义匿名模块(使用`module`属性),或引用命名模块(使用`ref`属性),父元素是`chain`,`acl`和`mark`可以使用`or`和 `revers` 控制逻辑匹配
+* `module` 属性用于指示模块. 或者`ref`用于引用命名模块.
 * 用户可使用 `dso` 开发自定义的`acl`或`mark`模块.
 
 ## 内置acl匹配模块

@@ -88,8 +88,7 @@ static kgl_access footer_model = {
 	build,
 	parse,
 	NULL,
-	process,
-	NULL
+	process
 };
 void register_access(kgl_dso_version *ver)
 {	

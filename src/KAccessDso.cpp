@@ -9,13 +9,6 @@
 #include "KSimulateRequest.h"
 
 #ifdef ENABLE_KSAPI_FILTER
-kev_result next_dso_init(KOPAQUE data, void* arg, int got)
-{
-	KAccessDsoMark* mark = (KAccessDsoMark*)arg;
-	mark->Init();
-	mark->release();
-	return kev_ok;
-}
 static int write_int(void* server_ctx, int value)
 {
 	KWStream * s = (KWStream *)server_ctx;
@@ -103,22 +96,6 @@ kgl_config_node_f kgl_config_node_func = {
 	get_body,
 	new_body
 };
-void KAccessDso::Init()
-{
-	if (access->init_shutdown == NULL) {
-		return;
-	}
-	access->init_shutdown(ctx.module, false);
-	return;
-}
-int32_t KAccessDso::shutdown()
-{
-	if (access->init_shutdown == NULL) {
-		return 0;
-	}
-	access->init_shutdown(ctx.module, true);
-	return 0;
-}
 uint32_t KAccessDso::process(KHttpRequest* rq, KAccessContext* cn, DWORD notify)
 {
 	kgl_access_context ar_ctx;
@@ -171,12 +148,5 @@ void KAccessDso::build(uint32_t type, KWStream& s)
 	builder.write_int = write_int;
 	access->build(&builder, type);
 	return;
-}
-void KAccessDsoMark::init_event()
-{
-	if (ad->access->init_shutdown) {
-		kgl_selector_module.next(get_selector_by_index(0), NULL, next_dso_init, this, 0);
-		this->add_ref();
-	}
 }
 #endif
