@@ -114,7 +114,7 @@ KGL_RESULT global_support_function(
 		KDsoRedirect* rd = new KDsoRedirect("", ctx->us);
 		KRedirectSource* fo = rd->makeFetchObject(rq, ctx->us_ctx);
 		fo->bind_base_redirect(new KBaseRedirect(rd, KConfirmFile::Never));
-		//KBIT_SET(ctx->us->flags, KGL_UPSTREAM_FINAL_SOURCE);
+		KBIT_CLR(fo->flags, KGL_UPSTREAM_FILTER);
 		rq->append_source(fo);
 		return (KGL_RESULT)kgl_simuate_start_as_new_fiber(rq, (kfiber **)ret);
 	}
