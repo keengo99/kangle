@@ -11,9 +11,15 @@
 #include "kfiber.h"
 #ifdef ENABLE_SIMULATE_HTTP
 class KHttpRequest;
-KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx);
-int kgl_start_simulate_request(KHttpRequest *rq, kfiber** fiber = NULL);
-int kgl_simuate_http_request(kgl_async_http *ctx, kfiber** fiber = NULL);
+using simulate_request = KHttpRequest;
+simulate_request *kgl_create_simulate_request(kgl_async_http *ctx);
+int kgl_simuate_http_request(kgl_async_http* ctx, kfiber** fiber = NULL);
+/* will start as new fiber and free rq auto */
+int kgl_simuate_start_as_new_fiber(simulate_request*rq, kfiber** fiber = NULL);
+/* will start and free rq auto */
+int kgl_simuate_start_fiber(simulate_request* rq);
+void kgl_simulate_free(simulate_request* rq);
+
 class KSimulateSink : public KSingleConnectionSink
 {
 public:

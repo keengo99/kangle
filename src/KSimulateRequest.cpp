@@ -19,21 +19,22 @@ int skip_access_request(void* arg, int got) {
 	rq->EndRequest();
 	return 0;
 }
-static void release_simulate_request(KHttpRequest* rq) {
+void kgl_simulate_free(simulate_request* rq) {
 	delete rq->sink;
 	delete rq;
 }
-static int simuate_start_fiber(void* arg, int got) {
-	KHttpRequest* rq = (KHttpRequest*)arg;
-	defer(release_simulate_request(rq));
+int kgl_simuate_start_fiber(simulate_request* rq) {
+	defer(kgl_simulate_free(rq));
 	if (rq->ctx.skip_access) {
-		return skip_access_request(rq, got);
+		return skip_access_request(rq, 0);
 	}
 	//TODO: do not support now.
 	assert(false);
 	return -1;
 }
-
+static int simuate_start_fiber(void* arg, int got) {
+	return kgl_simuate_start_fiber((simulate_request*)arg);
+}
 KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 {
 	if (ctx->post_len > 0 && ctx->post == NULL) {
@@ -128,17 +129,21 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 	ss->start(0);
 	return rq;
 }
-int kgl_start_simulate_request(KHttpRequest *rq,kfiber **fiber)
+int kgl_simuate_start_as_new_fiber(simulate_request*rq,kfiber **fiber)
 {
-	return kfiber_create(simuate_start_fiber, rq, 0, http_config.fiber_stack_size, fiber);
+	int ret = kfiber_create(simuate_start_fiber, rq, 0, http_config.fiber_stack_size, fiber);
+	if (ret!=0) {
+		kgl_simulate_free(rq);
+	}
+	return ret;
 }
 int kgl_simuate_http_request(kgl_async_http *ctx,kfiber **fiber)
 {
-	KHttpRequest *rq = kgl_create_simulate_request(ctx);
+	simulate_request *rq = kgl_create_simulate_request(ctx);
 	if (rq == NULL) {
 		return -1;
 	}
-	return kgl_start_simulate_request(rq,fiber);
+	return kgl_simuate_start_as_new_fiber(rq,fiber);
 }
 int WINAPI test_header_hook(void *arg,int code,KHttpHeader *header)
 {

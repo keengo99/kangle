@@ -116,7 +116,7 @@ KGL_RESULT global_support_function(
 		fo->bind_base_redirect(new KBaseRedirect(rd, KConfirmFile::Never));
 		//KBIT_SET(ctx->us->flags, KGL_UPSTREAM_FINAL_SOURCE);
 		rq->append_source(fo);
-		return (KGL_RESULT)kgl_start_simulate_request(rq, (kfiber **)ret);
+		return (KGL_RESULT)kgl_simuate_start_as_new_fiber(rq, (kfiber **)ret);
 	}
 	case KGL_REQ_ASYNC_HTTP:
 	{
