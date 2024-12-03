@@ -1009,3 +1009,25 @@ void KAccess::build_action_attribute(KXmlAttribute& attribute, const KUrlValue& 
 	}
 	attribute.emplace("action"_CS, action.str());
 }
+KSafeAcl KAccess::get_named_acl(const KString& name) {
+	auto it = named_acls.find(name);
+	if (it == named_acls.end()) {
+		if (this != kaccess[type] && name[0] == '_') {
+			//try find global named_acl
+			return kaccess[type]->get_named_acl(name);
+		}
+		return nullptr;
+	}
+	return (*it).second->as_acl();
+}
+KSafeMark KAccess::get_named_mark(const KString& name) {
+	auto it = named_marks.find(name);
+	if (it == named_marks.end()) {
+		if (this != kaccess[type] && name[0] == '_') {
+			//try find global named_mark
+			return kaccess[type]->get_named_mark(name);
+		}
+		return nullptr;
+	}
+	return (*it).second->as_mark();
+}

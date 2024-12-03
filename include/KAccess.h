@@ -127,20 +127,8 @@ private:
 	void inter_destroy();
 	void htmlChainAction(KWStream& s, kgl_jump_type jump_type, KJump* jump, bool showTable, const KString& skipTable);
 	void htmlRadioAction(KWStream& s, kgl_jump_type* jump_value, int jump_type, KJump* jump, int my_jump_type, const KString& my_type_name, std::vector<KString>& table_names);
-	KSafeAcl get_named_acl(const KString& name) {
-		auto it = named_acls.find(name);
-		if (it == named_acls.end()) {
-			return nullptr;
-		}
-		return (*it).second->as_acl();
-	}
-	KSafeMark get_named_mark(const KString& name) {
-		auto it = named_marks.find(name);
-		if (it == named_marks.end()) {
-			return nullptr;
-		}
-		return (*it).second->as_mark();
-	}
+	KSafeAcl get_named_acl(const KString& name);
+	KSafeMark get_named_mark(const KString& name);
 	KFiberReadLocker read_lock() {
 		return KFiberReadLocker(rwlock);
 	}
