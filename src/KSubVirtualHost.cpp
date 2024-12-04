@@ -308,6 +308,13 @@ void KSubVirtualHost::set_doc_root(const char* doc_root, const char* dir) {
 	KFileName::tripDir3(this->doc_root, PATH_SPLIT_CHAR);
 }
 kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest* rq, KHttpObject* obj, bool& exsit, KApacheHtaccessContext& htctx, KSafeSource& fo) {
+#ifdef _WIN32
+	int path_len = (int)strlen(rq->sink->data.url->path);
+	char* c = rq->sink->data.url->path + path_len - 1;
+	if (*c == '.' || *c == ' ') {
+		return JUMP_DENY;
+	}
+#endif
 	if (doc_root == NULL) {
 		return JUMP_DENY;
 	}
@@ -316,13 +323,6 @@ kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest* rq, KHttpObject* obj, bool
 	switch (type) {
 	case subdir_type::subdir_local:
 	{
-#ifdef _WIN32
-		int path_len = (int)strlen(rq->sink->data.url->path);
-		char* c = rq->sink->data.url->path + path_len - 1;
-		if (*c == '.' || *c == ' ') {
-			return JUMP_DENY;
-		}
-#endif
 		if (!rq->ctx.internal && !vh->htaccess.empty()) {
 			char* path = xstrdup(rq->sink->data.url->path);
 			int prefix_len = 0;
