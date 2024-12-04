@@ -41,6 +41,7 @@ func (b *base) Init() error {
 	server.Handle("/broken_cache", HandleBrokenCache)
 	server.Handle("/upstream_http_protocol", HandleUpstreamHttpProtocol)
 	server.Handle("/flush", HandleFlush)
+	server.Handle("/self_addr", handle_self_addr)
 	str := `<!--#start 200-->
 <config>
 	<request>
@@ -173,5 +174,6 @@ func init() {
 	s.AddCase("config", "check config reload", check_config)
 	s.AddCase("flush", "upstream flush", check_flush)
 	s.AddCase("big_request_header", "big http11 request header", check_big_request_header)
+	s.AddCase("config_server", "config server changed", check_config_server)
 	s.AddCase("bug", "bug", check_bug)
 }
