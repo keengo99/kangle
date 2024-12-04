@@ -84,7 +84,7 @@ public:
 #endif
 	std::vector<KString> getAcserverNames(bool onlyHttp);
 	std::vector<KString> getAllTarget();
-	bool new_server(bool overFlag, KXmlAttribute& attr, KString& err_msg);
+	bool new_server(bool is_update, KXmlAttribute& attr, KString& err_msg);
 #ifdef ENABLE_VH_RUN_AS
 	bool cmdForm(KXmlAttribute& attribute, KString& errMsg);
 	KCmdPoolableRedirect* newCmdRedirect(std::map<KString, KString>& attribute,

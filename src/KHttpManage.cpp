@@ -1640,7 +1640,7 @@ bool KHttpManage::start(bool& hit) {
 #ifdef ENABLE_MULTI_SERVER
 	if (strcmp(rq->sink->data.url->path, "/macserveradd") == 0) {
 		KString err_msg;
-		bool edit = getUrlValue("action") == "edit";
+		bool edit = urlValue.attribute.remove("action") == "edit";
 		if (conf.gam->new_server(edit, urlValue.attribute, err_msg)) {
 			return sendRedirect("/macserver");
 		}

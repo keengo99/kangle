@@ -689,6 +689,7 @@ void KMultiAcserver::parse(KXmlAttribute& attribute) {
 	set_proto(KPoolableRedirect::parseProto(attribute["proto"].c_str()));
 	setErrorTryTime(atoi(attribute["max_error_count"].c_str()), atoi(attribute["error_try_time"].c_str()));
 }
+#if 0
 bool KMultiAcserver::delNode(int nodeIndex) {
 	bool result = false;
 	lock.Lock();
@@ -719,6 +720,7 @@ bool KMultiAcserver::delNode(int nodeIndex) {
 	lock.Unlock();
 	return result;
 }
+#endif
 void KMultiAcserver::buildVNode() {
 	vnodes.clear();
 	bnodes.clear();

@@ -60,7 +60,7 @@ public:
 #endif
 	void setErrorTryTime(int max_error_count,int errorTryTime);
 	static void nodeForm(KWStream &s, const KString &name,KMultiAcserver *as,unsigned nodeIndex);
-	bool delNode(int nodeIndex);
+	//bool delNode(int nodeIndex);
 	bool isChanged(KPoolableRedirect *rd) override;
 	void buildVNode();
 	void set_proto(Proto_t proto) override;

@@ -52,7 +52,7 @@ void on_server_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEve
 }
 #ifdef ENABLE_VH_RUN_AS
 void KAcserverManager::on_cmd_event(kconfig::KConfigTree* tree, const khttpd::KXmlNode* xml, kconfig::KConfigEventType ev) {
-	auto &attr = xml->attributes();
+	auto& attr = xml->attributes();
 	auto name = attr["name"];
 	switch (ev) {
 	case kconfig::EvNew | kconfig::EvSubDir: {
@@ -200,7 +200,7 @@ void KAcserverManager::on_server_event(kconfig::KConfigTree* tree, const khttpd:
 		}
 		break;
 	}
-	case kconfig::EvUpdate | kconfig::EvSubDir:		
+	case kconfig::EvUpdate | kconfig::EvSubDir:
 		if (tree->ls) {
 			//multi server
 			KMultiAcserver* mserver = static_cast<KMultiAcserver*>(tree->ls);
@@ -226,7 +226,7 @@ void KAcserverManager::on_server_event(kconfig::KConfigTree* tree, const khttpd:
 	case kconfig::EvRemove | kconfig::EvSubDir:
 	{
 		auto ls = tree->unbind();
-		if (ls!=nullptr) {
+		if (ls != nullptr) {
 			KMultiAcserver* mserver = static_cast<KMultiAcserver*>(ls);
 			defer(mserver->release());
 			assert(mserver->name == name);
@@ -235,14 +235,14 @@ void KAcserverManager::on_server_event(kconfig::KConfigTree* tree, const khttpd:
 			if (it != mservers.end()) {
 				mservers.erase(it);
 				mserver->release();
-			}		
+			}
 		} else {
 			auto locker = get_wlocker();
 			auto it = acservers.find(name);
 			if (it != acservers.end()) {
 				(*it).second->release();
 				acservers.erase(it);
-			}			
+			}
 		}
 		break;
 	}
@@ -252,8 +252,7 @@ void KAcserverManager::on_server_event(kconfig::KConfigTree* tree, const khttpd:
 	return;
 }
 
-KAcserverManager::KAcserverManager() {
-}
+KAcserverManager::KAcserverManager() {}
 void KAcserverManager::shutdown() {
 	killAllProcess(NULL);
 	lock.WLock();
@@ -350,7 +349,7 @@ int KAcserverManager::getCmdPortMap(KVirtualHost* vh, KString cmd, KString name,
 }
 #endif
 //}}
-void KAcserverManager::getProcessInfo(KWStream & s) {
+void KAcserverManager::getProcessInfo(KWStream& s) {
 	lock.RLock();
 	std::map<KString, KCmdPoolableRedirect*>::iterator it;
 	for (it = cmds.begin(); it != cmds.end(); it++) {
@@ -366,7 +365,7 @@ void KAcserverManager::clearImportConfig() {
 
 }
 #ifdef ENABLE_MULTI_SERVER
-void KAcserverManager::macserverList(KWStream &s,const KString& name) {
+void KAcserverManager::macserverList(KWStream& s, const KString& name) {
 	KMultiAcserver* m_a = NULL;
 	std::map<KString, KMultiAcserver*>::iterator it;
 	lock.RLock();
@@ -401,7 +400,7 @@ void KAcserverManager::macserverList(KWStream &s,const KString& name) {
 		}
 	}
 	s << "</table>";
-	KMultiAcserver::form(m_a,s);
+	KMultiAcserver::form(m_a, s);
 	lock.RUnlock();
 }
 #endif
@@ -413,12 +412,12 @@ void KAcserverManager::apiList(KWStream& s, const KString& name) {
 	lock.RLock();
 	KApiRedirect* m_a = NULL;
 	for (auto it = apis.begin(); it != apis.end(); it++) {
-		m_a = (*it).second;	
-		s << "<tr bgcolor='white'><td>";		
+		m_a = (*it).second;
+		s << "<tr bgcolor='white'><td>";
 		s << "[<a href=\"javascript:if(confirm('really delete?')){ window.location='/delapi?name=";
 		s << m_a->name << "';}\">" << LANG_DELETE << "</a>]";
 		s << "[<a href='/apilist?action=edit&name=" << m_a->name << "'>" << LANG_EDIT << "</a>]";
-		
+
 		s << "</td>";
 		s << "<td>" << m_a->name << "</td>";
 		s << "<td>" << m_a->apiFile << "</td>";
@@ -463,7 +462,7 @@ bool KAcserverManager::apiForm(KXmlAttribute& attribute,
 	return new_item("api", is_update, attribute, errMsg);
 }
 #ifdef ENABLE_VH_RUN_AS
-void KAcserverManager::cmdList(KWStream &s, const KString& name) {
+void KAcserverManager::cmdList(KWStream& s, const KString& name) {
 	s << "<script language='javascript'>"
 		"function $(id) \n"
 		"{ \n"
@@ -500,13 +499,13 @@ void KAcserverManager::cmdList(KWStream &s, const KString& name) {
 
 		s << "<tr bgcolor='" << color
 			<< "'><td>";
-		
+
 		s << "[<a href=\"javascript:if(confirm('really delete?')){ window.location='/delcmd?name=";
 		s << m_a->name << "';}\">" << LANG_DELETE
 			<< "</a>]";
 		s << "[<a href='/extends?item=3&action=edit&name=" << m_a->name << "'>"
 			<< LANG_EDIT << "</a>]";
-		
+
 		s << "</td>";
 		s << "<td>" << m_a->name << "</td>";
 		s << "<td><div title='" << m_a->cmd << "'>" << m_a->cmd.substr(0, 60) << "</div></td>";
@@ -607,7 +606,7 @@ void KAcserverManager::cmdList(KWStream &s, const KString& name) {
 	lock.RUnlock();
 }
 #endif
-void KAcserverManager::acserverList(KWStream &s, const KString& name) {
+void KAcserverManager::acserverList(KWStream& s, const KString& name) {
 	KSingleAcserver* m_a = NULL;
 	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>"
 		<< LANG_NAME << "</td><td>" << klang["server_type"] << "</td><td>"
@@ -694,28 +693,43 @@ void KAcserverManager::macserver_node_form(KWStream& s, const KString& name,
 	}
 	KMultiAcserver::nodeForm(s, name, as, nodeIndex);
 }
-bool KAcserverManager::macserver_node(
-	KXmlAttribute& attribute, KString& errMsg) {
-	auto name = attribute["name"];
-	auto action = attribute["action"];
-	if (name.size() == 0) {
-		errMsg = "name cann't be zero";
+bool KAcserverManager::macserver_node(KXmlAttribute& attribute, KString& err_msg) {
+	auto name = attribute.remove("name");
+	auto action = attribute.remove("action");
+	if (name.empty()) {
+		err_msg = "name cann't be zero";
 		return false;
 	}
-	lock.WLock();
-	KMultiAcserver* as = getMultiAcserver(name);
-	if (as == NULL) {
-		errMsg = "cann't find server";
-		lock.WUnlock();
-		return false;
-	}
-
+	kconfig::KConfigResult result = kconfig::KConfigResult::ErrUnknow;
 	if (action == "add" || action == "edit") {
-		as->editNode(attribute);
+		KStringBuf s;
+		s << "server" << "@"_CS << name << "/node"_CS;
+		auto xml = kconfig::new_xml(_KS("node"));
+		int id = atoi(attribute.remove("id").c_str());
+		xml->get_first()->attributes.swap(attribute);
+		if (action[0] == 'e') {
+			result = kconfig::update(s.str().str(), id, xml.get(), kconfig::EvUpdate);
+		} else {
+			result = kconfig::update(s.str().str(), 0, xml.get(), kconfig::EvNew);
+		}
 	} else if (action == "delete") {
-		as->delNode(atoi(attribute["id"].c_str()));
+		KStringBuf s;
+		s << "server@" << name << "/node"_CS;
+		result = kconfig::remove(s.str().str(), atoi(attribute["id"].c_str()));
 	}
-	lock.WUnlock();
+	switch (result) {
+	case kconfig::KConfigResult::Success:
+		return true;
+	case kconfig::KConfigResult::ErrSaveFile:
+		err_msg = "cann't save config file";
+		return false;
+	case kconfig::KConfigResult::ErrNotFound:
+		err_msg = "not found";
+		return false;
+	default:
+		err_msg = "unknow";
+		return false;
+	}
 	return true;
 }
 #endif
@@ -786,7 +800,7 @@ KSafeSingleAcserver KAcserverManager::findSingleAcserver(const KString& name) {
 	if (ac == nullptr) {
 		return KSafeSingleAcserver();
 	}
-	return KSafeSingleAcserver(static_cast<KSingleAcserver *>(ac->add_ref()));
+	return KSafeSingleAcserver(static_cast<KSingleAcserver*>(ac->add_ref()));
 }
 KSingleAcserver* KAcserverManager::refsSingleAcserver(const KString& name) {
 	lock.RLock();
@@ -850,11 +864,11 @@ bool KAcserverManager::new_item(
 	auto  name = attr["name"];
 	err_msg = LANG_TABLE_NAME_ERR;
 	kconfig::KConfigResult result;
-	auto xml = kconfig::new_xml(scope.c_str(), scope.size(), name.c_str(), name.size());	
+	auto xml = kconfig::new_xml(scope.c_str(), scope.size(), name.c_str(), name.size());
 	if (!envs.empty()) {
 		char* env = strdup(envs.c_str());
 		defer(free(env));
-		auto env_xml = kconfig::new_xml(_KS("env"));		
+		auto env_xml = kconfig::new_xml(_KS("env"));
 		buildAttribute(env, env_xml->get_last()->attributes);
 		xml->append(env_xml.get());
 	}
