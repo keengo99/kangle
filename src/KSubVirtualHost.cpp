@@ -16,6 +16,7 @@
 #include "kmalloc.h"
 #include "HttpFiber.h"
 #include "KDefer.h"
+#include "KAcserverManager.h"
 std::string htaccess_filename;
 using namespace std;
 iterator_ret subdir_port_map_destroy(void* data, void* argv) {
@@ -90,6 +91,9 @@ void KSubVirtualHost::free_subtype_data() {
 	case subdir_type::subdir_portmap:
 		delete portmap;
 		break;
+	case subdir_type::subdir_redirect:
+		delete sub_rd;
+		break;
 	default:
 		xfree(doc_root);
 	}
@@ -111,16 +115,18 @@ bool KSubVirtualHost::set_ssl_info(const char* crt, const char* key, bool ssl_fr
 	} else if (!isAbsolutePath(key)) {
 		keyfile = vh->doc_root + key;
 	}
-	assert(ssl_ctx == nullptr);
+	if (ssl_ctx) {
+		kgl_release_ssl_ctx(ssl_ctx);
+		ssl_ctx = nullptr;
+	}
 	ssl_ctx = vh->new_ssl_ctx(certfile, keyfile);
-	if (ssl_ctx == NULL) {
+	if (!ssl_ctx) {
 		return false;
 	}
 	if (vh->ssl_ctx == NULL) {
 		vh->cert_file = crt;
 		vh->key_file = key;
 	}
-	this->ssl_from_ext = ssl_from_ext;
 	return true;
 }
 #endif
@@ -167,7 +173,7 @@ bool KSubVirtualHost::setHost(const char* host) {
 	return result;
 }
 /* 如果setHost里面设置了dir信息(|分隔),以setHost的为准 */
-void KSubVirtualHost::setDocRoot(const char* doc_root, const char* dir) {
+void KSubVirtualHost::set_doc_root(const char* doc_root, const char* dir) {
 	free_subtype_data();
 	if (this->dir == nullptr) {
 		if (dir == nullptr) {
@@ -226,6 +232,26 @@ void KSubVirtualHost::setDocRoot(const char* doc_root, const char* dir) {
 		}
 		return;
 	}
+	//subdir_redirect
+	if (strncasecmp(this->dir, "rd://", 5) == 0) {
+		type = subdir_type::subdir_redirect;
+		sub_rd = new SubdirRedirect;
+		char* rd_str = strdup(this->dir + 5);
+		char* rd_ssl = nullptr;
+		char* p = strchr(rd_str, '|');
+		if (p) {
+			*p = '\0';
+			rd_ssl = p + 1;
+		}
+		sub_rd->http_rd = conf.gam->refsAcserver(rd_str);
+		if (rd_ssl) {
+			sub_rd->https_rd = conf.gam->refsAcserver(rd_ssl);
+		} else if (sub_rd->http_rd) {
+			sub_rd->https_rd = static_cast<KRedirect*>(sub_rd->http_rd->add_ref());
+		}
+		free(rd_str);
+		return;
+	}
 	//subdir_server
 	if (strncasecmp(this->dir, "server://", 9) == 0) {
 		type = subdir_type::subdir_server;
@@ -282,18 +308,21 @@ void KSubVirtualHost::setDocRoot(const char* doc_root, const char* dir) {
 	KFileName::tripDir3(this->doc_root, PATH_SPLIT_CHAR);
 }
 kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest* rq, KHttpObject* obj, bool& exsit, KApacheHtaccessContext& htctx, KSafeSource& fo) {
-	//	char *tripedDir = KFileName::tripDir2(rq->sink->data.url->path, '/');
-#ifdef _WIN32
-	int path_len = (int)strlen(rq->sink->data.url->path);
-	char* c = rq->sink->data.url->path + path_len - 1;
-	if (*c == '.' || *c == ' ') {
-		return JUMP_DENY;
-	}
-#endif
 	if (doc_root == NULL) {
 		return JUMP_DENY;
 	}
-	if (type == subdir_type::subdir_local) {
+	KStringBuf tmp_str;
+	const char* proxy = NULL;
+	switch (type) {
+	case subdir_type::subdir_local:
+	{
+#ifdef _WIN32
+		int path_len = (int)strlen(rq->sink->data.url->path);
+		char* c = rq->sink->data.url->path + path_len - 1;
+		if (*c == '.' || *c == ' ') {
+			return JUMP_DENY;
+		}
+#endif
 		if (!rq->ctx.internal && !vh->htaccess.empty()) {
 			char* path = xstrdup(rq->sink->data.url->path);
 			int prefix_len = 0;
@@ -328,8 +357,6 @@ kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest* rq, KHttpObject* obj, bool
 						}
 					}
 				}
-				//todo:check rebind file
-				//	if(filencmp(,rq->sink->data.url->path)
 			}
 			xfree(path);
 		}
@@ -340,57 +367,79 @@ kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest* rq, KHttpObject* obj, bool
 		}
 		bindFile(rq, exsit, false, true);
 		return JUMP_ALLOW;
-	}//end subdir_local
-	if (rq->has_final_source()) {
-		return JUMP_ALLOW;
 	}
-	if (type == subdir_type::subdir_http) {
+	case subdir_type::subdir_http:
+	{
 		if (http->dst->host == NULL) {
 			return JUMP_DENY;
 		}
 		if (*(http->dst->host) == '-') {
 			fo.reset(new KHttpProxyFetchObject());
-			//rq->append_source(new KHttpProxyFetchObject());
 			return JUMP_ALLOW;
 		}
 		const char* tssl = NULL;
-		//{{ent
 #ifdef ENABLE_UPSTREAM_SSL
 		tssl = http->ssl;
 #endif
-		//}}
 		int tport = http->dst->port;
 		if (http->dst->port == 0) {
 			tport = rq->sink->data.url->port;
-			//{{ent
 #ifdef ENABLE_UPSTREAM_SSL
 			if (KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL) && tssl == NULL) {
 				tssl = "s";
 			}
-#endif//}}
+#endif
 		}
 		fo.reset(server_container->get(http->ip, http->dst->host, tport, tssl, http->life_time));
 		return JUMP_ALLOW;
-	}//end subdir_http
-
-	KStringBuf tmp_str;
-	const char* proxy = NULL;
-	if (type == subdir_type::subdir_server) {
+	}
+	case subdir_type::subdir_redirect:
+	{
+		KRedirect* rd = nullptr;
+		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
+			if (sub_rd->https_rd) {
+				rd = static_cast<KRedirect*>(sub_rd->https_rd->add_ref());
+			}
+		} else {
+			if (sub_rd->http_rd) {
+				rd = static_cast<KRedirect*>(sub_rd->http_rd->add_ref());
+			}
+		}
+		if (!rd) {
+			return JUMP_DENY;
+		}
+		KRedirectSource* fo2 = rd->makeFetchObject(rq, rq->file);
+		KBaseRedirect* brd = new KBaseRedirect(rd, KConfirmFile::Never);
+		fo2->bind_base_redirect(brd);
+		fo.reset(fo2);
+		return JUMP_ALLOW;
+	}
+	case subdir_type::subdir_server:
+	{
 		proxy = server->http_proxy;
 		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL) && server->https_proxy) {
 			proxy = server->https_proxy;
 		}
-	} else if (type == subdir_type::subdir_portmap) {
+		break;
+	}
+	case subdir_type::subdir_portmap:
+	{
 		int port = (int)rq->GetSelfPort();
 		if (port == 0) {
 			port = (int)rq->sink->data.url->port;
 		}
 		proxy = portmap->find(port);
+		break;
+	}
 	}
 	if (proxy == NULL) {
 		return JUMP_DENY;
 	}
 	if (*proxy == '/') {
+		/*
+		* upstream is ssl,so same host:port may be not support connection reuse.
+		* sni affect different host use different connection.
+		*/
 		tmp_str << rq->sink->data.url->host << proxy;
 		proxy = tmp_str.c_str();
 	}

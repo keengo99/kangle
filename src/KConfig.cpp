@@ -433,7 +433,7 @@ static void init_config() {
 #endif
 	conf.sysHost->browse = false;
 	KSubVirtualHost* svh = new KSubVirtualHost(conf.sysHost);
-	svh->setDocRoot(conf.sysHost->doc_root.c_str(), "/");
+	svh->set_doc_root(conf.sysHost->doc_root.c_str(), "/");
 #ifdef HTTP_PROXY
 	//add mime type
 	conf.sysHost->addMimeType("gif", "image/gif", kgl_compress_never, 0);

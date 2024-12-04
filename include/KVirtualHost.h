@@ -385,7 +385,14 @@ private:
 	void copy_to(KVirtualHost* vh);
 	KSubVirtualHost* parse_host(const khttpd::KXmlNodeBody* body) {
 		KSubVirtualHost* svh = new KSubVirtualHost(this);
-		svh->setDocRoot(this->doc_root.c_str(), body->attributes("dir", nullptr));
+		svh->set_doc_root(this->doc_root.c_str(), body->attributes("dir", nullptr));
+#ifdef ENABLE_SVH_SSL
+		auto crt = body->attributes["certificate"];
+		auto key = body->attributes["certificate_key"];
+		if (!crt.empty()) {
+			svh->set_ssl_info(crt.c_str(), key.c_str(), true);
+		}
+#endif
 		svh->setHost(body->get_text_cstr(""));
 		return svh;
 	}

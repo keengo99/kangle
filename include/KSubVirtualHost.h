@@ -21,9 +21,9 @@ enum class subdir_type : uint8_t
 	subdir_local,
 	subdir_http,
 	subdir_server,
-	subdir_portmap
+	subdir_portmap,
+	subdir_redirect
 };
-
 class SubdirHttp
 {
 public:
@@ -54,6 +54,23 @@ public:
 	}
 	char* http_proxy;
 	char* https_proxy;
+};
+class SubdirRedirect
+{
+public:
+	SubdirRedirect() {
+		memset(this, 0, sizeof(*this));
+	}
+	~SubdirRedirect() {
+		if (http_rd) {
+			http_rd->release();
+		}
+		if (https_rd) {
+			https_rd->release();
+		}
+	}
+	KRedirect* http_rd;
+	KRedirect* https_rd;
 };
 iterator_ret subdir_port_map_destroy(void* data, void* argv);
 struct subdir_port_map_item
@@ -86,7 +103,7 @@ class KSubVirtualHost : public KHttpOpaque
 {
 public:
 	KSubVirtualHost(KVirtualHost* vh);
-	void setDocRoot(const char* doc_root, const char* dir);
+	void set_doc_root(const char* doc_root, const char* dir);
 #ifdef ENABLE_SVH_SSL
 	bool set_ssl_info(const char* crt, const char* key, bool ssl_from_ext);
 #endif
@@ -105,7 +122,6 @@ public:
 	KVirtualHost* vh;
 	domain_t bind_host;
 	bool wide;
-	bool ssl_from_ext;
 	subdir_type type;
 #ifdef ENABLE_SVH_SSL
 	kgl_ssl_ctx* ssl_ctx;
@@ -118,6 +134,7 @@ public:
 		SubdirHttp* http;
 		SubdirServer* server;
 		SubdirPortMap* portmap;
+		SubdirRedirect* sub_rd;
 	};
 	friend class KVirtualHost;
 private:

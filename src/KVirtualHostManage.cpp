@@ -950,6 +950,10 @@ bool KVirtualHostManage::vh_base_action(KUrlValue& uv, KString& err_msg) {
 			auto xml = kconfig::new_xml("host"_CS);
 			xml->get_first()->set_text(uv.attribute["host"]);
 			xml->attributes().emplace("dir", uv.attribute["dir"]);
+			if (!uv.attribute["certificate"].empty()) {
+				xml->attributes().emplace("certificate", uv.attribute["certificate"]);
+				xml->attributes().emplace("certificate_key", uv.attribute["certificate_key"]);
+			}
 			result = kconfig::update(path.str().str(), khttpd::last_pos, xml.get(), kconfig::EvNew);
 		} else if (action == "host_del") {
 			path << "/host"_CS;

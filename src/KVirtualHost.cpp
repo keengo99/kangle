@@ -219,7 +219,7 @@ void KVirtualHost::get_bind_html(const KString& url, KWStream& s) {
 }
 #endif
 void KVirtualHost::get_host_html(const KString& url, KWStream& s) {
-	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>host</td><td>dir</td></tr>";
+	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>host</td><td>dir</td><td>ssl</td></tr>";
 	int j = 0;
 	for (auto it = hosts.begin(); it != hosts.end(); ++it, ++j) {
 		s << "<tr><td>";
@@ -231,13 +231,23 @@ void KVirtualHost::get_host_html(const KString& url, KWStream& s) {
 				s << ".";
 			}
 		}
-		s << (*it)->host << "</td><td>" << ((*it)->dir ? (*it)->dir : "") << "</td></tr>";
+		s << (*it)->host << "</td><td>" << ((*it)->dir ? (*it)->dir : "") << "</td><td>";
+#ifdef ENABLE_SVH_SSL
+		if ((*it)->ssl_ctx) {
+			s << "ssl ok";
+		}
+#endif
+		s << "</td></tr>";
 	}
 	s << "</table>";
 	s << "<form action='/vhbase?action=host_add&" << url << "' method='post'>";
-	s << "host:<input name='host' value=''>";
-	s << "dir:<input name='dir'><input type='submit' value='" << LANG_ADD << "'>";
-	s << "</form>";
+	s << "<div>host:<input name='host' value=''></div>";
+	s << "<div>dir:<input name='dir'></div>";
+#ifdef ENABLE_SVH_SSL
+	s << "<div>certificate:<input name='certificate'></div>";
+	s << "<div>certificate_key:<input name='certificate_key'></div>";
+#endif
+	s << "<input type='submit' value='" << LANG_ADD << "'></form>";
 }
 void KVirtualHost::closeToken(Token_t token) {
 	if (token == NULL) {
