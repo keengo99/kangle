@@ -46,18 +46,17 @@ KGL_RESULT handle_x_send_file(KHttpRequest* rq, kgl_input_stream* in, kgl_output
 		delete rq->file;
 		rq->file = NULL;
 	}
-	char* filename = rq->map_url_path(xurl, nullptr);
+	kgl_auto_cstr filename = rq->map_url_path(xurl, nullptr);
 	xfree(xurl);
 	rq->clean_obj();
 	rq->ctx.obj = new KHttpObject(rq);
 	//handleXSendfile no cache
 	KBIT_SET(rq->ctx.obj->index.flags, FLAG_DEAD);
-	if (filename == nullptr) {
+	if (!filename) {
 		return send_error2(rq, STATUS_SERVER_ERROR, "X-Accel-Redirect cann't map url");
 	}
 	rq->file = new KFileName;
-	bool result = rq->file->setName(filename);
-	xfree(filename);
+	bool result = rq->file->setName(filename.get());
 	if (!result) {
 		return send_error2(rq, STATUS_NOT_FOUND, "No Such File.");
 	}

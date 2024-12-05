@@ -766,7 +766,7 @@ void KVirtualHostManage::dumpLoad(KVirtualHostEvent* ctx, bool revers, const cha
 			s2 << "0\t0";
 		s2 << "\n";
 	}
-	ctx->add("load", s2.c_str());
+	ctx->data()->add("load", s2.str());
 }
 //extend=4,导出上下行，及缓存流量
 void KVirtualHostManage::dumpFlow(KVirtualHostEvent* ctx, bool revers, const char* prefix, int prefix_len, int extend) {
@@ -826,9 +826,9 @@ void KVirtualHostManage::dumpFlow(KVirtualHostEvent* ctx, bool revers, const cha
 		}
 	}
 #endif
-	ctx->add("flow", s.c_str());
+	ctx->data()->add("flow", s.str());
 	if (extend > 0 && s2.size() > 0) {
-		ctx->add("stat", s2.c_str());
+		ctx->data()->add("stat", s2.str());
 	}
 }
 void KVirtualHostManage::dumpFlow() {

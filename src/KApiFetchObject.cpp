@@ -147,12 +147,11 @@ bool KApiFetchObject::setStatusCode(const char* status, int len) {
 	return true;
 }
 KGL_RESULT KApiFetchObject::map_url_path(const char* url, LPVOID file, LPDWORD file_len) {
-	char* filename = rq->map_url_path(url, this->brd);
-	KGL_RESULT result = set_variable(file, file_len, filename);
-	if (filename) {
-		xfree(filename);
+	kgl_auto_cstr filename = rq->map_url_path(url, this->brd);
+	if (!filename) {
+		return KGL_EINVALID_PARAMETER;
 	}
-	return result;
+	return set_variable(file, file_len, filename.get());
 }
 KGL_RESULT KApiFetchObject::addHeader(const char* attr, int len) {
 	if (len == 0) {

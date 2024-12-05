@@ -743,7 +743,7 @@ std::vector<KString> KAccess::getTableNames(KString skipName, bool global) {
 void KAccess::listTable(KVirtualHostEvent* ctx) {
 	kfiber_rwlock_rlock(rwlock);
 	for (auto it = tables.begin(); it != tables.end(); it++) {
-		ctx->add("table", (*it).first.c_str());
+		ctx->data()->add("table", (*it).first.c_str());
 	}
 	kfiber_rwlock_runlock(rwlock);
 }

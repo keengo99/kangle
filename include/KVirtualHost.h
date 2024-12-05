@@ -272,7 +272,7 @@ public:
 
 #endif
 	bool alias(bool internal, const char* path, KFileName* file, bool& exsit, int flag);
-	char* alias(bool internal, const char* path);
+	kgl_auto_cstr alias(bool internal, const char* path);
 	//用于webdav等应用校验
 	KBaseRedirect* refsPathRedirect(const char* path, int path_len);
 	KFetchObject* findPathRedirect(KHttpRequest* rq, KFileName* file, const char* path,

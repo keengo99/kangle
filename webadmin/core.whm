@@ -23,25 +23,7 @@
 </call>
 <call name='reload_vh' extend='core'>
 </call>
-<call name='reload_vh_access' extend='core'>
-</call>
-<call name='add_index' extend='core'>
-</call>
-<call name='del_index' extend='core'>
-</call>
 <call name='list_index' extend='core'>
-</call>
-<call name='add_error_page' extend='core'>
-</call>
-<call name='del_error_page' extend='core'>
-</call>
-<call name='add_redirect' extend='core'>
-</call>
-<call name='del_redirect' extend='core'>
-</call>
-<call name='add_server' extend='core'>
-</call>
-<call name='del_server' extend='core'>
 </call>
 <call name='kill_process' extend='core'>
 </call>
@@ -53,19 +35,7 @@
 </call>
 <call name='list_table' extend='core'>
 </call>
-<call name='add_table' extend='core'>
-</call>
-<call name='empty_table' extend='core'>
-</call>
-<call name='del_table' extend='core'>
-</call>
 <call name='list_chain' extend='core'>
-</call>
-<call name='add_chain' extend='core'>
-</call>
-<call name='edit_chain' extend='core'>
-</call>
-<call name='del_chain' extend='core'>
 </call>
 <call name='clean_cache' extend='core'>
 </call>

@@ -17,14 +17,69 @@
 #include "whm.h"
 #include "KExtendProgram.h"
 #define OUTPUT_FORMAT_XML   0
-struct WhmAttribute {
-	WhmAttribute()
-	{
-		encode = false;
+#define OUTPUT_FORMAT_JSON  1
+class WhmDataAttribute;
+struct WhmDataValue {
+	WhmDataValue(const KString& value,bool encode) {
+		is_child = false;
+		this->value = new std::vector<KString>{ value };
+		this->encode = encode;
 	}
-	std::string name;
-	std::string value;
+	WhmDataValue();
+	~WhmDataValue();
+	void build(const KString &name,KWStream& s, int format);
+	union {
+		std::vector<KString>* value;
+		WhmDataAttribute* attr;
+	};
+	bool is_child;
 	bool encode;
+};
+class WhmDataAttribute : public KDataAttribute {
+public:
+	void add(const KString& name, const KString& value, bool encode = false) override {
+		auto it = data.find(name);
+		if (it == data.end()) {
+			WhmDataValue* dv = new WhmDataValue(value, encode);
+			data.insert(std::pair<KString, WhmDataValue*>(name, dv));
+			return;
+		}
+		if ((*it).second->is_child) {
+			return;
+		}
+		(*it).second->value->push_back(value);
+	}
+	KDataAttribute* add_child(const KString& name) override {
+		auto it = data.find(name);
+		if (it == data.end()) {
+			WhmDataValue* dv = new WhmDataValue();
+			data.insert(std::pair<KString, WhmDataValue*>(name, dv));
+			return dv->attr;
+		}
+		if (!(*it).second->is_child) {
+			return nullptr;
+		}
+		return (*it).second->attr;
+	}
+	void build(KWStream& s, int format) override {
+		for (auto it = data.begin(); it != data.end(); ++it) {
+			if (format == OUTPUT_FORMAT_JSON) {
+				if (it != data.begin()) {
+					s << ",";
+				}
+			}
+			(*it).second->build((*it).first, s, format);				
+		}		
+	}
+private:
+	void add_data(const KString& name, WhmDataValue* value) {
+		auto it = data.find(name);
+		if (it != data.end()) {
+			delete (*it).second;
+		}
+		data.insert(std::pair<KString, WhmDataValue*>(name, value));
+	}
+	std::map<KString, WhmDataValue*> data;
 };
 class WhmContext : public KVirtualHostEvent ,public KDynamicString {
 public:
@@ -46,7 +101,6 @@ public:
 			return NULL;
 		}
 		return save(xstrdup(value));
-		//return vh->
 	}
 	const char *getValue(const char *name)
 	{
@@ -79,7 +133,6 @@ public:
 	bool buildVh();
 	void buildVh(KVirtualHost *vh);
 	void setStatus(const char *statusMsg = NULL) {
-		//this->status = status;
 		if (statusMsg) {
 			if(this->statusMsg.size()>0){
 				this->statusMsg+="|";
@@ -88,10 +141,13 @@ public:
 		}
 	}
 	bool flush(int status,int format = OUTPUT_FORMAT_XML);
-	void add(const char *name, const char *value,bool encode=false);
+	KDataAttribute* data() override {
+		return &dv;
+	}
 	void add(const char *name, KString&value);
 	void add(KString &name, KString&value);
 	void add(const char *name,INT64 value);
+	void add(const char* name, const char* value, bool encode=false);
 	KVirtualHost *getVh()
 	{
 		return vh;
@@ -113,7 +169,7 @@ public:
 	}
 	char * save(char *p);
 private:
-	std::list<WhmAttribute *> attributes;
+	WhmDataAttribute dv;
 	std::list<char *> memorys;
 	KServiceProvider *provider;
 	KUrlValue urlValue;

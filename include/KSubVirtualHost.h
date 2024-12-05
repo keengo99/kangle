@@ -116,7 +116,7 @@ public:
 	*/
 	kgl_jump_type bindFile(KHttpRequest* rq, KHttpObject* obj, bool& exsit, KApacheHtaccessContext& htctx, KSafeSource& fo);
 	bool bindFile(KHttpRequest* rq, bool& exsit, bool searchDefaultFile, bool searchAlias);
-	char* mapFile(const char* path);
+	kgl_auto_cstr map_file(const char* path);
 	void free_subtype_data();
 	char* host;
 	KVirtualHost* vh;

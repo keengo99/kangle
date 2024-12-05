@@ -22,16 +22,24 @@ void on_vh_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* 
 class KApiPipeStream;
 class KVirtualHost;
 class KHttpFilterManage;
-
-class KVirtualHostEvent
+class KDataAttribute
+{
+public:
+	virtual ~KDataAttribute() {
+	};
+	virtual void add(const KString &name, const KString& value, bool encode = false) = 0;
+	virtual KDataAttribute* add_child(const KString& name) = 0;
+	virtual void build(KWStream& s, int format) = 0;
+};
+class KVirtualHostEvent 
 {
 public:
 	virtual ~KVirtualHostEvent() {
 	};
+	virtual KDataAttribute* data() = 0;
 	virtual void setStatus(const char* errMsg) = 0;
 	virtual void redirect(const char* event) = 0;
 	virtual void buildVh(KVirtualHost* vh) = 0;
-	virtual void add(const char* name, const char* value, bool encode = false) = 0;
 };
 using KIndexItem = KString;
 using KBaseString = KString;

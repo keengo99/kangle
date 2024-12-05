@@ -214,7 +214,7 @@ void KBaseVirtualHost::listIndex(KVirtualHostEvent* ev) {
 		s << "<index file='" << (*it) << "'/>\n";
 	}
 	lock.Unlock();
-	ev->add("indexs", s.str().c_str(), false);
+	ev->data()->add("indexs", s.str().c_str(), false);
 }
 void KBaseVirtualHost::getIndexHtml(const KString& url, KWStream& s) {
 	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>id</td><td>file</td></tr>";
@@ -525,7 +525,7 @@ bool KBaseVirtualHost::addAlias(const KString& path, const KString& to, const ch
 void KBaseVirtualHost::getParsedFileExt(KVirtualHostEvent* ctx) {
 	lock.Lock();
 	for (auto it2 = redirects.begin(); it2 != redirects.end(); it2++) {
-		ctx->add("file_ext", (*it2).first.c_str());
+		ctx->data()->add("file_ext", (*it2).first.c_str());
 	}
 	lock.Unlock();
 }

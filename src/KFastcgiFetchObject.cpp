@@ -116,18 +116,15 @@ kgl_parse_result KFastcgiFetchObject::parse_unknow_header(KHttpRequest* rq, char
 			char* url = (char*)rq->alloc_request_memory(packet_length + 1);
 			kgl_memcpy(url, piece, packet_length);
 			url[packet_length] = '\0';
-			char* filename = rq->map_url_path(url, this->brd);
+			kgl_auto_cstr filename = rq->map_url_path(url, this->brd);
 			int len = 0;
 			if (filename) {
-				len = (int)strlen(filename);
+				len = (int)strlen(filename.get());
 			}
 			//printf("try write map_path_result filename=[%s].\n",filename?filename:"");
 			KFastcgiStream<KUpstream> fbuf(client,FCGI_STDIN);
-			if (!fbuf.write_data(API_CHILD_MAP_PATH_RESULT, filename, len)) {
+			if (!fbuf.write_data(API_CHILD_MAP_PATH_RESULT, filename.get(), len)) {
 				klog(KLOG_ERR, "write map_path_result failed.\n");
-			}
-			if (filename) {
-				xfree(filename);
 			}
 			break;
 		}

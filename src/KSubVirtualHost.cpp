@@ -324,41 +324,38 @@ kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest* rq, KHttpObject* obj, bool
 	case subdir_type::subdir_local:
 	{
 		if (!rq->ctx.internal && !vh->htaccess.empty()) {
-			char* path = xstrdup(rq->sink->data.url->path);
+			kgl_auto_cstr path(xstrdup(rq->sink->data.url->path));
 			int prefix_len = 0;
 			for (;;) {
-				char* hot = strrchr(path, '/');
+				char* hot = strrchr(path.get(), '/');
 				if (hot == NULL) {
 					break;
 				}
 				if (prefix_len == 0) {
-					prefix_len = (int)(hot - path);
+					prefix_len = (int)(hot - path.get());
 				}
 				*hot = '\0';
-				char* apath = vh->alias(rq->ctx.internal, path);
+				kgl_auto_cstr apath = vh->alias(rq->ctx.internal, path.get());
 				KFileName htfile;
 				bool htfile_exsit = false;
 				if (apath) {
-					htfile_exsit = htfile.setName(apath, vh->htaccess.c_str(), 0);
-					xfree(apath);
+					htfile_exsit = htfile.setName(apath.get(), vh->htaccess.c_str(), 0);
 				} else {
 					stringstream s;
-					s << doc_root << path;
+					s << doc_root << path.get();
 					htfile_exsit = htfile.setName(s.str().c_str(), vh->htaccess.c_str(), 0);
 				}
 				if (htfile_exsit) {
-					htctx = make_htaccess(path, &htfile);
+					htctx = make_htaccess(path.get(), &htfile);
 					if (htctx) {
 						int jump_type = htctx->access[REQUEST]->check(rq, obj, fo);
 						if (fo || jump_type == JUMP_DENY) {
-							xfree(path);
 							htctx = nullptr;
 							return jump_type;
 						}
 					}
 				}
 			}
-			xfree(path);
 		}
 		if (rq->file) {
 			//重新绑定过,因为有可能重写了
@@ -478,11 +475,11 @@ KApacheHtaccessContext KSubVirtualHost::make_htaccess(const char* prefix, KFileN
 	}
 	return ctx;
 }
-char* KSubVirtualHost::mapFile(const char* path) {
-	char* new_path = vh->alias(true, path);
+kgl_auto_cstr KSubVirtualHost::map_file(const char* path) {
+	kgl_auto_cstr new_path = vh->alias(true, path);
 	if (new_path) {
 		return new_path;
 	}
-	return KFileName::concatDir(doc_root, path);
+	return kgl_auto_cstr(KFileName::concatDir(doc_root, path));
 }
 

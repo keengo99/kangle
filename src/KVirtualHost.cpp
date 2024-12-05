@@ -158,25 +158,25 @@ bool KVirtualHost::alias(bool internal, const char* path, KFileName* file, bool&
 	}
 	return true;
 }
-char* KVirtualHost::alias(bool internal, const char* path) {
+kgl_auto_cstr KVirtualHost::alias(bool internal, const char* path) {
 	auto len = strlen(path);
 	auto alias = find_alias(internal, path, len);
 	if (!alias) {
 		if (!inherit) {
-			return NULL;
+			return nullptr;
 		}
 		alias = conf.gvm->vhs.find_alias(internal, path, len);
 		if (!alias) {
-			return NULL;
+			return nullptr;
 		}
 	}
 	char* result = alias->matched(path, len);
 	if (kgl_is_absolute_path(result)) {
-		return result;
+		return kgl_auto_cstr(result);
 	}
 	auto result2 = KFileName::concatDir(this->doc_root.c_str(), result);
 	free(result);
-	return result2;
+	return kgl_auto_cstr(result2);
 }
 KBaseRedirect* KVirtualHost::refsPathRedirect(const char* path, int path_len) {
 	auto rd = refs_path_redirect(path, path_len);

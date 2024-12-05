@@ -312,7 +312,7 @@ public:
 		sink->set_state(STATE_WAIT);
 	}
 
-	char* map_url_path(const char* url, KBaseRedirect* caller);
+	kgl_auto_cstr map_url_path(const char* url, KBaseRedirect* caller);
 	inline bool response_status(uint16_t status_code) {
 		return sink->response_status(status_code);
 	}

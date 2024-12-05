@@ -187,13 +187,13 @@ void KHttpRequest::parse_connection(const char* val, const char* end) {
 		}
 	} while (field.next());
 }
-char* KHttpRequest::map_url_path(const char* url, KBaseRedirect* caller) {
+kgl_auto_cstr KHttpRequest::map_url_path(const char* url, KBaseRedirect* caller) {
 	KSubVirtualHost* nsvh = NULL;
 	auto svh = kangle::get_virtual_host(this);
 	if (svh == NULL) {
 		return NULL;
 	}
-	char* filename = NULL;
+	kgl_auto_cstr filename;
 	KSafeUrl u(new KUrl());
 	const char* path = url;
 	if (parse_url(url, u.get()) && u->host != nullptr) {
@@ -216,7 +216,7 @@ char* KHttpRequest::map_url_path(const char* url, KBaseRedirect* caller) {
 		}
 	}
 	if (brd_check_passed) {
-		filename = svh->mapFile(path);
+		filename = svh->map_file(path);
 	}
 	if (nsvh) {
 		nsvh->release();
