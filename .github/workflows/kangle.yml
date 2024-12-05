@@ -1,0 +1,19 @@
+name: kangle
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: cmake
+      run: mkdir build && cd build && cmake ..
+    - name: make
+      run: make
