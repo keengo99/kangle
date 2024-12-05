@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: prepare
-      run: sudo apt -y install g++ golang liburing-dev libjemalloc-dev libz-dev libpcre3-dev libbrotli-dev libssl-dev cmake libsqlite3-dev
+      run: sudo apt -y install g++ liburing-dev libjemalloc-dev libz-dev libpcre3-dev libbrotli-dev libssl-dev cmake libsqlite3-dev
     - name: submodule
       run: git submodule init && git submodule update
     - name: cmake
@@ -22,7 +22,7 @@ jobs:
     - name: make
       run: cd build && make
     - name: build test
-      run: cd test && ./build.sh
+      run: sudo snap install go --classic && cd test && ./build.sh
     - name: test
       run: cd test && ./test.sh
 
