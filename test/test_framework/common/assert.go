@@ -55,11 +55,12 @@ func Assert(test_name string, expression bool) bool {
 	success_count++
 	return true
 }
-func Report() {
+func Report() (sc int, fc int) {
 	fmt.Printf("success_count=[%d],failed_count=[%d]\n", success_count, failed_count)
 	if failed_count == 0 {
 		fmt.Printf("***************test passed**********\n")
 	} else {
 		fmt.Printf("@@@@@@@@@@@@@@@test failed@@@@@@@@@@\n")
 	}
+	return success_count, failed_count
 }

@@ -33,7 +33,7 @@ var (
 	prepare_config *bool   = flag.Bool("p", false, "only prepare config")
 )
 
-func ProcessSuites(suites []string) {
+func ProcessSuites(suites []string) (success_count int, failed_count int) {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println(err) //这里的err其实就是panic传入的内容，55
@@ -62,7 +62,7 @@ func ProcessSuites(suites []string) {
 		}
 	}
 	if *prepare_config {
-		return
+		return 0, 0
 	}
 	if *server_model {
 		server.Start()
@@ -93,11 +93,12 @@ func ProcessSuites(suites []string) {
 			}
 		}
 	}
-	common.Report()
+	success_count, fc := common.Report()
 	if len(*kangle_exe) > 0 {
 		suite.Clean(suites)
 		kangle.Close()
 	}
+	return success_count, fc
 }
 func handle_signal() {
 	c := make(chan os.Signal, 1)
@@ -147,7 +148,9 @@ func Main() {
 		suites = strings.Split(*test_case, ",")
 	}
 	go handle_signal()
-	ProcessSuites(suites)
-	b := make([]byte, 1)
-	os.Stdin.Read(b)
+	_, fc := ProcessSuites(suites)
+	if fc > 0 {
+		os.Exit(1)
+	}
+	os.Exit(0)
 }
