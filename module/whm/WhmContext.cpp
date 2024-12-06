@@ -30,24 +30,31 @@ char* WhmContext::save(char* p) {
 	memorys.push_back(p);
 	return p;
 }
-void WhmContext::add(const char* name, INT64 value) {
-	std::stringstream s;
-	s << value;
-	return add(name, s.str().c_str());
+bool WhmContext::add(const char* name, INT64 value) {
+	return data()->add(name, value);
 }
 void WhmContext::add(const char* name, KString& value) {
 	add(name, value.c_str());
 }
 WhmDataValue::WhmDataValue() {
-	is_child = true;
+	type = WhmDataType::OBJ;
 	encode = false;
-	this->attr = new WhmDataAttribute();
+	this->objs = new std::vector<WhmDataAttribute*>();
 }
 WhmDataValue::~WhmDataValue() {
-	if (is_child) {
-		delete this->attr;
-	} else {
-		delete this->value;
+	switch (type) {
+	case WhmDataType::OBJ:
+		for (auto it = objs->begin(); it != objs->end(); ++it) {
+			delete (*it);
+		}
+		delete this->objs;
+		return;
+	case WhmDataType::STR:
+		delete this->strs;
+		break;
+	case WhmDataType::INT:
+		delete this->ints;
+		break;
 	}
 }
 static void build_json_string(KWStream& s, const KString& v) {
@@ -62,50 +69,95 @@ static void build_json_string(KWStream& s, const KString& v) {
 }
 void WhmDataValue::build(const KString& name, KWStream& s, int format) {
 	if (format == OUTPUT_FORMAT_XML) {
-		if (is_child) {
-			s << "<"_CS << name << ">"_CS;
-			attr->build(s, format);
-			s << "</"_CS << name << ">"_CS;
-			return;
-		}
-		for (auto it = value->begin(); it != value->end(); ++it) {
-			s << "<"_CS << name << ">"_CS;
-			if (encode) {
-				s << CDATA_START << (*it) << CDATA_END;
-			} else {
-				s << *it;
+		switch (type) {
+		case WhmDataType::OBJ:
+			for (auto it = objs->begin(); it != objs->end(); ++it) {
+				s << "<"_CS << name << ">"_CS;
+				(*it)->build(s, format);
+				s << "</"_CS << name << ">"_CS;
 			}
-			s << "</"_CS << name << ">"_CS;
+			return;
+		case WhmDataType::STR:
+			for (auto it = strs->begin(); it != strs->end(); ++it) {
+				s << "<"_CS << name << ">"_CS;
+				if (encode) {
+					s << CDATA_START << (*it) << CDATA_END;
+				} else {
+					s << *it;
+				}
+				s << "</"_CS << name << ">"_CS;
+			}
+			return;
+		case WhmDataType::INT:
+			for (auto it = ints->begin(); it != ints->end(); ++it) {
+				s << "<"_CS << name << ">"_CS;
+				if (encode) {
+					s << CDATA_START << (*it) << CDATA_END;
+				} else {
+					s << *it;
+				}
+				s << "</"_CS << name << ">"_CS;
+			}
+			return;
 		}
 	} else if (format == OUTPUT_FORMAT_JSON) {
-		if (is_child) {
-			s << "\""_CS << name << "\":{"_CS;
-			attr->build(s, format);
-			s << "}"_CS;
-			return;
-		}
-		if (value->size() == 1) {
-			s << "\""_CS << name << "\":"_CS;
-			build_json_string(s, *value->begin());
-			return;
-		}
-		s << "\""_CS << name << "\":["_CS;
-		for (auto it = value->begin(); it != value->end(); ++it) {
-			if (it != value->begin()) {
-				s << ","_CS;
+		switch (type) {
+		case WhmDataType::OBJ:
+			if (objs->size() == 1) {
+				s << "\""_CS << name << "\":{"_CS;
+				(*(objs->begin()))->build(s, format);
+				s << "}"_CS;
+				return;
 			}
-			build_json_string(s, *it);
+			s << "\""_CS << name << "\":["_CS;
+			for (auto it = objs->begin(); it != objs->end(); ++it) {
+				if (it != objs->begin()) {
+					s << ","_CS;
+				}
+				s << "{"_CS;
+				(*it)->build(s, format);
+				s << "}"_CS;
+			}
+			s << "]";
+			return;
+		case WhmDataType::STR:
+			if (strs->size() == 1) {
+				s << "\""_CS << name << "\":"_CS;
+				build_json_string(s, *strs->begin());
+				return;
+			}
+			s << "\""_CS << name << "\":["_CS;
+			for (auto it = strs->begin(); it != strs->end(); ++it) {
+				if (it != strs->begin()) {
+					s << ","_CS;
+				}
+				build_json_string(s, *it);
+			}
+			s << "]";
+			return;
+		case WhmDataType::INT:
+			if (ints->size() == 1) {
+				s << "\""_CS << name << "\":"_CS << *ints->begin();
+				return;
+			}
+			s << "\""_CS << name << "\":["_CS;
+			for (auto it = ints->begin(); it != ints->end(); ++it) {
+				if (it != ints->begin()) {
+					s << ","_CS;
+				}
+				s << (*it);
+			}
+			s << "]";
+			return;
 		}
-		s << "]";
-
 	}
 }
 
-void WhmContext::add(const char* name, const char* value, bool encode) {
+bool WhmContext::add(const char* name, const char* value, bool encode) {
 	return data()->add(name, value, encode);
 }
-void WhmContext::add(KString& name, KString& value) {
-	add(name.c_str(), value.c_str());
+bool WhmContext::add(const KString& name, const KString& value) {
+	return data()->add(name, value);
 }
 void WhmContext::buildVh(KVirtualHost* vh) {
 	if (this->vh) {

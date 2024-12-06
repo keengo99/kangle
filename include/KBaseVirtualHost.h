@@ -27,8 +27,9 @@ class KDataAttribute
 public:
 	virtual ~KDataAttribute() {
 	};
-	virtual void add(const KString &name, const KString& value, bool encode = false) = 0;
-	virtual KDataAttribute* add_child(const KString& name) = 0;
+	virtual bool add(const KString &name, const KString& value, bool encode = false) = 0;
+	virtual bool add(const KString& name, int64_t v) = 0;
+	virtual KDataAttribute* add(const KString& name) = 0;
 	virtual void build(KWStream& s, int format) = 0;
 };
 class KVirtualHostEvent 
