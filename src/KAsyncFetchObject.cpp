@@ -392,8 +392,8 @@ KGL_RESULT KAsyncFetchObject::PostResult(KHttpRequest* rq, int got) {
 		return KGL_END;
 	}
 	if (got <= 0) {
+		rq->sink->shutdown();
 		return KGL_ESOCKET_BROKEN;
-		//return stageEndRequest(rq);
 	}
 	buffer->writeSuccess(got);
 	if (pop_header.post_is_chunk) {
