@@ -48,11 +48,6 @@ namespace kconfig {
 	{
 	public:
 		khttpd::KSafeXmlNode load(KConfigFile* file) override {
-			auto filename = file->get_filename();
-			if (filename->len < 5 || kgl_memcmp(filename->data + filename->len - 4, _KS(".xml")) != 0) {
-				klog(KLOG_ERR, "config file [%s %s] ext must be .xml\n", file->get_name()->data, file->get_filename()->data);
-				return nullptr;
-			}
 			auto fp = kfiber_file_open(file->get_filename()->data, fileRead, KFILE_ASYNC);
 			if (!fp) {
 				klog(KLOG_ERR, "ERROR! cann't open config file [%s] for read\n", file->get_filename()->data);
@@ -899,6 +894,10 @@ namespace kconfig {
 	public:
 		void new_file(const kgl_ref_str_t* name, const kgl_ref_str_t* filename, const KFileModified& last_modified, bool is_default) {
 			int new_flag;
+			if (filename->len < 5 || kgl_memcmp(filename->data + filename->len - 4, _KS(".xml")) != 0) {
+				klog(KLOG_ERR, "config file [%s %s] ext must be .xml\n", name->data, filename->data);
+				return;
+			}
 			auto it = config_files.insert(name, &new_flag);
 			//printf("file [%s] new_flag=[%d]\n",name->data,new_flag);
 			KConfigFile* cfg_file;
