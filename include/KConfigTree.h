@@ -21,7 +21,7 @@ namespace kconfig {
 	class KConfigEventNode;
 
 	constexpr int max_file_size = 10485760;
-
+	constexpr int default_file_index = 100;
 	using KConfigEventFlag = uint16_t;
 	constexpr KConfigEventFlag ev_subdir = 1;
 	constexpr KConfigEventFlag ev_self = 2;
@@ -108,8 +108,7 @@ namespace kconfig {
 	class KConfigTree
 	{
 	public:
-		KConfigTree(KConfigTree* parent, khttpd::KXmlKey* a) :KConfigTree(parent, a->tag, a->vary,a->tag_id) {
-		}
+		KConfigTree(KConfigTree* parent, khttpd::KXmlKey* a) :KConfigTree(parent, a->tag, a->vary, a->tag_id) {}
 		KConfigTree(KConfigTree* parent, const kgl_ref_str_t* tag, const kgl_ref_str_t* vary, uint32_t tag_id) :key(tag, vary, tag_id) {
 			this->parent = parent;
 			init();
@@ -179,17 +178,14 @@ namespace kconfig {
 	class KConfigFileScanInfo
 	{
 	public:
-		virtual ~KConfigFileScanInfo() {
-		}
-		virtual void new_file(const kgl_ref_str_t* name, const kgl_ref_str_t* filename, const KFileModified &last_modified, bool is_default) = 0;
+		virtual ~KConfigFileScanInfo() {}
+		virtual void new_file(const kgl_ref_str_t* name, const kgl_ref_str_t* filename, const KFileModified& last_modified, bool is_default) = 0;
 	};
 	class KConfigFileSourceDriver
 	{
 	public:
-		virtual ~KConfigFileSourceDriver() noexcept {
-		}
-		virtual void scan(KConfigFileScanInfo* info) {
-		}
+		virtual ~KConfigFileSourceDriver() noexcept {}
+		virtual void scan(KConfigFileScanInfo* info) {}
 		virtual khttpd::KSafeXmlNode load(KConfigFile* file) = 0;
 		virtual KFileModified get_last_modified(KConfigFile* file) = 0;
 		virtual bool enable_save() {
@@ -273,7 +269,7 @@ namespace kconfig {
 			this->last_modified = last_modified;
 			need_save = 0;
 		}
-		void merge_last_modified(const KFileModified &last_modified) {
+		void merge_last_modified(const KFileModified& last_modified) {
 			this->last_modified.size += last_modified.size;
 			if (last_modified.mt_time > this->last_modified.mt_time) {
 				this->last_modified.mt_time = last_modified.mt_time;
@@ -299,7 +295,7 @@ namespace kconfig {
 			};
 			uint16_t flags = 0;
 		};
-		uint16_t index = 50;
+		uint16_t index = 0;
 		volatile uint32_t ref = 1;
 		~KConfigFile() {
 			kstring_release(filename);
@@ -345,12 +341,12 @@ namespace kconfig {
 	KConfigResult update(const kgl_ref_str_t& file, const kgl_ref_str_t& path, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type);
 	KConfigTree* find(const char** name, size_t* size);
 	KConfigTree* find(const char* name, size_t size);
-	KConfigTree *remove_config_file(const kgl_ref_str_t* name);
+	KConfigTree* remove_config_file(const kgl_ref_str_t* name);
 	bool add_config_file(const kgl_ref_str_t* name, const kgl_ref_str_t* filename, KConfigTree* tree, KConfigFileSource source);
 	bool reload_config(const kgl_ref_str_t* name, bool force);
 	void reload();
 	void init(on_begin_parse_f cb);
-	uint32_t register_qname(const char* name, size_t len, bool vary_icase=false);
+	uint32_t register_qname(const char* name, size_t len, bool vary_icase = false);
 
 	khttpd::KSafeXmlNode new_xml(const char* name, size_t len);
 	inline khttpd::KSafeXmlNode new_xml(const kgl_ref_str_t& name) {

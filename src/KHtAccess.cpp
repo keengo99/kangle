@@ -363,6 +363,7 @@ void KApacheConfig::getXml(KStringBuf& s)
 }
 khttpd::KSafeXmlNode KApacheConfigDriver::load(kconfig::KConfigFile* file) {
 	KApacheConfig config(true);
+	file->set_index(kconfig::default_file_index);
 	if (!config.load(file->get_filename()->data)) {
 		return nullptr;
 	}

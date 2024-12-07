@@ -425,6 +425,7 @@ khttpd::KSafeXmlNode KVirtualHostDatabase::load(kconfig::KConfigFile* file) {
 	if (cn == NULL) {		
 		return nullptr;
 	}
+	file->set_index(kconfig::default_file_index);
 	file->set_remove_flag(false);
 	auto xml = kconfig::new_xml(_KS("config"));
 	auto body = kconfig::new_xml(_KS("vh"), file->get_filename()->data, file->get_filename()->len);

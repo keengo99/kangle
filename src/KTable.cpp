@@ -40,6 +40,7 @@ void KTable::add_chain_form(KChain* chain, uint8_t accessType, KWStream& s) {
 }
 void KTable::on_file_event(std::vector<KSafeChain>& chain, kconfig::KConfigEvent* ev) {
 	uint32_t old_count = ev->diff->old_to - ev->diff->from;
+	assert(chain.size() >= old_count);
 	//new
 	for (uint32_t index = ev->diff->from; index < ev->diff->new_to; ++index) {
 		chain.insert(chain.begin() + index + old_count, parse_chain(ev->new_xml->get_body(index)));

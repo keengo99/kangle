@@ -18,7 +18,7 @@
 namespace kconfig {
 	bool is_first_config = true;
 	bool need_reboot_flag = false;
-	constexpr int default_file_index = 100;
+
 	static kgl_ref_str_t default_file_name{ _KS("default"),1 };
 	static KConfigTree events(nullptr, _KS("config"));
 	static uint32_t cur_know_qname_id = 100;
@@ -50,7 +50,7 @@ namespace kconfig {
 		khttpd::KSafeXmlNode load(KConfigFile* file) override {
 			auto fp = kfiber_file_open(file->get_filename()->data, fileRead, KFILE_ASYNC);
 			if (!fp) {
-				klog(KLOG_ERR,"ERROR! cann't open config file [%s] for read\n",file->get_filename()->data);
+				klog(KLOG_ERR, "ERROR! cann't open config file [%s] for read\n", file->get_filename()->data);
 				return nullptr;
 			}
 			defer(kfiber_file_close(fp));
@@ -87,7 +87,10 @@ namespace kconfig {
 					id = atoi(hot);
 				}
 			}
-			file->set_index(id);
+			if (file->get_index() == 0) {
+				/* only first time can set_index */
+				file->set_index(id);
+			}
 			KExtConfigDynamicString ds(file->get_filename()->data);
 			ds.dimModel = false;
 			ds.blockModel = false;
@@ -149,7 +152,7 @@ namespace kconfig {
 
 	void load_config_file(KStringBuf& name, KFileName* file, KConfigFileScanInfo* provider, bool is_default = false) {
 		KString filename(file->getName());
-		provider->new_file(name.str().data(), filename.data(), KFileModified(file->getLastModified(),file->get_file_size()), is_default);
+		provider->new_file(name.str().data(), filename.data(), KFileModified(file->getLastModified(), file->get_file_size()), is_default);
 	}
 	int handle_ext_config_dir(const char* file, void* param) {
 		kgl_ext_config_context* ctx = (kgl_ext_config_context*)param;
@@ -718,12 +721,12 @@ namespace kconfig {
 		defer(kfiber_file_close(fp));
 		char buffer[512];
 		auto size = (int)kfiber_file_size(fp);
-		size = KGL_MIN(size, sizeof(buffer)-1);
+		size = KGL_MIN(size, sizeof(buffer) - 1);
 		buffer[size] = '\0';
 		if (!kfiber_file_read_full(fp, buffer, &size)) {
 			return default_file_index;
 		}
-		char *hot = buffer;
+		char* hot = buffer;
 		while (*hot && isspace((unsigned char)*hot)) {
 			hot++;
 		}
@@ -806,7 +809,7 @@ namespace kconfig {
 		update(std::move(xml));
 		return !last_modified.empty();
 	}
-	KConfigTree *remove_config_file(const kgl_ref_str_t* name) {
+	KConfigTree* remove_config_file(const kgl_ref_str_t* name) {
 		ASSERT_CONFIG_IS_LOCKED();
 		auto it = config_files.find(name);
 		if (!it) {
@@ -862,7 +865,7 @@ namespace kconfig {
 	class KConfigScanInfoProvider : public KConfigFileScanInfo
 	{
 	public:
-		void new_file(const kgl_ref_str_t* name, const kgl_ref_str_t* filename, const KFileModified &last_modified, bool is_default) {
+		void new_file(const kgl_ref_str_t* name, const kgl_ref_str_t* filename, const KFileModified& last_modified, bool is_default) {
 			int new_flag;
 			auto it = config_files.insert(name, &new_flag);
 			//printf("file [%s] new_flag=[%d]\n",name->data,new_flag);
@@ -887,8 +890,8 @@ namespace kconfig {
 			if (cfg_file->last_modified != last_modified) {
 				auto xml = cfg_file->load();
 				prepare_files.emplace(std::piecewise_construct,
-					std::forward_as_tuple(cfg_file->get_index()), std::forward_as_tuple(std::move(xml), 
-					KSafeConfigFile(cfg_file->add_ref())));
+					std::forward_as_tuple(cfg_file->get_index()), std::forward_as_tuple(std::move(xml),
+						KSafeConfigFile(cfg_file->add_ref())));
 				/*
 				//changed
 				auto index = cfg_file->load_index();
@@ -1057,7 +1060,7 @@ namespace kconfig {
 		}
 		auto xml = khttpd::KSafeXmlNode(new khttpd::KXmlNode(key_tag, key_vary, key_tag_id));
 		if (tag && key_vary) {
-			xml->attributes().emplace(tag->vary,key_vary);
+			xml->attributes().emplace(tag->vary, key_vary);
 		}
 		return xml;
 	}
