@@ -48,6 +48,11 @@ namespace kconfig {
 	{
 	public:
 		khttpd::KSafeXmlNode load(KConfigFile* file) override {
+			auto filename = file->get_filename();
+			if (filename->len > 4 && kgl_memcmp(filename->data + filename->len - 4, _KS(".xml")) != 0) {
+				klog(KLOG_ERR, "config file [%s %s] ext must be .xml\n", file->get_name()->data, file->get_filename()->data);
+				return nullptr;
+			}
 			auto fp = kfiber_file_open(file->get_filename()->data, fileRead, KFILE_ASYNC);
 			if (!fp) {
 				klog(KLOG_ERR, "ERROR! cann't open config file [%s] for read\n", file->get_filename()->data);
@@ -916,23 +921,15 @@ namespace kconfig {
 			}
 			if (cfg_file->last_modified != last_modified) {
 				auto xml = cfg_file->load();
+				cfg_file->set_last_modified(last_modified);
 				prepare_files.emplace(std::piecewise_construct,
-					std::forward_as_tuple(cfg_file->get_index()), std::forward_as_tuple(std::move(xml),
+					std::forward_as_tuple(cfg_file->get_index()),
+					std::forward_as_tuple(std::move(xml),
 						KSafeConfigFile(cfg_file->add_ref())));
-				/*
-				//changed
-				auto index = cfg_file->load_index();
-				if (index == 0) {
-					return;
-				}
-				//auto info = std::unique_ptr<KConfigFileInfo>(new KConfigFileInfo(KSafeConfigFile(cfg_file->add_ref()), last_modified));
-				files.emplace(index, KSafeConfigFile(cfg_file->add_ref()));
-				*/
 			} else {
 				cfg_file->set_remove_flag(false);
 			}
 		}
-		//std::multimap<uint16_t, KSafeConfigFile> files;
 		std::multimap<uint16_t, config_prepare_parse> prepare_files;
 		KConfigFileSource current_source = KConfigFileSource::System;
 	};
@@ -988,7 +985,6 @@ namespace kconfig {
 		for (auto&& info : provider.prepare_files) {
 			klog(KLOG_ERR, "load config file [%s] index=[%d]\n", info.second.cfg->get_filename()->data, info.first);
 			info.second.cfg->update(info.second.body);
-			//info.second->reload(false);
 		}
 		config_files.iterator([](void* data, void* arg) {
 			KConfigFile* file = (KConfigFile*)data;
