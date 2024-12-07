@@ -150,9 +150,36 @@ namespace kconfig {
 		KConfigFileScanInfo* info;
 	};
 
-	void load_config_file(KStringBuf& name, KFileName* file, KConfigFileScanInfo* provider, bool is_default = false) {
+	void load_config_file(const KString& name, KFileName* file, KConfigFileScanInfo* provider, bool is_default = false) {
 		KString filename(file->getName());
-		provider->new_file(name.str().data(), filename.data(), KFileModified(file->getLastModified(), file->get_file_size()), is_default);
+		provider->new_file(name.data(), filename.data(), KFileModified(file->getLastModified(), file->get_file_size()), is_default);
+	}
+	bool load_config_from_name(const KString& name, KFileName& filename) {
+		KStringBuf path;
+		KStringBuf s;
+		if (strstr(name.c_str(), "..") != NULL) {
+			return false;
+		}
+		path << conf.path;
+		size_t pos = 0;
+		if (strncmp(name.c_str(), _KS("ext|")) == 0) {
+			path << "ext" << PATH_SPLIT_CHAR;
+			pos = 4;
+
+		} else if (strncmp(name.c_str(), _KS("vh_d|")) == 0) {
+			path << "etc" << PATH_SPLIT_CHAR << "vh.d" << PATH_SPLIT_CHAR;
+			pos = 5;
+		} else {
+			return false;
+		}
+		if (name[name.size() - 1] == '_') {
+			s << name.substr(pos, name.size() - pos - 1);
+		} else if (name[name.size() - 1] == '|') {
+			s << name.substr(pos, name.size() - pos - 1) << PATH_SPLIT_CHAR << "config.xml"_CS;
+		} else {
+			return false;
+		}
+		return filename.setName(path.c_str(), s.c_str(), FOLLOW_LINK_ALL);
 	}
 	int handle_ext_config_dir(const char* file, void* param) {
 		kgl_ext_config_context* ctx = (kgl_ext_config_context*)param;
@@ -171,11 +198,11 @@ namespace kconfig {
 			if (!dirConfigFile.setName(configFile.getName(), "config.xml", FOLLOW_LINK_ALL)) {
 				return 0;
 			}
-			load_config_file(name, &dirConfigFile, ctx->info);
+			load_config_file(name.str(), &dirConfigFile, ctx->info);
 			return 0;
 		}
 		name << "_"_CS;
-		load_config_file(name, &configFile, ctx->info);
+		load_config_file(name.str(), &configFile, ctx->info);
 		return 0;
 	}
 	class KSystemConfigFileDriver : public KDefaultConfigFileDriver
@@ -198,7 +225,7 @@ namespace kconfig {
 			}
 			KStringBuf default_name;
 			default_name << default_file_name;
-			load_config_file(default_name, &file, info, true);
+			load_config_file(default_name.str(), &file, info, true);
 			ctx.prefix = "ext";
 #ifdef KANGLE_EXT_DIR
 			ctx.dir = KANGLE_EXT_DIR;
@@ -907,20 +934,24 @@ namespace kconfig {
 		}
 		//std::multimap<uint16_t, KSafeConfigFile> files;
 		std::multimap<uint16_t, config_prepare_parse> prepare_files;
-		KConfigFileSource current_source;
+		KConfigFileSource current_source = KConfigFileSource::System;
 	};
+
 	bool reload_config(const kgl_ref_str_t* name, bool force) {
 		auto locker = lock();
 		auto it = config_files.find(name);
 		if (!it) {
-			/*
-			config_files.iterator([](void* data, void* arg) {
-				KConfigFile* file = (KConfigFile*)data;
-				printf("config [%s %s]\n", file->get_name()->data, file->get_filename()->data);
-				return iterator_continue;
-				}, NULL);
-				*/
-			return false;
+			KFileName filename;
+			if (!load_config_from_name(name, filename)) {
+				return false;
+			}
+			KConfigScanInfoProvider provider;
+			load_config_file(name, &filename, &provider);
+			for (auto&& info : provider.prepare_files) {
+				klog(KLOG_ERR, "load config file [%s] index=[%d]\n", info.second.cfg->get_filename()->data, info.first);
+				info.second.cfg->update(info.second.body);
+			}
+			return true;
 		}
 		auto file = it->value();
 		if (!file->reload(force)) {

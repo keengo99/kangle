@@ -8,6 +8,19 @@ import (
 	"test_framework/kangle"
 )
 
+func check_reload_none_config() {
+	kangle.CleanExtConfig("not_exsit")
+	kangle.Reload("ext|not_exsit.xml_")
+	common.AssertPort(4444, false)
+	kangle.CreateExtConfig("not_exsit", `<!--#start 10 -->
+<config>
+	<listen ip='127.0.0.1' port='4444' type='http'/>
+</config>
+`)
+	kangle.Reload("ext|not_exsit.xml_")
+	common.AssertPort(4444, true)
+
+}
 func check_listen_config() {
 	kangle.CreateExtConfig("10", `<!--#start 10 -->
 	<config>
@@ -160,4 +173,5 @@ func check_config() {
 	check_listen_ssl_config_change()
 	check_vh_ssl_config_change()
 	check_vh_host_ssl_change()
+	check_reload_none_config()
 }
