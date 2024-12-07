@@ -49,7 +49,7 @@ namespace kconfig {
 	public:
 		khttpd::KSafeXmlNode load(KConfigFile* file) override {
 			auto filename = file->get_filename();
-			if (filename->len > 4 && kgl_memcmp(filename->data + filename->len - 4, _KS(".xml")) != 0) {
+			if (filename->len < 5 || kgl_memcmp(filename->data + filename->len - 4, _KS(".xml")) != 0) {
 				klog(KLOG_ERR, "config file [%s %s] ext must be .xml\n", file->get_name()->data, file->get_filename()->data);
 				return nullptr;
 			}
