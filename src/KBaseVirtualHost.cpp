@@ -210,11 +210,13 @@ void KBaseVirtualHost::addMimeType(const char* ext, const char* type, kgl_compre
 void KBaseVirtualHost::listIndex(KVirtualHostEvent* ev) {
 	KStringBuf s;
 	lock.Lock();
-	for (auto it = indexFiles.begin(); it != indexFiles.end(); it++) {
-		s << "<index file='" << (*it) << "'/>\n";
+	auto indexs = ev->data()->add_string_array("index");
+	if (indexs) {
+		for (auto it = indexFiles.begin(); it != indexFiles.end(); it++) {
+			indexs->push_back((*it));
+		}
 	}
 	lock.Unlock();
-	ev->data()->add("indexs", s.str().c_str(), false);
 }
 void KBaseVirtualHost::getIndexHtml(const KString& url, KWStream& s) {
 	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>id</td><td>file</td></tr>";

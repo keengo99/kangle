@@ -15,6 +15,7 @@
 #include "KConfigTree.h"
 #include "KPathHandler.h"
 #include "KSharedObj.h"
+#include "serializable.h"
 #ifdef ENABLE_BLACK_LIST
 #include "KIpList.h"
 #endif
@@ -22,6 +23,7 @@ void on_vh_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEvent* 
 class KApiPipeStream;
 class KVirtualHost;
 class KHttpFilterManage;
+#if 0
 class KDataAttribute
 {
 public:
@@ -32,12 +34,13 @@ public:
 	virtual KDataAttribute* add(const KString& name) = 0;
 	virtual void build(KWStream& s, int format) = 0;
 };
+#endif
 class KVirtualHostEvent 
 {
 public:
 	virtual ~KVirtualHostEvent() {
 	};
-	virtual KDataAttribute* data() = 0;
+	virtual kgl::serializable* data() = 0;
 	virtual void setStatus(const char* errMsg) = 0;
 	virtual void redirect(const char* event) = 0;
 	virtual void buildVh(KVirtualHost* vh) = 0;

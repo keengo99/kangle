@@ -999,13 +999,13 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 }
 void KAccess::build_action_attribute(KXmlAttribute& attribute, const KUrlValue& uv) {
 	KStringBuf action;
-	action << uv.attribute["jump_type"];
-	if (uv.attribute["jump_type"] == "server") {
-		action << ":" << uv.attribute["server"];
-	} else if (uv.attribute["jump_type"] == "table") {
-		action << ":" << uv.attribute["table"];
-	} else if (uv.attribute["jump_type"] == "wback") {
-		action << ":" << uv.attribute["wback"];
+	action << uv["jump_type"];
+	if (uv["jump_type"] == "server") {
+		action << ":" << uv["server"];
+	} else if (uv["jump_type"] == "table") {
+		action << ":" << uv["table"];
+	} else if (uv["jump_type"] == "wback") {
+		action << ":" << uv["wback"];
 	}
 	attribute.emplace("action"_CS, action.str());
 }

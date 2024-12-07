@@ -41,32 +41,36 @@ bool KWhmService::service(KServiceProvider *provider) {
 	provider->sendStatus(STATUS_OK, "OK");
 	const char *callName = uv->getx("whm_call");
 	const char* v = uv->getx("format");
-	int format = OUTPUT_FORMAT_XML;
-	if (v && strcasecmp(v, "json") == 0) {
-		format = OUTPUT_FORMAT_JSON;
+	kgl::format fmt = kgl::format::xml_text;
+	if (v) {
+		if (strcasecmp(v, "json") == 0) {
+			fmt = kgl::format::json;
+		} else if (strcasecmp(v, "xml-attribute") == 0) {
+			fmt = kgl::format::xml_attribute;
+		}
 	}
 	KWStream *out = provider->getOutputStream();
-	if (format == OUTPUT_FORMAT_XML) {
+	if (fmt!= kgl::format::json) {
 		provider->sendUnknowHeader("Content-Type", "text/xml");
 		*out << "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
 	} else {
 		provider->sendUnknowHeader("Content-Type", "application/json");
 	}
 	if(callName){
-		if (format == OUTPUT_FORMAT_XML) {
+		if (fmt != kgl::format::json) {
 			*out << "<" << callName << " whm_version=\"1.0\">";
 		} else {
 			*out << "{\"call\":\"" << callName << "\",";
 		}
 		int ret = package->process(callName,&context);
-		context.flush(ret, format);
-		if (format == OUTPUT_FORMAT_XML) {
+		context.flush(ret, fmt);
+		if (fmt != kgl::format::json) {
 			*out << "</" << callName << ">\n";
 		} else {
 			*out << "}";
 		}
 	}else{
-		if (format == OUTPUT_FORMAT_XML) {
+		if (fmt != kgl::format::json) {
 			*out << "<result whm_version=\"1.0\">whm_call cann't be empty</result>";
 		} else {
 			*out << "{\"status\":\"404\",\"result\":\"whm_call cann't be empty\"}";

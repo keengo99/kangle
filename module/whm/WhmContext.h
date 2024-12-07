@@ -16,6 +16,8 @@
 #include "KStream.h"
 #include "whm.h"
 #include "KExtendProgram.h"
+#include "serializable.h"
+#if 0
 #define OUTPUT_FORMAT_XML   0
 #define OUTPUT_FORMAT_JSON  1
 class WhmDataAttribute;
@@ -47,6 +49,11 @@ struct WhmDataValue {
 };
 class WhmDataAttribute : public KDataAttribute {
 public:
+	~WhmDataAttribute() {
+		for (auto it = data.begin(); it != data.end(); ++it) {
+			delete (*it).second;
+		}
+	}
 	bool add(const KString& name, const KString& value, bool encode = false) override {
 		auto it = data.find(name);
 		if (it == data.end()) {
@@ -58,7 +65,7 @@ public:
 			return false;
 		}
 		(*it).second->strs->push_back(value);
-		return false;
+		return true;
 	}
 	bool add(const KString& name, int64_t value) override {
 		auto it = data.find(name);
@@ -109,6 +116,7 @@ private:
 	}
 	std::map<KString, WhmDataValue*> data;
 };
+#endif
 class WhmContext : public KVirtualHostEvent, public KDynamicString {
 public:
 	WhmContext(KServiceProvider* provider);
@@ -166,11 +174,11 @@ public:
 			this->statusMsg += statusMsg;
 		}
 	}
-	bool flush(int status, int format = OUTPUT_FORMAT_XML);
-	KDataAttribute* data() override {
+	bool flush(int status, kgl::format fmt = kgl::format::xml_text);
+	kgl::serializable* data() override {
 		return &dv;
 	}
-	KDataAttribute* add(const KString& name) {
+	kgl::serializable* add(const KString& name) {
 		return data()->add(name);
 	}
 	void add(const char* name, KString& value);
@@ -194,7 +202,7 @@ public:
 	}
 	char* save(char* p);
 private:
-	WhmDataAttribute dv;
+	kgl::serializable dv;
 	std::list<char*> memorys;
 	KServiceProvider* provider;
 	KUrlValue urlValue;

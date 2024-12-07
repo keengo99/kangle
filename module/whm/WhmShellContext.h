@@ -72,7 +72,6 @@ public:
 	}
 	bool buildValue(const char *name,KStringBuf *s)
 	{
-		std::map<KString,KString>::iterator it;
 		if (strncasecmp(name,"vh:",3)==0) {
 			name += 3;
 			if(ds){
@@ -89,7 +88,7 @@ public:
 				const char *value = "/";
 				if (*name=='$') {
 					name ++;
-					it = attribute.find(name);
+					auto it = attribute.find(name);
 					if (it!=attribute.end()) {
 						value = (*it).second.c_str();
 					}
@@ -119,11 +118,10 @@ public:
 		if (strncasecmp(name,"url:",4)==0) {
 			name += 4;
 		}
-		
-		it = attribute.find(name);
+		auto it = attribute.find(name);
 		if (it!=attribute.end()) {
 			*s << (*it).second;
-		} 
+		}
 		return true;
 	}
 	WhmShell *shell;

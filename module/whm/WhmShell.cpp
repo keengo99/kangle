@@ -1,16 +1,14 @@
 #include "WhmShell.h"
 #include "WhmShellSession.h"
 
-KTHREAD_FUNCTION whmShellAsyncThread(void *param)
-{
-	WhmShellContext *sc = (WhmShellContext *)param;
-	WhmShell *shell = sc->shell;
+KTHREAD_FUNCTION whmShellAsyncThread(void* param) {
+	WhmShellContext* sc = (WhmShellContext*)param;
+	WhmShell* shell = sc->shell;
 	assert(shell);
 	shell->asyncRun(sc);
 	KTHREAD_RETURN;
 }
-WhmShell::WhmShell()
-{
+WhmShell::WhmShell() {
 	process = last = NULL;
 	curProcess = NULL;
 	head = end = NULL;
@@ -18,8 +16,7 @@ WhmShell::WhmShell()
 	merge_context = NULL;
 	merge_context_running = false;
 }
-WhmShell::~WhmShell()
-{
+WhmShell::~WhmShell() {
 	while (process) {
 		last = process->next;
 		delete process;
@@ -29,12 +26,11 @@ WhmShell::~WhmShell()
 		delete curProcess;
 	}
 }
-void WhmShell::flush()
-{
+void WhmShell::flush() {
 	lock.Lock();
 	while (head && kgl_current_sec - head->closedTime > 30) {
 		context.erase(head->session);
-		WhmShellContext *sc = head;
+		WhmShellContext* sc = head;
 		head = head->next;
 		if (head) {
 			head->prev = NULL;
@@ -45,12 +41,11 @@ void WhmShell::flush()
 	}
 	lock.Unlock();
 }
-void WhmShell::readStdin(WhmShellContext *sc,WhmContext *context)
-{
+void WhmShell::readStdin(WhmShellContext* sc, WhmContext* context) {
 	//查找标准输入数据
-	auto it =  context->getUrlValue()->attribute.find("-");
-	if (it!=context->getUrlValue()->attribute.end()) {
-		sc->in_buffer.write_all((*it).second.c_str(),(int)(*it).second.size());
+	kgl::string stdin_str;
+	if (context->getUrlValue()->get("-", stdin_str)) {
+		sc->in_buffer.write_all(stdin_str.c_str(), stdin_str.size());
 	}
 }
 void WhmShell::initContext(WhmShellContext *sc,WhmContext *context)

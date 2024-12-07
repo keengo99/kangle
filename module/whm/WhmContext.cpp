@@ -36,6 +36,7 @@ bool WhmContext::add(const char* name, INT64 value) {
 void WhmContext::add(const char* name, KString& value) {
 	add(name, value.c_str());
 }
+#if 0
 WhmDataValue::WhmDataValue() {
 	type = WhmDataType::OBJ;
 	encode = false;
@@ -152,9 +153,9 @@ void WhmDataValue::build(const KString& name, KWStream& s, int format) {
 		}
 	}
 }
-
+#endif
 bool WhmContext::add(const char* name, const char* value, bool encode) {
-	return data()->add(name, value, encode);
+	return data()->add(name, value);
 }
 bool WhmContext::add(const KString& name, const KString& value) {
 	return data()->add(name, value);
@@ -190,16 +191,16 @@ bool WhmContext::buildVh() {
 	}
 	return true;
 }
-bool WhmContext::flush(int status, int format) {
+bool WhmContext::flush(int status, kgl::format fmt) {
 	KWStream* out = getOutputStream();
 	if (status > 0) {
-		if (format == OUTPUT_FORMAT_XML) {
+		if (fmt != kgl::format::json) {
 			*out << "<result status=\"" << status;
 			if (statusMsg.size() > 0) {
 				*out << " " << statusMsg;
 			}
 			*out << "\">\n";
-		} else if (format == OUTPUT_FORMAT_JSON) {
+		} else {
 			*out << "\"status\":\"" << status;
 			if (statusMsg.size() > 0) {
 				*out << " " << statusMsg;
@@ -207,9 +208,9 @@ bool WhmContext::flush(int status, int format) {
 			*out << "\",\"result\":{\n";
 		}
 	}
-	dv.build(*out, format);
+	dv.build(*out, fmt);
 	if (status > 0) {
-		if (format == OUTPUT_FORMAT_XML) {
+		if (fmt != kgl::format::json) {
 			*out << "</result>\n";
 		} else {
 			*out << "}";

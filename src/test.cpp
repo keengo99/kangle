@@ -50,6 +50,7 @@
 #include "KAsyncFetchObject.h"
 #include "KConfigTree.h"
 #include "KAutoArray.h"
+#include "serializable.h"
 #ifdef ENABLE_ATOM
 #include "KAtomLock.h"
 #endif
