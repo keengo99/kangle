@@ -1071,6 +1071,7 @@ namespace kconfig {
 	}
 	khttpd::KSafeXmlNode new_xml(const char* name, size_t len, const char* vary, size_t vary_len) {
 		auto key_tag = kstring_from2(name, len);
+		defer(kstring_release(key_tag));
 		auto it = qname_config.find(key_tag);
 		uint32_t key_tag_id = 0;
 		khttpd::KXmlKey* tag = nullptr;
@@ -1081,6 +1082,9 @@ namespace kconfig {
 			key_tag = kstring_refs(tag->tag);
 		}
 		kgl_ref_str_t* key_vary = nullptr;
+		defer(if (key_vary) {
+				kstring_release(key_vary);
+			});
 		if (vary) {
 			key_vary = kstring_from2(vary, vary_len);
 		}

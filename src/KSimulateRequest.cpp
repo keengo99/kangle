@@ -46,6 +46,7 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 		return NULL;
 	}
 	KSimulateSink* ss = new KSimulateSink;
+	assert(ss->data.raw_url == nullptr);
 	ss->data.raw_url = new KUrl;
 	KHttpRequest* rq = new KHttpRequest(ss);
 	selectable_bind(&ss->cn->st, selector);	

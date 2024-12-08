@@ -168,7 +168,7 @@ public:
 protected:
 	void destroy_source();
 };
-class KHttpRequest : public KHttpRequestData
+class KHttpRequest final : public KHttpRequestData
 {
 public:
 	inline KHttpRequest(KSink* sink) {

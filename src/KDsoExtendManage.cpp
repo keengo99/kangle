@@ -104,6 +104,22 @@ bool KDsoExtendManage::on_config_event(kconfig::KConfigTree* tree, kconfig::KCon
 	case kconfig::EvNew | kconfig::EvSubDir:
 		add(ev->new_xml->attributes());
 		break;
+#ifdef MALLOCDEBUG
+	case kconfig::EvRemove| kconfig::EvSubDir:
+	{
+		KLocker locker(&lock);
+		auto name = ev->old_xml->attributes()["name"];
+		auto it = dsos.find(name.c_str());
+		if (it == dsos.end()) {
+			klog(KLOG_ERR, "cann't remove dso extend [%s]\n", name.c_str());
+		} else {
+			(*it).second->shutdown();
+			delete (*it).second;
+			dsos.erase(it);
+		}
+		break;
+	}
+#endif
 	default:
 		klog(KLOG_ERR, "dso_extend do not support ev=[%d]\n", ev->type);
 		break;
