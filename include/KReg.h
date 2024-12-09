@@ -33,7 +33,7 @@
 #define KGL_OVECTOR_SIZE int
 struct kgl_pcre_match_data {
 	KGL_OVECTOR_SIZE* ovector;
-	int ovector_size
+	int ovector_size;
 };
 #define MAX_REG_MATCH            100
 #define OVECTOR_SIZE		         30
