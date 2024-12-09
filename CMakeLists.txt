@@ -205,6 +205,8 @@ endif()
 add_subdirectory(module/webdav)
 add_subdirectory(test/test_child)
 add_dependencies(kangle khttpd)
+include(CTest)
+add_test(NAME "test_kangle" COMMAND test/test.sh)
 set(CPACK_SOURCE_IGNORE_FILES "${PROJECT_BINARY_DIR};/.git/;.gitignore;/.vscode;/var;/test/bin;/test/cache;/test/var;/test/tmp;/test/ext;/test/webadmin")
 install(TARGETS kangle
      RUNTIME DESTINATION bin 
