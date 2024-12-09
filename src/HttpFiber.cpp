@@ -228,8 +228,8 @@ static inline KGL_RESULT check_connect_method(KHttpRequest* rq) {
 	if (rq->sink->data.url->host == NULL) {
 		return KGL_EDATA_FORMAT;
 	}
-	if (rq->sink->data.raw_url->path == NULL) {
-		rq->sink->data.raw_url->path = strdup("/");
+	if (rq->sink->data.raw_url.path == NULL) {
+		rq->sink->data.raw_url.path = strdup("/");
 	}
 	if (rq->sink->data.url->path == NULL) {
 		rq->sink->data.url->path = strdup("/");
@@ -304,16 +304,16 @@ void start_request_fiber(KSink* sink, int header_length) {
 			send_error2(&rq, STATUS_BAD_REQUEST, "host not found.");
 			goto clean;
 		case query_vh_success: {
-			u_short flags = rq.sink->data.raw_url->flags;
-			rq.sink->data.raw_url->flags = 0;
+			u_short flags = rq.sink->data.raw_url.flags;
+			rq.sink->data.raw_url.flags = 0;
 			if (check_virtual_host_access_request(&rq, fo, header_length)) {
-				KBIT_SET(rq.sink->data.raw_url->flags, flags);
+				KBIT_SET(rq.sink->data.raw_url.flags, flags);
 				goto clean;
 			}
 			if (fo) {
 				rq.append_source(fo.release());
 			}
-			if (KBIT_TEST(rq.sink->data.raw_url->flags, KGL_URL_REWRITED)) {
+			if (KBIT_TEST(rq.sink->data.raw_url.flags, KGL_URL_REWRITED)) {
 				//rewrite host
 				KSubVirtualHost* new_svh = NULL;
 				conf.gvm->queryVirtualHost((KVirtualHostContainer*)rq.sink->get_server_opaque(), &new_svh, rq.sink->data.url->host, 0);
@@ -327,7 +327,7 @@ void start_request_fiber(KSink* sink, int header_length) {
 					}
 				}
 			}
-			KBIT_SET(rq.sink->data.raw_url->flags, flags);
+			KBIT_SET(rq.sink->data.raw_url.flags, flags);
 			break;
 		}
 		default:
@@ -670,7 +670,7 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj) {
 			rq->start_response_body(0);
 			goto done;
 		}
-		if (!KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED)) {
+		if (!KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_RANGED)) {
 			build_status = false;
 			rq->response_status(STATUS_CONTENT_PARTIAL);
 			rq->response_content_range(rq->sink->data.range, content_length);

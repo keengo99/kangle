@@ -194,11 +194,11 @@ kgl_auto_cstr KHttpRequest::map_url_path(const char* url, KBaseRedirect* caller)
 		return NULL;
 	}
 	kgl_auto_cstr filename;
-	KSafeUrl u(new KUrl());
+	KUrl u(false);
 	const char* path = url;
-	if (parse_url(url, u.get()) && u->host != nullptr) {
-		path = u->path;
-		conf.gvm->queryVirtualHost((KVirtualHostContainer*)sink->get_server_opaque(), &nsvh, u->host, 0);
+	if (parse_url(url, &u) && u.host != nullptr) {
+		path = u.path;
+		conf.gvm->queryVirtualHost((KVirtualHostContainer*)sink->get_server_opaque(), &nsvh, u.host, 0);
 		if (nsvh && nsvh->vh == svh->vh) {
 			//ÏàÍ¬µÄvh
 			svh = nsvh;
@@ -303,7 +303,7 @@ void KHttpRequest::store_obj() {
 	kangle::store_obj(this);
 }
 bool KHttpRequest::rewrite_url(const char* newUrl, int errorCode, const char* prefix) {
-	KSafeUrl url2(new KUrl());
+	KSafeUrl url2(new KUrl(true));
 	if (!parse_url(newUrl, url2.get())) {
 		KStringBuf nu;
 		if (prefix) {
@@ -367,7 +367,7 @@ bool KHttpRequest::rewrite_url(const char* newUrl, int errorCode, const char* pr
 		}
 		sink->data.url->param = s.steal().release();
 	}
-	KBIT_SET(sink->data.raw_url->flags, KGL_URL_REWRITED);
+	KBIT_SET(sink->data.raw_url.flags, KGL_URL_REWRITED);
 	return true;
 }
 kgl_auto_cstr KHttpRequest::getUrl() {
@@ -381,13 +381,13 @@ KString KHttpRequest::getInfo() {
 #ifdef HTTP_PROXY
 	if (sink->data.meth == METH_CONNECT) {
 		s << "CONNECT ";
-		if (sink->data.raw_url->host) {
-			s << sink->data.raw_url->host << ":" << sink->data.raw_url->port;
+		if (sink->data.raw_url.host) {
+			s << sink->data.raw_url.host << ":" << sink->data.raw_url.port;
 		}
 		return s.str();
 	}
 #endif
-	sink->data.raw_url->GetUrl(s, true);
+	sink->data.raw_url.GetUrl(s, true);
 	return s.str();
 }
 void KHttpRequest::response_vary(const char* vary) {

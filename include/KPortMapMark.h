@@ -21,7 +21,7 @@ public:
 		}
 		rq->ctx.no_http_header = 1;
 		free(rq->sink->data.url->host);
-		free(rq->sink->data.raw_url->host);
+		free(rq->sink->data.raw_url.host);
 		if (rq->sink->data.url->param) {
 			free(rq->sink->data.url->param);
 			rq->sink->data.url->param = NULL;
@@ -36,8 +36,8 @@ public:
 		} else {
 			rq->sink->data.url->port = port;
 		}
-		rq->sink->data.raw_url->host = strdup(rq->sink->data.url->host);
-		rq->sink->data.raw_url->port = rq->sink->data.url->port;
+		rq->sink->data.raw_url.host = strdup(rq->sink->data.url->host);
+		rq->sink->data.raw_url.port = rq->sink->data.url->port;
 		if (this->port.find('s')) {
 			KBIT_SET(rq->sink->data.url->flags, KGL_URL_ORIG_SSL);
 		}

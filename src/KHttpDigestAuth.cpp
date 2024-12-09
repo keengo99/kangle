@@ -106,16 +106,16 @@ KHttpDigestAuth::~KHttpDigestAuth() {
 	}
 }
 bool KHttpDigestAuth::verifySession(KHttpRequest* rq) {
-	if (uri == NULL || rq->sink->data.raw_url->path == NULL || rq->sink->data.raw_url->host == NULL) {
+	if (uri == NULL || rq->sink->data.raw_url.path == NULL || rq->sink->data.raw_url.host == NULL) {
 		return false;
 	}
-	KSafeUrl url2(new KUrl());
+	KSafeUrl url2(new KUrl(true));
 	parse_url(uri, url2.get());
 	if (
-		(url2->host && strcmp(url2->host, rq->sink->data.raw_url->host) != 0)
+		(url2->host && strcmp(url2->host, rq->sink->data.raw_url.host) != 0)
 		|| (url2->path == NULL)
-		|| (strcmp(url2->path, rq->sink->data.raw_url->path) != 0)
-		|| (url2->param && (rq->sink->data.raw_url->param == NULL || strcmp(url2->param, rq->sink->data.raw_url->param) != 0))
+		|| (strcmp(url2->path, rq->sink->data.raw_url.path) != 0)
+		|| (url2->param && (rq->sink->data.raw_url.param == NULL || strcmp(url2->param, rq->sink->data.raw_url.param) != 0))
 		) {
 
 		return false;

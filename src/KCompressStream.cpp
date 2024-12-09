@@ -25,7 +25,7 @@ bool pipe_compress_stream(KHttpRequest* rq, KHttpObject* obj, int64_t content_le
 	//status_code是206，表示是部分内容时也不压缩,或者是200回应，但用了url ranged技术
 	//注：这种情况没有经过详细考证
 	if (obj->data->i.status_code == STATUS_CONTENT_PARTIAL
-		|| KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED)) {
+		|| KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_RANGED)) {
 		return false;
 	}
 	if (KBIT_TEST(obj->index.flags, FLAG_DEAD) && conf.only_compress_cache == 1) {
@@ -35,7 +35,7 @@ bool pipe_compress_stream(KHttpRequest* rq, KHttpObject* obj, int64_t content_le
 		return false;
 	}
 #ifdef ENABLE_ZSTD
-	if (conf.zstd_level > 0 && KBIT_TEST(rq->sink->data.raw_url->accept_encoding, KGL_ENCODING_ZSTD)) {
+	if (conf.zstd_level > 0 && KBIT_TEST(rq->sink->data.raw_url.accept_encoding, KGL_ENCODING_ZSTD)) {
 		if (pipe_zstd_compress(conf.zstd_level, body)) {
 			obj->AddContentEncoding(KGL_ENCODING_ZSTD, kgl_expand_string("zstd"));
 			return true;
@@ -43,7 +43,7 @@ bool pipe_compress_stream(KHttpRequest* rq, KHttpObject* obj, int64_t content_le
 	}
 #endif
 #ifdef ENABLE_BROTLI
-	if (conf.br_level > 0 && KBIT_TEST(rq->sink->data.raw_url->accept_encoding, KGL_ENCODING_BR)) {		
+	if (conf.br_level > 0 && KBIT_TEST(rq->sink->data.raw_url.accept_encoding, KGL_ENCODING_BR)) {		
 		if (pipe_brotli_compress(conf.br_level, body)) {
 			obj->AddContentEncoding(KGL_ENCODING_BR, kgl_expand_string("br"));
 			return true;
@@ -51,7 +51,7 @@ bool pipe_compress_stream(KHttpRequest* rq, KHttpObject* obj, int64_t content_le
 	}
 #endif
 	//客户端支持gzip压缩格式
-	if (conf.gzip_level > 0 && KBIT_TEST(rq->sink->data.raw_url->accept_encoding, KGL_ENCODING_GZIP)) {
+	if (conf.gzip_level > 0 && KBIT_TEST(rq->sink->data.raw_url.accept_encoding, KGL_ENCODING_GZIP)) {
 		if (pipe_gzip_compress(conf.gzip_level, body)) {
 			obj->AddContentEncoding(KGL_ENCODING_GZIP, kgl_expand_string("gzip"));
 			return true;

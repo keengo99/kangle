@@ -53,19 +53,19 @@ using namespace kangle;
 KPathHandler<kgl_request_handler> KHttpManage::handler(_KS(""));
 KTHREAD_FUNCTION check_autoupdate(void* param);
 void get_url_info(KSink* rq, KStringBuf& s) {
-	if (rq->data.raw_url == NULL) {
+	if (!rq->data.raw_url.host) {
 		return;
 	}
 #ifdef HTTP_PROXY
 	if (rq->data.meth == METH_CONNECT) {
 		s << "CONNECT ";
-		if (rq->data.raw_url->host) {
-			s << rq->data.raw_url->host << ":" << rq->data.raw_url->port;
+		if (rq->data.raw_url.host) {
+			s << rq->data.raw_url.host << ":" << rq->data.raw_url.port;
 		}
 		return;
 	}
 #endif//}}
-	rq->data.raw_url->GetUrl(s, true);
+	rq->data.raw_url.GetUrl(s, true);
 	return;
 }
 

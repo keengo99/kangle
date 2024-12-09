@@ -57,7 +57,7 @@ public:
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		KStringStream url;
 		if (raw) {
-			rq->sink->data.raw_url->GetUrl(url);
+			rq->sink->data.raw_url.GetUrl(url);
 		} else {
 			rq->sink->data.url->GetUrl(url);
 		}

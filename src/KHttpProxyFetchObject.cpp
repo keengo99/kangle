@@ -29,12 +29,12 @@ bool http2_header_callback(KUpstream *us, void *arg, const char *attr, int attr_
 void upstream_sign_request(KHttpRequest *rq, KHttpEnv *s)
 {
 	KStringBuf v;
-	if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
+	if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_SSL)) {
 		v.WSTR("p=https,");
 	}
 	v.WSTR("sp=");
 	v << rq->GetSelfPort();
-	if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
+	if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_SSL)) {
 		v.WSTR("s");
 	}
 	v.WSTR(",ip=");
@@ -80,8 +80,8 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 	const char* ips = rq->getClientIp();
 	int ips_len = (int)strlen(ips);
 	KUrl* url = rq->sink->data.url;
-	if (KBIT_TEST(rq->ctx.filter_flags, RF_PROXY_RAW_URL) || !KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
-		url = rq->sink->data.raw_url;
+	if (KBIT_TEST(rq->ctx.filter_flags, RF_PROXY_RAW_URL) || !KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_REWRITED)) {
+		url = &rq->sink->data.raw_url;
 	}
 #ifdef HTTP_PROXY
 	if (rq->sink->data.meth == METH_CONNECT) {
@@ -95,7 +95,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 			path = url_encode(url->path, strlen(url->path), &path_len);
 		}
 		if (KBIT_TEST(rq->ctx.filter_flags, RF_PROXY_FULL_URL) && !client->IsMultiStream()) {
-			if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
+			if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_SSL)) {
 				s.WSTR("https");
 			} else {
 				s.WSTR("http");
@@ -122,7 +122,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 		build_url_host_port(url, s);
 		client->send_host(s.buf(), (hlen_t)s.size());
 		if (client->IsMultiStream()) {
-			if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
+			if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_SSL)) {
 				client->send_header(kgl_header_scheme, kgl_expand_string("https"));
 			} else {
 				client->send_header(kgl_header_scheme, kgl_expand_string("http"));
@@ -282,7 +282,7 @@ bool KHttpProxyFetchObject::build_http_header(KHttpRequest* rq)
 	if (KBIT_TEST(rq->ctx.filter_flags, RF_X_REAL_IP)) {
 		client->send_header(kgl_expand_string(X_REAL_IP_HEADER), ips, ips_len);
 		if (!client->IsMultiStream()) {
-			if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
+			if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_SSL)) {
 				client->send_header(kgl_expand_string("X-Forwarded-Proto"), kgl_expand_string("https"));
 			} else {
 				client->send_header(kgl_expand_string("X-Forwarded-Proto"), kgl_expand_string("http"));

@@ -7,9 +7,9 @@ KGL_RESULT KPrevDirectoryFetchObject::Open(KHttpRequest* rq, kgl_input_stream* i
 {
 	KHttpObject* obj = rq->ctx.obj;
 	KStringBuf new_path2;
-	new_path2 << rq->sink->data.raw_url->path << "/";
-	if (rq->sink->data.raw_url->param && *rq->sink->data.raw_url->param) {
-		new_path2 << "?" << rq->sink->data.raw_url->param;
+	new_path2 << rq->sink->data.raw_url.path << "/";
+	if (rq->sink->data.raw_url.param && *rq->sink->data.raw_url.param) {
+		new_path2 << "?" << rq->sink->data.raw_url.param;
 	}
 	push_redirect_header(rq, new_path2.c_str(), new_path2.size(), STATUS_FOUND);
 	rq->response_content_length(0);

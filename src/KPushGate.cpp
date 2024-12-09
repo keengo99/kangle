@@ -301,8 +301,8 @@ static int default_get_header_count(kgl_input_stream_ctx* ctx) {
 static kgl_url* default_get_url(kgl_input_stream_ctx* ctx) {
 	KHttpRequest* rq = (KHttpRequest*)ctx;
 	KUrl* url = rq->sink->data.url;
-	if (KBIT_TEST(rq->ctx.filter_flags, RF_PROXY_RAW_URL) || !KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
-		url = rq->sink->data.raw_url;
+	if (KBIT_TEST(rq->ctx.filter_flags, RF_PROXY_RAW_URL) || !KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_REWRITED)) {
+		url = &rq->sink->data.raw_url;
 	}
 	return url;
 }

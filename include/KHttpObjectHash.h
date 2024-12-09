@@ -191,7 +191,7 @@ public:
 				obj->index.last_verified = 0;
 			}
 			if ((rq->ctx.internal == (KBIT_TEST(obj->index.flags, FLAG_RQ_INTERNAL)>0)) &&
-				obj->uk.url->match_accept_encoding(rq->sink->data.raw_url->accept_encoding)) {
+				obj->uk.url->match_accept_encoding(rq->sink->data.raw_url.accept_encoding)) {
 				if (!KBIT_TEST(rq->ctx.filter_flags, RF_NO_DISK_CACHE) || (obj->data != NULL && obj->data->i.type == MEMORY_OBJECT)) {
 					//hit cache
 					if (hit_obj == NULL || obj->uk.url->accept_encoding > hit_obj->uk.url->accept_encoding) {

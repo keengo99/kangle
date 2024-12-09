@@ -281,8 +281,8 @@ void log_access(KHttpRequest* rq) {
 #ifdef HTTP_PROXY
 	if (rq->sink->data.meth != METH_CONNECT)
 #endif
-		l << (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_ORIG_SSL) ? "https://"_CS : "http://"_CS);
-	KUrl* url = rq->sink->data.raw_url;
+		l << (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_ORIG_SSL) ? "https://"_CS : "http://"_CS);
+	KUrl* url = &rq->sink->data.raw_url;
 	build_url_host_port(url, l);
 #ifdef HTTP_PROXY
 	if (rq->sink->data.meth != METH_CONNECT)
@@ -447,15 +447,15 @@ KGL_RESULT stageHttpManage(KHttpRequest* rq) {
 		conf.admin_lock.Unlock();
 		char ips[MAXIPLEN];
 		rq->sink->get_peer_ip(ips, sizeof(ips));
-		klog(KLOG_WARNING, "[ADMIN_FAILED] %s %s\n", ips, rq->sink->data.raw_url->path);
+		klog(KLOG_WARNING, "[ADMIN_FAILED] %s %s\n", ips, rq->sink->data.raw_url.path);
 		return stageHttpManageLogin(rq);
 	}
 	conf.admin_lock.Unlock();
 	char ips[MAXIPLEN];
 	rq->sink->get_peer_ip(ips, sizeof(ips));
 	klog(KLOG_NOTICE, "[ADMIN_SUCCESS]%s %s%s%s\n",
-		ips, rq->sink->data.raw_url->path,
-		(rq->sink->data.raw_url->param ? "?" : ""), (rq->sink->data.raw_url->param ? rq->sink->data.raw_url->param : ""));
+		ips, rq->sink->data.raw_url.path,
+		(rq->sink->data.raw_url.param ? "?" : ""), (rq->sink->data.raw_url.param ? rq->sink->data.raw_url.param : ""));
 	if (strstr(rq->sink->data.url->path, ".whm")
 		|| strstr(rq->sink->data.url->path, ".html")
 		|| strstr(rq->sink->data.url->path, ".js")

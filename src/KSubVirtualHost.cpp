@@ -393,7 +393,7 @@ kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest* rq, KHttpObject* obj, bool
 	case subdir_type::subdir_redirect:
 	{
 		KRedirect* rd = nullptr;
-		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
+		if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_SSL)) {
 			if (sub_rd->https_rd) {
 				rd = static_cast<KRedirect*>(sub_rd->https_rd->add_ref());
 			}
@@ -414,7 +414,7 @@ kgl_jump_type KSubVirtualHost::bindFile(KHttpRequest* rq, KHttpObject* obj, bool
 	case subdir_type::subdir_server:
 	{
 		proxy = server->http_proxy;
-		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL) && server->https_proxy) {
+		if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_SSL) && server->https_proxy) {
 			proxy = server->https_proxy;
 		}
 		break;

@@ -33,7 +33,7 @@ void KSingleAcserver::set_proto(Proto_t proto)
 KUpstream* KSingleAcserver::GetUpstream(KHttpRequest* rq)
 {
 	rq->ctx.upstream_sign = sockHelper->sign;
-	return sockHelper->get_upstream(rq->get_upstream_flags(), rq->sink->data.raw_url->host);
+	return sockHelper->get_upstream(rq->get_upstream_flags(), rq->sink->data.raw_url.host);
 }
 bool KSingleAcserver::setHostPort(std::string host, const char *port) {
 	return sockHelper->setHostPort(host , port);

@@ -65,10 +65,10 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_input_strea
 	defer(free(content_type));
 	bool may_compress = false;
 	if (obj->need_compress) {
-		if (KBIT_TEST(rq->sink->data.raw_url->accept_encoding, KGL_ENCODING_GZIP)) {
+		if (KBIT_TEST(rq->sink->data.raw_url.accept_encoding, KGL_ENCODING_GZIP)) {
 			may_compress = true;
 #ifdef ENABLE_BROTLI
-		} else if (KBIT_TEST(rq->sink->data.raw_url->accept_encoding, KGL_ENCODING_BR)) {
+		} else if (KBIT_TEST(rq->sink->data.raw_url.accept_encoding, KGL_ENCODING_BR)) {
 			may_compress = true;
 #endif
 		}
@@ -88,7 +88,7 @@ KGL_RESULT KStaticFetchObject::InternalProcess(KHttpRequest* rq, kgl_input_strea
 		if (kfiber_file_seek(fp, seekBegin, range->from)) {
 			return out->f->error(out->ctx, STATUS_SERVER_ERROR, _KS("cann't seek to right position"));
 		}
-		if (!KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED)) {
+		if (!KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_RANGED)) {
 			KStringBuf b;
 			char buf[INT2STRING_LEN];
 			b.WSTR("bytes ");

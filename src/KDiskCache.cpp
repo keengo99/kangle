@@ -283,7 +283,7 @@ cor_result create_http_object2(KHttpObject* obj, char* url, uint32_t flag_encodi
 		*vary = '\0';
 		vary++;
 	}
-	KSafeUrl m_url(new KUrl());
+	KSafeUrl m_url(new KUrl(true));
 	if (!parse_url(url, m_url.get()) || m_url->host == NULL) {
 		fprintf(stderr, "cann't parse url[%s]\n", url);
 		return cor_failed;

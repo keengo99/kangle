@@ -59,7 +59,7 @@ public:
 					sport++;
 					port = atoi(sport);
 				}
-				KUrl *u = new KUrl;
+				KUrl *u = new KUrl(true);
 				u->host = strdup(hot);
 				u->port = port;
 				std::map<KUrl *,std::string,less_host_port>::iterator it;

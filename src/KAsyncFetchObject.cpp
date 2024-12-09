@@ -63,7 +63,7 @@ KUpstream* proxy_connect(KHttpRequest* rq) {
 	}
 #endif
 	const char* ip = NULL;
-	KUrl* url = (KBIT_TEST(rq->ctx.filter_flags, RF_PROXY_RAW_URL) ? rq->sink->data.raw_url : rq->sink->data.url);
+	KUrl* url = (KBIT_TEST(rq->ctx.filter_flags, RF_PROXY_RAW_URL) ? &rq->sink->data.raw_url : rq->sink->data.url);
 	const char* host = url->host;
 	u_short port = url->port;
 	const char* ssl = NULL;

@@ -131,10 +131,10 @@ KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, const char *name
 		return add_api_var(buffer, size, s.c_str(), s.size());
 	}
 	case KGL_VAR_REQUEST_URI:
-		if (rq->sink->data.raw_url->param == NULL) {
-			return add_api_var(buffer, size, rq->sink->data.raw_url->path);
+		if (rq->sink->data.raw_url.param == NULL) {
+			return add_api_var(buffer, size, rq->sink->data.raw_url.path);
 		}
-		return var_printf(buffer, size, "%s?%s", rq->sink->data.raw_url->path, rq->sink->data.raw_url->param);
+		return var_printf(buffer, size, "%s?%s", rq->sink->data.raw_url.path, rq->sink->data.raw_url.param);
 	case KGL_VAR_URL_ADDR:
 	{
 		if (*size < sizeof(kgl_url*)) {
@@ -166,7 +166,7 @@ KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, const char *name
 	case KGL_VAR_SERVER_PORT:
 	{
 		uint16_t* v = (uint16_t*)buffer;
-		*v = rq->sink->data.raw_url->port;
+		*v = rq->sink->data.raw_url.port;
 		return KGL_OK;
 	}
 	case KGL_VAR_REMOTE_ADDR:
@@ -286,7 +286,7 @@ KGL_RESULT base_support_function(KHttpRequest* rq, KF_REQ_TYPE req, PVOID data, 
 		if (param && *param) {
 			rq->sink->data.url->param = strdup(param);
 		}
-		KBIT_SET(rq->sink->data.raw_url->flags, KGL_URL_REWRITED);
+		KBIT_SET(rq->sink->data.raw_url.flags, KGL_URL_REWRITED);
 		return KGL_OK;
 	}
 	case KD_REQ_REWRITE_URL:

@@ -28,7 +28,7 @@ uint32_t KHostRewriteMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSour
 		if (port>0) {
 			rq->sink->data.url->port = port;
 		}
-		KBIT_SET(rq->sink->data.raw_url->flags,KGL_URL_REWRITED);
+		KBIT_SET(rq->sink->data.raw_url.flags,KGL_URL_REWRITED);
 	}
 	if (proxy) {	
 		const char *ssl = NULL;
@@ -114,7 +114,7 @@ uint32_t KHostMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo)
 		if (port>0) {
 			rq->sink->data.url->port = port;
 		}
-		KBIT_SET(rq->sink->data.raw_url->flags,KGL_URL_REWRITED);
+		KBIT_SET(rq->sink->data.raw_url.flags,KGL_URL_REWRITED);
 	}
 	if (proxy) {		
 		fo.reset(server_container->get(NULL, (rewrite ? rq->sink->data.url->host : host.c_str()), (port > 0 ? port : rq->sink->data.url->port), (ssl ? "s" : NULL), life_time));

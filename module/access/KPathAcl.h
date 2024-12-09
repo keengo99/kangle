@@ -53,7 +53,7 @@ public:
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		KUrl *url;
 		if (raw) {
-			url = rq->sink->data.raw_url;
+			url = &rq->sink->data.raw_url;
 		} else {
 			url = rq->sink->data.url;
 		}

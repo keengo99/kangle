@@ -88,7 +88,7 @@ SOCKET get_stdin_socket()
 }
 static void krequest_start(KSink* sink, int header_len)
 {
-	klog(KLOG_NOTICE, "meth=[%d] path=[%s]\n", sink->data.meth, sink->data.raw_url->path);
+	klog(KLOG_NOTICE, "meth=[%d] path=[%s]\n", sink->data.meth, sink->data.raw_url.path);
 	sink->response_status(200);
 	sink->response_connection();
 	char buf[128];

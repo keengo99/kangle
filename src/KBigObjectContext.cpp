@@ -38,7 +38,7 @@ KGL_RESULT KBigObjectContext::send_data(bool *net_fiber)
 		bool build_status = true;
 		kgl_load_cache_response_body(rq, &body_size);
 		if (rq->sink->data.range) {
-			if (!KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED)) {
+			if (!KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_RANGED)) {
 				build_status = false;
 				rq->response_status(STATUS_CONTENT_PARTIAL);
 				rq->response_content_range(rq->sink->data.range, obj->index.content_length);

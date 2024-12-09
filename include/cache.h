@@ -84,7 +84,7 @@ inline void release_obj(KHttpObject *obj) {
 int clean_cache(KReg *reg,int flag);
 inline int clean_cache(const char *str,bool wide)
 {
-	KSafeUrl url(new KUrl());
+	KSafeUrl url(new KUrl(true));
 	if (!parse_url(str,url.get())) {
 		return 0;
 	}
@@ -93,7 +93,7 @@ inline int clean_cache(const char *str,bool wide)
 }
 inline int get_cache_info(const char *str,bool wide,KCacheInfo *ci)
 {
-	KSafeUrl url(new KUrl());
+	KSafeUrl url(new KUrl(true));
 	if (!parse_url(str,url.get())) {
 		return 0;
 	}

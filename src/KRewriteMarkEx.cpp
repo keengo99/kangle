@@ -353,7 +353,7 @@ void KRewriteMarkEx::getEnv(KHttpRequest *rq, char *env, KWStream&s) {
 		return;
 	}
 	if (strcasecmp(env, "SCHEMA") == 0) {
-		if (KBIT_TEST(rq->sink->data.raw_url->flags,KGL_URL_SSL)) {
+		if (KBIT_TEST(rq->sink->data.raw_url.flags,KGL_URL_SSL)) {
 			s << "https";
 		} else {
 			s << "http";

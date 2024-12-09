@@ -35,7 +35,7 @@ public:
 		if (!vhc) {
 			return false;
 		}
-		KSafeUrl referer(new KUrl());
+		KSafeUrl referer(new KUrl(true));
 		if (!parse_url(value.data, value.len, referer.get())) {
 			return false;
 		}

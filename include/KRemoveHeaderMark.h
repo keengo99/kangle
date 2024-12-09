@@ -31,8 +31,8 @@ public:
 				if (strcasecmp(attr.c_str(), "Range") == 0 && rq->sink->data.range) {
 					rq->sink->data.range = nullptr;
 					result = KF_STATUS_REQ_TRUE;
-				} else if (strcasecmp(attr.c_str(), "Accept-Encoding") == 0 && rq->sink->data.raw_url->encoding != 0) {
-					rq->sink->data.raw_url->encoding = 0;
+				} else if (strcasecmp(attr.c_str(), "Accept-Encoding") == 0 && rq->sink->data.raw_url.encoding != 0) {
+					rq->sink->data.raw_url.encoding = 0;
 					rq->sink->data.url->encoding = 0;
 				}
 			}

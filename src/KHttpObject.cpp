@@ -81,7 +81,7 @@ kgl_auto_cstr KHttpObject::BuildVary(KHttpRequest* rq)
 KHttpObject::KHttpObject(KHttpRequest* rq, KHttpObject* obj)
 {
 	init(rq->sink->data.url);
-	uk.url->encoding = rq->sink->data.raw_url->encoding;
+	uk.url->encoding = rq->sink->data.raw_url.encoding;
 	index.flags = obj->index.flags;
 	KBIT_CLR(index.flags, FLAG_IN_DISK | OBJ_IS_STATIC2 | FLAG_NO_BODY | ANSW_HAS_CONTENT_LENGTH | ANSW_HAS_CONTENT_RANGE);
 	KBIT_SET(index.flags, FLAG_IN_MEM);

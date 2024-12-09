@@ -29,7 +29,7 @@ class SubdirHttp
 public:
 	SubdirHttp() {
 		memset(this, 0, sizeof(SubdirHttp));
-		dst = new KUrl;
+		dst = new KUrl(true);
 	}
 	~SubdirHttp() {
 		dst->release();

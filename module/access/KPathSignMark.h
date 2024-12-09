@@ -73,14 +73,14 @@ public:
 		}
 		KStringBuf s;
 		if (file) {
-			s << rq->sink->data.raw_url->path;		
+			s << rq->sink->data.raw_url.path;		
 		} else {
-			const char *e = strrchr(rq->sink->data.raw_url->path,'/');
+			const char *e = strrchr(rq->sink->data.raw_url.path,'/');
 			if (e==NULL) {
 				return ReturnWithRewriteParam(rq, np, KF_STATUS_REQ_FALSE);
 			}
-			int len = e - rq->sink->data.raw_url->path;
-			s.write_all(rq->sink->data.raw_url->path,len+1);
+			int len = e - rq->sink->data.raw_url.path;
+			s.write_all(rq->sink->data.raw_url.path,len+1);
 		}
 		s << key.c_str() << expire_value;
 		if (strstr(expire_value,"ip")!=NULL) {

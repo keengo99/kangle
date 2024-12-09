@@ -15,7 +15,7 @@ public:
 	{
 	}
 	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
-		KUrl *url = (raw?rq->sink->data.raw_url:rq->sink->data.url);
+		KUrl *url = (raw?&rq->sink->data.raw_url:rq->sink->data.url);
 		char *param = url->param;
 		if (param==NULL) {
 			return KF_STATUS_REQ_FALSE;

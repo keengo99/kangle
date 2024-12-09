@@ -75,7 +75,7 @@ KGL_RESULT send_auth2(KHttpRequest* rq, KAutoBuffer* body) {
 	return send_http2(rq, NULL, status_code, body);
 }
 static void log_request_error(KHttpRequest* rq, int code, const char* reason) {
-	auto url = rq->sink->data.raw_url->getUrl();
+	auto url = rq->sink->data.raw_url.getUrl();
 	klog(KLOG_WARNING, "request error %s %s %s %d %s\n",
 		rq->getClientIp(),
 		rq->get_method(),
@@ -300,7 +300,7 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, boo
 	assert(!KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER));
 	if (likely(build_status)) {
 		uint16_t status_code = obj->data->i.status_code;
-		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_RANGED) && rq->sink->data.status_code == STATUS_CONTENT_PARTIAL) {
+		if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_RANGED) && rq->sink->data.status_code == STATUS_CONTENT_PARTIAL) {
 			//如果请求是url模拟range，则强制转换206的回应为200
 			status_code = STATUS_OK;
 		}
@@ -600,21 +600,21 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 	env->addEnv("SERVER_NAME", rq->sink->data.url->host);
 	env->addEnv("SERVER_PROTOCOL", "HTTP/1.1");
 	env->addEnv("REQUEST_METHOD", rq->get_method());
-	const char* param = rq->sink->data.raw_url->param;
+	const char* param = rq->sink->data.raw_url.param;
 	if (param == NULL) {
-		env->addEnv("REQUEST_URI", rq->sink->data.raw_url->path);
-		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
-			env->addEnv("HTTP_X_REWRITE_URL", rq->sink->data.raw_url->path);
+		env->addEnv("REQUEST_URI", rq->sink->data.raw_url.path);
+		if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_REWRITED)) {
+			env->addEnv("HTTP_X_REWRITE_URL", rq->sink->data.raw_url.path);
 		}
 	} else {
 		KStringBuf request_uri;
-		request_uri << rq->sink->data.raw_url->path << "?" << param;
+		request_uri << rq->sink->data.raw_url.path << "?" << param;
 		env->addEnv("REQUEST_URI", request_uri.c_str());
-		if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
+		if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_REWRITED)) {
 			env->addEnv("HTTP_X_REWRITE_URL", request_uri.c_str());
 		}
 	}
-	if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_REWRITED)) {
+	if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_REWRITED)) {
 		param = rq->sink->data.url->param;
 	}
 	if (param) {
@@ -681,7 +681,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 		env->addEnv("VH_NAME", svh->vh->name.c_str());
 	}
 #ifdef KSOCKET_SSL
-	if (KBIT_TEST(rq->sink->data.raw_url->flags, KGL_URL_SSL)) {
+	if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_SSL)) {
 		env->addEnv("HTTPS", "ON");
 		kssl_session* ssl = rq->sink->get_ssl();
 		if (ssl) {
