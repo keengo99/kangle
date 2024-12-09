@@ -50,7 +50,7 @@ public:
 	//	return reg.getModel();
 	//}
 	bool parse(const char *str, bool nc) override {
-		return reg.setModel(str, (nc ? PCRE_CASELESS : 0));
+		return reg.setModel(str, (nc ? KGL_PCRE_CASELESS : 0));
 	}
 	bool test(const char *str, KRegSubString **lastSubString) override {
 		if (*lastSubString) {

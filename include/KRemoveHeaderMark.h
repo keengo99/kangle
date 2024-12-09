@@ -111,7 +111,7 @@ public:
 		}
 		if (*v) {
 			val = new KReg;
-			val->setModel(v, PCRE_CASELESS);
+			val->setModel(v, KGL_PCRE_CASELESS);
 		}
 	}
 private:

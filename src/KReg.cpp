@@ -34,7 +34,9 @@ KRegSubString::~KRegSubString()
 KReg::KReg() {
 	model = NULL;
 	c_model = NULL;
+#ifndef ENABLE_PCRE2
 	pe = NULL;
+#endif
 	//	int match_limit=1;
 	//	pcre_config(PCRE_CONFIG_MATCH_LIMIT,&match_limit);
 }
@@ -42,29 +44,49 @@ KReg::~KReg() {
 	if (model != NULL) {
 		xfree(model);
 	}
+#ifdef ENABLE_PCRE2
+	if (c_model) {
+		pcre2_code_free(c_model);
+	}
+#else
 	if (c_model) {
 		pcre_free(c_model);
 	}
 	if (pe) {
 		freeStudy(pe);
 	}
+#endif
 }
-KRegSubString* KReg::matchSubString(const char* str, int str_len, int flag, int* ovector, int ovector_size)
+KRegSubString* KReg::matchSubString(const char* str, int str_len, int flag, kgl_pcre_match_data *match_data)
 {
-	int matched = match(str, str_len, 0, ovector, ovector_size);
+	int matched = match(str, str_len, 0, match_data);
 	if (matched < 1) {
 		return NULL;
 	}
-	return makeSubString(str, ovector, ovector_size, matched);
+	return makeSubString(str, match_data, matched);
+	
 }
 KRegSubString* KReg::matchSubString(const char* str, int str_len, int flag)
 {
-	int ovector[OVECTOR_SIZE];
-	int matched = match(str, str_len, 0, ovector, OVECTOR_SIZE);
+#ifdef ENABLE_PCRE2
+	kgl_pcre_match_data* match_data = pcre2_match_data_create_from_pattern(c_model, nullptr);
+	int matched = match(str, str_len, flag, match_data);
+	if (matched < 1) {
+		pcre2_match_data_free(match_data);
+		return NULL;
+	}
+	KRegSubString *result = makeSubString(str, match_data, matched);
+	pcre2_match_data_free(match_data);
+	return result;
+#else
+	KGL_OVECTOR_SIZE ovector[OVECTOR_SIZE];
+	kgl_pcre_match_data match_data{ ovector,OVECTOR_SIZE };
+	int matched = match(str, str_len, 0, &match_data);
 	if (matched < 1) {
 		return NULL;
 	}
-	return makeSubString(str, ovector, OVECTOR_SIZE, matched);
+	return makeSubString(str, &match_data, matched);
+#endif
 }
 bool KReg::isPartialModel() {
 #ifdef PCRE_INFO_OKPARTIAL
@@ -81,7 +103,7 @@ bool KReg::isPartialModel() {
 
 }
 
-bool KReg::setModel(const char* model_str, int flag, int match_limit) {
+bool KReg::setModel(const char* model_str, int flag) {
 	if (model_str == NULL || *model_str == '\0') {
 		return false;
 	}
@@ -90,11 +112,24 @@ bool KReg::setModel(const char* model_str, int flag, int match_limit) {
 		model = NULL;
 	}
 	if (c_model) {
+#ifdef ENABLE_PCRE2
+		pcre2_code_free(c_model);
+#else
 		pcre_free(c_model);
+#endif
 		c_model = NULL;
 	}
-	model = xstrdup(model_str);
+	model = xstrdup(model_str);	
 	const char* error = NULL;
+#ifdef ENABLE_PCRE2
+	int errorcode;
+	size_t erroffset;
+	c_model = pcre2_compile((PCRE2_SPTR)model_str, strlen(model_str), flag, &errorcode, (PCRE2_SIZE *)&erroffset, NULL);
+	if (c_model) {
+		pcre2_jit_compile(c_model, PCRE2_JIT_COMPLETE);
+		return true;
+	}
+#else
 	int erroffset;
 	c_model = pcre_compile(model_str, flag, &error, &erroffset, NULL);
 	if (c_model) {
@@ -110,13 +145,16 @@ bool KReg::setModel(const char* model_str, int flag, int match_limit) {
 #endif
 			,
 			&error); /* set to NULL or points to a message */
+#if 0
 		if (pe && match_limit > 0) {
 			pe->flags |= PCRE_EXTRA_MATCH_LIMIT;
 			pe->match_limit = match_limit;
 		}
+#endif
 		return true;
 	}
-	klog(KLOG_ERR, "cann't compile regex [%s] pos=%d,error=[%s]\n", model, erroffset, (error ? error : ""));
+#endif
+	klog(KLOG_ERR, "cann't compile regex [%s] pos=%d,error=[%s]\n", model, (int)erroffset, (error ? error : ""));
 	return false;
 }
 const char* KReg::getModel() {
@@ -149,7 +187,6 @@ int KReg::matchPartial(const char* str, int str_len, int flag, int* ovector,
 int KReg::matchNext(const char* str, int str_len, int flag, int* ovector,
 	int ovector_size, int* workspace, int wscount) {
 #ifdef PCRE_DFA_SHORTEST
-
 	return pcre_dfa_exec(c_model, pe, str, str_len, 0,
 		PCRE_DFA_RESTART | flag, ovector, ovector_size, workspace, wscount);
 #else
@@ -158,22 +195,34 @@ int KReg::matchNext(const char* str, int str_len, int flag, int* ovector,
 }
 
 int KReg::match(const char* str, int str_len, int flag) {
-	int ovector[DEFAULT_OVECTOR];
-	return match(str, str_len, flag, ovector, DEFAULT_OVECTOR);
+#ifdef ENABLE_PCRE2
+	kgl_pcre_match_data* match_data = pcre2_match_data_create_from_pattern(c_model, nullptr);
+	int result = match(str, str_len, flag, match_data);
+	pcre2_match_data_free(match_data);
+	return result;
+#else
+	KGL_OVECTOR_SIZE ovector[DEFAULT_OVECTOR];
+	kgl_pcre_match_data match_data{ovector,DEFAULT_OVECTOR };
+	return match(str, str_len, flag, &match_data);
+#endif
+	
 }
 
-int KReg::match(const char* str, int str_len, int flag, int* ovector,
-	int ovector_size) {
+int KReg::match(const char* str, int str_len, int flag, kgl_pcre_match_data *match_data) {
 	if (str_len == -1) {
 		str_len = (int)strlen(str);
 	}
+#ifdef ENABLE_PCRE2
+	return pcre2_match(c_model, (PCRE2_SPTR)str, (PCRE2_SIZE)str_len, 0, flag, match_data, nullptr);
+#else
 	return pcre_exec(c_model, /* result of pcre_compile() */
 		pe, /* we didn't study the pattern */
 		str, /* the subject string */
 		str_len, /* the length of the subject string */
 		0, /* start at offset 0 in the subject */
 		flag, /* default options */
-		ovector, /* vector of integers for substring information */
-		ovector_size); /* number of elements in the vector (NOT size in bytes) */
+		match_data->ovector, /* vector of integers for substring information */
+		match_data->ovector_size); /* number of elements in the vector (NOT size in bytes) */
+#endif
 }
 

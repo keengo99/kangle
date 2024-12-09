@@ -187,7 +187,7 @@ bool KApacheConfig::process(const char* cmd, std::vector<char*>& item)
 			if (efinded) {
 				int nc = 0;
 #ifdef _WIN32
-				nc = PCRE_CASELESS;
+				nc = KGL_PCRE_CASELESS;
 #endif
 				include.file.setModel(e + 1, nc);
 				*e = '\0';

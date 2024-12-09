@@ -27,12 +27,34 @@ public:
 		} else {
 			header = rq->sink->data.get_header();
 		}
-		int ovector[MAX_OVECTOR];
 		while (header) {
 			if (!kgl_is_attr(header, attr.c_str(), attr.size())) {
 				header = header->next;
 				continue;
 			}
+			KRegSubString* subString = val.matchSubString(header->buf + header->val_offset, header->val_len,0);
+			if (subString) {
+				auto replaced = KRewriteMarkEx::getString(NULL, replace.c_str(), rq, NULL, subString);
+				delete subString;
+				if (replaced) {
+					int new_buf_len = header->val_offset + replaced->size();
+					char* new_buf = (char*)malloc(new_buf_len + 1);
+					new_buf[new_buf_len] = '\0';
+					if (header->val_offset > 0) {
+						//copy attr
+						memcpy(new_buf, header->buf, header->val_offset);
+					}
+					memcpy(new_buf + header->val_offset, replaced->buf(), replaced->size());
+					header->val_len = replaced->size();
+					xfree_header_buffer(header);
+					header->buf_in_pool = 0;
+					header->buf = new_buf;
+					delete replaced;
+				}
+				result = KF_STATUS_REQ_TRUE;
+			}
+			break;
+#if 0
 			int ret = val.match(header->buf + header->val_offset, header->val_len, 0, ovector, MAX_OVECTOR);
 			if (ret > 0) {
 				KRegSubString* subString = KReg::makeSubString(header->buf + header->val_offset, ovector, MAX_OVECTOR, ret);
@@ -56,6 +78,7 @@ public:
 				result = KF_STATUS_REQ_TRUE;
 			}
 			break;
+#endif
 		}
 		return result;
 	}

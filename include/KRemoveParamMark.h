@@ -78,7 +78,7 @@ public:
 		} else {
 			revert = false;
 		}
-		params.setModel(param,(nc?PCRE_CASELESS:0));
+		params.setModel(param,(nc? KGL_PCRE_CASELESS :0));
 	}
 	void get_html(KModel* model, KWStream& s) override {
 		KRemoveParamMark *m = (KRemoveParamMark *)model;

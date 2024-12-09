@@ -480,7 +480,7 @@ int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *con
 						{
 							//正则，不区分大小写
 							KReg reg;
-							if(reg.setModel(hot+1,PCRE_CASELESS)){
+							if(reg.setModel(hot+1, KGL_PCRE_CASELESS)){
 								result += clean_cache(&reg,0);
 							}
 							break;

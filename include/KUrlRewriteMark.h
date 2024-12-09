@@ -86,7 +86,7 @@ public:
 		if (attribute["nc"].size()>0) {
 			icase = (attribute["nc"]=="1");
 		}
-		url.setModel(attribute["url"].c_str(),(icase?PCRE_CASELESS : 0));
+		url.setModel(attribute["url"].c_str(),(icase? KGL_PCRE_CASELESS : 0));
 		dst = attribute["dst"];
 		code = atoi(attribute["code"].c_str());
 	}

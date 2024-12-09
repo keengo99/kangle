@@ -35,6 +35,7 @@
 #cmakedefine ENABLE_JEMALLOC
 #cmakedefine ENABLE_DISK_CACHE
 #cmakedefine ENABLE_ZSTD
+#cmakedefine ENABLE_PCRE2
 #ifndef PROGRAM_NAME
 #define PROGRAM_NAME     "kangle"
 #endif

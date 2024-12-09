@@ -52,7 +52,7 @@ private:
 	KReg reg_filename;
 	int icase;
 	bool setFilename(const char* value) {
-		int flag = (icase ? PCRE_CASELESS : 0);
+		int flag = (icase ? KGL_PCRE_CASELESS : 0);
 		return this->reg_filename.setModel(value, flag);
 	}
 	int hit;

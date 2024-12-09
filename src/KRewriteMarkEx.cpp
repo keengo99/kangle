@@ -104,7 +104,7 @@ bool KRewriteRule::parse(const KXmlAttribute& attribute)
 	} else {
 		revert = false;
 	}
-	reg.setModel(path, (nc ? PCRE_CASELESS : 0));
+	reg.setModel(path, (nc ? KGL_PCRE_CASELESS : 0));
 	if(dst){
 		xfree(dst);
 	}

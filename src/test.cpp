@@ -96,12 +96,12 @@ void test_vh_container() {
 
 void test_regex() {
 	KReg reg;
-	reg.setModel("s", 0);
-	int ovector[6];
-	int ret = reg.match("sjj", -1, PCRE_PARTIAL, ovector, 6);
+	reg.setModel("s(t)s", 0);
+	//int ovector[6];
+	//int ret = reg.match("sjj", -1, PCRE_PARTIAL, ovector, 6);
 	//printf("ret=%d\n",ret);
-	//KRegSubString *ss = reg.matchSubString("t", 1, 0);
-	//assert(ss);
+	KRegSubString *ss = reg.matchSubString(_KS("AstsB"),0);
+	assert(ss);
 }
 /*
 void test_cache()

@@ -115,7 +115,7 @@ private:
 	KReg reg_name;
 	KReg reg_value;
 	bool set_value(const char* name, const char* value) {
-		int flag = (icase ? PCRE_CASELESS : 0);
+		int flag = (icase ? KGL_PCRE_CASELESS : 0);
 		bool result = false;
 		if (this->name) {
 			free(this->name);

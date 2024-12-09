@@ -81,7 +81,7 @@ void KHostRewriteMark::get_display(KWStream &s)
 }
 void KHostRewriteMark::parse_config(const khttpd::KXmlNodeBody* xml) {
 	auto attribute = xml->attr();
-	regHost.setModel(attribute["reg_host"].c_str(),PCRE_CASELESS);
+	regHost.setModel(attribute["reg_host"].c_str(), KGL_PCRE_CASELESS);
 	host = attribute["host"];
 	port = atoi(attribute["port"].c_str());
 	life_time = atoi(attribute["life_time"].c_str());

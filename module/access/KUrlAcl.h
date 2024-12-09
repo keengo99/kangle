@@ -76,11 +76,11 @@ public:
 		auto attribute = xml->attr();
 		nc = (attribute["nc"]=="1");
 		if(!attribute["url"].empty()){
-			reg.setModel(attribute["url"].c_str(), (nc?PCRE_CASELESS:0));
+			reg.setModel(attribute["url"].c_str(), (nc? KGL_PCRE_CASELESS :0));
 		} else {
 			auto text = xml->get_text();
 			if (!text.empty()) {
-				reg.setModel(text.c_str(), (nc ? PCRE_CASELESS : 0));
+				reg.setModel(text.c_str(), (nc ? KGL_PCRE_CASELESS : 0));
 			}
 		}
 		if (attribute["raw"]=="1") {

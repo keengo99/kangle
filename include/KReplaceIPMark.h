@@ -116,7 +116,7 @@ public:
 		}
 		if (!val.empty()) {
 			this->val = new KReg;
-			this->val->setModel(val.c_str(), PCRE_CASELESS);
+			this->val->setModel(val.c_str(), KGL_PCRE_CASELESS);
 		}
 	}	
 private:

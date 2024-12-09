@@ -69,7 +69,7 @@ public:
 	bool setPath(const char *value) {
 		int flag = 0;
 		if (nc) {
-			flag = PCRE_CASELESS;
+			flag = KGL_PCRE_CASELESS;
 		}
 		path.setModel(value,flag);
 		return true;
@@ -139,7 +139,7 @@ public:
 	bool setPath(const char *value) {
 		int flag = 0;
 		if (nc) {
-			flag = PCRE_CASELESS;
+			flag = KGL_PCRE_CASELESS;
 		}
 		path.setModel(value,flag);
 		return true;

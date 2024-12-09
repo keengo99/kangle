@@ -802,7 +802,7 @@ static int Usage(bool only_version = false) {
 		"\n", getServerType());
 	printf("build time: " __DATE__ " " __TIME__ "\n");
 	printf("async event: %s %s\n", selector_manager_event_name(), kfiber_powered_by());
-	printf("pcre version: %s\n", pcre_version());
+	printf("pcre version: %s\n", kgl_pcre_version().c_str());
 #ifdef KSOCKET_SSL
 	printf("openssl version: %s\n", SSLeay_version(SSLEAY_VERSION));
 #endif

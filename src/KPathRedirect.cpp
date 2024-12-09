@@ -44,7 +44,7 @@ KPathRedirect::KPathRedirect(const char *path, KRedirect *rd) : KBaseRedirect(rd
 	if (*path == '~') {
 		reg = new KReg;
 #ifdef _WIN32
-		int flag = PCRE_CASELESS;
+		int flag = KGL_PCRE_CASELESS;
 #else
 		int flag = 0;
 #endif

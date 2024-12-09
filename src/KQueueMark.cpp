@@ -137,7 +137,7 @@ void KPerQueueMark::parse_config(const khttpd::KXmlNodeBody* xml)
 			val++;
 			matcher->header = strdup(hot);
 		}
-		matcher->reg.setModel(val, PCRE_CASELESS);
+		matcher->reg.setModel(val, KGL_PCRE_CASELESS);
 		if (last) {
 			last->next = matcher;
 		}
