@@ -64,8 +64,6 @@ cd test
 `cmake .. -DCMAKE_BUILD_TYPE=Release`
 ### use boringssl
 `cmake .. -DBORINGSSL_DIR=boringssl_dir`
-### powered by boost fcontext
-`cmake .. -DENABLE_FCONTEXT=1`
 ### build as proxy server
 `cmake .. -DHTTP_PROXY=ON`
 
