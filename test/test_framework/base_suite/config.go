@@ -10,15 +10,17 @@ import (
 
 func check_reload_none_config() {
 	kangle.CleanExtConfig("not_exsit")
-	kangle.Reload("ext|not_exsit.xml_")
+	resp := kangle.Reload("ext|not_exsit.xml_")
 	common.AssertPort(4444, false)
 	kangle.CreateExtConfig("not_exsit", `<!--#start 10 -->
 <config>
 	<listen ip='127.0.0.1' port='4444' type='http'/>
 </config>
 `)
-	kangle.Reload("ext|not_exsit.xml_")
+	resp.Body.Close()
+	resp = kangle.Reload("ext|not_exsit.xml_")
 	common.AssertPort(4444, true)
+	resp.Body.Close()
 
 }
 func check_listen_config() {
@@ -34,9 +36,11 @@ func check_listen_config() {
 	<config>		
 	</config>	
 	`)
+	resp.Body.Close()
 	resp = kangle.Reload("ext|10.xml_")
 	common.AssertSame(resp.StatusCode, 204)
 	common.AssertPort(7777, false)
+	resp.Body.Close()
 }
 func check_vh_config() {
 	access_file := config.Cfg.BasePath + "/www/access.xml"
@@ -50,7 +54,7 @@ func check_vh_config() {
 </config>
 <!--configfileisok-->
 `)
-	kangle.Reload("ext|20.xml_")
+	resp := kangle.Reload("ext|20.xml_")
 
 	kangle.CreateExtConfig("20", `<!--#start 20 -->
 	<config>
@@ -60,7 +64,8 @@ func check_vh_config() {
 		</vh>
 	</config>
 	`)
-	kangle.Reload("ext|20.xml_")
+	resp.Body.Close()
+	resp = kangle.Reload("ext|20.xml_")
 
 	kangle.CreateExtConfig("20", `<!--#start 20 -->
 		<config>
@@ -69,8 +74,9 @@ func check_vh_config() {
 			</vh>
 		</config>
 		`)
-	kangle.Reload("ext|20.xml_")
-
+	resp.Body.Close()
+	resp = kangle.Reload("ext|20.xml_")
+	resp.Body.Close()
 	kangle.ReloadConfig()
 }
 func create_wrong_ssl_cert() {
@@ -112,9 +118,11 @@ func check_listen_ssl_config_change() {
 <config>
 	<listen ip='127.0.0.1' port='7766' type='https' certificate='etc/server2.crt' certificate_key='etc/server.key' http2='1' />
 </config>`)
-	kangle.Reload("ext|20.xml_")
+	resp := kangle.Reload("ext|20.xml_")
+	resp.Body.Close()
 	create_right_ssl_cert()
-	kangle.Reload("ext|20.xml_")
+	resp = kangle.Reload("ext|20.xml_")
+	resp.Body.Close()
 	check_ssl_port_status("", 7766)
 }
 func check_ssl_port_status(host string, port int) {
@@ -139,13 +147,15 @@ func check_vh_ssl_config_change() {
 </config>
 <!--configfileisok-->
 `)
-	kangle.Reload("ext|20.xml_")
+	resp := kangle.Reload("ext|20.xml_")
+	resp.Body.Close()
 	create_right_ssl_cert()
-	kangle.Reload("ext|20.xml_")
+	resp = kangle.Reload("ext|20.xml_")
+	resp.Body.Close()
 	check_ssl_port_status("", 7767)
 	kangle.CreateExtConfig("20", `<!--#start 20 --><!--configfileisok-->`)
-	kangle.Reload("ext|20.xml_")
-
+	resp = kangle.Reload("ext|20.xml_")
+	resp.Body.Close()
 }
 func check_vh_host_ssl_change() {
 	create_wrong_ssl_cert()
@@ -159,12 +169,15 @@ func check_vh_host_ssl_change() {
 </config>
 <!--configfileisok-->
 `)
-	kangle.Reload("ext|20.xml_")
+	resp := kangle.Reload("ext|20.xml_")
 	create_right_ssl_cert()
-	kangle.Reload("ext|20.xml_")
+	resp.Body.Close()
+	resp = kangle.Reload("ext|20.xml_")
+	resp.Body.Close()
 	check_ssl_port_status(config.GetLocalhost("testssl"), 7768)
 	kangle.CreateExtConfig("20", `<!--#start 20 --><!--configfileisok-->`)
-	kangle.Reload("ext|20.xml_")
+	resp = kangle.Reload("ext|20.xml_")
+	resp.Body.Close()
 }
 func check_config() {
 

@@ -26,14 +26,17 @@ func CleanAllCache() {
 		panic(err)
 	}
 	common.Assert("clean_all_cache", resp.StatusCode == 200)
+	resp.Body.Close()
 }
 func ReloadConfig() {
 	resp, _ := common.Http1Client.Get("http://127.0.0.1:9911/reload_config")
 	common.Assert("reload_config", resp.StatusCode == 200)
+	resp.Body.Close()
 }
 func FlushDiskCache() {
 	resp, _ := common.Http1Client.Get("http://127.0.0.1:9911/flush_disk_cache.km")
 	common.Assert("reload_config", resp.StatusCode == 200)
+	resp.Body.Close()
 }
 func CreateFile(filename string, content string) error {
 	config_file, err := os.Create(filename)

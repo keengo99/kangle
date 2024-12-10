@@ -30,6 +30,7 @@ func SplitSuiteCase(name string) (suite string, testCase string) {
 	return name, ""
 }
 func Init(names []string) {
+	inited_suite := make(map[string]bool, 0)
 	for _, name := range names {
 		s, _ := SplitSuiteCase(name)
 		suite, ok := suites[s]
@@ -38,6 +39,11 @@ func Init(names []string) {
 			panic("")
 		}
 		common.AssertSame(ok, true)
+		_, ok = inited_suite[s]
+		if ok {
+			continue
+		}
+		inited_suite[s] = true
 		fmt.Printf("init suite [%s]\n", name)
 		suite.Init()
 	}

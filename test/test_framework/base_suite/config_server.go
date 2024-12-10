@@ -36,7 +36,8 @@ func create_config_file(server_cfg string) {
 </config>
 <!--configfileisok-->
 	`, server_cfg))
-	kangle.Reload("ext|20.xml_")
+	resp := kangle.Reload("ext|20.xml_")
+	resp.Body.Close()
 }
 func check_config_server() {
 
