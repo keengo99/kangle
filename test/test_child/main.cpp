@@ -90,7 +90,6 @@ static void krequest_start(KSink* sink, int header_len)
 {
 	klog(KLOG_NOTICE, "meth=[%d] path=[%s]\n", sink->data.meth, sink->data.raw_url.path);
 	sink->response_status(200);
-	sink->response_connection();
 	char buf[128];
 	int len = snprintf(buf, sizeof(buf), "hello %d %d", getpid(), (int)time(NULL));
 	sink->response_content_length(len);

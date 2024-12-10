@@ -3,7 +3,7 @@ package base_suite
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"strings"
@@ -13,7 +13,7 @@ import (
 
 func handle_100_continue(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("x-read-body") == "1" {
-		buf, _ := ioutil.ReadAll(r.Body)
+		buf, _ := io.ReadAll(r.Body)
 		w.Write(buf)
 		return
 	}

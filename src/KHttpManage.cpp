@@ -1018,7 +1018,6 @@ bool KHttpManage::sendMainPage() {
 bool KHttpManage::sendRedirect(const char* newUrl) {
 	rq->response_status(STATUS_FOUND);
 	rq->response_header(kgl_expand_string("Content-Length"), 0);
-	rq->response_connection();
 	rq->response_header(kgl_expand_string("Location"), newUrl, (hlen_t)strlen(newUrl));
 	return rq->start_response_body(0);
 }

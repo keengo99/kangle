@@ -350,9 +350,9 @@ public:
 		return sink->response_content_length(content_length);
 	}
 	//返回true，一定需要回应content-length或chunk
-	inline bool response_connection() {
-		return sink->response_connection();
-	}
+	//inline bool response_connection() {
+	//	return sink->response_connection();
+	//}
 
 	/**
 	* if lock_header true the header param will locked by sink until startResponseBody be called.

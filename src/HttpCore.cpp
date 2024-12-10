@@ -154,7 +154,7 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 		}
 		obj->ResponseVaryHeader(rq);
 	}
-	rq->response_connection();
+	//rq->response_connection();
 	rq->start_response_body(send_len);
 	if (body && rq->sink->data.meth != METH_HEAD) {
 		return rq->write_buf(body->getHead(), body->getLen());
@@ -354,7 +354,7 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, boo
 			rq->response_header(kgl_header_etag, obj->data->etag->data, (int)obj->data->etag->len, true);
 		}
 	}
-	rq->response_connection();
+	//rq->response_connection();
 	return rq->start_response_body(content_len);
 }
 KGL_RESULT response_redirect(kgl_output_stream* out, const char* url, size_t url_len, uint16_t code) {
@@ -380,7 +380,7 @@ bool push_redirect_header(KHttpRequest* rq, const char* url, int url_len, int co
 	rq->response_header(kgl_header_date, (char*)cachedDateTime, 29);
 	timeLock.Unlock();
 	rq->response_header(kgl_expand_string("Location"), url, url_len);
-	rq->response_connection();
+	//rq->response_connection();
 	return true;
 }
 

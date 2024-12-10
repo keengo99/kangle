@@ -666,7 +666,7 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj) {
 			rq->response_status(STATUS_RANGE_NOT_SATISFIABLE);
 			rq->response_content_range(nullptr, content_length);
 			rq->response_header(kgl_header_content_length, _KS("0"), true);
-			rq->response_connection();
+			//rq->response_connection();
 			rq->start_response_body(0);
 			goto done;
 		}
