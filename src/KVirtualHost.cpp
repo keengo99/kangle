@@ -446,10 +446,10 @@ void KVirtualHost::copy_to(KVirtualHost* vh) {
 	vh->indexFiles = indexFiles;
 	vh->errorPages = errorPages;
 	vh->aliass = aliass;
-	vh->binds = binds;
 	vh->access[0] = access[0];
 	vh->access[1] = access[1];
 #if 0
+	vh->binds = binds;
 	for (auto&& item : hosts) {
 		KSubVirtualHost* svh = new KSubVirtualHost(vh);
 		svh->setHost(item->host);
