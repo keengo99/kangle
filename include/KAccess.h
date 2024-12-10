@@ -119,6 +119,7 @@ public:
 	friend class KTable;
 	static std::map<KString, KAcl*> acl_factorys[2];
 	static std::map<KString, KMark*> mark_factorys[2];
+	static void remove_all_factorys();
 	static bool addAclModel(u_short type, KAcl* acl, bool replace = false);
 	static bool addMarkModel(u_short type, KMark* acl, bool replace = false);
 	static void build_action_attribute(KXmlAttribute& attribute, const KUrlValue& uv);

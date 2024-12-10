@@ -18,11 +18,10 @@
 
 class KGTempleteVirtualHost;
 
-class KVirtualHostManage : public kconfig::KConfigListen
+class KVirtualHostManage final : public kconfig::KConfigListen
 {
 public:
-	KVirtualHostManage();
-	virtual ~KVirtualHostManage();
+	~KVirtualHostManage();
 	void getMenuHtml(KWStream& s, KVirtualHost* vh, KStringBuf& url);
 	void getHtml(KWStream& s, const KString& vh_name, int id, KUrlValue& attribute);
 	bool vh_base_action(KUrlValue& attribute, KString& err_msg);
@@ -52,7 +51,7 @@ public:
 	bool updateVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh);
 	bool updateVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh, KVirtualHost* ov);
 	//void updateVirtualHost(KVirtualHost* vh, std::list<KSubVirtualHost*>& hosts);
-	void updateVirtualHost(KVirtualHost* vh, std::list<KString>& binds);
+	//void updateVirtualHost(KVirtualHost* vh, std::list<KString>& binds);
 	/*
 	 * 增加虚拟主机
 	 */
@@ -82,7 +81,9 @@ public:
 	static KFiberLocker locker() {
 		return KFiberLocker(lock);
 	}
+	static KVirtualHostManage* get_instance();
 private:
+	KVirtualHostManage();
 	void getVhIndex(KWStream& s, KVirtualHost* vh, int id);
 	bool internalAddVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh, KVirtualHost* ov);
 	bool internalRemoveVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh);

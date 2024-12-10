@@ -185,6 +185,7 @@ int clean_memory_leak_fiber(void* arg, int argc) {
 	conf.sysHost->release();
 	packageManage.clean();
 	shutdown_http_server();
+	KAccess::remove_all_factorys();
 #ifndef HTTP_PROXY
 	delete conf.gvm;
 	delete conf.gam;

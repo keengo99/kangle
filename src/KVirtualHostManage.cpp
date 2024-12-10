@@ -43,6 +43,13 @@ void free_ssl_certifycate(void* arg) {
 	KSslCertificate* cert = (KSslCertificate*)arg;
 	delete cert;
 }
+static KVirtualHostManage* vhm = nullptr;
+KVirtualHostManage* KVirtualHostManage::get_instance() {
+	if (!vhm) {
+		vhm = new KVirtualHostManage();
+	}
+	return vhm;
+}
 bool KVirtualHostManage::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	auto xml = ev->get_xml();
 	switch (ev->type) {
@@ -121,9 +128,7 @@ KVirtualHostManage::KVirtualHostManage() {
 }
 KVirtualHostManage::~KVirtualHostManage() {
 	for (auto it4 = avh.begin(); it4 != avh.end(); it4++) {
-		if (this == conf.gvm) {
-			InternalUnBindVirtualHost((*it4).second);
-		}
+		InternalUnBindVirtualHost((*it4).second);
 		(*it4).second->release();
 	}
 	avh.clear();
@@ -279,7 +284,7 @@ bool KVirtualHostManage::updateVirtualHost(kconfig::KConfigTree* ct, KVirtualHos
 #ifdef ENABLE_VH_RUN_AS
 		ov->need_kill_process = vh->caculateNeedKillProcess(ov);
 #endif
-		if (ov && this == conf.gvm) {
+		if (ov) {
 			internalRemoveVirtualHost(ct, ov);
 		}
 	}
@@ -287,7 +292,7 @@ bool KVirtualHostManage::updateVirtualHost(kconfig::KConfigTree* ct, KVirtualHos
 		getAutoName(vh->name);
 	}
 	bool result = internalAddVirtualHost(ct, vh, ov);
-	if (ov && this == conf.gvm) {
+	if (ov) {
 		InternalUnBindVirtualHost(ov);
 	}
 	return result;
@@ -316,9 +321,7 @@ bool KVirtualHostManage::removeVirtualHost(kconfig::KConfigTree* ct, KVirtualHos
 	vh->need_kill_process = 1;
 #endif
 	bool result = internalRemoveVirtualHost(ct, vh);
-	if (this == conf.gvm) {
-		InternalUnBindVirtualHost(vh);
-	}
+	InternalUnBindVirtualHost(vh);
 	return result;
 }
 bool KVirtualHostManage::internalAddVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh, KVirtualHost* ov) {
@@ -330,9 +333,7 @@ bool KVirtualHostManage::internalAddVirtualHost(kconfig::KConfigTree* ct, KVirtu
 		klog(KLOG_ERR, "Cann't add VirtualHost [%s] name duplicate.\n", vh->name.c_str());
 		return false;
 	}
-	if (this == conf.gvm) {
-		InternalBindVirtualHost(vh);
-	}
+	InternalBindVirtualHost(vh);
 	avh.insert(pair<KString, KVirtualHost*>(vh->name, vh));
 	vh->add_ref();
 	return true;
@@ -353,7 +354,6 @@ bool KVirtualHostManage::internalRemoveVirtualHost(kconfig::KConfigTree* ct, KVi
 		return false;
 	}
 	avh.erase(it);
-	kassert(this == conf.gvm);
 	vh->release();
 	return true;
 }
@@ -1084,7 +1084,7 @@ void KVirtualHostManage::updateVirtualHost(KVirtualHost* vh, std::list<KSubVirtu
 	}
 	InternalBindVirtualHost(vh);
 }
-*/
+
 void KVirtualHostManage::updateVirtualHost(KVirtualHost* vh, std::list<KString>& binds) {
 	auto vm_locker = locker();
 	InternalUnBindVirtualHost(vh);
@@ -1094,6 +1094,7 @@ void KVirtualHostManage::updateVirtualHost(KVirtualHost* vh, std::list<KString>&
 	}
 	InternalBindVirtualHost(vh);
 }
+*/
 void KVirtualHostManage::InternalBindVirtualHost(KVirtualHost* vh) {
 #ifdef ENABLE_SVH_SSL
 	if (ssl_config) {

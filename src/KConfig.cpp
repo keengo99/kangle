@@ -136,7 +136,7 @@ KConfig::~KConfig() {
 }
 KGlobalConfig::KGlobalConfig() {
 	gam = new KAcserverManager;
-	gvm = new KVirtualHostManage;
+	gvm = KVirtualHostManage::get_instance();
 	sysHost = new KVirtualHost("_SYS");
 	dem = NULL;
 	select_count = 0;

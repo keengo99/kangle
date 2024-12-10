@@ -153,6 +153,16 @@ public:
 		auto lock = get_locker();
 		return root.find(domain);
 	}
+	int get_bind_count() {
+		auto lock = get_locker();
+		int result = count;
+		return result;
+	}
+	int get_total_bind_count() {
+		auto lock = get_locker();
+		int result = total_count;
+		return result;
+	}
 	void bind_vh(KVirtualHost* vh, bool high = false);
 	void unbind_vh(KVirtualHost* vh);
 	KLocker get_locker() {
@@ -161,6 +171,8 @@ public:
 protected:
 	~KVirtualHostContainer();
 private:
+	int count = 0;
+	int total_count = 0;
 	KDomainMap root;
 	KMutex lock;
 };

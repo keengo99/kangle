@@ -457,7 +457,7 @@ bool KHttpManage::config() {
 		s << "</td><td valign=top>";
 		s << "\n" << klang["success_listen"] << ":<table border=1>";
 		s << "<tr><td>" << LANG_IP << "</td><td>" << LANG_PORT;
-		s << "</td><td>" << klang["listen_type"] << "</td><td>" << klang["protocol"] << "</td><td>flags</td><td>global</td><td>dynamic</td><td>" << LANG_REFS << "</td></tr>";
+		s << "</td><td>" << klang["listen_type"] << "</td><td>" << klang["protocol"] << "</td><td>flags</td><td>global</td><td>dynamic</td><td>" << LANG_REFS << "</td><td>bind</td></tr>";
 		conf.gvm->GetListenHtml(s);
 		s << "</table>";
 		s << "</tr></table>";

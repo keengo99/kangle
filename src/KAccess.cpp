@@ -181,6 +181,18 @@ void KAccess::clear() {
 bool KAccess::isGlobal() {
 	return global_flag;
 }
+void KAccess::remove_all_factorys() {
+	for (int i = 0; i < 2; ++i) {
+		for (auto it = acl_factorys[i].begin(); it != acl_factorys[i].end(); ++it) {
+			(*it).second->release();
+		}
+		acl_factorys[i].clear();
+		for (auto it = mark_factorys[i].begin(); it != mark_factorys[i].end(); ++it) {
+			(*it).second->release();
+		}
+		mark_factorys[i].clear();
+	}
+}
 bool KAccess::addAclModel(u_short type, KAcl* m, bool replace) {
 	if (type > 1) {
 		m->add_ref();

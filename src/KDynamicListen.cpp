@@ -524,6 +524,7 @@ static iterator_ret listen_html_iterator(void *data, void *argv)
 	KListen *listen = (KListen *)data;
 	KWStream *s = (KWStream*)argv;
 	kserver *server = listen->server;
+	KVirtualHostContainer* vhd = (KVirtualHostContainer*)kserver_get_opaque(server);
 	if (KBIT_TEST(listen->server->flags, KGL_SERVER_START)) {
 		*s << "<tr>";
 		bool unix_socket = false;
@@ -573,8 +574,12 @@ static iterator_ret listen_html_iterator(void *data, void *argv)
 		}
 		*s << "</td><td>" << (int)listen->key->global;
 		*s << "</td><td>" << (int)listen->key->dynamic;
-		*s << "</td><td>" << katom_get((void *)&server->refs);
-		*s << "</td>";
+		*s << "</td><td>" << katom_get((void *)&server->refs) << "</td>";
+		*s << "<td>" << vhd->get_bind_count() 
+#if 0
+			<< " " << vhd->get_total_bind_count() 
+#endif
+			<< "</td>";
 		*s << "</tr>";
 	}
 	return iterator_continue;

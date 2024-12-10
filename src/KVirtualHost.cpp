@@ -617,6 +617,9 @@ bool KVirtualHost::setSSLInfo(const KString& certfile, const KString& keyfile, c
 		kgl_release_ssl_ctx(ssl_ctx);
 		ssl_ctx = nullptr;
 	}
+	if (cert_file.empty()) {
+		return false;
+	}
 	ssl_ctx = refs_ssl_ctx();
 	if (ssl_ctx) {
 		kgl_release_ssl_ctx(ssl_ctx);
@@ -631,7 +634,7 @@ bool KVirtualHost::parse_xml(const khttpd::KXmlNodeBody* body, KVirtualHost* ov)
 	envs.clear();
 	parseEnv(attr("envs"));
 	setDocRoot(attr["doc_root"]);
-	browse = (attr["browse"] == "on" || attr["browse"]=="1");
+	browse = (attr["browse"] == "on" || attr["browse"] == "1");
 
 	inherit = (attr["inherit"] == "on" || attr["inherit"] == "1");
 	setAccess(attr["access"]);
@@ -698,19 +701,41 @@ bool KVirtualHost::parse_xml(const khttpd::KXmlNodeBody* body, KVirtualHost* ov)
 	}
 	//parse host
 	auto host_xml = kconfig::find_child(body, _KS("host"));
-	if (!host_xml) {
-		return true;
+	if (host_xml) {
+		for (uint32_t index = 0;; ++index) {
+			auto body = host_xml->get_body(index);
+			if (!body) {
+				break;
+			}
+			auto svh = parse_host(body);
+			if (!svh) {
+				continue;
+			}
+			hosts.push_back(svh);
+		}
 	}
-	for (uint32_t index = 0;; ++index) {
-		auto body = host_xml->get_body(index);
-		if (!body) {
-			break;
+	//parse bind
+	auto bind_xml = kconfig::find_child(body, _KS("bind"));
+	if (bind_xml) {
+		for (uint32_t index = 0;; ++index) {
+			auto body = bind_xml->get_body(index);
+			if (!body) {
+				break;
+			}
+			auto bind = body->get_text();
+			if (!bind) {
+				continue;
+			}
+			if (bind[0] == '!') {
+				binds.push_back(bind.substr(1));
+			} else if (bind.find(':') != KString::npos) {
+				binds.push_back(bind);
+			} else {
+				KStringBuf s;
+				s << "*:" << bind;
+				binds.push_back(s.c_str());
+			}
 		}
-		auto svh = parse_host(body);
-		if (!svh) {
-			continue;
-		}
-		hosts.push_back(svh);
 	}
 	return true;
 }
@@ -748,6 +773,7 @@ bool KVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigE
 		//[[fallthrough]]
 	case kconfig::EvSubDir | kconfig::EvUpdate:
 	{
+#if 0
 		if (xml->is_tag(_KS("host"))) {
 			/* notice parent xml tag event. */
 			return false;
@@ -775,19 +801,29 @@ bool KVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigE
 			}
 			conf.gvm->updateVirtualHost(this, binds);
 			return true;
+
+			/* notice parent xml tag event. */
+			//return false;
 		}
+#endif
 	}
 	break;
 	case kconfig::EvSubDir | kconfig::EvRemove:
+#if 0
 		if (xml->is_tag(_KS("host"))) {
 			/* notice parent xml tag event. */
 			return false;
 		}
 		if (xml->is_tag(_KS("bind"))) {
+			//*
 			std::list<KString> binds;
 			conf.gvm->updateVirtualHost(this, binds);
 			return true;
+			//*/
+			/* notice parent xml tag event. */
+			//return false;
 		}
+#endif
 		break;
 	}
 	return false;

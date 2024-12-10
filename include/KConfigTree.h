@@ -76,6 +76,7 @@ namespace kconfig {
 
 		}
 		virtual KConfigEventFlag config_flag() const = 0;
+		/* return false event will pass to parent node */
 		virtual bool on_config_event(KConfigTree* tree, KConfigEvent* ev) = 0;
 	};
 

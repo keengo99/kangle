@@ -77,6 +77,7 @@ KDsoExtend::KDsoExtend(const char* name) {
 	memset(&version, 0, sizeof(version));
 }
 KDsoExtend::~KDsoExtend() {
+	dso.unload();
 	xfree(name);
 	if (filename) {
 		xfree(filename);
@@ -84,6 +85,10 @@ KDsoExtend::~KDsoExtend() {
 	if (orign_filename) {
 		xfree(orign_filename);
 	}
+	for (auto it = upstream.begin(); it != upstream.end(); ++it) {
+		(*it).second->release();
+	}
+	upstream.clear();
 }
 bool KDsoExtend::RegisterUpstream(kgl_upstream* us) {
 	//global upstream always open after cache handle.
