@@ -354,6 +354,19 @@ public:
 		rq->response_vary(uk.vary->key);
 		lock->Unlock();
 	}
+	bool check_header_buf_can_lock() {
+		if (!data) {
+			return true;
+		}
+		auto header = data->headers;
+		while (header) {
+			if (header->buf_cannot_lock) {
+				return false;
+			}
+			header = header->next;
+		}
+		return true;
+	}
 	bool AddVary(KHttpRequest* rq, const char* val, int val_len);
 	int64_t getTotalContentSize() {
 		if (KBIT_TEST(index.flags, ANSW_HAS_CONTENT_RANGE)) {

@@ -181,6 +181,10 @@ bool read_obj_head(KHttpObjectBody* data, char** hot, int& hotlen)
 		header->next = NULL;
 		header->buf = buf.release();
 		header->name_attribute = *(uint32_t*)(*hot);
+		header->buf_cannot_lock = 0;
+		header->buf_in_pool = 0;
+		header->header_in_pool = 0;
+		header->buf_reoffset = 0;
 		(*hot) += sizeof(uint32_t);
 		hotlen -= sizeof(uint32_t);
 

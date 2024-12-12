@@ -92,7 +92,7 @@ static void krequest_start(KSink* sink, int header_len)
 	sink->response_status(200);
 	char buf[128];
 	int len = snprintf(buf, sizeof(buf), "hello %d %d", getpid(), (int)time(NULL));
-	sink->response_content_length(len);
+	//sink->response_content_length(len);
 	sink->response_header(kgl_expand_string("Cache-Control"), kgl_expand_string("no-cache,no-store"));
 	sink->start_response_body(len);
 	sink->write_all(buf, len);

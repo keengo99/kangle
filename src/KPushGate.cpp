@@ -495,7 +495,7 @@ KGL_RESULT check_write_header_finish(kgl_output_stream_ctx* st, int64_t body_siz
 		}
 		return KGL_NO_BODY;
 	}
-	rq->response_content_length(body_size);
+	//rq->response_content_length(body_size);
 	if (!rq->start_response_body(body_size)) {
 		return  KGL_EINVALID_PARAMETER;
 	}

@@ -114,9 +114,8 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 		rq->response_header(kgl_expand_string("X-Cache"), b.buf(), b.size());
 	}
 	INT64 send_len = 0;
-	if (!is_status_code_no_body(status_code)) {
-		send_len = (body ? body->getLen() : 0);
-		rq->response_content_length(send_len);
+	if (body) {
+		send_len = body->getLen();
 	}
 	if (obj) {
 		if (obj->data) {
@@ -154,7 +153,6 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 		}
 		obj->ResponseVaryHeader(rq);
 	}
-	//rq->response_connection();
 	rq->start_response_body(send_len);
 	if (body && rq->sink->data.meth != METH_HEAD) {
 		return rq->write_buf(body->getHead(), body->getLen());
@@ -292,7 +290,14 @@ void insert_via(KHttpRequest* rq, KWStream& s, char* old_via, size_t len) {
 	s.write_all(conf.serverName, conf.serverNameLength);
 	s.write_all(_KS(")"));
 }
-
+inline KHttpHeader* build_know_header(KHttpHeader* head, KHttpHeader* header, kgl_header_type type, const char* val, size_t val_len) {
+	memset(header, 0, sizeof(KHttpHeader));
+	header->name_is_know = 1;
+	header->buf = (char*)val;
+	header->val_len = (uint16_t)val_len;
+	header->next = head;
+	return header;
+}
 /*************************
 * 创建回应http头信息
 *************************/
@@ -306,20 +311,15 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, boo
 		}
 		rq->response_status(status_code);
 	}
+	KHttpHeader* headers = obj->data->headers;
+	KHttpHeader server_header;
 	if (KBIT_TEST(obj->index.flags, ANSW_LOCAL_SERVER)) {
-		rq->response_header(kgl_header_server, conf.serverName, conf.serverNameLength, true);
+		headers = build_know_header(headers, &server_header, kgl_header_server, conf.serverName, conf.serverNameLength);
 		timeLock.Lock();
 		rq->response_header(kgl_header_date, (char*)cachedDateTime, 29);
 		timeLock.Unlock();
 	}
-	//bool via_inserted = false;
-	//发送附加的头
-
-	KHttpHeader* header = obj->data->headers;
-	while (header) {
-		rq->response_header(header, true);
-		header = header->next;
-	}
+	rq->sink->response_headers(headers);
 	//发送Age头
 	if (KBIT_TEST(rq->ctx.filter_flags, RF_AGE) && !KBIT_TEST(obj->index.flags, FLAG_DEAD | ANSW_NO_CACHE)) {
 		int current_age = (int)obj->get_current_age(kgl_current_sec);
@@ -339,13 +339,6 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, boo
 		b << conf.hostname;
 		rq->response_header(kgl_expand_string("X-Cache"), b.buf(), b.size());
 	}
-	if (!KBIT_TEST(obj->index.flags, FLAG_NO_BODY)) {
-		/*
-		* no body的不发送content-length
-		* head method要发送content-length,但不发送内容
-		*/
-		rq->response_content_length(content_len);
-	}
 	obj->ResponseVaryHeader(rq);
 	if (obj->data->etag) {
 		if (obj->data->i.condition_is_time) {
@@ -354,7 +347,6 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, boo
 			rq->response_header(kgl_header_etag, obj->data->etag->data, (int)obj->data->etag->len, true);
 		}
 	}
-	//rq->response_connection();
 	return rq->start_response_body(content_len);
 }
 KGL_RESULT response_redirect(kgl_output_stream* out, const char* url, size_t url_len, uint16_t code) {
@@ -478,7 +470,7 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KApacheHtac
 			//静态文件不支持path_info
 			result = false;
 		}
-}
+	}
 done:
 	if (!result) {
 		if (rq->sink->data.meth == METH_OPTIONS) {
@@ -536,9 +528,9 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 			}
 #endif
 			env->add_http_header(av->buf, av->name_len, av->buf + av->val_offset, av->val_len);
-			}
-	do_not_insert: av = av->next;
 		}
+	do_not_insert: av = av->next;
+	}
 	KStringStream host;
 	rq->sink->data.url->GetHost(host);
 	env->add_http_header(_KS("Host"), host.c_str(), host.size());
@@ -691,8 +683,8 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 			}
 #endif
 			make_ssl_env(env, ssl->ssl);
-			}
 		}
+	}
 #endif
 #ifdef ENABLE_UPSTREAM_PARAM
 	if (brd && !brd->params.empty()) {
@@ -706,8 +698,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 	}
 #endif
 	return env->addEnvEnd();
-
-	}
+}
 
 int checkResponse(KHttpRequest* rq, KHttpObject* obj) {
 	if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_MANAGE) || rq->ctx.response_checked || rq->ctx.skip_access) {

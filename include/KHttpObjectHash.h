@@ -278,13 +278,7 @@ public:
 		assert(obj->refs==1);
 		//此处可确保obj，不会被其它引用，所以不用加锁
 		obj->refs++;
-#if 0
-		if (!KBIT_TEST(obj->index.flags,FLAG_URL_FREE)) {
-			KUrl *url = obj->uk.url->clone();
-			obj->uk.url = url;
-			KBIT_SET(obj->index.flags,FLAG_URL_FREE);
-		}
-#endif
+		assert(obj->check_header_buf_can_lock());
 		//kassert(obj->h == id);
 		kassert(obj->uk.url->host && obj->uk.url->path);
 		lock.Lock();

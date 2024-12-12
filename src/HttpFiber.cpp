@@ -411,7 +411,7 @@ KGL_RESULT handle_error(KHttpRequest* rq, int code, const char* msg) {
 		KStringBuf s;
 		s << errorPage << "?" << obj->data->i.status_code << "," << rq->getInfo();
 		push_redirect_header(rq, s.c_str(), (int)s.size(), STATUS_FOUND);
-		rq->response_content_length(0);
+		//rq->response_content_length(0);
 		rq->start_response_body(0);
 		return KGL_OK;
 	}

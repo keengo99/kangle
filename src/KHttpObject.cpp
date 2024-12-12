@@ -89,6 +89,7 @@ KHttpObject::KHttpObject(KHttpRequest* rq, KHttpObject* obj)
 	data = new KHttpObjectBody(obj->data);
 }
 KHttpObject::~KHttpObject() {
+	assert(check_header_buf_can_lock());
 #ifdef ENABLE_DISK_CACHE
 	unlinkDiskFile();
 #endif

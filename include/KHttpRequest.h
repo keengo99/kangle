@@ -346,9 +346,11 @@ public:
 		char* end = make_http_time(last_modified, tmpbuf, KGL_1123_TIME_LEN);
 		return response_header(kgl_header_last_modified, tmpbuf, (int)(end - tmpbuf), true);
 	}
+#if 0
 	bool response_content_length(int64_t content_length) {
 		return sink->response_content_length(content_length);
 	}
+#endif
 	//返回true，一定需要回应content-length或chunk
 	//inline bool response_connection() {
 	//	return sink->response_connection();
