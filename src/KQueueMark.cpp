@@ -36,9 +36,9 @@ void KQueueMark::get_display(KWStream &s)
 		s << " " << queue->getRef();
 	}
 }
-void KQueueMark::get_html(KModel *model, KWStream& s)
+void KQueueMark::get_html(KWStream& s)
 {
-	KQueueMark *mark = (KQueueMark *)(model);
+	KQueueMark *mark = (KQueueMark *)(this);
 	s << "max_worker:<input name='max_worker' value='";
 	if (mark && mark->queue) {
 		s << mark->queue->getMaxWorker();
@@ -168,9 +168,9 @@ void KPerQueueMark::build_matcher(KWStream &s)
 		matcher = matcher->next;
 	}
 }
-void KPerQueueMark::get_html(KModel *model,KWStream &s)
+void KPerQueueMark::get_html(KWStream &s)
 {
-	KPerQueueMark *mark = (KPerQueueMark *)(model);
+	KPerQueueMark *mark = (KPerQueueMark *)(this);
 	s << "url:<input name='url' value='";
 	if (mark) {
 		mark->build_matcher(s);

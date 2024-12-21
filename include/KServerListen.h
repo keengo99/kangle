@@ -1,4 +1,0 @@
-#ifndef KSERVERLISTEN_H_
-#define KSERVERLISTEN_H_
-
-#endif /*KSERVERLISTEN_H_*/

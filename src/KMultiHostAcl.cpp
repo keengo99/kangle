@@ -123,9 +123,8 @@ void KMultiHostAcl::get_display(KWStream &s) {
 
 	}
 }
-
-void KMultiHostAcl::get_html(KModel *model,KWStream &s) {
-	KMultiHostAcl *acl = (KMultiHostAcl *) model;
+void KMultiHostAcl::get_html(KWStream &s) {
+	KMultiHostAcl *acl = (KMultiHostAcl *) this;
 	s << "file: <input name='file' value='";
 	if (acl) {
 		s << acl->file;

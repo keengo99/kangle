@@ -285,7 +285,7 @@ KMark *KRewriteMarkEx::new_instance() {
 const char *KRewriteMarkEx::getName() {
 	return "rewritex";
 }
-void KRewriteMarkEx::get_html(KModel *model,KWStream &s) {
+void KRewriteMarkEx::get_html(KWStream &s) {
 	s <<  "not support in manage model";
 }
 void  KRewriteMarkEx::get_display(KWStream& s) {

@@ -25,7 +25,7 @@ public:
 	{
 		return "counter";
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "<input type=checkbox name='reset' value='1'>reset";
 	}
 	void get_display(KWStream& s) override {

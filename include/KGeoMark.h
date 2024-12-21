@@ -75,8 +75,8 @@ public:
 		this->load_data(file.c_str());
 		kfiber_rwlock_wunlock(lock);
 	}
-	void get_html(KModel *model,KWStream &s) override {		
-		KGeoMark *m = (KGeoMark *)model;
+	void get_html(KWStream &s) override {		
+		KGeoMark *m = (KGeoMark *)this;
 		s << "name:<input name='name' value='";
 		if (m) {
 			s << m->name;

@@ -29,9 +29,9 @@ public:
 		nc = true;
 	}
 	virtual ~KHeaderAcl() {}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "attr:<input name=header value='";
-		KHeaderAcl* urlAcl = (KHeaderAcl*)(model);
+		KHeaderAcl* urlAcl = (KHeaderAcl*)(this);
 		if (urlAcl) {
 			s << urlAcl->header;
 		}
@@ -90,14 +90,14 @@ public:
 
 	}
 	virtual ~KHeaderMapAcl() {}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "name:<input name=name value='";
-		KHeaderMapAcl* urlAcl = (KHeaderMapAcl*)(model);
+		KHeaderMapAcl* urlAcl = (KHeaderMapAcl*)(this);
 		if (urlAcl) {
 			s << urlAcl->name;
 		}
 		s << "'>value:";
-		KMultiAcl::get_html(model, s);
+		KMultiAcl::get_html(s);
 	}
 	KAcl* new_instance() override {
 		return new KHeaderMapAcl;

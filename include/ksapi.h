@@ -440,17 +440,51 @@ typedef struct _kgl_vary_conext
 #define KF_ACCESS_BUILD_TYPE    uint32_t
 #define KF_ACCESS_BUILD_SHORT   0
 #define KF_ACCESS_BUILD_HTML    1
+enum kgl_build_type {
+	kgl_build_short,
+	kgl_build_config,
+	kgl_build_schema
+};
+typedef struct _kgl_serializable              kgl_serializable;
+typedef struct _kgl_serializable_int_array    kgl_serializable_int_array;
+typedef struct _kgl_serializable_string_array kgl_serializable_string_array;
+typedef struct _kgl_serializable_obj_array    kgl_serializable_obj_array;
+
+typedef struct _kgl_serializable_f
+{
+	bool (*add_int)(kgl_serializable *cn, const char* name, int64_t value);
+	bool (*add_string) (kgl_serializable* cn,const char* name,const char *value);
+	kgl_serializable *(*add_obj)(kgl_serializable* cn, const char* name);
+
+	kgl_serializable_int_array *(*add_int_array)(kgl_serializable* cn, const char* name);
+	kgl_serializable_string_array *(*add_string_array)(kgl_serializable* cn, const char* name);
+
+} kgl_serializable_f;
+
+typedef struct _kgl_serializable_int_array_f
+{
+	bool (*add)(kgl_serializable_int_array *arr, int64_t value);
+} kgl_serializable_int_array_f;
+
+typedef struct _kgl_serializable_string_array_f
+{
+	bool (*add)(kgl_serializable_string_array*arr, const char *value);
+} kgl_serializable_string_array_f;
+
+
 typedef struct _kgl_access_build
 {
-	KCONN cn;
+	kgl_serializable *cn;
 	void* module;
-	int (*write_int)(KCONN cn, int value);
+	int (*write_int)(kgl_serializable *cn, int value);
 	int (*write_string) (
-		KCONN cn,
+		kgl_serializable *cn,
 		const char* str,
 		int len,
 		int build_flags);
-
+	kgl_serializable_f* serializable_f;
+	kgl_serializable_int_array_f* int_array_f;
+	kgl_serializable_string_array_f* string_array_f;
 } kgl_access_build;
 
 typedef struct _kgl_config_diff
@@ -512,7 +546,6 @@ typedef struct _kgl_access
 	KGL_RESULT(*parse_config)(kgl_access_parse_config *parse_ctx);
 	KGL_RESULT(*parse_child)(kgl_access_parse_child *parse_ctx);
 	uint32_t(*process)(KREQUEST rq, kgl_access_context* ctx, DWORD notify);
-	//void (*init_shutdown)(void* ctx, bool is_shutdown);
 } kgl_access;
 
 struct _kgl_upstream

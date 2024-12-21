@@ -69,8 +69,8 @@ public:
 	{
 		return "ip_speed_limit";
 	}
-	void get_html(KModel* model, KWStream& s) override {
-		KIpSpeedLimitMark *m = (KIpSpeedLimitMark *)model;
+	void get_html(KWStream& s) override {
+		KIpSpeedLimitMark *m = (KIpSpeedLimitMark *)this;
 		s << "speed_limit:<input name='speed_limit' value='";
 		if (m) {
 			s << get_size(m->speed_limit);

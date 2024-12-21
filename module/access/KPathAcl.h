@@ -30,9 +30,9 @@ public:
 	}
 	virtual ~KPathAcl() {
 	}
-	void get_html(KModel *model,KWStream &s) override {
+	void get_html(KWStream &s) override {
 		s << "<input name=path value='";
-		KPathAcl *urlAcl = (KPathAcl *) (model);
+		KPathAcl *urlAcl = (KPathAcl *) (this);
 		if (urlAcl) {
 			urlAcl->getPath(s);
 		}

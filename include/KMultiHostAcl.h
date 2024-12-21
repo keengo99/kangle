@@ -9,7 +9,7 @@ class KMultiHostAcl: public KAcl {
 public:
 	KMultiHostAcl();
 	virtual ~KMultiHostAcl();
-	void get_html(KModel* model, KWStream& s) override;
+	void get_html(KWStream& s) override;
 	void get_display(KWStream& s) override;
 	KAcl *new_instance() override;
 	const char *getName() override;

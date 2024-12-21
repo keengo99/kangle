@@ -138,6 +138,44 @@ bool kgl_connection_iterator(void* arg, KSink* rq) {
 	ctx->s << ")); \n";
 	return true;
 }
+
+bool kgl_connection_iterator2(void* arg, KSink* rq) {
+	KConnectionInfoContext* ctx = (KConnectionInfoContext*)arg;
+	if (conf.max_connect_info > 0 && ctx->total_count > (int)conf.max_connect_info) {
+		return false;
+	}
+	KSubVirtualHost* svh = static_cast<KSubVirtualHost*>(rq->data.opaque);
+	if (ctx->vh != NULL && (svh == NULL || strcmp(svh->vh->name.c_str(), ctx->vh) != 0)) {
+		return true;
+	}
+	auto c = ctx->sl->add_obj_array("c");
+	c->add("src", rq->get_client_ip());
+	c->add("time", (kgl_current_sec - rq->data.begin_time_msec / 1000));
+	c->add("state", rq->get_state());
+	c->add("meth", KHttpKeyValue::get_method(rq->data.meth)->data);
+	KStringBuf url;
+	get_url_info(rq, url);
+	c->add("url", url.c_str());
+	KHttpHeader* referer = rq->data.find(kgl_expand_string("Referer"));
+	if (referer) {
+		c->add("referer",referer->buf + referer->val_offset);
+	}
+	switch (rq->data.http_version) {
+	case 0x300:
+		c->add("version","3");
+		break;
+	case 0x200:
+		c->add("version", "2");
+		break;
+	case 0x100:
+		c->add("version", "1.0");
+		break;
+	default:
+		c->add("version", "1.1");
+		break;
+	}
+	return true;
+}
 KString endTag() {
 	KStringBuf s;
 	if (kconfig::need_reboot()) {
@@ -1363,7 +1401,7 @@ bool KHttpManage::start_access(bool& hit) {
 		if (vh->user_access.empty()) {
 			return sendHttp("vh do not support user access");
 		}
-		access = vh->access[type];
+		access = vh->get_access(type);
 	}
 #endif
 	accesslist << "/accesslist?access_type=" << getUrlValue("access_type") << "&vh=" << getUrlValue("vh");
@@ -1400,6 +1438,9 @@ bool KHttpManage::start_access(bool& hit) {
 	if (strcmp(rq->sink->data.url->path, "/tabledel") == 0) {
 		KStringBuf path;
 		KStringBuf file;
+		if (access->is_table_used(getUrlValue("table_name"))) {
+			return sendHttp("table is used");
+		}
 		if (vh && vh->has_user_access()) {
 			vh->get_access_file(file);
 		}

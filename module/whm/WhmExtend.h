@@ -26,20 +26,27 @@
 #include "WhmContext.h"
 #include "KCountable.h"
 #include "whm.h"
+class WhmExtend;
+typedef int (WhmExtend::*whm_call_ptr) (const char *call_name, const char* event_type, WhmContext* context);
 
 class WhmExtend : public KXmlEvent{
 public:
 	WhmExtend();
 	virtual ~WhmExtend();
 	virtual bool init(KString&whmFile);
-	int whmCall(const char *callName,const char *eventType,WhmContext *context);
+	virtual whm_call_ptr parse_call(const KString &call_name) {
+		return nullptr;
+	}
+	/* @deprecated use parse_call instead */
+	virtual int call(const char* callName, const char* eventType, WhmContext* context) {
+		return WHM_CALL_NOT_FOUND;
+	}
 	KString name;
 	virtual const char *getType() = 0;
 	virtual void flush()
 	{
 	}
 protected:	
-	virtual int call(const char *callName,const char *eventType,WhmContext *context) = 0;
 	KString file;
 };
 

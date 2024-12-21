@@ -55,7 +55,12 @@ bool KUrlValue::get(const KString name, KString&value) const {
 	value = (*it).second;
 	return true;
 }
-
+void KUrlValue::build_config_base_path(KStringBuf& path, const KString& cfg_file) const {
+	auto vh_name = getx("vh");
+	if (vh_name && strncmp(cfg_file.c_str(), _KS("@vh|")) != 0) {
+		path << "vh@" << vh_name << "/";
+	}
+}
 void KUrlValue::get(std::map<KString, KString> &values) const {
 	values = attribute;
 }

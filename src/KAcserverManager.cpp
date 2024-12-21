@@ -50,6 +50,26 @@ void on_server_event(void* data, kconfig::KConfigTree* tree, kconfig::KConfigEve
 	KAcserverManager* am = (KAcserverManager*)data;
 	am->on_server_event(tree, ev->get_xml(), ev->type);
 }
+int KAcserverManager::dump_sserver(WhmContext* ctx) {
+	auto lock = get_rlocker();
+	for (auto it = acservers.begin(); it != acservers.end(); ++it) {
+		auto sl = ctx->data()->add_obj_array("sserver");
+		if (!sl) {
+			continue;
+		}
+		(*it).second->dump(sl);
+	}
+	return WHM_OK;
+}
+int KAcserverManager::dump_mserver(WhmContext* ctx) {
+	return WHM_OK;
+}
+int KAcserverManager::dump_cmd(WhmContext* ctx) {
+	return WHM_OK;
+}
+int KAcserverManager::dump_api(WhmContext* ctx) {
+	return WHM_OK;
+}
 #ifdef ENABLE_VH_RUN_AS
 void KAcserverManager::on_cmd_event(kconfig::KConfigTree* tree, const khttpd::KXmlNode* xml, kconfig::KConfigEventType ev) {
 	auto& attr = xml->attributes();

@@ -1,7 +1,6 @@
 #include "KDynamicListen.h"
 #include "KVirtualHost.h"
 #include "ksocket.h"
-#include "KServerListen.h"
 #include "KVirtualHostManage.h"
 #include "kselector_manager.h"
 #include "KPreRequest.h"
@@ -515,6 +514,60 @@ static iterator_ret listen_whm_iterator(void *data, void *argv)
 	}
 	return iterator_continue;
 }
+
+static iterator_ret dump_listen_iterator(void* data, void* argv) {
+	KListen* listen = (KListen*)data;
+	kassert(!listen->empty());
+	kgl::serializable * ctx = (kgl::serializable*)argv;
+	kserver* server = listen->server;
+	if (KBIT_TEST(listen->server->flags, KGL_SERVER_START)) {
+		auto s = ctx->add_obj_array("listen");
+		bool unix_socket = false;
+#ifdef KSOCKET_UNIX
+		if (server->addr.v4.sin_family == AF_UNIX) {
+			unix_socket = true;
+			s->add("ip", ksocket_unix_path(&server->un_addr));
+			s->add("port", 0);
+		} else {
+#endif
+			char ip[MAXIPLEN];
+			ksocket_sockaddr_ip(&server->addr, ip, sizeof(ip));
+			s->add("ip", ip);
+			s->add("port", ksocket_addr_port(&server->addr));
+#ifdef KSOCKET_UNIX
+		}
+#endif
+#ifdef WORK_MODEL_PROXY
+		if (KBIT_TEST(server->flags, WORK_MODEL_PROXY)) {
+			s->add("proxy", 1);
+		} else if (KBIT_TEST(server->flags, WORK_MODEL_SSL_PROXY)) {
+			s->add("ssl_proxy", 1);
+		}
+#endif
+#ifdef WORK_MODEL_TPROXY
+		if (KBIT_TEST(server->flags, WORK_MODEL_TPROXY)) {
+			s->add("tproxy", 1);
+		}
+#endif
+		s->add("type", getWorkModelName(server->flags));
+		if (unix_socket) {
+			s->add("tcp_ip", "unix");
+		} else if (!klist_empty(&server->ss)) {
+			s->add("tcp_ip", (server->addr.v4.sin_family == PF_INET ? "tcp/ipv4" : "tcp/ipv6"));
+		}
+		s->add("global", (int)listen->key->global);
+		s->add("dynamic",(int)listen->key->dynamic);
+#ifdef ENABLE_HTTP3
+		s->add("h3", (int)listen->key->h3);
+#endif
+		s->add("multi_bind" , (int)is_server_multi_selectable(server));
+		s->add("refs", katom_get((void*)&server->refs));
+	}
+	return iterator_continue;
+}
+void KDynamicListen::dump(kgl::serializable* s) {
+	rbtree_iterator(&listens, dump_listen_iterator, s);
+}
 void KDynamicListen::GetListenWhm(WhmContext *ctx)
 {
 	rbtree_iterator(&listens, listen_whm_iterator, ctx);
@@ -606,7 +659,7 @@ static iterator_ret query_domain_iterator(void *data, void *argv)
 	KVirtualHostContainer* vhc = (KVirtualHostContainer*)kserver_get_opaque(server);
 	assert(vhc != NULL);
 	auto locker = vhc->get_locker();
-	KSubVirtualHost *svh = (KSubVirtualHost *)vhc->get_root(locker)->find(param->host);
+	KSubVirtualHost *svh = (KSubVirtualHost *)vhc->get_root(locker)->find(param->host, false);
 	if (svh) {
 		KStringBuf s;
 		if (!listen->key->ipv4) {

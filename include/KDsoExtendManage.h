@@ -27,6 +27,7 @@ public:
 	bool add(const KXmlAttribute &attribute);
 	void ListTarget(std::vector<KString> &target);
 	KRedirect *RefsRedirect(KString&name);
+	int dump(WhmContext* ctx);
 	void shutdown();
 	virtual bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) override;
 	kconfig::KConfigEventFlag config_flag() const override {

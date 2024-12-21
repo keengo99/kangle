@@ -63,9 +63,9 @@ public:
 	void get_display(KWStream& s) override {
 		this->getValList(s);
 	}
-	void get_html(KModel *model, KWStream &s) override {
+	void get_html(KWStream &s) override {
 		s << "<input name=v size=40 placeholder='abc.com|*.abc.com' value='";
-		KWideHostAcl *acl = (KWideHostAcl *) (model);
+		KWideHostAcl *acl = (KWideHostAcl *) (this);
 		if (acl) {
 			acl->getValList(s);
 		}

@@ -29,9 +29,9 @@ public:
 	}
 	virtual ~KRegFileAcl() {
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "<input name='file' value='";
-		KRegFileAcl *urlAcl = (KRegFileAcl *) (model);
+		KRegFileAcl *urlAcl = (KRegFileAcl *) (this);
 		if (urlAcl) {
 			urlAcl->get_display(s);
 		}
@@ -77,22 +77,19 @@ private:
 	KReg path;
 	bool nc;
 };
-class KRegFileNameAcl: public KAcl {
+class KRegFileNameAcl final: public KAcl {
 public:
 	KRegFileNameAcl() {
 		nc = true;
 	}
 	virtual ~KRegFileNameAcl() {
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "<input name='filename' value='";
-		KRegFileNameAcl *urlAcl = (KRegFileNameAcl *) (model);
-		if (urlAcl) {
-			urlAcl->get_display(s);
-		}
+		get_display(s);
 		s << "'>";
 		s << "<input name='nc' value='1' type='checkbox' ";
-		if (urlAcl && urlAcl->nc) {
+		if (nc) {
 			s << "checked";
 		}
 		s << ">nc";

@@ -110,8 +110,7 @@ namespace kangle {
 		s << endTag() << "</body></html>";
 		return s.str();
 	}
-	void del_request(void* data)
-	{
+	void del_request(void* data) {
 		ip_lock.Lock();
 		total_connect--;
 #ifdef RQ_LEAK_DEBUG
@@ -119,8 +118,7 @@ namespace kangle {
 #endif
 		ip_lock.Unlock();
 	}
-	void del_request_per_ip(void* data)
-	{
+	void del_request_per_ip(void* data) {
 		kconnection* c = (kconnection*)data;
 		ip_addr ip;
 		ksocket_ipaddr(&c->addr, &ip);
@@ -138,8 +136,7 @@ namespace kangle {
 		}
 		ip_lock.Unlock();
 	}
-	bool is_upstream_tcp(Proto_t proto)
-	{
+	bool is_upstream_tcp(Proto_t proto) {
 		switch (proto) {
 		case Proto_http:
 			return false;
@@ -147,8 +144,7 @@ namespace kangle {
 			return true;
 		}
 	}
-	kgl_connection_result kgl_on_new_connection(kconnection* c)
-	{
+	kgl_connection_result kgl_on_new_connection(kconnection* c) {
 		unsigned max = (unsigned)conf.max;
 		unsigned max_per_ip = conf.max_per_ip;
 		kassert(c->server);
@@ -276,7 +272,7 @@ void log_access(KHttpRequest* rq) {
 	timeLock.Unlock();
 	l.WSTR(" \"");
 	auto meth = rq->get_method2();
-	l.write_all(meth->data,meth->len);
+	l.write_all(meth->data, meth->len);
 	l.WSTR(" ");
 #ifdef HTTP_PROXY
 	if (rq->sink->data.meth != METH_CONNECT)
@@ -309,20 +305,20 @@ void log_access(KHttpRequest* rq) {
 	l.write_all(tmp, sprintf(tmp, INT64_FORMAT, sended_length));
 #ifndef NDEBUG
 	kgl_str_t range;
-	if (rq->get_http_value(_KS("Range"),&range)) {
+	if (rq->get_http_value(_KS("Range"), &range)) {
 		l << " \"";
 		l.write_all(range.data, (int)range.len);
 		l << "\"";
 	}
 #endif
 	l.WSTR(" \"");
-	if (rq->get_http_value(kgl_header_referer,&referer)) {
+	if (rq->get_http_value(kgl_header_referer, &referer)) {
 		l.write_all(referer.data, (int)referer.len);
 	} else {
 		l.WSTR("-");
 	}
 	l.WSTR("\" \"");
-	if (rq->get_http_value(kgl_header_user_agent,&user_agent)) {
+	if (rq->get_http_value(kgl_header_user_agent, &user_agent)) {
 		l.write_all(user_agent.data, (int)user_agent.len);
 	} else {
 		l.WSTR("-");
@@ -391,7 +387,7 @@ void log_access(KHttpRequest* rq) {
 	if (rq->sink->data.mark != 0) {
 		l.WSTR("m");
 		l << (int)rq->sink->data.mark;
-	}	
+	}
 	if (conf.log_event_id) {
 		l.WSTR(" ");
 		l.add(rq->sink->data.begin_time_msec, INT64_FORMAT_HEX);
@@ -414,8 +410,7 @@ void log_access(KHttpRequest* rq) {
 #endif
 }
 
-KGL_RESULT stageHttpManageLogin(KHttpRequest* rq)
-{
+KGL_RESULT stageHttpManageLogin(KHttpRequest* rq) {
 	if (rq->auth) {
 		delete rq->auth;
 		rq->auth = NULL;
@@ -456,11 +451,14 @@ KGL_RESULT stageHttpManage(KHttpRequest* rq) {
 	klog(KLOG_NOTICE, "[ADMIN_SUCCESS]%s %s%s%s\n",
 		ips, rq->sink->data.raw_url.path,
 		(rq->sink->data.raw_url.param ? "?" : ""), (rq->sink->data.raw_url.param ? rq->sink->data.raw_url.param : ""));
-	if (strstr(rq->sink->data.url->path, ".whm")
-		|| strstr(rq->sink->data.url->path, ".html")
-		|| strstr(rq->sink->data.url->path, ".js")
-		|| strcmp(rq->sink->data.url->path, "/logo.gif") == 0
-		|| strcmp(rq->sink->data.url->path, "/main.css") == 0) {
+	char* ext_file = strrchr(rq->sink->data.url->path, '.');
+	if (ext_file &&
+		(strcmp(ext_file, ".whm") == 0 ||
+			strcmp(ext_file, ".html") == 0 ||
+			strcmp(ext_file, ".js") == 0 ||
+			strcmp(ext_file, ".gif") == 0 ||
+			strcmp(ext_file, ".css") == 0)
+		) {
 		KBIT_CLR(rq->sink->data.flags, RQ_HAS_AUTHORIZATION);
 		assert(rq->is_source_empty());
 		auto svh = conf.sysHost->getFirstSubVirtualHost();

@@ -98,10 +98,12 @@ public:
 	void parse_config(const KXmlAttribute& attr);
 	bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) override;
 	kgl_jump_type check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo);
+	int get_chain(WhmContext *ctx, const KString& table_name);
 	void add_chain_form(KWStream& s, const char* vh, const KString& table_name, const KString& file, uint16_t index, size_t id, bool add);
 	//POSTMAP 只在RESPONSE里有效，在映射完物理文件后调用
 	kgl_jump_type check_post_map(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo);
 	static void loadModel();
+
 public:
 	uint8_t get_type() {
 		return type;
@@ -109,11 +111,14 @@ public:
 	void setChainAction(kgl_jump_type& jump_type, KSafeJump& jump, const KString& name);
 	bool parseChainAction(const KString& action, kgl_jump_type& jumpType, KString& jumpName);
 	static void buildChainAction(kgl_jump_type jumpType, const KSafeJump& jump, KWStream& s);
-
+	bool is_table_used(const KString& table_name);
 	bool isGlobal();
 public:
 	KString htmlAccess(const char* vh = "");
 	void listTable(KVirtualHostEvent* ctx);
+	int dump_chain(KVirtualHostEvent* ctx,const KString table_name);
+	int dump_named_module(KVirtualHostEvent* ctx, bool detail);
+	int get_named_module(KVirtualHostEvent* ctx, const KString &name, bool is_mark);
 public:
 	friend class KChain;
 	friend class KTable;
@@ -147,7 +152,7 @@ private:
 	std::map<KString, KSafeTable> tables;
 	std::map<KString, KSafeNamedModel> named_acls;
 	std::map<KString, KSafeNamedModel> named_marks;
-	KSafeTable get_table(const KString& table_name);
+	KSafeTable get_table(const KString& table_name,bool always_new=true);
 	std::vector<KString> getTableNames(KString skipName, bool show_global);
 };
 using KSafeAccess = KSharedObj<KAccess>;

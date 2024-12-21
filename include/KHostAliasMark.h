@@ -77,9 +77,9 @@ public:
 		}
 		free(map);
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "map(host:port=alias|...)<input size=40 name='map' value='";
-		KHostAliasMark *m = (KHostAliasMark *)model;
+		KHostAliasMark *m = (KHostAliasMark *)this;
 		if (m) {
 			m->getMap(s);
 		}

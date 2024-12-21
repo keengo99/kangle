@@ -20,9 +20,9 @@ public:
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {
 		return im.find(rq->getClientIp()) != NULL;
 	}
-	void get_html(KModel *model,KWStream &s) override {
+	void get_html(KWStream &s) override {
 		s << "<input placeholder='format: 127.0.0.1|127.0.0.0/24|127.0.0.1-127.0.0.255' name=v size=50 value='";
-		KSrcsAcl *acl = (KSrcsAcl *)(model);
+		KSrcsAcl *acl = (KSrcsAcl *)(this);
 		if (acl) {
 			acl->getValList(s);
 		}

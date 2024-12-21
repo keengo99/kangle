@@ -22,6 +22,7 @@ namespace kconfig {
 
 	constexpr int max_file_size = 10485760;
 	constexpr int default_file_index = 100;
+	extern kgl_ref_str_t default_file_name;
 	using KConfigEventFlag = uint16_t;
 	constexpr KConfigEventFlag ev_subdir = 1;
 	constexpr KConfigEventFlag ev_self = 2;

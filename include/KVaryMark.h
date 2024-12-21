@@ -39,11 +39,10 @@ public:
 		header = strdup(attribute["header"].c_str());
 		header_len = strlen(header);
 	}
-	void get_html(KModel* model, KWStream& s) override {
-		KVaryMark* m = (KVaryMark*)model;
+	void get_html(KWStream& s) override {
 		s << "header:<input name='header' value='";
-		if (m && m->header) {
-			s << m->header;
+		if (header) {
+			s << header;
 		}
 		s << "'>";
 	}

@@ -50,7 +50,6 @@
 #include "kthread.h"
 #include "kmalloc.h"
 #include "KBuffer.h"
-#include "KServerListen.h"
 #include "kmd5.h"
 #include "lang.h"
 #include "extern.h"

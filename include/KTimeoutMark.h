@@ -23,9 +23,9 @@ public:
 	{
 		return "timeout";
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "timeout radio(0-255):<input name='v' value='";
-		KTimeoutMark *m = (KTimeoutMark *)model;
+		KTimeoutMark *m = (KTimeoutMark *)this;
 		if (m) {
 			s << (int)m->v;
 		}

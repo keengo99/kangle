@@ -85,9 +85,9 @@ public:
 	{
 		return "replace_ip";
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "header:<input name='header' value='";
-		KReplaceIPMark *m = (KReplaceIPMark *)model;
+		KReplaceIPMark *m = (KReplaceIPMark *)this;
 		if (m) {
 			s << m->header;
 		} else {
@@ -205,9 +205,9 @@ public:
 	{
 		return "parent";
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "sign:<input name='sign' value='";
-		KParentMark *m = (KParentMark *)model;
+		KParentMark *m = (KParentMark *)this;
 		if (m) {
 			for (int i = 0; i < 2; i++) {
 				if (m->upstream_sign[i].data) {

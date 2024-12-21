@@ -49,8 +49,8 @@ public:
 	{
 		return "url_rewrite";
 	}
-	void get_html(KModel* model, KWStream& s) override {
-		KUrlRewriteMark *m = (KUrlRewriteMark *)model;
+	void get_html(KWStream& s) override {
+		KUrlRewriteMark *m = (KUrlRewriteMark *)this;
 		s << "url:<input name='url' size=32 value='";
 		if (m) {
 			s << m->url.getModel();

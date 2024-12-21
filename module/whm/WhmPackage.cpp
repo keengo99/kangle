@@ -12,6 +12,7 @@
 #include "WhmUrl.h"
 #include "WhmShell.h"
 #include "WhmShellSession.h"
+#include "WhmCore.h"
 
 using namespace std;
 WhmPackage::WhmPackage() {
@@ -108,13 +109,8 @@ int WhmPackage::process(const char *callName,WhmContext *context) {
 	}
 	auto it = callmap.find(callName);
 	if (it != callmap.end()) {
-		int ret = (*it).second->call(context);
-		//context->setStatus(ret);
-		//context->flush(ret,OUTPUT_FORMAT_XML);
-		return ret;
+		return (*it).second->call(context);
 	}
-	//KWStream *out = context->getOutputStream();
-	//*out << "<result status=\"" << WHM_CALL_NOT_FOUND << "\"/>";
 	return WHM_CALL_NOT_FOUND;
 }
 WhmExtend *WhmPackage::findExtend(const KString &name) {
@@ -186,6 +182,8 @@ bool WhmPackage::startElement(KXmlContext *context) {
 			//have type attribute
 			if (type=="shell") {
 				extend = new WhmShell();
+			} else if (type == "core") {
+				extend = new WhmCore();
 			}
 		} else {
 			//@deprecated please use type=<dso|cmd|url|whmshell>

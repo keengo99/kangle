@@ -237,6 +237,7 @@ public:
 	void UnbindGlobalVirtualHost(KVirtualHost *vh);
 	void GetListenHtml(KWStream &s);
 	void GetListenWhm(WhmContext *ctx);
+	void dump(kgl::serializable* s);
 	void QueryDomain(domain_t host,int port, WhmContext *ctx);
 	void Close();
 	bool IsEmpty()

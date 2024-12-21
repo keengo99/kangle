@@ -113,6 +113,6 @@ DLL_PUBLIC BOOL WINAPI WhmTerminate(DWORD dwFlags);
 #define Whm_TerminateExtension TerminateExtension
 #define WhmCoreCall WhmCall
 #endif
-int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *context);
-
+//int WINAPI WhmCoreCall(const char *callName, const char *event, WHM_CONTEXT *context);
+//BOOL WINAPI GetWhmCoreVersion(WHM_VERSION_INFO* pVer);
 #endif /* WHM_H_ */

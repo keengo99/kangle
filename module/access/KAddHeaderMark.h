@@ -45,17 +45,16 @@ public:
 	{
 		return "add_header";
 	}
-	void get_html(KModel *model,KWStream &s) override
+	void get_html(KWStream &s) override
 	{
 		s << "attr:<input name='attr' value='";
-		KAddHeaderMark *mark = (KAddHeaderMark *) (model);
-		if (mark && mark->attr) {
-			s << mark->attr;
+		if (attr) {
+			s << attr;
 		}
 		s << "'>";
 		s << "val:<input name=val value='";
-		if (mark && mark->val) {
-			s << mark->val;
+		if (val) {
+			s << val;
 		}
 		s << "'>\n";
 	}
@@ -129,9 +128,9 @@ public:
 	{
 		return "add_response_header";
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "attr:<input name='attr' value='";
-		KAddResponseHeaderMark *mark = (KAddResponseHeaderMark *)(model);
+		KAddResponseHeaderMark *mark = (KAddResponseHeaderMark *)(this);
 		if (mark && mark->attr) {
 			s << mark->attr;
 		}

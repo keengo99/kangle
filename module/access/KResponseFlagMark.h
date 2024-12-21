@@ -100,11 +100,9 @@ public:
 		}
 		free(buf);
 	}
-	void get_html(KModel* model, KWStream& s) override {
-		s << "<input type=text name=flagvalue value='";
-		if (model) {
-			model->get_display(s);
-		}
+	void get_html(KWStream& s) override {
+		s << "<input type=text name=flagvalue value='";	
+		get_display(s);
 		s << "'>(available:compress, nocache, nodiskcache, identity_encoding)";
 	}
 	KMark * new_instance() override {
@@ -150,8 +148,8 @@ public:
 		}
 	
 	}
-	void get_html(KModel *model,KWStream &s)override {
-		KExtendFlagMark *m_chain=(KExtendFlagMark *)model;
+	void get_html(KWStream &s)override {
+		KExtendFlagMark *m_chain=(KExtendFlagMark *)this;
 		s << "<input type=radio name='no_extend' value='1' ";
 		if (m_chain==NULL || m_chain->no_extend) {
 			s << "checked";

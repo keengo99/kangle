@@ -260,8 +260,8 @@ KMark *KAuthMark::new_instance() {
 const char *KAuthMark::getName() {
 	return "auth";
 }
-void KAuthMark::get_html(KModel *model,KWStream &s) {
-	KAuthMark *acl = (KAuthMark *) model;
+void KAuthMark::get_html(KWStream &s) {
+	KAuthMark *acl = (KAuthMark *) this;
 	s << "file:<input name='file' value='";
 	if (acl) {
 		s << acl->file;

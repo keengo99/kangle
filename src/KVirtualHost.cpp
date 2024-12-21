@@ -391,6 +391,12 @@ void KVirtualHost::parse_log_config(const KXmlAttribute& attr) {
 }
 #endif
 #ifdef ENABLE_USER_ACCESS
+KSafeAccess KVirtualHost::get_access(bool is_response) {
+	if (!access[is_response]) {
+		access[is_response].reset(new KAccess(false, (u_char)is_response));
+	}
+	return KSafeAccess(access[is_response]);
+}
 void KVirtualHost::setAccess(const KString& access_file) {
 	this->user_access = access_file;
 }
@@ -628,6 +634,19 @@ bool KVirtualHost::setSSLInfo(const KString& certfile, const KString& keyfile, c
 	return false;
 }
 #endif
+void KVirtualHost::dump_info(kgl::serializable* s) {
+	s->add("name", name);
+	s->add("doc_root", doc_root);
+	s->add("access", user_access);
+	s->add("browse", browse);
+	s->add("inherit", inherit);
+#ifdef ENABLE_VH_RUN_AS
+	s->add("user", user);
+	s->add("group", group);
+#endif
+	s->add("status", !closed);
+	s->add("max_connect", max_connect);
+}
 bool KVirtualHost::parse_xml(const khttpd::KXmlNodeBody* body, KVirtualHost* ov) {
 
 	auto attr = body->attr();

@@ -19,7 +19,7 @@ namespace kconfig {
 	bool is_first_config = true;
 	bool need_reboot_flag = false;
 
-	static kgl_ref_str_t default_file_name{ _KS("default"),1 };
+	kgl_ref_str_t default_file_name{ _KS("default"),1 };
 	static KConfigTree events(nullptr, _KS("config"));
 	static uint32_t cur_know_qname_id = 100;
 	static kfiber_mutex* locker = nullptr;

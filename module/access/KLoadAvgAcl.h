@@ -28,9 +28,9 @@ public:
 	}
 	virtual ~KLoadAvgAcl() {
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "&gt;<input name=maxavg value='";
-		KLoadAvgAcl *acl=(KLoadAvgAcl *)(model);
+		KLoadAvgAcl *acl=(KLoadAvgAcl *)(this);
 		if (acl) {
 			s << acl->maxavg;
 		}

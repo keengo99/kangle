@@ -10,8 +10,7 @@
 
 #include "WhmExtend.h"
 typedef BOOL (WINAPI * GetWhmVersionf)(WHM_VERSION_INFO *pVer);
-typedef int (WINAPI * WhmCallf)(const char *callName, const char *eventType,
-		WHM_CONTEXT *context);
+typedef int (WINAPI * WhmCallf)(const char *callName, const char *eventType, WHM_CONTEXT *context);
 typedef BOOL (WINAPI * WhmTerminatef)(DWORD dwFlags);
 class WhmDso: public WhmExtend {
 public:

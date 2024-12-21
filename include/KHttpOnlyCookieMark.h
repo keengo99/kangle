@@ -62,9 +62,9 @@ public:
 	{
 		return "cookie";
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "Cookie regex:<input name='cookie' value='";
-		KCookieMark* m = (KCookieMark*)model;
+		KCookieMark* m = (KCookieMark*)this;
 		if (m && m->cookie) {
 			s << m->cookie->getModel();
 		}

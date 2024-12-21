@@ -52,9 +52,9 @@ public:
 	{
 		return "port_map";
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "host:<input name='host' value='";
-		KPortMapMark *m = (KPortMapMark *)model;
+		KPortMapMark *m = (KPortMapMark *)this;
 		if (m) {
 			s << m->host;
 		}

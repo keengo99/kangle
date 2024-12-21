@@ -28,11 +28,14 @@ public:
 	int debug;
 	int total_count;
 	const char *vh;
+	kgl::serializable* sl = nullptr;
+
 	bool translate;
 	KStringBuf s;
 };
 
 bool kgl_connection_iterator(void* arg, KSink* rq);
+bool kgl_connection_iterator2(void* arg, KSink* rq);
 class KHttpManage : public KFetchObject {
 public:
 	KHttpManage();

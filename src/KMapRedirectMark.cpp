@@ -62,10 +62,10 @@ const char *KMapRedirectMark::getName()
 {
 	return "map_redirect";
 }
-void KMapRedirectMark::get_html(KModel *model,KWStream &s)
+void KMapRedirectMark::get_html(KWStream &s)
 {
 	s << "<textarea name='v' placeHolder='domain|code redirect'>";
-	KMapRedirectMark *mark = (KMapRedirectMark *)(model);
+	KMapRedirectMark *mark = (KMapRedirectMark *)(this);
 	if (mark) {
 		mark->getValList(s);
 	}

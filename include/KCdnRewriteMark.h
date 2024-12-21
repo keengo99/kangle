@@ -12,7 +12,7 @@ public:
 	KMark * new_instance() override;
 	const char *getName() override;
 	void get_display(KWStream& s) override;
-	void get_html(KModel* model, KWStream& s) override;
+	void get_html(KWStream& s) override;
 	void parse_config(const khttpd::KXmlNodeBody* xml) override;
 
 private:
@@ -32,7 +32,7 @@ public:
 	KMark * new_instance() override;
 	const char *getName() override;
 	void get_display(KWStream& s) override;
-	void get_html(KModel* model, KWStream& s) override;
+	void get_html(KWStream& s) override;
 	void parse_config(const khttpd::KXmlNodeBody* xml) override;
 private:
 	KString host;

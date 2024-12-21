@@ -19,6 +19,7 @@
 #define KMODEL_H_INCLUDE
 #include <memory>
 #include "KConfigTree.h"
+#include "serializable.h"
 
 #define MODEL_ACL 	1
 #define MODEL_MARK	2
@@ -40,11 +41,12 @@ public:
 		ref = 1;
 	}
 	virtual const char *getName() = 0;
+	/* 工厂实例不会调用 parse_config */
 	virtual void parse_config(const khttpd::KXmlNodeBody* xml) = 0;
 	virtual void parse_child(const kconfig::KXmlChanged* changed) {
 	}
 	virtual void get_display(KWStream& s) = 0;
-	virtual void get_html(KModel* model, KWStream& s) = 0;
+	virtual void get_html(KWStream& s) = 0;
 	KModel* add_ref() {
 		katom_inc((void*)&ref);
 		return this;
@@ -57,10 +59,11 @@ public:
 			delete this;
 		}
 	}
+	/* 命名模块的名字 */
+	KString named;
 	bool revers;
 	bool is_or;
-	bool isGlobal;
-	KString named;
+	bool isGlobal;	
 protected:
 	volatile uint32_t ref;
 	virtual ~KModel() {

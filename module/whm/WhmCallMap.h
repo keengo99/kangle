@@ -15,10 +15,13 @@ enum WhmCallScope
 	callScopePublic,
 	callScopePrivate
 };
-struct WhmExtendCall{
+class WhmExtendCall {
+public:
+	int whmCall(const char* eventType, WhmContext* context);
 	WhmExtend *extend;
+	whm_call_ptr call_ptr = nullptr;
 	KString callName;
-	bool force;
+	bool force = false;
 };
 class WhmCallMap {
 public:

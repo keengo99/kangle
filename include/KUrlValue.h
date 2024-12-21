@@ -21,6 +21,7 @@ public:
 	const char *getx(const char *name) const;
 	bool get(const KString name, KString&value) const;
 	void get(std::map<KString, KString> &values) const;
+	void build_config_base_path(KStringBuf &path, const KString &cfg_file) const;
 	const KXmlAttribute &get() const
 	{
 		return attribute;

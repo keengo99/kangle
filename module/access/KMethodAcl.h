@@ -29,9 +29,9 @@ public:
 	}
 	virtual ~KMethodAcl() {
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "<input name=meth placeholder='GET,POST,PUT,...' value='";
-		KMethodAcl *urlAcl = (KMethodAcl *) (model);
+		KMethodAcl *urlAcl = (KMethodAcl *) (this);
 		if (urlAcl) {
 			urlAcl->get_display(s);
 		}

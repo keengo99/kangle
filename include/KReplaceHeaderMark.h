@@ -88,9 +88,9 @@ public:
 	const char* getName() override {
 		return "replace_header";
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "attr:<input name='attr' value='";
-		KReplaceHeaderMark* mark = (KReplaceHeaderMark*)(model);
+		KReplaceHeaderMark* mark = (KReplaceHeaderMark*)(this);
 		if (mark) {
 			s << mark->attr;
 		}

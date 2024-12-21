@@ -43,8 +43,8 @@ public:
 		auto attribute = xml->attr();
 		speed_limit=(int)get_size(attribute["limit"].c_str());
 	}
-	void get_html(KModel *model,KWStream &s) override {
-		KSpeedLimitMark *mark = (KSpeedLimitMark *)model;
+	void get_html(KWStream &s) override {
+		KSpeedLimitMark *mark = (KSpeedLimitMark *)this;
 		s << "limit:<input name='limit' size=10 value='";
 		if (mark) {
 			s << mark->speed_limit;

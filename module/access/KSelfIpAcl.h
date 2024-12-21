@@ -34,9 +34,9 @@ public:
 		auto attribute = xml->attr();
 		addIpModel(attribute["ip"].c_str(), ip);
 	}
-	void get_html(KModel* acl, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "<input name=ip value='";
-		KSelfIpAcl *acl2=static_cast<KSelfIpAcl *>(acl);
+		KSelfIpAcl *acl2=static_cast<KSelfIpAcl *>(this);
 		if (acl2) {
 			acl2->get_display(s);
 		}

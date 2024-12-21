@@ -137,6 +137,21 @@ public:
 		}
 		return save(xstrdup(value));
 	}
+	KString get_vh_config_file() {
+		auto file = urlValue.get("file");
+		if (!file.empty()) {
+			return file;
+		}
+		if (vh && vh->has_user_access()) {
+			KStringBuf s;
+			vh->get_access_file(s);
+			return s.str();
+		}
+		return file;
+	}
+	void build_config_base_path(KStringBuf& path, const KString& cfg_file) const {
+		urlValue.build_config_base_path(path, cfg_file);
+	}
 	const char* getValue(const char* name) {
 		if (strncmp(name, "url:", 4) == 0) {
 			return urlValue.getx(name + 4);
@@ -168,10 +183,10 @@ public:
 	void buildVh(KVirtualHost* vh);
 	void setStatus(const char* statusMsg = NULL) {
 		if (statusMsg) {
-			if (this->statusMsg.size() > 0) {
-				this->statusMsg += "|";
+			if (this->status_msg.size() > 0) {
+				this->status_msg += "|";
 			}
-			this->statusMsg += statusMsg;
+			this->status_msg += statusMsg;
 		}
 	}
 	bool flush(int status, kgl::format fmt = kgl::format::xml_text);
@@ -206,7 +221,7 @@ private:
 	std::list<char*> memorys;
 	KServiceProvider* provider;
 	KUrlValue urlValue;
-	std::string statusMsg;
+	std::string status_msg;
 	KVirtualHost* vh;
 	KExtendProgramString* ds;
 	KStringStream redirectCalls;

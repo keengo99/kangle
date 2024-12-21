@@ -86,8 +86,8 @@ KCloudIpAcl::~KCloudIpAcl()
 		delete im;
 	}
 }
-void KCloudIpAcl::get_html(KModel* model, KWStream& s) {
-	KCloudIpAcl *m = (KCloudIpAcl *)model;
+void KCloudIpAcl::get_html(KWStream& s) {
+	KCloudIpAcl *m = (KCloudIpAcl *)this;
 	s << "url:<input name='url' size=50 value='";
 	if (m){
 		s << m->url;

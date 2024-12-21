@@ -47,9 +47,9 @@ public:
 		auto attribute = xml->attr();
 		gsl->setSpeedLimit((int)get_size(attribute["limit"].c_str()));
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "limit:<input name=limit size=10 value='";
-		KGSpeedLimitMark *mark = (KGSpeedLimitMark *) (model);
+		KGSpeedLimitMark *mark = (KGSpeedLimitMark *) (this);
 		if (mark) {
 			s << mark->gsl->getSpeedLimit();
 		}

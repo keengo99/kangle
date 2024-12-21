@@ -37,12 +37,9 @@ public:
 		}
 		free(buf);
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "<input type=text name=flag value='";
-		if (model) {
-			model->get_display(s);
-		}
-
+		get_display(s);
 		s << "'>(available:nocache)";
 	}
 	KAcl *new_instance() override {

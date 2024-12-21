@@ -104,6 +104,32 @@ kgl_jump_type KTable::match(KHttpRequest* rq, KHttpObject* obj, unsigned& checke
 	}
 	return JUMP_CONTINUE;
 }
+void KTable::dump_chain(kgl::serializable* s) {
+	int id = 0;
+	KString last_file;
+	for (auto&& chain_file : chains) {
+		int id = 0;
+		for (auto&& chain : chain_file.second) {
+			auto sc = s->add_obj_array("chain");
+			if (!sc) {
+				return;
+			}
+			auto si = sc->add("k");
+			if (!si) {
+				return;
+			}
+			si->add("file", chain_file.first.name);
+			si->add("index", chain_file.first.index);
+			si->add("id", id);
+			++id;
+			auto sv = sc->add("v");
+			if (!sv) {
+				return;
+			}
+			chain->dump(sv,true);
+		}
+	}
+}
 void KTable::htmlTable(KWStream& s, const char* vh, u_short accessType) {
 	s << name << "," << LANG_REFS << get_ref();
 	s << "[<a href=\"javascript:if(confirm('" << LANG_CONFIRM_DELETE << name

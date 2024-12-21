@@ -36,7 +36,7 @@ public:
 	const char* getName()override {
 		return "queue";
 	}
-	void get_html(KModel* model, KWStream& s) override;
+	void get_html(KWStream& s) override;
 	void get_display(KWStream& s) override;
 	void parse_config(const khttpd::KXmlNodeBody* xml) override;
 private:
@@ -60,7 +60,7 @@ public:
 		return "per_queue";
 	}
 	void get_display(KWStream& s) override;
-	void get_html(KModel* model, KWStream& s) override;
+	void get_html(KWStream& s) override;
 	void parse_config(const khttpd::KXmlNodeBody* xml) override;
 private:
 	void build_matcher(KWStream& s);

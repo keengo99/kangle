@@ -28,12 +28,9 @@ public:
 	}
 	virtual ~KDstPortAcl() {
 	}
-	void get_html(KModel* model, KWStream& s) override {
-		s << "<input name=port value='";
-		KDstPortAcl *urlAcl = (KDstPortAcl *) (model);
-		if (urlAcl) {
-			urlAcl->get_display(s);
-		}
+	void get_html(KWStream& s) override {
+		s << "<input name=port value='";		
+		get_display(s);
 		s << "'>";
 	}
 	KAcl *new_instance() override {

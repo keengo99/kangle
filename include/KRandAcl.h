@@ -12,9 +12,9 @@ public:
 	~KRandAcl()
 	{
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "<input name='rand' value='";
-		KRandAcl *urlAcl = (KRandAcl *) (model);
+		KRandAcl *urlAcl = (KRandAcl *) (this);
 		if (urlAcl) {
 			urlAcl->get_display(s);
 		}

@@ -4,10 +4,24 @@ namespace kgl {
 	static void build_json_string(wstream& s, const string& v) {
 		s << "\""_CS;
 		for (size_t i = 0; i < v.size(); ++i) {
-			if (v[i] == '\\' || v[i] == '"') {
-				s << "\\";
+			switch (v[i]) {
+			case '\r':
+				s << "\\r";
+				break;
+			case '\n':
+				s << "\\n";
+				break;
+			case '\t':
+				s << "\\t";
+				break;
+			case '\\':
+			case '"':
+				s << "\\" << v[i];
+				break;
+			default:
+				s << v[i];
+				break;
 			}
-			s << v[i];
 		}
 		s << "\""_CS;
 	}
@@ -220,7 +234,7 @@ namespace kgl {
 	std::vector<string>* serializable::add_string_array(const string& name) {
 		auto it = data.find(name);
 		if (it == data.end()) {
-			data_value* dv = new data_value(data_type::OBJ_ARRAY);
+			data_value* dv = new data_value(data_type::STR_ARRAY);
 			data.emplace(name, dv);
 			return dv->strs;
 		}
@@ -241,9 +255,14 @@ namespace kgl {
 			data_value* dv = new data_value(data_type::OBJ_ARRAY);
 			data.emplace(name, dv);
 			dv->objs->emplace_back();
-			return &(*(dv->objs->rend()));
+			return &(*(dv->objs->rbegin()));
 		}
-		return nullptr;
+		if ((*it).second->get_type() != data_type::OBJ_ARRAY) {
+			return nullptr;
+		}
+		data_value* dv = (*it).second;
+		dv->objs->emplace_back();
+		return &(*(dv->objs->rbegin()));
 	}
 	void serializable::build(wstream& s, format fmt) {
 		for (auto it = data.begin(); it != data.end(); ++it) {

@@ -28,9 +28,9 @@ public:
 	}
 	virtual ~KSelfPortAcl() {
 	}
-	void get_html(KModel *model,KWStream &s) override {
+	void get_html(KWStream &s) override {
 		s << "<input name=port value='";
-		KSelfPortAcl *urlAcl = (KSelfPortAcl *) (model);
+		KSelfPortAcl *urlAcl = (KSelfPortAcl *) (this);
 		if (urlAcl) {
 			urlAcl->get_display(s);
 		}

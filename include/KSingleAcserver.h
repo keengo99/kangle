@@ -16,6 +16,7 @@ public:
 	KSingleAcserver(const KString &name);
 	KSingleAcserver(KSockPoolHelper *nodes);
 	virtual ~KSingleAcserver();
+	void dump(kgl::serializable* s);
 	unsigned getPoolSize() {
 		return sockHelper->getSize();
 	}

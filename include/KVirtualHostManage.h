@@ -15,7 +15,7 @@
 #include "KMutex.h"
 #include "KDynamicListen.h"
 #include "KUrlValue.h"
-
+#include "serializable.h"
 class KGTempleteVirtualHost;
 
 class KVirtualHostManage final : public kconfig::KConfigListen
@@ -27,6 +27,8 @@ public:
 	bool vh_base_action(KUrlValue& attribute, KString& err_msg);
 	void GetListenHtml(KWStream& s);
 	void GetListenWhm(WhmContext* ctx);
+	void dump_listen(kgl::serializable* s);
+	void dump_vh(kgl::serializable* s);
 	void shutdown();
 	int getNextInstanceId();
 	void getAutoName(KString& name);
@@ -60,7 +62,37 @@ public:
 	 * 删除虚拟主机
 	 */
 	bool removeVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh);
-	static query_vh_result queryVirtualHost(KVirtualHostContainer* vhc, KSubVirtualHost** rq_svh, const char* site, int site_len);
+	/*
+	* 查找虚拟主机并绑定在rq上。
+	*/
+	static query_vh_result queryVirtualHost(KVirtualHostContainer* vhc, KSubVirtualHost** rq_svh, const char* site, int site_len) {
+		query_vh_result result = query_vh_host_not_found;
+		if (vhc == NULL) {
+			return result;
+		}
+		if (site_len == 0) {
+			site_len = (int)strlen(site);
+		}
+		unsigned char bind_site[256];
+		if (!revert_hostname(site, site_len, bind_site, sizeof(bind_site))) {
+			return result;
+		}
+		auto locker = vhc->get_locker();
+		KSubVirtualHost* svh = (KSubVirtualHost*)vhc->get_root(locker)->find(bind_site, false);
+		if (svh) {
+			result = query_vh_success;
+			if ((*rq_svh) != svh) {
+				//虚拟主机变化了?把老的释放，引用新的
+				if (*rq_svh) {
+					(*rq_svh)->release();
+					(*rq_svh) = NULL;
+				}
+				svh->vh->add_ref();
+				(*rq_svh) = svh;
+			}
+		}
+		return result;
+	}
 	int find_domain(const char* domain, WhmContext* ctx);
 	void getAllVh(std::list<KString>& vhs, bool status, bool onlydb);
 	KVirtualHost* refsVirtualHostByName(const KString& name);

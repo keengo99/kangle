@@ -31,8 +31,8 @@ public:
 		request = atoi(attribute["request"].c_str());
 		second = atoi(attribute["second"].c_str());
 	}
-	void get_html(KModel* model, KWStream& s) override {
-		KUrlRateAcl *m = (KUrlRateAcl *)model;
+	void get_html(KWStream& s) override {
+		KUrlRateAcl *m = (KUrlRateAcl *)this;
 		s << "rate&gt;request:<input name='request' size=4 value='";
 		if (m) {
 			s << m->request;

@@ -49,9 +49,9 @@ const char *KHostRewriteMark::getName()
 {
 	return "host_rewrite";
 }
-void KHostRewriteMark::get_html(KModel *model,KWStream &s)
+void KHostRewriteMark::get_html(KWStream &s)
 {
-	KHostRewriteMark *mark = static_cast<KHostRewriteMark *>(model);
+	KHostRewriteMark *mark = static_cast<KHostRewriteMark *>(this);
 	s << "reg_host: <input name='reg_host' size=30 value='" << (mark?mark->regHost.getModel():"") << "'><br>";
 	s << "host: <input name='host' value='" << (mark?mark->host.c_str():"") << "'>";
 	s << "port: <input name='port' value='" << (mark?mark->port:80) << "' size=6><br>";
@@ -129,9 +129,9 @@ const char *KHostMark::getName()
 {
 	return "host";
 }
-void KHostMark::get_html(KModel *model,KWStream &s)
+void KHostMark::get_html(KWStream &s)
 {
-	KHostMark *mark = static_cast<KHostMark *>(model);
+	KHostMark *mark = static_cast<KHostMark *>(this);
 	s << "host: <input name='host' value='" << (mark?mark->host.c_str():"") << "'>";
 	s << "port: <input name='port' value='" << (mark?mark->port:80);
 	if (ssl) {

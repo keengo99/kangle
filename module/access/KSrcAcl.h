@@ -32,12 +32,9 @@ public:
 		auto attribute = xml->attr();
 		addIpModel(attribute["ip"].c_str(), ip);
 	}
-	void get_html(KModel* acl, KWStream& s) override {
-		s << "<input name=ip value='";
-		KSrcAcl *acl2=(KSrcAcl *)(acl);
-		if (acl2) {
-			acl2->get_display(s);
-		}
+	void get_html(KWStream& s) override {
+		s << "<input name=ip value='";		
+		this->get_display(s);		
 		s << "'>(cidr format)";
 	}
 	KAcl *new_instance() override {

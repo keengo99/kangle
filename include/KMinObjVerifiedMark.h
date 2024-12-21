@@ -30,9 +30,9 @@ public:
 	{
 		return "min_obj_verified";
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "min_obj_verified:<input name='v' value='";
-		KMinObjVerifiedMark *m = (KMinObjVerifiedMark *)model;
+		KMinObjVerifiedMark *m = (KMinObjVerifiedMark *)this;
 		if (m) {
 			s << (INT64)(m->v);
 		}

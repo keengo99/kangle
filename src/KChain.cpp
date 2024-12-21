@@ -58,6 +58,14 @@ void KChain::clear() {
 	}
 	marks.clear();
 }
+void KChain::get_edit_html(kgl::serializable* s) {
+	for (auto it = acls.begin(); it != acls.end(); ++it) {
+		auto acl = s->add_obj_array("acl");
+		if (!acl) {
+			return;
+		}
+	}
+}
 void KChain::get_edit_html(KWStream& s, u_short accessType) {
 	int index = 0;
 	for (auto it = acls.begin(); it != acls.end(); ++it) {
@@ -115,12 +123,86 @@ void KChain::getModelHtml(KModel* model, KWStream& s, int type, int index) {
 	}
 	s << "</td><td>";
 	if (model->named.empty()) {
-		model->get_html(model, s);
+		model->get_html(s);
 	} else {
 		s << "<input type='hidden' name='ref' value='" << model->named << "'/>";
 		s << "named model do not support";
 	}
 	s << "<input type=hidden name='end_sub_form' value='1'></td></tr>\n";
+}
+void KChain::dump(kgl::serializable* s,bool is_short) {
+	KStringBuf action;
+	switch (jump_type) {
+	case JUMP_DENY:
+		s->add("action", "deny");
+		break;
+	case JUMP_ALLOW:
+		s->add("action", "allow");
+		break;
+	case JUMP_CONTINUE:
+		s->add("action", "continue");
+		break;
+	case JUMP_TABLE:
+		s->add("action", "table");
+		break;
+	case JUMP_SERVER:
+		s->add("action", "server");
+		break;
+	case JUMP_WBACK:
+		s->add("action", "wback");
+		break;
+	case JUMP_PROXY:
+		s->add("action", "proxy");
+		break;
+	case JUMP_RETURN:
+		s->add("action", "return");
+		break;
+	case JUMP_DROP:
+		s->add("action", "drop");
+		break;
+	}
+	if (jump) {
+		s->add("jump", jump->name);
+	}
+	s->add("hit", hit_count);
+	for (auto it = acls.begin(); it != acls.end(); ++it) {
+		auto m = s->add_obj_array("acl");
+		if (!m) {
+			return;
+		}
+		m->add("revers", (*it)->revers);	
+		m->add("is_or", (*it)->is_or);
+		m->add("module", (*it)->getName());
+		if (!(*it)->named.empty()) {
+			m->add("ref", (*it)->named);
+		}
+		KStringBuf out;
+		if (is_short) {
+			(*it)->get_display(out);
+		} else {
+			(*it)->get_html(out);			
+		}
+		m->add("html", out.str());
+	}
+	for (auto it = marks.begin(); it != marks.end(); ++it) {
+		auto m = s->add_obj_array("mark");
+		if (!m) {
+			return;
+		}
+		m->add("revers", (*it)->revers);
+		m->add("is_or", (*it)->is_or);
+		m->add("module", (*it)->getName());
+		if (!(*it)->named.empty()) {
+			m->add("ref", (*it)->named);
+		}
+		KStringBuf out;
+		if (is_short) {
+			(*it)->get_display(out);
+		} else {
+			(*it)->get_html(out);			
+		}
+		m->add("html", out.str());
+	}
 }
 void KChain::get_acl_short_html(KWStream& s) {
 	if (acls.empty()) {

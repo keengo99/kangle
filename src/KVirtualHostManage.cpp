@@ -374,38 +374,6 @@ int KVirtualHostManage::find_domain(const char* site, WhmContext* ctx) {
 	dlisten.QueryDomain(bind_site, port, ctx);
 	return WHM_OK;
 }
-/*
- * 查找虚拟主机并绑定在rq上。
- */
-query_vh_result KVirtualHostManage::queryVirtualHost(KVirtualHostContainer* vhc, KSubVirtualHost** rq_svh, const char* site, int site_len) {
-	query_vh_result result = query_vh_host_not_found;
-	if (vhc == NULL) {
-		return result;
-	}
-	if (site_len == 0) {
-		site_len = (int)strlen(site);
-	}
-	unsigned char bind_site[256];
-	if (!revert_hostname(site, site_len, bind_site, sizeof(bind_site))) {
-		return result;
-	}
-	auto locker = vhc->get_locker();
-	KSubVirtualHost* svh = (KSubVirtualHost*)vhc->get_root(locker)->find(bind_site);
-	if (svh) {
-		result = query_vh_success;
-		if ((*rq_svh) != svh) {
-			//虚拟主机变化了?把老的释放，引用新的
-			if (*rq_svh) {
-				(*rq_svh)->release();
-				(*rq_svh) = NULL;
-			}
-			svh->vh->add_ref();
-			(*rq_svh) = svh;
-		}
-	}
-	return result;
-}
-
 void KVirtualHostManage::getVhDetail(KWStream& s, KVirtualHost* vh, bool edit) {
 	//	string host;
 	string action = "vh_add";
@@ -870,7 +838,7 @@ bool KVirtualHostManage::vh_base_action(KUrlValue& uv, KString& err_msg) {
 	kconfig::KConfigResult result = kconfig::KConfigResult::ErrUnknow;
 	KStringBuf path;
 
-	if (name.size() > 0) {
+	if (!name.empty()) {
 		vh.reset(refsVirtualHostByName(name));
 		bvh = vh.get();
 		path << "vh@" << name;
@@ -1049,6 +1017,20 @@ void KVirtualHostManage::BindGlobalListens(std::vector<KListenHost*>& services) 
 int KVirtualHostManage::getCount() {
 	auto lock = locker();
 	return (int)avh.size();
+}
+void KVirtualHostManage::dump_listen(kgl::serializable* s) {
+	auto lock = locker();
+	dlisten.dump(s);
+}
+void KVirtualHostManage::dump_vh(kgl::serializable* s) {
+	auto lock = locker();
+	for (auto it = avh.begin(); it != avh.end(); ++it) {
+		auto vh = s->add_obj_array("vh");
+		if (!vh) {
+			return;
+		}
+		(*it).second->dump_info(vh);
+	}
 }
 void KVirtualHostManage::GetListenWhm(WhmContext* ctx) {
 	auto lock = locker();

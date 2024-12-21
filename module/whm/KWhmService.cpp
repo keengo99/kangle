@@ -56,25 +56,28 @@ bool KWhmService::service(KServiceProvider *provider) {
 	} else {
 		provider->sendUnknowHeader("Content-Type", "application/json");
 	}
-	if(callName){
-		if (fmt != kgl::format::json) {
-			*out << "<" << callName << " whm_version=\"1.0\">";
+	try {
+		if (callName) {
+			if (fmt != kgl::format::json) {
+				*out << "<" << callName << " whm_version=\"1.0\">";
+			} else {
+				*out << "{\"call\":\"" << callName << "\",";
+			}
+			int ret = package->process(callName, &context);
+			context.flush(ret, fmt);
+			if (fmt != kgl::format::json) {
+				*out << "</" << callName << ">\n";
+			} else {
+				*out << "}";
+			}
 		} else {
-			*out << "{\"call\":\"" << callName << "\",";
+			if (fmt != kgl::format::json) {
+				*out << "<result whm_version=\"1.0\">whm_call cann't be empty</result>";
+			} else {
+				*out << "{\"status\":\"404\",\"result\":\"whm_call cann't be empty\"}";
+			}
 		}
-		int ret = package->process(callName,&context);
-		context.flush(ret, fmt);
-		if (fmt != kgl::format::json) {
-			*out << "</" << callName << ">\n";
-		} else {
-			*out << "}";
-		}
-	}else{
-		if (fmt != kgl::format::json) {
-			*out << "<result whm_version=\"1.0\">whm_call cann't be empty</result>";
-		} else {
-			*out << "{\"status\":\"404\",\"result\":\"whm_call cann't be empty\"}";
-		}
+	} catch (...) {
 	}
 	package->release();
 	return true;

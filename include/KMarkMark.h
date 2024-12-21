@@ -23,9 +23,9 @@ public:
 	{
 		return "mark";
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "mark(0-255):<input name='v' value='";
-		KMarkMark *m = (KMarkMark *)model;
+		KMarkMark *m = (KMarkMark *)this;
 		if (m) {
 			s << (int)m->v;
 		}

@@ -86,7 +86,6 @@
 #include "KUploadProgressMark.h"
 #endif
 #include "KHttpOnlyCookieMark.h"
-#include "KTempFileMark.h"
 #include "KRemoveParamMark.h"
 #include "KHostAliasMark.h"
 #include "KFlowMark.h"
@@ -180,6 +179,24 @@ void KAccess::clear() {
 }
 bool KAccess::isGlobal() {
 	return global_flag;
+}
+bool KAccess::is_table_used(const KString& table_name) {
+	auto lock = read_lock();
+	auto it = tables.find(table_name);
+	KTable* table = nullptr;
+	if (it != tables.end()) {
+		table = (*it).second.get();
+		int refs = 2;
+		/*
+		* ref by access
+		* ref by config tree
+		*/
+		if (table == begin.get() || table == post_map.get()) {
+			++refs;
+		}
+		return table->get_ref() > refs;
+	}
+	return false;
 }
 void KAccess::remove_all_factorys() {
 	for (int i = 0; i < 2; ++i) {
@@ -415,6 +432,22 @@ kgl_jump_type KAccess::check_post_map(KHttpRequest* rq, KHttpObject* obj, KSafeS
 		return jumpType;
 	}
 }
+int KAccess::get_chain(WhmContext* ctx, const KString& table_name) {
+	auto locker = read_lock();
+	auto table = get_table(table_name, false);
+	if (!table) {
+		ctx->setStatus("table not found");
+		return WHM_CALL_FAILED;
+	}
+	auto&& attr = ctx->getUrlValue()->get();
+	auto chain = table->find_chain(attr["file"], attr.get_int("index"), attr.get_int("id"));
+	if (!chain) {
+		ctx->setStatus("chain not found");
+		return WHM_CALL_FAILED;
+	}
+	chain->dump(ctx->data(),false);
+	return WHM_OK;
+}
 void KAccess::add_chain_form(KWStream& s, const char* vh, const KString& table_name, const KString& file, uint16_t index, size_t id, bool add) {
 	KChain* m_chain = NULL;
 	auto locker = write_lock();
@@ -549,10 +582,13 @@ kgl_jump_type KAccess::check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo
 	}
 	return jumpType;
 }
-KSafeTable KAccess::get_table(const KString& table_name) {
+KSafeTable KAccess::get_table(const KString& table_name, bool always_new) {
 	auto it = tables.find(table_name);
 	if (it != tables.end()) {
 		return (*it).second;
+	}
+	if (!always_new) {
+		return nullptr;
 	}
 	auto table = KSafeTable(new KTable(this, table_name));
 	tables.insert(std::make_pair(table_name, table));
@@ -752,10 +788,84 @@ std::vector<KString> KAccess::getTableNames(KString skipName, bool global) {
 	}
 	return table_names;
 }
+int KAccess::get_named_module(KVirtualHostEvent* ctx,const KString &name, bool is_mark) {
+	auto locker = read_lock();
+	auto sl = ctx->data();
+	KModel* m = nullptr;
+	if (is_mark) {
+		auto it = named_marks.find(name);
+		if (it != named_marks.end()) {
+			m = (*it).second->get_module();
+		}
+	} else {
+		auto it = named_acls.find(name);
+		if (it != named_marks.end()) {
+			m = (*it).second->get_module();
+		}
+	}
+	if (!m) {
+		ctx->setStatus("not found");
+		return WHM_CALL_NOT_FOUND;
+	}
+	KStringBuf s;
+	m->get_html(s);
+	sl->add("html", s.str());
+	sl->add("refs", m->get_ref());
+	sl->add("module", m->getName());
+	return WHM_OK;
+}
+int KAccess::dump_named_module(KVirtualHostEvent* ctx, bool detail) {
+	auto locker = read_lock();
+	for (auto it = named_acls.begin(); it != named_acls.end(); ++it) {
+		auto sl = ctx->data()->add_obj_array("acl");
+		if (!sl) {
+			continue;
+		}
+		sl->add("name", (*it).first);
+		auto m = (*it).second->get_module();
+		sl->add("module", m->getName());
+		if (detail) {
+			KStringBuf s;
+			m->get_display(s);
+			sl->add("html", s.str());
+		}
+	}
+	for (auto it = named_marks.begin(); it != named_marks.end(); ++it) {
+		auto sl = ctx->data()->add_obj_array("mark");
+		if (!sl) {
+			continue;
+		}
+		sl->add("name", (*it).first);
+		auto m = (*it).second->get_module();
+		sl->add("module", m->getName());
+		if (detail) {
+			KStringBuf s;
+			m->get_display(s);
+			sl->add("html", s.str());
+		}
+	}
+	return WHM_OK;
+}
+int KAccess::dump_chain(KVirtualHostEvent* ctx, const KString table_name) {
+	auto locker = read_lock();
+	auto it = tables.find(table_name);
+	if (it == tables.end()) {
+		ctx->setStatus("table not found");
+		return WHM_PARAM_ERROR;
+	}
+	(*it).second->dump_chain(ctx->data());
+	return WHM_OK;
+}
 void KAccess::listTable(KVirtualHostEvent* ctx) {
-	kfiber_rwlock_rlock(rwlock);
+	kfiber_rwlock_rlock(rwlock);	
 	for (auto it = tables.begin(); it != tables.end(); it++) {
-		ctx->data()->add("table", (*it).first.c_str());
+		auto obj = ctx->data()->add_obj_array("table");
+		if (!obj) {
+			kfiber_rwlock_runlock(rwlock);
+			return;
+		}
+		obj->add("name", (*it).first);
+		obj->add("refs", (*it).second->get_ref());
 	}
 	kfiber_rwlock_runlock(rwlock);
 }

@@ -27,9 +27,9 @@ public:
 	}
 	virtual ~KContentLengthAcl() {
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "min:<input name=min value='";
-		KContentLengthAcl *acl=(KContentLengthAcl *)(model);
+		KContentLengthAcl *acl=(KContentLengthAcl *)(this);
 		if (acl) {
 			s << get_size(acl->minlen);
 		}

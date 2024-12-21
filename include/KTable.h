@@ -67,6 +67,7 @@ public:
 	KTable(KAccess *access,const KString& name);
 	kgl_jump_type match(KHttpRequest *rq, KHttpObject *obj, unsigned& checked_table, KSafeJump &jump, KSafeSource& fo);
 	void htmlTable(KWStream &s,const char *vh,u_short accessType);
+	void dump_chain(kgl::serializable* s);
 	bool parse_config(KAccess *access,const khttpd::KXmlNodeBody* xml);
 	kconfig::KConfigEventFlag config_flag() const {
 		return kconfig::ev_subdir|kconfig::ev_merge;

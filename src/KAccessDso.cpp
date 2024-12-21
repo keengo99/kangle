@@ -9,13 +9,13 @@
 #include "KSimulateRequest.h"
 
 #ifdef ENABLE_KSAPI_FILTER
-static int write_int(void* server_ctx, int value)
+static int write_int(kgl_serializable* server_ctx, int value)
 {
 	KWStream * s = (KWStream *)server_ctx;
 	*s << value;
 	return 0;
 }
-static int write_string(void* server_ctx, const char* str, int len, int build_flags)
+static int write_string(kgl_serializable* server_ctx, const char* str, int len, int build_flags)
 {
 	KWStream* s = (KWStream *)server_ctx;
 	if (KBIT_TEST(build_flags, KGL_BUILD_HTML_ENCODE)) {
@@ -130,7 +130,7 @@ void KAccessDso::parse_child(const kconfig::KXmlChanged* changed) {
 		throw KXmlException("parse child error");
 	}
 }
-void KAccessDso::getHtml(KModel* model, KWStream& s)
+void KAccessDso::getHtml(KWStream& s)
 {
 	return build(KF_ACCESS_BUILD_HTML, s);
 }
@@ -142,7 +142,7 @@ void KAccessDso::build(uint32_t type, KWStream& s)
 {
 	kgl_access_build builder;
 	memset(&builder, 0, sizeof(builder));
-	builder.cn = &s;
+	builder.cn = (kgl_serializable *)&s;
 	builder.module = ctx.module;
 	builder.write_string = write_string;
 	builder.write_int = write_int;

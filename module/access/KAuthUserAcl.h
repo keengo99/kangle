@@ -71,8 +71,8 @@ public:
 		}
 		return user.match(auth_user,strlen(auth_user),0)>0;
 	}
-	void get_html(KModel* model, KWStream& s) override {
-		KRegAuthUserAcl *m = (KRegAuthUserAcl *)model;
+	void get_html(KWStream& s) override {
+		KRegAuthUserAcl *m = (KRegAuthUserAcl *)this;
 		s << "user regex:<input name='user' value='";
 		if (m) {
 			s << m->user.getModel();

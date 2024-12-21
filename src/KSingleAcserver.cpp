@@ -38,3 +38,7 @@ KUpstream* KSingleAcserver::GetUpstream(KHttpRequest* rq)
 bool KSingleAcserver::setHostPort(std::string host, const char *port) {
 	return sockHelper->setHostPort(host , port);
 }
+void KSingleAcserver::dump(kgl::serializable* s) {
+	s->add("name", name);
+	sockHelper->dump(s);
+}

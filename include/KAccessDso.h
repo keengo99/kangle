@@ -33,7 +33,7 @@ public:
 	const char* getName() {
 		return access->name;
 	}
-	void getHtml(KModel* model, KWStream& s);
+	void getHtml(KWStream& s);
 	void getDisplay(KWStream& s);
 	void parse_config(const khttpd::KXmlNodeBody* xml);
 	void parse_child(const kconfig::KXmlChanged* changed);
@@ -76,8 +76,8 @@ public:
 	const char* getName() override {
 		return ad->getName();
 	}
-	void get_html(KModel* model, KWStream& s) override {
-		return ad->getHtml(model, s);
+	void get_html(KWStream& s) override {
+		return ad->getHtml(s);
 	}
 	void get_display(KWStream& s) override {
 		return ad->getDisplay(s);
@@ -112,8 +112,8 @@ public:
 	const char* getName() override {
 		return ad->getName();
 	}
-	void get_html(KModel* model, KWStream& s) override {
-		return ad->getHtml(model, s);
+	void get_html(KWStream& s) override {
+		return ad->getHtml(s);
 	}
 	void get_display(KWStream& s) override {
 		return ad->getDisplay(s);

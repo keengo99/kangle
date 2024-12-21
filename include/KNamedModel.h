@@ -19,7 +19,7 @@ public:
 	}
 	virtual void get_display(KWStream& s)override {
 	}
-	virtual void get_html(KModel* model, KWStream& s) override {
+	virtual void get_html(KWStream& s) override {
 	}
 	/* return KF_STATUS_REQ_FALSE, KF_STATUS_REQ_TRUE,KF_STATUS_REQ_FINISHED */
 	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
@@ -43,6 +43,9 @@ public:
 		if (katom_dec((void*)&ref) == 0) {
 			delete this;
 		}
+	}
+	KModel *get_module() {
+		return m.get();
 	}
 	KSafeAcl as_acl() {
 		return KSafeAcl(static_cast<KAcl *>(m->add_ref()));

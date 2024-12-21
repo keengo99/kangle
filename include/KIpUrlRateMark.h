@@ -45,8 +45,8 @@ public:
 			block_time = 60;
 		}
 	}
-	void get_html(KModel* model, KWStream& s) override {
-		KIpUrlRateMark *m = (KIpUrlRateMark *)model;
+	void get_html(KWStream& s) override {
+		KIpUrlRateMark *m = (KIpUrlRateMark *)this;
 		s << "rate&gt;request:<input name='request' size=4 value='";
 		if(m){
 			s << m->request;

@@ -80,8 +80,8 @@ public:
 		}
 		params.setModel(param,(nc? KGL_PCRE_CASELESS :0));
 	}
-	void get_html(KModel* model, KWStream& s) override {
-		KRemoveParamMark *m = (KRemoveParamMark *)model;
+	void get_html(KWStream& s) override {
+		KRemoveParamMark *m = (KRemoveParamMark *)this;
 		s << "param name(regex):<input name='params' value='";
 		if (m) {
 			if (m->revert) {

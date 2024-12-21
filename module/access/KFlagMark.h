@@ -115,8 +115,8 @@ public:
 			flag |= RF_LOG_DRILL;
 		}
 	}
-	void get_html(KModel* model, KWStream& s) override {
-		KFlagMark *m_chain = (KFlagMark *) model;
+	void get_html(KWStream& s) override {
+		KFlagMark *m_chain = (KFlagMark *) this;
 		s << "<input type=checkbox name='clear' value='1' ";
 		if (m_chain && m_chain->clear) {
 			s << "checked";

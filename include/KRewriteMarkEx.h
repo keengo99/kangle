@@ -181,7 +181,7 @@ public:
 	KMark * new_instance() override;
 	const char *getName() override;
 	void get_display(KWStream& s) override;
-	void get_html(KModel* model, KWStream& s) override;
+	void get_html(KWStream& s) override;
 	static void getEnv(KHttpRequest *rq, char *env, KWStream&s);
 	void parse_config(const khttpd::KXmlNodeBody* body) override;
 	void parse_child(const kconfig::KXmlChanged* changed) override;

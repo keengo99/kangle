@@ -29,9 +29,9 @@ public:
 	}
 	virtual ~KUrlAcl() {
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "<input name=url value='";
-		KUrlAcl *urlAcl=(KUrlAcl *)(model);
+		KUrlAcl *urlAcl=(KUrlAcl *)(this);
 		if (urlAcl) {
 			s << urlAcl->reg.getModel();
 		}

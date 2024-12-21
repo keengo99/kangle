@@ -85,7 +85,7 @@ public:
 	const char* getName() override {
 		return "referer";
 	}
-	void get_html(KModel* model,KWStream &s) override {
+	void get_html(KWStream &s) override {
 		s << "<input type='text' name='host' value='";
 		if (this->host_null) {
 			s << "-|";

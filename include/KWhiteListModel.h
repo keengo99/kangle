@@ -34,17 +34,14 @@ public:
 			s << host;
 		}
 	}
-	void get_html(KModel* m, KWStream& s) override {
-		s << "host:<input name='host' value='";
-		if (m) {
-			char *host = static_cast<KWhiteListAcl *>(m)->host;
-			if (host) {
-				s << host;
-			}
-		}
+	void get_html(KWStream& s) override {
+		s << "host:<input name='host' value='";	
+		if (host) {
+			s << host;
+		}		
 		s << "'>";
 		s << "<input type=checkbox name='flush' value=1 ";
-		if (m && static_cast<KWhiteListAcl *>(m)->flush) {
+		if (flush) {
 			s << "checked";
 		}
 		s << ">flush";
@@ -97,14 +94,11 @@ public:
 			s << host;
 		}
 	}
-	void get_html(KModel* m, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "host:<input name='host' value='";
-		if (m) {
-			char *host = static_cast<KWhiteListMark *>(m)->host;
-			if (host) {
-				s << host;
-			}
-		}
+		if (host) {
+			s << host;
+		}		
 		s << "'>";
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {

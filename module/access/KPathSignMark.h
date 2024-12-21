@@ -96,8 +96,8 @@ public:
 	const char *getName() override  {
 		return "path_sign";
 	}
-	void get_html(KModel* model, KWStream& s) override {
-		KPathSignMark *m = (KPathSignMark *)model;
+	void get_html(KWStream& s) override {
+		KPathSignMark *m = (KPathSignMark *)this;
 		s << "sign:<input name='sign' value='";
 		if (m) {
 			s << m->sign;

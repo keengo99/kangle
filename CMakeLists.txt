@@ -11,7 +11,6 @@ file(GLOB KANGLE_SOURCE_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h  
     ${CMAKE_CURRENT_SOURCE_DIR}/module/access/*.h
     ${CMAKE_CURRENT_SOURCE_DIR}/module/whm/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/module/whm/whmdso/core/*.cpp    
     )
 list(APPEND KANGLE_SOURCE_FILES 
     ${CMAKE_CURRENT_SOURCE_DIR}/khttpd/davlib/KXml.cpp
@@ -251,6 +250,11 @@ install(DIRECTORY
 install(FILES
     ${KANGLE_DIR}/etc/config-default.xml
     DESTINATION etc)
-
-include(CPack)
+    
 set(CPACK_PACKAGE_NAME "kangle")
+############ NSIS ####################
+set(CPACK_NSIS_DISPLAY_NAME "kangle")
+set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "ExecWait '$INSTDIR/bin/kangle.exe --install'")
+set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "ExecWait '$INSTDIR/bin/kangle.exe --uninstall'")
+############ NSIS END ################
+include(CPack)

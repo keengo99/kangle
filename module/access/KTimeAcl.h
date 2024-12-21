@@ -29,12 +29,9 @@ public:
 	}
 	virtual ~KTimeAcl() {
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "<input name='time' value='";
-		KTimeAcl *urlAcl = (KTimeAcl *) (model);
-		if (urlAcl) {
-			s << urlAcl->ts;
-		}
+		s << ts;
 		s << "'>";		
 	}
 	KAcl *new_instance() override {

@@ -37,7 +37,7 @@ if (1== atoi(attribute["enable"].c_str())) {
 }
 */
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		/*
 		KBlackListMark *m_chain = (KBlackListMark *) model;
 		std::stringstream s;
@@ -97,8 +97,8 @@ public:
 		auto attribute = xml->attr();
 		time_out = atoi(attribute["time_out"].c_str());
 	}
-	void get_html(KModel* model, KWStream& s) override {
-		KCheckBlackListMark* m_chain = (KCheckBlackListMark*)model;
+	void get_html(KWStream& s) override {
+		KCheckBlackListMark* m_chain = (KCheckBlackListMark*)this;
 		if (!isGlobal) {
 			s << "block time(seconds):<input type=text name='time_out' value='";
 			if (m_chain) {

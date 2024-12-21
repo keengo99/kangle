@@ -66,9 +66,9 @@ public:
 	const char* getName()override {
 		return "remove_header";
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "attr:<input name='attr' value='";
-		KRemoveHeaderMark* mark = (KRemoveHeaderMark*)(model);
+		KRemoveHeaderMark* mark = (KRemoveHeaderMark*)(this);
 		if (mark) {
 			s << mark->attr.c_str();
 		}

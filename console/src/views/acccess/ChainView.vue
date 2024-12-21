@@ -1,0 +1,187 @@
+<script lang="ts" setup>
+import { onMounted, ref } from 'vue';
+import ModuleView, { type Module } from './ModuleView.vue';
+
+export interface ChainKey {
+    file: string,
+    index: number,
+    id: number,
+}
+
+export interface ChainValue {
+    hit: number,
+    acl?: Module[],
+    mark?: Module[],
+}
+export interface Chain {
+    add?:boolean,
+    action: string,
+    jump?: string,
+    k: ChainKey,
+    v: ChainValue,
+}
+
+const props = defineProps<{ chain: Chain, access: string, table: string, vh?: string }>()
+//console.log("file=" + probs.chain.file);
+const chain_value = ref(<ChainValue | null>null);
+const emit = defineEmits<{ cancel_chain: [], submit_chain: [] }>();
+function submit_chain() {
+    const form: any = document.getElementById("form");
+    const formData = new FormData(form);
+    if (props.vh) {
+        formData.append("vh", props.vh);
+    }
+    formData.append("access", props.access);
+    formData.append("table", props.table);
+    formData.append("file", props.chain.k.file);
+    formData.append("index", props.chain.k.index.toString());
+    formData.append("id", props.chain.k.id.toString());
+    if (props.chain.add) {
+        formData.append("add","1");
+    }
+    fetch('/core.whm?whm_call=edit_chain&format=json', {
+        method: 'POST',
+        body: new URLSearchParams(formData as any),
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+    }).then((res) => res.json()).then((json) => {
+        emit('submit_chain');
+    });
+}
+function cancel_chain() {
+    emit("cancel_chain");
+}
+function updateModule(type: number, index: number, module: string) {
+    if (chain_value.value == null) {
+        return;
+    }
+    if (type == 0) {
+        if (chain_value.value?.acl == null) {
+            return;
+        }
+        chain_value.value.acl[index].module = module
+    } else {
+        if (chain_value.value?.mark == null) {
+            return
+        }
+        chain_value.value.mark[index].module = module
+    }
+}
+function delModule(type: number, index: number) {
+    if (chain_value.value == null) {
+        return;
+    }
+    if (type == 0) {
+        if (chain_value.value?.acl == null) {
+            return;
+        }
+        chain_value.value.acl.splice(index, 1)
+    } else {
+        if (chain_value.value?.mark == null) {
+            return
+        }
+        chain_value.value.mark.splice(index, 1)
+    }
+}
+function addModule(type: number, index: number) {
+    if (chain_value.value == null) {
+        return;
+    }
+    let emptyModule: Module = {
+        html: "",
+        is_or: 0,
+        revers: 0,
+    }
+    if (type == 0) {
+        if (chain_value.value?.acl == null) {
+            chain_value.value.acl = <Module[]>[];
+        }
+        if (index == -1) {
+            chain_value.value.acl.push(emptyModule);
+            return;
+        }
+        chain_value.value.acl.splice(index, 0, emptyModule)
+    } else {
+        if (chain_value.value?.mark == null) {
+            chain_value.value.mark = <Module[]>[];
+        }
+        if (index == -1) {
+            chain_value.value.mark.push(emptyModule);
+            return;
+        }
+        chain_value.value.mark.splice(index, 0, emptyModule)
+    }
+}
+onMounted(() => {
+    if (!props.chain.add) {
+        fetch('/core.whm?whm_call=get_chain&access=' + props.access +
+            '&table=' + props.table +
+            '&file=' + props.chain.k.file +
+            '&index=' + props.chain.k.index + 
+            (props.vh?'&vh='+props.vh:"") +
+            '&id=' + props.chain.k.id +
+            '&format=json').then((res) => res.json()).then((json) => {
+                chain_value.value = json.result;
+            });
+    } else {
+        chain_value.value = {hit:0}
+    }
+}
+);
+</script>
+<template>
+    <form id="form" name="accessaddform" onsubmit="return false;" v-if="chain_value">
+        <table border="1" cellspacing="0">
+            <tr>
+                <td>目标</td>
+                <td>
+                    {{ props.chain.k.file }} {{ props.chain.k.id }}
+                </td>
+            </tr>
+            <template v-for="(modules, type) in [chain_value.acl, chain_value.mark]">
+                <tr v-for="(m, index) in modules">
+                    <td>
+                        [<a href=# @click="addModule(type, index)">插</a>]
+                        [<a href=# @click="delModule(type, index)">删</a>]
+                        <span v-if="m.module">
+                            {{ m.module }}
+                        </span>
+                    </td>
+                    <td>
+                        <div v-if="m.module != null">
+                            <input type="hidden" name="begin_sub_form"
+                                :value="(type == 0 ? 'acl_' : 'mark_') + m.module" />
+                            <template v-if="m.ref">
+                                <input type="hidden" name="ref" :value="m.ref" />ref:{{ m.ref }}
+                            </template>
+                            <template v-else>
+                                <ModuleView :module="m" />
+                            </template>
+                            <input type="hidden" name="end_sub_form" value='1' />
+                        </div>
+                        <div v-else>
+                            请选择可用模块:
+                            <span v-if="type == 0">
+                                <a href=# @click="updateModule(type, index, 'header')">header</a>
+                            </span>
+                            <span v-else>
+                                <a href=# @click="updateModule(type, index, 'anti_cc')">anti_cc</a>
+                            </span>
+                        </div>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td colspan="2">[<a href=# @click="addModule(type, -1)">增加</a>]</td>
+                </tr>
+            </template>
+            <tr>
+                <td colspan="2">
+                    <button  @click="submit_chain()">确定</button>
+                    <button  @click="cancel_chain()">取消</button>
+                </td>
+            </tr>
+        </table>
+    </form>
+</template>

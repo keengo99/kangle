@@ -10,7 +10,7 @@ public:
 	KCloudIpAcl();
 	virtual ~KCloudIpAcl();
 	void get_display(KWStream& s) override;
-	void get_html(KModel* model, KWStream& s) override;
+	void get_html(KWStream& s) override;
 	KAcl *new_instance() override;
 	const char *getName() override;
 	bool match(KHttpRequest* rq, KHttpObject* obj) override;

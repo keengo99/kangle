@@ -60,7 +60,7 @@ void my_vklog(int level, const char *fmt, va_list ap) {
 	tm[19] = 0;
 	errorLogger.log("%s|", tm);
 	errorLogger.vlog(fmt, ap);
-	errorLogger.endLog(true);
+	errorLogger.endLog(false);
 }
 
 

@@ -26,7 +26,7 @@ public:
 	}
 	virtual ~KObjAlwaysOnAcl() {
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		return;
 	}
 	KAcl *new_instance() override {

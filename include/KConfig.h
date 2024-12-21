@@ -49,6 +49,7 @@
 #include "KAutoArray.h"
 #include "KXmlAttribute.h"
 #include "KConfigTree.h"
+#include "serializable.h"
 
 #define AUTOUPDATE_OFF    0
 #define AUTOUPDATE_ON   1
@@ -105,6 +106,17 @@ public:
 	kgl_ssl_ctx* new_ssl_ctx(const KString &certfile, const KString &keyfile);
 	virtual kgl_ssl_ctx* refs_ssl_ctx() {
 		return new_ssl_ctx(get_cert_file(), get_key_file());
+	}
+	void dump(kgl::serializable* sl) {
+		if (!cert_file.empty()) {
+			sl->add("alpn", alpn);
+			sl->add("early_data", early_data);
+			sl->add("reject_nosni", reject_nosni);
+			sl->add("cipher", cipher);
+			sl->add("protocols", protocols);
+			sl->add("certificate", cert_file);
+			sl->add("certificate_key", key_file);
+		}		
 	}
 	u_char alpn = 0;
 	bool early_data = false;

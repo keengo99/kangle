@@ -30,9 +30,9 @@ public:
 	}
 	virtual ~KRegPathAcl() {
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "<input name=path value='";
-		KRegPathAcl *urlAcl = (KRegPathAcl *) (model);
+		KRegPathAcl *urlAcl = (KRegPathAcl *) (this);
 		if (urlAcl) {
 			s << urlAcl->path.getModel();
 		}
@@ -99,9 +99,9 @@ public:
 	}
 	virtual ~KRegParamAcl() {
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 		s << "<input name='param' value='";
-		KRegParamAcl *urlAcl = (KRegParamAcl *) (model);
+		KRegParamAcl *urlAcl = (KRegParamAcl *) (this);
 		if (urlAcl) {
 			s << urlAcl->path.getModel();
 		}

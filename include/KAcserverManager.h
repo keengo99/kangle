@@ -55,7 +55,9 @@ public:
 	void loadAllApi();
 	void unloadAllApi();
 	bool remove_server(const KString &name, KString& err_msg);
+	int dump_sserver(WhmContext* ctx);
 #ifdef ENABLE_MULTI_SERVER
+	int dump_mserver(WhmContext* ctx);
 	void macserverList(KWStream& s, const KString& name="");
 	void macserver_node_form(KWStream& s, const KString&, KString action, unsigned nodeIndex);
 	bool macserver_node(KXmlAttribute& attribute, KString& errMsg);
@@ -86,6 +88,7 @@ public:
 	std::vector<KString> getAllTarget();
 	bool new_server(bool is_update, KXmlAttribute& attr, KString& err_msg);
 #ifdef ENABLE_VH_RUN_AS
+	int dump_cmd(WhmContext* ctx);
 	bool cmdForm(KXmlAttribute& attribute, KString& errMsg);
 	KCmdPoolableRedirect* newCmdRedirect(std::map<KString, KString>& attribute,
 		KString& errMsg);
@@ -107,6 +110,7 @@ public:
 		return true;
 	}
 #endif
+	int dump_api(WhmContext* ctx);
 	bool apiEnable(const KString&, bool enable);
 	bool delApi(const KString& name, KString& err_msg) {
 		return remove_item("api", name, err_msg);

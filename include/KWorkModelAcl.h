@@ -36,8 +36,8 @@ public:
 		}
 		
 	}
-	void get_html(KModel *model,KWStream &s) override {
-		KWorkModelAcl *m_chain = (KWorkModelAcl *)model;
+	void get_html(KWStream &s) override {
+		KWorkModelAcl* m_chain = (KWorkModelAcl*)this;
 #ifdef WORK_MODEL_TCP
 		s << "<input type=checkbox name='tcp' value='1' ";
 		if (m_chain && KBIT_TEST(m_chain->flag,WORK_MODEL_TCP)) {

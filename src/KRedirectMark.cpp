@@ -62,8 +62,8 @@ const char* KRedirectMark::getName() {
 	return "redirect";
 }
 
-void KRedirectMark::get_html(KModel* model,KWStream &s) {
-	KRedirectMark* mark = (KRedirectMark*)model;
+void KRedirectMark::get_html(KWStream &s) {
+	KRedirectMark* mark = (KRedirectMark*)this;
 	s << "redirect url:<input name='dst' value='";
 	if (mark && mark->dst) {
 		s << mark->dst;

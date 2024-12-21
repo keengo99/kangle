@@ -1,20 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <whm version="1.1">
-<extend name='core' dso='buildin:core'/>
-<call name='info'  extend='core'>
-</call>
+<extend name='core' type='core'/>
+<call name='info'  extend='core'/>
+<call name='connection' extend='core'/>
+<call name='get_config_listen' extend='core'/>
+<call name='get_listen' extend='core'/>
+<!-- vh -->
+<call name='get_vh' extend='core'/>
+<call name='list_vh' extend='core'/>
+<call name='vh_action' extend='core'/>
+<!-- access -->
+<call name='list_table' extend='core'/>
+<call name='list_chain' extend='core'/>
+<call name='del_chain' extend='core'/>
+<call name='get_chain' extend='core'/>
+<call name='edit_chain' extend='core'/>
+<call name='del_table' extend='core'/>
+<call name='add_table' extend='core'/>
+<call name='list_module' extend='core'/>
+<call name='list_named_module' extend='core'/>
+<call name='get_named_module' extend='core'/>
+
+<!-- extend -->
+<call name='list_sserver' extend='core'/>
+<call name='list_mserver' extend='core'/>
+<call name='list_api' extend='core'/>
+<call name='list_cmd' extend='core'/>
+<call name='list_dso' extend='core'/>
+
+<!-- system -->
 <call name='change_admin_password'  extend='core'>
-</call>
-<call name='list_vh' extend='core'>
-</call>
-<call name='list_tvh' extend='core'>
-</call>
-<call name='list_gtvh' extend='core'>
 </call>
 <call name='list_listen' extend='core'>
 </call>
-<call name='list_dso' extend='core'>
-</call>
+
 <call name='info_vh' extend='core'>
 </call>
 <call name='info_domain' extend='core'>
@@ -33,10 +52,7 @@
 </call>
 <call name='update_vh' extend='core'>
 </call>
-<call name='list_table' extend='core'>
-</call>
-<call name='list_chain' extend='core'>
-</call>
+
 <call name='clean_cache' extend='core'>
 </call>
 <call name='clean_all_cache' extend='core'>

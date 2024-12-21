@@ -44,8 +44,8 @@ uint32_t KRewriteMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& 
 const char *KRewriteMark::getName() {
 	return "rewrite";
 }
-void KRewriteMark::get_html(KModel *model,KWStream &s) {
-	KRewriteMark *mark = (KRewriteMark *) model;
+void KRewriteMark::get_html(KWStream &s) {
+	KRewriteMark *mark = (KRewriteMark *) this;
 	s << "prefix:<input name='prefix' value='";
 	if(mark){
 		s << mark->prefix;

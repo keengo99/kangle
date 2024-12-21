@@ -74,8 +74,8 @@ public:
 		}
 		must_revalidate = (attribute["must_revalidate"]=="1");
 	}
-	void get_html(KModel* model, KWStream& s) override {
-		KCacheControlMark *mark = (KCacheControlMark *) model;
+	void get_html(KWStream& s) override {
+		KCacheControlMark *mark = (KCacheControlMark *) this;
 		s << "max_age: <input type=text name=max_age size=6 value='";
 		if (mark) {
 			s << mark->max_age;

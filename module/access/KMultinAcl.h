@@ -41,9 +41,9 @@ public:
 	virtual ~KMultinAcl() {
 		freeMap();
 	}
-	void get_html(KModel *model,KWStream &s) override {
+	void get_html(KWStream &s) override {
 		s << "<input name=v size=40 value='";
-		KMultinAcl *acl = (KMultinAcl *) (model);
+		KMultinAcl *acl = (KMultinAcl *) (this);
 		if (acl) {
 			acl->getValList(s);
 		}

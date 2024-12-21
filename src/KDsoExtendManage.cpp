@@ -16,6 +16,9 @@ bool KDsoExtendManage::add(KDsoExtend *dso)
 	lock.Unlock();
 	return true;
 }
+int KDsoExtendManage::dump(WhmContext* ctx) {
+	return WHM_OK;
+}
 bool KDsoExtendManage::add(const KXmlAttribute &attribute)
 {
 	KDsoExtend *dso = new KDsoExtend(attribute["name"].c_str());

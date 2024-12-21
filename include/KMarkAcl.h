@@ -33,8 +33,8 @@ public:
 		}
 		return false;
 	}
-	void get_html(KModel* model, KWStream& s) override {
-		KMarkAcl *m = (KMarkAcl *)model;
+	void get_html(KWStream& s) override {
+		KMarkAcl *m = (KMarkAcl *)this;
 		s << "mark:<select name='op'>";
 		for(int i=0;i<3;i++){
 			s << "<option value='" << getMarkOp(i) << "' ";

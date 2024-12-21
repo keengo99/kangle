@@ -77,8 +77,8 @@ public:
 		auto attribute = xml->attr();
 		max_per_ip = atoi(attribute["max"].c_str());
 	}
-	void get_html(KModel *model,KWStream &s) override {
-		KPerIpAcl *mark = (KPerIpAcl *) (model);
+	void get_html(KWStream &s) override {
+		KPerIpAcl *mark = (KPerIpAcl *) (this);
 		s << "><input type=text name=max value='" << (mark ? mark->max_per_ip : 0) << "'>";
 	}
 	void callBack(KPerIpCallBackData *data);

@@ -79,6 +79,7 @@ public:
 	bool is_global() override {
 		return false;
 	}
+	void dump_info(kgl::serializable *s);
 	bool parse_xml(const khttpd::KXmlNodeBody* body, KVirtualHost* ov);
 	bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) override;
 	kconfig::KConfigEventFlag config_flag() const override {
@@ -340,6 +341,7 @@ public:
 	bool loadApiRedirect(KApiPipeStream* st, int workType);
 	void setAccess(const KString& access_file);
 	KString htaccess;
+	KSafeAccess get_access(bool is_response);
 	KSafeAccess access[2];
 	bool has_user_access() {
 		if (user_access && user_access[0] != '-') {

@@ -35,7 +35,7 @@ public:
 	{
 		return "stub_status";
 	}
-	void get_html(KModel* model, KWStream& s) override {
+	void get_html(KWStream& s) override {
 	}
 	void get_display(KWStream& s) override {
 	}

@@ -39,8 +39,7 @@ bool WhmCommand::init(KString&whmFile)
 	args[0] = file;
 	return result;
 }
-int WhmCommand::call(const char *callName, const char *eventType,
-		WhmContext *context) {
+int WhmCommand::call(const char *callName, const char *eventType, WhmContext *context) {
 	int ret = WHM_OK;
 	KWStream *out = context->getOutputStream();
 	Token_t token = NULL;
