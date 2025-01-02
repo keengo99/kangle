@@ -213,7 +213,37 @@ static KUpstream* connect_result(KHttpRequest* rq, KSockPoolHelper* sa, int cook
 	sa->release();
 	return us;
 }
-
+void KMultiAcserver::dump(kgl::serializable* sl) {
+	lock.Lock();
+	sl->add("name", name);
+	sl->add("proto", KPoolableRedirect::buildProto(proto));
+	if (url_hash) {
+		sl->add("hash", "url");
+	} else if (ip_hash) {
+		sl->add("hash", "ip");
+	} else {
+		sl->add("hash", "rand");
+	}
+	sl->add("cookie_stick", cookie_stick);
+	sl->add("err_try_time", errorTryTime);
+	sl->add("max_err_count", max_error_count);
+	sl->add("refs", get_ref());
+#ifdef ENABLE_MSERVER_ICP
+	sl->add("icp", icp ? icp->name: "");
+#endif
+	KSockPoolHelper* node = nodes;
+	sl->add_obj_array2("nodes");
+	for (int i = 0; i < nodesCount; i++) {
+		assert(node);
+		auto sl_node = sl->add_obj_array("nodes");
+		if (!sl_node) {
+			continue;
+		}
+		node->dump(sl_node,true);
+		node = node->next;
+	}
+	lock.Unlock();
+}
 KUpstream* KMultiAcserver::GetUpstream(KHttpRequest* rq) {
 	//KAsyncFetchObject *afo = static_cast<KAsyncFetchObject *>(fo);
 	KSockPoolHelper* sockHelper = NULL;

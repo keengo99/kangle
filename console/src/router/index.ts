@@ -81,6 +81,11 @@ const router = createRouter({
           name: 'mserver',
           component: () => import("../views/extend/MServerView.vue"),
         },
+        {
+          path: 'cmd',
+          name: 'cmd',
+          component: () => import("../views/extend/CmdView.vue"),
+        },
       ],
     }
   ],

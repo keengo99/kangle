@@ -62,15 +62,23 @@ int KAcserverManager::dump_sserver(WhmContext* ctx) {
 	return WHM_OK;
 }
 int KAcserverManager::dump_mserver(WhmContext* ctx) {
-	return WHM_OK;
-}
-int KAcserverManager::dump_cmd(WhmContext* ctx) {
+	auto lock = get_rlocker();
+	for (auto it = mservers.begin(); it != mservers.end(); ++it) {
+		auto sl = ctx->data()->add_obj_array("mserver");
+		if (!sl) {
+			continue;
+		}
+		(*it).second->dump(sl);
+	}
 	return WHM_OK;
 }
 int KAcserverManager::dump_api(WhmContext* ctx) {
 	return WHM_OK;
 }
 #ifdef ENABLE_VH_RUN_AS
+int KAcserverManager::dump_cmd(WhmContext* ctx) {
+	return WHM_OK;
+}
 void KAcserverManager::on_cmd_event(kconfig::KConfigTree* tree, const khttpd::KXmlNode* xml, kconfig::KConfigEventType ev) {
 	auto& attr = xml->attributes();
 	auto name = attr["name"];

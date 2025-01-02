@@ -50,8 +50,7 @@ static KSafeAccess whm_get_access(WhmContext* ctx) {
 		ctx->setStatus("access must be set");
 		return nullptr;
 	}
-	static_assert(RESPONSE == 1 && REQUEST == 0);
-	int access_type = 0;
+	int access_type = REQUEST;
 	if (strcasecmp(access, "response") == 0) {
 		access_type = RESPONSE;
 	} else if (strcasecmp(access, "request") == 0) {
@@ -360,7 +359,11 @@ int  WhmCore::call_list_api(const char* call_name, const char* event_type, WhmCo
 	return conf.gam->dump_api(ctx);
 }
 int  WhmCore::call_list_cmd(const char* call_name, const char* event_type, WhmContext* ctx) {
+#ifdef ENABLE_VH_RUN_AS
 	return conf.gam->dump_cmd(ctx);
+#else
+	return WHM_CALL_NOT_FOUND;
+#endif
 }
 int  WhmCore::call_list_dso(const char* call_name, const char* event_type, WhmContext* ctx) {
 	return conf.dem->dump(ctx);

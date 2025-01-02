@@ -35,6 +35,7 @@ public:
 	virtual ~KMultiAcserver();
 public:
 	void shutdown() override;
+	void dump(kgl::serializable* sl);
 	KUpstream* GetUpstream(KHttpRequest* rq) override;
 	unsigned getPoolSize();
 	bool editNode(KXmlAttribute&attr);
