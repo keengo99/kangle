@@ -1,5 +1,5 @@
 <script lang="ts" setup>
 </script>
 <template>
-      connect_per_ip
+    log
 </template>

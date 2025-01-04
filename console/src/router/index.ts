@@ -58,6 +58,31 @@ const router = createRouter({
           path: 'cache',
           name: 'cache',
           component: ()=>import('../views/config/CacheView.vue'),
+        },
+        {
+          path: 'log',
+          name: 'log',
+          component: ()=>import('../views/config/LogView.vue'),
+        },
+        {
+          path: 'io',
+          name: 'io',
+          component: ()=>import('../views/config/IoView.vue'),
+        },
+        {
+          path: 'other',
+          name: 'other',
+          component: ()=>import('../views/config/OtherView.vue'),
+        },
+        {
+          path: 'manage',
+          name: 'manage',
+          component: ()=>import('../views/config/ManageView.vue'),
+        },
+        {
+          path: 'resource',
+          name: 'resource',
+          component: ()=>import('../views/config/ResourceView.vue'),
         }
       ]
     },

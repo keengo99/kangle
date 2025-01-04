@@ -451,6 +451,13 @@ KGL_RESULT stageHttpManage(KHttpRequest* rq) {
 	klog(KLOG_NOTICE, "[ADMIN_SUCCESS]%s %s%s%s\n",
 		ips, rq->sink->data.raw_url.path,
 		(rq->sink->data.raw_url.param ? "?" : ""), (rq->sink->data.raw_url.param ? rq->sink->data.raw_url.param : ""));
+	bool is_static = false;
+	if (strcmp(rq->sink->data.url->path, "/") == 0) {
+		KFileName file;
+		if (file.setName(conf.sysHost->doc_root.c_str(), "/index.html", FOLLOW_LINK_ALL)) {
+			is_static = true;
+		}
+	}
 	char* ext_file = strrchr(rq->sink->data.url->path, '.');
 	if (ext_file &&
 		(strcmp(ext_file, ".whm") == 0 ||
@@ -459,6 +466,9 @@ KGL_RESULT stageHttpManage(KHttpRequest* rq) {
 			strcmp(ext_file, ".gif") == 0 ||
 			strcmp(ext_file, ".css") == 0)
 		) {
+		is_static = true;
+	}
+	if (is_static) {
 		KBIT_CLR(rq->sink->data.flags, RQ_HAS_AUTHORIZATION);
 		assert(rq->is_source_empty());
 		auto svh = conf.sysHost->getFirstSubVirtualHost();

@@ -1920,7 +1920,7 @@ function sortrq(index)\
 void init_manager_handler() {
 	KHttpManage::handler.add(_KS("/*"), [](kgl_str_t* path, void* data, KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) -> KGL_RESULT {
 		KHttpManage* hm = (KHttpManage*)data;
-		if (path->len == 1 && *path->data == '/') {
+		if (strcmp(path->data,"/")==0 || strcmp(path->data,"old")==0) {
 			hm->sendMainPage();
 			return KGL_OK;
 		}

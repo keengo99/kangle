@@ -44,7 +44,7 @@ import { RouterLink, RouterView } from 'vue-router'
             </tr>
             <tr>
               <td>
-                <a href="/">旧版</a>
+                <a href="/old">旧版</a>
               </td>
             </tr>
           </table>     
