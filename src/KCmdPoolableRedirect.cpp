@@ -193,6 +193,9 @@ void KCmdPoolableRedirect::set_proto(Proto_t proto)
 	this->proto = proto;
 	pm.set_proto(proto);
 }
+void KCmdPoolableRedirect::dump(kgl::serializable* sl) {
+	KJump::dump(sl);
+}
 bool KCmdPoolableRedirect::isChanged(KPoolableRedirect *rd)
 {
 	if (KPoolableRedirect::isChanged(rd)) {

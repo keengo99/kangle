@@ -30,7 +30,7 @@ function onNewListenSubmit() {
         <tr>
             <td>
                 配置侦听
-                <table class="table table-bordered">
+                <table border=1 cellspacing="0">
                     <tr>
                         <td>操作</td>
                         <td>ip</td>
@@ -47,7 +47,7 @@ function onNewListenSubmit() {
             </td>
             <td>
                 成功侦听
-                <table class="table table-bordered">
+                <table border=1 cellspacing="0">
                     <tr>                       
                         <td>ip</td>
                         <td>port</td>

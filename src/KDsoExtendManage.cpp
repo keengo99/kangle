@@ -17,6 +17,14 @@ bool KDsoExtendManage::add(KDsoExtend *dso)
 	return true;
 }
 int KDsoExtendManage::dump(WhmContext* ctx) {
+	KLocker locker(&lock);
+	for (auto&& dso : dsos) {
+		auto sl = ctx->data()->add_obj_array("dso");
+		if (!sl) {
+			continue;
+		}
+		dso.second->dump(sl);
+	}
 	return WHM_OK;
 }
 bool KDsoExtendManage::add(const KXmlAttribute &attribute)

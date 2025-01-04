@@ -59,6 +59,7 @@ public:
 	}
 	bool isChanged(KPoolableRedirect *rd) override;
 	void set_proto(Proto_t proto) override;
+	void dump(kgl::serializable* sl);
 	bool chuser;
 	int worker;
 	int port;

@@ -12,7 +12,6 @@
 #include "ksocket.h"
 #include "kselector.h"
 #include "extern.h"
-
 class KHttpRequest;
 class KAsyncFetchObject;
 class KRedirectSource;

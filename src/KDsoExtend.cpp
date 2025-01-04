@@ -238,3 +238,6 @@ void KDsoExtend::shutdown() {
 		kgl_dso_finit(0);
 	}
 }
+void KDsoExtend::dump(kgl::serializable* sl) {
+	sl->add("name", name);
+}

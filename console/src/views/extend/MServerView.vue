@@ -63,6 +63,7 @@ onMounted(flushMserver)
             <th>引用</th>
             <th>icp</th>
             <th>节点</th>
+            <th>节点信息</th>
         </tr>
         <tr v-for="server in mservers">
 
@@ -80,12 +81,15 @@ onMounted(flushMserver)
             <td>{{ server.refs }}</td>
             <td>{{ server.icp }}</td>
             <td >
-                <div >
-                    [<a href='#' @click="toggle_node(server)">显示</a>]
+                <span>{{ server.nodes.length }}</span>
+                <span >                    
                     [<a href='#'>增加</a>]
-                </div>
+                    [<a href='#' @click="toggle_node(server)">详细</a>]
+                </span>
+            </td>
+            <td>
                 <div v-if="server.show_node">
-                    <table width="99%" border=1 cellspacing="0">
+                    <table width="100%" border=1 cellspacing="0">
                         <tr>
                             <th>地址</th>
                             <th>端口</th>
@@ -97,10 +101,7 @@ onMounted(flushMserver)
                             <th>err/avg</th>
                             <th>状态</th>
                         </tr>
-                        <tr v-for="(node, index) in server.nodes">
-                            <template v-if="index == 0">
-                                <MServerCommon :server="server"></MServerCommon>
-                            </template>
+                        <tr v-for="(node, index) in server.nodes">                           
                             <td>[删][改]{{ node.host }}</td>
                             <td>{{ node.port }}</td>
                             <td>{{ node.life_time }}</td>

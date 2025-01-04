@@ -41,6 +41,7 @@ public:
 	}
 	bool load();
 	void setFile(const KString& file);
+	void dump(kgl::serializable* sl);
 public:
 	KString apiFile;
 	KApiDso dso;

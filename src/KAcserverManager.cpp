@@ -73,10 +73,26 @@ int KAcserverManager::dump_mserver(WhmContext* ctx) {
 	return WHM_OK;
 }
 int KAcserverManager::dump_api(WhmContext* ctx) {
+	auto lock = get_rlocker();
+	for (auto&& api : apis) {
+		auto sl = ctx->data()->add_obj_array("api");
+		if (!sl) {
+			continue;
+		}
+		api.second->dump(sl);
+	}
 	return WHM_OK;
 }
 #ifdef ENABLE_VH_RUN_AS
 int KAcserverManager::dump_cmd(WhmContext* ctx) {
+	auto lock = get_rlocker();
+	for (auto&& cmd : cmds) {
+		auto sl = ctx->data()->add_obj_array("cmd");
+		if (!sl) {
+			continue;
+		}
+		cmd.second->dump(sl);
+	}
 	return WHM_OK;
 }
 void KAcserverManager::on_cmd_event(kconfig::KConfigTree* tree, const khttpd::KXmlNode* xml, kconfig::KConfigEventType ev) {

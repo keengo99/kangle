@@ -22,7 +22,7 @@
 #include "KMutex.h"
 #include "katom.h"
 #include "KSharedObj.h"
-
+#include "serializable.h"
 class KJump
 {
 public:
@@ -51,6 +51,10 @@ public:
 protected:
 	virtual ~KJump() {
 
+	}
+	void dump(kgl::serializable* sl) {
+		sl->add("name", name);
+		sl->add("refs", ref);
 	}
 private:
 	volatile uint32_t ref;

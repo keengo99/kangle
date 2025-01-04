@@ -61,7 +61,7 @@ onMounted(flushVirtualHost);
         [<a href=# @click='addVirtualHost'>新增</a>]        
         [<a href=# @click='setCurVirtualHost("")'>全局设置</a>]
         <hr>
-        <table width="100%">
+        <table border=1 cellspacing="0">
             <tr>
                 <td>操作</td>
                 <td>名称</td>
@@ -85,7 +85,7 @@ onMounted(flushVirtualHost);
         </span>
         <span v-else>全局设置</span>
         <hr>
-        <table width='100%'>
+        <table border=1 cellspacing="0">
             <tr>
                 <td>
                     <template v-if="curVirtualHost.length>0">

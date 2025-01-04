@@ -86,6 +86,16 @@ const router = createRouter({
           name: 'cmd',
           component: () => import("../views/extend/CmdView.vue"),
         },
+        {
+          path: 'api',
+          name: 'api',
+          component: () => import("../views/extend/ApiView.vue"),
+        },
+        {
+          path: 'dso',
+          name: 'dso',
+          component: () => import("../views/extend/DsoView.vue"),
+        },
       ],
     }
   ],

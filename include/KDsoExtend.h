@@ -3,6 +3,7 @@
 #include "KDsoModule.h"
 #include "utils.h"
 #include "KDsoRedirect.h"
+#include "serializable.h"
 
 KGL_RESULT global_support_function(PVOID ctx, DWORD req, PVOID data, PVOID *ret);
 KGL_RESULT global_get_variable(PVOID ctx, KGL_GVAR type, const char *name, LPVOID lpvBuffer, LPDWORD lpdwSize);
@@ -32,6 +33,7 @@ public:
 	void ListUpstream(KWStream &s);
 	void ListTarget(std::vector<KString> &target);
 	KRedirect *RefsRedirect(KString &name);
+	void dump(kgl::serializable* sl);
 	void shutdown();
 	kgl_dso_init_f kgl_dso_init;
 	kgl_dso_finit_f kgl_dso_finit;

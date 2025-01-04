@@ -277,3 +277,10 @@ bool KApiRedirect::unload() {
 	dso.unload();
 	return true;
 }
+void KApiRedirect::dump(kgl::serializable* sl) {
+	KJump::dump(sl);
+	sl->add("file", apiFile);
+	sl->add("type", type);
+	sl->add("state", dso.getStateString());
+	sl->add("info", dso.getInfo());
+}
