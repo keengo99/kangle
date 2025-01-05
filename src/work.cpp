@@ -78,7 +78,20 @@ namespace kangle {
 	typedef std::map<ip_addr, unsigned> intmap;
 	intmap m_ip;
 	KMutex ip_lock;
-
+	void dump_connect_per_ip(kgl::serializable* sl) {
+		sl->add("max_per_ip", conf.max_per_ip);
+		KLocker locker(&ip_lock);
+		for (auto it = m_ip.begin(); it != m_ip.end(); it++) {
+			char ip[MAXIPLEN];
+			ksocket_ipaddr_ip(&(*it).first, ip, sizeof(ip));
+			auto sl_ip = sl->add_obj_array("info");
+			if (!sl_ip) {
+				continue;
+			}
+			sl_ip->add("ip", ip);
+			sl_ip->add("count", (*it).second);
+		}
+	}
 	KString get_connect_per_ip() {
 		KStringBuf s;
 		s << "<html><head><LINK href=/main.css type='text/css' rel=stylesheet></head><body>";

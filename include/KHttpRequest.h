@@ -75,7 +75,10 @@ class KHttpTransfer;
 #define		REQUEST_EMPTY	0
 #define		REQUEST_READY	1
 #define 	MIN_SLEEP_TIME	4
-
+namespace kangle {
+	KString get_connect_per_ip();
+	void dump_connect_per_ip(kgl::serializable *sl);
+};
 void log_access(KHttpRequest* rq);
 kev_result on_sink_readhup(KOPAQUE data, void* arg, int got);
 KHttpHeaderIteratorResult handle_http_header(void* arg, KHttpHeader* header);

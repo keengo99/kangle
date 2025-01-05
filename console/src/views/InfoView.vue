@@ -46,6 +46,7 @@ fetch('/core.whm?whm_call=info&format=json').then((res) => {
   </table>
   <h3>运行情况</h3>{{ info.total_run }}<h3>负载信息</h3>
   <table>
+    <tbody>
     <tr>
       <td>连接数</td>
       <td>{{ info.connect }}</td>
@@ -62,6 +63,7 @@ fetch('/core.whm?whm_call=info&format=json').then((res) => {
       <td>空闲线程数</td>
       <td>{{ info.thread_free }}</td>
     </tr>
+  </tbody>
   </table>
   <h3>事件模型</h3>
   <table>

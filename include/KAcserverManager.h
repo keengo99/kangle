@@ -47,7 +47,7 @@ public:
 	void refreshCmd(time_t nowTime);
 	void getProcessInfo(KWStream &s);
 	void killCmdProcess(USER_T user);
-
+	void dump_process(kgl::serializable *sl);
 #endif	
 	void killAllProcess(KVirtualHost* vh);
 	void shutdown();

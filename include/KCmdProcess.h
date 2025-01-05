@@ -23,6 +23,18 @@ public:
 	~KSPCmdProcess();
 	KUpstream *PowerResult(KHttpRequest* rq, KPipeStream* st);
 	KPipeStream * PowerThread(KVirtualHost *vh,KExtendProgram *rd);
+	void dump_process(const KString& app, kgl::serializable* sl) override {
+		KLocker lock(&stLock);
+		if (!st) {
+			return;
+		}
+		auto sl_process = sl->add_obj_array("process");
+		if (!sl_process) {
+			return;
+		}
+		sl_process->add("app", app);
+		dump_process_info(&st->process, this, sl_process);
+	}
 	void getProcessInfo(const USER_T &user, const KString &name, KWStream &s,int &count)
 	{
 		stLock.Lock();
@@ -75,6 +87,7 @@ public:
 	~KMPCmdProcess();
 	KUpstream* GetUpstream(KHttpRequest* rq, KExtendProgram* rd) override;
 	//kev_result handleRequest(KHttpRequest *rq,KExtendProgram *rd, KAsyncFetchObject *fo);
+	void dump_process(const KString &user, kgl::serializable* sl) override;
 	void getProcessInfo(const USER_T &user, const KString&name, KWStream &s,int &count) override;
 	bool killProcess(int pid) override;
 	//KTcpUpstream *poweron(KVirtualHost *vh,KExtendProgram *erd, bool &success);

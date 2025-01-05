@@ -105,6 +105,8 @@ bool createProcess(KPipeStream *st,Token_t token, char * args[], KCmdEnv *envs, 
 bool createProcess(Token_t token, char * args[],KCmdEnv *envs,char *cur_dir,PIPE_T in,PIPE_T out,PIPE_T err,pid_t &pid);
 pid_t createProcess(Token_t token,const char *cmd,KCmdEnv *envs,const char *curdir,kgl_process_std *std);
 bool killProcess(KVirtualHost *vh);
+bool killProcess(KString process, KString user, int pid);
+
 #ifdef _WIN32
 extern KMutex closeExecLock;
 BOOL StartInteractiveClientProcess (

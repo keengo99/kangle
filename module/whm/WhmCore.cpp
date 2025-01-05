@@ -368,3 +368,27 @@ int  WhmCore::call_list_cmd(const char* call_name, const char* event_type, WhmCo
 int  WhmCore::call_list_dso(const char* call_name, const char* event_type, WhmContext* ctx) {
 	return conf.dem->dump(ctx);
 }
+int WhmCore::call_list_process(const char* call_name, const char* event_type, WhmContext* ctx) {
+	spProcessManage.dump(ctx->data());
+#ifdef ENABLE_VH_RUN_AS
+	conf.gam->dump_process(ctx->data());
+#endif
+	return WHM_OK;
+}
+int WhmCore::call_kill_process(const char* call_name, const char* event_type, WhmContext* ctx) {
+	auto uv = ctx->getUrlValue();
+	if (uv->getx("name")) {
+		if (!killProcess(uv->get("name"), uv->get("app"), uv->attribute.get_int("pid"))) {
+			return WHM_CALL_FAILED;
+		}
+		return WHM_OK;
+	}
+	if (!killProcess(ctx->getVh())) {
+		return WHM_CALL_FAILED;
+	}
+	return WHM_OK;
+}
+int WhmCore::call_list_connect_per_ip(const char* call_name, const char* event_type, WhmContext* ctx) {
+	kangle::dump_connect_per_ip(ctx->data());
+	return WHM_OK;
+}

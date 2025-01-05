@@ -41,6 +41,7 @@ public:
 	KUpstream* GetUpstream(KHttpRequest* rq, KExtendProgram* rd);
 	void clean();
 	void refresh(time_t nowTime);
+	void dump(kgl::serializable* sl);
 	void getProcessInfo(KWStream &s);
 	//{{ent
 #ifdef ENABLE_ADPP

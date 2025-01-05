@@ -1,13 +1,15 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
 const connections = ref(<any[]>[]);
-onMounted(()=>{
+function flushConnect() {
     fetch('/core.whm?whm_call=connection&format=json').then((res) => res.json()).then((json) => {
         connections.value = json.result.c;
     });
-});
+}
+onMounted(flushConnect);
 </script>
 <template>
+    [<a href=# @click="flushConnect()">刷新</a>]
     <table border="1" cellspacing="0">
         <tr>
             <th>源地址</th>

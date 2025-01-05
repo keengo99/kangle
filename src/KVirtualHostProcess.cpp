@@ -23,6 +23,19 @@ KTHREAD_FUNCTION VProcessPowerWorker(void *param)
 	kfiber_wakeup_ts(vpp->fiber, vpp->process, 0);
 	KTHREAD_RETURN;
 }
+void dump_process_info(KProcess* process, KPoolableSocketContainer* ps, kgl::serializable* sl) {
+	sl->add("pid", process->getProcessId());
+#ifdef ENABLE_ADPP
+	if (conf.process_cpu_usage > 0) {
+		sl->add("cpu_usage", process->getLastCpuUsage());
+		sl->add("low_pri", process->getPriority() != NORMAL_PRIORITY_CLASS);
+	}
+#endif
+	sl->add("refs", (ps->getRef() - 1));
+	sl->add("size", ps->getSize());
+	sl->add("total_run", (kgl_current_sec - process->getPowerOnTime()));
+
+}
 void getProcessInfo(const USER_T &user,const KString &name,KProcess *process,KPoolableSocketContainer *ps,KWStream &s)
 {
 	//time_t totalTime = time(NULL) - process->startTime;

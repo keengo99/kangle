@@ -229,6 +229,26 @@ void KMPCmdProcess::flushCpuUsage(const KString &user,const KString&name,ULONG64
 	stLock.Unlock();
 }
 #endif
+void KMPCmdProcess::dump_process(const KString & app, kgl::serializable* sl) {
+	KSingleListenPipeStream* st;
+	KLocker lock(&stLock);
+	klist_foreach(st, busyProcessList) {
+		auto sl_process = sl->add_obj_array("process");
+		if (!sl_process) {
+			continue;
+		}
+		sl_process->add("app", app);
+		dump_process_info(&st->process, st, sl_process);
+	}
+	klist_foreach(st, freeProcessList) {
+		auto sl_process = sl->add_obj_array("process");
+		if (!sl_process) {
+			continue;
+		}
+		sl_process->add("app", app);
+		dump_process_info(&st->process, st, sl_process);
+	}
+}
 void KMPCmdProcess::getProcessInfo(const USER_T &user, const KString &name,KWStream &s,int &count)
 {
 	KSingleListenPipeStream *st;

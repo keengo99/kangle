@@ -29,6 +29,18 @@ public:
 			delete st;
 		}
 	}
+	void dump_process(const KString & app, kgl::serializable* sl) override {
+		KLocker lock(&stLock);
+		if (!st) {
+			return;
+		}
+		auto sl_process = sl->add_obj_array("process");
+		if (!sl_process) {
+			return;
+		}
+		sl->add("app", app);
+		dump_process_info(&st->process, this, sl_process);
+	}
 	void getProcessInfo(const USER_T &user, const KString &name, KWStream &s,int &count) override {
 		stLock.Lock();
 		if (st) {

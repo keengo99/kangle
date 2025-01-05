@@ -393,6 +393,15 @@ int KAcserverManager::getCmdPortMap(KVirtualHost* vh, KString cmd, KString name,
 }
 #endif
 //}}
+void KAcserverManager::dump_process(kgl::serializable* sl) {
+	auto locker = get_rlocker();
+	for (auto&& it : cmds) {
+		auto pm = it.second->getProcessManage();
+		if (pm) {
+			pm->dump(sl);
+		}
+	}
+}
 void KAcserverManager::getProcessInfo(KWStream& s) {
 	lock.RLock();
 	std::map<KString, KCmdPoolableRedirect*>::iterator it;

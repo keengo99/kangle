@@ -29,10 +29,12 @@
 <call name='list_dso' extend='core'/>
 
 <!-- system -->
-<call name='change_admin_password'  extend='core'>
-</call>
-<call name='list_listen' extend='core'>
-</call>
+<call name='change_admin_password'  extend='core'/>
+<call name='list_listen' extend='core'/>
+<call name='list_connect_per_ip' extend='core'/>
+<!-- process -->
+<call name='kill_process' extend='core'/>
+<call name='list_process' extend='core'/>
 
 <call name='info_vh' extend='core'>
 </call>

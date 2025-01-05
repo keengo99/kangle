@@ -108,6 +108,7 @@ public:
 	virtual KPipeStream* PowerThread(KVirtualHost* vh, KExtendProgram* rd) = 0;
 	virtual void getProcessInfo(const USER_T& user, const KString& name, KWStream& s, int& count) {
 	}
+	virtual void dump_process(const KString &user, kgl::serializable* sl) = 0;
 	//{{ent
 #ifdef ENABLE_ADPP
 	virtual void flushCpuUsage(const KString& user, const KString& name, ULONG64 cpuTime) {
@@ -175,5 +176,6 @@ struct VProcessPowerParam
 	kfiber* fiber;
 };
 void getProcessInfo(const USER_T& user, const KString& name, KProcess* process, KPoolableSocketContainer* ps, KWStream& s);
+void dump_process_info(KProcess* process, KPoolableSocketContainer* ps, kgl::serializable *sl);
 KTHREAD_FUNCTION VProcessPowerWorker(void* param);
 #endif /* KVIRTUALPROCESS_H_ */

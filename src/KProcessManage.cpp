@@ -103,7 +103,17 @@ void KProcessManage::refresh(time_t nowTime) {
 	lock.Unlock();
 
 }
-
+void KProcessManage::dump(kgl::serializable* sl) {
+	KLocker locker(&lock);
+	if (pools.empty()) {
+		return;
+	}
+	auto sl_process = sl->add_obj_array("group");
+	sl_process->add("name", name);
+	for (auto&& it : pools) {
+		it.second->dump_process(it.first, sl_process);
+	}
+}
 void KProcessManage::getProcessInfo(KWStream&s) {
 	int count = 0;
 	KStringBuf t;

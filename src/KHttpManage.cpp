@@ -45,9 +45,7 @@
 #include "KDefer.h"
 #include "KChain.h"
 #include "kmd5.h"
-namespace kangle {
-	KString get_connect_per_ip();
-};
+
 using namespace std;
 using namespace kangle;
 KPathHandler<kgl_request_handler> KHttpManage::handler(_KS(""));

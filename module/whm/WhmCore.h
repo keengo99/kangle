@@ -107,7 +107,7 @@ public:
 			break;
 		case 'k':
 			if (strcmp(callName, "kill_process") == 0) {
-				return nullptr;
+				return (whm_call_ptr)&WhmCore::call_kill_process;
 			}
 			break;
 		case 'l':
@@ -146,6 +146,12 @@ public:
 			}
 			if (strcmp(callName, "list_mserver") == 0) {
 				return (whm_call_ptr)&WhmCore::call_list_mserver;
+			}
+			if (strcmp(callName, "list_process") == 0) {
+				return (whm_call_ptr)&WhmCore::call_list_process;
+			}
+			if (strcmp(callName, "list_connect_per_ip") == 0) {
+				return (whm_call_ptr)&WhmCore::call_list_connect_per_ip;
 			}
 #ifdef ENABLE_LOG_DRILL
 			if (strcmp(callName, "log_drill") == 0) {
@@ -220,6 +226,9 @@ protected:
 	int call_list_api(const char* call_name, const char* event_type, WhmContext* ctx);
 	int call_list_cmd(const char* call_name, const char* event_type, WhmContext* ctx);
 	int call_list_dso(const char* call_name, const char* event_type, WhmContext* ctx);
+	/* process */
+	int call_list_process(const char* call_name, const char* event_type, WhmContext* ctx);
+	int call_kill_process(const char* call_name, const char* event_type, WhmContext* ctx);
 	/* system */
 	int call_reboot(const char* call_name, const char* event_type, WhmContext* ctx) {
 		console_call_reboot();
@@ -230,5 +239,6 @@ protected:
 	int call_get_config_listen(const char* call_name, const char* event_type, WhmContext* ctx);
 	int call_get_listen(const char* call_name, const char* event_type, WhmContext* ctx);
 	int call_check_vh_db(const char* call_name, const char* event_type, WhmContext* ctx);
+	int call_list_connect_per_ip(const char* call_name, const char* event_type, WhmContext* ctx);
 };
 #endif
