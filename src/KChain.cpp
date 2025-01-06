@@ -170,38 +170,14 @@ void KChain::dump(kgl::serializable* s,bool is_short) {
 		if (!m) {
 			return;
 		}
-		m->add("revers", (*it)->revers);	
-		m->add("is_or", (*it)->is_or);
-		m->add("module", (*it)->getName());
-		if (!(*it)->named.empty()) {
-			m->add("ref", (*it)->named);
-		}
-		KStringBuf out;
-		if (is_short) {
-			(*it)->get_display(out);
-		} else {
-			(*it)->get_html(out);			
-		}
-		m->add("html", out.str());
+		(*it)->dump(m, is_short);
 	}
 	for (auto it = marks.begin(); it != marks.end(); ++it) {
 		auto m = s->add_obj_array("mark");
 		if (!m) {
 			return;
-		}
-		m->add("revers", (*it)->revers);
-		m->add("is_or", (*it)->is_or);
-		m->add("module", (*it)->getName());
-		if (!(*it)->named.empty()) {
-			m->add("ref", (*it)->named);
-		}
-		KStringBuf out;
-		if (is_short) {
-			(*it)->get_display(out);
-		} else {
-			(*it)->get_html(out);			
-		}
-		m->add("html", out.str());
+		}		
+		(*it)->dump(m, is_short);
 	}
 }
 void KChain::get_acl_short_html(KWStream& s) {

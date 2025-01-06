@@ -59,6 +59,21 @@ public:
 			delete this;
 		}
 	}
+	void dump(kgl::serializable* m, bool is_short) {
+		m->add("revers", revers);
+		m->add("is_or", is_or);
+		m->add("module", getName());
+		if (!named.empty()) {
+			m->add("ref", named);
+		}
+		KStringBuf out;
+		if (is_short) {
+			get_display(out);
+		} else {
+			get_html(out);
+		}
+		m->add("html", out.str());
+	}
 	/* 命名模块的名字 */
 	KString named;
 	bool revers;

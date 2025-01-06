@@ -1,14 +1,12 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watchEffect } from 'vue';
-export interface Module {
-    html: string,
-    is_or: number,
-    revers: number,
-    module?: string,
-    ref?: string
+export interface ModuleBase {
+  module?: string,
+  html: string,
 }
+
 const props = defineProps<{
-  module: Module
+  module: ModuleBase
 }>()
 
 const getScripts = computed<string[]>(()=>{

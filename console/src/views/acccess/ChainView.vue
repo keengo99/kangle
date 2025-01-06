@@ -1,7 +1,12 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
-import ModuleView, { type Module } from './ModuleView.vue';
+import ModuleView, { type ModuleBase } from './ModuleView.vue';
 
+export interface Module extends ModuleBase{   
+    is_or: number,
+    revers: number,
+    ref?: string
+}
 export interface ChainKey {
     file: string,
     index: number,

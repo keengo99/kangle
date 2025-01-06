@@ -335,16 +335,19 @@ int WhmCore::call_list_module(const char* call_name, const char* event_type, Whm
 		ctx->setStatus("access must be response or request");
 		return WHM_CALL_FAILED;
 	}
-	auto acl = ctx->data()->add_string_array("acl");
-	if (acl) {
-		for (auto it = KAccess::acl_factorys[access_type].begin(); it != KAccess::acl_factorys[access_type].end(); ++it) {
-			acl->push_back((*it).first);
+	if (uv->attribute.get_int("type") == 0) {
+		auto acl = ctx->data()->add_string_array("module");
+		if (acl) {
+			for (auto it = KAccess::acl_factorys[access_type].begin(); it != KAccess::acl_factorys[access_type].end(); ++it) {				
+				acl->push_back((*it).first);
+			}
 		}
-	}
-	auto mark = ctx->data()->add_string_array("mark");
-	if (mark) {
-		for (auto it = KAccess::mark_factorys[access_type].begin(); it != KAccess::mark_factorys[access_type].end(); ++it) {
-			mark->push_back((*it).first);
+	} else {
+		auto mark = ctx->data()->add_string_array("module");
+		if (mark) {
+			for (auto it = KAccess::mark_factorys[access_type].begin(); it != KAccess::mark_factorys[access_type].end(); ++it) {
+				mark->push_back((*it).first);
+			}
 		}
 	}
 	return WHM_OK;

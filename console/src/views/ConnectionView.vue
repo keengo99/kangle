@@ -1,8 +1,9 @@
 <script lang="ts" setup>
+import { whm_get } from '@/components/Whm.vue';
 import { onMounted, ref } from 'vue';
 const connections = ref(<any[]>[]);
 function flushConnect() {
-    fetch('/core.whm?whm_call=connection&format=json').then((res) => res.json()).then((json) => {
+    whm_get('connection').then((json) => {
         connections.value = json.result.c;
     });
 }

@@ -1,92 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
 <whm version="1.1">
-<extend name='core' type='core'/>
-<call name='info'  extend='core'/>
-<call name='connection' extend='core'/>
-<call name='get_config_listen' extend='core'/>
-<call name='get_listen' extend='core'/>
-<!-- vh -->
-<call name='get_vh' extend='core'/>
-<call name='list_vh' extend='core'/>
-<call name='vh_action' extend='core'/>
-<!-- access -->
-<call name='list_table' extend='core'/>
-<call name='list_chain' extend='core'/>
-<call name='del_chain' extend='core'/>
-<call name='get_chain' extend='core'/>
-<call name='edit_chain' extend='core'/>
-<call name='del_table' extend='core'/>
-<call name='add_table' extend='core'/>
-<call name='list_module' extend='core'/>
-<call name='list_named_module' extend='core'/>
-<call name='get_named_module' extend='core'/>
+	<extend name='core' type='core'/>
+	<call name='info'  extend='core'/>
+	<call name='connection' extend='core'/>
+	<call name='get_config_listen' extend='core'/>
+	<call name='get_listen' extend='core'/>
+	<!-- vh -->
+	<call name='get_vh' extend='core'/>
+	<call name='list_vh' extend='core'/>
+	<call name='vh_action' extend='core'/>
+	<!-- access -->
+	<call name='list_table' extend='core'/>
+	<call name='list_chain' extend='core'/>
+	<call name='del_chain' extend='core'/>
+	<call name='get_chain' extend='core'/>
+	<call name='edit_chain' extend='core'/>
+	<call name='del_table' extend='core'/>
+	<call name='add_table' extend='core'/>
+	<call name='list_module' extend='core'/>
+	<call name='get_module' extend='core'/>
+	<call name='list_named_module' extend='core'/>
+	<call name='get_named_module' extend='core'/>
 
-<!-- extend -->
-<call name='list_sserver' extend='core'/>
-<call name='list_mserver' extend='core'/>
-<call name='list_api' extend='core'/>
-<call name='list_cmd' extend='core'/>
-<call name='list_dso' extend='core'/>
+	<!-- extend -->
+	<call name='list_sserver' extend='core'/>
+	<call name='list_mserver' extend='core'/>
+	<call name='list_api' extend='core'/>
+	<call name='list_cmd' extend='core'/>
+	<call name='list_dso' extend='core'/>
 
-<!-- system -->
-<call name='change_admin_password'  extend='core'/>
-<call name='list_listen' extend='core'/>
-<call name='list_connect_per_ip' extend='core'/>
-<!-- process -->
-<call name='kill_process' extend='core'/>
-<call name='list_process' extend='core'/>
+	<!-- system -->
+	<call name='change_admin_password'  extend='core'/>
+	<call name='list_listen' extend='core'/>
+	<call name='list_connect_per_ip' extend='core'/>
+	<!-- process -->
+	<call name='kill_process' extend='core'/>
+	<call name='list_process' extend='core'/>
 
-<call name='info_vh' extend='core'>
-</call>
-<call name='info_domain' extend='core'>
-</call>
-<call name='reload' extend='core'>
-</call>
-<call name='reload_vh' extend='core'>
-</call>
-<call name='list_index' extend='core'>
-</call>
-<call name='kill_process' extend='core'>
-</call>
-<call name='reboot' extend='core'>
-</call>
-<call name='check_vh_db' extend='core'>
-</call>
-<call name='update_vh' extend='core'>
-</call>
+	<call name='info_vh' extend='core'>
+	</call>
+	<call name='info_domain' extend='core'>
+	</call>
+	<call name='reload' extend='core'>
+	</call>
+	<call name='reload_vh' extend='core'>
+	</call>
+	<call name='list_index' extend='core'>
+	</call>
+	<call name='kill_process' extend='core'>
+	</call>
+	<call name='reboot' extend='core'>
+	</call>
+	<call name='check_vh_db' extend='core'>
+	</call>
+	<call name='update_vh' extend='core'>
+	</call>
 
-<call name='clean_cache' extend='core'>
-</call>
-<call name='clean_all_cache' extend='core'>
-</call>
-<call name='get_load' extend='core'>
-</call>
-<call name='dump_flow' extend='core'>
-</call>
-<call name='get_connection' extend='core'>
-</call>
-<call name='port_map' extend='core'>
-</call>
-<call name='check_ssl' extend='core'>
-</call>
-<call name='runtime_model' extend='core'>
-</call>
-<call name='stat_vh' extend='core'>
-</call>
-<call name='black_list' extend='core'>
-</call>
-<call name='cache_info' extend='core'>
-</call>
-<call name='report_ip' extend='core'>
-</call>
-<call name='cache_prefetch' extend='core'>
-</call>
-<call name='dump_load' extend='core'>
-</call>
-<call name='server_info' extend='core'>
-</call>
-<call name='query_domain' extend='core'>
-</call>
-<call name='log_drill' extend='core'>
-</call>
+	<call name='clean_cache' extend='core'>
+	</call>
+	<call name='clean_all_cache' extend='core'>
+	</call>
+	<call name='get_load' extend='core'>
+	</call>
+	<call name='dump_flow' extend='core'>
+	</call>
+	<call name='get_connection' extend='core'>
+	</call>
+	<call name='port_map' extend='core'>
+	</call>
+	<call name='check_ssl' extend='core'>
+	</call>
+	<call name='runtime_model' extend='core'>
+	</call>
+	<call name='stat_vh' extend='core'>
+	</call>
+	<call name='black_list' extend='core'>
+	</call>
+	<call name='cache_info' extend='core'>
+	</call>
+	<call name='report_ip' extend='core'>
+	</call>
+	<call name='cache_prefetch' extend='core'>
+	</call>
+	<call name='dump_load' extend='core'>
+	</call>
+	<call name='server_info' extend='core'>
+	</call>
+	<call name='query_domain' extend='core'>
+	</call>
+	<call name='log_drill' extend='core'>
+	</call>
 </whm>

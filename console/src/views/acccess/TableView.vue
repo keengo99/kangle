@@ -131,17 +131,3 @@ onMounted(flushChain);
     [<a href=# @click='appendChain()'>增加</a>]
     </template>
 </template>
-<style>
- .edit_chain {
-          border: 1px solid #666;
-          background: white;
-          position: fixed;
-          height: 100%;
-          left: 300px;
-          top: 0;
-          width: 100%;
-          padding: 0px;           
-          margin: 1px;
-          z-index: 4300;
-      }
-</style>
