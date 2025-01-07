@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watchEffect } from 'vue';
 export interface ModuleBase {
-  module?: string,
+  module: string,
   html: string,
 }
 

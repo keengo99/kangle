@@ -104,6 +104,12 @@ function edit_named_module(type: number, m: NamedModule) {
 function cancel_edit_named_module() {
     curEditNamedModule.value = null;
 }
+function select_module(m:ModuleBase) {
+    if (curEditNamedModule.value==null) {
+        return;
+    }
+    curEditNamedModule.value.m = m;
+}
 </script>
 <template>
     <div>
@@ -168,7 +174,7 @@ function cancel_edit_named_module() {
                             {{ curEditNamedModule.m.module }}
                             </template>
                             <template v-else>
-                                <ModuleSelectView :access="props.access" :type="curEditNamedModule.type"/>
+                                <ModuleSelectView @select_module="select_module($event)" :access="props.access" :type="curEditNamedModule.type"/>
                             </template>
                         </td>
                     </tr>

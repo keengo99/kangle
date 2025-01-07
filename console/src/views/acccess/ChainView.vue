@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
 import ModuleView, { type ModuleBase } from './ModuleView.vue';
+import ModuleSelectView from './ModuleSelectView.vue'
 
 export interface Module extends ModuleBase{   
     is_or: number,
@@ -73,6 +74,29 @@ function updateModule(type: number, index: number, module: string) {
         chain_value.value.mark[index].module = module
     }
 }
+function UpModule(type:number,index:number) {
+    if (index==0) {
+        return;
+    }
+    if (chain_value.value == null) {
+        return;
+    }
+    if (type == 0) {
+        if (chain_value.value?.acl == null) {
+            return;
+        }
+        var m =  chain_value.value.acl[index];
+        chain_value.value.acl[index] =  chain_value.value.acl[index-1];
+        chain_value.value.acl[index-1] = m;
+    } else {
+        if (chain_value.value?.mark == null) {
+            return
+        }
+        var m =  chain_value.value.mark[index];
+        chain_value.value.mark[index] =  chain_value.value.mark[index-1];
+        chain_value.value.mark[index-1] = m;
+    }
+}
 function delModule(type: number, index: number) {
     if (chain_value.value == null) {
         return;
@@ -89,11 +113,13 @@ function delModule(type: number, index: number) {
         chain_value.value.mark.splice(index, 1)
     }
 }
+/*
 function addModule(type: number, index: number) {
     if (chain_value.value == null) {
         return;
     }
     let emptyModule: Module = {
+        module:"",
         html: "",
         is_or: 0,
         revers: 0,
@@ -116,6 +142,29 @@ function addModule(type: number, index: number) {
             return;
         }
         chain_value.value.mark.splice(index, 0, emptyModule)
+    }
+}
+    */
+function addModule(type: number, mb: ModuleBase) {
+    if (chain_value.value == null) {
+        return;
+    }
+    let m:Module = {
+        is_or:0,
+        revers:0,
+        html:mb.html,
+        module:mb.module
+    };
+    if (type == 0) {
+        if (chain_value.value?.acl == null) {
+            chain_value.value.acl = <Module[]>[];
+        }       
+        chain_value.value.acl.push(m);            
+    } else {
+        if (chain_value.value?.mark == null) {
+            chain_value.value.mark = <Module[]>[];
+        }      
+        chain_value.value.mark.push(m);        
     }
 }
 onMounted(() => {
@@ -146,39 +195,33 @@ onMounted(() => {
             </tr>
             <template v-for="(modules, type) in [chain_value.acl, chain_value.mark]">
                 <tr v-for="(m, index) in modules">
-                    <td>
-                        [<a href=# @click="addModule(type, index)">插</a>]
+                    <td>                        
                         [<a href=# @click="delModule(type, index)">删</a>]
+                        [<a href=# @click="UpModule(type, index)">UP</a>]
                         <span v-if="m.module">
                             {{ m.module }}
                         </span>
                     </td>
                     <td>
-                        <div v-if="m.module != null">
+                        <div v-if="m.module != ''">
                             <input type="hidden" name="begin_sub_form"
                                 :value="(type == 0 ? 'acl_' : 'mark_') + m.module" />
                             <template v-if="m.ref">
                                 <input type="hidden" name="ref" :value="m.ref" />ref:{{ m.ref }}
                             </template>
                             <template v-else>
-                                <ModuleView :module="m" />
+                                <ModuleView  :module="m" />
                             </template>
                             <input type="hidden" name="end_sub_form" value='1' />
                         </div>
                         <div v-else>
-                            请选择可用模块:
-                            <span v-if="type == 0">
-                                <a href=# @click="updateModule(type, index, 'header')">header</a>
-                            </span>
-                            <span v-else>
-                                <a href=# @click="updateModule(type, index, 'anti_cc')">anti_cc</a>
-                            </span>
+                            <ModuleSelectView :access="props.access" :type="type"/>
                         </div>
                     </td>
                 </tr>
 
                 <tr>
-                    <td colspan="2">[<a href=# @click="addModule(type, -1)">增加</a>]</td>
+                    <td colspan="2">{{ type==0?"可用的匹配模块":"可用的标记模块" }}<ModuleSelectView @select_module="addModule(type,$event)" :access="props.access" :type="type"/></td>
                 </tr>
             </template>
             <tr>

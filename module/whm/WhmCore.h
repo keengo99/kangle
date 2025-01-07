@@ -93,6 +93,9 @@ public:
 			if (strcmp(callName, "get_named_module") == 0) {
 				return (whm_call_ptr)&WhmCore::call_get_named_module;
 			}
+			if (strcmp(callName, "get_module") == 0) {
+				return (whm_call_ptr)&WhmCore::call_get_module;
+			}
 			break;
 		case 'i':
 			if (strcmp(callName, "info") == 0) {
@@ -216,6 +219,7 @@ protected:
 	int call_list_module(const char* call_name, const char* event_type, WhmContext* ctx);
 	int call_list_named_module(const char* call_name, const char* event_type, WhmContext* ctx);
 	int call_get_named_module(const char* call_name, const char* event_type, WhmContext* ctx);
+	int call_get_module(const char* call_name, const char* event_type, WhmContext* ctx);
 	/* vh */
 	int call_list_vh(const char* call_name, const char* event_type, WhmContext* ctx);
 	int call_get_vh(const char* call_name, const char* event_type, WhmContext* ctx);

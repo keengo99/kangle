@@ -788,6 +788,31 @@ std::vector<KString> KAccess::getTableNames(KString skipName, bool global) {
 	}
 	return table_names;
 }
+int KAccess::get_module(KVirtualHostEvent* ctx, const KString& name, bool is_mark) {
+	auto sl = ctx->data();
+	KModel* m = nullptr;
+	if (is_mark) {
+		auto it = mark_factorys[type].find(name);
+		if (it != mark_factorys[type].end()) {
+			m = (*it).second;
+		}
+	} else {
+		auto it = acl_factorys[type].find(name);
+		if (it != acl_factorys[type].end()) {
+			m = (*it).second;
+		}
+	}
+	if (!m) {
+		ctx->setStatus("not found");
+		return WHM_CALL_NOT_FOUND;
+	}
+	KStringBuf s;
+	m->get_html(s);
+	sl->add("html", s.str());
+	sl->add("refs", m->get_ref());
+	sl->add("module", m->getName());
+	return WHM_OK;
+}
 int KAccess::get_named_module(KVirtualHostEvent* ctx,const KString &name, bool is_mark) {
 	auto locker = read_lock();
 	auto sl = ctx->data();

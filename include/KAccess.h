@@ -119,6 +119,7 @@ public:
 	int dump_chain(KVirtualHostEvent* ctx,const KString table_name);
 	int dump_named_module(KVirtualHostEvent* ctx, bool detail);
 	int get_named_module(KVirtualHostEvent* ctx, const KString &name, bool is_mark);
+	int get_module(KVirtualHostEvent* ctx, const KString& name, bool is_mark);
 public:
 	friend class KChain;
 	friend class KTable;

@@ -142,6 +142,9 @@ void KAccessDso::build(uint32_t type, KWStream& s)
 {
 	kgl_access_build builder;
 	memset(&builder, 0, sizeof(builder));
+	if (!ctx.module) {
+		ctx.module = access->create_ctx();
+	}
 	builder.cn = (kgl_serializable *)&s;
 	builder.module = ctx.module;
 	builder.write_string = write_string;

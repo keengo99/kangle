@@ -310,6 +310,15 @@ int WhmCore::call_list_named_module(const char* call_name, const char* event_typ
 	}
 	return access->dump_named_module(ctx, !!(ctx->getUrlValue()->attribute.get_int("detail")));
 }
+int WhmCore::call_get_module(const char* call_name, const char* event_type, WhmContext* ctx) {
+	auto uv = ctx->getUrlValue();
+	auto access = whm_get_access(ctx);
+	if (!access) {
+		return WHM_CALL_FAILED;
+	}
+	bool is_mark = !!uv->attribute.get_int("type");
+	return access->get_module(ctx, uv->attribute["module"], is_mark);
+}
 int WhmCore::call_get_named_module(const char* call_name, const char* event_type, WhmContext* ctx) {
 	auto uv = ctx->getUrlValue();
 	auto access = whm_get_access(ctx);
