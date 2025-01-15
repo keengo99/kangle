@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue';
 import TableView from './TableView.vue'
 import DefaultAction from './ActionView.vue';
-import { whm_get } from '@/components/Whm.vue';
+import { whm_get, whm_post } from '@/components/Whm.vue';
 import ModuleView, { type ModuleBase } from './ModuleView.vue';
 import ModuleSelectView from './ModuleSelectView.vue';
 
@@ -43,7 +43,7 @@ function flush_table() {
     });
 }
 function flush_named_module() {
-    var param: Record<string, any> = { access: props.access, detail: 1 };
+    var param: Record<string, any> = { access: props.access, detail: 1 ,type:2};
     if (props.vh) {
         param["vh"] = props.vh;
     }
@@ -91,6 +91,13 @@ function del_named_module(type: number, m: NamedModule) {
     if (!confirm("确定要删除命名模块" + m.name + "吗?")) {
         return;
     }
+    let param: Record<string, any> = { access: props.access, name: m.name, type: type }
+    if (props.vh) {
+        param["vh"] = props.vh;
+    }
+    whm_post('del_named_module',param).then((json)=>{
+        flush_named_module();
+    })
 }
 function edit_named_module(type: number, m: NamedModule) {
     let param: Record<string, any> = { access: props.access, name: m.name, type: type }
@@ -109,6 +116,28 @@ function select_module(m:ModuleBase) {
         return;
     }
     curEditNamedModule.value.m = m;
+}
+function submit_edit_named_module() {
+    if (curEditNamedModule.value==null) {
+        return;
+    }
+    const form: any = document.getElementById("form");
+    const formData = new FormData(form);
+    if (props.vh) {
+        formData.append("vh", props.vh);
+    }
+    formData.append("access", props.access);
+    if (!curEditNamedModule.value.edit) {
+        formData.append("add", "1");
+    } else {
+        if (curEditNamedModule.value.name!=null) {
+            formData.append("name",curEditNamedModule.value.name);
+        }
+    }
+    whm_post('edit_named_module', formData).then((json) => {
+        curEditNamedModule.value = null;
+        flush_named_module();
+    });
 }
 </script>
 <template>
@@ -160,7 +189,7 @@ function select_module(m:ModuleBase) {
                         <td>名称</td>
                         <td>
                             <template v-if="!curEditNamedModule.edit">
-                                <input name="module" :value="curEditNamedModule.name"/>
+                                <input name="name" :value="curEditNamedModule.name"/>
                             </template>
                             <template v-else>
                             {{ curEditNamedModule.name }}
@@ -191,7 +220,7 @@ function select_module(m:ModuleBase) {
                     </tr>
                     <tr>
                         <td colspan="2">
-                            <button @click="">确定</button>
+                            <button @click="submit_edit_named_module()">确定</button>
                             <button @click="cancel_edit_named_module()">取消</button>
                         </td>
                     </tr>

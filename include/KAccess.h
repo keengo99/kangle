@@ -118,6 +118,11 @@ public:
 	void listTable(KVirtualHostEvent* ctx);
 	int dump_chain(KVirtualHostEvent* ctx,const KString table_name);
 	int dump_named_module(KVirtualHostEvent* ctx, bool detail);
+	/*
+	* type=0 acl
+	* type=1 mark
+	*/
+	int dump_available_named_module(KVirtualHostEvent* ctx, int type,bool only_public);
 	int get_named_module(KVirtualHostEvent* ctx, const KString &name, bool is_mark);
 	int get_module(KVirtualHostEvent* ctx, const KString& name, bool is_mark);
 public:
@@ -129,6 +134,7 @@ public:
 	static bool addAclModel(u_short type, KAcl* acl, bool replace = false);
 	static bool addMarkModel(u_short type, KMark* acl, bool replace = false);
 	static void build_action_attribute(KXmlAttribute& attribute, const KUrlValue& uv);
+	bool named_module_can_remove(const KString& name, int type);
 private:
 	~KAccess();
 	void inter_destroy();

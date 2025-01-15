@@ -303,6 +303,13 @@ int WhmCore::call_check_vh_db(const char* call_name, const char* event_type, Whm
 	}
 	return WHM_OK;
 }
+int WhmCore::call_list_available_named_module(const char* call_name, const char* event_type, WhmContext* ctx) {
+	auto access = whm_get_access(ctx);
+	if (!access) {
+		return WHM_CALL_FAILED;
+	}
+	return access->dump_available_named_module(ctx, ctx->getUrlValue()->attribute.get_int("type"), false);
+}
 int WhmCore::call_list_named_module(const char* call_name, const char* event_type, WhmContext* ctx) {
 	auto access = whm_get_access(ctx);
 	if (!access) {
@@ -403,4 +410,50 @@ int WhmCore::call_kill_process(const char* call_name, const char* event_type, Wh
 int WhmCore::call_list_connect_per_ip(const char* call_name, const char* event_type, WhmContext* ctx) {
 	kangle::dump_connect_per_ip(ctx->data());
 	return WHM_OK;
+}
+int WhmCore::call_del_named_module(const char* call_name, const char* event_type, WhmContext* ctx) {
+	auto access = whm_get_access(ctx);
+	if (!access) {
+		return WHM_CALL_NOT_FOUND;
+	}
+	auto uv = ctx->getUrlValue();
+	auto type = uv->attribute.get_int("type");
+	auto name = uv->attribute["name"];
+	if (!access->named_module_can_remove(name, type)) {
+		ctx->setStatus("named module is used");
+		return WHM_CALL_FAILED;
+	}
+	KStringBuf path;	
+	path << uv->get("access") << (type == 0 ? "/named_acl@"_CS : "/named_mark@"_CS) << name;
+	return config_result(kconfig::remove(path.str().str(), 0), ctx);
+}
+int WhmCore::call_edit_named_module(const char* call_name, const char* event_type, WhmContext* ctx) {
+	KStringBuf path;
+	auto access = whm_get_access(ctx);
+	if (!access) {
+		return WHM_CALL_FAILED;
+	}
+	auto uv = ctx->getUrlValue();
+	auto type = uv->attribute.get_int("type");
+	auto name = uv->attribute["name"];
+	path << uv->get("access") << (type == 0 ? "/named_acl@"_CS : "/named_mark@"_CS) << name;
+	auto add = uv->attribute.get_int("add");
+	auto it = uv->subs.begin();
+	if (it == uv->subs.end()) {
+		return WHM_CALL_FAILED;
+	}
+	khttpd::KSafeXmlNode xml;
+	if (strncmp((*it).first.c_str(), _KS("acl")) == 0) {
+		xml = (*it).second->to_xml(_KS("named_acl"),name.c_str(),name.size());
+		xml->attributes().emplace("module"_CS, (*it).first.substr(4));
+	} else if (strncmp((*it).first.c_str(), _KS("mark")) == 0) {
+		xml = (*it).second->to_xml(_KS("named_mark"), name.c_str(), name.size());
+		xml->attributes().emplace("module"_CS, (*it).first.substr(5));
+	} else {
+		return WHM_CALL_FAILED;
+	}
+	if (add) {
+		return config_result(kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvNew), ctx);
+	}
+	return config_result(kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvUpdate), ctx);
 }

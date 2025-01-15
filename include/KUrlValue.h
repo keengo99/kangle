@@ -32,7 +32,7 @@ public:
 	KXmlAttribute attribute;
 	khttpd::KSafeXmlNode to_xml(const char *tag,size_t len,const char *vary=nullptr,size_t vary_len=0) {
 		auto xml = kconfig::new_xml(tag, len,vary,vary_len);
-		xml->attributes().swap(attribute);
+		xml->attributes().merge(attribute);
 		return xml;
 	}
 	const KString &operator[](const KString&name) const

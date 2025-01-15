@@ -445,7 +445,7 @@ int KAccess::get_chain(WhmContext* ctx, const KString& table_name) {
 		ctx->setStatus("chain not found");
 		return WHM_CALL_FAILED;
 	}
-	chain->dump(ctx->data(),false);
+	chain->dump(ctx->data(), false);
 	return WHM_OK;
 }
 void KAccess::add_chain_form(KWStream& s, const char* vh, const KString& table_name, const KString& file, uint16_t index, size_t id, bool add) {
@@ -813,7 +813,7 @@ int KAccess::get_module(KVirtualHostEvent* ctx, const KString& name, bool is_mar
 	sl->add("module", m->getName());
 	return WHM_OK;
 }
-int KAccess::get_named_module(KVirtualHostEvent* ctx,const KString &name, bool is_mark) {
+int KAccess::get_named_module(KVirtualHostEvent* ctx, const KString& name, bool is_mark) {
 	auto locker = read_lock();
 	auto sl = ctx->data();
 	KModel* m = nullptr;
@@ -824,7 +824,7 @@ int KAccess::get_named_module(KVirtualHostEvent* ctx,const KString &name, bool i
 		}
 	} else {
 		auto it = named_acls.find(name);
-		if (it != named_marks.end()) {
+		if (it != named_acls.end()) {
 			m = (*it).second->get_module();
 		}
 	}
@@ -837,6 +837,40 @@ int KAccess::get_named_module(KVirtualHostEvent* ctx,const KString &name, bool i
 	sl->add("html", s.str());
 	sl->add("refs", m->get_ref());
 	sl->add("module", m->getName());
+	return WHM_OK;
+}
+int KAccess::dump_available_named_module(KVirtualHostEvent* ctx, int type, bool only_public) {
+	if (this != kaccess[this->type]) {
+		kaccess[this->type]->dump_available_named_module(ctx, type, true);
+	}
+	auto locker = read_lock();
+	if (type == 0) {
+		for (auto it = named_acls.begin(); it != named_acls.end(); ++it) {
+			if (only_public && (*it).first[0] != '~') {
+				continue;
+			}
+			auto sl = ctx->data()->add_obj_array("acl");
+			if (!sl) {
+				continue;
+			}
+			sl->add("name", (*it).first);
+			auto m = (*it).second->get_module();
+			sl->add("module", m->getName());
+		}
+	} else {
+		for (auto it = named_marks.begin(); it != named_marks.end(); ++it) {
+			if (only_public && (*it).first[0] != '~') {
+				continue;
+			}
+			auto sl = ctx->data()->add_obj_array("mark");
+			if (!sl) {
+				continue;
+			}
+			sl->add("name", (*it).first);
+			auto m = (*it).second->get_module();
+			sl->add("module", m->getName());
+		}
+	}
 	return WHM_OK;
 }
 int KAccess::dump_named_module(KVirtualHostEvent* ctx, bool detail) {
@@ -882,7 +916,7 @@ int KAccess::dump_chain(KVirtualHostEvent* ctx, const KString table_name) {
 	return WHM_OK;
 }
 void KAccess::listTable(KVirtualHostEvent* ctx) {
-	kfiber_rwlock_rlock(rwlock);	
+	kfiber_rwlock_rlock(rwlock);
 	for (auto it = tables.begin(); it != tables.end(); it++) {
 		auto obj = ctx->data()->add_obj_array("table");
 		if (!obj) {
@@ -1042,6 +1076,14 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 			}
 			return true;
 		}
+		if (xml->is_tag(_KS("named_acl")) || xml->is_tag(_KS("named_mark"))) {
+			auto named_model = static_cast<KNamedModel*>(tree->ls);
+			if (!named_model) {
+				return false;
+			}
+			parse_module_config(named_model->get_module(), xml->get_first());
+			return true;
+		}
 		return true;
 	}
 	case kconfig::EvNew | kconfig::EvSubDir:
@@ -1144,6 +1186,25 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 	}
 	return true;
 }
+bool KAccess::named_module_can_remove(const KString& name, int type) {
+	static constexpr int module_used_refs = 2;
+	if (this != kaccess[this->type] && name[0] == '~') {
+		return kaccess[this->type]->named_module_can_remove(name, type);
+	}
+	auto locker = this->read_lock();
+	if (type == 0) {
+		auto it = named_acls.find(name);
+		if (it != named_acls.end() && (*it).second->get_module()->get_ref() > module_used_refs) {
+			return false;
+		}
+	} else {
+		auto it = named_marks.find(name);
+		if (it != named_marks.end() && (*it).second->get_module()->get_ref() > module_used_refs) {
+			return false;
+		}
+	}
+	return true;
+}
 void KAccess::build_action_attribute(KXmlAttribute& attribute, const KUrlValue& uv) {
 	KStringBuf action;
 	action << uv["jump_type"];
@@ -1159,7 +1220,7 @@ void KAccess::build_action_attribute(KXmlAttribute& attribute, const KUrlValue& 
 KSafeAcl KAccess::get_named_acl(const KString& name) {
 	auto it = named_acls.find(name);
 	if (it == named_acls.end()) {
-		if (this != kaccess[type] && name[0] == '_') {
+		if (this != kaccess[type] && name[0] == '~') {
 			//try find global named_acl
 			return kaccess[type]->get_named_acl(name);
 		}
@@ -1170,7 +1231,7 @@ KSafeAcl KAccess::get_named_acl(const KString& name) {
 KSafeMark KAccess::get_named_mark(const KString& name) {
 	auto it = named_marks.find(name);
 	if (it == named_marks.end()) {
-		if (this != kaccess[type] && name[0] == '_') {
+		if (this != kaccess[type] && name[0] == '~') {
 			//try find global named_mark
 			return kaccess[type]->get_named_mark(name);
 		}

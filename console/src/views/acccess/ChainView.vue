@@ -2,8 +2,9 @@
 import { onMounted, ref } from 'vue';
 import ModuleView, { type ModuleBase } from './ModuleView.vue';
 import ModuleSelectView from './ModuleSelectView.vue'
+import NamedModuleSelectView ,{type NamedModuleSelect} from './NamedModuleSelectView.vue';
 
-export interface Module extends ModuleBase{   
+export interface Module extends ModuleBase {
     is_or: number,
     revers: number,
     ref?: string
@@ -20,7 +21,7 @@ export interface ChainValue {
     mark?: Module[],
 }
 export interface Chain {
-    add?:boolean,
+    add?: boolean,
     action: string,
     jump?: string,
     k: ChainKey,
@@ -43,7 +44,7 @@ function submit_chain() {
     formData.append("index", props.chain.k.index.toString());
     formData.append("id", props.chain.k.id.toString());
     if (props.chain.add) {
-        formData.append("add","1");
+        formData.append("add", "1");
     }
     fetch('/core.whm?whm_call=edit_chain&format=json', {
         method: 'POST',
@@ -74,27 +75,25 @@ function updateModule(type: number, index: number, module: string) {
         chain_value.value.mark[index].module = module
     }
 }
-function UpModule(type:number,index:number) {
-    if (index==0) {
+function UpModule(type: number, index: number) {
+    if (index == 0 || chain_value.value == null) {
         return;
     }
-    if (chain_value.value == null) {
-        return;
-    }
+    
     if (type == 0) {
         if (chain_value.value?.acl == null) {
             return;
         }
-        var m =  chain_value.value.acl[index];
-        chain_value.value.acl[index] =  chain_value.value.acl[index-1];
-        chain_value.value.acl[index-1] = m;
+        var m = chain_value.value.acl[index];
+        chain_value.value.acl[index] = chain_value.value.acl[index - 1];
+        chain_value.value.acl[index - 1] = m;
     } else {
         if (chain_value.value?.mark == null) {
             return
         }
-        var m =  chain_value.value.mark[index];
-        chain_value.value.mark[index] =  chain_value.value.mark[index-1];
-        chain_value.value.mark[index-1] = m;
+        var m = chain_value.value.mark[index];
+        chain_value.value.mark[index] = chain_value.value.mark[index - 1];
+        chain_value.value.mark[index - 1] = m;
     }
 }
 function delModule(type: number, index: number) {
@@ -144,27 +143,50 @@ function addModule(type: number, index: number) {
         chain_value.value.mark.splice(index, 0, emptyModule)
     }
 }
-    */
-function addModule(type: number, mb: ModuleBase) {
+*/
+function addNamedModule(type: number, mb: NamedModuleSelect) {
     if (chain_value.value == null) {
         return;
     }
-    let m:Module = {
-        is_or:0,
-        revers:0,
-        html:mb.html,
-        module:mb.module
+    let m: Module = {
+        is_or: 0,
+        revers: 0,
+        html: "",
+        ref: mb.name,
+        module: mb.module
     };
     if (type == 0) {
         if (chain_value.value?.acl == null) {
             chain_value.value.acl = <Module[]>[];
-        }       
-        chain_value.value.acl.push(m);            
+        }
+        chain_value.value.acl.push(m);
     } else {
         if (chain_value.value?.mark == null) {
             chain_value.value.mark = <Module[]>[];
-        }      
-        chain_value.value.mark.push(m);        
+        }
+        chain_value.value.mark.push(m);
+    }
+}
+function addModule(type: number, mb: ModuleBase) {
+    if (chain_value.value == null) {
+        return;
+    }
+    let m: Module = {
+        is_or: 0,
+        revers: 0,
+        html: mb.html,
+        module: mb.module
+    };
+    if (type == 0) {
+        if (chain_value.value?.acl == null) {
+            chain_value.value.acl = <Module[]>[];
+        }
+        chain_value.value.acl.push(m);
+    } else {
+        if (chain_value.value?.mark == null) {
+            chain_value.value.mark = <Module[]>[];
+        }
+        chain_value.value.mark.push(m);
     }
 }
 onMounted(() => {
@@ -172,14 +194,14 @@ onMounted(() => {
         fetch('/core.whm?whm_call=get_chain&access=' + props.access +
             '&table=' + props.table +
             '&file=' + props.chain.k.file +
-            '&index=' + props.chain.k.index + 
-            (props.vh?'&vh='+props.vh:"") +
+            '&index=' + props.chain.k.index +
+            (props.vh ? '&vh=' + props.vh : "") +
             '&id=' + props.chain.k.id +
             '&format=json').then((res) => res.json()).then((json) => {
                 chain_value.value = json.result;
             });
     } else {
-        chain_value.value = {hit:0}
+        chain_value.value = { hit: 0 }
     }
 }
 );
@@ -195,7 +217,7 @@ onMounted(() => {
             </tr>
             <template v-for="(modules, type) in [chain_value.acl, chain_value.mark]">
                 <tr v-for="(m, index) in modules">
-                    <td>                        
+                    <td>
                         [<a href=# @click="delModule(type, index)">删</a>]
                         [<a href=# @click="UpModule(type, index)">UP</a>]
                         <span v-if="m.module">
@@ -203,31 +225,30 @@ onMounted(() => {
                         </span>
                     </td>
                     <td>
-                        <div v-if="m.module != ''">
-                            <input type="hidden" name="begin_sub_form"
-                                :value="(type == 0 ? 'acl_' : 'mark_') + m.module" />
-                            <template v-if="m.ref">
-                                <input type="hidden" name="ref" :value="m.ref" />ref:{{ m.ref }}
-                            </template>
-                            <template v-else>
-                                <ModuleView  :module="m" />
-                            </template>
-                            <input type="hidden" name="end_sub_form" value='1' />
-                        </div>
-                        <div v-else>
-                            <ModuleSelectView :access="props.access" :type="type"/>
-                        </div>
+
+                        <input type="hidden" name="begin_sub_form" :value="(type == 0 ? 'acl_' : 'mark_') + m.module" />
+                        <template v-if="m.ref">
+                            <input type="hidden" name="ref" :value="m.ref" />命名模块:{{ m.ref }}
+                        </template>
+                        <template v-else>
+                            <ModuleView :module="m" />
+                        </template>
+                        <input type="hidden" name="end_sub_form" value='1' />
+
                     </td>
                 </tr>
-
                 <tr>
-                    <td colspan="2">{{ type==0?"可用的匹配模块":"可用的标记模块" }}<ModuleSelectView @select_module="addModule(type,$event)" :access="props.access" :type="type"/></td>
+                    <td colspan="2">
+                        <ModuleSelectView @select_module="addModule(type, $event)" :access="props.access" :type="type" />
+                        <NamedModuleSelectView @select_module="addNamedModule(type, $event)" :access="props.access"
+                            :type="type" />
+                    </td>
                 </tr>
             </template>
             <tr>
                 <td colspan="2">
-                    <button  @click="submit_chain()">确定</button>
-                    <button  @click="cancel_chain()">取消</button>
+                    <button @click="submit_chain()">确定</button>
+                    <button @click="cancel_chain()">取消</button>
                 </td>
             </tr>
         </table>

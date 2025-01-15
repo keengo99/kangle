@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watchEffect } from 'vue';
 export interface ModuleBase {
   module: string,
   html: string,
+  refs?: number,
 }
 
 const props = defineProps<{

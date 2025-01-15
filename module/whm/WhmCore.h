@@ -63,10 +63,16 @@ public:
 			if (strcmp(callName, "dump_load") == 0) {
 				return nullptr;
 			}
+			if (strcmp(callName, "del_named_module") == 0) {
+				return (whm_call_ptr)&WhmCore::call_del_named_module;
+			}
 			break;
 		case 'e':
 			if (strcmp(callName, "edit_chain") == 0) {
 				return (whm_call_ptr)&WhmCore::call_edit_chain;
+			}
+			if (strcmp(callName, "edit_named_module") == 0) {
+				return (whm_call_ptr)&WhmCore::call_edit_named_module;
 			}
 			break;
 		case 'g':
@@ -128,6 +134,9 @@ public:
 			}
 			if (strcmp(callName, "list_named_module") == 0) {
 				return (whm_call_ptr)&WhmCore::call_list_named_module;
+			}
+			if (strcmp(callName, "list_available_named_module") == 0) {
+				return (whm_call_ptr)&WhmCore::call_list_available_named_module;
 			}
 			if (strcmp(callName, "list_index") == 0) {
 				return nullptr;
@@ -218,8 +227,11 @@ protected:
 	/* module */
 	int call_list_module(const char* call_name, const char* event_type, WhmContext* ctx);
 	int call_list_named_module(const char* call_name, const char* event_type, WhmContext* ctx);
+	int call_list_available_named_module(const char* call_name, const char* event_type, WhmContext* ctx);
 	int call_get_named_module(const char* call_name, const char* event_type, WhmContext* ctx);
 	int call_get_module(const char* call_name, const char* event_type, WhmContext* ctx);
+	int call_del_named_module(const char* call_name, const char* event_type, WhmContext* ctx);
+	int call_edit_named_module(const char* call_name, const char* event_type, WhmContext* ctx);
 	/* vh */
 	int call_list_vh(const char* call_name, const char* event_type, WhmContext* ctx);
 	int call_get_vh(const char* call_name, const char* event_type, WhmContext* ctx);

@@ -37,6 +37,7 @@ onMounted(flush_module);
 </script>
 <template>
     <template v-if="modules!=null">
+    {{ type==0?"可用的匹配模块":"可用的标记模块" }}
     <select @change="select_module($event)">
         <option value="">--请选择--</option>
         <template v-for="module in modules">

@@ -20,7 +20,10 @@
 	<call name='list_module' extend='core'/>
 	<call name='get_module' extend='core'/>
 	<call name='list_named_module' extend='core'/>
+	<call name='list_available_named_module' extend='core'/>
 	<call name='get_named_module' extend='core'/>
+	<call name='edit_named_module' extend='core'/>
+	<call name='del_named_module' extend='core'/>
 
 	<!-- extend -->
 	<call name='list_sserver' extend='core'/>
