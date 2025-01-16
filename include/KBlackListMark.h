@@ -53,7 +53,7 @@ if (1== atoi(attribute["enable"].c_str())) {
 	KMark* new_instance() override {
 		return new KBlackListMark();
 	}
-	const char* getName() override {
+	const char *get_module() const  override {
 		return "black_list";
 	}
 private:
@@ -112,7 +112,7 @@ public:
 	KMark* new_instance() override {
 		return new KCheckBlackListMark();
 	}
-	const char* getName()override {
+	const char *get_module() const override {
 		return "check_black_list";
 	}
 private:

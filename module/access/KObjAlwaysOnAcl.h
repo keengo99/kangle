@@ -32,7 +32,7 @@ public:
 	KAcl *new_instance() override {
 		return new KObjAlwaysOnAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "obj_always_on";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {

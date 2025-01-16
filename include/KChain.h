@@ -95,7 +95,7 @@ private:
 	void getModelHtml(KModelPtr<T> &ptr, KWStream& s, int type, int index) {
 		s << "<tr><td><input type=hidden name='begin_sub_form' value='"
 			<< (type == 0 ? "acl_"_CS : "mark_"_CS)
-			<< ptr.m->getName() << "'>";
+			<< ptr.m->get_module() << "'>";
 		s << "[<a href=\"javascript:delmodel('" << index << "'," << type << ");\">del</a>]";
 		if (ptr.named.empty()) {
 			s << "<input type = checkbox name = 'or' value = '1' ";
@@ -108,7 +108,7 @@ private:
 				s << "checked";
 			}
 			s << ">NOT ";
-			s << ptr.m->getName();
+			s << ptr.m->get_module();
 		} else {
 			s << "named:" << ptr.named;
 		}

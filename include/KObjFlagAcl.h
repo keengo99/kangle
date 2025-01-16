@@ -45,7 +45,7 @@ public:
 	KAcl *new_instance() override {
 		return new KObjFlagAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "obj_flag";
 	}
 private:

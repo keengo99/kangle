@@ -45,7 +45,7 @@ public:
 	{
 		return new KUrlRewriteMark;
 	}
-	const char *getName()override
+	const char* get_module() const override
 	{
 		return "url_rewrite";
 	}

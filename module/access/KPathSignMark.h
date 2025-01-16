@@ -93,7 +93,7 @@ public:
 		}
 		return ReturnWithRewriteParam(rq, np, KF_STATUS_REQ_TRUE);
 	}
-	const char *getName() override  {
+	const char *get_module() const override  {
 		return "path_sign";
 	}
 	void get_html(KWStream& s) override {

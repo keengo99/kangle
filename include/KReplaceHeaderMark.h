@@ -85,7 +85,7 @@ public:
 	KMark* new_instance() override {
 		return new KReplaceHeaderMark;
 	}
-	const char* getName() override {
+	const char *get_module() const  override {
 		return "replace_header";
 	}
 	void get_html(KWStream& s) override {

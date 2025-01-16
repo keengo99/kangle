@@ -45,7 +45,7 @@ public:
 	KAcl *new_instance() override {
 		return new KSelfIpAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "self";
 	}
 };

@@ -81,7 +81,7 @@ public:
 	{
 		return new KReplaceIPMark;
 	}
-	const char *getName()override
+	const char* get_module() const override
 	{
 		return "replace_ip";
 	}
@@ -201,7 +201,7 @@ public:
 	{
 		return new KParentMark;
 	}
-	const char *getName()override
+	const char * get_module() const override
 	{
 		return "parent";
 	}

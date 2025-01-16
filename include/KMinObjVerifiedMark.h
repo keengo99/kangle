@@ -26,7 +26,7 @@ public:
 	{
 		return new KMinObjVerifiedMark;
 	}
-	const char *getName()override
+	const char* get_module() const override
 	{
 		return "min_obj_verified";
 	}

@@ -85,7 +85,7 @@ public:
 	KAcl *new_instance() override {
 		return new KPerIpAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "per_ip";
 	}
 

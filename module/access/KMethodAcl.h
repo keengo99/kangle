@@ -40,7 +40,7 @@ public:
 	KAcl *new_instance() override {
 		return new KMethodAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "meth";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {

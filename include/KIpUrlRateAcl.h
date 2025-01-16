@@ -19,7 +19,7 @@ public:
 	KAcl *new_instance() override {
 		return new KIpUrlRateAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "ip_url_rate";
 	}	
 	void get_display(KWStream& s) override {

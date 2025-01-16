@@ -159,7 +159,7 @@ void KChain::get_acl_short_html(KWStream& s) {
 		s << "&nbsp;";
 	}
 	for (auto it = acls.begin(); it != acls.end(); ++it) {
-		s << ((*it).revers ? "!" : "") << (*it).m->getName() << ": ";
+		s << ((*it).revers ? "!" : "") << (*it).m->get_module() << ": ";
 		(*it).m->get_display(s);
 		if ((*it).is_or) {
 			s << " [OR]";
@@ -172,7 +172,7 @@ void KChain::get_mark_short_html(KWStream& s) {
 		s << "&nbsp;";
 	}
 	for (auto it = marks.begin(); it != marks.end(); ++it) {
-		s << ((*it).revers ? "!" : "") << (*it).m->getName() << ": ";
+		s << ((*it).revers ? "!" : "") << (*it).m->get_module() << ": ";
 		(*it).m->get_display(s);
 		if ((*it).is_or) {
 			s << " [OR]";

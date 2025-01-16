@@ -45,10 +45,7 @@ KMark *KHostRewriteMark::new_instance()
 {
 	return new KHostRewriteMark;
 }
-const char *KHostRewriteMark::getName()
-{
-	return "host_rewrite";
-}
+
 void KHostRewriteMark::get_html(KWStream &s)
 {
 	KHostRewriteMark *mark = static_cast<KHostRewriteMark *>(this);
@@ -125,7 +122,7 @@ KMark *KHostMark::new_instance()
 {
 	return new KHostMark;
 }
-const char *KHostMark::getName()
+const char *KHostMark::get_module() const
 {
 	return "host";
 }

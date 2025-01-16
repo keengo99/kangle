@@ -35,7 +35,7 @@ public:
 	KAcl *new_instance() override {
 		return new KFileExeAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "file_ext";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {
@@ -71,7 +71,7 @@ public:
 	KAcl *new_instance() override {
 		return new KFileNameAcl();
 	}
-	const char *getName() override  {
+	const char *get_module() const override  {
 		return "filename";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {

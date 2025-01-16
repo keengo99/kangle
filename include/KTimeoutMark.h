@@ -19,7 +19,7 @@ public:
 	{
 		return new KTimeoutMark;
 	}
-	const char *getName()override
+	const char* get_module() const override
 	{
 		return "timeout";
 	}

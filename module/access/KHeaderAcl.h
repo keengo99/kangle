@@ -46,7 +46,7 @@ public:
 		}
 		s << ">nc";
 	}
-	const char* getName() override {
+	const char *get_module() const  override {
 		return "header";
 	}
 	bool match_header(KHttpHeader* next) {
@@ -102,7 +102,7 @@ public:
 	KAcl* new_instance() override {
 		return new KHeaderMapAcl;
 	}
-	const char* getName() override {
+	const char *get_module() const  override {
 		return "header_map";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {

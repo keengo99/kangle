@@ -15,7 +15,7 @@ public:
 		hit = 0;
 	}
 
-	const char* getName() {
+	const char *get_module() const  {
 		return "param";
 	}
 	void build_short(KWStream& s) {

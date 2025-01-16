@@ -45,7 +45,7 @@ public:
 	KAcl *new_instance() override {
 		return new KRegFileAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "reg_file";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {
@@ -97,7 +97,7 @@ public:
 	KAcl *new_instance() override {
 		return new KRegFileNameAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "reg_filename";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {

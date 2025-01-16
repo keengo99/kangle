@@ -257,9 +257,6 @@ bool KAuthMark::loadAuthFile(KString&path) {
 KMark *KAuthMark::new_instance() {
 	return new KAuthMark;
 }
-const char *KAuthMark::getName() {
-	return "auth";
-}
 void KAuthMark::get_html(KWStream &s) {
 	KAuthMark *acl = (KAuthMark *) this;
 	s << "file:<input name='file' value='";

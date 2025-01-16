@@ -28,7 +28,7 @@ public:
 	KAcl *new_instance() override {
 		return new KTryFileAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "try_file";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {

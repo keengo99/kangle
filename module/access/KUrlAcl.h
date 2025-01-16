@@ -51,7 +51,7 @@ public:
 	KAcl *new_instance() override {
 		return new KUrlAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "url";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {

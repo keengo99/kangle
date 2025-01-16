@@ -104,7 +104,7 @@ public:
 	KMark * new_instance() override {
 		return new KRemoveParamMark();
 	}
-	const char *getName()override {
+	const char* get_module() const override {
 		return "remove_param";
 	}
 	

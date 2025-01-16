@@ -12,7 +12,7 @@ public:
 	KAcl *new_instance() override {
 		return new KSSLSerialAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "ssl_serial";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {

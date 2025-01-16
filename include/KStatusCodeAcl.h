@@ -19,7 +19,7 @@ public:
 	KAcl *new_instance() override {
 		return new KStatusCodeAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "status_code";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {

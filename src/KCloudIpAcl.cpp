@@ -103,7 +103,7 @@ KAcl *KCloudIpAcl::new_instance()
 {
 	return new KCloudIpAcl;
 }
-const char *KCloudIpAcl::getName()
+const char *KCloudIpAcl::get_module() const
 {
 	return "cloud_ip";
 }

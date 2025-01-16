@@ -213,7 +213,7 @@ bool KAccess::addAclModel(u_short type, KAcl* m, bool replace) {
 		}
 		return true;
 	}
-	auto it = acl_factorys[type].find(m->getName());
+	auto it = acl_factorys[type].find(m->get_module());
 	if (it != acl_factorys[type].end()) {
 		if (!replace) {
 			m->release();
@@ -222,7 +222,7 @@ bool KAccess::addAclModel(u_short type, KAcl* m, bool replace) {
 		(*it).second->release();
 		acl_factorys[type].erase(it);
 	}
-	acl_factorys[type].insert(std::pair<KString, KAcl*>(m->getName(), m));
+	acl_factorys[type].insert(std::pair<KString, KAcl*>(m->get_module(), m));
 	return true;
 }
 
@@ -234,7 +234,7 @@ bool KAccess::addMarkModel(u_short type, KMark* m, bool replace) {
 		}
 		return true;
 	}
-	auto it = mark_factorys[type].find(m->getName());
+	auto it = mark_factorys[type].find(m->get_module());
 	if (it != mark_factorys[type].end()) {
 		if (!replace) {
 			m->release();
@@ -243,7 +243,7 @@ bool KAccess::addMarkModel(u_short type, KMark* m, bool replace) {
 		(*it).second->release();
 		mark_factorys[type].erase(it);
 	}
-	mark_factorys[type].insert(std::pair<KString, KMark*>(m->getName(), m));
+	mark_factorys[type].insert(std::pair<KString, KMark*>(m->get_module(), m));
 	return true;
 }
 void KAccess::loadModel() {
@@ -801,11 +801,7 @@ int KAccess::get_module(KVirtualHostEvent* ctx, const KString& name, bool is_mar
 		ctx->setStatus("not found");
 		return WHM_CALL_NOT_FOUND;
 	}
-	KStringBuf s;
-	m->get_html(s);
-	sl->add("html", s.str());
-	sl->add("refs", m->get_ref());
-	sl->add("module", m->getName());
+	m->dump(sl, false);
 	return WHM_OK;
 }
 int KAccess::get_named_module(KVirtualHostEvent* ctx, const KString& name, bool is_mark) {
@@ -827,11 +823,7 @@ int KAccess::get_named_module(KVirtualHostEvent* ctx, const KString& name, bool 
 		ctx->setStatus("not found");
 		return WHM_CALL_NOT_FOUND;
 	}
-	KStringBuf s;
-	m->get_html(s);
-	sl->add("html", s.str());
-	sl->add("refs", m->get_ref());
-	sl->add("module", m->getName());
+	m->dump(sl, false);
 	return WHM_OK;
 }
 int KAccess::dump_available_named_module(KVirtualHostEvent* ctx, int type, bool only_public) {
@@ -850,7 +842,7 @@ int KAccess::dump_available_named_module(KVirtualHostEvent* ctx, int type, bool 
 			}
 			sl->add("name", (*it).first);
 			auto m = (*it).second->get_module();
-			sl->add("module", m->getName());
+			sl->add("module", m->get_module());
 		}
 	} else {
 		for (auto it = named_marks.begin(); it != named_marks.end(); ++it) {
@@ -863,7 +855,7 @@ int KAccess::dump_available_named_module(KVirtualHostEvent* ctx, int type, bool 
 			}
 			sl->add("name", (*it).first);
 			auto m = (*it).second->get_module();
-			sl->add("module", m->getName());
+			sl->add("module", m->get_module());
 		}
 	}
 	return WHM_OK;
@@ -877,7 +869,7 @@ int KAccess::dump_named_module(KVirtualHostEvent* ctx, bool detail) {
 		}
 		sl->add("name", (*it).first);
 		auto m = (*it).second->get_module();
-		sl->add("module", m->getName());
+		sl->add("module", m->get_module());
 		if (detail) {
 			KStringBuf s;
 			m->get_display(s);
@@ -891,7 +883,7 @@ int KAccess::dump_named_module(KVirtualHostEvent* ctx, bool detail) {
 		}
 		sl->add("name", (*it).first);
 		auto m = (*it).second->get_module();
-		sl->add("module", m->getName());
+		sl->add("module", m->get_module());
 		if (detail) {
 			KStringBuf s;
 			m->get_display(s);

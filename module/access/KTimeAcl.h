@@ -37,7 +37,7 @@ public:
 	KAcl *new_instance() override {
 		return new KTimeAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "time";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {

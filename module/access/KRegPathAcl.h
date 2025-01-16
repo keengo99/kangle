@@ -51,7 +51,7 @@ public:
 	KAcl *new_instance() override {
 		return new KRegPathAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "reg_path";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {
@@ -120,7 +120,7 @@ public:
 	KAcl *new_instance() override {
 		return new KRegParamAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "reg_param";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {

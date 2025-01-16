@@ -49,7 +49,7 @@ public:
 	KMark* new_instance() override {
 		return new KVaryMark;
 	}
-	const char* getName() override {
+	const char *get_module() const  override {
 		return "vary";
 	}
 private:

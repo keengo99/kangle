@@ -65,7 +65,7 @@ public:
 	{
 		return new KIpSpeedLimitMark;
 	}
-	const char *getName()override
+	const char* get_module() const override
 	{
 		return "ip_speed_limit";
 	}

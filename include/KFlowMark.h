@@ -26,7 +26,7 @@ public:
 	{
 		return new KFlowMark();
 	}
-	const char *getName() override
+	const char *get_module() const override
 	{
 		return "flow";
 	}

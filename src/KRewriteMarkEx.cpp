@@ -282,7 +282,7 @@ uint32_t KRewriteMarkEx::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource
 KMark *KRewriteMarkEx::new_instance() {
 	return new KRewriteMarkEx();
 }
-const char *KRewriteMarkEx::getName() {
+const char *KRewriteMarkEx::get_module() const {
 	return "rewritex";
 }
 void KRewriteMarkEx::get_html(KWStream &s) {

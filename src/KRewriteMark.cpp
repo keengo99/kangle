@@ -41,7 +41,7 @@ KMark *KRewriteMark::new_instance() {
 uint32_t KRewriteMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo){
 	return rule.mark(rq, obj,NULL, prefix,NULL , fo);
 }
-const char *KRewriteMark::getName() {
+const char *KRewriteMark::get_module() const {
 	return "rewrite";
 }
 void KRewriteMark::get_html(KWStream &s) {

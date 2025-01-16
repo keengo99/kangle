@@ -58,7 +58,7 @@ public:
 	KMark * new_instance()override {
 		return new KGSpeedLimitMark();
 	}
-	const char *getName()override {
+	const char* get_module() const override {
 		return "gspeed_limit";
 	}
 private:

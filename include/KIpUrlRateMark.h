@@ -23,7 +23,7 @@ public:
 	KMark * new_instance() override {
 		return new KIpUrlRateMark();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "ip_url_rate";
 	}
 	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {

@@ -48,7 +48,7 @@ void KMultiHostAcl::freeMap() {
 KAcl *KMultiHostAcl::new_instance() {
 	return new KMultiHostAcl();
 }
-const char *KMultiHostAcl::getName() {
+const char *KMultiHostAcl::get_module() const {
 	return "map_host";
 }
 bool KMultiHostAcl::match(KHttpRequest* rq, KHttpObject* obj) {

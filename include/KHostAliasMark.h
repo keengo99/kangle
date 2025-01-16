@@ -88,7 +88,7 @@ public:
 	KMark * new_instance()override {
 		return new KHostAliasMark();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "host_alias";
 	}
 private:

@@ -48,7 +48,7 @@ public:
 	{
 		return new KPortMapMark;
 	}
-	const char *getName()override
+	const char* get_module() const override
 	{
 		return "port_map";
 	}

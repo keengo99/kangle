@@ -53,7 +53,7 @@ public:
 	KMark* new_instance() override {
 		return new KMultiServerMark();
 	}
-	const char* getName() override {
+	const char *get_module() const  override {
 		return "multi_server";
 	}
 private:

@@ -14,7 +14,7 @@ public:
 	KAcl *new_instance() override {
 		return new KSrcsAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "srcs";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {

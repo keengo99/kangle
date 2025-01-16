@@ -31,7 +31,7 @@ public:
 	{
 		return new KStubStatusMark();
 	}
-	const char *getName() override
+	const char *get_module() const override
 	{
 		return "stub_status";
 	}

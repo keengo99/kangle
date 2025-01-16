@@ -36,7 +36,7 @@ public:
 	KAcl *new_instance() override {
 		return new KDstPortAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "dst_port";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {

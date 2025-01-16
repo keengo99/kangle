@@ -12,7 +12,7 @@ public:
 	void get_html(KWStream& s) override;
 	void get_display(KWStream& s) override;
 	KAcl *new_instance() override;
-	const char *getName() override;
+	const char *get_module() const override;
 	bool match(KHttpRequest* rq, KHttpObject* obj) override;
 	void parse_config(const khttpd::KXmlNodeBody* xml) override;
 private:

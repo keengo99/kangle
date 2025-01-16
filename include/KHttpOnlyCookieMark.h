@@ -58,7 +58,7 @@ public:
 	{
 		return new KCookieMark;
 	}
-	const char* getName() override
+	const char *get_module() const  override
 	{
 		return "cookie";
 	}

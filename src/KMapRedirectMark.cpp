@@ -58,7 +58,7 @@ KMark *KMapRedirectMark::new_instance()
 {
 	return new KMapRedirectMark;
 }
-const char *KMapRedirectMark::getName()
+const char *KMapRedirectMark::get_module() const
 {
 	return "map_redirect";
 }

@@ -26,7 +26,7 @@ public:
 		}
 		return wlm.find(host, rq->getClientIp(),this->flush);
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "white_list";
 	}
 	void get_display(KWStream& s) override {
@@ -86,7 +86,7 @@ public:
 		wlm.add(host, (svh ? svh->vh->name.c_str() : NULL), rq->getClientIp(), false);
 		return KF_STATUS_REQ_TRUE;
 	}
-	const char *getName()override {
+	const char* get_module() const override {
 		return "white_list";
 	}
 	void get_display(KWStream& s) override {

@@ -17,7 +17,7 @@ public:
 	KAcl *new_instance() override{
 		return new KIpRateAcl();
 	}
-	const char *getName() override{
+	const char *get_module() const override{
 		return "ip_rate";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {

@@ -63,7 +63,7 @@ public:
 	KMark* new_instance() override {
 		return new KRemoveHeaderMark;
 	}
-	const char* getName()override {
+	const char *get_module() const override {
 		return "remove_header";
 	}
 	void get_html(KWStream& s) override {

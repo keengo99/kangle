@@ -82,7 +82,7 @@ public:
 		}
 		free(buf);
 	}
-	const char* getName() override {
+	const char *get_module() const  override {
 		return "referer";
 	}
 	void get_html(KWStream &s) override {

@@ -10,7 +10,9 @@ public:
 	virtual ~KHostRewriteMark();
 	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override;
 	KMark * new_instance() override;
-	const char *getName() override;
+	const char* get_module() const override {
+		return "host_rewrite";
+	}
 	void get_display(KWStream& s) override;
 	void get_html(KWStream& s) override;
 	void parse_config(const khttpd::KXmlNodeBody* xml) override;
@@ -30,7 +32,7 @@ public:
 	virtual ~KHostMark();
 	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override;
 	KMark * new_instance() override;
-	const char *getName() override;
+	const char* get_module() const override;
 	void get_display(KWStream& s) override;
 	void get_html(KWStream& s) override;
 	void parse_config(const khttpd::KXmlNodeBody* xml) override;

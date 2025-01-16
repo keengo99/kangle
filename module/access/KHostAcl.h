@@ -40,7 +40,7 @@ public:
 	KAcl *new_instance() override  {
 		return new KHostAcl();
 	}
-	const char *getName() override {
+	const char* get_module() const override {
 		return "host";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {
@@ -57,7 +57,7 @@ public:
 	KAcl *new_instance() override {
 		return new KWideHostAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "wide_host";
 	}
 	void get_display(KWStream& s) override {

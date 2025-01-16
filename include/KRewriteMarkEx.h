@@ -179,7 +179,7 @@ public:
 	~KRewriteMarkEx(void);
 	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override;
 	KMark * new_instance() override;
-	const char *getName() override;
+	const char * get_module() const override;
 	void get_display(KWStream& s) override;
 	void get_html(KWStream& s) override;
 	static void getEnv(KHttpRequest *rq, char *env, KWStream&s);

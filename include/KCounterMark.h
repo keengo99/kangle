@@ -21,7 +21,7 @@ public:
 	{
 		return new KCounterMark();
 	}
-	const char *getName() override
+	const char *get_module() const override
 	{
 		return "counter";
 	}

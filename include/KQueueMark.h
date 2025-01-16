@@ -33,7 +33,7 @@ public:
 	KMark* new_instance()override {
 		return new KQueueMark;
 	}
-	const char* getName()override {
+	const char *get_module() const override {
 		return "queue";
 	}
 	void get_html(KWStream& s) override;
@@ -56,7 +56,7 @@ public:
 	KMark* new_instance() override {
 		return new KPerQueueMark;
 	}
-	const char* getName() override {
+	const char *get_module() const  override {
 		return "per_queue";
 	}
 	void get_display(KWStream& s) override;

@@ -12,7 +12,7 @@ public:
 	KAcl *new_instance() override {
 		return new KSelfPortsAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "self_ports";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {
@@ -29,7 +29,7 @@ public:
 	KAcl *new_instance() override {
 		return new KListenPortsAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "listen_ports";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {

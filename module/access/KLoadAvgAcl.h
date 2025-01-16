@@ -39,7 +39,7 @@ public:
 	KAcl *new_instance() override {
 		return new KLoadAvgAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "loadavg";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {

@@ -41,7 +41,7 @@ public:
 	{
 		return new KAddHeaderMark;
 	}
-	const char *getName() override
+	const char *get_module() const override
 	{
 		return "add_header";
 	}
@@ -124,7 +124,7 @@ public:
 	{
 		return new KAddResponseHeaderMark;
 	}
-	const char *getName() override
+	const char *get_module() const override
 	{
 		return "add_response_header";
 	}

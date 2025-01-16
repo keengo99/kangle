@@ -58,7 +58,7 @@ uint32_t KRedirectMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource&
 	}
 	return KF_STATUS_REQ_TRUE;
 }
-const char* KRedirectMark::getName() {
+const char* KRedirectMark::get_module() const {
 	return "redirect";
 }
 

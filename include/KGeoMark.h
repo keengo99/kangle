@@ -101,7 +101,7 @@ public:
 	KMark * new_instance() override {
 		return new KGeoMark;
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "geo";
 	}
 	void flush_timer_callback();

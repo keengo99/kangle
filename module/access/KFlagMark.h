@@ -243,7 +243,7 @@ public:
 	KMark * new_instance() override {
 		return new KFlagMark();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "flag";
 	}
 public:

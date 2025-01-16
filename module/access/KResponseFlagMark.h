@@ -108,7 +108,7 @@ public:
 	KMark * new_instance() override {
 		return new KResponseFlagMark();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "response_flag";
 	}
 private:
@@ -164,7 +164,7 @@ public:
 	KMark *new_instance() override {
 		return new KExtendFlagMark();
 	}
-	const char *getName()override {
+	const char * get_module() const override {
 		return "extend_flag";
 	}
 private:

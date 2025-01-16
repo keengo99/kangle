@@ -18,7 +18,7 @@ public:
 	KAcl *new_instance() override {
 		return new KDirAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "dir";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {

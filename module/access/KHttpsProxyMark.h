@@ -12,7 +12,7 @@ class KHttpsProxyMark : public KMark {
 	KMark* newInstance() {
 		return new KHttpsProxyMark();
 	}
-	const char* getName() {
+	const char *get_module() const  {
 		return "https_proxy";
 	}
 	std::string getHtml(KModel* model) {

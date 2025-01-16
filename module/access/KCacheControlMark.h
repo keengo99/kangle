@@ -101,7 +101,7 @@ public:
 	KMark * new_instance() override {
 		return new KCacheControlMark();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "cache_control";
 	}
 private:

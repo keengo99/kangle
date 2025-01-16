@@ -35,13 +35,10 @@ using KSafeSource = std::unique_ptr<KFetchObject>;
 class KModel {
 public:
 	KModel() {
-		//revers = false;		
-		//is_or = false;
 		isGlobal = true;
 		ref = 1;
 	}
-	virtual const char *getName() = 0;
-	/* 工厂实例不会调用 parse_config */
+	virtual const char *get_module() const = 0;
 	virtual void parse_config(const khttpd::KXmlNodeBody* xml) = 0;
 	virtual void parse_child(const kconfig::KXmlChanged* changed) {
 	}
@@ -60,9 +57,8 @@ public:
 		}
 	}
 	void dump(kgl::serializable* m, bool is_short) {
-		//m->add("revers", revers);
-		//m->add("is_or", is_or);
-		m->add("module", getName());
+		m->add("refs", get_ref());
+		m->add("module", get_module());
 		KStringBuf out;
 		if (is_short) {
 			get_display(out);
@@ -71,10 +67,6 @@ public:
 		}
 		m->add("html", out.str());
 	}
-	/* 命名模块的名字 */
-	//KString named;
-	//bool revers;
-	//bool is_or;
 	bool isGlobal;
 protected:
 	volatile uint32_t ref;

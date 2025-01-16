@@ -30,7 +30,7 @@ public:
 		module->ctx.module = access->create_ctx();
 		return module;
 	}
-	const char* getName() {
+	const char *get_module() const  {
 		return access->name;
 	}
 	void getHtml(KWStream& s);
@@ -73,8 +73,8 @@ public:
 	KMark* new_instance() override {
 		return new KAccessDsoMark(ad->new_instance());
 	}
-	const char* getName() override {
-		return ad->getName();
+	const char *get_module() const  override {
+		return ad->get_module();
 	}
 	void get_html(KWStream& s) override {
 		return ad->getHtml(s);
@@ -109,8 +109,8 @@ public:
 	KAcl* new_instance() override {
 		return new KAccessDsoAcl(ad->new_instance());
 	}
-	const char* getName() override {
-		return ad->getName();
+	const char *get_module() const  override {
+		return ad->get_module();
 	}
 	void get_html(KWStream& s) override {
 		return ad->getHtml(s);

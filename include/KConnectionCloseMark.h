@@ -13,7 +13,7 @@ public:
 	KMark *new_instance()override {
 		return new KConnectionCloseMark();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "connection_close";
 	}
 	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override

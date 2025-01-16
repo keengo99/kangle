@@ -32,7 +32,7 @@ public:
 	KAcl *new_instance() override {
 		return new KAuthUserAcl();
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "auth_user";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {
@@ -55,7 +55,7 @@ public:
 	~KRegAuthUserAcl()
 	{
 	}
-	const char *getName() override {
+	const char *get_module() const override {
 		return "reg_auth_user";
 	}
 	KAcl *new_instance() override {
