@@ -47,7 +47,6 @@ class KVirtualHostEvent;
 class WhmContext;
 using KSafeTable = KSharedObj<KTable>;
 void bind_access_config(kconfig::KConfigTree* tree, KAccess* access);
-void parse_module_config(KModel* m, const khttpd::KXmlNodeBody* xml);
 class KAccess final : public kconfig::KConfigListen
 {
 public:
@@ -65,28 +64,30 @@ public:
 	kconfig::KConfigEventFlag config_flag() const override {
 		return kconfig::ev_self | kconfig::ev_subdir;
 	}
-	KSafeAcl new_acl(const KString& name, const khttpd::KXmlNodeBody* xml) {
+	KModelPtr<KAcl> new_acl(const KString& name, const khttpd::KXmlNodeBody* xml) {
 		auto it = KAccess::acl_factorys[type].find(name);
 		if (it == KAccess::acl_factorys[type].end()) {
 			return nullptr;
 		}
-		KSafeAcl m((*it).second->new_instance());
-		if (m) {
-			m->isGlobal = isGlobal();
+		KModelPtr<KAcl> m((*it).second->new_instance());
+		if (m.m) {
+			m.m->isGlobal = isGlobal();
 		}
-		parse_module_config(m.get(), xml);
+		m.parse_config(xml);
+		m.m->parse_config(xml);
 		return m;
 	}
-	KSafeMark new_mark(const KString& name, const khttpd::KXmlNodeBody* xml) {
+	KModelPtr<KMark> new_mark(const KString& name, const khttpd::KXmlNodeBody* xml) {
 		auto it = KAccess::mark_factorys[type].find(name);
 		if (it == KAccess::mark_factorys[type].end()) {
 			return nullptr;
 		}
-		KSafeMark m((*it).second->new_instance());
-		if (m) {
-			m->isGlobal = isGlobal();
+		KModelPtr<KMark> m((*it).second->new_instance());
+		if (m.m) {
+			m.m->isGlobal = isGlobal();
 		}
-		parse_module_config(m.get(), xml);
+		m.parse_config(xml);
+		m.m->parse_config(xml);
 		return m;
 	}
 	kgl_ref_str_t get_qname() {
@@ -140,8 +141,8 @@ private:
 	void inter_destroy();
 	void htmlChainAction(KWStream& s, kgl_jump_type jump_type, KJump* jump, bool showTable, const KString& skipTable);
 	void htmlRadioAction(KWStream& s, kgl_jump_type* jump_value, int jump_type, KJump* jump, int my_jump_type, const KString& my_type_name, std::vector<KString>& table_names);
-	KSafeAcl get_named_acl(const KString& name);
-	KSafeMark get_named_mark(const KString& name);
+	KModelPtr<KAcl> get_named_acl(const KString& name);
+	KModelPtr<KMark> get_named_mark(const KString& name);
 	KFiberReadLocker read_lock() {
 		return KFiberReadLocker(rwlock);
 	}

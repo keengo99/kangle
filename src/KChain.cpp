@@ -49,6 +49,7 @@ KChain::~KChain() {
 }
 void KChain::clear() {
 	jump = nullptr;
+	/*
 	for (auto it = acls.begin(); it != acls.end(); ++it) {
 		(*it)->release();
 	}
@@ -57,6 +58,7 @@ void KChain::clear() {
 		(*it)->release();
 	}
 	marks.clear();
+	*/
 }
 void KChain::get_edit_html(kgl::serializable* s) {
 	for (auto it = acls.begin(); it != acls.end(); ++it) {
@@ -101,35 +103,7 @@ void KChain::get_edit_html(KWStream& s, u_short accessType) {
 	s << "</select>";
 	s << "</td></tr>\n";
 }
-void KChain::getModelHtml(KModel* model, KWStream& s, int type, int index) {
-	s << "<tr><td><input type=hidden name='begin_sub_form' value='"
-		<< (type == 0 ? "acl_"_CS : "mark_"_CS)
-		<< model->getName() << "'>";
-	s << "[<a href=\"javascript:delmodel('" << index << "'," << type << ");\">del</a>]";
-	if (model->named.empty()) {
-		s << "<input type = checkbox name = 'or' value = '1' ";
-		if (model->is_or) {
-			s << "checked";
-		}
-		s << ">OR";
-		s << "<input type=checkbox name='revers' value='1' ";
-		if (model->revers) {
-			s << "checked";
-		}
-		s << ">NOT ";
-		s << model->getName();
-	} else {
-		s << "named:" << model->named;
-	}
-	s << "</td><td>";
-	if (model->named.empty()) {
-		model->get_html(s);
-	} else {
-		s << "<input type='hidden' name='ref' value='" << model->named << "'/>";
-		s << "named model do not support";
-	}
-	s << "<input type=hidden name='end_sub_form' value='1'></td></tr>\n";
-}
+
 void KChain::dump(kgl::serializable* s,bool is_short) {
 	KStringBuf action;
 	switch (jump_type) {
@@ -170,14 +144,14 @@ void KChain::dump(kgl::serializable* s,bool is_short) {
 		if (!m) {
 			return;
 		}
-		(*it)->dump(m, is_short);
+		(*it).dump(m, is_short);
 	}
 	for (auto it = marks.begin(); it != marks.end(); ++it) {
 		auto m = s->add_obj_array("mark");
 		if (!m) {
 			return;
 		}		
-		(*it)->dump(m, is_short);
+		(*it).dump(m, is_short);
 	}
 }
 void KChain::get_acl_short_html(KWStream& s) {
@@ -185,9 +159,9 @@ void KChain::get_acl_short_html(KWStream& s) {
 		s << "&nbsp;";
 	}
 	for (auto it = acls.begin(); it != acls.end(); ++it) {
-		s << ((*it)->revers ? "!" : "") << (*it)->getName() << ": ";
-		(*it)->get_display(s);
-		if ((*it)->is_or) {
+		s << ((*it).revers ? "!" : "") << (*it).m->getName() << ": ";
+		(*it).m->get_display(s);
+		if ((*it).is_or) {
 			s << " [OR]";
 		}
 		s << "<br>";
@@ -198,9 +172,9 @@ void KChain::get_mark_short_html(KWStream& s) {
 		s << "&nbsp;";
 	}
 	for (auto it = marks.begin(); it != marks.end(); ++it) {
-		s << ((*it)->revers ? "!" : "") << (*it)->getName() << ": ";
-		(*it)->get_display(s);
-		if ((*it)->is_or) {
+		s << ((*it).revers ? "!" : "") << (*it).m->getName() << ": ";
+		(*it).m->get_display(s);
+		if ((*it).is_or) {
 			s << " [OR]";
 		}
 		s << "<br>";
@@ -221,7 +195,8 @@ void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 				if (ref) {
 					auto m = access->get_named_acl(ref);
 					if (m) {
-						acls.push_back(m.release());
+						m.parse_config(body);
+						acls.push_back(m);
 					}
 				} else {
 					auto model_name = body->attributes["module"];
@@ -232,8 +207,8 @@ void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 					if (!m) {
 						continue;
 					}
-					parse_module_child_config(m.get(), body->childs);
-					acls.push_back(m.release());
+					parse_module_child_config(m.m, body->childs);
+					acls.push_back(m);
 				}
 			}
 		} else if (node->is_tag(_KS("mark"))) {
@@ -242,7 +217,8 @@ void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 				if (ref) {
 					auto m = access->get_named_mark(ref);
 					if (m) {
-						marks.push_back(m.release());
+						m.parse_config(body);
+						marks.push_back(m);
 					}
 				} else {
 					auto model_name = body->attributes["module"];
@@ -253,8 +229,8 @@ void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 					if (!m) {
 						continue;
 					}
-					parse_module_child_config(m.get(), body->childs);
-					marks.push_back(m.release());
+					parse_module_child_config(m.m, body->childs);
+					marks.push_back(m);
 				}
 			}
 		} else {

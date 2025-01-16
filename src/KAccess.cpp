@@ -136,11 +136,6 @@ KAccess* kaccess[2] = { 0 };
 std::map<KString, KAcl*> KAccess::acl_factorys[2];
 std::map<KString, KMark*> KAccess::mark_factorys[2];
 
-void parse_module_config(KModel* m, const khttpd::KXmlNodeBody* xml) {
-	m->revers = (xml->attributes["revers"] == "1");
-	m->is_or = (xml->attributes["or"] == "1");
-	m->parse_config(xml);
-}
 void bind_access_config(kconfig::KConfigTree* tree, KAccess* access) {
 	if (tree->add(_KS(""), access) != nullptr) {
 		access->add_ref();
@@ -916,17 +911,15 @@ int KAccess::dump_chain(KVirtualHostEvent* ctx, const KString table_name) {
 	return WHM_OK;
 }
 void KAccess::listTable(KVirtualHostEvent* ctx) {
-	kfiber_rwlock_rlock(rwlock);
-	for (auto it = tables.begin(); it != tables.end(); it++) {
+	auto locker = read_lock();
+	for (auto it = tables.begin(); it != tables.end(); ++it) {
 		auto obj = ctx->data()->add_obj_array("table");
 		if (!obj) {
-			kfiber_rwlock_runlock(rwlock);
 			return;
 		}
 		obj->add("name", (*it).first);
 		obj->add("refs", (*it).second->get_ref());
 	}
-	kfiber_rwlock_runlock(rwlock);
 }
 void KAccess::htmlChainAction(KWStream& s, kgl_jump_type jump_type, KJump* jump, bool showTable, const KString& skipTable) {
 	kgl_jump_type jump_value = 0;
@@ -1081,7 +1074,7 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 			if (!named_model) {
 				return false;
 			}
-			parse_module_config(named_model->get_module(), xml->get_first());
+			named_model->get_module()->parse_config(xml->get_first());
 			return true;
 		}
 		return true;
@@ -1117,7 +1110,7 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 				return false;
 			}
 			auto name = xml->attributes()["name"];
-			auto result = this->named_acls.insert(std::make_pair(name, KSafeNamedModel(new KNamedModel(name, std::move(m)))));
+			auto result = this->named_acls.insert(std::make_pair(name, KSafeNamedModel(new KNamedModel(name, m.m))));
 			if (result.second) {
 				tree->bind(result.first->second->add_ref());
 			}
@@ -1130,7 +1123,7 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 				return false;
 			}
 			auto name = xml->attributes()["name"];
-			auto result = this->named_marks.insert(std::make_pair(name, KSafeNamedModel(new KNamedModel(name, std::move(m)))));
+			auto result = this->named_marks.insert(std::make_pair(name, KSafeNamedModel(new KNamedModel(name, m.m))));
 			if (result.second) {
 				tree->bind(result.first->second->add_ref());
 			}
@@ -1217,7 +1210,7 @@ void KAccess::build_action_attribute(KXmlAttribute& attribute, const KUrlValue& 
 	}
 	attribute.emplace("action"_CS, action.str());
 }
-KSafeAcl KAccess::get_named_acl(const KString& name) {
+KModelPtr<KAcl> KAccess::get_named_acl(const KString& name) {
 	auto it = named_acls.find(name);
 	if (it == named_acls.end()) {
 		if (this != kaccess[type] && name[0] == '~') {
@@ -1228,7 +1221,7 @@ KSafeAcl KAccess::get_named_acl(const KString& name) {
 	}
 	return (*it).second->as_acl();
 }
-KSafeMark KAccess::get_named_mark(const KString& name) {
+KModelPtr<KMark> KAccess::get_named_mark(const KString& name) {
 	auto it = named_marks.find(name);
 	if (it == named_marks.end()) {
 		if (this != kaccess[type] && name[0] == '~') {

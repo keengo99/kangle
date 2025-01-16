@@ -111,12 +111,14 @@ onMounted(flushChain);
                 <td>{{ chain.action }}<span v-if="chain.jump">:{{ chain.jump }}</span></td>
                 <td>
                     <div v-for="m in chain.v.acl">
-                        {{ m.module }} {{ m.ref }} <span v-if="m.revers">!</span><span v-html="m.html"></span>
+                        <span v-if="m.revers">!</span>{{ m.module }} {{ m.ref }} <span v-html="m.html"></span>
+                        <span v-if="m.is_or>0"> ||</span>
                     </div>
                 </td>
                 <td>
                     <div v-for="m in chain.v.mark">
-                        {{ m.module }} {{ m.ref }}<span v-html="m.html"></span>
+                        <span v-if="m.revers">!</span>{{ m.module }} {{ m.ref }}<span v-html="m.html"></span>
+                        <span v-if="m.is_or>0"> ||</span>
                     </div>
                 </td>
                 <td>{{ chain.v.hit }}</td>

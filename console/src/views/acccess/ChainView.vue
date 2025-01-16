@@ -217,16 +217,17 @@ onMounted(() => {
             </tr>
             <template v-for="(modules, type) in [chain_value.acl, chain_value.mark]">
                 <tr v-for="(m, index) in modules">
+                    <input type="hidden" name="begin_sub_form" :value="(type == 0 ? 'acl_' : 'mark_') + m.module" />
                     <td>
                         [<a href=# @click="delModule(type, index)">删</a>]
                         [<a href=# @click="UpModule(type, index)">UP</a>]
                         <span v-if="m.module">
                             {{ m.module }}
                         </span>
+                        <input type=checkbox name='revers' value='1' :checked="m.revers>0">NOT
+                        <input type=checkbox name='or' value='1' :checked="m.is_or>0">OR
                     </td>
-                    <td>
-
-                        <input type="hidden" name="begin_sub_form" :value="(type == 0 ? 'acl_' : 'mark_') + m.module" />
+                    <td>                        
                         <template v-if="m.ref">
                             <input type="hidden" name="ref" :value="m.ref" />命名模块:{{ m.ref }}
                         </template>
@@ -234,7 +235,6 @@ onMounted(() => {
                             <ModuleView :module="m" />
                         </template>
                         <input type="hidden" name="end_sub_form" value='1' />
-
                     </td>
                 </tr>
                 <tr>

@@ -27,7 +27,7 @@
 #include <vector>
 #include "kmalloc.h"
 #include "KUrlValue.h"
-
+#include "KModelPtr.h"
 #define CHAIN_CONTEXT	"chain"
 class KAccess;
 
@@ -42,11 +42,11 @@ public:
 		//OR NEXT
 		for (auto it = acls.begin(); it != acls.end(); ++it) {
 			if (result && last_or) {
-				last_or = (*it)->is_or;
+				last_or = (*it).is_or;
 				continue;
 			}
-			result = ((*it)->match(rq, obj) != (*it)->revers) ? KF_STATUS_REQ_TRUE : KF_STATUS_REQ_FALSE;
-			last_or = (*it)->is_or;
+			result = ((*it).m->match(rq, obj) != (*it).revers) ? KF_STATUS_REQ_TRUE : KF_STATUS_REQ_FALSE;
+			last_or = (*it).is_or;
 			if (!result && !last_or) {
 				break;
 			}
@@ -57,15 +57,15 @@ public:
 		last_or = false;
 		for (auto it = marks.begin(); it != marks.end(); ++it) {
 			if (result && last_or) {
-				last_or = (*it)->is_or;
+				last_or = (*it).is_or;
 				continue;
 			}
-			result = (*it)->process(rq, obj, fo);
+			result = (*it).m->process(rq, obj, fo);
 			if (KBIT_TEST(result, KF_STATUS_REQ_FINISHED)) {
 				++hit_count;
 				return result;
 			}
-			result = (!!result != (*it)->revers) ? KF_STATUS_REQ_TRUE : KF_STATUS_REQ_FALSE;
+			result = (!!result != (*it).revers) ? KF_STATUS_REQ_TRUE : KF_STATUS_REQ_FALSE;
 			if (!result && !last_or) {
 				break;
 			}
@@ -91,13 +91,41 @@ public:
 private:
 	void get_edit_html(kgl::serializable* s);
 	void get_edit_html(KWStream& s, u_short accessType);
-	void getModelHtml(KModel* model, KWStream& s, int type, int index);
+	template<typename T>
+	void getModelHtml(KModelPtr<T> &ptr, KWStream& s, int type, int index) {
+		s << "<tr><td><input type=hidden name='begin_sub_form' value='"
+			<< (type == 0 ? "acl_"_CS : "mark_"_CS)
+			<< ptr.m->getName() << "'>";
+		s << "[<a href=\"javascript:delmodel('" << index << "'," << type << ");\">del</a>]";
+		if (ptr.named.empty()) {
+			s << "<input type = checkbox name = 'or' value = '1' ";
+			if (ptr.is_or) {
+				s << "checked";
+			}
+			s << ">OR";
+			s << "<input type=checkbox name='revers' value='1' ";
+			if (ptr.revers) {
+				s << "checked";
+			}
+			s << ">NOT ";
+			s << ptr.m->getName();
+		} else {
+			s << "named:" << ptr.named;
+		}
+		s << "</td><td>";
+		if (ptr.named.empty()) {
+			ptr.m->get_html(s);
+		} else {
+			s << "<input type='hidden' name='ref' value='" << ptr.named << "'/>";
+			s << "named model do not support";
+		}
+		s << "<input type=hidden name='end_sub_form' value='1'></td></tr>\n";
+	}
 private:
-
 	uint32_t hit_count;
 	kgl_jump_type jump_type;
 	KSafeJump jump;
-	std::vector<KAcl*> acls;
-	std::vector<KMark*> marks;
+	std::vector<KModelPtr<KAcl>> acls;
+	std::vector<KModelPtr<KMark>> marks;
 };
 #endif /*KCHAIN_H_*/
