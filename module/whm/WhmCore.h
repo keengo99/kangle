@@ -47,6 +47,12 @@ public:
 			if (strcmp(callName, "connection") == 0) {
 				return (whm_call_ptr)&WhmCore::call_connection;
 			}
+			if (strcmp(callName, "config") == 0) {
+				return (whm_call_ptr)&WhmCore::call_config;
+			}
+			if (strcmp(callName, "config_submit") == 0) {
+				return (whm_call_ptr)&WhmCore::call_config_submit;
+			}
 			break;
 		case 'd':
 			if (strcmp(callName, "del_chain") == 0) {
@@ -250,6 +256,8 @@ protected:
 		console_call_reboot();
 		return WHM_OK;
 	}
+	int call_config(const char* call_name, const char* event_type, WhmContext* ctx);
+	int call_config_submit(const char* call_name, const char* event_type, WhmContext* ctx);
 	int call_get_connection(const char* call_name, const char* event_type, WhmContext* ctx);
 	int call_connection(const char* call_name, const char* event_type, WhmContext* ctx);
 	int call_get_config_listen(const char* call_name, const char* event_type, WhmContext* ctx);

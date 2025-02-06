@@ -82,5 +82,6 @@ private:
 bool changeAdminPassword(KUrlValue *url,KString &errMsg);
 bool checkManageLogin(KHttpRequest *rq) ;
 void init_manager_handler();
+bool console_config_submit(size_t item, KUrlValue& uv, KString& err_msg);
 #endif
 

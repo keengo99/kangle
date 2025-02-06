@@ -36,6 +36,8 @@
 	<call name='change_admin_password'  extend='core'/>
 	<call name='list_listen' extend='core'/>
 	<call name='list_connect_per_ip' extend='core'/>
+	<call name='config' extend='core'/>
+	<call name='config_submit' extend='core'/>
 	<!-- process -->
 	<call name='kill_process' extend='core'/>
 	<call name='list_process' extend='core'/>

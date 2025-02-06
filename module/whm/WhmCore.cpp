@@ -22,6 +22,8 @@
 #include "KConfigTree.h"
 #include "KChain.h"
 #include "ssl_utils.h"
+#include "KProcessManage.h"
+
 static int config_result(kconfig::KConfigResult rs, WhmContext* ctx) {
 	switch (rs) {
 	case kconfig::KConfigResult::Success:
@@ -456,4 +458,136 @@ int WhmCore::call_edit_named_module(const char* call_name, const char* event_typ
 		return config_result(kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvNew), ctx);
 	}
 	return config_result(kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvUpdate), ctx);
+}
+
+int WhmCore::call_config(const char* call_name, const char* event_type, WhmContext* ctx) {
+	auto uv = ctx->getUrlValue();
+	size_t item = atoi(uv->remove("item").c_str());
+	auto sl = ctx->data();
+	conf.admin_lock.Lock();
+	if (item == 0) {
+		sl->add("connect_time_out", conf.connect_time_out);
+		sl->add("time_out", conf.time_out);
+		sl->add("worker_thread", conf.select_count);
+	} else if (item == 1) {
+		sl->add("default", conf.default_cache);
+		sl->add("memory", get_size(conf.mem_cache));
+
+#ifdef ENABLE_DISK_CACHE
+
+		sl->add("disk", get_size(conf.disk_cache) + (conf.disk_cache_is_radio ? "%" : ""));
+
+		sl->add("disk_dir", conf.disk_cache_dir2);
+		sl->add("disk_work_time", conf.disk_work_time);
+#endif
+		sl->add("max_cache_size", get_size(conf.max_cache_size));
+#ifdef ENABLE_DISK_CACHE
+		sl->add("max_bigobj_size", get_size(conf.max_bigobj_size));
+#ifdef ENABLE_BIG_OBJECT_206
+		sl->add("cache_part", conf.cache_part);
+#endif
+#endif
+		sl->add("refresh_time", conf.refresh_time);
+
+	} else if (item == 2) {
+		sl->add("access_log", conf.access_log);
+		sl->add("rotate_time", conf.log_rotate);
+		sl->add("rotate_size", get_size(conf.log_rotate_size));
+		sl->add("error_rotate_size", get_size(conf.error_rotate_size));
+		sl->add("level", conf.log_level);
+		sl->add("logs_day", conf.logs_day);
+		sl->add("logs_size", get_size(conf.logs_size));
+		sl->add("radio", conf.log_radio);
+		sl->add("log_handle", conf.log_handle);
+		sl->add("access_log_handle", conf.logHandle);
+		sl->add("log_handle_concurrent", conf.maxLogHandle);
+	} else if (item == 3) {
+		sl->add("max", conf.max);
+
+		sl->add("max_per_ip value", conf.max_per_ip);
+		sl->add("max_keep_alive", conf.keep_alive_count);
+#ifdef ENABLE_BLACK_LIST
+		sl->add("per_ip_deny", conf.per_ip_deny);
+#endif
+		sl->add("min_free_thread", conf.min_free_thread);
+
+#ifdef ENABLE_ADPP
+		sl->add("process_cpu_usage", conf.process_cpu_usage);
+#endif
+		sl->add("worker_dns", conf.worker_dns);
+		sl->add("fiber_stack_size", get_size(http_config.fiber_stack_size));
+	} else if (item == 4) {
+		//data exchange
+#ifdef ENABLE_TF_EXCHANGE	
+		sl->add("max_post_size", get_size(conf.max_post_size));
+#endif
+		sl->add("worker_io", conf.worker_io);
+		sl->add("max_io' value='" , conf.max_io);
+		sl->add("io_buffer",get_size(conf.io_buffer));
+		sl->add("upstream_sign", conf.upstream_sign);
+	} else if (item == 5) {
+		sl->add("only_compress_cache", conf.only_compress_cache);
+
+		sl->add("min_compress_length", conf.min_compress_length);
+		sl->add("gzip_level", conf.gzip_level);
+#ifdef ENABLE_BROTLI
+		sl->add("br_level size", conf.br_level);
+#endif
+#ifdef ENABLE_ZSTD
+		sl->add("zstd_level size", conf.zstd_level);
+#endif
+#ifdef KANGLE_ENT
+		sl->add("server_software", conf.server_software);
+#endif
+		sl->add("hostname", conf.hostname);
+		sl->add("path_info", conf.path_info);
+#ifdef KSOCKET_UNIX	
+		sl->add("unix_socket", conf.unix_socket);
+#endif
+#ifdef MALLOCDEBUG
+		sl->add("mallocdebug", conf.mallocdebug);
+#endif
+#ifdef ENABLE_FATBOY
+		//s << klang["bl_time"] << ":" << conf.bl_time << "<br>";
+		//s << klang["wl_time"] << ":" << conf.wl_time << "<br>";
+#endif
+#ifdef ENABLE_BLACK_LIST
+		/*
+		s << "<pre>";
+		if (*conf.block_ip_cmd) {
+			s << "block cmd:\t" << conf.block_ip_cmd << "\n";
+			if (*conf.unblock_ip_cmd) {
+				s << "unblock cmd:\t" << conf.unblock_ip_cmd << "\n";
+			}
+			if (*conf.flush_ip_cmd) {
+				s << "flush cmd:\t" << conf.flush_ip_cmd << "\n";
+			}
+		}
+		if (*conf.report_url) {
+			s << "report_url:\t" << conf.report_url << "\n";
+		}
+		s << "</pre>";
+		*/
+#endif
+	} else if (item == 6) {
+		sl->add("user", conf.admin_user);
+		sl->add("password", "");
+		KStringBuf s;
+		for (size_t i = 0; i < conf.admin_ips.size(); i++) {
+			s << conf.admin_ips[i] << "|";
+		}
+		sl->add("admin_ips", s.str());
+	}
+	conf.admin_lock.Unlock();
+	return WHM_OK;
+}
+int WhmCore::call_config_submit(const char* call_name, const char* event_type, WhmContext* ctx) {
+	auto uv = ctx->getUrlValue();
+	size_t item = atoi(uv->remove("item").c_str());
+	KString err_msg;
+	if (!console_config_submit(item, *uv, err_msg)) {
+		ctx->setStatus(err_msg.c_str());
+		return WHM_CALL_FAILED;
+	}
+	return WHM_OK;
 }

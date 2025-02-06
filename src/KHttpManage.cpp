@@ -672,89 +672,92 @@ bool KHttpManage::config() {
 	conf.admin_lock.Unlock();
 	return sendHttp(s.str());
 }
-bool KHttpManage::configsubmit() {
-	//	size_t i;
-	KStringBuf url;
-	size_t item = atoi(removeUrlValue("item").c_str());
+bool console_config_submit(size_t item, KUrlValue& uv,KString &err_msg) {
 	if (item == 0) {
 		KXmlAttribute attr;
-		attr.emplace("rw", getUrlValue("time_out"));
-		attr.emplace("connect", getUrlValue("connect_time_out"));
+		attr.emplace("rw", uv.get("time_out"));
+		attr.emplace("connect", uv.get("connect_time_out"));
 		kconfig::update("timeout"_CS, 0, nullptr, &attr, kconfig::EvUpdate | kconfig::FlagCreate);
 		//kconfig::update("keep_alive_count"_CS, 0, &getUrlValue("keep_alive_count"), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
-		kconfig::update("worker_thread"_CS, 0, &getUrlValue("worker_thread"), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
-		int worker_thread = atoi(getUrlValue("worker_thread").c_str());
+		auto result = kconfig::update("worker_thread"_CS, 0, &uv.get("worker_thread"), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		int worker_thread = atoi(uv.get("worker_thread").c_str());
 		if (worker_thread != conf.select_count) {
 			conf.select_count = worker_thread;
 			kconfig::set_need_reboot();
 		}
 	} else if (item == 1) {
-		kconfig::update("cache"_CS, 0, nullptr, &urlValue.attribute, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("cache"_CS, 0, nullptr, &uv.attribute, kconfig::EvUpdate | kconfig::FlagCreate);
 	} else if (item == 2) {
-		auto v = removeUrlValue("access_log"_CS);
+		auto v = uv.remove("access_log"_CS);
 		kconfig::update("access_log"_CS, 0, &v, nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
-		v = removeUrlValue("access_log_handle"_CS);
+		v = uv.remove("access_log_handle"_CS);
 		kconfig::update("access_log_handle"_CS, 0, &v, nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
-		v = removeUrlValue("log_handle_concurrent"_CS);
+		v = uv.remove("log_handle_concurrent"_CS);
 		kconfig::update("log_handle_concurrent"_CS, 0, &v, nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
-		kconfig::update("log"_CS, 0, nullptr, &urlValue.attribute, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("log"_CS, 0, nullptr, &uv.attribute, kconfig::EvUpdate | kconfig::FlagCreate);
 	} else if (item == 3) {
 		KXmlAttribute connect_attr;
-		connect_attr.emplace("max"_CS, getUrlValue("max"));
-		connect_attr.emplace("max_per_ip"_CS, getUrlValue("max_per_ip"));
-		connect_attr.emplace("per_ip_deny"_CS, getUrlValue("per_ip_deny"));
-		connect_attr.emplace("max_keep_alive"_CS, getUrlValue("max_keep_alive"));
+		connect_attr.emplace("max"_CS, uv.get("max"));
+		connect_attr.emplace("max_per_ip"_CS, uv.get("max_per_ip"));
+		connect_attr.emplace("per_ip_deny"_CS, uv.get("per_ip_deny"));
+		connect_attr.emplace("max_keep_alive"_CS, uv.get("max_keep_alive"));
 		kconfig::update("connect"_CS, 0, nullptr, &connect_attr, kconfig::EvUpdate | kconfig::FlagCreate);
-		kconfig::update("min_free_thread"_CS, 0, &getUrlValue("min_free_thread"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("min_free_thread"_CS, 0, &uv.get("min_free_thread"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 #ifdef ENABLE_ADPP
-		kconfig::update("process_cpu_usage"_CS, 0, &getUrlValue("process_cpu_usage"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("process_cpu_usage"_CS, 0, &uv.get("process_cpu_usage"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 #endif
 		KXmlAttribute dns_attr;
-		dns_attr.emplace("worker"_CS, getUrlValue("worker_dns"));
+		dns_attr.emplace("worker"_CS, uv.get("worker_dns"));
 		kconfig::update("dns"_CS, 0, nullptr, &dns_attr, kconfig::EvUpdate | kconfig::FlagCreate);
 
 		KXmlAttribute fiber_attr;
-		fiber_attr.emplace("stack_size"_CS, getUrlValue("fiber_stack_size"));
+		fiber_attr.emplace("stack_size"_CS, uv.get("fiber_stack_size"));
 		kconfig::update("fiber"_CS, 0, nullptr, &fiber_attr, kconfig::EvUpdate | kconfig::FlagCreate);
 
 	} else if (item == 4) {
 		//data exchange
 		KXmlAttribute io_attr;
-		io_attr.emplace("worker"_CS, getUrlValue("worker_io"));
-		io_attr.emplace("max"_CS, getUrlValue("max_io"));
+		io_attr.emplace("worker"_CS, uv.get("worker_io"));
+		io_attr.emplace("max"_CS, uv.get("max_io"));
 		kconfig::update("io"_CS, 0, nullptr, &io_attr, kconfig::EvUpdate | kconfig::FlagCreate);
-		kconfig::update("max_post_size"_CS, 0, &getUrlValue("max_post_size"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("max_post_size"_CS, 0, &uv.get("max_post_size"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 	} else if (item == 5) {
 #ifdef MALLOCDEBUG
-		kconfig::update("mallocdebug"_CS, 0, &getUrlValue("mallocdebug"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("mallocdebug"_CS, 0, &uv.get("mallocdebug"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 #endif
 #ifdef KSOCKET_UNIX
 		kconfig::update("unix_socket"_CS, 0, &getUrlValue("unix_socket"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 #endif
-		kconfig::update("path_info"_CS, 0, &getUrlValue("path_info"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("path_info"_CS, 0, &uv.get("path_info"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 		KXmlAttribute compress_attr;
-		compress_attr.emplace("gzip_level"_CS, getUrlValue("gzip_level"));
+		compress_attr.emplace("gzip_level"_CS, uv.get("gzip_level"));
 #ifdef ENABLE_BROTLI
-		compress_attr.emplace("br_level"_CS, getUrlValue("br_level"));
+		compress_attr.emplace("br_level"_CS, uv.get("br_level"));
 #endif
 #ifdef ENABLE_ZSTD
-		compress_attr.emplace("zstd_level"_CS, getUrlValue("zstd_level"));
+		compress_attr.emplace("zstd_level"_CS, uv.get("zstd_level"));
 #endif
-		compress_attr.emplace("only_cache"_CS, getUrlValue("only_compress_cache"));
-		compress_attr.emplace("min_length"_CS, getUrlValue("min_compress_length"));
+		compress_attr.emplace("only_cache"_CS, uv.get("only_compress_cache"));
+		compress_attr.emplace("min_length"_CS, uv.get("min_compress_length"));
 		kconfig::update("compress"_CS, 0, nullptr, &compress_attr, kconfig::EvUpdate | kconfig::FlagCreate);
-		kconfig::update("server_software"_CS, 0, &getUrlValue("server_software"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
-		kconfig::update("hostname"_CS, 0, &getUrlValue("hostname"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("server_software"_CS, 0, &uv.get("server_software"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("hostname"_CS, 0, &uv.get("hostname"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 #ifdef ENABLE_FATBOY
 		//KXmlAttribute fw_attr;
 		//fw_attr.emplace("bl_time"_CS, getUrlValue("bl_time"));
 		//fw_attr.emplace("wl_time"_CS, getUrlValue("wl_time"));
 #endif
 	} else if (item == 6) {
-		KString errMsg;
-		if (!changeAdminPassword(&urlValue, errMsg)) {
-			return sendErrPage(errMsg.c_str());
-		}
+		return changeAdminPassword(&uv, err_msg);
+	}
+	return true;
+}
+bool KHttpManage::configsubmit() {
+	KStringBuf url;
+	KString errMsg;
+	size_t item = atoi(removeUrlValue("item").c_str());
+	if (!console_config_submit(item, urlValue, errMsg)) {
+		return sendErrPage(errMsg.c_str());
 	}
 	url << "/config?item=" << item;
 	return sendRedirect(url.str().c_str());

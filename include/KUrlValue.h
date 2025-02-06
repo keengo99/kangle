@@ -19,6 +19,15 @@ public:
 	得到一个值，不存在返回NULL
 	*/
 	const char *getx(const char *name) const;
+	KString remove(const KString& name) {
+		auto it = attribute.find(name);
+		if (it == attribute.end()) {
+			return "";
+		}
+		KString value(std::move((*it).second));
+		attribute.erase(it);
+		return value;
+	}
 	bool get(const KString name, KString&value) const;
 	void get(std::map<KString, KString> &values) const;
 	void build_config_base_path(KStringBuf &path, const KString &cfg_file) const;
