@@ -726,7 +726,7 @@ bool console_config_submit(size_t item, KUrlValue& uv,KString &err_msg) {
 		kconfig::update("mallocdebug"_CS, 0, &uv.get("mallocdebug"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 #endif
 #ifdef KSOCKET_UNIX
-		kconfig::update("unix_socket"_CS, 0, &getUrlValue("unix_socket"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		kconfig::update("unix_socket"_CS, 0, &uv.get("unix_socket"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 #endif
 		kconfig::update("path_info"_CS, 0, &uv.get("path_info"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 		KXmlAttribute compress_attr;
