@@ -3,7 +3,7 @@
 #include "WhmExtend.h"
 class WhmCore final : public WhmExtend {
 public:
-	const char* getType() {
+	const char* getType() override {
 		return "core";
 	}
 	whm_call_ptr parse_call(const KString& call) override {
