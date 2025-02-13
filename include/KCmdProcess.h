@@ -21,8 +21,8 @@ class KSPCmdProcess: public KVirtualHostProcess {
 public:
 	KSPCmdProcess();
 	~KSPCmdProcess();
-	KUpstream *PowerResult(KHttpRequest* rq, KPipeStream* st);
-	KPipeStream * PowerThread(KVirtualHost *vh,KExtendProgram *rd);
+	KUpstream *PowerResult(KHttpRequest* rq, KPipeStream* st) override;
+	KPipeStream * PowerThread(KVirtualHost *vh,KExtendProgram *rd) override;
 	void dump_process(const KString& app, kgl::serializable* sl) override {
 		KLocker lock(&stLock);
 		if (!st) {
@@ -35,7 +35,7 @@ public:
 		sl_process->add("app", app);
 		dump_process_info(&st->process, this, sl_process);
 	}
-	void getProcessInfo(const USER_T &user, const KString &name, KWStream &s,int &count)
+	void getProcessInfo(const USER_T &user, const KString &name, KWStream &s,int &count) override
 	{
 		stLock.Lock();
 		if (st) {
@@ -44,7 +44,7 @@ public:
 		}
 		stLock.Unlock();
 	}
-	bool killProcess(int pid) {
+	bool killProcess(int pid) override {
 		stLock.Lock();
 		if (st) {
 			delete st;
@@ -66,7 +66,7 @@ public:
 	}
 #endif//}}
 protected:
-	bool isProcessActive()
+	bool isProcessActive() override
 	{
 		bool result = false;
 		stLock.Lock();		

@@ -152,7 +152,7 @@ public:
 	void build_config_base_path(KStringBuf& path, const KString& cfg_file) const {
 		urlValue.build_config_base_path(path, cfg_file);
 	}
-	const char* getValue(const char* name) {
+	const char* getValue(const char* name) override {
 		if (strncmp(name, "url:", 4) == 0) {
 			return urlValue.getx(name + 4);
 		}
@@ -180,8 +180,8 @@ public:
 		return provider;
 	}
 	bool buildVh();
-	void buildVh(KVirtualHost* vh);
-	void setStatus(const char* statusMsg = NULL) {
+	void buildVh(KVirtualHost* vh) override;
+	void setStatus(const char* statusMsg = NULL) override {
 		if (statusMsg) {
 			if (this->status_msg.size() > 0) {
 				this->status_msg += "|";
@@ -206,7 +206,7 @@ public:
 	bool hasVh() {
 		return vh != NULL;
 	}
-	void redirect(const char* call) {
+	void redirect(const char* call) override {
 		if (redirectCalls.size() > 0) {
 			redirectCalls << ",";
 		}
