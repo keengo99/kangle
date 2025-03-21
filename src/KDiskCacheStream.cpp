@@ -28,8 +28,12 @@ bool KDiskCacheStream::Write(KHttpObject *obj, const char *buf, int len)
 {
 	while (len > 0) {
 		if (buffer == NULL) {
-			buffer_left = conf.io_buffer;
-			buffer = (char *)aio_alloc_buffer(buffer_left);
+			buffer_size = conf.io_buffer;
+			if (buffer_size < 4096) {
+				buffer_size = 4096;
+			}
+			buffer_left = buffer_size;
+			buffer = (char *)aio_alloc_buffer(buffer_size);
 			hot = buffer;
 		}
 		int this_len = KGL_MIN(buffer_left, len);
@@ -70,6 +74,7 @@ bool KDiskCacheStream::FlushBuffer()
 		size -= got;
 	}
 	hot = buffer;
+	buffer_left = buffer_size;
 	return true;
 }
 #endif

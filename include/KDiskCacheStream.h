@@ -56,6 +56,7 @@ private:
 	char* buffer;
 	char* hot;
 	int buffer_left;
+	int buffer_size;
 };
 #endif
 #endif
