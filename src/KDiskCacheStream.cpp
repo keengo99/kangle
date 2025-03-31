@@ -5,15 +5,23 @@
 
 bool KDiskCacheStream::Open(KHttpObject *obj)
 {
+	if (filename) {
+		unlink(filename);
+		xfree(filename);
+		filename = nullptr;
+	}
+	if (fp) {
+		kfiber_file_close(fp);
+		fp = nullptr;
+	}
 	filename = obj->get_filename().release();
-	fileModel model = fileWrite;
-	fp = kfiber_file_open(filename, model, 0);
-	if (fp == NULL) {
+	fp = kfiber_file_open(filename, fileWrite, 0);
+	if (fp == nullptr) {
 		return false;
 	}
 	if (!kasync_file_direct(fp,true)) {
 		kfiber_file_close(fp);
-		fp = NULL;
+		fp = nullptr;
 		return false;
 	}
 	kfiber_file_seek(fp, seekBegin, obj->GetHeaderSize(0));

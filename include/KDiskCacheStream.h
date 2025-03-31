@@ -8,6 +8,7 @@
 class KHttpObject;
 class KHttpRequest;
 class KDiskCacheStream;
+#if 0
 class KDiskCacheContext {
 public:
 	KDiskCacheContext()
@@ -26,6 +27,7 @@ public:
 	KDiskCacheStream *disk_cache;
 	int size;
 };
+#endif
 class KDiskCacheStream {
 public:
 	KDiskCacheStream() {
