@@ -5,6 +5,7 @@
 
 bool KDiskCacheStream::Open(KHttpObject *obj)
 {
+	assert(filename == nullptr && fp == nullptr);
 	if (filename) {
 		unlink(filename);
 		xfree(filename);
