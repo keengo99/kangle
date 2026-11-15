@@ -163,6 +163,10 @@ public:
 	{
 		switch (stage) {
 		case HealthStatus::Err:
+		case HealthStatus::ResponseErr:
+			/* One request at a time: a process that did not answer is hung
+			 * (or dead). gcProcess() puts a live one back at the head of the
+			 * free list, where it would take every next request. */
 			process.kill();
 			break;
 		default:

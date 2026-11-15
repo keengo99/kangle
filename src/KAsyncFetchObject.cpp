@@ -275,7 +275,8 @@ KGL_RESULT KAsyncFetchObject::InternalProcess(KHttpRequest* rq, kfiber** post_fi
 	}
 	if (ret != KGL_OK) {
 		// A connected origin can reject one client or request without returning
-		// HTTP headers. Do not disable the shared node for a response failure.
+		// HTTP headers. Do not disable the shared node for a response failure;
+		// it is reported as ResponseErr, which still recycles a hung local process.
 		return upstream_is_error(rq, STATUS_GATEWAY_TIMEOUT, "cann't read protocol header", false);
 	}
 	return ReadBody(rq);
@@ -923,9 +924,9 @@ KGL_RESULT KAsyncFetchObject::upstream_is_error(KHttpRequest* rq, int error, con
 	if (!rq->ctx.read_huped) {
 		KBIT_SET(rq->sink->data.flags, RQ_UPSTREAM_ERROR);
 		if (client) {
-			if (transport_error && client->IsNew()) {
+			if (client->IsNew()) {
 				//new的才计算错误.
-				client->health(HealthStatus::Err);
+				client->health(transport_error ? HealthStatus::Err : HealthStatus::ResponseErr);
 			}
 			auto url = rq->sink->data.url->getUrl();
 			sockaddr_i* upstream_addr = client->GetAddr();
