@@ -133,6 +133,13 @@ public:
 	bool log_handle;
 private:
 	void rotateLog();
+#ifndef _WIN32
+	// 站点日志(uid/gid>0)位于站点可改名的目录下，打开、翻转改名时不能跟随站点建的链接。
+	// Site logs live below a directory the site may rename: open and rotate
+	// them through klog_open_dir instead of by path.
+	bool open_site_log();
+	int rename_site_log(const char* to);
+#endif
 	KString rotate_time;
 	KFile fp;
 	KTimeMatch rotate;
@@ -141,4 +148,16 @@ private:
 //system default access loger
 extern KLogElement accessLogger;
 extern KLogElement errorLogger;
+#ifndef _WIN32
+// Opens an absolute directory path one component at a time. A symbolic link
+// is followed only when root owns both the link and the directory holding
+// it, so a site cannot redirect root through links it planted. The last
+// component is created (0755) when create_last is set. Returns a directory
+// descriptor or -1 with errno set.
+int klog_open_dir(const char* dir, bool create_last);
+// Splits the file name of a log path into the parts its rotated copies keep:
+// "access.log" rotates to "access" MMDD_HHMMSS ".log".
+void klog_rotated_parts(const char* path, std::string& stem, std::string& ext);
+bool klog_is_rotated_name(const char* name, const std::string& stem, const std::string& ext);
+#endif
 #endif
