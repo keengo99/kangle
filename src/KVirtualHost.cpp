@@ -194,7 +194,15 @@ bool KVirtualHost::alias(bool internal, const char* path, KFileName* file, bool&
 	}
 	return true;
 }
-kgl_auto_cstr KVirtualHost::alias(bool internal, const char* path) {
+kgl_auto_cstr KVirtualHost::alias(bool internal, const char* orig_path) {
+	/* KBaseAlias::matched() appends the rest of the path as is, so a ".."
+	 * left in it would climb out of an absolute alias target. */
+	kgl_auto_cstr normalized_path(xstrdup(orig_path));
+	if (!normalized_path) {
+		return nullptr;
+	}
+	KFileName::tripDir3(normalized_path.get(), '/');
+	const char* path = normalized_path.get();
 	auto len = strlen(path);
 	auto alias = find_alias(internal, path, len);
 	if (!alias) {

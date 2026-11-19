@@ -387,6 +387,86 @@ void test_dechunk() {
 	test_dechunk_rejects("1\r\naX");         // data not followed by CRLF
 	test_dechunk_rejects("9\n123456789\n0\n\n");
 }
+/* Feed one buffer completely; returns false once the engine fails. */
+static bool dechunk_feed_all(KDechunkEngine* engine, const std::string& input) {
+	const char* buf = input.c_str();
+	const char* end = buf + input.size();
+	while (buf < end) {
+		const char* piece;
+		int piece_length;
+		KDechunkResult result = dechunk_feed(engine, &buf, end, &piece, &piece_length);
+		if (result == KDechunkResult::Failed) {
+			return false;
+		}
+		if (result == KDechunkResult::End) {
+			break;
+		}
+	}
+	return true;
+}
+static void test_dechunk_overhead() {
+	// 1-byte chunks with 16000 leading zeros: ~16006 bytes of framing per data byte.
+	std::string flood_chunk(16000, '0');
+	flood_chunk += "1\r\nX\r\n";
+	KDechunkEngine engine;
+	int chunks = 0;
+	while (chunks < 1000 && dechunk_feed_all(&engine, flood_chunk)) {
+		chunks++;
+	}
+	// received / 8 > data + 1MB happens after about 524 such chunks.
+	assert(chunks >= 500 && chunks < 530);
+
+	// Plain 1-byte chunks are 6 bytes per data byte, below the 8x limit.
+	KDechunkEngine small;
+	std::string tiny;
+	for (int i = 0; i < 4096; i++) {
+		tiny += "1\r\nX\r\n";
+	}
+	for (int i = 0; i < 64; i++) {
+		assert(dechunk_feed_all(&small, tiny));
+	}
+	assert(dechunk_feed_all(&small, "0\r\n\r\n"));
+	assert(small.is_success());
+}
+static void test_trip_dir() {
+	struct {
+		const char* in;
+		const char* out;
+	} cases[] = {
+		{ "/dav/../x", "/x" },
+		{ "/../../etc/passwd", "/etc/passwd" },
+		{ "/a/b/../../../c", "/c" },
+		{ "/dav/..\\..\\x", "/x" },
+		{ "/a/./b/", "/a/b/" },
+		{ "/a//b", "/a/b" },
+	};
+	for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+		char* path = xstrdup(cases[i].in);
+		KFileName::tripDir3(path, '/');
+		assert(strcmp(path, cases[i].out) == 0);
+		xfree(path);
+	}
+}
+static void test_alias_traversal() {
+	// An absolute alias target must not be left through ".." in the rest of the path.
+	KVirtualHost* vh = new KVirtualHost("alias_test");
+	vh->doc_root = "/www/";
+	KString err;
+	bool added = vh->addAlias("/dav/", "/data/dav/", vh->doc_root.c_str(), true, -1, err);
+	assert(added);
+	kgl_auto_cstr mapped = vh->alias(true, "/dav/../../../etc/passwd");
+	// Normalized to "/etc/passwd", which no longer matches the "/dav/" alias.
+	assert(!mapped);
+	mapped = vh->alias(true, "/dav/a/../b");
+	std::string expected = "/data/dav/b";
+	for (auto& c : expected) {
+		if (c == '/') {
+			c = PATH_SPLIT_CHAR;
+		}
+	}
+	assert(mapped && expected == mapped.get());
+	vh->release();
+}
 void test_white_list() {
 #ifdef ENABLE_BLACK_LIST
 	kgl_current_sec = time(NULL);
@@ -437,6 +517,9 @@ bool test() {
 	test_vh_container();
 	test_dechunk();
 	test_dechunk2();
+	test_dechunk_overhead();
+	test_trip_dir();
+	test_alias_traversal();
 	test_white_list();
 	test_string();
 	time_t nowTime = time(NULL);

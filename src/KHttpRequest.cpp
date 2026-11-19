@@ -204,6 +204,22 @@ kgl_auto_cstr KHttpRequest::map_url_path(const char* url, KBaseRedirect* caller)
 			svh = nsvh;
 		}
 	}
+	/*
+	 * The url comes from a WebDAV Destination header, an X-Accel-Redirect
+	 * response header or an extension, not from the request line, so it was
+	 * not normalized by beginRequest(). Collapse "." and ".." here, otherwise
+	 * "/dav/../x" passes the path redirect check below and an alias target
+	 * keeps the ".." and escapes its directory.
+	 */
+	kgl_auto_cstr normalized_path(xstrdup(path));
+	if (!normalized_path) {
+		if (nsvh) {
+			nsvh->release();
+		}
+		return NULL;
+	}
+	KFileName::tripDir3(normalized_path.get(), '/');
+	path = normalized_path.get();
 	bool brd_check_passed = true;
 	if (caller != NULL) {
 		auto rd = svh->vh->refsPathRedirect(path, (int)strlen(path));
