@@ -64,7 +64,7 @@ private:
 		return true;
 	}
 
-	int64_t left_read = -1;//发送到用户数据剩余
+	int64_t left_read = -1;//鍙戦�佸埌鐢ㄦ埛鏁版嵁鍓╀綑
 	void tee_output_stream(kgl_output_stream* out);
 };
 struct KBigObjectReadContext

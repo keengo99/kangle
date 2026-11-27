@@ -18,11 +18,11 @@ public:
 	bool loadApi(KApiRedirect *rd);
 	bool shutdown();
 	/*
-	 unix下用setuid
+	 unix涓嬬敤setuid
 	 */
 	bool setuid(int uid, int gid);
 	/*
-	 windows下用logon
+	 windows涓嬬敤logon
 	 */
 	bool logon(const KString &user, const KString &password);
 	bool chroot(const char *dir);

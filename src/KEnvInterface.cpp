@@ -20,8 +20,14 @@ KEnvInterface::~KEnvInterface() {
 }
 bool KEnvInterface::add_http_env(const char* attr, size_t attr_len, const char* val, size_t val_len)
 {
+	if (attr == NULL || val == NULL || attr_len > SIZE_MAX - 6) {
+		return false;
+	}
 	size_t dst_len = attr_len + 5;
 	char* dst = (char*)xmalloc(dst_len + 1);
+	if (dst == NULL) {
+		return false;
+	}
 	dst[dst_len] = '\0';
 	char* hot = dst;
 	memcpy(hot, _KS("HTTP_"));
@@ -41,6 +47,9 @@ bool KEnvInterface::add_http_env(const char* attr, size_t attr_len, const char* 
 	return result;
 }
 bool KEnvInterface::add_http_header(const char* attr, size_t attr_len, const char* val, size_t val_len) {
+	if (attr == NULL || val == NULL) {
+		return false;
+	}
 	if (kgl_is_attr(attr, attr_len, _KS("Content-Type"))) {
 		return add_content_type(val, val_len);
 	}
@@ -50,6 +59,9 @@ bool KEnvInterface::add_http_header(const char* attr, size_t attr_len, const cha
 	return add_http_env(attr, attr_len, val, val_len);
 }
 bool KEnvInterface::addEnv(const char* attr, int val) {
+	if (attr == NULL) {
+		return false;
+	}
 	char buf[16];
 	snprintf(buf, 15, "%d", val);
 	return addEnv(attr, buf);

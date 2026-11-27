@@ -5,7 +5,7 @@
 #include "KReg.h"
 #include "KStringBuf.h"
 /*
- Ìõ¼þ²âÊÔ»ùÀà
+ æ¡ä»¶æµ‹è¯•åŸºç±»
  */
 class KRewriteCondTestor {
 public:
@@ -19,7 +19,7 @@ public:
 	virtual bool parse(const char *str, bool nc) = 0;
 };
 /*
- ÎÄ¼þÊôÐÔ²âÊÔ
+ æ–‡ä»¶å±žæ€§æµ‹è¯•
  */
 class KFileAttributeTestor: public KRewriteCondTestor {
 public:
@@ -42,7 +42,7 @@ private:
 	char type;
 };
 /*
- ÕýÔò±í´ïÊ½²âÊÔ
+ æ­£åˆ™è¡¨è¾¾å¼æµ‹è¯•
  */
 class KRegexTestor: public KRewriteCondTestor {
 public:
@@ -63,7 +63,7 @@ private:
 	KReg reg;
 };
 /*
- ×Ö·û´®±È½Ï²âÊÔ
+ å­—ç¬¦ä¸²æ¯”è¾ƒæµ‹è¯•
  */
 class KCompareTestor: public KRewriteCondTestor {
 public:
@@ -81,9 +81,9 @@ public:
 			return false;
 		}
 		if (nc) {
-			r = strcasecmp(str+1, buf );
+			r = strcasecmp(buf, str + 1);
 		} else {
-			r = strcmp(str+1, buf);
+			r = strcmp(buf, str + 1);
 		}
 		switch (*str) {
 		case '>':
@@ -172,6 +172,8 @@ public:
 	bool qsa;
 	char *proxy;
 	int code;
+	// answer with this status when the rule matches ([F] and [G]), 0 if not
+	int status;
 };
 class KRewriteMarkEx: public KMark {
 public:

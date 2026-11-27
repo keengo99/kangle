@@ -64,13 +64,17 @@ static char* next_line(multipart_buffer* self) {
 
 	} else {	/* no LF found */
 
-		/* buffer isn't completely full, fail */
-		if (self->bytes_in_buffer < self->bufsize) {
+		/* The rest may be a boundary line split between reads: wait for
+		 * more data. Only a line longer than the boundary (plus CR) cannot
+		 * be one and is dropped. Taking every partial line as complete let
+		 * a client hide a boundary, and the part after it, by splitting
+		 * the line across two packets. */
+		if (self->bytes_in_buffer <= self->boundary_next_len) {
 			return NULL;
 		}
 		/* return entire buffer as a partial line */
-		line[self->bufsize] = 0;
-		self->buf_begin = ptr;
+		line[self->bytes_in_buffer] = 0;
+		self->buf_begin = line + self->bytes_in_buffer;
 		self->bytes_in_buffer = 0;
 	}
 
@@ -218,6 +222,9 @@ KMultiPartInputFilter::KMultiPartInputFilter(const char* val, size_t len) {
 	const char* hot = (char*)kgl_memstr(val, len, _KS("boundary"));
 	if (!hot) {
 		char* content_type_lcase = kgl_strndup(val, len);
+		if (content_type_lcase == NULL) {
+			return;
+		}
 		string2lower2(content_type_lcase, len);
 		hot = strstr(content_type_lcase, "boundary");
 		if (hot) {
@@ -232,10 +239,14 @@ KMultiPartInputFilter::KMultiPartInputFilter(const char* val, size_t len) {
 	}
 	hot++;
 	size_t boundary_len = end - hot;
+	if (boundary_len == 0) {
+		return;
+	}
 
 	const char* boundary_end;
 	if (hot[0] == '"') {
 		hot++;
+		boundary_len--;
 		boundary_end = (char*)memchr(hot, '"', boundary_len);
 		if (!boundary_end) {
 			//  sapi_module.sapi_error(E_WARNING, "Invalid boundary in multipart/form-data POST data");
@@ -248,12 +259,25 @@ KMultiPartInputFilter::KMultiPartInputFilter(const char* val, size_t len) {
 	if (boundary_end) {
 		boundary_len = boundary_end - hot;
 	}
+	if (boundary_len == 0) {
+		return;
+	}
 	mb = new multipart_buffer;
 	mb->boundary = (char*)malloc(boundary_len + 3);
+	if (mb->boundary == NULL) {
+		delete mb;
+		mb = NULL;
+		return;
+	}
 	mb->boundary[0] = mb->boundary[1] = '-';
 	kgl_memcpy(mb->boundary + 2, hot, boundary_len);
 	mb->boundary[boundary_len + 2] = '\0';
 	mb->boundary_next = (char*)malloc(boundary_len + 4);
+	if (mb->boundary_next == NULL) {
+		delete mb;
+		mb = NULL;
+		return;
+	}
 	mb->boundary_next[0] = '\n';
 	kgl_memcpy(mb->boundary_next + 1, mb->boundary, boundary_len + 2);
 	mb->boundary_next_len = (int)(boundary_len + 3);
@@ -264,12 +288,16 @@ bool KMultiPartInputFilter::match(KInputFilterContext* rq, const char* str, int 
 		return false;
 	}
 	if (str) {
-		mb->add(str, len);
+		if (!mb->add(str, len)) {
+			delete mb;
+			mb = NULL;
+			return false;
+		}
 	}
 	while (!multipart_eof(mb, isLast)) {
 		if (mb->model == MULTIPART_BODY_MODEL) {
 			bool success;
-			if (match_body(success)) {
+			if (match_body(success, isLast)) {
 				return true;
 			}
 			if (!success) {
@@ -279,7 +307,7 @@ bool KMultiPartInputFilter::match(KInputFilterContext* rq, const char* str, int 
 		}
 		if (mb->model == MULTIPART_BOUNDARY_MODEL) {
 			if (!find_boundary(mb)) {
-				return JUMP_ALLOW;
+				return false;
 			}
 			mb->model = MULTIPART_HEAD_MODEL;
 			continue;
@@ -302,6 +330,11 @@ bool KMultiPartInputFilter::match(KInputFilterContext* rq, const char* str, int 
 			mb = NULL;
 			return false;
 		default:
+			/* Part headers are reparsed from the start on each read; no
+			 * real form sends this much, refuse instead of buffering it. */
+			if (mb->bytes_in_buffer > MULTIPART_MAX_HEAD) {
+				return true;
+			}
 			return false;
 		}
 		if ((cd = get_hdr_value(hm.header, _KS("Content-Disposition")))) {
@@ -347,7 +380,7 @@ bool KMultiPartInputFilter::match(KInputFilterContext* rq, const char* str, int 
 				}
 			}
 			if (hm.header) {
-				xfree_header(hm.header);
+				free_header_list(hm.header);
 				memset(&hm, 0, sizeof(hm));
 			}
 
@@ -371,7 +404,9 @@ kgl_parse_result KMultiPartInputFilter::parse_header() {
 		case kgl_parse_error:
 			return ret;
 		case kgl_parse_success:
-			hm.add_header(rs.attr, rs.attr_len, rs.val, rs.val_len);
+			if (!hm.add_header(rs.attr, rs.attr_len, rs.val, rs.val_len)) {
+				return kgl_parse_error;
+			}
 			continue;
 		case kgl_parse_finished:
 			mb->model = MULTIPART_BODY_MODEL;
@@ -391,29 +426,25 @@ bool KMultiPartInputFilter::match_file_content(const char* buf, int len) {
 	}
 	return false;
 }
-bool KMultiPartInputFilter::match_body(bool& success) {
+bool KMultiPartInputFilter::match_body(bool& success, bool isLast) {
 	mb->model = MULTIPART_BODY_MODEL;
 	int len;
 	bool all = !filename;
-	char* buf = parse_body(&len, all);
+	char* buf = parse_body(&len, all, isLast);
 	if (buf) {
 		success = true;
-		if (all) {
-			mb->model = MULTIPART_BOUNDARY_MODEL;
-		}
-		if (filename) {
-			if (match_file_content(buf, len)) {
-				return true;
-			}
 			if (all) {
+				mb->model = MULTIPART_BOUNDARY_MODEL;
+			}
+			if (filename) {
 				if (match_file_content(buf, len)) {
+					free(buf);
 					return true;
 				}
-				file_list.clear();
-			}
-		} else if (param) {
+			} else if (param) {
 			len = url_decode(buf, len, NULL, true);
 			if (match_param(param, param_len, buf, len)) {
+				free(buf);
 				return true;
 			}
 		}
@@ -423,32 +454,59 @@ bool KMultiPartInputFilter::match_body(bool& success) {
 	}
 	return false;
 }
-char* KMultiPartInputFilter::parse_body(int* len, bool& all) {
+char* KMultiPartInputFilter::parse_body(int* len, bool& all, bool isLast) {
 	int max;
 	char* bound;
 	if (mb->bytes_in_buffer <= 0) {
 		return NULL;
 	}
-
-	if ((bound = (char*)kgl_memstr(mb->buf_begin, mb->bytes_in_buffer, mb->boundary_next, mb->boundary_next_len))) {
+	int skip = mb->searched;
+	if (skip < 0 || skip > mb->bytes_in_buffer) {
+		skip = 0;
+	}
+	if ((bound = (char*)kgl_memstr(mb->buf_begin + skip, mb->bytes_in_buffer - skip, mb->boundary_next, mb->boundary_next_len))) {
 		max = bound - mb->buf_begin;
+		all = true;
+	} else if (isLast) {
+		/* No closing boundary: PHP still takes the rest as this part's
+		 * value, so it must be checked too. */
+		max = mb->bytes_in_buffer;
 		all = true;
 	} else {
 		if (all) {
+			/* A field value is checked whole: wait for its boundary. Next
+			 * time search only new bytes, keeping enough of the old ones
+			 * for a boundary split between reads. */
+			mb->searched = mb->bytes_in_buffer - mb->boundary_next_len + 1;
+			if (mb->searched < 0) {
+				mb->searched = 0;
+			}
 			return NULL;
 		}
-		max = mb->bytes_in_buffer;
+		//keep the tail, it may be the beginning of a boundary split by reads.
+		max = mb->bytes_in_buffer - mb->boundary_next_len;
+		if (max <= 0) {
+			return NULL;
+		}
 	}
 	*len = max;
-	if (*len > 0) {
+	if (*len >= 0 && (bound || *len > 0)) {
 		char* buf = (char*)malloc(*len + 1);
-		kgl_memcpy(buf, mb->buf_begin, *len);
-		buf[*len] = '\0';
-		if (bound && buf[*len - 1] == '\r') {
-			buf[--(*len)] = 0;
+		if (buf == NULL) {
+			return NULL;
 		}
-		mb->bytes_in_buffer -= *len;
-		mb->buf_begin += *len;
+		if (*len > 0) {
+			kgl_memcpy(buf, mb->buf_begin, *len);
+		}
+		buf[*len] = '\0';
+		int consumed = *len;
+		if (bound && *len > 0 && buf[*len - 1] == '\r') {
+			buf[--(*len)] = 0;
+			consumed = *len + 1; /* still skip the CR in the input buffer */
+		}
+		mb->bytes_in_buffer -= consumed;
+		mb->buf_begin += consumed;
+		mb->searched = 0;
 		return buf;
 	}
 	return NULL;

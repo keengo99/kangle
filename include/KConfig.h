@@ -127,6 +127,10 @@ public:
 };
 
 inline kgl_auto_cstr getPath(const char* file) {
+	// Windows API commands (KGL_REQ_COMMAND) have no application path.
+	if (file == nullptr) {
+		return kgl_auto_cstr(nullptr);
+	}
 	char* path = strdup(file);
 	char* e = path + strlen(path);
 	while (e > path) {
@@ -204,11 +208,11 @@ public:
 
 
 	unsigned max_connect_info;
-	//Ö»Ñ¹Ëõ¿ÉÒÔcacheµÄÎï¼ş
+	//åªå‹ç¼©å¯ä»¥cacheçš„ç‰©ä»¶
 	int only_compress_cache;
-	//×îĞ¡Ñ¹Ëõ³¤¶È
+	//æœ€å°å‹ç¼©é•¿åº¦
 	unsigned min_compress_length;
-	//Ñ¹Ëõ¼¶±ğ(1-9)
+	//å‹ç¼©çº§åˆ«(1-9)
 	int gzip_level;
 	int br_level;
 	int zstd_level;
@@ -224,13 +228,13 @@ public:
 	bool unix_socket = true;
 #endif
 #ifdef ENABLE_VH_FLOW
-	//×Ô¶¯Ë¢ĞÂÁ÷Á¿Ê±¼ä(Ãë)
+	//è‡ªåŠ¨åˆ·æ–°æµé‡æ—¶é—´(ç§’)
 	int flush_flow_time;
 #endif
 
 	char error_url[64] = { 0 };
 #ifdef ENABLE_BLACK_LIST
-	//°×Ãûµ¥Ê±¼ä
+	//ç™½åå•æ—¶é—´
 	int wl_time = 1800;
 	int bl_time;
 	char block_ip_cmd[512];
@@ -247,11 +251,11 @@ class KConfig : public KConfigBase
 public:
 	~KConfig();
 	KVirtualHostManage* vm;
-	//run_user,run_groupÎªÒ»´ÎĞÔÊ¹ÓÃ£¬¿ÉÒÔ°²È«ÓÃstring
+	//run_user,run_groupä¸ºä¸€æ¬¡æ€§ä½¿ç”¨ï¼Œå¯ä»¥å®‰å…¨ç”¨string
 	KString run_user;
 	KString run_group;
 };
-//ÅäÖÃ²ÎÊıºÍ³ÌĞòÔËĞĞĞÅÏ¢
+//é…ç½®å‚æ•°å’Œç¨‹åºè¿è¡Œä¿¡æ¯
 class KGlobalConfig : public KConfig
 {
 public:
@@ -264,10 +268,10 @@ public:
 	KString admin_user;
 	std::vector<KString> admin_ips;
 	/////////////////////////////////////////////////////////
-	//ÒÔÏÂÊÇÅäÖÃµÄ±àÒë½á¹û£¬Ã¿´ÎÅäÖÃÎÄ¼ş¸ü¸Ä£¬¶¼ÒªÖØĞÂÉú³É
+	//ä»¥ä¸‹æ˜¯é…ç½®çš„ç¼–è¯‘ç»“æœï¼Œæ¯æ¬¡é…ç½®æ–‡ä»¶æ›´æ”¹ï¼Œéƒ½è¦é‡æ–°ç”Ÿæˆ
 	KTimeMatch diskWorkTime;
 	/////////////////////////////////////////////////////////
-	//ÒÔÏÂÊÇ³ÌĞòÔËĞĞĞÅÏ¢,Ö»ÔÚ³ÌĞòÆô¶¯Ç°³õÊ¼»¯Ò»´Î...
+	//ä»¥ä¸‹æ˜¯ç¨‹åºè¿è¡Œä¿¡æ¯,åªåœ¨ç¨‹åºå¯åŠ¨å‰åˆå§‹åŒ–ä¸€æ¬¡...
 	std::list<KString> mergeFiles;
 	std::map<KString, std::vector<KSafeListen>> services;
 	int worker_dns;
@@ -275,7 +279,7 @@ public:
 	//int fiber_stack_size;
 	int max_io;
 	unsigned io_buffer;
-	//Ä¬ÈÏÊÇ·ñ»º´æ,1=ÊÇ,ÆäËü=²»
+	//é»˜è®¤æ˜¯å¦ç¼“å­˜,1=æ˜¯,å…¶å®ƒ=ä¸
 	int default_cache = 1;
 	unsigned max_cache_size = 1048576;
 	INT64 mem_cache = 100 * 1024 * 1024;
@@ -305,7 +309,7 @@ public:
 #endif
 	int log_radio = 0;
 	int refresh_time = 30;
-	//Êµ¼ÊÓÃµÄÊ±ºòÓÃdisk_cahce_dir.
+	//å®é™…ç”¨çš„æ—¶å€™ç”¨disk_cahce_dir.
 	char disk_cache_dir2[512] = { 0 };
 	char disk_cache_dir[512] = { 0 };
 	char cookie_stick_name[16] = { 0 };
@@ -324,7 +328,7 @@ public:
 	void set_time_out(unsigned val) {
 		time_out = val;
 		if (time_out < 5) {
-			//×îĞ¡³¬Ê±Îª5Ãë
+			//æœ€å°è¶…æ—¶ä¸º5ç§’
 			time_out = 5;
 		}
 	}
@@ -341,12 +345,12 @@ public:
 	bool mallocdebug = false;
 #endif
 #ifdef _WIN32
-	//kangle³ÌĞòËùÔÚµÄÅÌ·û
+	//kangleç¨‹åºæ‰€åœ¨çš„ç›˜ç¬¦
 	KString diskName;
 #endif
 	KAcserverManager* gam;
 	KVirtualHostManage* gvm;
-	//3311µÄÄÚÖÃĞéÄâÖ÷»ú
+	//3311çš„å†…ç½®è™šæ‹Ÿä¸»æœº
 	KVirtualHost* sysHost;
 	KDsoExtendManage* dem;
 };
@@ -354,7 +358,7 @@ extern KGlobalConfig conf;
 extern int m_debug;
 extern int kgl_cpu_number;
 void do_config(bool first_time);
-//Çå³ıÅäÖÃÎÄ¼ş£¬ÓÃÓÚÄÚ´æĞ¹Â©¼ì²âÊ±£¬²Åµ÷ÓÃ
+//æ¸…é™¤é…ç½®æ–‡ä»¶ï¼Œç”¨äºå†…å­˜æ³„æ¼æ£€æµ‹æ—¶ï¼Œæ‰è°ƒç”¨
 void clean_config();
 void wait_load_config_done();
 bool saveConfig();

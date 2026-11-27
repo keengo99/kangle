@@ -18,9 +18,17 @@ swap_in_result KHttpObjectSwaping::swapin_proress(KHttpObject* obj, KHttpObjectB
 		kfiber_file_close(file);
 		return swap_in_failed_open;
 	}
-	int size = (int)kfiber_file_size(file);
-	size = (int)(KGL_MIN(16384, size));
+	int64_t file_size = kfiber_file_size(file);
+	if (file_size <= 0) {
+		kfiber_file_close(file);
+		return swap_in_failed_read;
+	}
+	int size = (int)(KGL_MIN((int64_t)16384, file_size));
 	char* buf = (char*)aio_alloc_buffer(size);
+	if (buf == nullptr) {
+		kfiber_file_close(file);
+		return swap_in_failed_other;
+	}
 	char* hot = buf;
 	int left = size;
 	swap_in_result result = swap_in_success;
@@ -43,11 +51,21 @@ clean:
 	return result;
 }
 #endif
-void KHttpObjectSwaping::swapin_body_result(KHttpObjectBody* data, char* buf, int got, kbuf** last)
+bool KHttpObjectSwaping::swapin_body_result(KHttpObjectBody* data, char* buf, int got, kbuf** last)
 {
+	if (got <= 0) {
+		return true;
+	}
 	kbuf* tmp = (kbuf*)malloc(sizeof(kbuf));
+	if (tmp == nullptr) {
+		return false;
+	}
 	tmp->used = got;
 	tmp->data = (char*)malloc(got);
+	if (tmp->data == nullptr) {
+		free(tmp);
+		return false;
+	}
 	kgl_memcpy(tmp->data, buf, got);
 	tmp->flags = 0;
 	tmp->next = NULL;
@@ -58,10 +76,14 @@ void KHttpObjectSwaping::swapin_body_result(KHttpObjectBody* data, char* buf, in
 		(*last)->next = tmp;
 	}
 	(*last) = tmp;
+	return true;
 }
 swap_in_result KHttpObjectSwaping::swapin_head(kfiber_file* fp, KHttpObject* obj, KHttpObjectBody* data)
 {
 	char* buf = (char*)aio_alloc_buffer(obj->index.head_size);
+	if (buf == nullptr) {
+		return swap_in_failed_other;
+	}
 	char* hot = buf;
 	int left_read = obj->index.head_size;
 	swap_in_result result = swap_in_success;
@@ -89,11 +111,18 @@ clean:
 }
 swap_in_result KHttpObjectSwaping::swapin_head_body(kfiber_file* fp, KHttpObject* obj, KHttpObjectBody* data)
 {
+	if (obj->index.content_length < 0 ||
+		obj->index.content_length > INT64_MAX - obj->index.head_size) {
+		return swap_in_failed_format;
+	}
 	INT64 left_read = obj->index.content_length + obj->index.head_size;
 	INT64 alloc_size = KGL_MIN((INT64)conf.io_buffer, left_read);
 	alloc_size = KGL_MAX(alloc_size, obj->index.head_size);
 	alloc_size = kgl_align(alloc_size, kgl_aio_align_size);
 	char* buf = (char*)aio_alloc_buffer((int)alloc_size);
+	if (buf == nullptr) {
+		return swap_in_failed_other;
+	}
 	swap_in_result result = swap_in_success;
 	char* hot = buf;
 	int buf_left = (int)alloc_size;
@@ -117,9 +146,16 @@ swap_in_result KHttpObjectSwaping::swapin_head_body(kfiber_file* fp, KHttpObject
 				result = swap_in_failed_parse;
 				goto clean;
 			}
-			swapin_body_result(data, buf + obj->index.head_size, buf_size - obj->index.head_size, &last);
+			if (!swapin_body_result(data, buf + obj->index.head_size,
+				buf_size - obj->index.head_size, &last)) {
+				result = swap_in_failed_other;
+				goto clean;
+			}
 		} else {
-			swapin_body_result(data, buf, (int)(hot - buf), &last);
+			if (!swapin_body_result(data, buf, (int)(hot - buf), &last)) {
+				result = swap_in_failed_other;
+				goto clean;
+			}
 		}
 		hot = buf;
 		buf_left = (int)alloc_size;
@@ -174,6 +210,10 @@ void KHttpObjectSwaping::notice(KHttpObject* obj, KHttpObjectBody* data, swap_in
 	assert(obj->data->i.type == SWAPING_OBJECT);
 	KHttpObjectBody* osData = obj->data;
 	assert(osData && osData->os == this);
+	if (result != swap_in_success && data) {
+		delete data;
+		data = NULL;
+	}
 	KMutex* lock = obj->getLock();
 	lock->Lock();
 	obj->data = data;

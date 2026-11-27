@@ -23,6 +23,11 @@
 #include "KChain.h"
 #include "ssl_utils.h"
 #include "KProcessManage.h"
+#include "KReg.h"
+#include "KIpList.h"
+#include "KMultiAcserver.h"
+#include "KHttpAuth.h"
+#include "kmd5.h"
 
 static int config_result(kconfig::KConfigResult rs, WhmContext* ctx) {
 	switch (rs) {
@@ -68,6 +73,131 @@ static KSafeAccess whm_get_access(WhmContext* ctx) {
 #endif
 	return KSafeAccess(kaccess[access_type]->add_ref());
 }
+static KString whm_get_table_name(const KUrlValue* uv) {
+	if (!uv->get("table_name").empty()) {
+		return uv->get("table_name");
+	}
+	if (!uv->get("table").empty()) {
+		return uv->get("table");
+	}
+	return uv->get("name");
+}
+static bool whm_is_json(const KUrlValue* uv) {
+	return strcasecmp(uv->get("format").c_str(), "json") == 0;
+}
+int WhmCore::call_clean_cache(const char* call_name, const char* event_type, WhmContext* ctx) {
+	auto uv = ctx->getUrlValue();
+	std::string urls = uv->get("url").c_str();
+	if (urls.empty()) {
+		ctx->setStatus("url is missing");
+		return WHM_CALL_FAILED;
+	}
+
+	int count = 0;
+	size_t start = 0;
+	for (;;) {
+		size_t end = urls.find(", ", start);
+		std::string item = urls.substr(start, end == std::string::npos ? std::string::npos : end - start);
+		if (!item.empty()) {
+			const char* value = item.c_str();
+			switch (*value) {
+			case '1': {
+				KReg reg;
+				if (reg.setModel(value + 1, 0)) {
+					count += clean_cache(&reg, 0);
+				}
+				break;
+			}
+			case '2': {
+				KReg reg;
+				if (reg.setModel(value + 1, KGL_PCRE_CASELESS)) {
+					count += clean_cache(&reg, 0);
+				}
+				break;
+			}
+			case '3':
+				count += clean_cache(value + 1, true);
+				break;
+			case '0':
+				++value;
+				// fall through
+			default:
+				count += clean_cache(value, false);
+				break;
+			}
+		}
+		if (end == std::string::npos) {
+			break;
+		}
+		start = end + 2;
+	}
+	ctx->add("count", count);
+	return WHM_OK;
+}
+int WhmCore::call_cache_info(const char* call_name, const char* event_type, WhmContext* ctx) {
+	auto urls = std::string(ctx->getUrlValue()->get("url").c_str());
+	if (urls.empty()) {
+		ctx->setStatus("url is missing");
+		return WHM_PARAM_ERROR;
+	}
+	KCacheInfo info{};
+	int count = 0;
+	size_t start = 0;
+	for (;;) {
+		auto end = urls.find(", ", start);
+		auto item = urls.substr(start, end == std::string::npos ? std::string::npos : end - start);
+		if (!item.empty()) {
+			const char* url = item.c_str();
+			bool wide = false;
+			if (*url == '0') {
+				++url;
+			} else if (*url == '3') {
+				++url;
+				wide = true;
+			}
+			count += get_cache_info(url, wide, &info);
+		}
+		if (end == std::string::npos) {
+			break;
+		}
+		start = end + 2;
+	}
+	ctx->add("mem_size", info.mem_size);
+	ctx->add("disk_size", info.disk_size);
+	ctx->add("count", count);
+	return WHM_OK;
+}
+int WhmCore::call_cache_prefetch(const char* call_name, const char* event_type, WhmContext* ctx) {
+#ifdef ENABLE_SIMULATE_HTTP
+	auto urls = std::string(ctx->getUrlValue()->get("url").c_str());
+	if (urls.empty()) {
+		ctx->setStatus("url is missing");
+		return WHM_PARAM_ERROR;
+	}
+	int count = 0;
+	size_t start = 0;
+	for (;;) {
+		auto end = urls.find(", ", start);
+		auto item = urls.substr(start, end == std::string::npos ? std::string::npos : end - start);
+		if (!item.empty() && cache_prefetch(item.c_str())) {
+			++count;
+		}
+		if (end == std::string::npos) {
+			break;
+		}
+		start = end + 2;
+	}
+	ctx->add("count", count);
+	return WHM_OK;
+#else
+	ctx->setStatus("cache prefetch not supported");
+	return WHM_CALL_NOT_FOUND;
+#endif
+}
+int WhmCore::call_clean_all_cache(const char* call_name, const char* event_type, WhmContext* ctx) {
+	dead_all_obj();
+	return WHM_OK;
+}
 int WhmCore::call_add_table(const char* call_name, const char* event_type, WhmContext* ctx) {
 	KStringBuf name;
 	KStringBuf path;
@@ -75,7 +205,7 @@ int WhmCore::call_add_table(const char* call_name, const char* event_type, WhmCo
 	auto uv = ctx->getUrlValue();
 	auto vh = ctx->getVh();
 	auto vh_name = uv->getx("vh");
-	auto table_name = uv->get("name");
+	auto table_name = whm_get_table_name(uv);
 	if (table_name.empty()) {
 		ctx->setStatus("table name is empty");
 		return WHM_CALL_FAILED;
@@ -100,40 +230,117 @@ int WhmCore::call_add_table(const char* call_name, const char* event_type, WhmCo
 		return config_result(kconfig::update(path.str().str(), 0, xml.get(), flag), ctx);
 	}
 }
+int WhmCore::call_empty_table(const char* call_name, const char* event_type, WhmContext* ctx) {
+	auto uv = ctx->getUrlValue();
+	auto access = whm_get_access(ctx);
+	if (!access) {
+		return WHM_CALL_FAILED;
+	}
+	auto table_name = whm_get_table_name(uv);
+	if (table_name.empty()) {
+		ctx->setStatus("table name is empty");
+		return WHM_PARAM_ERROR;
+	}
+	for (;;) {
+		KChainLocation location;
+		if (!access->find_chain_location(table_name, nullptr, location)) {
+			return WHM_OK;
+		}
+		KStringBuf path;
+		ctx->build_config_base_path(path, location.file);
+		path << access->get_qname() << "/table@" << table_name << "/chain"_CS;
+		auto result = location.file.empty()
+			? kconfig::remove(path.str().str(), location.id)
+			: kconfig::remove(location.file.str(), path.str().str(), location.id);
+		if (result != kconfig::KConfigResult::Success) {
+			return config_result(result, ctx);
+		}
+	}
+}
 int WhmCore::call_get_chain(const char* call_name, const char* event_type, WhmContext* ctx) {
 	auto access = whm_get_access(ctx);
 	if (!access) {
 		return WHM_CALL_FAILED;
 	}
-	return access->get_chain(ctx, ctx->getUrlValue()->get("table"));
+	return access->get_chain(ctx, whm_get_table_name(ctx->getUrlValue()));
 }
 int WhmCore::call_edit_chain(const char* call_name, const char* event_type, WhmContext* ctx) {
-	KStringBuf path;
 	auto access = whm_get_access(ctx);
 	if (!access) {
 		return WHM_CALL_FAILED;
 	}
 	auto&& uv = ctx->getUrlValue();
 	auto file = ctx->get_vh_config_file();
-	ctx->build_config_base_path(path, file);
-	path << access->get_qname() << "/table@" << uv->get("table") << "/chain"_CS;
+	auto table_name = whm_get_table_name(uv);
+	if (table_name.empty()) {
+		ctx->setStatus("table name is empty");
+		return WHM_PARAM_ERROR;
+	}
 	auto id = uv->attribute.get_int("id");
-	auto add = uv->attribute.get_int("add");
+	auto add = strcmp(call_name, "add_chain") == 0 || uv->attribute.get_int("add");
+	if (!add && uv->getx("id") == nullptr) {
+		KChainLocation location;
+		auto name = uv->get("name");
+		if (name.empty()) {
+			ctx->setStatus("chain name is empty");
+			return WHM_PARAM_ERROR;
+		}
+		if (access->find_chain_location(table_name, &name, location)) {
+			file = location.file;
+			id = location.id;
+		} else {
+			// The legacy WHM edit_chain call is an upsert when a chain name is
+			// supplied.  EasyPanel relies on this while rebuilding access.xml
+			// from access.xml.db after first emptying the destination table.
+			add = true;
+			id = 0;
+		}
+	}
+	KStringBuf path;
+	ctx->build_config_base_path(path, file);
+	path << access->get_qname() << "/table@" << table_name << "/chain"_CS;
+	auto xml = KChain::to_xml(*uv);
 	if (add) {
 		if (file.empty()) {
-			return config_result(kconfig::update(path.str().str(), id, KChain::to_xml(*uv).get(), kconfig::EvNew), ctx);
+			return config_result(kconfig::update(path.str().str(), id, xml.get(), kconfig::EvNew), ctx);
 		}
-		return config_result(kconfig::update(file.str(), path.str().str(), id, KChain::to_xml(*uv).get(), kconfig::EvNew),ctx);
+		return config_result(kconfig::update(file.str(), path.str().str(), id, xml.get(), kconfig::EvNew),ctx);
 	}
-	return config_result(kconfig::update(file.str(), path.str().str(), id, KChain::to_xml(*uv).get(), kconfig::EvUpdate), ctx);
+	if (file.empty()) {
+		return config_result(kconfig::update(path.str().str(), id, xml.get(), kconfig::EvUpdate), ctx);
+	}
+	return config_result(kconfig::update(file.str(), path.str().str(), id, xml.get(), kconfig::EvUpdate), ctx);
 }
 int WhmCore::call_del_chain(const char* call_name, const char* event_type, WhmContext* ctx) {
 	KStringBuf path;
 	auto uv = ctx->getUrlValue();
+	auto access = whm_get_access(ctx);
+	if (!access) {
+		return WHM_CALL_FAILED;
+	}
+	auto table_name = whm_get_table_name(uv);
+	if (table_name.empty()) {
+		ctx->setStatus("table name is empty");
+		return WHM_PARAM_ERROR;
+	}
 	auto file = ctx->get_vh_config_file();
+	auto id = uv->attribute.get_int("id");
+	if (uv->getx("id") == nullptr) {
+		KChainLocation location;
+		auto name = uv->get("name");
+		if (name.empty() || !access->find_chain_location(table_name, &name, location)) {
+			ctx->setStatus("chain not found");
+			return WHM_PARAM_ERROR;
+		}
+		file = location.file;
+		id = location.id;
+	}
 	ctx->build_config_base_path(path, file);
-	path << uv->get("access") << "/table@"_CS << uv->get("table") << "/chain";
-	return config_result(kconfig::remove(file.str(), path.str().str(), uv->attribute.get_int("id")), ctx);
+	path << access->get_qname() << "/table@"_CS << table_name << "/chain";
+	if (file.empty()) {
+		return config_result(kconfig::remove(path.str().str(), id), ctx);
+	}
+	return config_result(kconfig::remove(file.str(), path.str().str(), id), ctx);
 }
 int WhmCore::call_del_table(const char* call_name, const char* event_type, WhmContext* ctx) {
 	auto uv = ctx->getUrlValue();
@@ -141,7 +348,12 @@ int WhmCore::call_del_table(const char* call_name, const char* event_type, WhmCo
 	if (!access) {
 		return WHM_CALL_NOT_FOUND;
 	}
-	if (access->is_table_used(uv->get("name"))) {
+	auto table_name = whm_get_table_name(uv);
+	if (table_name.empty()) {
+		ctx->setStatus("table name is empty");
+		return WHM_PARAM_ERROR;
+	}
+	if (access->is_table_used(table_name)) {
 		ctx->setStatus("table is used");
 		return WHM_CALL_FAILED;
 	}
@@ -150,7 +362,7 @@ int WhmCore::call_del_table(const char* call_name, const char* event_type, WhmCo
 	KStringBuf path;
 	auto file = ctx->get_vh_config_file();
 	ctx->build_config_base_path(path, file.str());
-	path << access->get_qname() << "/table@"_CS << uv->get("name");
+	path << access->get_qname() << "/table@"_CS << table_name;
 	if (!file.empty()) {
 		return config_result(kconfig::remove(file.str(), path.str().str(), 0), ctx);
 	}
@@ -161,14 +373,27 @@ int WhmCore::call_list_chain(const char* call_name, const char* event_type, WhmC
 	if (!maccess) {
 		return WHM_CALL_FAILED;
 	}
-	return maccess->dump_chain(ctx, ctx->getUrlValue()->get("table"));
+	auto uv = ctx->getUrlValue();
+	auto table_name = whm_get_table_name(uv);
+	if (!whm_is_json(uv) && !uv->get("table_name").empty()) {
+		KStringBuf xml;
+		auto name = uv->get("name");
+		const KString* name_filter = name.empty() ? nullptr : &name;
+		if (!maccess->build_legacy_chain(table_name, name_filter, uv->get("detail") != "0", xml)) {
+			ctx->setStatus(name_filter ? "chain not found" : "table not found");
+			return WHM_PARAM_ERROR;
+		}
+		ctx->add_raw_xml("table_info", xml.str());
+		return WHM_OK;
+	}
+	return maccess->dump_chain(ctx, table_name);
 }
 int WhmCore::call_list_table(const char* call_name, const char* event_type, WhmContext* ctx) {
 	KSafeAccess maccess = whm_get_access(ctx);
 	if (!maccess) {
 		return WHM_CALL_FAILED;
 	}
-	maccess->listTable(ctx);
+	maccess->listTable(ctx, whm_is_json(ctx->getUrlValue()));
 	return WHM_OK;
 }
 int WhmCore::call_vh_action(const char* call_name, const char* event_type, WhmContext* ctx) {
@@ -197,6 +422,149 @@ int WhmCore::call_list_vh(const char* call_name, const char* event_type, WhmCont
 	}
 	return WHM_OK;
 }
+int WhmCore::call_info_domain(const char* call_name, const char* event_type, WhmContext* ctx) {
+	auto name = ctx->getUrlValue()->get("name");
+	KSafeVirtualHost vh(conf.gvm->refsVirtualHostByName(name));
+	if (!vh) {
+		ctx->setStatus("vh cann't find");
+		return WHM_PARAM_ERROR;
+	}
+	{
+		auto locker = vh->get_locker();
+		for (auto sub_vh : vh->hosts) {
+			ctx->add("domain", sub_vh->host);
+		}
+	}
+	vh->getParsedFileExt(ctx);
+	return WHM_OK;
+}
+int WhmCore::call_info_vh(const char* call_name, const char* event_type, WhmContext* ctx) {
+	auto name = ctx->getUrlValue()->get("name");
+	KSafeVirtualHost vh(conf.gvm->refsVirtualHostByName(name));
+	if (!vh) {
+		ctx->setStatus("vh cann't find");
+		return WHM_PARAM_ERROR;
+	}
+	ctx->add("name", name);
+	KStringBuf values;
+	{
+		auto locker = vh->get_locker();
+#ifdef ENABLE_BASED_PORT_VH
+		for (auto&& bind : vh->binds) {
+			values << bind << "\n";
+		}
+		ctx->add("bind", values.str());
+		values.clear();
+#endif
+		for (auto sub_vh : vh->hosts) {
+			values << sub_vh->host;
+			if (strcmp(sub_vh->dir, "/") != 0) {
+				values << "|" << sub_vh->dir;
+			}
+			values << "\n";
+		}
+		ctx->add("host", values.str());
+		ctx->add("doc_root", vh->GetDocumentRoot());
+		ctx->add("inherit", vh->inherit ? "1" : "0");
+#ifdef ENABLE_VH_RUN_AS
+		ctx->add("user", vh->user);
+#ifndef _WIN32
+		ctx->add("group", vh->group);
+#endif
+#endif
+#ifdef ENABLE_VH_LOG_FILE
+		ctx->add("log_file", vh->logFile);
+		if (vh->logger) {
+			KString rotate_time;
+			vh->logger->getRotateTime(rotate_time);
+			ctx->add("log_rotate_time", rotate_time);
+			ctx->add("log_rotate_size", vh->logger->rotate_size);
+		}
+#endif
+		ctx->add("browse", vh->browse ? "1" : "0");
+#ifdef ENABLE_USER_ACCESS
+		ctx->add("access_file", vh->user_access);
+#endif
+#ifdef ENABLE_VH_RS_LIMIT
+		ctx->add("connect", vh->max_connect);
+		ctx->add("speed_limit", vh->speed_limit);
+#endif
+	}
+	return WHM_OK;
+}
+int WhmCore::call_list_index(const char* call_name, const char* event_type, WhmContext* ctx) {
+	auto vh = ctx->getVh();
+	if (!vh) {
+		ctx->setStatus("no such vh");
+		return WHM_PARAM_ERROR;
+	}
+	vh->listIndex(ctx);
+	return WHM_OK;
+}
+int WhmCore::call_reload_vh(const char* call_name, const char* event_type, WhmContext* ctx) {
+	auto uv = ctx->getUrlValue();
+	KString name = uv->get("name");
+	if (strcmp(call_name, "reload_all_vh") == 0 || name.empty()) {
+		kconfig::reload();
+		return WHM_OK;
+	}
+
+	const bool deleting = strcmp(call_name, "del_vh") == 0;
+	const bool destroy = deleting &&
+		(uv->get("destroy") == "1" || strcasecmp(uv->get("destroy").c_str(), "true") == 0);
+	KVirtualHost* old_vh = destroy ? conf.gvm->refsVirtualHostByName(name) : nullptr;
+
+	KStringBuf config_name;
+	config_name << "@vhd|"_CS << name;
+	auto config_ref = kstring_from2(config_name.c_str(), config_name.size());
+	bool result = kconfig::reload_config(config_ref, true);
+	kstring_release(config_ref);
+	if (!result) {
+		// A newly-created database virtual host has no config-file entry yet;
+		// non-database virtual hosts also use a different source name.  A full
+		// scan handles both cases while preserving the legacy WHM contract.
+		kconfig::reload();
+	}
+
+	if (deleting) {
+		if (destroy && old_vh) {
+			ctx->buildVh(old_vh);
+			old_vh->destroyEvent(ctx);
+		}
+		return WHM_OK;
+	}
+
+	KVirtualHost* vh = conf.gvm->refsVirtualHostByName(name);
+	if (!vh) {
+		ctx->setStatus("cann't find such vh after reload");
+		return WHM_CALL_FAILED;
+	}
+	ctx->buildVh(vh);
+	KString init = uv->get("init");
+	if (init == "1" || strcasecmp(init.c_str(), "true") == 0) {
+		vh->initEvent(ctx);
+#ifndef HTTP_PROXY
+		conf.gam->killAllProcess(vh);
+#endif
+	} else {
+		vh->updateEvent(ctx);
+	}
+	return WHM_OK;
+}
+int WhmCore::call_reload(const char* call_name, const char* event_type, WhmContext* ctx) {
+	kconfig::reload();
+	return WHM_OK;
+}
+int WhmCore::call_reload_vh_access(const char* call_name, const char* event_type, WhmContext* ctx) {
+	if (!ctx->getVh()) {
+		ctx->setStatus("cann't find vh");
+		return WHM_PARAM_ERROR;
+	}
+	// Access files are part of the configuration tree.  A complete reload is
+	// required here because their source name may be relative to the vhost.
+	kconfig::reload();
+	return WHM_OK;
+}
 int WhmCore::call_info(const char* call_name, const char* event_type, WhmContext* ctx) {
 
 	INT64 total_mem_size = 0, total_disk_size = 0;
@@ -204,6 +572,12 @@ int WhmCore::call_info(const char* call_name, const char* event_type, WhmContext
 	cache.getSize(total_mem_size, total_disk_size, mem_count, disk_count);
 	ctx->add("server", PROGRAM_NAME);
 	ctx->add("version", VERSION);
+	// Report build capability independently of listener/vhost configuration.
+#ifdef ENABLE_HTTP3
+	ctx->add("support_http3", static_cast<INT64>(1));
+#else
+	ctx->add("support_http3", static_cast<INT64>(0));
+#endif
 	ctx->add("type", getServerType());
 	ctx->add("os", getOsType());
 	int total_run_time = (int)(kgl_current_sec - kgl_program_start_sec);
@@ -248,6 +622,137 @@ int WhmCore::call_info(const char* call_name, const char* event_type, WhmContext
 	ctx->add("addr_cache", kgl_get_addr_cache_count());
 	ctx->add("disk_cache_shutdown", (int)cache.is_disk_shutdown());
 	return WHM_OK;
+}
+int WhmCore::call_change_admin_password(const char* call_name, const char* event_type, WhmContext* ctx) {
+	auto uv = ctx->getUrlValue();
+	KString user = uv->get("admin_user");
+	if (user.empty()) {
+		user = uv->get("user");
+	}
+	KString password = uv->get("admin_passwd");
+	if (password.empty()) {
+		password = uv->get("password");
+	}
+	if (user.empty() || password.empty()) {
+		ctx->setStatus("admin user and password must be set");
+		return WHM_PARAM_ERROR;
+	}
+	KString auth_name = uv->get("auth_type");
+	if (auth_name.empty()) {
+		auth_name = KHttpAuth::buildType(conf.auth_type);
+	}
+	int auth_type = KHttpAuth::parseType(auth_name.c_str());
+	KStringBuf digest_source;
+	if (auth_type == AUTH_DIGEST) {
+		digest_source << user << ":" << PROGRAM_NAME << ":" << password;
+	} else {
+		digest_source << password;
+	}
+	char digest[33];
+	KMD5(digest_source.c_str(), (int)digest_source.size(), digest);
+	KXmlAttribute attributes;
+	attributes.emplace("user"_CS, user);
+	attributes.emplace("password"_CS, digest);
+	attributes.emplace("crypt"_CS, "md5"_CS);
+	attributes.emplace("auth_type"_CS, KHttpAuth::buildType(auth_type));
+	auto admin_ips = uv->get("admin_ips");
+	if (admin_ips.empty()) {
+		KStringBuf ips;
+		for (auto&& ip : conf.admin_ips) {
+			if (!ips.empty()) {
+				ips << "|";
+			}
+			ips << ip;
+		}
+		admin_ips = ips.str();
+	}
+	attributes.emplace("admin_ips"_CS, admin_ips);
+	return config_result(kconfig::update("admin"_CS, 0, nullptr, &attributes,
+		kconfig::EvUpdate | kconfig::FlagCreate), ctx);
+}
+int WhmCore::call_check_ssl(const char* call_name, const char* event_type, WhmContext* ctx) {
+	auto vh = ctx->getVh();
+	if (!vh) {
+		ctx->setStatus("cann't find vh");
+		return WHM_PARAM_ERROR;
+	}
+#ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
+	SSL_CTX* ssl_ctx = kgl_get_ssl_ctx(vh->ssl_ctx);
+#ifdef ENABLE_SVH_SSL
+	auto domain = ctx->getUrlValue()->getx("domain");
+	if (domain && *domain) {
+		bool found = false;
+		auto locker = vh->get_locker();
+		for (auto sub_vh : vh->hosts) {
+			if (sub_vh->match_host(domain)) {
+				found = true;
+				ssl_ctx = kgl_get_ssl_ctx(sub_vh->ssl_ctx ? sub_vh->ssl_ctx : vh->ssl_ctx);
+				break;
+			}
+		}
+		if (!found) {
+			ctx->setStatus("domain not found");
+			return WHM_PARAM_ERROR;
+		}
+	}
+#endif
+	ctx->add("ssl", ssl_ctx ? 1 : 0);
+	if (ssl_ctx) {
+		auto not_before = ssl_ctx_var_lookup(ssl_ctx, "NOTBEFORE");
+		if (not_before) {
+			ctx->add("not_before", not_before.get());
+		}
+		auto not_after = ssl_ctx_var_lookup(ssl_ctx, "NOTAFTER");
+		if (not_after) {
+			ctx->add("not_after", not_after.get());
+		}
+		auto subject = ssl_ctx_var_lookup(ssl_ctx, "SUBJECT");
+		if (subject) {
+			ctx->add("subject", subject.get());
+		}
+	}
+	return WHM_OK;
+#else
+	ctx->setStatus("ssl sni not support");
+	return WHM_CALL_NOT_FOUND;
+#endif
+}
+int WhmCore::call_dump_flow(const char* call_name, const char* event_type, WhmContext* ctx) {
+#ifdef ENABLE_VH_FLOW
+	auto uv = ctx->getUrlValue();
+	auto prefix = uv->getx("prefix");
+	conf.gvm->dumpFlow(ctx, uv->get("revers") == "1", prefix, prefix ? (int)strlen(prefix) : 0,
+		uv->attribute.get_int("extend"));
+	return WHM_OK;
+#else
+	return WHM_CALL_NOT_FOUND;
+#endif
+}
+int WhmCore::call_dump_load(const char* call_name, const char* event_type, WhmContext* ctx) {
+#ifdef ENABLE_VH_FLOW
+	auto uv = ctx->getUrlValue();
+	auto prefix = uv->getx("prefix");
+	conf.gvm->dumpLoad(ctx, uv->get("revers") == "1", prefix, prefix ? (int)strlen(prefix) : 0);
+	return WHM_OK;
+#else
+	return WHM_CALL_NOT_FOUND;
+#endif
+}
+int WhmCore::call_get_load(const char* call_name, const char* event_type, WhmContext* ctx) {
+#ifdef ENABLE_VH_FLOW
+	auto vh = ctx->getVh();
+	if (!vh) {
+		ctx->setStatus("cann't find vh");
+		return WHM_PARAM_ERROR;
+	}
+	ctx->add("speed", vh->get_speed(ctx->getUrlValue()->get("reset") == "1"));
+#ifdef ENABLE_VH_RS_LIMIT
+	ctx->add("connect", vh->GetConnectionCount());
+#endif
+	return WHM_OK;
+#else
+	return WHM_CALL_NOT_FOUND;
+#endif
 }
 int WhmCore::call_get_connection(const char* call_name, const char* event_type, WhmContext* ctx) {
 	auto uv = ctx->getUrlValue();
@@ -304,6 +809,156 @@ int WhmCore::call_check_vh_db(const char* call_name, const char* event_type, Whm
 		ctx->add("status", "0");
 	}
 	return WHM_OK;
+}
+int WhmCore::call_list_listen(const char* call_name, const char* event_type, WhmContext* ctx) {
+	conf.gvm->GetListenWhm(ctx);
+	return WHM_OK;
+}
+int WhmCore::call_list_vh_template(const char* call_name, const char* event_type, WhmContext* ctx) {
+	std::list<KString> templates;
+	if (strcmp(call_name, "list_tvh") == 0) {
+		conf.gvm->getAllTempleteVh(ctx->getUrlValue()->getx("name"), templates);
+	} else {
+		conf.gvm->getAllGroupTemplete(templates);
+	}
+	for (const auto& name : templates) {
+		ctx->add("name", name);
+	}
+	return WHM_OK;
+}
+int WhmCore::call_query_domain(const char* call_name, const char* event_type, WhmContext* ctx) {
+	auto domain = ctx->getUrlValue()->getx("domain");
+	if (!domain || !*domain) {
+		ctx->setStatus("missing domain");
+		return WHM_PARAM_ERROR;
+	}
+	return conf.gvm->find_domain(domain, ctx);
+}
+int WhmCore::call_black_list(const char* call_name, const char* event_type, WhmContext* ctx) {
+#ifdef ENABLE_BLACK_LIST
+	auto uv = ctx->getUrlValue();
+	KIpList* ip_list = conf.gvm->vhs.blackList;
+	if (uv->getx("vh")) {
+		auto vh = ctx->getVh();
+		if (!vh) {
+			ctx->setStatus("cann't find vh");
+			return WHM_PARAM_ERROR;
+		}
+		ip_list = vh->blackList;
+	}
+	if (!ip_list) {
+		ctx->setStatus("black list not support");
+		return WHM_CALL_NOT_FOUND;
+	}
+	auto action = uv->getx("a");
+	if (!action || !*action) {
+		ip_list->getBlackList(ctx);
+		return WHM_OK;
+	}
+	if (strcmp(action, "check") == 0) {
+		auto ip = uv->getx("ip");
+		if (!ip || !*ip) {
+			ctx->setStatus("ip param is missing");
+			return WHM_PARAM_ERROR;
+		}
+		ctx->add("hit", ip_list->find(ip, 0, false) ? 1 : 0);
+		return WHM_OK;
+	}
+	if (strcmp(action, "clear") == 0) {
+		ip_list->clearBlackList();
+	}
+	return WHM_OK;
+#else
+	return WHM_CALL_NOT_FOUND;
+#endif
+}
+int WhmCore::call_stat_vh(const char* call_name, const char* event_type, WhmContext* ctx) {
+	auto vh = ctx->getVh();
+	if (!vh) {
+		ctx->setStatus("vh cann't find");
+		return WHM_PARAM_ERROR;
+	}
+	ctx->add("name", vh->name);
+#ifdef ENABLE_VH_RS_LIMIT
+	ctx->add("connect", vh->GetConnectionCount());
+#ifdef ENABLE_VH_FLOW
+	ctx->add("speed", vh->get_speed(ctx->getUrlValue()->get("reset") == "1"));
+#endif
+#ifdef ENABLE_VH_QUEUE
+	if (vh->queue) {
+		ctx->add("queue", vh->queue->getQueueSize());
+		ctx->add("worker", vh->queue->getWorkerCount());
+	}
+#endif
+#ifdef ENABLE_BLACK_LIST
+	if (vh->blackList) {
+		INT64 total_error_upstream, total_request, total_upstream;
+		vh->blackList->getStat(total_request, total_error_upstream, total_upstream,
+			ctx->getUrlValue()->get("reset") == "1");
+		ctx->add("total_error_upstream", total_error_upstream);
+		ctx->add("total_upstream", total_upstream);
+		ctx->add("total_request", total_request);
+	}
+#endif
+#endif
+	return WHM_OK;
+}
+int WhmCore::call_report_ip(const char* call_name, const char* event_type, WhmContext* ctx) {
+#if defined(ENABLE_BLACK_LIST) && defined(ENABLE_SIMULATE_HTTP)
+	auto ips = ctx->getUrlValue()->getx("ips");
+	if (!ips || !*ips) {
+		ctx->setStatus("ips param is missing");
+		return WHM_PARAM_ERROR;
+	}
+	add_report_ip(ips);
+	return WHM_OK;
+#else
+	return WHM_CALL_NOT_FOUND;
+#endif
+}
+int WhmCore::call_runtime_model(const char* call_name, const char* event_type, WhmContext* ctx) {
+	// Runtime model WHM callbacks were removed together with the runtime-model
+	// registry.  Keep a concrete response instead of silently failing dispatch.
+	ctx->setStatus("runtime model callbacks are no longer supported");
+	return WHM_CALL_NOT_FOUND;
+}
+int WhmCore::call_server_info(const char* call_name, const char* event_type, WhmContext* ctx) {
+	auto name = ctx->getUrlValue()->getx("name");
+	if (!name || !*name) {
+		ctx->setStatus("name param is missing");
+		return WHM_PARAM_ERROR;
+	}
+	KMultiAcserver* server = server_container->refsMultiServer(name);
+	if (server) {
+		KStringBuf node;
+		server->getNodeInfo(node);
+		ctx->add("node", node.str());
+		server->release();
+	}
+	return WHM_OK;
+}
+int WhmCore::call_port_map(const char* call_name, const char* event_type, WhmContext* ctx) {
+#ifdef ENABLE_VH_RUN_AS
+	auto vh = ctx->getVh();
+	if (!vh) {
+		ctx->setStatus("cann't find vh");
+		return WHM_PARAM_ERROR;
+	}
+	auto uv = ctx->getUrlValue();
+	ctx->add("port", conf.gam->getCmdPortMap(vh, uv->get("cmd"), uv->get("name"),
+		uv->attribute.get_int("app")));
+	return WHM_OK;
+#else
+	return WHM_CALL_NOT_FOUND;
+#endif
+}
+int WhmCore::call_log_drill(const char* call_name, const char* event_type, WhmContext* ctx) {
+#ifdef ENABLE_LOG_DRILL
+	flush_log_drill();
+	return WHM_OK;
+#else
+	return WHM_CALL_NOT_FOUND;
+#endif
 }
 int WhmCore::call_list_available_named_module(const char* call_name, const char* event_type, WhmContext* ctx) {
 	auto access = whm_get_access(ctx);
@@ -425,9 +1080,14 @@ int WhmCore::call_del_named_module(const char* call_name, const char* event_type
 		ctx->setStatus("named module is used");
 		return WHM_CALL_FAILED;
 	}
-	KStringBuf path;	
-	path << uv->get("access") << (type == 0 ? "/named_acl@"_CS : "/named_mark@"_CS) << name;
-	return config_result(kconfig::remove(path.str().str(), 0), ctx);
+	KStringBuf path;
+	auto file = ctx->get_vh_config_file();
+	ctx->build_config_base_path(path, file);
+	path << access->get_qname() << (type == 0 ? "/named_acl@"_CS : "/named_mark@"_CS) << name;
+	if (file.empty()) {
+		return config_result(kconfig::remove(path.str().str(), 0), ctx);
+	}
+	return config_result(kconfig::remove(file.str(), path.str().str(), 0), ctx);
 }
 int WhmCore::call_edit_named_module(const char* call_name, const char* event_type, WhmContext* ctx) {
 	KStringBuf path;
@@ -438,26 +1098,34 @@ int WhmCore::call_edit_named_module(const char* call_name, const char* event_typ
 	auto uv = ctx->getUrlValue();
 	auto type = uv->attribute.get_int("type");
 	auto name = uv->attribute["name"];
-	path << uv->get("access") << (type == 0 ? "/named_acl@"_CS : "/named_mark@"_CS) << name;
+	auto file = ctx->get_vh_config_file();
+	ctx->build_config_base_path(path, file);
+	path << access->get_qname() << (type == 0 ? "/named_acl@"_CS : "/named_mark@"_CS) << name;
 	auto add = uv->attribute.get_int("add");
 	auto it = uv->subs.begin();
 	if (it == uv->subs.end()) {
 		return WHM_CALL_FAILED;
 	}
 	khttpd::KSafeXmlNode xml;
-	if (strncmp((*it).first.c_str(), _KS("acl")) == 0) {
+	if (strncmp((*it).first.c_str(), _KS("acl_")) == 0) {
 		xml = (*it).second->to_xml(_KS("named_acl"),name.c_str(),name.size());
 		xml->attributes().emplace("module"_CS, (*it).first.substr(4));
-	} else if (strncmp((*it).first.c_str(), _KS("mark")) == 0) {
+	} else if (strncmp((*it).first.c_str(), _KS("mark_")) == 0) {
 		xml = (*it).second->to_xml(_KS("named_mark"), name.c_str(), name.size());
 		xml->attributes().emplace("module"_CS, (*it).first.substr(5));
 	} else {
 		return WHM_CALL_FAILED;
 	}
 	if (add) {
-		return config_result(kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvNew), ctx);
+		if (file.empty()) {
+			return config_result(kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvNew), ctx);
+		}
+		return config_result(kconfig::update(file.str(), path.str().str(), 0, xml.get(), kconfig::EvNew), ctx);
 	}
-	return config_result(kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvUpdate), ctx);
+	if (file.empty()) {
+		return config_result(kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvUpdate), ctx);
+	}
+	return config_result(kconfig::update(file.str(), path.str().str(), 0, xml.get(), kconfig::EvUpdate), ctx);
 }
 
 int WhmCore::call_config(const char* call_name, const char* event_type, WhmContext* ctx) {
@@ -504,7 +1172,7 @@ int WhmCore::call_config(const char* call_name, const char* event_type, WhmConte
 	} else if (item == 3) {
 		sl->add("max", conf.max);
 
-		sl->add("max_per_ip value", conf.max_per_ip);
+		sl->add("max_per_ip", conf.max_per_ip);
 		sl->add("max_keep_alive", conf.keep_alive_count);
 #ifdef ENABLE_BLACK_LIST
 		sl->add("per_ip_deny", conf.per_ip_deny);
@@ -522,7 +1190,7 @@ int WhmCore::call_config(const char* call_name, const char* event_type, WhmConte
 		sl->add("max_post_size", get_size(conf.max_post_size));
 #endif
 		sl->add("worker_io", conf.worker_io);
-		sl->add("max_io' value='" , conf.max_io);
+		sl->add("max_io", conf.max_io);
 		sl->add("io_buffer",get_size(conf.io_buffer));
 		sl->add("upstream_sign", conf.upstream_sign);
 	} else if (item == 5) {
@@ -531,10 +1199,10 @@ int WhmCore::call_config(const char* call_name, const char* event_type, WhmConte
 		sl->add("min_compress_length", conf.min_compress_length);
 		sl->add("gzip_level", conf.gzip_level);
 #ifdef ENABLE_BROTLI
-		sl->add("br_level size", conf.br_level);
+		sl->add("br_level", conf.br_level);
 #endif
 #ifdef ENABLE_ZSTD
-		sl->add("zstd_level size", conf.zstd_level);
+		sl->add("zstd_level", conf.zstd_level);
 #endif
 #ifdef KANGLE_ENT
 		sl->add("server_software", conf.server_software);
@@ -547,9 +1215,9 @@ int WhmCore::call_config(const char* call_name, const char* event_type, WhmConte
 #ifdef MALLOCDEBUG
 		sl->add("mallocdebug", conf.mallocdebug);
 #endif
-#ifdef ENABLE_FATBOY
-		//s << klang["bl_time"] << ":" << conf.bl_time << "<br>";
-		//s << klang["wl_time"] << ":" << conf.wl_time << "<br>";
+#ifdef ENABLE_BLACK_LIST
+		sl->add("bl_time", conf.bl_time);
+		sl->add("wl_time", conf.wl_time);
 #endif
 #ifdef ENABLE_BLACK_LIST
 		/*

@@ -2,6 +2,7 @@
 #define KCONFIGTREE_H_INCLUDED
 #include <map>
 #include <string>
+#include <vector>
 #include "krbtree.h"
 #include "kmalloc.h"
 #include "KXmlDocument.h"
@@ -182,12 +183,19 @@ namespace kconfig {
 	public:
 		virtual ~KConfigFileScanInfo() {}
 		virtual void new_file(const kgl_ref_str_t* name, const kgl_ref_str_t* filename, const KFileModified& last_modified, bool is_default) = 0;
+		/* the source could not be listed (e.g. its database is down): keep
+		 * the files it had instead of removing them */
+		bool scan_failed = false;
 	};
 	class KConfigFileSourceDriver
 	{
 	public:
 		virtual ~KConfigFileSourceDriver() noexcept {}
 		virtual void scan(KConfigFileScanInfo* info) {}
+		/* nullptr with the file index left non-zero means the file could not
+		 * be loaded (syntax error, read error, database down): the running
+		 * config of the file is kept. A file switched off with <!--#stop-->
+		 * sets index 0 and returns nullptr: its config is removed. */
 		virtual khttpd::KSafeXmlNode load(KConfigFile* file) = 0;
 		virtual KFileModified get_last_modified(KConfigFile* file) = 0;
 		virtual bool enable_save() {
@@ -204,6 +212,8 @@ namespace kconfig {
 	{
 	public:
 		KConfigFile(KConfigTree* ev, const kgl_ref_str_t* name, const kgl_ref_str_t* filename, KConfigFileSource source) {
+			//gcc 4.8不会应用匿名union成员的默认初始化,必须显式清零
+			flags = 0;
 			this->name = kstring_refs(name);
 			this->filename = kstring_refs(filename);
 			this->ev = ev;
@@ -267,6 +277,11 @@ namespace kconfig {
 		bool save();
 		void update(khttpd::KSafeXmlNode new_nodes);
 		bool update(const char* name, size_t size, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type);
+		bool move_down(const char* path, size_t size, uint32_t index);
+		bool rename_table(const char* path, size_t size, const KString& new_name);
+		khttpd::KSafeXmlNode clone_nodes() const {
+			return nodes ? nodes->clone() : nullptr;
+		}
 		void set_last_modified(const KFileModified& last_modified) {
 			this->last_modified = last_modified;
 			need_save = 0;
@@ -341,6 +356,14 @@ namespace kconfig {
 
 	KConfigResult add(const kgl_ref_str_t& file, const kgl_ref_str_t& path, uint32_t index, khttpd::KXmlNode* xml);
 	KConfigResult update(const kgl_ref_str_t& file, const kgl_ref_str_t& path, uint32_t index, khttpd::KXmlNode* xml, KConfigEventType ev_type);
+	KConfigResult move_down(const kgl_ref_str_t& file, const kgl_ref_str_t& path, uint32_t index);
+	KConfigResult rename_table(const kgl_ref_str_t& path, const KString& new_name);
+	struct KConfigTableRename {
+		KConfigTree* access_tree;
+		bool rename_definition;
+	};
+	KConfigResult rename_table(const std::vector<KConfigTableRename>& accesses,
+		const KString& old_name, const KString& new_name);
 	KConfigTree* find(const char** name, size_t* size);
 	KConfigTree* find(const char* name, size_t size);
 	KConfigTree* remove_config_file(const kgl_ref_str_t* name);

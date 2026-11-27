@@ -13,10 +13,9 @@ void map_redirect_iterator(void *arg, const char *domain, void *vh)
 	KMapRedirectItem *item = (KMapRedirectItem *)vh;
 	*s << domain << "|" << item->code << " " << item->rewrite;
 }
-void map_redirect_free_iterator(void *arg, const char *domain, void *vh)
+static void map_redirect_free_item(void *data)
 {
-	KMapRedirectItem *item = (KMapRedirectItem *)vh;
-	delete item;
+	delete (KMapRedirectItem *)data;
 }
 KMapRedirectMark::KMapRedirectMark()
 {
@@ -24,7 +23,7 @@ KMapRedirectMark::KMapRedirectMark()
 }
 KMapRedirectMark::~KMapRedirectMark()
 {
-	vhc.iterator(map_redirect_free_iterator,NULL);
+	vhc.clear(map_redirect_free_item);
 }
 uint32_t KMapRedirectMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo)
 {
@@ -77,7 +76,8 @@ void KMapRedirectMark::get_display(KWStream& s)
 }
 void KMapRedirectMark::	parse_config(const khttpd::KXmlNodeBody* xml) {
 	auto attribute = xml->attr();
-	vhc.clear();
+	/* free the items of the old list, clear() alone leaked them */
+	vhc.clear(map_redirect_free_item);
 	char *buf = strdup(attribute["v"].c_str());
 	char *hot = buf;
 	for (;;) {

@@ -26,7 +26,7 @@
 static std::list<std::string> partfiles;
 static std::map<std::string, bool> partobjs;
 #endif
-//扫描进程是否存在
+//鎵弿杩涚▼鏄惁瀛樺湪
 volatile bool index_progress = false;
 index_scan_state_t index_scan_state;
 static int load_count = 0;
@@ -44,14 +44,14 @@ bool obj_can_disk_cache(KHttpRequest* rq, KHttpObject* obj)
 }
 bool kgl_dc_skip_string(char** hot, int& hotlen)
 {
-	if (hotlen <= (int)sizeof(int)) {
+	if (hotlen < (int)sizeof(int)) {
 		return false;
 	}
 	int len;
 	kgl_memcpy(&len, *hot, sizeof(int));
 	(*hot) += sizeof(int);
 	hotlen -= sizeof(int);
-	if (hotlen <= len) {
+	if (len < 0 || len > 131072 || hotlen < len) {
 		return false;
 	}
 	(*hot) += len;
@@ -157,16 +157,34 @@ bool read_obj_head(KHttpObjectBody* data, char** hot, int& hotlen)
 					if (hotlen < sizeof(time_t)) {
 						return false;
 					}
-					data->last_modified = *(time_t*)(*hot);
+					kgl_memcpy(&data->last_modified, *hot, sizeof(time_t));
 					(*hot) += sizeof(time_t);
 					hotlen -= sizeof(time_t);
 				} else {
-					data->set_etag(*hot, hotlen);
-					(*hot) += hotlen;
-					hotlen = 0;
+					int etag_len = -1;
+					auto etag = kgl_dc_read_string(hot, hotlen, etag_len);
+					if (etag == nullptr || etag_len <= 0) {
+						return false;
+					}
+					data->set_etag(etag.get(), etag_len);
 				}
 			}
-			assert(hotlen == 0);
+			// Linux direct I/O aligns the serialized header. Only zero padding
+			// may remain after the self-describing payload has been decoded.
+#ifdef KGL_DISK_CACHE_ALIGN_HEAD
+			if (hotlen >= kgl_aio_align_size) {
+				return false;
+			}
+			for (int i = 0; i < hotlen; ++i) {
+				if ((*hot)[i] != '\0') {
+					return false;
+				}
+			}
+#else
+			if (hotlen != 0) {
+				return false;
+			}
+#endif
 			return true;
 		}
 		if (hotlen < sizeof(uint32_t)) {
@@ -180,7 +198,7 @@ bool read_obj_head(KHttpObjectBody* data, char** hot, int& hotlen)
 		}
 		header->next = NULL;
 		header->buf = buf.release();
-		header->name_attribute = *(uint32_t*)(*hot);
+		kgl_memcpy(&header->name_attribute, *hot, sizeof(uint32_t));
 		header->buf_cannot_lock = 0;
 		header->buf_in_pool = 0;
 		header->header_in_pool = 0;
@@ -189,14 +207,20 @@ bool read_obj_head(KHttpObjectBody* data, char** hot, int& hotlen)
 		hotlen -= sizeof(uint32_t);
 
 		if (!header->name_is_know) {
+			if (header->name_len == 0 || header->name_len > MAX_HEADER_ATTR_VAL_SIZE ||
+				buf_len <= header->name_len ||
+				buf_len - header->name_len - 1 > MAX_HEADER_ATTR_VAL_SIZE) {
+				xfree_header(header);
+				return false;
+			}
 			header->val_len = buf_len - header->name_len - 1;
 			header->val_offset = header->name_len + 1;
-			if (header->know_header>=kgl_header_unknow) {
+		} else {
+			if (header->know_header >= kgl_header_unknow || buf_len > MAX_HEADER_ATTR_VAL_SIZE) {
 				klog(KLOG_ERR,"invalid know_header value=[%d]\n",header->know_header);
 				xfree_header(header);
 				return false;
 			}
-		} else {
 			header->val_len = buf_len;
 			header->val_offset = 0;
 		}

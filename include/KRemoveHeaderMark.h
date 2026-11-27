@@ -21,7 +21,7 @@ public:
 			KHttpObjectBody* data = NULL;
 			if (obj) {
 				if (obj->in_cache) {
-					//Èç¹ûÒÑ¾­ÔÚ»º´æÖÐ£¬Ôò²»ÖØ¸´²Ù×÷
+					//å¦‚æžœå·²ç»åœ¨ç¼“å­˜ä¸­ï¼Œåˆ™ä¸é‡å¤æ“ä½œ
 					return KF_STATUS_REQ_FALSE;
 				}
 				data = obj->data;
@@ -48,6 +48,9 @@ public:
 						} else {
 							rq->sink->data.header = next;
 						}
+					}
+					if (!obj && rq->sink->data.last == h) {
+						rq->sink->data.last = last;
 					}
 					xfree_header(h);
 					h = next;

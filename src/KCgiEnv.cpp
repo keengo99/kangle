@@ -25,7 +25,10 @@ KCgiEnv::~KCgiEnv() {
 }
 bool KCgiEnv::add_env(const char* attr, size_t attr_len, const char* val, size_t val_len)
 {
-	int len = (int)(attr_len + val_len + 1);
+	if (attr == NULL || val == NULL || attr_len > SIZE_MAX - val_len - 2) {
+		return false;
+	}
+	size_t len = attr_len + val_len + 1;
 	char* str = (char*)xmalloc(len + 1);
 	if (str == NULL) {
 		return false;
@@ -38,10 +41,20 @@ bool KCgiEnv::add_env(const char* attr, size_t attr_len, const char* val, size_t
 	return true;
 }
 bool KCgiEnv::addEnv(const char *attr, const char *val) {
+	if (attr == NULL || val == NULL) {
+		return false;
+	}
 	return add_env(attr, strlen(attr), val, strlen(val));
 }
 bool KCgiEnv::addEnv(const char *env) {
-	m_env.push_back(xstrdup(env));
+	if (env == NULL) {
+		return false;
+	}
+	char* value = xstrdup(env);
+	if (value == NULL) {
+		return false;
+	}
+	m_env.push_back(value);
 	return true;
 }
 char **KCgiEnv::dump_env() {
@@ -53,7 +66,13 @@ bool KCgiEnv::addEnvEnd()
 	if(env){
 		xfree(env);
 	}
-	env = (char **) xmalloc(m_env.size() * (sizeof(char *) + 1));
+	if (m_env.size() > SIZE_MAX / sizeof(char*) - 1) {
+		return false;
+	}
+	env = (char **)xmalloc((m_env.size() + 1) * sizeof(char*));
+	if (env == NULL) {
+		return false;
+	}
 	list<char *>::iterator it;
 	int i;
 	for (i = 0, it = m_env.begin(); it != m_env.end(); it++, i++) {
@@ -62,4 +81,3 @@ bool KCgiEnv::addEnvEnd()
 	env[i] = NULL;
 	return true;
 }
-

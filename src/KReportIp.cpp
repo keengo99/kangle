@@ -77,10 +77,10 @@ void start_report_worker(std::list<char *> &items) {
 	post << "ips=";
 	std::list<char *>::iterator it;
 	for (it=items.begin();it!=items.end();it++) {
-		post << (*it);
 		if (it!=items.begin()) {
 			post << ",";
 		}
+		post << (*it);
 		xfree((*it));
 	}
 	ctx.post_len = (int64_t)post.size();

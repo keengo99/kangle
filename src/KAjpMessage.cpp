@@ -10,17 +10,25 @@
 KAjpMessage::KAjpMessage()
 {
 	buf = NULL;
+	pos = 0;
+	len = 0;
+	st = NULL;
+	valid = false;
 }
 KAjpMessage::KAjpMessage(KWStream *st) {
 	buf = (unsigned char *) xmalloc(AJP_PACKAGE);
 	reset();
 	this->st = st;
+	len = 0;
+	valid = st != NULL;
 }
 KAjpMessage::KAjpMessage(char *buf,int length)
 {
 	this->buf = (unsigned char *)buf;
 	this->len = length;
 	pos = 0;
+	st = NULL;
+	valid = buf != NULL && length >= 0;
 }
 void KAjpMessage::reset() {
 	pos = 4;
@@ -32,6 +40,7 @@ KAjpMessage::~KAjpMessage() {
 }
 bool KAjpMessage::putByte(unsigned char val) {
 	if (!checkSend(1)) {
+		valid = false;
 		return false;
 	}
 	buf[pos++] = val;
@@ -39,6 +48,7 @@ bool KAjpMessage::putByte(unsigned char val) {
 }
 bool KAjpMessage::putShort(unsigned short val) {
 	if (!checkSend(2)) {
+		valid = false;
 		return false;
 	}
 	buf[pos++] = (unsigned char) ((val >> 8) & 0xFF);
@@ -47,6 +57,7 @@ bool KAjpMessage::putShort(unsigned short val) {
 }
 bool KAjpMessage::putInt(unsigned val) {
 	if (!checkSend(4)) {
+		valid = false;
 		return false;
 	}
 	buf[pos++] = (unsigned char) ((val >> 24) & 0xFF);
@@ -56,14 +67,15 @@ bool KAjpMessage::putInt(unsigned val) {
 	return true;
 }
 bool KAjpMessage::putString(const char *str, int len) {
-	if (!putShort(len)) {
+	if (str == NULL || len < 0 || len >= 0xffff || !checkSend(len + 3)) {
+		valid = false;
 		return false;
 	}
-	if (!checkSend(len + 1)) {
-		return false;
-	}
-	kgl_memcpy(buf + pos, str, len + 1);
-	pos+=(len+1);
+	buf[pos++] = (unsigned char)((len >> 8) & 0xff);
+	buf[pos++] = (unsigned char)(len & 0xff);
+	kgl_memcpy(buf + pos, str, len);
+	pos += len;
+	buf[pos++] = '\0';
 	return true;
 }
 bool KAjpMessage::putString(const std::string &str) {
@@ -73,12 +85,18 @@ bool KAjpMessage::putString(const char *str) {
 	return putString(str, (int)strlen(str));
 }
 bool KAjpMessage::end() {
+	if (!valid) {
+		return false;
+	}
 	if(pos>4){
 		return send();
 	}
 	return true;
 }
 bool KAjpMessage::send() {
+	if (!valid || st == NULL || pos <= 4 || pos > AJP_PACKAGE) {
+		return false;
+	}
 	int dLen = pos - 4;
 	buf[0] = (unsigned char) 0x12;
 	buf[1] = (unsigned char) 0x34;
@@ -101,8 +119,5 @@ bool KAjpMessage::send() {
 	return true;
 }
 bool KAjpMessage::checkSend(int len) {
-	if (pos + len >= AJP_PACKAGE) {
-		return send();
-	}
-	return true;
+	return valid && len >= 0 && len <= AJP_PACKAGE - 4 && pos <= AJP_PACKAGE - len;
 }

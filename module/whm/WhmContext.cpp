@@ -93,6 +93,12 @@ bool WhmContext::flush(int status, kgl::format fmt) {
 		}
 	}
 	dv.build(s, fmt);
+	for (auto&& raw : raw_xml) {
+		if (fmt == kgl::format::json) {
+			continue;
+		}
+		s << "<" << raw.first << ">" << raw.second << "</" << raw.first << ">";
+	}
 	if (status > 0) {
 		if (fmt != kgl::format::json) {
 			s << "</result>\n";

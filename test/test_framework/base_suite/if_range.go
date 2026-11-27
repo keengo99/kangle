@@ -39,6 +39,37 @@ func check_if_range_local() {
 		common.AssertSame(resp.StatusCode, 200)
 	})
 }
+
+func check_static_precondition() {
+	var lastModified string
+	var older string
+	common.Get("/static/index.id?precondition", nil, func(resp *http.Response, err error) {
+		common.AssertSame(err, nil)
+		common.AssertSame(resp.StatusCode, http.StatusOK)
+		lastModified = resp.Header.Get("Last-Modified")
+		common.Assert("static-last-modified", lastModified != "")
+		modifiedTime, parseErr := time.Parse(time.RFC1123, lastModified)
+		common.AssertSame(parseErr, nil)
+		older = modifiedTime.Add(-24 * time.Hour).Format(time.RFC1123)
+	})
+	common.Get("/static/index.id?precondition-modified", map[string]string{"If-Modified-Since": lastModified}, func(resp *http.Response, err error) {
+		common.AssertSame(err, nil)
+		common.AssertSame(resp.StatusCode, http.StatusNotModified)
+	})
+	common.Get("/static/index.id?precondition-unmodified", map[string]string{"If-Unmodified-Since": lastModified}, func(resp *http.Response, err error) {
+		common.AssertSame(err, nil)
+		common.AssertSame(resp.StatusCode, http.StatusOK)
+	})
+	common.Get("/static/index.id?precondition-unmodified-old", map[string]string{"If-Unmodified-Since": older}, func(resp *http.Response, err error) {
+		common.AssertSame(err, nil)
+		common.AssertSame(resp.StatusCode, http.StatusPreconditionFailed)
+	})
+	common.Get("/static/index.id?precondition-none-match", map[string]string{"If-None-Match": "\"not-the-current-etag\""}, func(resp *http.Response, err error) {
+		common.AssertSame(err, nil)
+		common.AssertSame(resp.StatusCode, http.StatusOK)
+	})
+}
+
 func check_change_if_range() {
 	common.CreateRange(1)
 	common.Get("/range?c1", map[string]string{"Accept-Encoding": "gzip"}, func(resp *http.Response, err error) {

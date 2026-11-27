@@ -22,6 +22,7 @@ KLockToken::KLockToken(const char* token, Lock_type type, int timeout)
 	this->timeout = timeout;
 	this->token = xstrdup(token);
 	locked_file = NULL;
+	refresh();
 }
 KLockToken::~KLockToken()
 {
@@ -72,8 +73,8 @@ Lock_op_result KDavLockManager::unlock(KLockToken* lockToken)
 	assert(lockToken->locked_file);
 	mutex.Lock();
 	std::map<char*, KDavLockFile*, lessr>::iterator it = fileLocks.find(lockToken->locked_file->getName());
-	if (it == fileLocks.end()) {
-		assert(false);
+	if (it == fileLocks.end() || (*it).second != lockToken->locked_file) {
+		//lock expired and removed.
 		mutex.Unlock();
 		return Lock_op_conflick;
 	}
@@ -136,5 +137,21 @@ KDavLockFile* KDavLockManager::internalFindLockOnFile(const char* name)
 	if (it == fileLocks.end()) {
 		return NULL;
 	}
-	return (*it).second;
+	KDavLockFile* file = (*it).second;
+	time_t now_time = time(NULL);
+	for (auto it2 = file->locks.begin(); it2 != file->locks.end();) {
+		KLockToken* token = (*it2).second;
+		if (token->isExpire(now_time)) {
+			it2 = file->locks.erase(it2);
+			token->release();
+			continue;
+		}
+		++it2;
+	}
+	if (file->locks.empty()) {
+		fileLocks.erase(it);
+		file->release();
+		return NULL;
+	}
+	return file;
 }

@@ -42,7 +42,7 @@ public:
 		if (!KBIT_TEST(obj->index.flags,ANSW_NO_CACHE)) {			
 			if (max_age>0) {
 				obj->data->i.max_age = max_age;
-				//soft指标是否发送max-age头给客户
+				//soft鎸囨爣鏄惁鍙戦�乵ax-age澶寸粰瀹㈡埛
 				//KBIT_SET(obj->index.flags,(soft?ANSW_HAS_EXPIRES:ANSW_HAS_MAX_AGE));
 			}
 			if (must_revalidate) {

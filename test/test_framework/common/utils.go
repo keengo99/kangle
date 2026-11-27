@@ -11,8 +11,6 @@ import (
 	"strings"
 )
 
-var SkipCheckRespComplete bool
-
 func md5sum(buf []byte) string {
 	hash := md5.New()
 	hash.Write(buf)
@@ -42,8 +40,11 @@ func MatchEtag(if_none_match string, etag string) bool {
 	return false
 }
 func AssertResp(buf []byte, resp *http.Response) int {
+	return AssertRespComplete(buf, resp, true)
+}
+func AssertRespComplete(buf []byte, resp *http.Response, requireComplete bool) int {
 	md5, length := md5Response(resp, false)
-	if !SkipCheckRespComplete {
+	if requireComplete {
 		AssertSame(int(resp.ContentLength), int(length))
 	}
 	Assert("length", length <= len(buf))

@@ -77,11 +77,13 @@ public:
 			return false;
 		}
 		KIpListItem *wl = (*it).second;
-		if (!wl->IsStatic()) {
-			//��̬ת��̬
+		wls.erase(it);
+		if (wl->IsStatic()) {
+			delete wl;
+		} else {
+			//动态转静态
 			wl->ConvertToStatic();
 		}
-		wls.erase(it);
 		lock.Unlock();
 		return true;
 	}
@@ -92,12 +94,12 @@ public:
 		if (it != wls.end()) {
 			KIpListItem *wl = (*it).second;
 			if (wl->IsStatic()) {
-				//�����Ǿ�̬�ģ�ֻ�޸ĺڰ�����
+				//本身是静态的，只修改黑白名单
 				wl->SetWhite(white);
 				lock.Unlock();
 				return;
 			}			
-			//��̬ת��̬
+			//动态转静态
 			wl->ConvertToStatic();
 			wls.erase(it);
 		}
@@ -138,7 +140,7 @@ public:
 		while (head && kgl_current_sec - head->last_time>time_out) {
 			assert(!head->IsStatic());
 			if (!head->IsConvertToStatic()) {
-				//��̬�ģ��Ѿ�ת��̬�ˡ�
+				//动态的，已经转静态了。
 				wls.erase((char *)head->ip);
 			}
 			next = head->next;
@@ -161,21 +163,10 @@ public:
 	}
 	bool find(const char *ip,int time_out,bool flush)
 	{
-		lock.Lock();
 		if (flush) {
-			while (head && kgl_current_sec - head->last_time > time_out) {
-				KIpListItem *next = head->next;
-				assert(!head->IsStatic());
-				if (!head->IsConvertToStatic()) {
-					wls.erase((char *)head->ip);
-				}
-				delete head;
-				head = next;
-			}
-			if (head == NULL) {
-				end = NULL;
-			}
+			this->flush(time_out);
 		}
+		lock.Lock();
 		std::map<char *,KIpListItem *,lessp>::iterator it;
 		it = wls.find((char *)ip);
 		if (it==wls.end()) {
@@ -238,15 +229,29 @@ public:
 	}
 	void getBlackList(WhmContext *ctx);
 	void clearBlackList();
+	size_t getDynamicCount();
+	size_t clearDynamic();
 	//volatile int64_t upstream_request_count;
 private:
 	~KIpList()
 	{
+		clearStatic();
 		while (head) {
-			end = head;
+			KIpListItem *next = head->next;
 			delete head;
-			head = end->next;
+			head = next;
 		}
+		end = NULL;
+	}
+	//静态项只在wls中，动态项由head链表负责释放
+	void clearStatic()
+	{
+		for (auto it = wls.begin(); it != wls.end(); ++it) {
+			if ((*it).second->IsStatic()) {
+				delete (*it).second;
+			}
+		}
+		wls.clear();
 	}
 	void addItem(KIpListItem *item)
 	{

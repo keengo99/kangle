@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"test_framework/config"
 	"time"
 )
@@ -24,6 +26,21 @@ var RangeMd5 string
 type RangeCallBackCheck func(from, to, request_count int, r *http.Request, w http.ResponseWriter) bool
 
 var RangeChecker RangeCallBackCheck
+
+type rangeCheckState struct {
+	sync.Mutex
+	checker      RangeCallBackCheck
+	requestCount int
+}
+
+var rangeCheckSequence uint64
+var rangeCheckStates sync.Map
+
+func RegisterRangeChecker(checker RangeCallBackCheck) string {
+	id := fmt.Sprintf("%d", atomic.AddUint64(&rangeCheckSequence, 1))
+	rangeCheckStates.Store(id, &rangeCheckState{checker: checker})
+	return id
+}
 
 func parseRange(rv string) (from, to int) {
 	n, _ := fmt.Sscanf(rv, "bytes=-%d", &to)
@@ -42,25 +59,60 @@ func HandleRange(w http.ResponseWriter, r *http.Request) {
 	var buf []byte
 	vary := r.FormValue("vary")
 	g := r.FormValue("g")
-	if_none_match := r.Header.Get("If-None-Match")
 	accept_encoding := r.Header.Get("Accept-Encoding")
 	weak_etag := (r.Header.Get("x-weak-etag") == "1")
 	gzip := strings.Contains(accept_encoding, "gzip")
-	total_content_length := RangeSize
 	if g != "1" {
 		gzip = false
 	}
+	total_content_length := RangeSize
 	if gzip {
 		total_content_length = GzRangeSize
 	}
-	//fmt.Printf("range gzip = [%v]\n", gzip)
+	if_none_match := r.Header.Get("If-None-Match")
+	// Cache revalidation requests are not part of range fault injection.  Return
+	// a normal 304 before invoking the per-range callback.
 	if if_none_match == RangeMd5 || strings.HasPrefix(if_none_match, "W/") {
-		//fmt.Printf("response 304\n")
 		w.Header().Add("Server", TEST_SERVER_NAME)
 		w.WriteHeader(304)
 		return
 	}
+	checker := RangeChecker
+	requestCount := RequestCount
+	var checkState *rangeCheckState
+	if id := r.Header.Get("X-Kangle-Test-ID"); id != "" {
+		if value, ok := rangeCheckStates.Load(id); ok {
+			checkState = value.(*rangeCheckState)
+			checkState.Lock()
+			defer checkState.Unlock()
+			checker = checkState.checker
+			requestCount = checkState.requestCount
+		}
+	}
 	rv := r.Header.Get("Range")
+	callbackFrom, callbackTo := 0, -1
+	if len(rv) > 0 {
+		callbackFrom, callbackTo = parseRange(rv)
+		if callbackFrom == -1 {
+			callbackFrom = total_content_length - callbackTo
+			callbackTo = total_content_length - 1
+		}
+	}
+	// Run mutation and fault-injection callbacks before evaluating validators
+	// or reading the entity.  Running them afterwards can produce a response
+	// containing the old body with a new ETag, which is not a valid origin
+	// response and makes the cache tests inherently racy.
+	if checker != nil {
+		if !checker(callbackFrom, callbackTo, requestCount, r, w) {
+			return
+		}
+	}
+	// A callback may have replaced the range fixture.
+	total_content_length = RangeSize
+	if gzip {
+		total_content_length = GzRangeSize
+	}
+	//fmt.Printf("range gzip = [%v]\n", gzip)
 	if_range := r.Header.Get("If-Range")
 	//fmt.Printf("if_range=[%s]\n", if_range)
 	if len(if_range) > 0 && if_range != RangeMd5 && !strings.HasPrefix(if_range, "W/") {
@@ -80,11 +132,6 @@ func HandleRange(w http.ResponseWriter, r *http.Request) {
 		}
 		//fmt.Printf("adjust from=[%d] to=[%d],length=[%d]\n", from, to, to-from+1)
 		buf = ReadRange(from, to, gzip)
-		if RangeChecker != nil {
-			if !RangeChecker(from, to, RequestCount, r, w) {
-				return
-			}
-		}
 		if length < 0 {
 			status_code = 416
 			//w.WriteHeader(416)
@@ -101,13 +148,12 @@ func HandleRange(w http.ResponseWriter, r *http.Request) {
 		//w.WriteHeader(200)
 		//wb.WriteString("HTTP/1.1 200 OK\r\n")
 		buf = ReadRange(0, -1, gzip)
-		if RangeChecker != nil {
-			if !RangeChecker(0, -1, RequestCount, r, w) {
-				return
-			}
-		}
 	}
-	RequestCount++
+	if checkState != nil {
+		checkState.requestCount++
+	} else {
+		RequestCount++
+	}
 	if gzip {
 		w.Header().Add("Content-Encoding", "gzip")
 	}

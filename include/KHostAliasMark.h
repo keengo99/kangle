@@ -19,6 +19,10 @@ public:
 	}
 	~KHostAliasMark()
 	{
+		clear_map();
+	}
+	void clear_map()
+	{
 		while (m.size()>0) {
 			auto it = m.begin();
 			KUrl *u = (*it).first;
@@ -41,6 +45,9 @@ public:
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
+		/* a reload replaces the map: old entries stayed, and a changed
+		 * alias of a known host was ignored */
+		clear_map();
 		char *map = strdup(attribute["map"].c_str());
 		char *hot = map;
 		for (;;) {

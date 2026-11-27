@@ -34,8 +34,10 @@ public:
 					char* buf = (char*)malloc(new_len);
 					kgl_memcpy(buf, h->buf + h->val_offset, h->val_len);
 					kgl_memcpy(buf + h->val_len, HTTP_ONLY_STRING, sizeof(HTTP_ONLY_STRING));
-					free(h->buf);
+					xfree_header_buffer(h);
 					h->buf = buf;
+					h->buf_in_pool = 0;
+					h->buf_reoffset = 0;
 					h->val_len += sizeof(HTTP_ONLY_STRING) - 1;
 					result = KF_STATUS_REQ_TRUE;
 				}
@@ -44,8 +46,10 @@ public:
 					char* buf = (char*)malloc(new_len);
 					kgl_memcpy(buf, h->buf + h->val_offset, h->val_len);
 					kgl_memcpy(buf + h->val_len, COOKIE_SECURE_STRING, sizeof(COOKIE_SECURE_STRING));
-					free(h->buf);
+					xfree_header_buffer(h);
 					h->buf = buf;
+					h->buf_in_pool = 0;
+					h->buf_reoffset = 0;
 					h->val_len += sizeof(COOKIE_SECURE_STRING) - 1;
 					result = KF_STATUS_REQ_TRUE;
 				}

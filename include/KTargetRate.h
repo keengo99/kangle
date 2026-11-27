@@ -6,6 +6,8 @@
 #include "klist.h"
 #include "KMutex.h"
 
+/* most clients or urls one rate rule tracks at a time */
+#define KGL_MAX_RATE_TARGETS 200000
 class KTargetItem
 {
 public:

@@ -103,7 +103,7 @@ void init_fastcgi_header(u_char type, u_char pad_length, FCGI_Header* header)
 	memset(header, 0, sizeof(FCGI_Header));
 	header->version = 1;
 	header->type = type;
-	header->requestId = 1;
+	header->requestIdB0 = 1;
 	header->paddingLength = pad_length;
 	//return header;
 }

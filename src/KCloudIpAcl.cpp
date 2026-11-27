@@ -28,7 +28,7 @@ void KCloudIpAcl::http_body_hook(const char *data, int len)
 		}
 		int flush_time = this->flush_time;
 		if (!this->parse_data()) {
-			//���ʧ�ܣ���30�������
+			//如果失败，则30秒后重试
 			flush_time = 30;
 		}
 		timer_run(cloud_ip_timer, this, flush_time * 1000);
@@ -133,6 +133,9 @@ void KCloudIpAcl::parse_config(const khttpd::KXmlNodeBody* xml)
 	lock.Lock();
 	url = attribute["url"];
 	flush_time = atoi(attribute["flush_time"].c_str());
+	if (flush_time <= 0) {
+		flush_time = 3600;
+	}
 	lock.Unlock();
 	this->start();
 }
@@ -147,6 +150,12 @@ void KCloudIpAcl::start() {
 }
 void KCloudIpAcl::start_http()
 {	
+	if (this->get_ref() == 1) {
+		//规则已被移除，只剩start()时持有的引用，停止定时刷新
+		this->started = false;
+		this->release();
+		return;
+	}
 	this->data.clear();
 	kgl_async_http ctx;
 	memset(&ctx, 0, sizeof(ctx));
@@ -155,10 +164,11 @@ void KCloudIpAcl::start_http()
 	ctx.url = (char *)this->url.c_str();
 	ctx.body = cloud_ip_http_body_hook;
 	ctx.arg = this;
-	if (kgl_simuate_http_request(&ctx) != 0) {
+	bool failed = (kgl_simuate_http_request(&ctx) != 0);
+	lock.Unlock();
+	if (failed) {
 		this->started = false;
 		this->release();
 	}
-	lock.Unlock();
 }
 #endif

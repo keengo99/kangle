@@ -37,6 +37,8 @@ func init() {
 	s.CasesMap = make(map[string]*suite.Case)
 	s.Name = "webdav"
 	s.AddCase("options", "测试OPTIONS", check_options)
+	s.AddCase("put_chunked", "chunked方式PUT上传", check_put_chunked)
+	s.AddCase("put_expect", "Expect: 100-continue方式PUT上传", check_put_expect)
 	s.AddCase("client", "使用webdav client测试", check_client)
 	suite.Register(s)
 }

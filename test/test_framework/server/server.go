@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"sync"
 	"test_framework/common"
 	"test_framework/config"
 	"time"
@@ -16,6 +17,53 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
+
+var prepareOnce sync.Once
+var requestActivity = struct {
+	sync.Mutex
+	active     int
+	generation uint64
+}{}
+
+func requestStarted() {
+	requestActivity.Lock()
+	requestActivity.active++
+	requestActivity.generation++
+	requestActivity.Unlock()
+}
+
+func requestFinished() {
+	requestActivity.Lock()
+	requestActivity.active--
+	requestActivity.generation++
+	requestActivity.Unlock()
+}
+
+// WaitIdle waits until no origin request is active and no new request has
+// arrived for quietPeriod.  Some cache tests complete the client response
+// before kangle finishes its background range fetches.
+func WaitIdle(quietPeriod, timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	quietSince := time.Now()
+	requestActivity.Lock()
+	lastGeneration := requestActivity.generation
+	requestActivity.Unlock()
+	for time.Now().Before(deadline) {
+		requestActivity.Lock()
+		active := requestActivity.active
+		generation := requestActivity.generation
+		requestActivity.Unlock()
+		if active != 0 || generation != lastGeneration {
+			quietSince = time.Now()
+			lastGeneration = generation
+		}
+		if active == 0 && time.Since(quietSince) >= quietPeriod {
+			return true
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return false
+}
 
 func Handle(pattern string, handler func(http.ResponseWriter, *http.Request)) {
 	http.HandleFunc(pattern, handler)
@@ -70,11 +118,20 @@ func init() {
 	//handlers = make(map[string]func(http.ResponseWriter, *http.Request), 0)
 
 }
+func Prepare() {
+	prepareOnce.Do(func() {
+		common.CreateRange(1024)
+		Handle("/range", common.HandleRange)
+		Handle("/range/", common.HandleRange)
+	})
+}
+
 func Start() {
-	common.CreateRange(1024)
-	Handle("/range", common.HandleRange)
+	Prepare()
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestStarted()
+		defer requestFinished()
 		h, _ := http.DefaultServeMux.Handler(r)
 		h.ServeHTTP(w, r)
 	})
@@ -91,6 +148,9 @@ func Start() {
 			panic(err)
 		}
 	}()
+	go startStalePoolOrigin()
+	go startChunkKeepAliveOrigin()
+	go startHostMarkOrigin()
 	crt, err := tls.LoadX509KeyPair(fmt.Sprintf("%s/etc/server.crt", config.Cfg.BasePath), fmt.Sprintf("%s/etc/server.key", config.Cfg.BasePath))
 	if err != nil {
 		log.Fatalln(err.Error())

@@ -8,6 +8,7 @@
 #include <Objbase.h>
 #endif
 #include "ksocket.h"
+#include "kthread.h"
 #include "api_child.h"
 #include "extworker.h"
 #include "KListenPipeStream.h"
@@ -18,7 +19,11 @@ int m_debug = 0;
 extern std::map<pid_t, time_t> processes;
 extern KMutex processLock;
 extern std::map<u_short, KApiDso*> apis;
+#ifndef _WIN32
+volatile sig_atomic_t program_quit = 0;
+#else
 volatile bool program_quit = false;
+#endif
 extern KListenPipeStream ls;
 void debug(const char* fmt, ...) {
 #ifndef NDEBUG	
@@ -29,6 +34,9 @@ void debug(const char* fmt, ...) {
 #endif
 }
 void killallProcess() {
+	// EOF and a shutdown signal may reach the main and reaper threads together.
+	static KMutex cleanupLock;
+	KLocker cleanupLocker(&cleanupLock);
 #ifndef _WIN32
 	signal(SIGCHLD, SIG_IGN);
 #endif
@@ -58,7 +66,11 @@ bool childExsit() {
 	int status;
 	int ret, child;
 	int rc;
+	// Do not reap a newly forked child before its PID has been registered.
+	processLock.Lock();
 	ret = waitpid(-1, &status, WNOHANG);
+	bool tracked = ret > 0 && processes.find(ret) != processes.end();
+	processLock.Unlock();
 	child = ret;
 	switch (ret) {
 	case 0:
@@ -80,7 +92,7 @@ bool childExsit() {
 				status);
 			rc = status;
 		}
-		if (!program_quit) {
+		if (!program_quit && tracked) {
 			restart_child_process(child);
 		}
 	}
@@ -88,16 +100,25 @@ bool childExsit() {
 
 
 }
+/* children are reaped and restarted in a normal thread, not in the signal handler. */
+KTHREAD_FUNCTION reap_child_thread(void* param) {
+	while (!program_quit) {
+		if (!childExsit()) {
+			sleep(1);
+		}
+	}
+	killallProcess();
+	_exit(0);
+	KTHREAD_RETURN;
+}
 void sigcatch(int sig) {
 	switch (sig)
 	{
 	case SIGCHLD:
-		while (childExsit());
 		break;
 	default:
 		program_quit = true;
-		killallProcess();
-		_exit(0);
+		break;
 	}
 }
 #endif
@@ -127,7 +148,7 @@ int main(int argc, char** argv) {
 	}
 	if (argc > 4) {
 		if (strcmp(argv[1], "-b") == 0) {
-			//独立运行模式
+			//鐙珛杩愯妯″紡
 			seperate_work_model();
 			return 0;
 		}
@@ -144,7 +165,11 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 #else
-	signal(SIGCHLD, sigcatch);
+	signal(SIGCHLD, SIG_DFL);
+	if (!kthread_start(reap_child_thread, NULL)) {
+		fprintf(stderr, "cannot start child reaper\n");
+		return 1;
+	}
 	st.fd[0] = 4;
 	st.fd[1] = 5;
 #endif

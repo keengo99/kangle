@@ -29,13 +29,33 @@ int KDsoExtendManage::dump(WhmContext* ctx) {
 }
 bool KDsoExtendManage::add(const KXmlAttribute &attribute)
 {
+	/* filter was shipped as a DSO between 3.5 and 3.6.  It is built into the
+	 * server again, so tolerate an old loader entry during rolling upgrades
+	 * without requiring the obsolete binary to remain installed. */
+	if (strcasecmp(attribute("name"), "filter") == 0) {
+		klog(KLOG_NOTICE, "ignore legacy filter dso entry; filters are built in\n");
+		return true;
+	}
+	{
+		KLocker locker(&lock);
+		if (dsos.find(attribute("name")) != dsos.end()) {
+			klog(KLOG_ERR, "dso extend name [%s] is duplicate\n", attribute("name"));
+			return false;
+		}
+	}
 	KDsoExtend *dso = new KDsoExtend(attribute["name"].c_str());
 	if (!dso->load(attribute("filename"),attribute)) {
+		if (dso->init_called) {
+			/* hooks registered by the module may still refer to it, keep it loaded. */
+			klog(KLOG_ERR, "dso extend [%s] init failed, it will be keeped in memory\n", dso->GetName());
+			return false;
+		}
 		delete dso;
 		return false;
 	}
 	if (!add(dso)) {
-		delete dso;
+		dso->shutdown();
+		klog(KLOG_ERR, "dso extend [%s] add failed, it will be keeped in memory\n", dso->GetName());
 		return false;
 	}
 	klog(KLOG_NOTICE, "load dso extend name [%s] file [%s] successfully\n", dso->GetName(), dso->GetFileName());
@@ -71,7 +91,7 @@ void KDsoExtendManage::html(KWStream &s)
 			<< (orign_filename ? orign_filename : "")
 			<< "</a></td><td>";
 		dso->ListUpstream(s);	
-		s << "</td><td>" << HIWORD(dso->version.module_version) << "." << LOWORD(dso->version.module_version) << "</td>";
+		s << "</td><td>" << HIWORD(dso->version.module_version) << "." << LOWORD(dso->version.module_version) << "</td></tr>";
 	}
 	lock.Unlock();
 	s << "</table>";

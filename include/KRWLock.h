@@ -100,7 +100,7 @@ private:
 #define RUnlock         Unlock
 #define WUnlock         Unlock
 #define KRWLock        	KMutex
-#endif//_WIN32¶¨Òå½áÊø
+#endif//_WIN32å®šä¹‰ç»“æŸ
 #endif
 #endif
 class KWLocker

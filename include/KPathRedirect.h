@@ -53,11 +53,13 @@ public:
 			s << "*"_CS;
 			return;
 		}
+		bool first = true;
 		for (int i = 1; i < MAX_METHOD; i++) {
 			if (meths[i]) {
-				if (!s.empty()) {
+				if (!first) {
 					s << ",";
 				}
+				first = false;
 				s << KHttpKeyValue::get_method(i)->data;
 			}
 		}
@@ -82,7 +84,7 @@ public:
 		ref = 1;
 	}
 	/**
-	* µ÷ÓÃ´Ë´¦rd±ØĞëÏÈĞĞaddRef¡£
+	* è°ƒç”¨æ­¤å¤„rdå¿…é¡»å…ˆè¡ŒaddRefã€‚
 	*/
 	KBaseRedirect(KRedirect *rd, KConfirmFile confirmFile) {
 		this->rd = rd;

@@ -65,8 +65,14 @@ OpenState KLineFile::open(const char *file, time_t &lastModified) {
 	int len = (int)KGL_MIN(sbuf.st_size,MAX_OPEN_FILE_SIZE);
 	if (buf) {
 		free(buf);
+		buf = NULL;
 	}
+	hot = NULL;
 	buf = (char *) malloc(len + 1);
+	if (buf == NULL) {
+		hot = NULL;
+		return OPEN_FAILED;
+	}
 	KFile fp;
 	if (fp.open(file,fileRead)) {
 		len = fp.read(buf,len);
@@ -77,6 +83,8 @@ OpenState KLineFile::open(const char *file, time_t &lastModified) {
 			return OPEN_SUCCESS;
 		}
 	}
+	free(buf);
+	buf = NULL;
 	return OPEN_FAILED;
 }
 char *KLineFile::readLine() {
@@ -105,6 +113,9 @@ char *KLineFile::readLine() {
 	return p;
 }
 bool KStreamFile::open(const char *file,const char split_char) {
+	if (buf == NULL) {
+		return false;
+	}
 	*buf = '\0';
 	hot = buf;
 	this->split_char = split_char;

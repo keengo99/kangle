@@ -5,6 +5,12 @@
  *      Author: keengo
  */
 #include <sstream>
+#include <string>
+#include <atomic>
+#include <sys/stat.h>
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 #include "KWebDavService.h"
 #include "KDavLock.h"
 #include "KHttpKeyValue.h"
@@ -17,7 +23,7 @@
 #define MAX_DEPTH 1
 #define MAX_DOCUMENT_SIZE   1048576
 //static const char* allowed_header ="OPTIONS,GET,HEAD,POST,DELETE,PROPFIND,PROPPATCH,COPY,MOVE,LOCK,UNLOCK,MKCOL,PUT";
-static const char* allowed_header = "OPTIONS,GET,HEAD,POST,DELETE,PROPFIND,PROPPATCH,COPY,MOVE,MKCOL,PUT";
+static const char* allowed_header = "OPTIONS,GET,HEAD,POST,DELETE,PROPFIND,PROPPATCH,COPY,MOVE,LOCK,UNLOCK,MKCOL,PUT";
 static const char* xml_head = "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n";
 static const char* xml_dav_ns = "xmlns:D=\"DAV:\"";
 /*
@@ -33,6 +39,40 @@ static const char* xml_supported_lock ="\n<D:supportedlock></D:supportedlock>";
 KResourceMaker* rsMaker = new KFSResourceMaker;
 KDavLockManager lockManager;
 using namespace std;
+static bool decode_destination_path(char* destination) {
+	char* path = strstr(destination, "://");
+	if (path) {
+		path = strchr(path + 3, '/');
+		if (path == NULL) {
+			return false;
+		}
+	} else {
+		path = destination;
+	}
+	char* end = strpbrk(path, "?#");
+	if (end) {
+		*end = '\0';
+	}
+	int len = (int)strlen(path);
+	if (len > 0) {
+		len = url_decode(path, len, NULL, false);
+		if (memchr(path, '\0', len) != NULL) {
+			return false;
+		}
+		path[len] = '\0';
+	}
+	return true;
+}
+static bool same_resource_path(const char* left, const char* right) {
+	if (left == NULL || right == NULL) {
+		return false;
+	}
+#ifdef _WIN32
+	return strcasecmp(left, right) == 0;
+#else
+	return strcmp(left, right) == 0;
+#endif
+}
 KWebDavService::KWebDavService() {
 	if_token = NULL;
 }
@@ -74,9 +114,8 @@ bool KWebDavService::service(KISAPIServiceProvider* provider) {
 			return send(STATUS_METH_NOT_ALLOWED);
 		}
 	} catch (...) {
-		printf("catch exception\n");
+		return send(STATUS_SERVER_ERROR);
 	}
-	return true;
 }
 uint16_t KWebDavService::check_file_locked(KLockToken *lock_token)
 {
@@ -115,10 +154,17 @@ bool KWebDavService::doCopy() {
 	if (!provider->getEnv("HTTP_DESTINATION", destination, &len) || len <= 0) {
 		return send(STATUS_BAD_REQUEST);
 	}
+	std::string destination_url(destination, len);
+	if (!decode_destination_path(destination)) {
+		return send(STATUS_BAD_REQUEST);
+	}
 
 	DWORD destination_len = sizeof(destination);
 	if (provider->pECB->ServerSupportFunction(provider->pECB->ConnID, HSE_REQ_MAP_URL_TO_PATH, destination, &destination_len, NULL) == FALSE) {
 		return send(STATUS_BAD_REQUEST);
+	}
+	if (same_resource_path(provider->getFileName(), destination)) {
+		return send(STATUS_FORBIDEN);
 	}
 
 	auto lock_token = lockManager.find_file_locked(destination);
@@ -139,9 +185,9 @@ bool KWebDavService::doCopy() {
 	if (!rs->open(false)) {
 		return send(STATUS_FORBIDEN);
 	}
-	auto dst = rsMaker->bindResource(destination, "/");
-	if (dst) {
-		defer(delete dst);
+	auto existing_dst = rsMaker->bindResource(destination, "/");
+	if (existing_dst) {
+		defer(delete existing_dst);
 		char* overWriteHeader = provider->getHttpHeader("Overwrite");
 		if (overWriteHeader) {
 			if (strcasecmp(overWriteHeader, "T") != 0) {
@@ -151,9 +197,11 @@ bool KWebDavService::doCopy() {
 			provider->freeHttpHeader(overWriteHeader);
 		}
 		status = STATUS_NO_CONTENT;
-		dst->remove();
+		if (!existing_dst->remove()) {
+			return send(STATUS_FORBIDEN);
+		}
 	}
-	dst = rsMaker->makeFile(destination, "/");
+	auto dst = rsMaker->makeFile(destination, "/");
 	if (dst == nullptr) {
 		return send(STATUS_FORBIDEN);
 	}
@@ -162,8 +210,7 @@ bool KWebDavService::doCopy() {
 		return send(STATUS_FORBIDEN);
 	}
 	send(status);
-	provider->getEnv("HTTP_DESTINATION", destination, &len);
-	return provider->sendUnknowHeader("Location", destination);	
+	return provider->sendUnknowHeader("Location", destination_url.c_str());
 	
 }
 bool KWebDavService::doDelete() {
@@ -180,7 +227,8 @@ bool KWebDavService::doDelete() {
 		return send(STATUS_NOT_FOUND);
 	}
 	if (!rs->remove()) {
-		send(STATUS_FORBIDEN);
+		delete rs;
+		return send(STATUS_FORBIDEN);
 	}
 	delete rs;
 	return send(STATUS_NO_CONTENT);
@@ -200,55 +248,120 @@ bool KWebDavService::doPut() {
 	if (status_code != STATUS_OK) {
 		return send(status_code);
 	}
-
-	KResource* rs = rsMaker->makeFile(provider->getFileName(),provider->getRequestUri());
+	int64_t content_length = provider->getContentLength();
+	bool unknown_length = content_length < 0;
+	const char* file_name = provider->getFileName();
+	struct stat old_st;
+	bool existed = stat(file_name, &old_st) == 0;
+	KResource* rs = NULL;
+	std::string tmp_name;
+	if (existed && S_ISREG(old_st.st_mode)) {
+		/* Write next to the file and rename over it once the body is
+		 * complete, so a broken upload leaves the old content in place. */
+		static std::atomic<unsigned> seq{ 0 };
+		std::stringstream s;
+		s << file_name << ".kangle-put-" << getpid() << "-" << seq++;
+		tmp_name = s.str();
+		rs = rsMaker->makeFile(tmp_name.c_str(), provider->getRequestUri());
+		if (rs == NULL) {
+			/* no write access to the directory: write in place as before */
+			tmp_name.clear();
+		}
+	}
+	if (rs == NULL) {
+		rs = rsMaker->makeFile(file_name, provider->getRequestUri());
+	}
 	if (rs == NULL) {
 		return send(STATUS_FORBIDEN);
 	}
-	int len = 0;
 	KRStream* in = provider->getInputStream();
-	int64_t content_length = provider->getContentLength();
-	content_length -= len;
+	if (in == NULL) {
+		delete rs;
+		return send(STATUS_SERVER_ERROR);
+	}
 	bool result = true;
-	while (content_length > 0) {
+	while (unknown_length || content_length > 0) {
 		char buf[512];
-		int this_read_len = (int)(KGL_MIN(content_length, sizeof(buf)));
+		int this_read_len = unknown_length ? (int)sizeof(buf) : (int)(KGL_MIN(content_length, (int64_t)sizeof(buf)));
 		int actual_read_len = in->read(buf, this_read_len);
+		if (unknown_length && actual_read_len == 0) {
+			break;
+		}
 		if (actual_read_len <= 0) {
 			result = false;
 			break;
 		}
-		content_length -= actual_read_len;
-		if (!rs->write(buf, actual_read_len)) {
+		if (!unknown_length) {
+			content_length -= actual_read_len;
+		}
+		if (rs->write(buf, actual_read_len) != actual_read_len) {
 			result = false;
 			break;
 		}
 	}
+	rs->close();
+	if (!tmp_name.empty()) {
+		if (result) {
+#ifndef _WIN32
+			chmod(tmp_name.c_str(), old_st.st_mode & 07777);
+#endif
+			result = rs->rename(file_name);
+		}
+		if (!result) {
+			rs->remove();
+		}
+	} else if (!result && !existed) {
+		rs->remove();
+	}
 	delete rs;
 	if (result) {
-		send(STATUS_NO_CONTENT);
+		return send(existed ? STATUS_NO_CONTENT : STATUS_CREATED);
 	}
-	return result;
+	return send(STATUS_SERVER_ERROR);
 }
 bool KWebDavService::parseDocument(khttpd::KXmlDocument& document) {
 	int64_t content_length = provider->getContentLength();
 	if (content_length > MAX_DOCUMENT_SIZE) {
 		return false;
 	}
-	if (content_length <= 0) {
+	if (content_length == 0) {
 		return false;
 	}
-	int len = 0;
-	char* buf = (char*)xmalloc(content_length + 1);
-	if (len < content_length) {
-		//not all data have
-		KRStream* in = provider->getInputStream();
-		if (!in->read_all(buf + len, (int)(content_length - len))) {
+	KRStream* in = provider->getInputStream();
+	char* buf;
+	if (content_length < 0) {
+		//长度未知(chunked),读到结束,最多MAX_DOCUMENT_SIZE
+		buf = (char*)xmalloc(MAX_DOCUMENT_SIZE + 1);
+		int len = 0;
+		for (;;) {
+			//多读1字节，以区分恰好达到上限和确实超过上限。
+			int got = in->read(buf + len, MAX_DOCUMENT_SIZE + 1 - len);
+			if (got == 0) {
+				break;
+			}
+			if (got < 0) {
+				xfree(buf);
+				return false;
+			}
+			len += got;
+			if (len > MAX_DOCUMENT_SIZE) {
+				xfree(buf);
+				return false;
+			}
+		}
+		if (len == 0) {
 			xfree(buf);
 			return false;
 		}
+		buf[len] = '\0';
+	} else {
+		buf = (char*)xmalloc(content_length + 1);
+		if (!in->read_all(buf, (int)content_length)) {
+			xfree(buf);
+			return false;
+		}
+		buf[content_length] = '\0';
 	}
-	buf[content_length] = '\0';	
 	try {
 		document.parse(buf);
 		xfree(buf);
@@ -310,7 +423,9 @@ bool KWebDavService::doLock() {
 	khttpd::KXmlDocument document;
 	char ips[255];
 	int len = sizeof(ips);
-	provider->getEnv("REMOTE_ADDR", ips, &len);
+	if (!provider->getEnv("REMOTE_ADDR", ips, &len) || len <= 0) {
+		return send(STATUS_BAD_REQUEST);
+	}
 	if (!parseDocument(document)) {
 		//flush the lock
 		auto lock_token = lockManager.find_file_locked(provider->getFileName());
@@ -360,6 +475,7 @@ bool KWebDavService::doLock() {
 	if (rs == nullptr) {
 		rs = rsMaker->makeFile(provider->getFileName(), "/");
 		if (rs == nullptr) {
+			lockManager.unlock(token);
 			return send(STATUS_FORBIDEN);
 		}
 		send(STATUS_CREATED);
@@ -385,9 +501,10 @@ bool KWebDavService::doUnlock() {
 	}
 	token++;
 	char* e = strrchr(token_header, '>');
-	if (e) {
-		*e = '\0';
+	if (e == NULL || e <= token) {
+		return send(STATUS_BAD_REQUEST);
 	}
+	*e = '\0';
 	auto lock_token = lockManager.find_file_locked(provider->getFileName());
 	if (lock_token == nullptr) {
 		return send(STATUS_CONFLICT);
@@ -411,7 +528,13 @@ bool KWebDavService::doMkcol() {
 }
 bool KWebDavService::doProppatch() {
 	khttpd::KXmlDocument document;
-	parseDocument(document);
+	if (!parseDocument(document)) {
+		return send(STATUS_BAD_REQUEST);
+	}
+	auto root = document.getRootNode();
+	if (root == NULL || root->get_tag() != "propertyupdate") {
+		return send(STATUS_BAD_REQUEST);
+	}
 	auto node = document.getNode("propertyupdate/set/prop");
 	if (node != NULL) {
 		//todo for set;
@@ -546,9 +669,16 @@ bool KWebDavService::doMove() {
 	if (!provider->getEnv("HTTP_DESTINATION", destination, &len) || len <= 0) {
 		return send(STATUS_BAD_REQUEST);
 	}
+	std::string destination_url(destination, len);
+	if (!decode_destination_path(destination)) {
+		return send(STATUS_BAD_REQUEST);
+	}
 	DWORD destination_len = sizeof(destination);
 	if (provider->pECB->ServerSupportFunction(provider->pECB->ConnID, HSE_REQ_MAP_URL_TO_PATH, destination, &destination_len, NULL) == FALSE) {
 		return send(STATUS_BAD_REQUEST);
+	}
+	if (same_resource_path(provider->getFileName(), destination)) {
+		return send(STATUS_FORBIDEN);
 	}
 	auto src_token = lockManager.find_file_locked(provider->getFileName());
 	auto status_code = check_file_locked(src_token);
@@ -585,14 +715,16 @@ bool KWebDavService::doMove() {
 			provider->freeHttpHeader(overWriteHeader);
 		}
 		status = STATUS_NO_CONTENT;
-		rsd->remove();
+		if (!rsd->remove()) {
+			delete rsd;
+			delete rs;
+			return send(STATUS_FORBIDEN);
+		}
 		delete rsd;
 	}
 	if (rs->rename(destination)) {
 		send(status);
-		char* dst = provider->getHttpHeader("Destination");
-		provider->sendUnknowHeader("Location", dst);
-		provider->freeHttpHeader(dst);
+		provider->sendUnknowHeader("Location", destination_url.c_str());
 	} else {
 		send(STATUS_FORBIDEN);
 	}

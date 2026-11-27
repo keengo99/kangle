@@ -42,28 +42,29 @@ public:
 	bool update_ssl(const char* domain, const char* cert_file, const char* key_file);
 #endif
 	bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) override;
+	bool on_template_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev);
 	kconfig::KConfigEventFlag config_flag() const override {
 		return kconfig::ev_subdir | kconfig::ev_skip_vary;
 	}
 	int getCount();
 public:
 	/*
-	 * ¸üĞÂĞéÄâÖ÷»ú
+	 * æ›´æ–°è™šæ‹Ÿä¸»æœº
 	 */
 	bool updateVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh);
 	bool updateVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh, KVirtualHost* ov);
 	//void updateVirtualHost(KVirtualHost* vh, std::list<KSubVirtualHost*>& hosts);
 	//void updateVirtualHost(KVirtualHost* vh, std::list<KString>& binds);
 	/*
-	 * Ôö¼ÓĞéÄâÖ÷»ú
+	 * å¢åŠ è™šæ‹Ÿä¸»æœº
 	 */
 	bool addVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh);
 	/*
-	 * É¾³ıĞéÄâÖ÷»ú
+	 * åˆ é™¤è™šæ‹Ÿä¸»æœº
 	 */
 	bool removeVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh);
 	/*
-	* ²éÕÒĞéÄâÖ÷»ú²¢°ó¶¨ÔÚrqÉÏ¡£
+	* æŸ¥æ‰¾è™šæ‹Ÿä¸»æœºå¹¶ç»‘å®šåœ¨rqä¸Šã€‚
 	*/
 	static query_vh_result queryVirtualHost(KVirtualHostContainer* vhc, KSubVirtualHost** rq_svh, const char* site, int site_len) {
 		query_vh_result result = query_vh_host_not_found;
@@ -82,7 +83,7 @@ public:
 		if (svh) {
 			result = query_vh_success;
 			if ((*rq_svh) != svh) {
-				//ĞéÄâÖ÷»ú±ä»¯ÁË?°ÑÀÏµÄÊÍ·Å£¬ÒıÓÃĞÂµÄ
+				//è™šæ‹Ÿä¸»æœºå˜åŒ–äº†?æŠŠè€çš„é‡Šæ”¾ï¼Œå¼•ç”¨æ–°çš„
 				if (*rq_svh) {
 					(*rq_svh)->release();
 					(*rq_svh) = NULL;
@@ -95,11 +96,19 @@ public:
 	}
 	int find_domain(const char* domain, WhmContext* ctx);
 	void getAllVh(std::list<KString>& vhs, bool status, bool onlydb);
+	void getAllGroupTemplete(std::list<KString>& templates);
+	bool getAllTempleteVh(const char* group_template, std::list<KString>& templates);
+	void inheritTemplate(KXmlAttribute& attributes, std::vector<KXmlAttribute>& maps);
+	void getTemplateEvents(const KXmlAttribute& attributes,
+		std::vector<KString>& init_events,
+		std::vector<KString>& update_events,
+		std::vector<KString>& destroy_events);
+	uint64_t getTemplateGeneration();
 	KVirtualHost* refsVirtualHostByName(const KString& name);
 	kserver* RefsServer(u_short port);
 #ifdef ENABLE_VH_FLOW
 	void dumpLoad(KVirtualHostEvent* ctx, bool revers, const char* prefix, int prefix_len);
-	//µ¼³öËùÓĞĞéÄâÖ÷»úÁ÷Á¿
+	//å¯¼å‡ºæ‰€æœ‰è™šæ‹Ÿä¸»æœºæµé‡
 	void dumpFlow();
 	void dumpFlow(KVirtualHostEvent* ctx, bool revers, const char* prefix, int prefix_len, int extend);
 #endif
@@ -122,16 +131,32 @@ private:
 	void getAllVhHtml(KWStream& s);
 	void getVhDetail(KWStream& s, KVirtualHost* vh, bool edit);
 	/*
-	 * ËùÓĞĞéÄâÖ÷»úÁĞ±í
+	 * æ‰€æœ‰è™šæ‹Ÿä¸»æœºåˆ—è¡¨
 	 */
 	std::map<KString, KVirtualHost*> avh;
 	/*
-	* °ó¶¨µ½ÕìÌıÉÏ
+	 * Compatibility metadata for legacy virtual-host templates.  Besides the
+	 * WHM template inventory, retain scalar settings needed by database-backed
+	 * virtual hosts because those values are not stored in vhs.db.
+	 */
+	std::map<KString, std::map<KString, unsigned int> > vh_templates;
+	struct KVhTemplateCompatInfo {
+		KXmlAttribute attributes;
+		std::vector<KXmlAttribute> maps;
+		std::vector<KString> init_events;
+		std::vector<KString> update_events;
+		std::vector<KString> destroy_events;
+	};
+	std::map<KString, KVhTemplateCompatInfo> vh_template_config;
+	uint64_t vh_template_generation = 0;
+	void updateTemplateIndex(const khttpd::KXmlNode* xml, bool add);
+	/*
+	* ç»‘å®šåˆ°ä¾¦å¬ä¸Š
 	*/
 	void InternalBindVirtualHost(KVirtualHost* vh);
 	void InternalUnBindVirtualHost(KVirtualHost* vh);
 	/*
-	* ²éÕÒÈ«¾ÖĞéÄâÖ÷»ú²¢°ó¶¨ÉÏ¡£
+	* æŸ¥æ‰¾å…¨å±€è™šæ‹Ÿä¸»æœºå¹¶ç»‘å®šä¸Šã€‚
 	*/
 	void BindGlobalVirtualHost(kserver* server);
 	void UnBindGlobalVirtualHost(kserver* server);

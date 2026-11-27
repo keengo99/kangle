@@ -14,23 +14,47 @@ static std::map<char*, KRequestQueue*, lessp> queues;
 #define ADD_VAR(x,y,z) add_api_var(x,y,z,sizeof(z)-1)
 KGL_RESULT add_api_var(LPVOID buffer, LPDWORD size, const char* val, int len)
 {
+	if (size == NULL || val == NULL || len < 0) {
+		return KGL_EINVALID_PARAMETER;
+	}
 	if (len == 0) {
 		len = (int)strlen(val);
 	}
-	if ((int)*size <= len) {
-		*size = len + 1;
+	DWORD required = (DWORD)len + 1;
+	if (buffer == NULL || *size < required) {
+		*size = required;
 		return KGL_EINSUFFICIENT_BUFFER;
 	}
-	kgl_memcpy(buffer, val, len + 1);
+	kgl_memcpy(buffer, val, len);
+	((char*)buffer)[len] = '\0';
 	*size = len;
 	return KGL_OK;
 }
+static KGL_RESULT add_fixed_var(LPVOID buffer, LPDWORD size, const void* val, DWORD val_size)
+{
+	if (size == NULL || val == NULL) {
+		return KGL_EINVALID_PARAMETER;
+	}
+	if (buffer == NULL || *size < val_size) {
+		*size = val_size;
+		return KGL_EINSUFFICIENT_BUFFER;
+	}
+	kgl_memcpy(buffer, val, val_size);
+	*size = val_size;
+	return KGL_OK;
+}
 KGL_RESULT var_printf(LPVOID buffer, LPDWORD size, const char* fmt, ...) {
+	if (size == NULL || fmt == NULL) {
+		return KGL_EINVALID_PARAMETER;
+	}
 	va_list ap;
 	va_start(ap, fmt);
-	int len = vsnprintf((char*)buffer, *size, fmt, ap);
+	int len = vsnprintf((char*)buffer, buffer ? *size : 0, fmt, ap);
 	va_end(ap);
-	if (len < (int)*size) {
+	if (len < 0) {
+		return KGL_EINVALID_PARAMETER;
+	}
+	if (buffer != NULL && (DWORD)len < *size) {
 		*size = len;
 		return KGL_OK;
 	}
@@ -39,6 +63,9 @@ KGL_RESULT var_printf(LPVOID buffer, LPDWORD size, const char* fmt, ...) {
 }
 KGL_RESULT add_header_var(LPVOID buffer, LPDWORD size, KHttpHeader* header, const char* name, size_t len)
 {
+	if (size == NULL || name == NULL) {
+		return KGL_EINVALID_PARAMETER;
+	}
 	while (header) {
 		if (kgl_is_attr(header, name, len)) {
 			return add_api_var(buffer, size, header->buf + header->val_offset, header->val_len);
@@ -49,12 +76,18 @@ KGL_RESULT add_header_var(LPVOID buffer, LPDWORD size, KHttpHeader* header, cons
 }
 KGL_RESULT get_response_variable(KHttpRequest* rq, KGL_VAR type, const char *name, LPVOID  buffer, LPDWORD size)
 {
+	if (rq == NULL || size == NULL) {
+		return KGL_EINVALID_PARAMETER;
+	}
 	KHttpObject* obj = rq->ctx.obj;
 	if (obj == NULL) {
 		return KGL_ENO_DATA;
 	}
 	switch (type) {
 	case KGL_VAR_HEADER:
+		if (name == NULL) {
+			return KGL_EINVALID_PARAMETER;
+		}
 		return add_header_var(buffer, size, obj->data->headers, name, strlen(name));
 	default:
 		return KGL_ENOT_SUPPORT;
@@ -62,12 +95,21 @@ KGL_RESULT get_response_variable(KHttpRequest* rq, KGL_VAR type, const char *nam
 }
 KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, const char *name, LPVOID  buffer, LPDWORD size)
 {
+	if (rq == NULL || size == NULL) {
+		return KGL_EINVALID_PARAMETER;
+	}
 	switch (type) {
 	case KGL_VAR_HEADER:
+		if (name == NULL) {
+			return KGL_EINVALID_PARAMETER;
+		}
 		return add_header_var(buffer, size, rq->sink->data.get_header(), name, strlen(name));
 #ifdef KSOCKET_SSL
 	case KGL_VAR_SSL_VAR:
 	{
+		if (name == NULL) {
+			return KGL_EINVALID_PARAMETER;
+		}
 		kssl_session* ssl = rq->sink->get_ssl();
 		if (ssl) {
 			auto result = ssl_var_lookup(ssl->ssl, name);
@@ -80,29 +122,28 @@ KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, const char *name
 #endif
 	case KGL_VAR_HTTPS:
 	{
-		int* v = (int*)buffer;
+		int v;
 		if (KBIT_TEST(rq->sink->data.url->flags, KGL_URL_SSL)) {
-			*v = 1;
+			v = 1;
 		} else {
-			*v = 0;
+			v = 0;
 		}
-		return KGL_OK;
+		return add_fixed_var(buffer, size, &v, sizeof(v));
 	}
 	case KGL_VAR_CACHE_TYPE:
 	{
-		int32_t* v = (int32_t*)buffer;
+		int32_t v = 0;
 		if (rq->ctx.obj) {
 			if (rq->ctx.obj->in_cache) {
-				*v = 1;
-				return KGL_OK;
+				v = 1;
+				return add_fixed_var(buffer, size, &v, sizeof(v));
 			}
 			if (rq->ctx.old_obj) {
-				*v = 2;
-				return KGL_OK;
+				v = 2;
+				return add_fixed_var(buffer, size, &v, sizeof(v));
 			}
 		}
-		*v = 0;
-		return KGL_OK;
+		return add_fixed_var(buffer, size, &v, sizeof(v));
 	}
 	case KGL_VAR_SERVER_PROTOCOL:
 		if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_TCP)) {
@@ -137,12 +178,8 @@ KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, const char *name
 		return var_printf(buffer, size, "%s?%s", rq->sink->data.raw_url.path, rq->sink->data.raw_url.param);
 	case KGL_VAR_URL_ADDR:
 	{
-		if (*size < sizeof(kgl_url*)) {
-			return KGL_EINSUFFICIENT_BUFFER;
-		}
-		kgl_url** url_addr = (kgl_url**)buffer;
-		*url_addr = rq->sink->data.url;
-		return KGL_OK;
+		kgl_url* url_addr = rq->sink->data.url;
+		return add_fixed_var(buffer, size, &url_addr, sizeof(url_addr));
 	}
 	case KGL_VAR_SCRIPT_NAME:
 		return add_api_var(buffer, size, rq->sink->data.url->path);
@@ -157,17 +194,16 @@ KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, const char *name
 	}
 	case KGL_VAR_SERVER_ADDR:
 	{
-		if (rq->sink->get_self_ip((char*)buffer, *size - 1) == 0) {
-			*size = MAXIPLEN;
-			return KGL_EINSUFFICIENT_BUFFER;
+		char ip[MAXIPLEN];
+		if (rq->sink->get_self_ip(ip, sizeof(ip)) == 0) {
+			return KGL_ENO_DATA;
 		}
-		return KGL_OK;
+		return add_api_var(buffer, size, ip);
 	}
 	case KGL_VAR_SERVER_PORT:
 	{
-		uint16_t* v = (uint16_t*)buffer;
-		*v = rq->sink->data.raw_url.port;
-		return KGL_OK;
+		uint16_t v = rq->sink->data.raw_url.port;
+		return add_fixed_var(buffer, size, &v, sizeof(v));
 	}
 	case KGL_VAR_REMOTE_ADDR:
 	{
@@ -175,18 +211,16 @@ KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, const char *name
 	}
 	case KGL_VAR_REMOTE_PORT:
 	{
-		uint16_t* v = (uint16_t*)buffer;
-		*v = ksocket_addr_port(rq->sink->get_peer_addr());
-		return KGL_OK;
+		uint16_t v = ksocket_addr_port(rq->sink->get_peer_addr());
+		return add_fixed_var(buffer, size, &v, sizeof(v));
 	}
 	case KGL_VAR_PEER_ADDR:
 	{
-		if (rq->sink->get_peer_ip((char*)buffer, *size - 1)) {
-			*size = (int)strlen((char*)buffer);
-			return KGL_OK;
+		char ip[MAXIPLEN];
+		if (rq->sink->get_peer_ip(ip, sizeof(ip))) {
+			return add_api_var(buffer, size, ip);
 		}
-		*size = MAXIPLEN;
-		return KGL_EINSUFFICIENT_BUFFER;
+		return KGL_ENO_DATA;
 	}
 	case KGL_VAR_DOCUMENT_ROOT:
 	{
@@ -198,15 +232,13 @@ KGL_RESULT get_request_variable(KHttpRequest* rq, KGL_VAR type, const char *name
 	}
 	case KGL_VAR_HAS_CONNECTION_UPGRADE:
 	{
-		bool* v = (bool*)buffer;
-		*v = KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE) > 0;
-		return KGL_OK;
+		bool v = KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONNECTION_UPGRADE) > 0;
+		return add_fixed_var(buffer, size, &v, sizeof(v));
 	}
 	case KGL_VAR_HAS_CONTENT_LENGTH:
 	{
-		bool* v = (bool*)buffer;
-		*v = KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONTENT_LEN) > 0;
-		return KGL_OK;
+		bool v = KBIT_TEST(rq->sink->data.flags, RQ_HAS_CONTENT_LEN) > 0;
+		return add_fixed_var(buffer, size, &v, sizeof(v));
 	}
 	case KGL_VAR_CONTENT_TYPE:
 		return add_header_var(buffer, size, rq->sink->data.get_header(), _KS("Content-Type"));
@@ -340,11 +372,11 @@ static KGL_RESULT support_function(
 	case KF_REQ_UPSTREAM:
 	{
 		if (rq->ctx.obj) {
-			//回应控制不允许注册upstream
+			//鍥炲簲鎺у埗涓嶅厑璁告敞鍐寀pstream
 			return KGL_EINVALID_PARAMETER;
 		}
 		kgl_upstream* us = (kgl_upstream*)data;
-		//目前还不支持同步模式	
+		//鐩墠杩樹笉鏀寔鍚屾妯″紡
 		KDsoRedirect* rd = new KDsoRedirect("", us);
 		KRedirectSource* fo = rd->makeFetchObject(rq, *ret);
 		fo->bind_base_redirect(new KBaseRedirect(rd, KConfirmFile::Never));
@@ -380,6 +412,28 @@ static KGL_RESULT support_function(
 		}
 		in_filter->tee_body((kgl_request_body_ctx*)*ret, NULL, NULL);
 		return KGL_ENO_DATA;
+	}
+	case KF_REQ_BODY_REPLAY:
+	{
+		kgl_request_body_replay* replay = (kgl_request_body_replay*)data;
+		if (replay == nullptr || replay->size < sizeof(kgl_request_body_replay)) {
+			return KGL_EINVALID_PARAMETER;
+		}
+		switch (replay->state) {
+		case KGL_REQUEST_BODY_REPLAY_QUERY:
+			return KGL_OK;
+		case KGL_REQUEST_BODY_REPLAY_READY:
+			if (!rq->ctx.in_body || !KBIT_TEST(rq->sink->data.flags, RQ_HAS_READ_POST)) {
+				return KGL_ENOT_READY;
+			}
+			rq->ctx.request_body_replayable = 1;
+			return KGL_OK;
+		case KGL_REQUEST_BODY_REPLAY_CONSUMING:
+			rq->ctx.request_body_replayable = 0;
+			return KGL_OK;
+		default:
+			return KGL_EINVALID_PARAMETER;
+		}
 	}
 	default:
 		return base_support_function(rq, req, data, ret);

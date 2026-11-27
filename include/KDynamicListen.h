@@ -7,8 +7,8 @@
 #include "KVirtualHostContainer.h"
 #include "KHttp3.h"
 /*
-* ÕìÌı¶Ë¿Ú¹ÜÀí¡£
-* ¼´ÓÉvirtualhostµÄ<bind>!ip:port</bind>
+* ä¾¦å¬ç«¯å£ç®¡ç†ã€‚
+* å³ç”±virtualhostçš„<bind>!ip:port</bind>
 */
 class WhmContext;
 class KVirtualHost;
@@ -218,7 +218,7 @@ public:
 #endif
 };
 /**
-* ÓÉvirtualHostManager¼ÓËøµ÷ÓÃ
+* ç”±virtualHostManageråŠ é”è°ƒç”¨
 */
 class KDynamicListen
 {

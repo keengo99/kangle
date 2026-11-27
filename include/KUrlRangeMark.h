@@ -1,99 +1,94 @@
 #ifndef KURLRANGEMARK_H
 #define KURLRANGEMARK_H
-/*
-* url´ørangeÇëÇó
-*/
-#if 0
-class KUrlRangeMark : public KMark
-{
+
+#include <cerrno>
+#include <cstdlib>
+
+#include "KHttpRequest.h"
+#include "KMark.h"
+#include "KReg.h"
+
+class KUrlRangeMark final : public KMark {
 public:
-	KUrlRangeMark()
-	{
-		
-	};
-	~KUrlRangeMark()
-	{
-	};
-	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType) {
-		if (KBIT_TEST(rq->sink->data.flags,RQ_HAVE_RANGE)) {
-			return false;
+	KUrlRangeMark() : from_valid(false), to_valid(false) {}
+
+	KMark* new_instance() override { return new KUrlRangeMark; }
+	const char* get_module() const override { return "url_range"; }
+
+	uint32_t process(KHttpRequest* rq, KHttpObject*, KSafeSource&) override {
+		if (!from_valid || rq->get_range()) {
+			return KF_STATUS_REQ_FALSE;
 		}
-		KStringBuf u;
-		KUrl *url = rq->sink->data.url;
-		url->GetUrl(u);
-		KRegSubString *s = range_from.matchSubString(u.getBuf(),u.getSize(),0);
-		bool result = false;
-		if (s) {
-			const char *from = s->getString(1);
-			if (from) {
-				rq->sink->data.range_to = -1;
-				rq->sink->data.range_from = string2int(from);
-				const char *to = s->getString(2);
-				if (to==NULL) {
-					KRegSubString *s2 = range_to.matchSubString(u.getBuf(),u.getSize(),0);
-					if (s2) {
-						to = s2->getString(1);
-						if(to){
-							rq->sink->data.range_to = string2int(to);
-						}
-						delete s2;
-					}
-				} else {
-					rq->sink->data.range_to = string2int(to);
-				}
-				KStringBuf v;
-				v << "bytes=" << rq->sink->data.range_from << "-";
-				if (rq->sink->data.range_to>=0) {
-					v << rq->sink->data.range_to;
-				}
-				KBIT_SET(rq->sink->data.flags,RQ_HAVE_RANGE);
-				KBIT_SET(rq->sink->data.raw_url.flags,KGL_URL_RANGED);
-				rq->sink->data.add_header(kgl_expand_string("Range"),v.getString(),v.getSize());
-				result = true;
+		KStringBuf url;
+		rq->sink->data.url->GetUrl(url);
+		KRegSubString* match = range_from.matchSubString(url.c_str(), (int)url.size(), 0);
+		if (!match) return KF_STATUS_REQ_FALSE;
+		int64_t from = -1;
+		int64_t to = -1;
+		bool ok = parse_number(match->getString(1), from);
+		const char* captured_to = match->getString(2);
+		if (ok && captured_to) {
+			ok = parse_number(captured_to, to);
+		}
+		bool have_captured_to = captured_to != nullptr;
+		delete match;
+		if (ok && !have_captured_to && to_valid) {
+			match = range_to.matchSubString(url.c_str(), (int)url.size(), 0);
+			if (match) {
+				const char* value = match->getString(1);
+				if (value) ok = parse_number(value, to);
+				delete match;
 			}
-			delete s;
 		}
-		return result;
-	}
-	std::string getDisplay() {
-		std::stringstream s;
-		s << range_from.getModel() << " ";
-		s << range_to.getModel();
-		return s.str();
-	}
-	void editHtml(std::map<std::string,std::string> &attribute,bool html){
-		range_from.setModel(attribute["range_from"].c_str(),PCRE_CASELESS);
-		range_to.setModel(attribute["range_to"].c_str(),PCRE_CASELESS);
-	}
-	std::string getHtml(KModel *model) {
-		KUrlRangeMark *m = (KUrlRangeMark *)model;
-		std::stringstream s;
-		s << "range_from:<input name='range_from' value='";
-		if (m) {
-			s << m->range_from.getModel();
+		if (!ok || from < 0 || (to >= 0 && to < from)) {
+			return KF_STATUS_REQ_FALSE;
 		}
-		s << "'>";
-		s << "range_to:<input name='range_to' value='";
-		if (m) {
-			s << m->range_to.getModel();
+		KStringBuf value;
+		value << "bytes=" << from << "-";
+		if (to >= 0) value << to;
+		if (!rq->sink->parse_header<const char*>(_KS("Range"), value.c_str(),
+			(int)value.size(), false)) {
+			return KF_STATUS_REQ_FALSE;
 		}
-		s << "'>";
-		return s.str();
+		KBIT_SET(rq->sink->data.raw_url.flags, KGL_URL_RANGED);
+		return KF_STATUS_REQ_TRUE;
 	}
-	KMark *newInstance() {
-		return new KUrlRangeMark;
+
+	void get_display(KWStream& s) override {
+		s << range_from_text << " " << range_to_text;
 	}
-	const char *getName() {
-		return "url_range";
+
+	void get_html(KWStream& s) override {
+		s << "range_from:<input name='range_from' value='" << range_from_text
+		  << "'> range_to:<input name='range_to' value='" << range_to_text << "'>";
 	}
-	void buildXML(std::stringstream &s) {
-		s << "range_from='" << range_from.getModel() << "' ";
-		s << "range_to='" << range_to.getModel() << "' ";
-		s << ">";
+
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		auto attr = xml->attr();
+		range_from_text = attr["range_from"];
+		range_to_text = attr["range_to"];
+		from_valid = range_from.setModel(range_from_text.c_str(), KGL_PCRE_CASELESS);
+		to_valid = !range_to_text.empty() &&
+			range_to.setModel(range_to_text.c_str(), KGL_PCRE_CASELESS);
 	}
+
 private:
+	static bool parse_number(const char* text, int64_t& value) {
+		if (!text || !*text || *text == '-') return false;
+		errno = 0;
+		char* end = nullptr;
+		long long parsed = strtoll(text, &end, 10);
+		if (errno == ERANGE || !end || *end != '\0' || parsed < 0) return false;
+		value = (int64_t)parsed;
+		return true;
+	}
+
 	KReg range_from;
 	KReg range_to;
+	KString range_from_text;
+	KString range_to_text;
+	bool from_valid;
+	bool to_valid;
 };
-#endif
+
 #endif

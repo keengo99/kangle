@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010, NanChang BangTeng Inc
  * All Rights Reserved.
  *
@@ -43,22 +43,15 @@ void parse_module_child_config(KModel* m, const KMap<khttpd::KXmlKey, khttpd::KX
 KChain::KChain() {
 	hit_count = 0;
 	jump_type = JUMP_CONTINUE;
+	skip_to = -1;
 }
 KChain::~KChain() {
 	clear();
 }
 void KChain::clear() {
 	jump = nullptr;
-	/*
-	for (auto it = acls.begin(); it != acls.end(); ++it) {
-		(*it)->release();
-	}
 	acls.clear();
-	for (auto it = marks.begin(); it != marks.end(); ++it) {
-		(*it)->release();
-	}
 	marks.clear();
-	*/
 }
 void KChain::get_edit_html(kgl::serializable* s) {
 	for (auto it = acls.begin(); it != acls.end(); ++it) {
@@ -69,9 +62,12 @@ void KChain::get_edit_html(kgl::serializable* s) {
 	}
 }
 void KChain::get_edit_html(KWStream& s, u_short accessType) {
+	s << "<input type='hidden' name='chain_name_present' value='1'>";
+	s << "<tr><td>name</td><td><input type='text' name='name' value='" << name << "'";
+	s << "></td></tr>";
 	int index = 0;
 	for (auto it = acls.begin(); it != acls.end(); ++it) {
-		getModelHtml((*it), s, 0, index);
+		getModelHtml((*it), s, 0, index, static_cast<size_t>(index + 1) < acls.size());
 		index++;
 	}
 	s << "<tr><td>" << klang["available_acls"] << "</td><td>";
@@ -88,10 +84,10 @@ void KChain::get_edit_html(KWStream& s, u_short accessType) {
 	s << "</td></tr>\n";
 	index = 0;
 	for (auto it = marks.begin(); it != marks.end(); ++it) {
-		getModelHtml((*it), s, 1, index);
+		getModelHtml((*it), s, 1, index, static_cast<size_t>(index + 1) < marks.size());
 		index++;
 	}
-	//ʾmark
+	//?mark
 	s << "<tr><td>" << klang["available_marks"] << "</td><td>";
 	s << "<select onChange='";
 	s << "addmodel(this.options[this.options.selectedIndex].value,1)'>";
@@ -134,6 +130,9 @@ void KChain::dump(kgl::serializable* s,bool is_short) {
 	case JUMP_DROP:
 		s->add("action", "drop");
 		break;
+	case JUMP_SKIP:
+		s->add("action", "skip");
+		break;
 	}
 	if (jump) {
 		s->add("jump", jump->name);
@@ -162,7 +161,7 @@ void KChain::get_acl_short_html(KWStream& s) {
 		s << ((*it).revers ? "!" : "") << (*it).m->get_module() << ": ";
 		(*it).m->get_display(s);
 		if ((*it).is_or) {
-			s << " [OR]";
+			s << " [OR NEXT]";
 		}
 		s << "<br>";
 	}
@@ -175,7 +174,7 @@ void KChain::get_mark_short_html(KWStream& s) {
 		s << ((*it).revers ? "!" : "") << (*it).m->get_module() << ": ";
 		(*it).m->get_display(s);
 		if ((*it).is_or) {
-			s << " [OR]";
+			s << " [OR NEXT]";
 		}
 		s << "<br>";
 	}
@@ -183,11 +182,17 @@ void KChain::get_mark_short_html(KWStream& s) {
 void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 	assert(acls.empty());
 	assert(marks.empty());
+	name = xml->attributes["name"];
+	config = kconfig::new_xml("chain"_CS);
+	xml->clone_to(config->get_first());
 	KString jumpName;
 	if (!access->parseChainAction(xml->attributes["action"], jump_type, jumpName)) {
 		throw KXmlException("chain action error");
 	}
 	access->setChainAction(jump_type, jump, jumpName);
+	if (jump_type == JUMP_SKIP) {
+		skip_to = atoi(jumpName.c_str());
+	}
 	for (auto node : xml->childs) {
 		if (node->is_tag(_KS("acl"))) {
 			for (auto&& body : node->body) {
@@ -243,6 +248,9 @@ void KChain::parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml) {
 khttpd::KSafeXmlNode KChain::to_xml(KUrlValue& uv) {
 	auto xml = kconfig::new_xml("chain"_CS);
 	KAccess::build_action_attribute(xml->attributes(), uv);
+	if (!uv["name"].empty()) {
+		xml->attributes().emplace("name"_CS, uv["name"]);
+	}
 	for (auto it = uv.subs.begin(); it != uv.subs.end(); ++it) {
 		if (strncmp((*it).first.c_str(), _KS("acl_")) == 0) {
 			auto acl = (*it).second->to_xml(_KS("acl"));
@@ -255,4 +263,39 @@ khttpd::KSafeXmlNode KChain::to_xml(KUrlValue& uv) {
 		}
 	}
 	return xml;
+}
+khttpd::KSafeXmlNode KChain::to_legacy_xml(bool detail) const {
+	auto result = kconfig::new_xml("chain"_CS);
+	if (!config) {
+		return result;
+	}
+	result->attributes() = config->attributes();
+	if (!detail) {
+		return result;
+	}
+	auto source = config->get_first();
+	for (auto node : source->childs) {
+		bool is_acl = node->is_tag(_KS("acl"));
+		bool is_mark = node->is_tag(_KS("mark"));
+		if (!is_acl && !is_mark) {
+			continue;
+		}
+		for (uint32_t index = 0;; ++index) {
+			auto body = node->get_body(index);
+			if (!body) {
+				break;
+			}
+			auto module = body->attributes["module"];
+			if (module.empty()) {
+				module = "named";
+			}
+			KStringBuf tag;
+			tag << (is_acl ? "acl_" : "mark_") << module;
+			auto legacy_node = kconfig::new_xml(tag.c_str(), tag.size());
+			body->clone_to(legacy_node->get_first());
+			legacy_node->attributes().erase("module"_CS);
+			result->append(legacy_node.get());
+		}
+	}
+	return result;
 }

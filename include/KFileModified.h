@@ -15,7 +15,12 @@ public:
 	KFileModified(const char* filename) :mt_time{ 0 }, size{ 0 } {
 		kassert(filename != nullptr);
 		struct _stati64 sbuf;
+#ifdef _WIN32
 		int ret = lstat(filename, &sbuf);
+#else
+		//跟随符号链接,证书/配置文件常以符号链接部署(如letsencrypt)
+		int ret = stat(filename, &sbuf);
+#endif
 		if (ret != 0 || !S_ISREG(sbuf.st_mode)) {
 			return;
 		}

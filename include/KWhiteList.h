@@ -54,6 +54,31 @@ public:
 	~KWhiteListManager()
 	{
 	}
+	size_t getCount()
+	{
+		KLocker locker(&lock);
+		size_t count = 0;
+		for (auto& entry : wls) {
+			count += entry.second->items.size();
+		}
+		return count;
+	}
+	size_t clear()
+	{
+		KLocker locker(&lock);
+		size_t count = 0;
+		while (!klist_empty(&queue)) {
+			KWhiteListItem* item = klist_head(&queue);
+			klist_remove(item);
+			delete item;
+			++count;
+		}
+		for (auto& entry : wls) {
+			delete entry.second;
+		}
+		wls.clear();
+		return count;
+	}
 	void flush(time_t nowTime,int time_out)
 	{
 		lock.Lock();
@@ -120,7 +145,7 @@ private:
 	KMutex lock;
 	KWhiteListItem queue;
 };
-//°×Ãûµ¥
+//ç™½åå•
 extern KWhiteListManager wlm;
 #endif
 #endif

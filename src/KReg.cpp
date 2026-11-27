@@ -59,7 +59,7 @@ KReg::~KReg() {
 }
 KRegSubString* KReg::matchSubString(const char* str, int str_len, int flag, kgl_pcre_match_data *match_data)
 {
-	int matched = match(str, str_len, 0, match_data);
+	int matched = match(str, str_len, flag, match_data);
 	if (matched < 1) {
 		return NULL;
 	}
@@ -68,8 +68,14 @@ KRegSubString* KReg::matchSubString(const char* str, int str_len, int flag, kgl_
 }
 KRegSubString* KReg::matchSubString(const char* str, int str_len, int flag)
 {
+	if (c_model == NULL) {
+		return NULL;
+	}
 #ifdef ENABLE_PCRE2
 	kgl_pcre_match_data* match_data = pcre2_match_data_create_from_pattern(c_model, nullptr);
+	if (match_data == NULL) {
+		return NULL;
+	}
 	int matched = match(str, str_len, flag, match_data);
 	if (matched < 1) {
 		pcre2_match_data_free(match_data);
@@ -81,7 +87,7 @@ KRegSubString* KReg::matchSubString(const char* str, int str_len, int flag)
 #else
 	KGL_OVECTOR_SIZE ovector[OVECTOR_SIZE];
 	kgl_pcre_match_data match_data{ ovector,OVECTOR_SIZE };
-	int matched = match(str, str_len, 0, &match_data);
+	int matched = match(str, str_len, flag, &match_data);
 	if (matched < 1) {
 		return NULL;
 	}
@@ -119,6 +125,12 @@ bool KReg::setModel(const char* model_str, int flag) {
 #endif
 		c_model = NULL;
 	}
+#ifndef ENABLE_PCRE2
+	if (pe) {
+		freeStudy(pe);
+		pe = NULL;
+	}
+#endif
 	model = xstrdup(model_str);	
 	const char* error = NULL;
 #ifdef ENABLE_PCRE2
@@ -195,8 +207,14 @@ int KReg::matchNext(const char* str, int str_len, int flag, int* ovector,
 }
 
 int KReg::match(const char* str, int str_len, int flag) {
+	if (c_model == NULL) {
+		return -1;
+	}
 #ifdef ENABLE_PCRE2
 	kgl_pcre_match_data* match_data = pcre2_match_data_create_from_pattern(c_model, nullptr);
+	if (match_data == NULL) {
+		return -1;
+	}
 	int result = match(str, str_len, flag, match_data);
 	pcre2_match_data_free(match_data);
 	return result;
@@ -209,6 +227,9 @@ int KReg::match(const char* str, int str_len, int flag) {
 }
 
 int KReg::match(const char* str, int str_len, int flag, kgl_pcre_match_data *match_data) {
+	if (c_model == NULL || match_data == NULL) {
+		return -1;
+	}
 	if (str_len == -1) {
 		str_len = (int)strlen(str);
 	}

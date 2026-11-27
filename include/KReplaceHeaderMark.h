@@ -20,7 +20,7 @@ public:
 		uint32_t result = KF_STATUS_REQ_FALSE;
 		if (obj) {
 			if (obj->in_cache) {
-				//如果已在缓存中，则不重复操作
+				//濡傛灉宸插湪缂撳瓨涓紝鍒欎笉閲嶅鎿嶄綔
 				return KF_STATUS_REQ_FALSE;
 			}
 			header = obj->data->headers;

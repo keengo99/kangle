@@ -38,6 +38,9 @@ public:
 	void shutdown() override {
 		sockHelper->shutdown();
 	}
+	void refresh_pool(time_t now_time) override {
+		sockHelper->refresh(now_time);
+	}
 public:
 	KSockPoolHelper *sockHelper;
 };

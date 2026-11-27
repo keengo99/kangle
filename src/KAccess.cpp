@@ -17,8 +17,11 @@
  */
 #include <string.h>
 #include <stdlib.h>
+#include <climits>
 #include "KAccess.h"
 #include <map>
+#include <set>
+#include <mutex>
 #include "KChain.h"
 #include "whm.h"
 #include "WhmContext.h"
@@ -60,6 +63,11 @@
 #include "KFastcgiFetchObject.h"
 #include "KRewriteMark.h"
 #include "KCacheControlMark.h"
+#ifndef HTTP_PROXY
+#include "filter.h"
+#endif
+#include "KGuestCacheMark.h"
+#include "KContentFilterMarks.h"
 #include "KRedirectMark.h"
 #include "KAuthMark.h"
 #include "KMultiHostAcl.h"
@@ -118,10 +126,12 @@
 #include "KCounterMark.h"
 #include "KStatusCodeAcl.h"
 #include "KStatusCodeMark.h"
+#include "KResponseStatusCodeMark.h"
 #include "KPerIpAcl.h"
 #include "KTimeoutMark.h"
 #include "KKeepConnectionAcl.h"
 #include "KConnectionCloseMark.h"
+#include "KEarlyHintsMark.h"
 #include "KMinObjVerifiedMark.h"
 #include "KTryFileAcl.h"
 #include "KMapRedirectMark.h"
@@ -135,9 +145,13 @@ using namespace std;
 KAccess* kaccess[2] = { 0 };
 std::map<KString, KAcl*> KAccess::acl_factorys[2];
 std::map<KString, KMark*> KAccess::mark_factorys[2];
+static std::mutex access_registry_lock;
+static std::set<KAccess*> access_registry;
 
 void bind_access_config(kconfig::KConfigTree* tree, KAccess* access) {
-	if (tree->add(_KS(""), access) != nullptr) {
+	auto access_tree = tree->add(_KS(""), access);
+	if (access_tree != nullptr) {
+		access->set_config_tree(access_tree);
 		access->add_ref();
 	}
 	return;
@@ -151,8 +165,14 @@ KAccess::KAccess(bool is_global, uint8_t type) {
 	this->global_flag = is_global;
 	this->type = type;
 	ref = 1;
+	std::lock_guard<std::mutex> guard(access_registry_lock);
+	access_registry.insert(this);
 }
 KAccess::~KAccess() {
+	{
+		std::lock_guard<std::mutex> guard(access_registry_lock);
+		access_registry.erase(this);
+	}
 	inter_destroy();
 	kfiber_rwlock_destroy(rwlock);
 }
@@ -192,6 +212,176 @@ bool KAccess::is_table_used(const KString& table_name) {
 		return table->get_ref() > refs;
 	}
 	return false;
+}
+static bool validate_table_name(const KString& name, KString& error) {
+	if (name.size() < 2 || name.size() > 16) {
+		error = LANG_TABLE_NAME_LENGTH_ERROR;
+		return false;
+	}
+	if (name.find('/') != KString::npos || name.find('#') != KString::npos) {
+		error = LANG_TABLE_NAME_ERR;
+		return false;
+	}
+	return true;
+}
+bool KAccess::has_table(const KString& name) {
+	auto lock = read_lock();
+	return tables.find(name) != tables.end();
+}
+bool KAccess::can_create_table(const KString& name, KString& error) {
+	if (!validate_table_name(name, error)) {
+		return false;
+	}
+	auto lock = read_lock();
+	if (tables.find(name) != tables.end()) {
+		error = LANG_TABLE_NAME_IS_USED;
+		return false;
+	}
+	return true;
+}
+bool KAccess::can_delete_table(const KString& name, KString& error) {
+	auto lock = read_lock();
+	auto it = tables.find(name);
+	if (it == tables.end() || name == BEGIN_TABLE ||
+		(type == RESPONSE && name == "POSTMAP")) {
+		error = LANG_TABLE_NAME_ERR;
+		return false;
+	}
+	auto table = it->second.get();
+	int base_refs = 2;
+	if (table == begin.get() || table == post_map.get()) {
+		++base_refs;
+	}
+	if (table->get_ref() > base_refs) {
+		error = LANG_TABLE_REFS_ERR;
+		return false;
+	}
+	if (!table->chains.empty()) {
+		error = LANG_TABLE_NOT_EMPTY;
+		return false;
+	}
+	return true;
+}
+bool KAccess::can_rename_table(const KString& from, const KString& to, KString& error) {
+	if (!validate_table_name(to, error)) {
+		return false;
+	}
+	if (from.empty() || from == BEGIN_TABLE || (type == RESPONSE && from == "POSTMAP")) {
+		error = "invalid table name";
+		return false;
+	}
+	auto lock = read_lock();
+	auto source = tables.find(from);
+	if (source == tables.end()) {
+		error = "table not found";
+		return false;
+	}
+	if (tables.find(to) != tables.end()) {
+		error = "table name is used";
+		return false;
+	}
+	return true;
+}
+bool KAccess::prepare_chain_name(const KString& table_name, const KString& file,
+	uint16_t index, uint32_t id, bool name_provided, KString& name, KString& error) {
+	auto lock = read_lock();
+	auto table_it = tables.find(table_name);
+	if (table_it == tables.end()) {
+		error = "table not found";
+		return false;
+	}
+	auto current = table_it->second->find_chain(file, index, id);
+	if (!current) {
+		error = "rule not found";
+		return false;
+	}
+	if (!name_provided && !current->name.empty()) {
+		name = current->name;
+	}
+	if (name.empty()) {
+		return true;
+	}
+	for (auto&& chain_file : table_it->second->chains) {
+		for (auto&& chain : chain_file.second) {
+			if (chain.get() != current && chain->name == name) {
+				error = "rule name is already used in this table";
+				return false;
+			}
+		}
+	}
+	return true;
+}
+bool KAccess::references_table(const KTable* target) {
+	auto lock = read_lock();
+	if (default_jump.get() == target) {
+		return true;
+	}
+	for (auto&& table : tables) {
+		for (auto&& chain_file : table.second->chains) {
+			for (auto&& chain : chain_file.second) {
+				if (chain->jump.get() == target) {
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+bool KAccess::rename_table(const KString& from, const KString& to, KString& error) {
+	if (!can_rename_table(from, to, error)) {
+		return false;
+	}
+	KSafeTable target;
+	{
+		auto lock = read_lock();
+		auto it = tables.find(from);
+		if (it == tables.end()) {
+			error = "table not found";
+			return false;
+		}
+		target = it->second;
+	}
+	std::vector<KAccess*> accesses;
+	{
+		std::lock_guard<std::mutex> guard(access_registry_lock);
+		for (auto access : access_registry) {
+			access->add_ref();
+			accesses.push_back(access);
+		}
+	}
+	defer(for (auto access : accesses) { access->release(); });
+	std::map<kconfig::KConfigTree*, bool> trees;
+	if (!config_tree) {
+		error = "table configuration source is unavailable";
+		return false;
+	}
+	trees[config_tree] = true;
+	for (auto access : accesses) {
+		if (!access->references_table(target.get())) {
+			continue;
+		}
+		if (!access->config_tree) {
+			error = "referencing configuration source is unavailable";
+			return false;
+		}
+		if (access != this && access->has_table(to)) {
+			error = "renamed table conflicts with a table in a referencing virtual host";
+			return false;
+		}
+		trees.emplace(access->config_tree, access == this);
+	}
+	std::vector<kconfig::KConfigTableRename> rename_trees;
+	for (auto&& tree : trees) {
+		rename_trees.push_back({ tree.first, tree.second });
+	}
+	auto result = kconfig::rename_table(rename_trees, from, to);
+	if (result != kconfig::KConfigResult::Success) {
+		error = result == kconfig::KConfigResult::ErrSaveFile
+			? "cannot save one of the table configuration source files"
+			: "cannot rename table in its source configuration file";
+		return false;
+	}
+	return true;
 }
 void KAccess::remove_all_factorys() {
 	for (int i = 0; i < 2; ++i) {
@@ -298,6 +488,7 @@ void KAccess::loadModel() {
 	addMarkModel(REQUEST_RESPONSE, new KFlagMark());
 	addMarkModel(REQUEST, new KRewriteMark());
 	addMarkModel(REQUEST, new KRedirectMark());
+	addMarkModel(REQUEST, new KStatusCodeMark());
 	addMarkModel(REQUEST, new KMapRedirectMark());
 	addMarkModel(REQUEST_RESPONSE, new KCounterMark());
 	addMarkModel(REQUEST_RESPONSE, new KAuthMark());
@@ -316,11 +507,11 @@ void KAccess::loadModel() {
 	addAclModel(RESPONSE, new KContentLengthAcl());
 	addAclModel(RESPONSE, new KStatusCodeAcl());
 	addMarkModel(RESPONSE, new KCacheControlMark());
-	//addMarkModel(RESPONSE, new KGuestCacheMark());
-	//addMarkModel(RESPONSE,new KRegContentMark());
+	addMarkModel(RESPONSE, new KGuestCacheMark());
+	addMarkModel(RESPONSE, new KRegContentMark());
 	addMarkModel(RESPONSE, new KResponseFlagMark());
 	addMarkModel(RESPONSE, new KExtendFlagMark());
-	//addMarkModel(RESPONSE,new KStatusCodeMark());
+	addMarkModel(RESPONSE, new KResponseStatusCodeMark());
 
 	acl = new KMarkAcl();
 	acl->add_ref();
@@ -377,8 +568,8 @@ void KAccess::loadModel() {
 #endif
 	addAclModel(REQUEST, new KIpRateAcl());
 	addMarkModel(REQUEST, new KMultiServerMark());
-	//addMarkModel(RESPONSE,new KReplaceUrlMark());
-	//addMarkModel(REQUEST_RESPONSE,new KFixHeaderMark());
+	addMarkModel(RESPONSE, new KReplaceUrlMark());
+	addMarkModel(RESPONSE, new KFixHeaderMark());
 	addMarkModel(REQUEST, new KGeoMark());
 #endif
 #ifdef ENABLE_BLACK_LIST
@@ -402,15 +593,18 @@ void KAccess::loadModel() {
 	addMarkModel(REQUEST_RESPONSE, new KRemoveHeaderMark());
 	addMarkModel(REQUEST_RESPONSE, new KReplaceHeaderMark());
 	addMarkModel(REQUEST_RESPONSE, new KTimeoutMark());
-	//addMarkModel(RESPONSE,new KFooterMark());
-	//addMarkModel(RESPONSE,new KReplaceContentMark());
-	//addMarkModel(REQUEST,new KUrlRangeMark());
+	addMarkModel(RESPONSE, new KReplaceContentMark());
+	addMarkModel(REQUEST, new KUrlRangeMark());
 	addMarkModel(REQUEST, new KMarkMark());
 #ifdef ENABLE_STAT_STUB
 	addMarkModel(REQUEST, new KStubStatusMark());
 #endif
 	addMarkModel(RESPONSE, new KMarkMark());
 	addMarkModel(REQUEST_RESPONSE, new KConnectionCloseMark());
+	addMarkModel(REQUEST, new KEarlyHintsMark());
+#ifndef HTTP_PROXY
+	register_builtin_filter_models();
+#endif
 }
 kgl_jump_type KAccess::check_post_map(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 	auto lock = read_lock();
@@ -474,7 +668,7 @@ void KAccess::add_chain_form(KWStream& s, const char* vh, const KString& table_n
 	s << "}\n};\n";
 	s << "function downmodel(model,mark){\n";
 	s << "	window.location='/downmodel?vh=" << vh << "&access_type=" << type << "&table_name="
-		<< table_name << "&id=" << id
+		<< table_name << "&file=" << file << "&index=" << index << "&id=" << id
 		<< "&model='+model+'&mark='+mark;\n";
 	s << "};\n";
 	s << "function addmodel(model,mark){\n";
@@ -608,7 +802,7 @@ KString KAccess::htmlAccess(const char* vh) {
 		"function tablerename(access_type,name_from){"
 		"	tbl = prompt('" << LANG_RENAME_TABLE_INPUT_MSG << "',name_from);"
 		"	if(tbl==null){ return; }"
-		"	window.location='tablerename?vh=" << vh << "&access_type='+access_type+'&name_from='+name_from+'&name_to='+tbl;"
+		"	window.location='tablerename?vh=" << vh << "&access_type='+access_type+'&name_from='+encodeURIComponent(name_from)+'&name_to='+encodeURIComponent(tbl);"
 		"}"
 		"</script>";
 	s << "<span>";
@@ -637,59 +831,88 @@ KString KAccess::htmlAccess(const char* vh) {
 	return s.str();
 }
 bool KAccess::parseChainAction(const KString& action, kgl_jump_type& jumpType, KString& jumpName) {
+	jumpName.clear();
 	if (strcasecmp(action.c_str(), "deny") == 0) {
 		jumpType = JUMP_DENY;
+		return true;
 	}
 	if (strcasecmp(action.c_str(), "drop") == 0) {
 		jumpType = JUMP_DROP;
+		return true;
 	}
 	if (strcasecmp(action.c_str(), "allow") == 0) {
 		jumpType = JUMP_ALLOW;
+		return true;
 	}
 	if (strcasecmp(action.c_str(), "continue") == 0) {
 		jumpType = JUMP_CONTINUE;
+		return true;
 	}
 	if (strcasecmp(action.c_str(), "return") == 0 || strcasecmp(action.c_str(), "default") == 0) {
 		jumpType = JUMP_RETURN;
+		return true;
 	}
-	if (strncasecmp(action.c_str(), "table:", 6) == 0) {
+	if (strncasecmp(action.c_str(), "table:", 6) == 0 && action.size() > 6) {
 		jumpType = JUMP_TABLE;
 		jumpName = action.substr(6);
+		return true;
 	}
-	if (strncasecmp(action.c_str(), "wback:", 6) == 0) {
+	if (strncasecmp(action.c_str(), "tablechain:", 11) == 0) {
+		const char* p = strrchr(action.c_str(), ':');
+		if (!p || p <= action.c_str() + 10 || !*(p + 1)) {
+			return false;
+		}
+		char* end = nullptr;
+		unsigned long target = strtoul(p + 1, &end, 10);
+		if (*end || target > INT_MAX) {
+			return false;
+		}
+		jumpType = JUMP_SKIP;
+		jumpName = p + 1;
+		return true;
+	}
+	if (strncasecmp(action.c_str(), "wback:", 6) == 0 && action.size() > 6) {
 		jumpType = JUMP_WBACK;
 		jumpName = action.substr(6);
+		return true;
 	}
 	if (strcasecmp(action.c_str(), "proxy") == 0) {
 		jumpType = JUMP_PROXY;
+		return true;
 	}
-	if (strncasecmp(action.c_str(), "server:", 7) == 0) {
+	if (strncasecmp(action.c_str(), "server:", 7) == 0 && action.size() > 7) {
 		jumpType = JUMP_SERVER;
 		jumpName = action.substr(7);
+		return true;
 	}
 	//user access not support this action
 	if (isGlobal()) {
-		if (strncasecmp(action.c_str(), "vhs", 4) == 0) {
+		if (strcasecmp(action.c_str(), "vhs") == 0) {
 			jumpType = JUMP_VHS;
+			return true;
 		}
-		if (strncasecmp(action.c_str(), "cgi:", 4) == 0) {
+		if (strncasecmp(action.c_str(), "cgi:", 4) == 0 && action.size() > 4) {
 			jumpType = JUMP_CGI;
 			jumpName = action.substr(4);
+			return true;
 		}
-		if (strncasecmp(action.c_str(), "api:", 4) == 0) {
+		if (strncasecmp(action.c_str(), "api:", 4) == 0 && action.size() > 4) {
 			jumpType = JUMP_API;
 			jumpName = action.substr(4);
+			return true;
 		}
-		if (strncasecmp(action.c_str(), "cmd:", 4) == 0) {
+		if (strncasecmp(action.c_str(), "cmd:", 4) == 0 && action.size() > 4) {
 			jumpType = JUMP_CMD;
 			jumpName = action.substr(4);
+			return true;
 		}
-		if (strncasecmp(action.c_str(), "dso:", 4) == 0) {
+		if (strncasecmp(action.c_str(), "dso:", 4) == 0 && action.size() > 4) {
 			jumpType = JUMP_DSO;
 			jumpName = action.substr(4);
+			return true;
 		}
 	}
-	return true;
+	return false;
 }
 void KAccess::buildChainAction(kgl_jump_type jumpType, const KSafeJump& jump, KWStream& s) {
 	bool jname = false;
@@ -902,9 +1125,56 @@ int KAccess::dump_chain(KVirtualHostEvent* ctx, const KString table_name) {
 	(*it).second->dump_chain(ctx->data());
 	return WHM_OK;
 }
-void KAccess::listTable(KVirtualHostEvent* ctx) {
+bool KAccess::build_legacy_chain(const KString& table_name, const KString* chain_name, bool detail, KStringBuf& output) {
+	auto locker = read_lock();
+	auto table_it = tables.find(table_name);
+	if (table_it == tables.end()) {
+		return false;
+	}
+	auto table_xml = kconfig::new_xml("table"_CS);
+	table_xml->attributes().emplace("name"_CS, table_name);
+	bool matched = chain_name == nullptr;
+	for (auto&& chain_file : table_it->second->chains) {
+		for (auto&& chain : chain_file.second) {
+			if (chain_name && chain->name != *chain_name) {
+				continue;
+			}
+			matched = true;
+			table_xml->append(chain->to_legacy_xml(detail).get());
+		}
+	}
+	if (!matched) {
+		return false;
+	}
+	return table_xml->write(&output) == KGL_OK;
+}
+bool KAccess::find_chain_location(const KString& table_name, const KString* chain_name, KChainLocation& location) {
+	auto locker = read_lock();
+	auto table_it = tables.find(table_name);
+	if (table_it == tables.end()) {
+		return false;
+	}
+	for (auto&& chain_file : table_it->second->chains) {
+		for (size_t id = 0; id < chain_file.second.size(); ++id) {
+			auto chain = chain_file.second[id].get();
+			if (chain_name && chain->name != *chain_name) {
+				continue;
+			}
+			location.file = chain_file.first.name;
+			location.index = chain_file.first.index;
+			location.id = (uint32_t)id;
+			return true;
+		}
+	}
+	return false;
+}
+void KAccess::listTable(KVirtualHostEvent* ctx, bool detail) {
 	auto locker = read_lock();
 	for (auto it = tables.begin(); it != tables.end(); ++it) {
+		if (!detail) {
+			ctx->data()->add("table", (*it).first);
+			continue;
+		}
 		auto obj = ctx->data()->add_obj_array("table");
 		if (!obj) {
 			return;
@@ -921,6 +1191,14 @@ void KAccess::htmlChainAction(KWStream& s, kgl_jump_type jump_type, KJump* jump,
 	}
 	s << " value='deny' name=jump_type>" << LANG_DENY;
 	jump_value++;
+	if (type == REQUEST) {
+		s << "\n<input type=radio ";
+		if (jump_type == JUMP_DROP) {
+			s << "checked";
+		}
+		s << " value='drop' name=jump_type>" << klang["LANG_DROP"];
+		jump_value++;
+	}
 	if (skipTable.size() > 0) {
 		s << "<input type=radio ";
 		if (jump_type == JUMP_RETURN) {
@@ -931,6 +1209,12 @@ void KAccess::htmlChainAction(KWStream& s, kgl_jump_type jump_type, KJump* jump,
 	}
 	//CONTINUE
 	if (showTable) {
+		s << "\n<input type=radio ";
+		if (jump_type == JUMP_ALLOW) {
+			s << "checked";
+		}
+		s << " value='allow' name=jump_type>" << LANG_ALLOW;
+		jump_value++;
 		s << "\n<input type=radio ";
 		if (jump_type == JUMP_CONTINUE) {
 			s << "checked";
@@ -1006,18 +1290,28 @@ void KAccess::htmlRadioAction(KWStream& s, kgl_jump_type* jump_value, int jump_t
 	}
 }
 
-void KAccess::parse_config(const KXmlAttribute& attr) {
+bool KAccess::parse_config(const KXmlAttribute& attr) {
 	auto locker = write_lock();
 	KString jump_name;
-	parseChainAction(attr["action"], default_jump_type, jump_name);
-	setChainAction(this->default_jump_type, default_jump, jump_name);
+	kgl_jump_type jump_type;
+	if (!parseChainAction(attr["action"], jump_type, jump_name)) {
+		klog(KLOG_ERR, "cann't parse access action=[%s]\n", attr("action"));
+		return false;
+	}
+	KSafeJump jump;
+	setChainAction(jump_type, jump, jump_name);
+	default_jump_type = jump_type;
+	default_jump = jump;
+	return true;
 }
 bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	switch (ev->type) {
 	case kconfig::EvUpdate:
 	case kconfig::EvNew:
 	{
-		parse_config(ev->get_xml()->attributes());
+		if (!parse_config(ev->get_xml()->attributes())) {
+			return false;
+		}
 		break;
 	}
 	case kconfig::EvRemove:
@@ -1025,8 +1319,13 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 		if (!isGlobal()) {
 			auto type = this->get_type();
 			auto acc = static_cast<KAccess*>(tree->unbind());
-			assert(acc && this == acc);
+			if (!acc) {
+				return false;
+			}
 			defer(acc->release(););
+			if (acc != this) {
+				return false;
+			}
 			auto vh = static_cast<KVirtualHost*>(tree->parent->ls);
 			if (vh) {
 				auto locker = vh->get_locker();
@@ -1066,7 +1365,12 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 			if (!named_model) {
 				return false;
 			}
-			named_model->get_module()->parse_config(xml->get_first());
+			auto body = xml->get_first();
+			if (!body) {
+				return false;
+			}
+			auto locker = write_lock();
+			named_model->get_module()->parse_config(body);
 			return true;
 		}
 		return true;
@@ -1128,12 +1432,14 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 		auto xml = ev->get_xml();
 		if (xml->is_tag(_KS("table"))) {
 			auto body = xml->get_first();
-			assert(body);
 			if (!body) {
 				return false;
 			}
 			auto locker = write_lock();
 			KSafeTable table(static_cast<KTable*>(tree->unbind()));
+			if (!table) {
+				return false;
+			}
 			//printf("remove table name=[%s]\n", table->name.c_str());
 			if (table.get() == begin.get()) {
 				begin.reset();
@@ -1173,6 +1479,9 @@ bool KAccess::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent*
 }
 bool KAccess::named_module_can_remove(const KString& name, int type) {
 	static constexpr int module_used_refs = 2;
+	if (name.empty()) {
+		return false;
+	}
 	if (this != kaccess[this->type] && name[0] == '~') {
 		return kaccess[this->type]->named_module_can_remove(name, type);
 	}
@@ -1191,6 +1500,13 @@ bool KAccess::named_module_can_remove(const KString& name, int type) {
 	return true;
 }
 void KAccess::build_action_attribute(KXmlAttribute& attribute, const KUrlValue& uv) {
+	// The public WHM API used "action" directly for many years.  The new
+	// console splits it into jump_type plus a target field; accept both forms
+	// so existing panels and automation keep producing the same chain XML.
+	if (uv["jump_type"].empty() && !uv["action"].empty()) {
+		attribute.emplace("action"_CS, uv["action"]);
+		return;
+	}
 	KStringBuf action;
 	action << uv["jump_type"];
 	if (uv["jump_type"] == "server") {

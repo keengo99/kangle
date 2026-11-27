@@ -10,8 +10,11 @@
 #include "log.h"
 #include <map>
 #include <vector>
+#include <set>
 #include <sstream>
 #include <iostream>
+#include <cerrno>
+#include <climits>
 #include <ctype.h>
 #include <time.h>
 #include "kmalloc.h"
@@ -30,7 +33,6 @@
 #include "KHttpServerParser.h"
 #include "KVirtualHostManage.h"
 #include "KBodyWStream.h"
-#include "iconv.h"
 #include "KProcessManage.h"
 #include "KLogHandle.h"
 #include "KUrlParser.h"
@@ -45,6 +47,7 @@
 #include "KDefer.h"
 #include "KChain.h"
 #include "kmd5.h"
+#include "KWhiteList.h"
 
 using namespace std;
 using namespace kangle;
@@ -67,6 +70,45 @@ void get_url_info(KSink* rq, KStringBuf& s) {
 	return;
 }
 
+/* The /connection page puts these values in single-quoted JS strings and then
+ * into innerHTML. They come from clients (url, referer, replaced client ip),
+ * so HTML-encode them and escape what is special in a JS string. */
+static void write_js_html(KWStream& s, const char* str) {
+	if (str == NULL) {
+		return;
+	}
+	for (; *str; str++) {
+		unsigned char c = (unsigned char)*str;
+		switch (c) {
+		case '&':
+			s << "&amp;";
+			break;
+		case '<':
+			s << "&lt;";
+			break;
+		case '>':
+			s << "&gt;";
+			break;
+		case '"':
+			s << "&quot;";
+			break;
+		case '\'':
+			s << "&#39;";
+			break;
+		case '\\':
+			s << "\\\\";
+			break;
+		default:
+			if (c < 0x20 || c == 0x7f) {
+				char buf[8];
+				snprintf(buf, sizeof(buf), "\\x%02x", c);
+				s << buf;
+			} else {
+				s.write_all((const char*)&c, 1);
+			}
+		}
+	}
+}
 bool kgl_connection_iterator(void* arg, KSink* rq) {
 	KConnectionInfoContext* ctx = (KConnectionInfoContext*)arg;
 	if (conf.max_connect_info > 0 && ctx->total_count > (int)conf.max_connect_info) {
@@ -86,7 +128,8 @@ bool kgl_connection_iterator(void* arg, KSink* rq) {
 		ctx->s << "rq=" << (uint64_t)rq;
 		ctx->s << ",peer=" << ips << ":" << ksocket_addr_port(addr);
 	}
-	ctx->s << "','" << rq->get_client_ip();
+	ctx->s << "','";
+	write_js_html(ctx->s, rq->get_client_ip());
 	ctx->s << "','" << (kgl_current_sec - rq->data.begin_time_msec / 1000);
 	ctx->s << "','";
 	if (ctx->translate) {
@@ -100,9 +143,7 @@ bool kgl_connection_iterator(void* arg, KSink* rq) {
 	ctx->s << "','";
 	KStringBuf url;
 	get_url_info(rq, url);
-	if (url.size() > 0 && strchr(url.c_str(), '\'') == NULL) {
-		ctx->s << url.c_str();
-	}
+	write_js_html(ctx->s, url.c_str());
 	ctx->s << "','";
 	if (!ctx->translate) {
 		sockaddr_i self_addr;
@@ -114,7 +155,8 @@ bool kgl_connection_iterator(void* arg, KSink* rq) {
 	ctx->s << "','";
 	KHttpHeader* referer = rq->data.find(kgl_expand_string("Referer"));
 	if (referer) {
-		ctx->s << KXml::encode(referer->buf + referer->val_offset);
+		KString value(referer->buf + referer->val_offset, referer->val_len);
+		write_js_html(ctx->s, value.c_str());
 	}
 	ctx->s << "','";
 	switch (rq->data.http_version) {
@@ -233,7 +275,11 @@ bool changeAdminPassword(KUrlValue* url, KString& errMsg) {
 		errMsg = "change auth_type must reset password.please enter admin password";
 		return false;
 	}
-	kconfig::update("admin"_CS, 0, nullptr, &url->attribute, kconfig::EvUpdate | kconfig::FlagCreate);
+	if (kconfig::update("admin"_CS, 0, nullptr, &url->attribute,
+		kconfig::EvUpdate | kconfig::FlagCreate) != kconfig::KConfigResult::Success) {
+		errMsg = "failed to save administrator configuration";
+		return false;
+	}
 	return true;
 }
 bool KHttpManage::runCommand() {
@@ -263,8 +309,8 @@ bool KHttpManage::runCommand() {
 	} else if (cmd == "test_crash") {
 		memcpy(0, "t", 1);
 	} else if (cmd == "test_leak") {
-		//警告: 这里只是测试使用，存在明显的内存泄漏
-		//测试一个内存泄漏，以此测试内存泄漏工具是否正常工作
+		//璀﹀憡: 杩欓噷鍙槸娴嬭瘯浣跨敤锛屽瓨鍦ㄦ槑鏄剧殑鍐呭瓨娉勬紡
+		//娴嬭瘯涓�涓唴瀛樻硠婕忥紝浠ユ娴嬭瘯鍐呭瓨娉勬紡宸ュ叿鏄惁姝ｅ父宸ヤ綔
 		int* a = new int;
 		char* scode = strdup("200");
 		return sendHttp(scode);
@@ -626,9 +672,9 @@ bool KHttpManage::config() {
 		s << ">mallocdebug";
 		s << "<br>";
 #endif
-#ifdef ENABLE_FATBOY
-		s << klang["bl_time"] << ":" << conf.bl_time << "<br>";
-		s << klang["wl_time"] << ":" << conf.wl_time << "<br>";
+#ifdef ENABLE_BLACK_LIST
+		s << klang["bl_time"] << ":<input type='number' min='0' name='bl_time' size='6' value='" << conf.bl_time << "'><br>";
+		s << klang["wl_time"] << ":<input type='number' min='0' name='wl_time' size='6' value='" << conf.wl_time << "'><br>";
 #endif
 #ifdef ENABLE_BLACK_LIST
 		s << "<pre>";
@@ -670,63 +716,113 @@ bool KHttpManage::config() {
 	conf.admin_lock.Unlock();
 	return sendHttp(s.str());
 }
+static bool parse_nonnegative_time(const char* value, int& result) {
+	if (!value || !*value) {
+		return false;
+	}
+	errno = 0;
+	char* end = nullptr;
+	long parsed = strtol(value, &end, 10);
+	if (errno != 0 || end == value || *end != '\0' || parsed < 0 || parsed > INT_MAX) {
+		return false;
+	}
+	result = (int)parsed;
+	return true;
+}
 bool console_config_submit(size_t item, KUrlValue& uv,KString &err_msg) {
+	auto checked_update = [&err_msg](kconfig::KConfigResult result, const char* name) {
+		if (result == kconfig::KConfigResult::Success) {
+			return true;
+		}
+		KStringBuf message;
+		message << "failed to save " << name << " configuration";
+		err_msg = message.str();
+		return false;
+	};
 	if (item == 0) {
 		KXmlAttribute attr;
 		attr.emplace("rw", uv.get("time_out"));
 		attr.emplace("connect", uv.get("connect_time_out"));
-		kconfig::update("timeout"_CS, 0, nullptr, &attr, kconfig::EvUpdate | kconfig::FlagCreate);
+		if (!checked_update(kconfig::update("timeout"_CS, 0, nullptr, &attr,
+			kconfig::EvUpdate | kconfig::FlagCreate), "timeout")) return false;
 		//kconfig::update("keep_alive_count"_CS, 0, &getUrlValue("keep_alive_count"), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
 		auto result = kconfig::update("worker_thread"_CS, 0, &uv.get("worker_thread"), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		if (!checked_update(result, "worker thread")) return false;
 		int worker_thread = atoi(uv.get("worker_thread").c_str());
 		if (worker_thread != conf.select_count) {
 			conf.select_count = worker_thread;
 			kconfig::set_need_reboot();
 		}
 	} else if (item == 1) {
-		kconfig::update("cache"_CS, 0, nullptr, &uv.attribute, kconfig::EvUpdate | kconfig::FlagCreate);
+		if (!checked_update(kconfig::update("cache"_CS, 0, nullptr, &uv.attribute,
+			kconfig::EvUpdate | kconfig::FlagCreate), "cache")) return false;
 	} else if (item == 2) {
 		auto v = uv.remove("access_log"_CS);
-		kconfig::update("access_log"_CS, 0, &v, nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		if (!checked_update(kconfig::update("access_log"_CS, 0, &v, nullptr,
+			kconfig::EvUpdate | kconfig::FlagCreate), "access log")) return false;
 		v = uv.remove("access_log_handle"_CS);
-		kconfig::update("access_log_handle"_CS, 0, &v, nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		if (!checked_update(kconfig::update("access_log_handle"_CS, 0, &v, nullptr,
+			kconfig::EvUpdate | kconfig::FlagCreate), "access log handler")) return false;
 		v = uv.remove("log_handle_concurrent"_CS);
-		kconfig::update("log_handle_concurrent"_CS, 0, &v, nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
-		kconfig::update("log"_CS, 0, nullptr, &uv.attribute, kconfig::EvUpdate | kconfig::FlagCreate);
+		if (!checked_update(kconfig::update("log_handle_concurrent"_CS, 0, &v, nullptr,
+			kconfig::EvUpdate | kconfig::FlagCreate), "concurrent log handler")) return false;
+		if (!checked_update(kconfig::update("log"_CS, 0, nullptr, &uv.attribute,
+			kconfig::EvUpdate | kconfig::FlagCreate), "log")) return false;
 	} else if (item == 3) {
 		KXmlAttribute connect_attr;
 		connect_attr.emplace("max"_CS, uv.get("max"));
 		connect_attr.emplace("max_per_ip"_CS, uv.get("max_per_ip"));
 		connect_attr.emplace("per_ip_deny"_CS, uv.get("per_ip_deny"));
 		connect_attr.emplace("max_keep_alive"_CS, uv.get("max_keep_alive"));
-		kconfig::update("connect"_CS, 0, nullptr, &connect_attr, kconfig::EvUpdate | kconfig::FlagCreate);
-		kconfig::update("min_free_thread"_CS, 0, &uv.get("min_free_thread"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		if (!checked_update(kconfig::update("connect"_CS, 0, nullptr, &connect_attr,
+			kconfig::EvUpdate | kconfig::FlagCreate), "connection limit")) return false;
+		if (!checked_update(kconfig::update("min_free_thread"_CS, 0, &uv.get("min_free_thread"_CS), nullptr,
+			kconfig::EvUpdate | kconfig::FlagCreate), "minimum free thread")) return false;
 #ifdef ENABLE_ADPP
-		kconfig::update("process_cpu_usage"_CS, 0, &uv.get("process_cpu_usage"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		if (!checked_update(kconfig::update("process_cpu_usage"_CS, 0, &uv.get("process_cpu_usage"_CS), nullptr,
+			kconfig::EvUpdate | kconfig::FlagCreate), "process CPU usage")) return false;
 #endif
 		KXmlAttribute dns_attr;
 		dns_attr.emplace("worker"_CS, uv.get("worker_dns"));
-		kconfig::update("dns"_CS, 0, nullptr, &dns_attr, kconfig::EvUpdate | kconfig::FlagCreate);
+		if (!checked_update(kconfig::update("dns"_CS, 0, nullptr, &dns_attr,
+			kconfig::EvUpdate | kconfig::FlagCreate), "DNS")) return false;
 
 		KXmlAttribute fiber_attr;
 		fiber_attr.emplace("stack_size"_CS, uv.get("fiber_stack_size"));
-		kconfig::update("fiber"_CS, 0, nullptr, &fiber_attr, kconfig::EvUpdate | kconfig::FlagCreate);
+		if (!checked_update(kconfig::update("fiber"_CS, 0, nullptr, &fiber_attr,
+			kconfig::EvUpdate | kconfig::FlagCreate), "fiber")) return false;
 
 	} else if (item == 4) {
 		//data exchange
 		KXmlAttribute io_attr;
 		io_attr.emplace("worker"_CS, uv.get("worker_io"));
 		io_attr.emplace("max"_CS, uv.get("max_io"));
-		kconfig::update("io"_CS, 0, nullptr, &io_attr, kconfig::EvUpdate | kconfig::FlagCreate);
-		kconfig::update("max_post_size"_CS, 0, &uv.get("max_post_size"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		if (!checked_update(kconfig::update("io"_CS, 0, nullptr, &io_attr,
+			kconfig::EvUpdate | kconfig::FlagCreate), "I/O")) return false;
+		if (!checked_update(kconfig::update("max_post_size"_CS, 0, &uv.get("max_post_size"_CS), nullptr,
+			kconfig::EvUpdate | kconfig::FlagCreate), "maximum POST size")) return false;
 	} else if (item == 5) {
+#ifdef ENABLE_BLACK_LIST
+		const char* bl_time = uv.getx("bl_time");
+		const char* wl_time = uv.getx("wl_time");
+		int new_bl_time = conf.bl_time;
+		int new_wl_time = conf.wl_time;
+		if ((bl_time && !parse_nonnegative_time(bl_time, new_bl_time)) ||
+			(wl_time && !parse_nonnegative_time(wl_time, new_wl_time))) {
+			err_msg = "black/white list time must be a non-negative integer";
+			return false;
+		}
+#endif
 #ifdef MALLOCDEBUG
-		kconfig::update("mallocdebug"_CS, 0, &uv.get("mallocdebug"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		if (!checked_update(kconfig::update("mallocdebug"_CS, 0, &uv.get("mallocdebug"_CS), nullptr,
+			kconfig::EvUpdate | kconfig::FlagCreate), "malloc debug")) return false;
 #endif
 #ifdef KSOCKET_UNIX
-		kconfig::update("unix_socket"_CS, 0, &uv.get("unix_socket"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		if (!checked_update(kconfig::update("unix_socket"_CS, 0, &uv.get("unix_socket"_CS), nullptr,
+			kconfig::EvUpdate | kconfig::FlagCreate), "UNIX socket")) return false;
 #endif
-		kconfig::update("path_info"_CS, 0, &uv.get("path_info"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		if (!checked_update(kconfig::update("path_info"_CS, 0, &uv.get("path_info"_CS), nullptr,
+			kconfig::EvUpdate | kconfig::FlagCreate), "PATH_INFO")) return false;
 		KXmlAttribute compress_attr;
 		compress_attr.emplace("gzip_level"_CS, uv.get("gzip_level"));
 #ifdef ENABLE_BROTLI
@@ -737,13 +833,28 @@ bool console_config_submit(size_t item, KUrlValue& uv,KString &err_msg) {
 #endif
 		compress_attr.emplace("only_cache"_CS, uv.get("only_compress_cache"));
 		compress_attr.emplace("min_length"_CS, uv.get("min_compress_length"));
-		kconfig::update("compress"_CS, 0, nullptr, &compress_attr, kconfig::EvUpdate | kconfig::FlagCreate);
-		kconfig::update("server_software"_CS, 0, &uv.get("server_software"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
-		kconfig::update("hostname"_CS, 0, &uv.get("hostname"_CS), nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
-#ifdef ENABLE_FATBOY
-		//KXmlAttribute fw_attr;
-		//fw_attr.emplace("bl_time"_CS, getUrlValue("bl_time"));
-		//fw_attr.emplace("wl_time"_CS, getUrlValue("wl_time"));
+		if (!checked_update(kconfig::update("compress"_CS, 0, nullptr, &compress_attr,
+			kconfig::EvUpdate | kconfig::FlagCreate), "compression")) return false;
+		if (!checked_update(kconfig::update("server_software"_CS, 0, &uv.get("server_software"_CS), nullptr,
+			kconfig::EvUpdate | kconfig::FlagCreate), "server software")) return false;
+		if (!checked_update(kconfig::update("hostname"_CS, 0, &uv.get("hostname"_CS), nullptr,
+			kconfig::EvUpdate | kconfig::FlagCreate), "hostname")) return false;
+#ifdef ENABLE_BLACK_LIST
+		if (bl_time || wl_time) {
+			KXmlAttribute fw_attr;
+			fw_attr.emplace("bl_time"_CS, std::to_string(new_bl_time));
+			fw_attr.emplace("wl_time"_CS, std::to_string(new_wl_time));
+			fw_attr.emplace("block_ip_cmd"_CS, conf.block_ip_cmd);
+			fw_attr.emplace("unblock_ip_cmd"_CS, conf.unblock_ip_cmd);
+			fw_attr.emplace("flush_ip_cmd"_CS, conf.flush_ip_cmd);
+			fw_attr.emplace("report_url"_CS, conf.report_url);
+			auto result = kconfig::update("firewall"_CS, 0, nullptr, &fw_attr,
+				kconfig::EvUpdate | kconfig::FlagCreate);
+			if (result != kconfig::KConfigResult::Success) {
+				err_msg = "failed to save firewall configuration";
+				return false;
+			}
+		}
 #endif
 	} else if (item == 6) {
 		return changeAdminPassword(&uv, err_msg);
@@ -932,7 +1043,68 @@ bool KHttpManage::sendLeftMenu() {
 	s << "</table></body></html>";
 	return sendHttp(s.str().c_str());
 }
-bool KHttpManage::sendMainFrame() {
+#ifdef ENABLE_BLACK_LIST
+void KHttpManage::runtimeBlackLists(bool clear, size_t& global_count, size_t& vh_count)
+{
+	std::vector<KIpList*> lists;
+	std::set<KIpList*> seen;
+	KIpList* global = conf.gvm->vhs.blackList;
+	if (global) seen.insert(global);
+	{
+		auto locker = conf.gvm->locker();
+		for (auto& entry : conf.gvm->avh) {
+			KIpList* list = entry.second->blackList;
+			if (list && seen.insert(list).second) {
+				list->addRef();
+				lists.push_back(list);
+			}
+		}
+	}
+	global_count = global ? (clear ? global->clearDynamic() : global->getDynamicCount()) : 0;
+	vh_count = 0;
+	for (auto list : lists) {
+		vh_count += clear ? list->clearDynamic() : list->getDynamicCount();
+		list->release();
+	}
+}
+bool KHttpManage::clearRuntimeIpList()
+{
+	// Basic-authenticated browser requests also need a same-origin check.
+	// Never expose a destructive GET action or accept cross-site form posts.
+	if (rq->sink->data.meth != METH_POST) {
+		return sendErrPage("POST required");
+	}
+	auto header = rq->sink->data.find(_KS("Origin"));
+	if (!header) header = rq->sink->data.find(_KS("Referer"));
+	KUrl origin(false);
+	const KUrl& target = rq->sink->data.raw_url;
+	if (!header || !target.host) return sendErrPage("same-origin POST required");
+	std::string origin_text(header->buf + header->val_offset, header->val_len);
+	if (origin_text.compare(0, 7, "http://") != 0 && origin_text.compare(0, 8, "https://") != 0) {
+		return sendErrPage("same-origin POST required");
+	}
+	// Origin has no path, whereas parse_url expects an absolute URL path.
+	if (origin_text.find('/', origin_text.find("://") + 3) == std::string::npos) origin_text += '/';
+	if (!parse_url(origin_text.c_str(), &origin) || !origin.host ||
+		strcasecmp(origin.host, target.host) != 0 || origin.port != target.port ||
+		KBIT_TEST(origin.flags, KGL_URL_ORIG_SSL) != KBIT_TEST(target.flags, KGL_URL_ORIG_SSL)) {
+		return sendErrPage("same-origin POST required");
+	}
+	const KString& type = getUrlValue("type");
+	KStringBuf notice;
+	if (type == "black") {
+		size_t global_count, vh_count;
+		runtimeBlackLists(true, global_count, vh_count);
+		notice << klang["runtime_blacklist"] << ": " << klang["ip_list_cleared"] << " " << (global_count + vh_count);
+	} else if (type == "white") {
+		notice << klang["runtime_whitelist"] << ": " << klang["ip_list_cleared"] << " " << wlm.clear();
+	} else {
+		return sendErrPage("invalid list type");
+	}
+	return sendMainFrame(notice.str());
+}
+#endif
+bool KHttpManage::sendMainFrame(const KString& notice) {
 	KStringBuf s;
 	char buf[256];
 	INT64 total_mem_size = 0, total_disk_size = 0;
@@ -992,6 +1164,28 @@ bool KHttpManage::sendMainFrame() {
 		total_run_time %= 60;
 	}
 	s << total_run_time << " " << LANG_SECOND << ". pid: " << getpid();
+	// These are runtime lists, not configured fixed IP or ACL exceptions.
+#ifdef ENABLE_BLACK_LIST
+	size_t global_black_count, vh_black_count;
+	runtimeBlackLists(false, global_black_count, vh_black_count);
+	s << "<h3>" << klang["runtime_ip_lists"] << "</h3>";
+	if (!notice.empty()) s << "<p id='ip_list_notice'>" << notice << "</p>";
+	s << "<table><tr><td>" << klang["runtime_blacklist"] << "</td><td><span id='runtime_black_count'>"
+		<< (global_black_count + vh_black_count) << "</span> (" << klang["ip_list_global"] << ": <span id='runtime_global_black_count'>"
+		<< global_black_count << "</span>, " << klang["ip_list_vhosts"] << ": <span id='runtime_vh_black_count'>"
+		<< vh_black_count << "</span>)</td><td>";
+	s << "<form id='clear_runtime_black_form' action='/clear_runtime_ip_list' method='post' style='display:none'>"
+		<< "<input type='hidden' name='type' value='black'></form>"
+		<< "[<a href='#' onclick=\"if(confirm('" << klang["clear_runtime_blacklist_confirm"]
+		<< "')){document.getElementById('clear_runtime_black_form').submit();}return false;\">"
+		<< klang["clear_runtime_blacklist"] << "</a>]</td></tr>";
+	s << "<tr><td>" << klang["runtime_whitelist"] << "</td><td><span id='runtime_white_count'>" << wlm.getCount() << "</span></td><td>";
+	s << "<form id='clear_runtime_white_form' action='/clear_runtime_ip_list' method='post' style='display:none'>"
+		<< "<input type='hidden' name='type' value='white'></form>"
+		<< "[<a href='#' onclick=\"if(confirm('" << klang["clear_runtime_whitelist_confirm"]
+		<< "')){document.getElementById('clear_runtime_white_form').submit();}return false;\">"
+		<< klang["clear_runtime_whitelist"] << "</a>]</td></tr></table>";
+#endif
 	s << "<h3>" << klang["load_info"] << "</h3>";
 	s << "<table>";
 	//connect
@@ -1121,7 +1315,8 @@ char* KHttpManage::parsePostFile(int& len, KString& fileName) {
 				return NULL;
 			}
 
-			sscanf(org_file, "%*[^f]filename=\"%[^\"]\"", filename);
+			filename[0] = '\0';
+			sscanf(org_file, "%*[^f]filename=\"%255[^\"]\"", filename);
 			no_dir = strrchr(filename, '\\');
 			if (no_dir == NULL) {
 				no_dir = strrchr(filename, '/');
@@ -1231,7 +1426,13 @@ bool checkManageLogin(KHttpRequest* rq) {
 	}
 	if (conf.admin_user == rq->auth->getUser()
 		&& rq->auth->verify(rq, conf.admin_passwd.c_str(), conf.passwd_crypt)) {
-		return true;
+		/* A Digest response only proves the password for the nonce and uri it
+		 * names. Without this check one captured header could be replayed
+		 * forever, from anywhere, against any admin url. */
+		if (rq->auth->verifySession(rq)) {
+			return true;
+		}
+		rq->auth->stale_nonce = true;
 	}
 	return false;
 }
@@ -1241,7 +1442,9 @@ bool KHttpManage::start_listen(bool& hit) {
 		hit = true;
 		int id = atoi(getUrlValue("id").c_str());
 		KString file(getUrlValue("file"));
-		kconfig::remove(file.str(), "listen"_CS, id);
+		if (kconfig::remove(file.str(), "listen"_CS, id) != kconfig::KConfigResult::Success) {
+			return sendErrPage("cannot delete listener from its source configuration file");
+		}
 		return sendRedirect("/config");
 	}
 	if (strcmp(rq->sink->data.url->path, "/newlisten") == 0) {
@@ -1254,10 +1457,14 @@ bool KHttpManage::start_listen(bool& hit) {
 		auto id = removeUrlValue("id");
 		auto xml = kconfig::new_xml(_KS("listen"));
 		xml->attributes().swap(urlValue.attribute);
+		kconfig::KConfigResult result;
 		if (action == "edit") {
-			kconfig::update(file.str(), "listen"_CS, atoi(id.c_str()), xml.get(), kconfig::EvUpdate);
+			result = kconfig::update(file.str(), "listen"_CS, atoi(id.c_str()), xml.get(), kconfig::EvUpdate);
 		} else {
-			kconfig::add(file.str(), "listen"_CS, khttpd::last_pos, xml.get());
+			result = kconfig::add(file.str(), "listen"_CS, khttpd::last_pos, xml.get());
+		}
+		if (result != kconfig::KConfigResult::Success) {
+			return sendErrPage("cannot save listener to its source configuration file");
 		}
 		return sendRedirect("/config");
 	}
@@ -1414,6 +1621,11 @@ bool KHttpManage::start_access(bool& hit) {
 		return sendHttp(s.str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/tableadd") == 0) {
+		KString error;
+		const auto table_name = getUrlValue("table_name");
+		if (!access->can_create_table(table_name, error)) {
+			return sendErrPage(error.c_str());
+		}
 		KStringBuf name;
 		KStringBuf path;
 		KStringBuf file;
@@ -1421,36 +1633,93 @@ bool KHttpManage::start_access(bool& hit) {
 		if (vh && vh->has_user_access()) {
 			vh->get_access_file(file);
 		}
-		if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
+		if (!vh_name.empty() && strncmp(file.c_str(), _KS("@vh|")) != 0) {
 			path << "vh@" << vh_name << "/";
 		}
-		name << "table@"_CS << getUrlValue("table_name");
+		name << "table@"_CS << table_name;
 		path << access->get_qname() << "/"_CS << name;
 		auto xml = kconfig::new_xml(name.c_str(), name.size());
+		kconfig::KConfigResult result;
 		if (!file.empty()) {
-			kconfig::update(file.str().str(), path.str().str(), 0, xml.get(), flag);
+			result = kconfig::update(file.str().str(), path.str().str(), 0, xml.get(), flag);
 		} else {
-			kconfig::update(path.str().str(), 0, xml.get(), flag);
+			result = kconfig::update(path.str().str(), 0, xml.get(), flag);
+		}
+		if (result != kconfig::KConfigResult::Success) {
+			return sendErrPage("cannot add table to its configuration file");
 		}
 		return sendRedirect(accesslist.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/tabledel") == 0) {
+		KString error;
+		const auto table_name = getUrlValue("table_name");
+		if (!access->can_delete_table(table_name, error)) {
+			return sendErrPage(error.c_str());
+		}
 		KStringBuf path;
 		KStringBuf file;
-		if (access->is_table_used(getUrlValue("table_name"))) {
-			return sendHttp("table is used");
-		}
 		if (vh && vh->has_user_access()) {
 			vh->get_access_file(file);
 		}
-		if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
+		if (!vh_name.empty() && strncmp(file.c_str(), _KS("@vh|")) != 0) {
 			path << "vh@" << vh_name << "/";
 		}
-		path << access->get_qname() << "/table@"_CS << getUrlValue("table_name");
+		path << access->get_qname() << "/table@"_CS << table_name;
+		kconfig::KConfigResult result;
 		if (!file.empty()) {
-			kconfig::remove(file.str().str(), path.str().str(), 0);
+			result = kconfig::remove(file.str().str(), path.str().str(), 0);
 		} else {
-			kconfig::remove(path.str().str(), 0);
+			result = kconfig::remove(path.str().str(), 0);
+		}
+		if (result != kconfig::KConfigResult::Success) {
+			return sendErrPage("cannot delete table from its configuration file");
+		}
+		return sendRedirect(accesslist.c_str());
+	}
+	if (strcmp(rq->sink->data.url->path, "/tableempty") == 0) {
+		const auto table_name = getUrlValue("table_name");
+		if (table_name.empty()) {
+			return sendErrPage("table name is empty");
+		}
+		for (;;) {
+			KChainLocation location;
+			if (!access->find_chain_location(table_name, nullptr, location)) {
+				break;
+			}
+			KStringBuf path;
+			urlValue.build_config_base_path(path, location.file);
+			path << access->get_qname() << "/table@" << table_name << "/chain"_CS;
+			auto result = location.file.empty()
+				? kconfig::remove(path.str().str(), location.id)
+				: kconfig::remove(location.file.str(), path.str().str(), location.id);
+			if (result != kconfig::KConfigResult::Success) {
+				return sendErrPage("cannot clear table in its source configuration file");
+			}
+		}
+		return sendRedirect(accesslist.c_str());
+	}
+	if (strcmp(rq->sink->data.url->path, "/tablerename") == 0) {
+		const auto from = getUrlValue("name_from");
+		const auto to = getUrlValue("name_to");
+		KString error;
+		if (!access->can_rename_table(from, to, error)) {
+			return sendErrPage(error.c_str());
+		}
+		if (!access->rename_table(from, to, error)) {
+			return sendErrPage(error.c_str());
+		}
+		return sendRedirect(accesslist.c_str());
+	}
+	if (strcmp(rq->sink->data.url->path, "/downchain") == 0) {
+		auto file = getUrlValue("file");
+		if (file.empty()) {
+			return sendErrPage("rule source file is missing");
+		}
+		KStringBuf path;
+		urlValue.build_config_base_path(path, file);
+		path << access->get_qname() << "/table@" << getUrlValue("table_name") << "/chain"_CS;
+		if (kconfig::move_down(file.str(), path.str().str(), urlValue.attribute.get_int("id")) != kconfig::KConfigResult::Success) {
+			return sendErrPage("cannot move rule down in its source configuration file");
 		}
 		return sendRedirect(accesslist.c_str());
 	}
@@ -1460,47 +1729,58 @@ bool KHttpManage::start_access(bool& hit) {
 		if (vh && vh->has_user_access()) {
 			vh->get_access_file(file);
 		}
-		if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
+		if (!vh_name.empty() && strncmp(file.c_str(), _KS("@vh|")) != 0) {
 			path << "vh@" << vh_name << "/";
 		}
 		path << access->get_qname();
 		auto xml = kconfig::new_xml(access->get_qname());
 		KAccess::build_action_attribute(xml->attributes(), urlValue);
+		kconfig::KConfigResult result;
 		if (!file.empty()) {
-			kconfig::update(file.str().str(), path.str().str(), 0, xml.get(), kconfig::EvUpdate|kconfig::FlagCopyChilds|kconfig::FlagCreate);
+			result = kconfig::update(file.str().str(), path.str().str(), 0, xml.get(), kconfig::EvUpdate|kconfig::FlagCopyChilds|kconfig::FlagCreate);
 		} else {
-			kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvUpdate|kconfig::FlagCopyChilds|kconfig::FlagCreate);
+			result = kconfig::update(path.str().str(), 0, xml.get(), kconfig::EvUpdate|kconfig::FlagCopyChilds|kconfig::FlagCreate);
+		}
+		if (result != kconfig::KConfigResult::Success) {
+			return sendErrPage("cannot save the default access action");
 		}
 		return sendRedirect(accesslist.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/delchain") == 0) {
 		KStringBuf path;
 		auto file = getUrlValue("file");
-		if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
+		if (!vh_name.empty() && strncmp(file.c_str(), _KS("@vh|")) != 0) {
 			path << "vh@" << vh_name << "/";
 		}
 		path << access->get_qname() << "/table@"_CS << getUrlValue("table_name") << "/chain";
-		kconfig::remove(file.str(), path.str().str(), urlValue.attribute.get_int("id"));
+		if (kconfig::remove(file.str(), path.str().str(), urlValue.attribute.get_int("id")) !=
+			kconfig::KConfigResult::Success) {
+			return sendErrPage("cannot delete rule from its source configuration file");
+		}
 		return sendRedirect(accesslist.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/addchain") == 0) {
 		KStringBuf path;
 		auto file = getUrlValue("file");
-		if (!file && vh && vh->has_user_access()) {
+		if (file.empty() && vh && vh->has_user_access()) {
 			KStringBuf tfile;
 			vh->get_access_file(tfile);
 			tfile.str().swap(file);
 		}
-		if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
+		if (!vh_name.empty() && strncmp(file.c_str(), _KS("@vh|")) != 0) {
 			path << "vh@" << vh_name << "/";
 		}
 		path << access->get_qname() << "/table@" << getUrlValue("table_name") << "/chain"_CS;
 		auto xml = kconfig::new_xml("chain"_CS);
 		xml->attributes().emplace("action"_CS, "continue"_CS);
-		if (file) {
-			kconfig::update(file.str(), path.str().str(), (uint32_t)urlValue.attribute.get_int("id"), xml.get(), kconfig::EvNew);
+		kconfig::KConfigResult result;
+		if (!file.empty()) {
+			result = kconfig::update(file.str(), path.str().str(), (uint32_t)urlValue.attribute.get_int("id"), xml.get(), kconfig::EvNew);
 		} else {
-			kconfig::update(path.str().str(), (uint32_t)urlValue.attribute.get_int("id"), xml.get(), kconfig::EvNew);
+			result = kconfig::update(path.str().str(), (uint32_t)urlValue.attribute.get_int("id"), xml.get(), kconfig::EvNew);
+		}
+		if (result != kconfig::KConfigResult::Success) {
+			return sendErrPage("cannot add rule to its source configuration file");
 		}
 		return sendRedirect(accesslist.c_str());
 	}
@@ -1511,7 +1791,7 @@ bool KHttpManage::start_access(bool& hit) {
 			mark = true;
 		}
 		auto file = getUrlValue("file");
-		if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
+		if (!vh_name.empty() && strncmp(file.c_str(), _KS("@vh|")) != 0) {
 			path << "vh@" << vh_name << "/";
 		}
 		path << access->get_qname() << "/table@" << getUrlValue("table_name") << "/chain"_CS;
@@ -1524,6 +1804,9 @@ bool KHttpManage::start_access(bool& hit) {
 				acl_xml->attributes().emplace("module"_CS, getUrlValue("modelname"));
 			}
 			auto result = kconfig::update(file.str(), path.str().str(), (uint32_t)urlValue.attribute.get_int("model"), acl_xml.get(), kconfig::EvNew);
+			if (result != kconfig::KConfigResult::Success) {
+				return sendErrPage("cannot add module to its source configuration file");
+			}
 			url << "/editchainform?access_type=" << getUrlValue("access_type")
 				<< "&table_name=" << getUrlValue("table_name")
 				<< "&file=" << getUrlValue("file")
@@ -1532,7 +1815,23 @@ bool KHttpManage::start_access(bool& hit) {
 				<< "&vh=" << getUrlValue("vh");
 			return sendRedirect(url.c_str());
 		}
+		const bool name_provided = getUrlValue("chain_name_present") == "1";
+		urlValue.attribute.erase("chain_name_present"_CS);
+		KString chain_name = getUrlValue("name");
+		KString error;
+		if (!access->prepare_chain_name(getUrlValue("table_name"), file,
+			(uint16_t)urlValue.attribute.get_int("index"), (uint32_t)atoi(id.c_str()), name_provided,
+			chain_name, error)) {
+			return sendErrPage(error.c_str());
+		}
+		urlValue.attribute.erase("name"_CS);
+		if (!chain_name.empty()) {
+			urlValue.attribute.emplace("name"_CS, chain_name);
+		}
 		auto result = kconfig::update(file.str(), path.str().str(), (uint32_t)atoi(id.c_str()), KChain::to_xml(urlValue).get(), kconfig::EvUpdate);
+		if (result != kconfig::KConfigResult::Success) {
+			return sendErrPage("cannot save rule to its source configuration file");
+		}
 		return sendRedirect(accesslist.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/delmodel") == 0) {
@@ -1542,7 +1841,7 @@ bool KHttpManage::start_access(bool& hit) {
 		}
 		KStringBuf path;
 		auto file = getUrlValue("file");
-		if (vh_name && strncmp(file.c_str(), _KS("@vh|")) != 0) {
+		if (!vh_name.empty() && strncmp(file.c_str(), _KS("@vh|")) != 0) {
 			path << "vh@" << vh_name << "/";
 		}
 		path << access->get_qname() << "/table@" << getUrlValue("table_name") << "/chain#" << getUrlValue("id");
@@ -1551,7 +1850,10 @@ bool KHttpManage::start_access(bool& hit) {
 		} else {
 			path << "/acl";
 		}
-		kconfig::remove(file.str(), path.str().str(), (uint32_t)urlValue.attribute.get_int("model"));
+		if (kconfig::remove(file.str(), path.str().str(), (uint32_t)urlValue.attribute.get_int("model")) !=
+			kconfig::KConfigResult::Success) {
+			return sendErrPage("cannot delete module from its source configuration file");
+		}
 		KStringBuf url;
 		url << "/editchainform?access_type=" << getUrlValue("access_type")
 			<< "&table_name=" << getUrlValue("table_name")
@@ -1561,6 +1863,25 @@ bool KHttpManage::start_access(bool& hit) {
 			<< "&vh=" << getUrlValue("vh");
 		return sendRedirect(url.c_str());
 
+	}
+	if (strcmp(rq->sink->data.url->path, "/downmodel") == 0) {
+		auto file = getUrlValue("file");
+		if (file.empty()) {
+			return sendErrPage("rule source file is missing");
+		}
+		KStringBuf path;
+		urlValue.build_config_base_path(path, file);
+		path << access->get_qname() << "/table@" << getUrlValue("table_name")
+			<< "/chain#" << getUrlValue("id") << (getUrlValue("mark") == "1" ? "/mark" : "/acl");
+		if (kconfig::move_down(file.str(), path.str().str(), urlValue.attribute.get_int("model")) != kconfig::KConfigResult::Success) {
+			return sendErrPage("cannot move module down in its source configuration file");
+		}
+		KStringBuf url;
+		url << "/editchainform?access_type=" << getUrlValue("access_type")
+			<< "&table_name=" << getUrlValue("table_name") << "&file=" << file
+			<< "&index=" << getUrlValue("index") << "&id=" << getUrlValue("id")
+			<< "&vh=" << getUrlValue("vh");
+		return sendRedirect(url.c_str());
 	}
 	if (strcmp(rq->sink->data.url->path, "/editchainform") == 0) {
 		//sendHeader(200);
@@ -1653,6 +1974,11 @@ bool KHttpManage::start(bool& hit) {
 	if (strcmp(rq->sink->data.url->path, "/main") == 0) {
 		return sendMainFrame();
 	}
+#ifdef ENABLE_BLACK_LIST
+	if (strcmp(rq->sink->data.url->path, "/clear_runtime_ip_list") == 0) {
+		return clearRuntimeIpList();
+	}
+#endif
 
 	if (strcmp(rq->sink->data.url->path, "/config") == 0) {
 		return config();
@@ -1858,7 +2184,10 @@ function sortrq(index)\
 	}
 	if (strcmp(rq->sink->data.url->path, "/changelang") == 0) {
 		auto lang = getUrlValue("lang");
-		kconfig::update("lang"_CS, 0, &lang, nullptr, kconfig::EvUpdate | kconfig::FlagCreate);
+		if (kconfig::update("lang"_CS, 0, &lang, nullptr,
+			kconfig::EvUpdate | kconfig::FlagCreate) != kconfig::KConfigResult::Success) {
+			return sendErrPage("cannot save language configuration");
+		}
 		return sendRedirect("/");
 	}
 	if (strcmp(rq->sink->data.url->path, "/process") == 0) {

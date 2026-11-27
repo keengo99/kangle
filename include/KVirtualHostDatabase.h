@@ -28,7 +28,7 @@ public:
 	KVirtualHostDatabase();
 	~KVirtualHostDatabase();
 	bool parse_config(khttpd::KXmlNodeBody *xml);
-	//检查数据库连接是否正常
+	//妫�鏌ユ暟鎹簱杩炴帴鏄惁姝ｅ父
 	bool check();
 	bool isSuccss()
 	{
@@ -42,7 +42,7 @@ public:
 		return false;
 	}
 	bool enable_scan() override {
-		return true;
+		return isLoad();
 	}
 private:
 	KFiberLocker get_locker() {
@@ -54,6 +54,7 @@ private:
 	kfiber_mutex* lock;
 	vh_module vhm;
 	bool lastStatus;
+	bool configured;
 	KDsoModule vhm_handle;
 };
 extern KVirtualHostDatabase vhd;

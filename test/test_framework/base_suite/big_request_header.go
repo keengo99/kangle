@@ -10,7 +10,7 @@ import (
 func check_big_request_header() {
 	request := "GET /kangle.status HTTP/1.1\r\nUser-Agent: x-test\r\nReferer: http://localhost/\r\nHost: localhost\r\n"
 	for i := 0; i < 10; i++ {
-		request += fmt.Sprintf("Cookie%d: %s\r\n", string(common.RandStringBytes(50*1024)))
+		request += fmt.Sprintf("Cookie%d: %s\r\n", i, string(common.RandStringBytes(50*1024)))
 	}
 	request += "\r\n"
 	cn, err := net.Dial("tcp", "127.0.0.1:9900")

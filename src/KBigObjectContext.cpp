@@ -60,6 +60,9 @@ KGL_RESULT KBigObjectContext::send_data(bool *net_fiber)
 	while (left_read > 0) {
 		int got = sbo->read(rq, obj,read_offset, buf, (int)KGL_MIN((int64_t)block_length,left_read), net_fiber);	
 		//printf("left_read=[" INT64_FORMAT "],range_from=[" INT64_FORMAT "] got=[%d]\n", left_read, read_offset, got);
+		if (got == KGL_BIG_OBJECT_READ_RETRY) {
+			continue;
+		}
 		if (got == -2) {
 			if (net_fiber == NULL) {
 				//treat as ok
@@ -70,7 +73,7 @@ KGL_RESULT KBigObjectContext::send_data(bool *net_fiber)
 				result = KGL_ENO_DATA;
 				break;
 			}
-			//ÐèÒªÖØÊÔ
+			//éœ€è¦é‡è¯•
 			if (retried > 0) {
 				result = KGL_EIO;
 				break;
@@ -142,9 +145,9 @@ KGL_RESULT KBigObjectContext::open_cache()
 	if (rq->sink->data.range) {
 		left_read = obj->index.content_length;
 		kgl_adjust_range(rq->sink->data.range, &left_read);
-		memcpy(srq->range, rq->sink->data.range, sizeof(kgl_sub_request));
+		memcpy(srq->range, rq->sink->data.range, sizeof(kgl_request_range));
 	} else {
-		memset(srq->range, 0, sizeof(kgl_sub_request));
+		memset(srq->range, 0, sizeof(kgl_request_range));
 		srq->range->to = -1;
 	}
 	kgl_satisfy_status status;
@@ -160,7 +163,7 @@ KGL_RESULT KBigObjectContext::open_cache()
 				return result;
 			}
 		}
-		//Ã»ÓÐ¹ýÆÚ£¬²¢ÇÒÒ²Âú×ã£¬Ö±½Ó×ß´óÎÄ¼þ»º´æÍ¨µÀ¡£
+		//æ²¡æœ‰è¿‡æœŸï¼Œå¹¶ä¸”ä¹Ÿæ»¡è¶³ï¼Œç›´æŽ¥èµ°å¤§æ–‡ä»¶ç¼“å­˜é€šé“ã€‚
 		if (kgl_request_precondition(rq, obj)) {
 			return response_cache_object(rq,obj);
 		}
@@ -201,7 +204,7 @@ bool KBigObjectContext::verifiy_object(bool match_if_range,KGL_RESULT *result)
 		rq->dead_old_obj();
 		return false;
 	}
-	if (rq->ctx.obj->data->etag && !rq->ctx.obj->is_same_precondition(obj)) {
+	if (!kgl_revalidated_304_matches(rq, obj)) {
 		rq->dead_old_obj();
 		*result = process_upstream_no_body(rq, &in, &out);
 		return false;
@@ -267,7 +270,7 @@ void KBigObjectContext::build_if_range(KHttpRequest* rq)
 			rq->ctx.sub_request->range->if_range_date = last_modified;
 		}
 	}
-	//ÌáÇ°¸üÐÂlast verified£¬¼õÉÙÔ´µÄÁ¬½ÓÊý
+	//æå‰æ›´æ–°last verifiedï¼Œå‡å°‘æºçš„è¿žæŽ¥æ•°
 	obj->index.last_verified = kgl_current_sec;
 }
 KGL_RESULT KBigObjectContext::upstream_recv_headed()
@@ -282,7 +285,7 @@ KGL_RESULT KBigObjectContext::upstream_recv_headed()
 		bigobj_dead = true;
 		klog(KLOG_INFO, "bigobj_dead status_code=%d not expect 206\n", obj->data->i.status_code);
 	} else if (!KBIT_TEST(obj->index.flags, ANSW_HAS_CONTENT_RANGE)) {
-		//Ã»ÓÐContent-Range
+		//æ²¡æœ‰Content-Range
 		klog(KLOG_INFO, "bigobj_dead have no content_range\n");
 		bigobj_dead = true;
 	} else {
@@ -295,7 +298,7 @@ KGL_RESULT KBigObjectContext::upstream_recv_headed()
 			}
 		}
 		if (obj->getTotalContentSize() != this->obj->index.content_length) {
-			//ÄÚÈÝ³¤¶ÈÓÐ¸Ä±ä
+			//å†…å®¹é•¿åº¦æœ‰æ”¹å˜
 			bigobj_dead = true;
 			klog(KLOG_INFO, "obj content range is not eq %lld gobj=%lld\n", obj->getTotalContentSize(), this->obj->index.content_length);
 		}
@@ -324,7 +327,7 @@ static KGL_RESULT upstream_recv_headed(kgl_output_stream_ctx* ctx,int64_t body_s
 	default_ctx->parser_ctx.end_parse(bo_ctx->rq, body_size);
 	assert(bo_ctx->rq->sink->data.meth != METH_HEAD);
 	if (bo_ctx->rq->sink->data.meth == METH_HEAD) {
-		//Ã»ÓÐhttp bodyµÄÇé¿ö
+		//æ²¡æœ‰http bodyçš„æƒ…å†µ
 		return KGL_NO_BODY;
 	}
 	KGL_RESULT result = bo_ctx->upstream_recv_headed();
@@ -354,7 +357,7 @@ KGL_RESULT bigobj_write_trailer(kgl_output_stream_ctx* ctx, const char* attr, hl
 void bigobj_release(kgl_output_stream_ctx* ctx) {
 	KBigObjectContext* bo_ctx = (KBigObjectContext*)ctx;
 	bo_ctx->down_stream.f->close(bo_ctx->down_stream.ctx);
-	/* close_write Ò»°ãÓÉKBigObjectReadContext ¸ºÔð£¬µ«ÊÇÓÐÒ»Ð©´íÎó·¢ÉúÔÚKBigObjectReadContext »¹Î´´´½¨¡£*/
+	/* close_write ä¸€èˆ¬ç”±KBigObjectReadContext è´Ÿè´£ï¼Œä½†æ˜¯æœ‰ä¸€äº›é”™è¯¯å‘ç”Ÿåœ¨KBigObjectReadContext è¿˜æœªåˆ›å»ºã€‚*/
 	bo_ctx->close_write();
 	/* bigobj context not release here */
 }

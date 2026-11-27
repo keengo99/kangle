@@ -46,11 +46,13 @@ public:
 		return true;
 	}
 	void start(int header_len) override;
-	//·µ»ØÍ·³¤¶È,-1±íÊ¾³ö´í
+	//è¿”å›žå¤´é•¿åº¦,-1è¡¨ç¤ºå‡ºé”™
 	int internal_start_response_body(int64_t body_size, bool is_100_continue) override
 	{
+		/* lets write_end and ~KSimulateSink tell a full body from a cut one */
+		response_left = body_size;
 		if (header_finish) {
-			header_finish(arg, status_code, body_size);
+			return header_finish(arg, status_code, body_size);
 		}
 		return 0;
 	}
@@ -85,6 +87,9 @@ public:
 	}
 	int write_all(const kbuf* buf, int length) override {
 		while (length > 0) {
+			if (buf == NULL) {
+				break;
+			}
 			int send_size = KGL_MIN(length, buf->used);
 			if (write_all(buf->data, send_size)!=0) {
 				break;
@@ -101,7 +106,8 @@ public:
 	}
 	void shutdown() override
 	{
-
+		/* write_end shuts the sink down when the body was cut short */
+		body_broken = true;
 	}
 	void set_time_out(int tmo_count) override
 	{
@@ -134,6 +140,7 @@ public:
 	uint16_t status_code;
 	int life_time;
 	void *arg;
+	bool body_broken = false;
 protected:
 	void SetReadDelay(bool delay_flag)
 	{

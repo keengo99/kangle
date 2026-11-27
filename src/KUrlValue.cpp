@@ -57,7 +57,7 @@ bool KUrlValue::get(const KString name, KString&value) const {
 }
 void KUrlValue::build_config_base_path(KStringBuf& path, const KString& cfg_file) const {
 	auto vh_name = getx("vh");
-	if (vh_name && strncmp(cfg_file.c_str(), _KS("@vh|")) != 0) {
+	if (vh_name && *vh_name && strncmp(cfg_file.c_str(), _KS("@vh|")) != 0) {
 		path << "vh@" << vh_name << "/";
 	}
 }
@@ -95,7 +95,7 @@ bool KUrlValue::parse(char* buf, size_t len) {
 			url_decode(name);
 			if (strcmp(name,"begin_sub_form")==0) {
 				auto uv = new KUrlValue;
-				cur_uv->subs.emplace(value, uv);
+				cur_uv->subs.emplace_back(value, uv);
 				uvs.push(cur_uv);
 				cur_uv = uv;
 			} else if (strcmp(name,"end_sub_form")==0) {

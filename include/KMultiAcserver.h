@@ -35,6 +35,7 @@ public:
 	virtual ~KMultiAcserver();
 public:
 	void shutdown() override;
+	void refresh_pool(time_t now_time) override;
 	void dump(kgl::serializable* sl);
 	KUpstream* GetUpstream(KHttpRequest* rq) override;
 	unsigned getPoolSize();

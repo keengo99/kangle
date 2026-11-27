@@ -14,9 +14,7 @@
 #include "kselector_manager.h"
 #include "KTcpUpstream.h"
 #include "kfiber.h"
-/*
-¶àÏß³ÌÃüÁî½ø³Ì
-*/
+/* Single-process command worker. */
 class KSPCmdProcess: public KVirtualHostProcess {
 public:
 	KSPCmdProcess();
@@ -45,14 +43,21 @@ public:
 		stLock.Unlock();
 	}
 	bool killProcess(int pid) override {
+		bool killed = false;
 		stLock.Lock();
-		if (st) {
+		if (st && (pid == 0 || st->process.getProcessId() == pid)) {
 			delete st;
 			st = NULL;
+			killed = true;
 		}
-		status = VProcess_Close;
+		if (pid == 0) {
+			killed = true;
+		}
+		if (killed) {
+			status = VProcess_Close;
+		}
 		stLock.Unlock();
-		return true;
+		return killed;
 	}
 	//{{ent
 #ifdef ENABLE_ADPP
@@ -80,7 +85,7 @@ protected:
 	KListenPipeStream *st;
 };
 class KSingleListenPipeStream;
-//¶à½ø³ÌÃüÁîÀ©Õ¹
+// Multi-process command worker.
 class KMPCmdProcess: public KVirtualHostProcess {
 public:
 	KMPCmdProcess();
@@ -116,6 +121,7 @@ public:
 	KSingleListenPipeStream()
 	{
 		lastActive = kgl_current_sec;
+		requests = 0;
 	}
 	~KSingleListenPipeStream()
 	{
@@ -133,6 +139,9 @@ public:
 			return st;
 		}
 		kconnection* cn = kfiber_net_open(&addr);
+		if (cn == NULL) {
+			return NULL;
+		}
 		if (kfiber_net_connect(cn, NULL, 0) != 0) {
 			kfiber_net_close(cn);
 			return NULL;
@@ -145,7 +154,7 @@ public:
 	}
 	void gcSocket(KUpstream* st, int life_time) override
 	{
-		//Ê¹ÓÃÁËKTsUpstreamºó£¬windowsÏÂ¶àiocp£¬Ò²¿ÉÒÔÊ¹ÓÃ³¤Á¬½Ó.
+		//ä½¿ç”¨äº†KTsUpstreamåŽï¼Œwindowsä¸‹å¤šiocpï¼Œä¹Ÿå¯ä»¥ä½¿ç”¨é•¿è¿žæŽ¥.
 		KPoolableSocketContainer::gcSocket(st, life_time);
 		kassert(vprocess!=NULL);
 		vprocess->gcProcess(this);
@@ -154,6 +163,10 @@ public:
 	{
 		switch (stage) {
 		case HealthStatus::Err:
+		case HealthStatus::ResponseErr:
+			/* One request at a time: a process that did not answer is hung
+			 * (or dead). gcProcess() puts a live one back at the head of the
+			 * free list, where it would take every next request. */
 			process.kill();
 			break;
 		default:
@@ -173,6 +186,8 @@ private:
 	sockaddr_i addr;
 #endif
 	time_t lastActive;
+	/* requests handed to this process */
+	unsigned requests;
 	KSingleListenPipeStream *next;
 	KSingleListenPipeStream *prev;
 };

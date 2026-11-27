@@ -91,7 +91,7 @@ KGL_RESULT process_request_stream(KHttpRequest* rq, kgl_input_stream* in, kgl_ou
 #ifdef ENABLE_REQUEST_QUEUE
 	KRequestQueue* queue = rq->queue;
 	if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_MANAGE) || rq->ctx.internal || !rq->NeedQueue()) {
-		//ºóÌ¨¹ÜÀí¼°ÄÚ²¿µ÷ÓÃ£¬²»ÓÃÅÅ¶Ó
+		//åå°ç®¡ç†åŠå†…éƒ¨è°ƒç”¨ï¼Œä¸ç”¨æ’é˜Ÿ
 		goto skip_queue;
 	}
 #ifdef ENABLE_VH_QUEUE
@@ -142,7 +142,20 @@ query_vh_result query_virtual(KHttpRequest* rq, const char* hostname, int len, i
 #ifdef KSOCKET_SSL
 	void* sni = rq->sink->get_sni();
 	if (sni) {
-		vh_result = kgl_use_ssl_sni(sni, &svh);
+		if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_REWRITED)
+			&& rq->sink->data.raw_url.host
+			&& hostname
+			&& strcasecmp(rq->sink->data.raw_url.host, hostname) != 0) {
+			/*
+			 * SNI is resolved during the TLS handshake, before request access
+			 * rules run.  A host_rewrite rule without proxying must therefore
+			 * perform a fresh lookup using the rewritten HTTP host.
+			 */
+			kgl_free_ssl_sni(sni);
+			vh_result = conf.gvm->queryVirtualHost((KVirtualHostContainer*)rq->sink->get_server_opaque(), &svh, hostname, len);
+		} else {
+			vh_result = kgl_use_ssl_sni(sni, &svh);
+		}
 	} else
 #endif
 		vh_result = conf.gvm->queryVirtualHost((KVirtualHostContainer*)rq->sink->get_server_opaque(), &svh, hostname, len);
@@ -283,6 +296,12 @@ void start_request_fiber(KSink* sink, int header_length) {
 	jump_type = kaccess[REQUEST]->check(&rq, NULL, fo);
 	switch (jump_type) {
 	case JUMP_DROP:
+		/* A drop action is the equivalent of nginx's non-standard 444:
+		 * close the client connection without sending an HTTP response. */
+		KBIT_SET(rq.sink->data.flags, RQ_CONNECTION_CLOSE);
+		if (fo) {
+			fo = nullptr;
+		}
 		goto clean;
 	case JUMP_DENY:
 		if (fo) {
@@ -320,7 +339,7 @@ void start_request_fiber(KSink* sink, int header_length) {
 				if (new_svh) {
 					auto svh = kangle::get_virtual_host(&rq);
 					if (new_svh->vh == svh->vh) {
-						//Ö»ÓĞĞéÄâÖ÷»úÏàÍ¬£¬²ÅÔÊĞíÖØĞ´host
+						//åªæœ‰è™šæ‹Ÿä¸»æœºç›¸åŒï¼Œæ‰å…è®¸é‡å†™host
 						rq.sink->data.bind_opaque(new_svh);
 					} else {
 						new_svh->release();
@@ -393,12 +412,12 @@ KGL_RESULT handle_error(KHttpRequest* rq, int code, const char* msg) {
 		obj->data->i.status_code = code;
 	}
 	if (KBIT_TEST(rq->sink->data.flags, RQ_IS_ERROR_PAGE)) {
-		//Èç¹û±¾ÉíÊÇ´íÎóÒ³Ãæ£¬ÓÖ²úÉú´íÎó
+		//å¦‚æœæœ¬èº«æ˜¯é”™è¯¯é¡µé¢ï¼Œåˆäº§ç”Ÿé”™è¯¯
 		return send_error2(rq, code, msg);
 	}
-	//ÉèÖÃÎª´íÎóÒ³Ãæ
+	//è®¾ç½®ä¸ºé”™è¯¯é¡µé¢
 	KBIT_SET(rq->sink->data.flags, RQ_IS_ERROR_PAGE);
-	//Çå³ırangeÇëÇó
+	//æ¸…é™¤rangeè¯·æ±‚
 	rq->sink->data.range = nullptr;
 	//KBIT_CLR(rq->sink->data.flags, RQ_HAVE_RANGE);
 	assert(svh);
@@ -409,7 +428,7 @@ KGL_RESULT handle_error(KHttpRequest* rq, int code, const char* msg) {
 	const char* errorPage = errorPage2.c_str();
 	if (strncasecmp(errorPage, "http://", 7) == 0 || strncasecmp(errorPage, "https://", 8) == 0) {
 		KStringBuf s;
-		s << errorPage << "?" << obj->data->i.status_code << "," << rq->getInfo();
+		s << errorPage << "?" << code << "," << rq->getInfo();
 		push_redirect_header(rq, s.c_str(), (int)s.size(), STATUS_FOUND);
 		//rq->response_content_length(0);
 		rq->start_response_body(0);
@@ -422,7 +441,7 @@ KGL_RESULT handle_error(KHttpRequest* rq, int code, const char* msg) {
 	}
 	rq->file = new KFileName;
 	/*
-	skip_redirect Èç¹ûÊÇ±¾µØÎÄ¼şfile:// Ôò²»ÓÃ²éÕÒÀ©Õ¹Ó³Éä£¬µ±ÆÕÍ¨ÎÄ¼ş¼´¿É.
+	skip_redirect å¦‚æœæ˜¯æœ¬åœ°æ–‡ä»¶file:// åˆ™ä¸ç”¨æŸ¥æ‰¾æ‰©å±•æ˜ å°„ï¼Œå½“æ™®é€šæ–‡ä»¶å³å¯.
 	*/
 	//bool skip_redirect = true;
 	if (strncasecmp(errorPage, "file://", 7) == 0) {
@@ -447,7 +466,7 @@ KGL_RESULT handle_error(KHttpRequest* rq, int code, const char* msg) {
 		} else {
 			errorUrl << errorPage;
 		}
-		result = rq->file->setName(svh->doc_root, errorPage, rq->getFollowLink());
+		result = rq->file->setName(svh->doc_root, errorUrl.c_str(), rq->getFollowLink());
 		if (result) {
 			result = rq->rewrite_url(errorUrl.c_str(), code);
 		}
@@ -459,7 +478,15 @@ KGL_RESULT handle_error(KHttpRequest* rq, int code, const char* msg) {
 			fo = new KStaticFetchObject;
 		}
 		rq->append_source(fo);
-		return process_request(rq);
+		kgl_input_stream in;
+		kgl_output_stream out;
+		new_default_stream(rq, &in, &out);
+		defer(in.f->body.close(in.body_ctx); out.f->close(out.ctx));
+		KGL_RESULT result = fo->Open(rq, &in, &out);
+		if (result == KGL_NO_BODY) {
+			return process_upstream_no_body(rq, &in, &out);
+		}
+		return result;
 	}
 	return send_error2(rq, code, msg);
 }
@@ -487,7 +514,18 @@ bool check_request_final_source(KHttpRequest* rq, RequestError* error) {
 		//postmap
 		if (htresponse) {
 			KSafeSource fo;
-			if (!rq->ctx.internal && htresponse->access[RESPONSE]->check_post_map(rq, rq->ctx.obj, fo) == JUMP_DENY) {
+			int jump_type = JUMP_ALLOW;
+			if (!rq->ctx.internal) {
+				jump_type = htresponse->access[RESPONSE]->check_post_map(rq, rq->ctx.obj, fo);
+			}
+			// Marks such as HTTP authentication return a response source while
+			// keeping the chain action as "continue".  POSTMAP used to discard
+			// that source, so directory authentication was silently bypassed.
+			bool has_source = (bool)fo;
+			if (has_source) {
+				rq->insert_source(fo.release());
+			}
+			if (jump_type == JUMP_DENY && !has_source) {
 				if (KBIT_TEST(rq->ctx.filter_flags, RQ_SEND_AUTH)) {
 					error->code = AUTH_STATUS_CODE;
 					error->msg = "";
@@ -504,7 +542,11 @@ bool check_request_final_source(KHttpRequest* rq, RequestError* error) {
 		KSafeSource fo;
 		if (svh) {
 			int jump_type = svh->vh->checkPostMap(rq, fo);
-			if (jump_type == JUMP_DENY) {
+			bool has_source = (bool)fo;
+			if (has_source) {
+				rq->insert_source(fo.release());
+			}
+			if (jump_type == JUMP_DENY && !has_source) {
 				if (KBIT_TEST(rq->ctx.filter_flags, RQ_SEND_AUTH)) {
 					error->code = AUTH_STATUS_CODE;
 					error->msg = "";
@@ -515,7 +557,12 @@ bool check_request_final_source(KHttpRequest* rq, RequestError* error) {
 				return false;
 			}
 		}
-		if (kaccess[RESPONSE]->check_post_map(rq, rq->ctx.obj, fo) == JUMP_DENY) {
+		auto jump_type = kaccess[RESPONSE]->check_post_map(rq, rq->ctx.obj, fo);
+		bool has_source = (bool)fo;
+		if (has_source) {
+			rq->insert_source(fo.release());
+		}
+		if (jump_type == JUMP_DENY && !has_source) {
 			if (KBIT_TEST(rq->ctx.filter_flags, RQ_SEND_AUTH)) {
 				error->code = AUTH_STATUS_CODE;
 				error->msg = "";
@@ -548,7 +595,7 @@ bool process_check_final_source(KHttpRequest* rq, kgl_input_stream* in, kgl_outp
 	return false;
 }
 /*
-×¼±¸¶ÁÎÄ¼ş£¬·Ö¼ñÇëÇó
+å‡†å¤‡è¯»æ–‡ä»¶ï¼Œåˆ†æ¡è¯·æ±‚
 */
 KGL_RESULT prepare_request_fetchobj(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) {
 	assert(rq->ctx.obj);
@@ -620,7 +667,7 @@ KGL_RESULT load_object_from_source(KHttpRequest* rq) {
 	if (!rq->ctx.old_obj || rq->ctx.obj->data->i.status_code != STATUS_NOT_MODIFIED) {
 		goto done;
 	}
-	if (rq->ctx.obj->data->etag && !rq->ctx.obj->is_same_precondition(rq->ctx.old_obj)) {
+	if (!kgl_revalidated_304_matches(rq, rq->ctx.old_obj)) {
 		goto done;
 	}
 	if (!kgl_request_precondition(rq, rq->ctx.old_obj)) {
@@ -640,7 +687,7 @@ static inline KGL_RESULT process_check_cache_expire(KHttpRequest* rq, KHttpObjec
 #ifdef ENABLE_BIG_OBJECT_206
 	if (obj->data->i.type == BIG_OBJECT_PROGRESS) {
 		/**
-		* Î´ÍêÎï¼ş£¬ÌØÊâ´¦Àí¡£»ò²úÉúif-rangeÇëÇóÍ·»áÑéÖ¤ÊÇ·ñĞŞ¸Ä¡£
+		* æœªå®Œç‰©ä»¶ï¼Œç‰¹æ®Šå¤„ç†ã€‚æˆ–äº§ç”Ÿif-rangeè¯·æ±‚å¤´ä¼šéªŒè¯æ˜¯å¦ä¿®æ”¹ã€‚
 		*
 		*/
 		KBigObjectContext* bo_ctx = new KBigObjectContext(rq, obj);
@@ -705,11 +752,7 @@ KGL_RESULT response_cache_object(KHttpRequest* rq, KHttpObject* obj) {
 			result = rq->ctx.body.f->sendfile(rq->ctx.body.ctx, file, &rq->ctx.left_read);
 			break;
 		}
-		if (!kasync_file_direct(file, true)) {
-			klog(KLOG_ERR, "cann't turn on file direct_on\n");
-			result = KGL_EIO;
-			break;
-		}
+		// buffered read, so cached disk objects come from the page cache
 		kgl_auto_aio_buffer buffer((char*)aio_alloc_buffer(buf_size));
 		if (!buffer) {
 			result = KGL_ENO_MEMORY;
@@ -790,7 +833,7 @@ static inline swap_in_result swap_in_object(KHttpRequest* rq, KHttpObject* obj) 
 #endif
 #ifdef ENABLE_DISK_CACHE
 		} else if (obj->data->i.type == SWAPING_OBJECT) {
-			//ÒÑ¾­ÓĞÆäËüÏß³ÌÔÚswap
+			//å·²ç»æœ‰å…¶å®ƒçº¿ç¨‹åœ¨swap
 			KHttpObjectSwaping* os = obj->data->os;
 			assert(os);
 			return os->wait(lock);
@@ -823,7 +866,7 @@ static inline KGL_RESULT process_cache_request(KHttpRequest* rq) {
 	{
 		//swap in failed.
 #ifdef ENABLE_DISK_CACHE
-	//²»ÄÜswap in¾Í´ÓÔ´ÉÏÈ¥È¡
+	//ä¸èƒ½swap inå°±ä»æºä¸Šå»å–
 		{
 			auto filename = obj->get_filename();
 			klog(KLOG_ERR, "obj swap in failed cache file [%s] error=[%d].\n", filename.get(), result);
@@ -955,4 +998,3 @@ KGL_RESULT on_upstream_finished_header(KHttpRequest* rq, kgl_response_body* body
 	kassert(!kfiber_is_main());
 	return prepare_write_body(rq, body);
 }
-

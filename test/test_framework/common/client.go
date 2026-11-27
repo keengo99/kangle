@@ -139,7 +139,7 @@ func Post(path string, header map[string]string, body string, cb ClientCheckBack
 	for k, v := range header {
 		if strings.EqualFold(k, "Content-Length") {
 			length, err := strconv.Atoi(v)
-			if err != nil {
+			if err == nil {
 				req.ContentLength = int64(length)
 			}
 			continue

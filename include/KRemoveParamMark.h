@@ -1,7 +1,7 @@
 #ifndef KREMOVEPARAMMARK_H
 #define KREMOVEPARAMMARK_H
 /**
-* É¾³ıurlµÄ²ÎÊı£¬ÓÃÓÚÌá¸ß»º´æÃüÖĞÂÊ
+* åˆ é™¤urlçš„å‚æ•°ï¼Œç”¨äºæé«˜ç¼“å­˜å‘½ä¸­ç‡
 */
 class KRemoveParamMark : public KMark
 {

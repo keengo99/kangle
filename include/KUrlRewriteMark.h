@@ -35,8 +35,8 @@ public:
 				}
 			} else {
 				rq->rewrite_url(nu->c_str(),0,NULL);
-				delete nu;
 			}
+			delete nu;
 			return KF_STATUS_REQ_TRUE;
 		}
 		return KF_STATUS_REQ_FALSE;

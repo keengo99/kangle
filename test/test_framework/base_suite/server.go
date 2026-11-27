@@ -2,6 +2,7 @@ package base_suite
 
 import (
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -147,6 +148,9 @@ func HandleVary(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func HandleMissStatusString(w http.ResponseWriter, r *http.Request) {
+	// Drain a chunked request before closing the hijacked connection, otherwise
+	// unread upload bytes turn the intended close-delimited response into a reset.
+	io.Copy(io.Discard, r.Body)
 	hj, _ := w.(http.Hijacker)
 	cn, wb, _ := hj.Hijack()
 	wb.WriteString("HTTP/1.1 200\r\nConnection: close\r\n\r\nok")

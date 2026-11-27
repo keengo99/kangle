@@ -7,6 +7,7 @@
 #include "KHttpResponseParser.h"
 #include "KHttpParser.h"
 #include "kfiber.h"
+#include "KHttpHeaderManager.h"
 
 enum Parse_Result
 {
@@ -20,15 +21,25 @@ struct kgl_pop_header {
 	uint16_t no_body:1;
 	uint16_t recved_end_request : 1;
 	uint16_t is_100_continue : 1;
+	uint16_t is_interim_response : 1;
 	uint16_t upstream_is_chunk : 1;
 	uint16_t post_is_chunk : 1;
+	uint16_t grpc : 1;
+	uint16_t post_finished : 1;
+	uint16_t post_ended : 1;
+	uint16_t has_content_length : 1;
+	uint16_t post_canceled : 1;
+	uint16_t interim_count : 4;
 	int keep_alive_time_out;
+	unsigned field_count;
+	int64_t response_length;
 };
 /**
-* Òì²½µ÷ÓÃÀ©Õ¹£¬ËùÒÔÖ§³ÖÒì²½µ÷ÓÃµÄÀ©Õ¹´Ó¸ÃÀà¼Ì³Ğ
+* å¼‚æ­¥è°ƒç”¨æ‰©å±•ï¼Œæ‰€ä»¥æ”¯æŒå¼‚æ­¥è°ƒç”¨çš„æ‰©å±•ä»è¯¥ç±»ç»§æ‰¿
 */
 class KAsyncFetchObject : public KRedirectSource
 {
+friend int process_post_fiber(void* arg, int got);
 public:
 	KAsyncFetchObject():KAsyncFetchObject(KGL_UPSTREAM_NEED_QUEUE)
 	{		
@@ -43,7 +54,8 @@ public:
 	void Close(KHttpRequest *rq)
 	{
 		if (client) {
-			if (KBIT_TEST(rq->ctx.filter_flags,RF_UPSTREAM_NOKA) 
+			if (KBIT_TEST(rq->ctx.filter_flags,RF_UPSTREAM_NOKA)
+				|| KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)
 				|| !rq->ctx.upstream_connection_keep_alive
 				|| !rq->ctx.upstream_expected_done) {
 				pop_header.keep_alive_time_out = -1;
@@ -55,6 +67,7 @@ public:
 	}
 	virtual ~KAsyncFetchObject()
 	{
+		free_header_list(early_headers.steal_header());
 		assert(client==NULL);	
 		if (client) {
 			client->gc(-1);
@@ -66,7 +79,7 @@ public:
 			xfree(us_buffer.buf);
 		}
 	}
-	//ÆÚÍûÖĞµÄÍê³É£¬³¤Á¬½ÓÖĞÓÃÓÚ±êÊ¶´ËÁ¬½Ó»¹¿ÉÓÃ
+	//æœŸæœ›ä¸­çš„å®Œæˆï¼Œé•¿è¿æ¥ä¸­ç”¨äºæ ‡è¯†æ­¤è¿æ¥è¿˜å¯ç”¨
 	virtual void expectDone(KHttpRequest *rq)
 	{
 		rq->ctx.upstream_expected_done = 1;
@@ -75,11 +88,19 @@ public:
 public:
 	void WaitPostFiber(KHttpRequest* rq, kfiber *post_fiber)
 	{
-		rq->sink->shutdown();
+		if (!pop_header.post_finished && !pop_header.post_ended) {
+			pop_header.post_canceled = 1;
+			/* A tunnel whose origin closed cleanly must end the client stream
+			 * (HTTP/2 END_STREAM) after the relayed data, not reset it. */
+			if (pop_header.grpc || (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE) && rq->ctx.upstream_expected_done)) rq->sink->cancel_read();
+			else rq->sink->shutdown();
+			if (client) client->shutdown();
+		}
 		int retval;
 		kfiber_join(post_fiber, &retval);
 	}
 	void on_readhup(KHttpRequest* rq) override;
+	bool tunnel_write_end();
 	virtual KGL_RESULT read_body_end(KHttpRequest* rq, KGL_RESULT result)
 	{
 		return result;
@@ -89,19 +110,19 @@ public:
 	KGL_RESULT SendHeader(KHttpRequest* rq);
 	KGL_RESULT ProcessPost(KHttpRequest* rq);
 	KGL_RESULT PostResult(KHttpRequest *rq,int got);
-	//µÃµ½post¶Á»º³å£¬·¢ËÍµ½upstream
+	//å¾—åˆ°postè¯»ç¼“å†²ï¼Œå‘é€åˆ°upstream
 	int getPostRBuffer(KHttpRequest *rq,LPWSABUF buf,int bc)
 	{
-		//ĞÂ°æÒÑ¾­¼ò»¯Á÷³Ì£¬Ö®Ç°¾Í°ÑÔ¤¼ÓÔØµÄÊı¾İ·¢ËÍµ½bufferÀïÃæÁË¡£
+		//æ–°ç‰ˆå·²ç»ç®€åŒ–æµç¨‹ï¼Œä¹‹å‰å°±æŠŠé¢„åŠ è½½çš„æ•°æ®å‘é€åˆ°bufferé‡Œé¢äº†ã€‚
 		//assert(rq->pre_post_length==0);
 		return buffer->getReadBuffer(buf,bc);
 	}
-	//µÃµ½postĞ´»º³å£¬´Óclient½ÓÊÕpostÊı¾İ
+	//å¾—åˆ°postå†™ç¼“å†²ï¼Œä»clientæ¥æ”¶postæ•°æ®
 	char *GetPostBuffer(int *len)
 	{
 		return buffer->getWriteBuffer(len);
 	}
-	//µÃµ½body»º³å,´Óupstream¶Á
+	//å¾—åˆ°bodyç¼“å†²,ä»upstreamè¯»
 	char *getUpstreamBuffer(int *len)
 	{
 		return ks_get_write_buffer(&us_buffer, len);
@@ -110,7 +131,7 @@ public:
 	{
 		return client;
 	}
-	KGL_RESULT upstream_is_error(KHttpRequest *rq,int error,const char *msg);
+	KGL_RESULT upstream_is_error(KHttpRequest *rq,int error,const char *msg, bool transport_error = true);
 	KGL_RESULT PushHeader(KHttpRequest *rq,const char *attr, int attr_len, const char *val, int val_len, bool request_line);
 	ks_buffer us_buffer;
 	KSocketBuffer *buffer;
@@ -124,20 +145,35 @@ protected:
 	void BuildChunkHeader();
 	void PushStatus(KHttpRequest *rq, int status_code);
 	KGL_RESULT PushHeaderFinished(KHttpRequest *rq);
-	//´´½¨·¢ËÍÍ·µ½bufferÖĞ¡£
+	//åˆ›å»ºå‘é€å¤´åˆ°bufferä¸­ã€‚
 	virtual KGL_RESULT buildHead(KHttpRequest *rq) = 0;
-	//½âÎöhead
+	//è§£æhead
 	virtual kgl_parse_result parse_unknow_header(KHttpRequest *rq,char **data, char *end);
 	virtual KGL_RESULT ParseBody(KHttpRequest *rq, char **data, char* end);
-	//´´½¨postÊı¾İµ½bufferÖĞ¡£
+	//åˆ›å»ºpostæ•°æ®åˆ°bufferä¸­ã€‚
 	virtual void buildPost(KHttpRequest *rq)
 	{
 	}
-	//¼ì²éÊÇ·ñ»¹Òª¼ÌĞø¶Ábody,Ò»°ã³¤Á¬½ÓĞèÒª¡£
-	//Èç¹û±¾ÉíÓĞcontent-lengthÔò²»ÓÃ¸Ãº¯Êı
+	/* Allow framed upstream protocols to send their explicit end marker. */
+	virtual KGL_RESULT on_post_end()
+	{
+		return KGL_OK;
+	}
+	//æ£€æŸ¥æ˜¯å¦è¿˜è¦ç»§ç»­è¯»body,ä¸€èˆ¬é•¿è¿æ¥éœ€è¦ã€‚
+	//å¦‚æœæœ¬èº«æœ‰content-lengthåˆ™ä¸ç”¨è¯¥å‡½æ•°
 	virtual bool checkContinueReadBody(KHttpRequest *rq)
 	{
 		return true;
+	}
+	//ä¸Šæ¸¸åè®®æ˜¯å¦ä¼šè‡ªå·±å›åº”100-continueã€‚ä¸æ”¯æŒçš„åè®®(fastcgi/ajpç­‰)éœ€ç›´æ¥è½¬å‘post,ç”±KSink::readå›åº”100ç»™å®¢æˆ·ç«¯
+	virtual bool upstream_handle_expect()
+	{
+		return false;
+	}
+	//é•¿åº¦æœªçŸ¥çš„postæ˜¯å¦ç”¨chunkedç¼–ç å‘é€ã€‚åªæœ‰httpä¸Šæ¸¸éœ€è¦,fastcgi/ajpç­‰åè®®æœ‰è‡ªå·±çš„åˆ†åŒ…æ ¼å¼
+	virtual bool upstream_chunk_post()
+	{
+		return false;
 	}
 	KGL_RESULT ParseBody(KHttpRequest* rq);
 	khttp_parser parser;
@@ -154,5 +190,11 @@ private:
 		ks_buffer_init(&us_buffer, 8192);
 	}
 	KGL_RESULT InternalProcess(KHttpRequest *rq, kfiber** post_fiber);
+	KGL_RESULT StoreEarlyHint(const char* name, int name_len, const char* value, int value_len);
+	KGL_RESULT ForwardEarlyHints(KHttpRequest* rq);
+	KHttpHeaderManager early_headers{};
+	size_t early_bytes = 0;
+	bool forward_early_hints = false;
+	bool early_overflow = false;
 };
 #endif

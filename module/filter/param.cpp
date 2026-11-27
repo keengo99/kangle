@@ -3,7 +3,46 @@
 #include "KReg.h"
 #include "KStringBuf.h"
 
-class KParamMark : public KParamFilterHook
+/*
+ * The compiled rule a request checks its parameters with. It is registered
+ * on the request body filter and used while the body is read, after the
+ * access lock is gone, so it never changes once built: a reload of a named
+ * mark builds a new one instead of recompiling this one under the reader.
+ */
+class KParamRule : public KParamFilterHook
+{
+public:
+	bool check(const char* name, int name_len, const char* value, int value_len) override {
+		if (has_name) {
+			if (name == NULL) {
+				return false;
+			}
+			if (this->reg_name.match(name, name_len, 0) <= 0) {
+				return false;
+			}
+			if (!has_value) {
+				katom_inc((void*)&hit);
+				return true;
+			}
+		}
+		if (has_value) {
+			if (value == NULL) {
+				return false;
+			}
+			if (this->reg_value.match(value, value_len, 0) > 0) {
+				katom_inc((void*)&hit);
+				return true;
+			}
+		}
+		return false;
+	}
+	KReg reg_name;
+	KReg reg_value;
+	bool has_name = false;
+	bool has_value = false;
+	volatile int32_t hit = 0;
+};
+class KParamMark
 {
 public:
 	KParamMark() {
@@ -12,9 +51,17 @@ public:
 		value = NULL;
 		get = true;
 		post = true;
-		hit = 0;
+		rule = new KParamRule;
 	}
-
+	~KParamMark() {
+		if (name) {
+			free(name);
+		}
+		if (value) {
+			free(value);
+		}
+		rule->release();
+	}
 	const char *get_module() const  {
 		return "param";
 	}
@@ -28,7 +75,7 @@ public:
 		if (value) {
 			s << "value:" << value;
 		}
-		s << " hit:" << hit;
+		s << " hit:" << (int)rule->hit;
 		return;
 	}
 	static void build_html(KParamMark* m,KWStream &s) {
@@ -64,59 +111,27 @@ public:
 		s << ">post";
 		return;
 	}
-	void parse(kgl_access_parse_config* parse_ctx) {		
+	void parse(kgl_access_parse_config* parse_ctx) {
 		icase = !!parse_ctx->body->get_int(parse_ctx->cn, "icase");
 		charset = parse_ctx->body->get_value(parse_ctx->cn, "charset");// attribute["charset"];
 		get = !!parse_ctx->body->get_int(parse_ctx->cn, "get");
 		post = !!parse_ctx->body->get_int(parse_ctx->cn, "post");
 		set_value(parse_ctx->body->get_value(parse_ctx->cn, "name"), parse_ctx->body->get_value(parse_ctx->cn, "value"));
 	}
-	bool check(const char* name, int name_len, const char* value, int value_len) override {
-		if (this->name) {
-			if (name == NULL) {
-				return false;
-			}
-			if (this->reg_name.match(name, name_len, 0) <= 0) {
-				return false;
-			}
-			if (this->value == NULL) {
-				hit++;
-				return true;
-			}
-		}
-		if (this->value) {
-			if (value == NULL) {
-				return false;
-			}
-			if (this->reg_value.match(value, value_len, 0) > 0) {
-				hit++;
-				return true;
-			}
-		}
-		return false;
+	/* a reference the caller releases */
+	KParamRule* get_rule() {
+		return static_cast<KParamRule*>(rule->add_ref());
 	}
 	bool get;
 	bool post;
 	bool icase;
-	int hit;
-protected:
-	~KParamMark() {
-		if (name) {
-			free(name);
-		}
-		if (value) {
-			free(value);
-		}
-	}
 private:
 	KString charset;
 	char* name;
 	char* value;
-	KReg reg_name;
-	KReg reg_value;
-	bool set_value(const char* name, const char* value) {
+	KParamRule* rule;
+	void set_value(const char* name, const char* value) {
 		int flag = (icase ? KGL_PCRE_CASELESS : 0);
-		bool result = false;
 		if (this->name) {
 			free(this->name);
 			this->name = NULL;
@@ -131,36 +146,26 @@ private:
 		if (name && *name) {
 			this->name = strdup(name);
 		}
+		KParamRule* rule = new KParamRule;
+		rule->hit = this->rule->hit;
+		rule->has_name = this->name != NULL;
+		rule->has_value = this->value != NULL;
 		if (charset.size() > 0 && strcasecmp(charset.c_str(), "utf-8") != 0) {
-#if 0
-			char* str = NULL;
-			if (this->value) {
-				str = utf82charset(this->value, strlen(this->value), charset.c_str());
-				if (str) {
-					result = this->reg_value.setModel(str, flag);
-					free(str);
-				}
-			}
-			if (this->name) {
-				str = utf82charset(this->name, strlen(this->name), charset.c_str());
-				if (str) {
-					result = this->reg_name.setModel(str, flag);
-					free(str);
-				}
-			}
-#endif
+			/* converting the patterns to another charset is not supported:
+			 * such a rule never matches, as before */
 		} else {
 #ifdef PCRE_UTF8
 			flag |= PCRE_UTF8;
 #endif
 			if (this->value) {
-				result = this->reg_value.setModel(this->value, flag);
+				rule->reg_value.setModel(this->value, flag);
 			}
 			if (this->name) {
-				this->reg_name.setModel(this->name, flag);
+				rule->reg_name.setModel(this->name, flag);
 			}
 		}
-		return result;
+		this->rule->release();
+		this->rule = rule;
 	}
 };
 static void* create_access_ctx() {
@@ -169,7 +174,7 @@ static void* create_access_ctx() {
 }
 static void free_access_ctx(void* ctx) {
 	KParamMark* param = (KParamMark*)ctx;
-	param->release();
+	delete param;
 }
 static KGL_RESULT build(kgl_access_build* build_ctx, uint32_t build_type) {
 	KParamMark* mark = (KParamMark*)build_ctx->module;
@@ -198,17 +203,21 @@ static uint32_t process(KREQUEST rq, kgl_access_context* ctx, DWORD notify) {
 	KParamMark* mark = (KParamMark*)ctx->module;
 	auto filter_ctx = get_input_filter_context(rq, ctx);
 	if (!filter_ctx) {
-		return KF_STATUS_REQ_TRUE;
+		return KF_STATUS_REQ_FALSE;
 	}
+	KParamFilter rule(mark->get_rule());
 	if (mark->get) {
-		if (filter_ctx->check_get(mark, rq, ctx)) {
-			return KF_STATUS_REQ_FINISHED;
+		if (filter_ctx->check_get(rule.get(), rq, ctx)) {
+			return KF_STATUS_REQ_TRUE;
 		}
 	}
 	if (mark->post) {
-		filter_ctx->get_filter(rq, ctx)->register_param(mark);
+		filter_ctx->get_filter(rq, ctx)->register_param(rule.get());
 	}
-	return KF_STATUS_REQ_TRUE;
+	// Merely registering a body filter is not a match. Returning true here
+	// applies the chain action immediately and makes a deny chain reject every
+	// request, including requests without parameters.
+	return KF_STATUS_REQ_FALSE;
 }
 kgl_access kgl_param_model = {
 	sizeof(kgl_access),

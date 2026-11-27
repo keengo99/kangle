@@ -137,16 +137,23 @@ int get_jiffies(int pid) {
 	FILE *f = fopen(stat, "r");
 	if (f == NULL)
 		return -1;
-	fgets(buffer, sizeof(buffer), f);
+	if (!fgets(buffer, sizeof(buffer), f)) {
+		fclose(f);
+		return -1;
+	}
 	fclose(f);
-	char *p = buffer;
-	p = (char *) memchr(p + 1, ')', sizeof(buffer) - (p - buffer));
+	// A process name can itself contain spaces and parentheses.
+	char *p = strrchr(buffer, ')');
+	if (!p) return -1;
 	int sp = 12;
-	while (sp--)
-		p = (char *) memchr(p + 1, ' ', sizeof(buffer) - (p - buffer));
+	while (sp--) {
+		p = strchr(p + 1, ' ');
+		if (!p) return -1;
+	}
 	//user mode jiffies
 	int utime = atoi(p + 1);
-	p = (char *) memchr(p + 1, ' ', sizeof(buffer) - (p - buffer));
+	p = strchr(p + 1, ' ');
+	if (!p) return -1;
 	//kernel mode jiffies
 	int ktime = atoi(p + 1);
 	return utime + ktime;

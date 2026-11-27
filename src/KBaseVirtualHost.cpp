@@ -95,9 +95,6 @@ void KBaseVirtualHost::clear() {
 	redirects.clear();
 	indexFiles.clear();
 	errorPages.clear();
-	for (auto it2 = aliass.begin(); it2 != aliass.end(); it2++) {
-		(*it2)->release();
-	}
 	aliass.clear();
 	for (auto it3 = pathRedirects.begin(); it3 != pathRedirects.end(); it3++) {
 		(*it3)->release();
@@ -180,6 +177,7 @@ bool KBaseVirtualHost::getIndexFile(KHttpRequest* rq, KFileName* file, KFileName
 				return true;
 			} else {
 				delete (*newFile);
+				*newFile = NULL;
 			}
 		}
 	}
@@ -437,7 +435,7 @@ bool KBaseVirtualHost::addRedirect(bool file_ext, const KString& value, KRedirec
 #ifdef ENABLE_UPSTREAM_PARAM
 		nrd->parseParams(params);
 #endif
-		redirects.insert(pair<char*, KBaseRedirect*>(xstrdup(value.c_str()), nrd));
+		redirects.insert(std::make_pair(value, nrd));
 	} else {
 		KPathRedirect* pr = new KPathRedirect(value.c_str(), rd);
 		pr->allowMethod.setMethod(allowMethod.c_str());
@@ -661,6 +659,25 @@ bool KBaseVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KCon
 			this->indexFiles.swap(indexs);
 			return true;
 		}
+		if (xml->is_tag(_KS("env"))) {
+			std::map<char*, char*, lessp_icase> new_envs;
+			for (auto&& body : xml->body) {
+				for (const auto& item : body->attributes) {
+					if (new_envs.find((char*)item.first.c_str()) == new_envs.end()) {
+						new_envs.emplace(xstrdup(item.first.c_str()), xstrdup(item.second.c_str()));
+					}
+			}
+			}
+			{
+				auto locker = get_locker();
+				new_envs.swap(envs);
+			}
+			for (auto& item : new_envs) {
+				xfree(item.first);
+				xfree(item.second);
+			}
+			return true;
+		}
 		if (xml->is_tag(_KS("map_file"))) {
 			auto locker = get_locker();
 			auto& attr2 = xml->attributes();
@@ -732,11 +749,17 @@ bool KBaseVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KCon
 			this->indexFiles.clear();
 			return true;
 		}
+		if (xml->is_tag(_KS("env"))) {
+			auto locker = get_locker();
+			for (auto& item : envs) {
+				xfree(item.first);
+				xfree(item.second);
+			}
+			envs.clear();
+			return true;
+		}
 		if (xml->is_tag(_KS("alias"))) {
 			auto locker = this->get_locker();
-			for (auto it = aliass.begin(); it != aliass.end(); ++it) {
-				(*it)->release();
-			}
 			aliass.clear();
 			return true;
 		}

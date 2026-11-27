@@ -12,8 +12,14 @@
 using namespace std;
 WhmCommand::WhmCommand(KString&file) {
 	explode(file.c_str(),' ',args);
+	if (args.empty()) {
+		return;
+	}
 	this->file = args[0];
 #ifdef _WIN32
+	if (this->file.empty()) {
+		return;
+	}
 	char *buf = strdup(this->file.c_str());
 	char *e = buf + strlen(buf) - 1;
 	while(e>buf){
@@ -36,6 +42,9 @@ WhmCommand::~WhmCommand() {
 bool WhmCommand::init(KString&whmFile)
 {
 	bool result = WhmExtend::init(whmFile);
+	if (args.empty()) {
+		return false;
+	}
 	args[0] = file;
 	return result;
 }

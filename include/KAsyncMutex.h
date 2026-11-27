@@ -30,7 +30,7 @@ public:
 	~KAsyncMutex()
 	{
 		assert(head==NULL);
-		//防御性编程，正则情况下head为空，要全部处理
+		//闃插尽鎬х紪绋嬶紝姝ｅ垯鎯呭喌涓媓ead涓虹┖锛岃鍏ㄩ儴澶勭悊
 		while (head) {
 			head->callBack(head->param,Lock_failed);
 			last = head->next;

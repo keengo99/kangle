@@ -55,8 +55,13 @@ bool KMultiHostAcl::match(KHttpRequest* rq, KHttpObject* obj) {
 	loadFile(rq);
 	map<char *, bool,lessp_icase >::iterator it;
 	bool result = false;
+	KString buf;
+	const char* host = kgl_acl_host(rq->sink->data.url->host, buf);
+	if (host == NULL) {
+		return false;
+	}
 	lock.Lock();
-	it = m.find(rq->sink->data.url->host);
+	it = m.find((char*)host);
 	if (it != m.end()) {
 		result = true;
 	}
@@ -102,7 +107,14 @@ bool KMultiHostAcl::loadFile(KHttpRequest *rq) {
 		if (hot == NULL) {
 			break;
 		}
-		m.insert(pair<char *, bool> (xstrdup(hot), true));
+		char* host = xstrdup(hot);
+		size_t len = strlen(host);
+		while (len > 1 && host[len - 1] == '.') {
+			host[--len] = '\0';
+		}
+		if (!m.insert(pair<char *, bool> (host, true)).second) {
+			xfree(host);
+		}
 	}
 	lock.Unlock();
 	return true;

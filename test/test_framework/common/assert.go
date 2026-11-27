@@ -64,3 +64,9 @@ func Report() (sc int, fc int) {
 	}
 	return success_count, failed_count
 }
+
+func EnsureFailed() {
+	if failed_count == 0 {
+		failed_count = 1
+	}
+}

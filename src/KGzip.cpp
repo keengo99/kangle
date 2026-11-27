@@ -232,6 +232,9 @@ StreamState kgzip_compress(kgzip_context *ctx, int flush_flag) {
 	return STREAM_WRITE_SUCCESS;
 }
 static KGL_RESULT kgzip_write(kgl_response_body_ctx* ctx, const char* buf, int size) {
+	if (size < 0 || (size > 0 && buf == NULL)) {
+		return KGL_EINVALID_PARAMETER;
+	}
 	kgzip_context* gzip = (kgzip_context*)ctx;
 	gzip->strm.avail_in = size;
 	gzip->strm.next_in = (unsigned char*)buf;
@@ -243,7 +246,11 @@ static KGL_RESULT kgzip_write(kgl_response_body_ctx* ctx, const char* buf, int s
 }
 KGL_RESULT kgzip_flush(kgl_response_body_ctx* ctx) {
 	kgzip_context* gzip = (kgzip_context*)ctx;
-	return kgzip_compress(gzip, Z_SYNC_FLUSH);
+	KGL_RESULT result = kgzip_compress(gzip, Z_SYNC_FLUSH);
+	if (result != KGL_OK) {
+		return result;
+	}
+	return forward_flush(ctx);
 }
 KGL_RESULT kgzip_close(kgl_response_body_ctx* ctx, KGL_RESULT result) {
 	kgzip_context* gzip = (kgzip_context*)ctx;

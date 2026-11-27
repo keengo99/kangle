@@ -27,7 +27,7 @@ int parse_args(int argc,char ** argv);
 SERVICE_STATUS ssStatus;
 SERVICE_STATUS_HANDLE sshStatusHandle;
 extern HANDLE shutdown_event;
-HANDLE hEventSource = INVALID_HANDLE_VALUE;
+HANDLE hEventSource = NULL;
 KMutex processLock;
 extern std::vector<WorkerProcess *> workerProcess;
 void coredump(DWORD pid,HANDLE hProcess,PEXCEPTION_POINTERS pExInfo);
@@ -71,8 +71,12 @@ bool InstallService(const char * szServiceName,bool install,bool start)
 	}
 	SC_HANDLE hService = NULL;
 	if (install) {
-		char szFilename[256];
-		::GetModuleFileName(NULL, szFilename, 255);
+		char szFilename[MAX_PATH + 64];
+		DWORD filename_len = ::GetModuleFileName(NULL, szFilename, MAX_PATH);
+		if (filename_len == 0 || filename_len >= MAX_PATH) {
+			::CloseServiceHandle(handle);
+			return false;
+		}
 		strcat(szFilename," --ntsrv");
 		hService = ::CreateService(handle, szServiceName,
 				szServiceName, SERVICE_ALL_ACCESS, SERVICE_WIN32_OWN_PROCESS,
@@ -81,6 +85,7 @@ bool InstallService(const char * szServiceName,bool install,bool start)
 		if(hService==NULL){
 			int error = GetLastError();
 			fprintf(stderr,"cann't create service manager errno=%d\n",error);
+			::CloseServiceHandle(handle);
 			return false;
 		}
 		writeRegister();
@@ -95,10 +100,13 @@ bool InstallService(const char * szServiceName,bool install,bool start)
 		ChangeServiceConfig2(hService,SERVICE_CONFIG_DESCRIPTION,&tmp);
 	} else {
 		hService= ::OpenService(handle,szServiceName,SERVICE_ALL_ACCESS);
+		if (hService == NULL) {
+			::CloseServiceHandle(handle);
+			return false;
+		}
 	}
 	if(start){
-		char *arg[]={(char *)"--ntsrv",NULL};
-		result = StartService(hService,NULL,(LPCSTR *)arg) == TRUE ;
+		result = StartService(hService, 0, NULL) == TRUE;
 	}
 	::CloseServiceHandle(hService);
 	::CloseServiceHandle(handle);	
@@ -107,7 +115,7 @@ bool InstallService(const char * szServiceName,bool install,bool start)
 
 SERVICE_STATUS servicestatus;
 SERVICE_STATUS_HANDLE servicestatushandle;
-void create_worker_process(const char *cmd,WorkerProcess *process,int index)
+bool create_worker_process(const char *cmd,WorkerProcess *process,int index)
 {
 	KStringBuf s;
 	s << "\"" << conf.program << "\"";
@@ -125,9 +133,10 @@ void create_worker_process(const char *cmd,WorkerProcess *process,int index)
 	ZeroMemory(&si, sizeof(STARTUPINFO));
 	si.cb= sizeof(STARTUPINFO);
 	si.lpDesktop = TEXT("winsta0\\default");
+	char* command_line = xstrdup(s.c_str());
 	bResult = CreateProcess(
 	  conf.program.c_str(),              // file to execute
-	  (char *)s.c_str(),     // command line
+	  command_line,          // CreateProcess may modify the command line
 	  NULL,              // pointer to process SECURITY_ATTRIBUTES
 	  NULL,              // pointer to thread SECURITY_ATTRIBUTES
 	  TRUE,             // handles are not inheritable
@@ -137,11 +146,11 @@ void create_worker_process(const char *cmd,WorkerProcess *process,int index)
 	  &si,               // pointer to STARTUPINFO structure
 	  &pi                // receives information about new process
 	);
+	xfree(command_line);
 	if (!bResult) {
 		code = GetLastError();
 		LogEvent("cann't create process,error=%d\n",code);
-		Sleep(2000);
-		return;
+		return false;
 	}
 	LogEvent("create worker process success with pid=%d\n",pi.dwProcessId);
 	process->hProcess = pi.hProcess;
@@ -149,12 +158,13 @@ void create_worker_process(const char *cmd,WorkerProcess *process,int index)
 	CloseHandle(pi.hThread);
 	process->closed = false;
 	process->pending_count = 0;
+	return true;
 }
 void start_safe_service()
 {
 	init_safe_process();
 #ifndef _WIN32
-	//windows ÓÉ¹¤×÷½ø³ÌÀ´save_pid(),unixÓÉ°²È«½ø³Ìsave_pid
+	//windows ç”±å·¥ä½œè¿›ç¨‹æ¥save_pid(),unixç”±å®‰å…¨è¿›ç¨‹save_pid
 	save_pid();
 #endif
 	DWORD code;
@@ -163,7 +173,7 @@ void start_safe_service()
 	sa.lpSecurityDescriptor = NULL;
 	sa.bInheritHandle = FALSE;
 	shutdown_event = CreateEvent(&sa,TRUE,FALSE,NULL);
-	if (shutdown_event==INVALID_HANDLE_VALUE) {
+	if (shutdown_event == NULL) {
 		code = GetLastError();
 		LogEvent("cann't create shutdown event,error=%d",code);
 		exit(0);
@@ -182,12 +192,12 @@ void start_safe_service()
 	}
 #endif
 	sa.bInheritHandle = TRUE;
-	//ÉèÖÃ×î´ó¹¤×÷½ø³ÌÎª31¸ö¡£
-	//ÒòÎªwindowsµÄWaitForMultiObjectsÒ»´Î×î¶à´¦Àí64¸ö¶ÔÏó¡£Ã¿¸ö½ø³ÌÁ½¸ö¶ÔÏó(Ò»¸öÊÇ½ø³Ìhandle,Ò»¸öÊÇnotice_event),ÔÙ¼ÓÒ»¸öshutdown_event.
-	//ËùÒÔ×î´ó¹¤×÷½ø³ÌÎª31¸ö¡£
+	//è®¾ç½®æœ€å¤§å·¥ä½œè¿›ç¨‹ä¸º31ä¸ªã€‚
+	//å› ä¸ºwindowsçš„WaitForMultiObjectsä¸€æ¬¡æœ€å¤šå¤„ç†64ä¸ªå¯¹è±¡ã€‚æ¯ä¸ªè¿›ç¨‹ä¸¤ä¸ªå¯¹è±¡(ä¸€ä¸ªæ˜¯è¿›ç¨‹handle,ä¸€ä¸ªæ˜¯notice_event),å†åŠ ä¸€ä¸ªshutdown_event.
+	//æ‰€ä»¥æœ€å¤§å·¥ä½œè¿›ç¨‹ä¸º31ä¸ªã€‚
 	unsigned max_worker = 31;
 #ifdef ENABLE_DETECT_WORKER_LOCK
-	//¶àÒ»¸öactive_event
+	//å¤šä¸€ä¸ªactive_event
 	max_worker = 21;
 #endif
 	for (size_t i=0;i<1;i++) {
@@ -198,6 +208,9 @@ void start_safe_service()
 		process->active_event = CreateEvent(&sa,FALSE,FALSE,NULL);
 #endif
 		process->closed = true;
+		process->hProcess = NULL;
+		process->pid = 0;
+		process->pending_count = 0;
 		workerProcess.push_back(process);
 	}
 	int index = 0;
@@ -208,13 +221,14 @@ void start_safe_service()
 		//printf("try start the process now\n");
 		std::vector<WorkerProcess *>::iterator it2;
 		size_t i=0;
+		bool worker_create_failed = false;
 		processLock.Lock();
 		for (it2=workerProcess.begin();it2!=workerProcess.end();) {
 			WorkerProcess *process = (*it2);
 #ifdef ENABLE_DETECT_WORKER_LOCK
 			if (!process->closed 
 				&& process->pending_count > GC_SLEEP_TIME * 60) {
-				//Ã»ÏìÓ¦
+				//æ²¡å“åº”
 				LogEvent("worker process pid=%d no active,now terminate it\n",process->pid);
 				coredump(process->pid,process->hProcess,NULL);
 				TerminateProcess(process->hProcess,0);
@@ -225,7 +239,22 @@ void start_safe_service()
 #endif
 			if (process->closed) {
 				if (quit_program_flag == PROGRAM_QUIT_IMMEDIATE) {
+					if (process->hProcess != NULL) {
+						CloseHandle(process->hProcess);
+					}
+					if (process->shutdown_event != NULL) {
+						CloseHandle(process->shutdown_event);
+					}
+					if (process->notice_event != NULL) {
+						CloseHandle(process->notice_event);
+					}
+#ifdef ENABLE_DETECT_WORKER_LOCK
+					if (process->active_event != NULL) {
+						CloseHandle(process->active_event);
+					}
+#endif
 					it2 = workerProcess.erase(it2);
+					delete process;
 					continue;
 				} else {
 					if (kflike((*it2)->shutdown_event)) {
@@ -235,7 +264,10 @@ void start_safe_service()
 					if (create_process_sleep) {
 						Sleep(2000);
 					}
-					create_worker_process(s.c_str(),(*it2),(int)i);
+					if (!create_worker_process(s.c_str(), (*it2), (int)i)) {
+						worker_create_failed = true;
+						break;
+					}
 				}
 			}
 			it2++;
@@ -244,7 +276,13 @@ void start_safe_service()
 		processLock.Unlock();			
 		if (workerProcess.size()==0) {
 			SetEvent(shutdown_event);
+			delete[] ev;
+			delete[] active_ev;
 			return;
+		}
+		if (worker_create_failed) {
+			Sleep(2000);
+			continue;
 		}
 		index = 0;
 		for (it2=workerProcess.begin();it2!=workerProcess.end();it2++) {
@@ -261,7 +299,7 @@ void start_safe_service()
 			(*it2)->pending_count ++ ;
 		}
 		for (;;) {
-			//¼ì²éactive event
+			//æ£€æŸ¥active event
 			int ret2 = WaitForMultipleObjects(index ,active_ev,FALSE,0);
 			if (ret2>=WAIT_OBJECT_0 && ret2 < (int)workerProcess.size()) {
 				WorkerProcess *process = workerProcess[ret2];
@@ -288,7 +326,7 @@ void start_safe_service()
 			continue;
 		}
 		if (ret >=0 && ret<(int)workerProcess.size()) {
-			//Èç¹ûÊÇ³ÌĞòÒâÍâÍË³ö
+			//å¦‚æœæ˜¯ç¨‹åºæ„å¤–é€€å‡º
 			WorkerProcess *process = workerProcess[ret];	
 			if (GetExitCodeProcess(process->hProcess,&code)) {
 				LogEvent("main process exit code=%d",code);
@@ -299,6 +337,8 @@ void start_safe_service()
 				if (code==99) {
 					//if call reboot,notice all worker process close
 					process->closed = true;
+					CloseHandle(process->hProcess);
+					process->hProcess = NULL;
 					for (it2=workerProcess.begin();it2!=workerProcess.end();it2++) {
 						if (!(*it2)->closed) {
 							SetEvent((*it2)->shutdown_event);
@@ -316,6 +356,7 @@ void start_safe_service()
 				LogEvent("main process exit but I cann't get the exit code,error=%d\n",code);
 			}
 			CloseHandle(process->hProcess);
+			process->hProcess = NULL;
 			ResetEvent(process->shutdown_event);
 			process->closed = true;
 		}
@@ -435,10 +476,10 @@ void LogEvent(LPCTSTR pFormat, ...)
 	_vstprintf(chMsg, pFormat, pArg);
 	va_end(pArg);
 	lpszStrings[0] = chMsg;
-	if(hEventSource == INVALID_HANDLE_VALUE){
+	if(hEventSource == NULL){
 		hEventSource = RegisterEventSource(NULL, PROGRAM_NAME);
 	}
-	if (hEventSource != INVALID_HANDLE_VALUE)
+	if (hEventSource != NULL)
 	{
 		ReportEvent(hEventSource, EVENTLOG_INFORMATION_TYPE, 0, 0, NULL, 1, 0, (LPCTSTR*) &lpszStrings[0], NULL);
 	}
@@ -448,7 +489,14 @@ bool UninstallService( const char *szServiceName,bool uninstall)
 {
 	bool result = true;
 	SC_HANDLE handle = ::OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+	if (handle == NULL) {
+		return false;
+	}
 	SC_HANDLE hService= ::OpenService(handle,szServiceName,SERVICE_ALL_ACCESS);
+	if (hService == NULL) {
+		::CloseServiceHandle(handle);
+		return false;
+	}
 	SERVICE_STATUS service_status;
 	result = ControlService(hService,SERVICE_CONTROL_STOP,&service_status) == TRUE;
 	if (uninstall) {

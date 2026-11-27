@@ -99,6 +99,7 @@ bool KApiDso::init() {
 	if (GetExtensionVersion(&info) == FALSE) {
 		klog(KLOG_ERR, "call GetExtensionVersion return failed %s %d\n", path.c_str(), GetLastError());
 		unload();
+		state = STATE_LOAD_FAILED;
 		return false;
 	}
 	snprintf(apiInfo, sizeof(apiInfo), "%d.%d", HIWORD(info.dwExtensionVersion), LOWORD(info.dwExtensionVersion));
@@ -109,7 +110,7 @@ bool KApiDso::init() {
 
 bool KApiDso::load() {
 	if (STATE_LOAD_SUCCESS == state) {
-		//已经成功，不可再加载
+		//宸茬粡鎴愬姛锛屼笉鍙啀鍔犺浇
 		return true;
 	}
 	state = STATE_LOAD_FAILED;
@@ -122,28 +123,34 @@ bool KApiDso::load() {
 	KDynamicString ds;
 	auto filename = ds.parseString(path.c_str());
 	handle = LoadLibrary(filename.get());
+#ifdef _WIN32
+	SetDllDirectory(NULL);
+#endif
 	if (handle == NULL) {
 		klog(KLOG_ERR, "cann't LoadLibrary [%s] %s\n", filename.get(), getError());
 		return false;
 	}
-#ifdef _WIN32
-	SetDllDirectory(NULL);
-#endif
 	GetExtensionVersion = (GetExtensionVersionf)GetProcAddress(handle,
 		"GetExtensionVersion");
 	if (GetExtensionVersion == NULL) {
 		debug("cann't find GetExtensionVersion function\n");
 		unload();
+		state = STATE_LOAD_FAILED;
 		return false;
 	}
-	HttpExtensionProc = (HttpExtensionProcf)GetProcAddress(handle,
+	HttpExtensionProcf proc = (HttpExtensionProcf)GetProcAddress(handle,
 		"HttpExtensionProc");
-	if (HttpExtensionProc == NULL) {
+	if (proc == NULL) {
 		debug("cann't find HttpExtensionProc function\n");
 		unload();
+		state = STATE_LOAD_FAILED;
 		return false;
 	}
 	TerminateExtension = (TerminateExtensionf)GetProcAddress(handle,
 		"TerminateExtension");
-	return init();
+	if (!init()) {
+		return false;
+	}
+	HttpExtensionProc = proc;
+	return true;
 }

@@ -24,8 +24,8 @@
 class KAuthUserAcl: public KMultiAcl {
 public:
 	KAuthUserAcl() {
-		icase = false;
 		icase_can_change = false;
+		seticase(false);
 	}
 	virtual ~KAuthUserAcl() {
 	}

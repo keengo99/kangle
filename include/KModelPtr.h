@@ -35,7 +35,7 @@ public:
 		return m != nullptr;
 	}
 	KModelPtr& operator =(const KModelPtr& ptr) {
-		if (this == *ptr) {
+		if (this == &ptr) {
 			return *this;
 		}
 		if (m) {
@@ -67,7 +67,7 @@ public:
 	}
 	bool revers;
 	bool is_or;
-	/* ÃüÃûÄ£¿éµÄÃû×Ö */
+	/* å‘½åæ¨¡å—çš„åå­— */
 	KString named;
 	T* m;
 };

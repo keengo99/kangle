@@ -10,13 +10,13 @@
 #ifndef _WIN32
 #define KGL_DISK_CACHE_ALIGN_HEAD 1
 #endif
-#define CACHE_DISK_VERSION  4
+#define CACHE_DISK_VERSION  5
 #define CACHE_FIX_STR      "HXJW"
 #pragma pack(push,4)
 struct KHttpObjectKey
 {
-	unsigned filename1;//从kgl_current_sec得到
-	unsigned filename2;//每次累加
+	unsigned filename1;//浠巏gl_current_sec寰楀埌
+	unsigned filename2;//姣忔绱姞
 };
 struct HttpObjectIndex
 {

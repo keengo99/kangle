@@ -6,8 +6,6 @@
 #ifdef ENABLE_SQLITE_DISK_INDEX
 #ifndef _WIN32
 #include <unistd.h>
-#else
-#pragma comment(lib,"sqlite3.lib")
 #endif
 #define CREATE_SQL "CREATE TABLE [cache] ([f1] INTEGER  NULL,[f2] INTEGER  NULL,[url] VARCHAR(1024)  NULL,[data] BLOB  NULL,PRIMARY KEY ([f1],[f2]))"
 //#define CREATE_INDEX_SQL "CREATE INDEX [IDX_CACHE_T] ON [cache] ([t]  DESC )"
@@ -24,20 +22,29 @@ bool KSqliteDiskCacheIndex::create(const char *fileName)
 	cache.shutdown_disk(false);
 	if (this->fileName==NULL) {
 		this->fileName = strdup(fileName);
+		if (this->fileName == NULL) {
+			return false;
+		}
 	}
 	assert(db==NULL);
 	int ret = sqlite3_open(fileName,&db);
 	if (ret != SQLITE_OK || db==NULL) {
+		if (db) {
+			sqlite3_close(db);
+			db = NULL;
+		}
 		return false;
 	}
 	sqlite3_stmt *stmt;
 	ret = sqlite3_prepare(db,CREATE_SQL,-1,&stmt,NULL);
 	if (SQLITE_OK != ret) {
+		close();
 		return false;
 	}
 	ret = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 	if (ret!=SQLITE_DONE) {
+		close();
 		return false;
 	}
 	setting();
@@ -50,7 +57,9 @@ bool KSqliteDiskCacheIndex::load(loadDiskCacheIndexCallBack callBack)
 		klog(KLOG_ERR,"recreate the disk cache index database\n");
 		this->close();
 		unlink(fileName);
-		create(fileName);
+		if (!create(fileName)) {
+			return false;
+		}
 		rescan_disk_cache();
 		return true;
 	}
@@ -59,16 +68,19 @@ bool KSqliteDiskCacheIndex::load(loadDiskCacheIndexCallBack callBack)
 	if (SQLITE_OK != sqlite3_prepare(db,sql,-1,&stmt,NULL)) {
 		return false;
 	}
-	while (SQLITE_ROW == sqlite3_step(stmt)) {
+	int ret;
+	while (SQLITE_ROW == (ret = sqlite3_step(stmt))) {
 		unsigned f1 = (unsigned)sqlite3_column_int(stmt, 0);
 		unsigned f2 = (unsigned)sqlite3_column_int(stmt, 1);
 		const char *url = (const char *)sqlite3_column_text(stmt,2);
 		int dataLen = sqlite3_column_bytes(stmt,3);
 		const char *data = (const char *)sqlite3_column_blob(stmt,3);
-		callBack(f1,f2,url,data,dataLen);
+		if (url != NULL && (data != NULL || dataLen == 0)) {
+			callBack(f1,f2,url,data,dataLen);
+		}
 	}
 	sqlite3_finalize(stmt);
-	return true;
+	return ret == SQLITE_DONE;
 }
 INT64 KSqliteDiskCacheIndex::memory_used()
 {
@@ -103,10 +115,17 @@ bool KSqliteDiskCacheIndex::open(const char *fileName)
 	int ret;
 	if (this->fileName==NULL) {
 		this->fileName = strdup(fileName);
+		if (this->fileName == NULL) {
+			return false;
+		}
 	}
 	if (db==NULL) {
 		ret = sqlite3_open(fileName,&db);
 		if (ret != SQLITE_OK || db==NULL) {
+			if (db) {
+				sqlite3_close(db);
+				db = NULL;
+			}
 			return false;
 		}
 	}		
@@ -119,7 +138,8 @@ bool KSqliteDiskCacheIndex::add(unsigned filename1,unsigned filename2,const char
 	if (db==NULL) {
 		return false;
 	}
-	const char *sql = "insert into cache (f1,f2,url,data) values (?,?,?,?)";
+	/* a rescan can add a file whose row already exists; keep the newest data. */
+	const char *sql = "insert or replace into cache (f1,f2,url,data) values (?,?,?,?)";
 	sqlite3_stmt *stmt;
 	if (SQLITE_OK != sqlite3_prepare(db,sql,-1,&stmt,NULL)) {
 		return false;
@@ -171,11 +191,11 @@ bool KSqliteDiskCacheIndex::begin()
 		return false;
 	}
 	char *errMsg = NULL;
-	sqlite3_exec(db,"BEGIN",NULL,NULL,&errMsg);
+	int ret = sqlite3_exec(db,"BEGIN",NULL,NULL,&errMsg);
 	if (errMsg) {
 		sqlite3_free(errMsg);
 	}
-	return true;
+	return ret == SQLITE_OK;
 }
 bool KSqliteDiskCacheIndex::commit()
 {
@@ -183,11 +203,11 @@ bool KSqliteDiskCacheIndex::commit()
 		return false;
 	}
 	char *errMsg = NULL;
-	sqlite3_exec(db,"COMMIT",NULL,NULL,&errMsg);
+	int ret = sqlite3_exec(db,"COMMIT",NULL,NULL,&errMsg);
 	if (errMsg) {
 		sqlite3_free(errMsg);
 	}
-	return true;
+	return ret == SQLITE_OK;
 }
 void KSqliteDiskCacheIndex::setting()
 {
@@ -209,4 +229,3 @@ void KSqliteDiskCacheIndex::setting()
 	return;
 }
 #endif
-

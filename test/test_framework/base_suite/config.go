@@ -180,6 +180,8 @@ func check_vh_host_ssl_change() {
 	resp.Body.Close()
 }
 func check_config() {
+	defer kangle.CleanExtConfig("20")
+	defer kangle.CleanExtConfig("not_exsit")
 
 	check_listen_config()
 	check_vh_config()

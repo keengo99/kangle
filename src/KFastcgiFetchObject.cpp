@@ -30,12 +30,15 @@
  //#include "KHttpTransfer.h"
 #include "KHttpBasicAuth.h"
 #include "KApiRedirect.h"
+#include "KTempFile.h"
+#include "HttpFiber.h"
 #include "kmalloc.h"
 #define PTR_LEN(end,start) ((u_char *)end - (u_char *)start)
 KFastcgiFetchObject::KFastcgiFetchObject() : KAsyncFetchObject(KGL_UPSTREAM_NEED_TMP_FILE|KGL_UPSTREAM_NEED_QUEUE)
 {
 	flags = 0;
 	split_header = nullptr;
+	stdin_end_sent = false;
 }
 KFastcgiFetchObject::~KFastcgiFetchObject() {
 	if (split_header) {
@@ -44,6 +47,25 @@ KFastcgiFetchObject::~KFastcgiFetchObject() {
 }
 KGL_RESULT KFastcgiFetchObject::buildHead(KHttpRequest* rq)
 {
+	stdin_end_sent = false;
+#ifdef ENABLE_TF_EXCHANGE
+	// Ordinary CGI applications (including PHP) require CONTENT_LENGTH.
+	// Buffer decoded chunked/H2 bodies before building the FastCGI parameters.
+	// API children have their own unknown-length protocol and must stay streaming.
+	if (!is_extend() && in->f->body.get_left(in->body_ctx) < 0) {
+		// max_post_size bounds the temp file; 0 means no limit.
+		bool too_large = false;
+		if (!new_tempfile_input_stream(in, conf.max_post_size, &too_large)) {
+			if (!too_large) {
+				return KGL_EUNKNOW;
+			}
+			// The rest of the body is unread, so the connection cannot be reused.
+			KBIT_SET(rq->sink->data.flags, RQ_CONNECTION_CLOSE);
+			KGL_RESULT result = send_error2(rq, 413, "request body is larger than max_post_size");
+			return result == KGL_OK ? KGL_EHAS_SEND_HEADER : result;
+		}
+	}
+#endif
 	parser.first_same = 1;
 	pop_header.proto = Proto_fcgi;
 	buffer = new KSocketBuffer(NBUFF_SIZE);
@@ -85,6 +107,9 @@ KGL_RESULT KFastcgiFetchObject::buildHead(KHttpRequest* rq)
 		chrooted = svh->vh->chroot;
 	}
 #endif
+	if (fbuf.extend && in->f->body.get_left(in->body_ctx) == -1) {
+		fbuf.addEnv(API_UNKNOWN_CONTENT_LENGTH, "1");
+	}
 	bool sendResult = make_http_env(rq, in, brd, rq->file, &fbuf, chrooted);
 	if (!sendResult) {//send error
 		buffer->destroy();
@@ -111,23 +136,8 @@ kgl_parse_result KFastcgiFetchObject::parse_unknow_header(KHttpRequest* rq, char
 			fwrite("\n", 1, 1, stderr);
 			break;
 		case API_CHILD_MAP_PATH:
-		{
-
-			char* url = (char*)rq->alloc_request_memory(packet_length + 1);
-			kgl_memcpy(url, piece, packet_length);
-			url[packet_length] = '\0';
-			kgl_auto_cstr filename = rq->map_url_path(url, this->brd);
-			int len = 0;
-			if (filename) {
-				len = (int)strlen(filename.get());
-			}
-			//printf("try write map_path_result filename=[%s].\n",filename?filename:"");
-			KFastcgiStream<KUpstream> fbuf(client,FCGI_STDIN);
-			if (!fbuf.write_data(API_CHILD_MAP_PATH_RESULT, filename.get(), len)) {
-				klog(KLOG_ERR, "write map_path_result failed.\n");
-			}
+			on_map_path(rq, piece, packet_length);
 			break;
-		}
 		case FCGI_ABORT_REQUEST:
 		case FCGI_END_REQUEST:
 			return kgl_parse_error;
@@ -174,7 +184,11 @@ KGL_RESULT KFastcgiFetchObject::read_body_end(KHttpRequest* rq, KGL_RESULT resul
 	if (!checkContinueReadBody(rq)) {
 		return result;
 	}
-	KAsyncFetchObject::ReadBody(rq);
+	KGL_RESULT parsed = KAsyncFetchObject::ReadBody(rq);
+	if (parsed != KGL_OK) {
+		pop_header.keep_alive_time_out = -1;
+		return parsed;
+	}
 	return result;
 }
 KGL_RESULT KFastcgiFetchObject::ParseBody(KHttpRequest* rq, char** pos, char* end)
@@ -200,8 +214,8 @@ KGL_RESULT KFastcgiFetchObject::ParseBody(KHttpRequest* rq, char** pos, char* en
 		//printf("fcgi_header_type=[%d]\n", fcgi_header_type);
 		switch (fcgi_header_type) {
 		case FCGI_END_REQUEST:
-			expectDone(rq);
 			pop_header.recved_end_request = 1;
+			expectDone(rq);
 			break;
 		case FCGI_ABORT_REQUEST:
 			pop_header.recved_end_request = 1;
@@ -214,6 +228,9 @@ KGL_RESULT KFastcgiFetchObject::ParseBody(KHttpRequest* rq, char** pos, char* en
 			//assert all data are drained
 			assert(piece == *pos);
 			break;
+		case API_CHILD_MAP_PATH:
+			on_map_path(rq, piece, (int)(*pos - piece));
+			break;
 		default:
 			klog(KLOG_ERR, "recv unknow fastcgi type=[%d]\n", fcgi_header_type);
 			break;
@@ -221,9 +238,24 @@ KGL_RESULT KFastcgiFetchObject::ParseBody(KHttpRequest* rq, char** pos, char* en
 	}
 	return KGL_OK;
 }
+void KFastcgiFetchObject::on_map_path(KHttpRequest* rq, char* piece, int packet_length)
+{
+	char* url = (char*)rq->alloc_request_memory(packet_length + 1);
+	kgl_memcpy(url, piece, packet_length);
+	url[packet_length] = '\0';
+	kgl_auto_cstr filename = rq->map_url_path(url, this->brd);
+	int len = 0;
+	if (filename) {
+		len = (int)strlen(filename.get());
+	}
+	KFastcgiStream<KUpstream> fbuf(client, FCGI_STDIN);
+	if (!fbuf.write_data(API_CHILD_MAP_PATH_RESULT, filename.get(), len)) {
+		klog(KLOG_ERR, "write map_path_result failed.\n");
+	}
+}
 void KFastcgiFetchObject::appendPostEnd()
 {
-	//最后的post数据
+	//鏈�鍚庣殑post鏁版嵁
 	kbuf* fcgibuff = (kbuf*)malloc(sizeof(kbuf));
 	fcgibuff->data = (char*)malloc(sizeof(FCGI_Header));
 	fcgibuff->used = sizeof(FCGI_Header);
@@ -234,6 +266,22 @@ void KFastcgiFetchObject::appendPostEnd()
 	fcgiheader->contentLength = 0;
 	fcgiheader->requestIdB0 = 1;
 	buffer->Append(fcgibuff);
+	stdin_end_sent = true;
+}
+KGL_RESULT KFastcgiFetchObject::on_post_end()
+{
+	if (stdin_end_sent) {
+		// buildPost already ended a known-length body; a second empty
+		// FCGI_STDIN makes php-fpm drop the kept-alive connection.
+		return KGL_OK;
+	}
+	stdin_end_sent = true;
+	FCGI_Header header;
+	memset(&header, 0, sizeof(header));
+	header.version = 1;
+	header.type = FCGI_STDIN;
+	header.requestIdB0 = 1;
+	return client->write_all((const char*)&header, (int)sizeof(header)) == 0 ? KGL_OK : KGL_ECAN_RETRY_SOCKET_BROKEN;
 }
 void KFastcgiFetchObject::buildPost(KHttpRequest* rq)
 {
@@ -271,8 +319,18 @@ char* KFastcgiFetchObject::parse_fcgi_header(char** str, char* end, bool full)
 		}
 		packet_length -= sizeof(FCGI_Header);
 		FCGI_Header* header = (FCGI_Header*)(*str);
+		if (!is_extend() && (header->version != FCGI_VERSION_1 ||
+			header->requestIdB1 != 0 || header->requestIdB0 != 1)) {
+			klog(KLOG_ERR, "recv invalid fastcgi header version=[%u] request_id=[%u].\n",
+				header->version, ((unsigned)header->requestIdB1 << 8) | header->requestIdB0);
+			fcgi_header_type = FCGI_ABORT_REQUEST;
+			fcgi_pad_length = 0;
+			body_len = 0;
+			(*str) += sizeof(FCGI_Header);
+			return *str;
+		}
 		uint16_t content_length = ntohs(header->contentLength);
-		if (header->type == FCGI_END_REQUEST) {
+		if (header->type == FCGI_END_REQUEST || header->type == API_CHILD_MAP_PATH) {
 			full = true;
 		}
 		if (full &&  packet_length < content_length + header->paddingLength) {
@@ -295,4 +353,3 @@ char* KFastcgiFetchObject::parse_fcgi_header(char** str, char* end, bool full)
 	(*str) += packet_length;
 	return body;
 }
-

@@ -7,23 +7,23 @@
 
 bool pipe_compress_stream(KHttpRequest* rq, KHttpObject* obj, int64_t content_len, kgl_response_body* body) {
 	if (content_len >= 0 && content_len < conf.min_compress_length) {
-		//Ì«¶Ì
+		//å¤ªçŸ­
 		return false;
 	}
 	if (KBIT_TEST(rq->sink->data.flags, RQ_CONNECTION_UPGRADE)) {
-		//Í¸´«Ä£Ê½²»Ñ¹Ëõ
+		//é€ä¼ æ¨¡å¼ä¸åŽ‹ç¼©
 		return false;
 	}
-	//Èç¹ûobj±ê¼ÇÎªÒÑ¾­Ñ¹Ëõ¹ý£¬»òÕß±ê¼ÇÁË²»ÓÃÑ¹Ëõ£¬Ôò²»Ñ¹ËõÊý¾Ý
+	//å¦‚æžœobjæ ‡è®°ä¸ºå·²ç»åŽ‹ç¼©è¿‡ï¼Œæˆ–è€…æ ‡è®°äº†ä¸ç”¨åŽ‹ç¼©ï¼Œåˆ™ä¸åŽ‹ç¼©æ•°æ®
 	if (obj->IsContentEncoding()) {
 		return false;
 	}
-	//objÓÐ¶à¸öÒýÓÃ,²»Ñ¹Ëõ
+	//objæœ‰å¤šä¸ªå¼•ç”¨,ä¸åŽ‹ç¼©
 	if (obj->refs > 1) {
 		return false;
 	}
-	//status_codeÊÇ206£¬±íÊ¾ÊÇ²¿·ÖÄÚÈÝÊ±Ò²²»Ñ¹Ëõ,»òÕßÊÇ200»ØÓ¦£¬µ«ÓÃÁËurl ranged¼¼Êõ
-	//×¢£ºÕâÖÖÇé¿öÃ»ÓÐ¾­¹ýÏêÏ¸¿¼Ö¤
+	//status_codeæ˜¯206ï¼Œè¡¨ç¤ºæ˜¯éƒ¨åˆ†å†…å®¹æ—¶ä¹Ÿä¸åŽ‹ç¼©,æˆ–è€…æ˜¯200å›žåº”ï¼Œä½†ç”¨äº†url rangedæŠ€æœ¯
+	//æ³¨ï¼šè¿™ç§æƒ…å†µæ²¡æœ‰ç»è¿‡è¯¦ç»†è€ƒè¯
 	if (obj->data->i.status_code == STATUS_CONTENT_PARTIAL
 		|| KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_RANGED)) {
 		return false;
@@ -36,7 +36,7 @@ bool pipe_compress_stream(KHttpRequest* rq, KHttpObject* obj, int64_t content_le
 	}
 #ifdef ENABLE_ZSTD
 	if (conf.zstd_level > 0 && KBIT_TEST(rq->sink->data.raw_url.accept_encoding, KGL_ENCODING_ZSTD)) {
-		if (pipe_zstd_compress(conf.zstd_level, body)) {
+		if (pipe_zstd_compress(conf.zstd_level, body, content_len)) {
 			obj->AddContentEncoding(KGL_ENCODING_ZSTD, kgl_expand_string("zstd"));
 			return true;
 		}
@@ -44,13 +44,13 @@ bool pipe_compress_stream(KHttpRequest* rq, KHttpObject* obj, int64_t content_le
 #endif
 #ifdef ENABLE_BROTLI
 	if (conf.br_level > 0 && KBIT_TEST(rq->sink->data.raw_url.accept_encoding, KGL_ENCODING_BR)) {		
-		if (pipe_brotli_compress(conf.br_level, body)) {
+		if (pipe_brotli_compress(conf.br_level, body, content_len)) {
 			obj->AddContentEncoding(KGL_ENCODING_BR, kgl_expand_string("br"));
 			return true;
 		}
 	}
 #endif
-	//¿Í»§¶ËÖ§³ÖgzipÑ¹Ëõ¸ñÊ½
+	//å®¢æˆ·ç«¯æ”¯æŒgzipåŽ‹ç¼©æ ¼å¼
 	if (conf.gzip_level > 0 && KBIT_TEST(rq->sink->data.raw_url.accept_encoding, KGL_ENCODING_GZIP)) {
 		if (pipe_gzip_compress(conf.gzip_level, body)) {
 			obj->AddContentEncoding(KGL_ENCODING_GZIP, kgl_expand_string("gzip"));

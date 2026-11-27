@@ -42,7 +42,7 @@ void WhmShell::flush() {
 	lock.Unlock();
 }
 void WhmShell::readStdin(WhmShellContext* sc, WhmContext* context) {
-	//²éÕÒ±ê×¼ÊäÈëÊý¾Ý
+	//æŸ¥æ‰¾æ ‡å‡†è¾“å…¥æ•°æ®
 	kgl::string stdin_str;
 	if (context->getUrlValue()->get("-", stdin_str)) {
 		sc->in_buffer.write_all(stdin_str.c_str(), stdin_str.size());
@@ -52,7 +52,8 @@ void WhmShell::initContext(WhmShellContext *sc,WhmContext *context)
 {	
 	sc->shell = this;
 	sc->async = async;
-	sc->attribute = context->getUrlValue()->attribute;	
+	sc->trusted = context->trusted;
+	sc->attribute = context->getUrlValue()->attribute;
 	sc->bindVirtualHost(context->getVh());
 	KStringBuf s;
 	s << this->name << ":" << (int64_t)time(NULL) << "_" << (int64_t)sc << "_" << index++;
@@ -63,7 +64,7 @@ int WhmShell::call(const char *callName,const char *eventType,WhmContext *contex
 {
 	WhmShellContext *sc = NULL;
 	if (merge) {
-		//ºÏ²¢Ä£Ê½
+		//åˆå¹¶æ¨¡å¼
 		int ret = WHM_PROGRESS;
 		lock.Lock();
 		bool need_start_thread = false;
@@ -74,10 +75,10 @@ int WhmShell::call(const char *callName,const char *eventType,WhmContext *contex
 			this->context.insert(std::pair<KString,WhmShellContext *>(sc->session,sc));
 			context->add("session",sc->session);
 			if (merge_context_running) {
-				//ÒÑ¾­ÔÚÔËÐÐ
+				//å·²ç»åœ¨è¿è¡Œ
 				merge_context = sc;
 			} else {
-				//Æô¶¯Ïß³Ì
+				//å¯åŠ¨çº¿ç¨‹
 				need_start_thread = true;
 				merge_context_running = true;
 				
@@ -87,7 +88,7 @@ int WhmShell::call(const char *callName,const char *eventType,WhmContext *contex
 			readStdin(merge_context,context);
 			context->add("session",merge_context->session);
 			if (!merge_context_running) {
-				//Æô¶¯Ïß³Ì
+				//å¯åŠ¨çº¿ç¨‹
 				need_start_thread = true;
 				merge_context_running = true;
 				merge_context = NULL;
@@ -108,11 +109,12 @@ int WhmShell::call(const char *callName,const char *eventType,WhmContext *contex
 		}
 		return ret;
 	}
-	//ÆÕÍ¨Ä£Ê½
+	//æ™®é€šæ¨¡å¼
 	sc = new WhmShellContext;
 	initContext(sc,context);
 	if (!async) {
 		run(sc);
+		sc->closed = true;
 		int ret = result(sc,context);
 		delete sc;
 		return ret;
@@ -154,8 +156,6 @@ void WhmShell::run(WhmShellContext *sc)
 		p->run(sc);
 		p = p->next;
 	}
-	//set the shellcontext is closed
-	sc->closed = true;
 }
 bool WhmShell::startElement(KXmlContext *context)
 {
@@ -236,14 +236,16 @@ void WhmShell::endContext(WhmShellContext *sc)
 		sc->prev = end;
 		end = sc;
 	}
+	//mark closed only after it is in the end queue, result() may remove it at once.
+	sc->closed = true;
 	lock.Unlock();
 }
 void WhmShell::addContext(WhmShellContext *sc)
 {
 	lock.Lock();	
 	context.insert(std::pair<KString,WhmShellContext *>(sc->session,sc));
-	lock.Unlock();
 	sc->addRef();
+	lock.Unlock();
 }
 WhmShellContext *WhmShell::refsContext(KString session)
 {
@@ -262,24 +264,25 @@ bool WhmShell::removeContext(WhmShellContext *sc)
 	bool result = false;
 	lock.Lock();
 	assert(sc != merge_context);
-	if (sc==head) {
-		head = head->next;
-	}
-	if (sc==end) {
-		end = end->prev;
-	}
-	if (sc->next){
-		sc->next->prev = sc->prev;
-	}
-	if (sc->prev){
-		sc->prev->next = sc->next;
-	}
 	std::map<KString,WhmShellContext *>::iterator it;
 	it = context.find(sc->session);
-	if (it!=context.end()) {
-		assert(sc==(*it).second);
-		(*it).second->release();
+	if (it!=context.end() && sc==(*it).second) {
+		if (sc==head) {
+			head = head->next;
+		}
+		if (sc==end) {
+			end = end->prev;
+		}
+		if (sc->next){
+			sc->next->prev = sc->prev;
+		}
+		if (sc->prev){
+			sc->prev->next = sc->next;
+		}
+		sc->prev = NULL;
+		sc->next = NULL;
 		context.erase(it);
+		sc->release();
 		result = true;
 	}
 	lock.Unlock();

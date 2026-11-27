@@ -175,7 +175,7 @@ void on_cache_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 			kconfig::set_need_reboot();
 		}
 	} else {
-		//Éú³Édisk_cache_dir
+		//ç”Ÿæˆdisk_cache_dir
 		if (*conf.disk_cache_dir2) {
 			string disk_cache_dir = conf.disk_cache_dir2;
 			pathEnd(disk_cache_dir);
@@ -301,6 +301,9 @@ void on_main_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 		}
 		if (xml->is_tag(_KS("access_log_handle"))) {
 			SAFE_STRCPY(conf.logHandle, xml->get_text_cstr());
+			// Keep the live log handler in sync even when this setting is
+			// loaded after <log> or changed by a configuration reload.
+			::logHandle.setLogHandle(conf.logHandle);
 			return;
 		}
 		if (xml->is_tag(_KS("log_handle_concurrent"))) {
@@ -392,6 +395,11 @@ void on_main_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 #endif
 		break;
 	case kconfig::EvRemove:
+		if (xml->is_tag(_KS("access_log_handle"))) {
+			*conf.logHandle = '\0';
+			::logHandle.setLogHandle(conf.logHandle);
+			return;
+		}
 		if (xml->is_tag(_KS("cdnbest"))) {
 			*conf.error_url = '\0';
 			return;

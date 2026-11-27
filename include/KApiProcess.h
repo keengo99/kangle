@@ -38,7 +38,7 @@ public:
 		if (!sl_process) {
 			return;
 		}
-		sl->add("app", app);
+		sl_process->add("app", app);
 		dump_process_info(&st->process, this, sl_process);
 	}
 	void getProcessInfo(const USER_T &user, const KString &name, KWStream &s,int &count) override {
@@ -50,14 +50,21 @@ public:
 		stLock.Unlock();
 	}
 	bool killProcess(int pid) override {
+		bool killed = false;
 		stLock.Lock();
-		if (st) {
+		if (st && (pid == 0 || st->process.getProcessId() == pid)) {
 			delete st;
 			st = NULL;
+			killed = true;
 		}
-		status = VProcess_Close;
+		if (pid == 0) {
+			killed = true;
+		}
+		if (killed) {
+			status = VProcess_Close;
+		}
 		stLock.Unlock();
-		return true;
+		return killed;
 	}
 	KPipeStream *PowerThread(KVirtualHost *vh, KExtendProgram *rd) override;
 	KUpstream* PowerResult(KHttpRequest* rq, KPipeStream* st2) override;

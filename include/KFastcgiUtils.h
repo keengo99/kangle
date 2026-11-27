@@ -25,6 +25,7 @@
 #ifndef KFASTCGIUTILS_H_
 #define KFASTCGIUTILS_H_
 #include <string.h>
+#include <limits.h>
 #include "global.h"
 #include "KBuffer.h"
 #include "KEnvInterface.h"
@@ -37,6 +38,9 @@ class KFastcgiParser
 public:
 	bool parse_param(KEnvInterface* env, u_char* pos, u_char* end)
 	{
+		if (env == NULL || pos == NULL || end == NULL || pos > end) {
+			return false;
+		}
 		while (pos < end) {
 			unsigned name_len, value_len;
 			pos = parse_len(pos, end, &name_len);
@@ -47,7 +51,8 @@ public:
 			if (pos == NULL) {
 				return false;
 			}
-			if (end - pos < name_len + value_len) {
+			size_t remaining = (size_t)(end - pos);
+			if (name_len > remaining || value_len > remaining - name_len) {
 				return false;
 			}
 			char* name = (char*)pos;
@@ -70,8 +75,10 @@ private:
 			if (end - pos < 4) {
 				return NULL;
 			}
-			KBIT_CLR(*pos, 0x80);
-			*len = ntohl(*(unsigned*)pos);
+			*len = ((unsigned)(pos[0] & 0x7f) << 24) |
+				((unsigned)pos[1] << 16) |
+				((unsigned)pos[2] << 8) |
+				(unsigned)pos[3];
 			return pos + 4;
 		}
 		*len = *pos;
@@ -84,24 +91,29 @@ class KFastcgiStream : public KEnvInterface
 public:
 	KFastcgiStream(T* client, uint8_t data_type, bool extend = false)
 	{
+		//gcc 4.8ä¸ä¼šåº”ç”¨åŒ¿åunionæˆå‘˜çš„é»˜è®¤åˆå§‹åŒ–,å¿…é¡»æ˜¾å¼æ¸…é›¶
+		flags = 0;
 		setStream(client);
 		this->extend = extend;
 		readBuf = NULL;
 		readHot = NULL;
+		readLeft = 0;
 		this->data_type = data_type;
 	}
 	KFastcgiStream(uint8_t data_type)
 	{
+		flags = 0;
 		client = NULL;
 		extend = false;
 		readBuf = NULL;
 		readHot = NULL;
+		readLeft = 0;
 		this->data_type = data_type;
 	}
 	bool beginRequest(bool keepAlive = false)
 	{
 		if (extend) {
-			//Èç¹ûÊÇapiÄÚ²¿Ê¹ÓÃ,Ôò²»ÓÃ·¢ËÍbeginRequest,ÒòÎªÒÑ¾­·¢ËÍÁË¡£
+			//å¦‚æžœæ˜¯apiå†…éƒ¨ä½¿ç”¨,åˆ™ä¸ç”¨å‘é€beginRequest,å› ä¸ºå·²ç»å‘é€äº†ã€‚
 			return true;
 		}
 		return client->write_all((char*)(keepAlive ? &fastRequestStartKeepAlive : &fastRequestStart),
@@ -119,17 +131,18 @@ public:
 	}
 	bool add_env(const char* attr, size_t attr_len, const char* val, size_t val_len) override
 	{
-		for (int i = 0; i < 2; i++) {
-			if (buff.getLen() + attr_len + val_len + 8 >= FCGI_MAX_PACKET_SIZE) {
-				if (i == 1) {
-					return false;
-				}
-				sendParams();
-			} else {
-				break;
-			}
+		if (attr == NULL || val == NULL || attr_len == 0 ||
+			attr_len > 0xffffU || val_len > 0xffffU) {
+			return false;
 		}
-		assert(attr_len > 0);
+		size_t encoded_len = attr_len + val_len +
+			(attr_len > 127 ? 4 : 1) + (val_len > 127 ? 4 : 1);
+		if (encoded_len > 0xffffU) {
+			return false;
+		}
+		if (buff.getLen() > 0xffffU - encoded_len && !sendParams()) {
+			return false;
+		}
 		addLen((unsigned)attr_len);
 		addLen((unsigned)val_len);
 		//printf("add env name=[%s] value=[%s]\n", attr, val);
@@ -139,12 +152,16 @@ public:
 	}
 	bool addEnv(const char* name, const char* value) override
 	{
-		unsigned name_len = (unsigned)strlen(name);
-		unsigned value_len = (unsigned)strlen(value);
+		if (name == NULL || value == NULL) {
+			return false;
+		}
 		return add_env(name, strlen(name), value, strlen(value));
 	}
 	bool write_data(unsigned char type, const char* buf, int len)
 	{
+		if (len < 0 || (len > 0 && buf == NULL)) {
+			return false;
+		}
 		if (len == 0) {
 			return sendRecordHeader(type, 0);
 		}
@@ -181,13 +198,19 @@ public:
 	}
 	bool read_package(FCGI_Header* header, char** buffer, int& len)
 	{
+		if (header == NULL || buffer == NULL) {
+			return false;
+		}
 		*buffer = NULL;
-		if (!client->read_all((char*)header, sizeof(header))) {
+		if (!client->read_all((char*)header, sizeof(*header))) {
 			return false;
 		}
 		len = ntohs(header->contentLength);
 		if (len > 0) {
 			*buffer = (char*)malloc(len + 1);
+			if (*buffer == NULL) {
+				return false;
+			}
 			if (!client->read_all(*buffer, len)) {
 				goto failed;
 			}
@@ -223,15 +246,13 @@ public:
 			assert(b == NULL);
 			if (len == 0) {
 				data_empty_length = 1;
-				recvPaddingData(&header);
-				return true;
+				return recvPaddingData(&header);
 			}
 			b = (char*)xmalloc(len);
 			if (b == NULL) {
 				return false;
 			}
-			if (client->read_all(b, len)) {
-				recvPaddingData(&header);
+			if (client->read_all(b, len) && recvPaddingData(&header)) {
 				*buffer = b;
 				return true;
 			}
@@ -251,7 +272,9 @@ public:
 			}
 			xfree(buf);
 		}
-		recvPaddingData(&header);
+		if (!recvPaddingData(&header)) {
+			return false;
+		}
 		if (header.type == FCGI_END_REQUEST) {
 			return true;
 		}
@@ -260,8 +283,39 @@ public:
 		}
 		goto read_header;
 	}
+	/* keep a received data package (malloced), it will be returned by read() later. */
+	void push_read_data(char* buf, int len)
+	{
+		if (len <= 0) {
+			xfree(buf);
+			return;
+		}
+		if (readBuf == NULL || readLeft <= 0) {
+			if (readBuf) {
+				xfree(readBuf);
+			}
+			readBuf = buf;
+			readHot = buf;
+			readLeft = len;
+			return;
+		}
+		char* nb = (char*)xmalloc(readLeft + len);
+		kgl_memcpy(nb, readHot, readLeft);
+		kgl_memcpy(nb + readLeft, buf, len);
+		xfree(readBuf);
+		xfree(buf);
+		readBuf = nb;
+		readHot = nb;
+		readLeft += len;
+	}
 	int read(char* buf, int len)
 	{
+		if (len < 0 || (len > 0 && buf == NULL)) {
+			return -1;
+		}
+		if (len == 0) {
+			return 0;
+		}
 		int readLen = len;
 		for (int i = 0; i < 2; i++) {
 			if (readBuf && readLeft > 0) {
@@ -289,28 +343,37 @@ public:
 	}
 	bool readParams(KEnvInterface* env)
 	{
+		if (env == NULL) {
+			return false;
+		}
 		FCGI_Header header;
 		for (;;) {
 			if (!client->read_all((char*)&header, sizeof(header))) {
 				debug("cann't read params header\n");
 				return false;
 			}
-			if (header.type != FCGI_PARAMS) {
+			if (header.version != FCGI_VERSION_1 || header.requestIdB1 != 0 ||
+				header.requestIdB0 != 1 || header.type != FCGI_PARAMS) {
 				debug("header type =%d is error\n", header.type);
 				return false;
 			}
-			int content_len = htons(header.contentLength);
+			int content_len = ntohs(header.contentLength);
 			if (content_len <= 0) {
+				if (!recvPaddingData(&header)) {
+					return false;
+				}
 				return env->addEnvEnd();
 			}
 			if (!readParamsPackage(env, content_len)) {
 				debug("cann't read params package\n");
 				return false;
 			}
-			recvPaddingData(&header);
+			if (!recvPaddingData(&header)) {
+				return false;
+			}
 		}
 		/*
-		 * ÓÀÔ¶²»»áµ½´ïÕâÀï
+		 * æ°¸è¿œä¸ä¼šåˆ°è¾¾è¿™é‡Œ
 		 */
 		return false;
 	}
@@ -326,12 +389,18 @@ public:
 
 			unsigned name_len = readLen(content_len);
 
-			if (name_len == 0) {
+			if (name_len == 0 || name_len == UINT_MAX) {
 				debug("name_len is zero\n");
+				return false;
+			}
+			if (name_len > (unsigned)content_len) {
 				return false;
 			}
 			content_len -= name_len;
 			unsigned value_len = readLen(content_len);
+			if (value_len == UINT_MAX || value_len > (unsigned)content_len) {
+				return false;
+			}
 			/*
 			if (value_len == 0) {
 				debug("value_len is zero,name_len=%d\n",name_len);
@@ -353,10 +422,10 @@ public:
 			name[name_len] = '\0';
 			value[value_len] = '\0';
 			//fprintf(stderr, "success read name=[%s] value=[%s]\n",name,value);
-			if (strncmp(name, _KS("HTTP_")) == 0) {
-				env->add_http_header(name + 5, name_len - 5, value, value_len);
+			if (name_len > 5 && strncmp(name, _KS("HTTP_")) == 0) {
+				result = env->add_http_header(name + 5, name_len - 5, value, value_len);
 			} else {
-				env->add_env(name, name_len, value,value_len);
+				result = env->add_env(name, name_len, value,value_len);
 			}
 		error: xfree(name);
 			xfree(value);
@@ -397,7 +466,9 @@ public:
 	}
 	bool addEnvEnd() override
 	{
-		sendParams();
+		if (!sendParams()) {
+			return false;
+		}
 		if (!sendRecordHeader(FCGI_PARAMS, 0)) {
 			return false;
 		}
@@ -420,11 +491,14 @@ public:
 		if (!extend) {
 			return KEnvInterface::add_http_header(attr, attr_len, val, val_len);
 		}
+		if (attr == NULL || val == NULL || attr_len > SIZE_MAX - 6) {
+			return false;
+		}
 		char* dst = (char*)xmalloc(attr_len + 6);
 		char* hot = dst;
-		strncpy(hot, "HTTP_", 5);
+		kgl_memcpy(hot, "HTTP_", 5);
 		hot += 5;
-		strncpy(hot, attr, attr_len);
+		kgl_memcpy(hot, attr, attr_len);
 		hot[attr_len] = '\0';
 		bool result = add_env(dst, attr_len+5, val, val_len);
 		xfree(dst);
@@ -460,20 +534,27 @@ private:
 	}
 	unsigned readLen(int& content_len)
 	{
-		unsigned char len[5];
-		if (!client->read_all((char*)len, 1)) {
-			return 0;
+		unsigned char len[4];
+		if (content_len < 1) {
+			return UINT_MAX;
 		}
-		if (KBIT_TEST(len[0], 0x80)) {
-			KBIT_CLR(len[0], 0x80);
-			content_len -= 4;
-			if (!client->read_all((char*)len + 1, 3)) {
-				return 0;
-			}
-			unsigned* long_len = (unsigned*)len;
-			return ntohl(*long_len);
+		if (!client->read_all((char*)len, 1)) {
+			return UINT_MAX;
 		}
 		content_len--;
+		if (KBIT_TEST(len[0], 0x80)) {
+			if (content_len < 3) {
+				return UINT_MAX;
+			}
+			if (!client->read_all((char*)len + 1, 3)) {
+				return UINT_MAX;
+			}
+			content_len -= 3;
+			return ((unsigned)(len[0] & 0x7f) << 24) |
+				((unsigned)len[1] << 16) |
+				((unsigned)len[2] << 8) |
+				(unsigned)len[3];
+		}
 		return len[0];
 	}
 

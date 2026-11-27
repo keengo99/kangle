@@ -118,6 +118,191 @@ bool KVirtualHostManage::on_config_event(kconfig::KConfigTree* tree, kconfig::KC
 	}
 	return true;
 }
+
+bool KVirtualHostManage::on_template_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
+	const auto event_type = ev->type & ~kconfig::EvSubDir;
+	if (event_type == kconfig::EvUpdate) {
+		updateTemplateIndex(ev->old_xml, false);
+		updateTemplateIndex(ev->new_xml, true);
+	} else if (event_type == kconfig::EvRemove) {
+		updateTemplateIndex(ev->old_xml, false);
+	} else if (event_type == kconfig::EvNew) {
+		updateTemplateIndex(ev->new_xml, true);
+	}
+	return true;
+}
+
+static void collect_template_events(const khttpd::KXmlNode* xml, const char* tag,
+	size_t tag_len, std::vector<KString>& events) {
+	auto event_nodes = kconfig::find_child(xml->get_first(), tag, tag_len);
+	if (!event_nodes) {
+		return;
+	}
+	for (uint32_t index = 0;; ++index) {
+		auto body = event_nodes->get_body(index);
+		if (!body) {
+			break;
+		}
+		auto event = body->attributes["event"];
+		if (!event.empty()) {
+			events.push_back(event);
+		}
+	}
+}
+
+void KVirtualHostManage::updateTemplateIndex(const khttpd::KXmlNode* xml, bool add) {
+	if (!xml) {
+		return;
+	}
+	KString name = xml->attributes()["name"];
+	if (name.empty()) {
+		return;
+	}
+	KString group = name;
+	KString sub;
+	size_t separator = name.find(':');
+	if (separator != KString::npos) {
+		group = name.substr(0, separator);
+		sub = name.substr(separator + 1);
+	}
+	if (group.empty()) {
+		return;
+	}
+	auto guard = locker();
+	if (add) {
+		++vh_templates[group][sub];
+		auto& info = vh_template_config[name];
+		info.attributes = xml->attributes();
+		info.maps.clear();
+		for (const auto& child : xml->get_first()->child_order) {
+			if (child.node->is_tag(_KS("map")) || child.node->is_tag(_KS("map_path"))) {
+				info.maps.push_back(child.body->attr());
+			} else if (child.node->is_tag(_KS("map_file"))) {
+				auto attributes = child.body->attr();
+				attributes.emplace("file_ext", attributes["ext"]);
+				info.maps.push_back(std::move(attributes));
+			}
+		}
+		info.init_events.clear();
+		info.update_events.clear();
+		info.destroy_events.clear();
+		collect_template_events(xml, _KS("init_event"), info.init_events);
+		collect_template_events(xml, _KS("update_event"), info.update_events);
+		collect_template_events(xml, _KS("destroy_event"), info.destroy_events);
+		++vh_template_generation;
+		return;
+	}
+	auto group_it = vh_templates.find(group);
+	if (group_it == vh_templates.end()) {
+		return;
+	}
+	auto sub_it = group_it->second.find(sub);
+	if (sub_it == group_it->second.end()) {
+		return;
+	}
+	if (sub_it->second > 1) {
+		--sub_it->second;
+	} else {
+		group_it->second.erase(sub_it);
+		vh_template_config.erase(name);
+		if (group_it->second.empty()) {
+			vh_templates.erase(group_it);
+		}
+	}
+	++vh_template_generation;
+}
+
+void KVirtualHostManage::getTemplateEvents(const KXmlAttribute& attributes,
+	std::vector<KString>& init_events, std::vector<KString>& update_events,
+	std::vector<KString>& destroy_events) {
+	init_events.clear();
+	update_events.clear();
+	destroy_events.clear();
+	KString current = attributes["templete"];
+	if (!current.empty() && !attributes["subtemplete"].empty()) {
+		current += ":";
+		current += attributes["subtemplete"];
+	}
+	std::vector<const KVhTemplateCompatInfo*> chain;
+	auto guard = locker();
+	for (int depth = 0; depth < 32 && !current.empty(); ++depth) {
+		auto it = vh_template_config.find(current);
+		if (it == vh_template_config.end()) {
+			break;
+		}
+		chain.push_back(&it->second);
+		current = it->second.attributes["templete"];
+		if (!current.empty() && !it->second.attributes["subtemplete"].empty()) {
+			current += ":";
+			current += it->second.attributes["subtemplete"];
+		}
+	}
+	// Legacy templates ran parent callbacks before child callbacks for init and
+	// update, and in the opposite order for destroy.
+	for (auto it = chain.rbegin(); it != chain.rend(); ++it) {
+		init_events.insert(init_events.end(), (*it)->init_events.begin(), (*it)->init_events.end());
+		update_events.insert(update_events.end(), (*it)->update_events.begin(), (*it)->update_events.end());
+	}
+	for (auto info : chain) {
+		destroy_events.insert(destroy_events.end(), info->destroy_events.begin(), info->destroy_events.end());
+	}
+}
+
+void KVirtualHostManage::inheritTemplate(KXmlAttribute& attributes, std::vector<KXmlAttribute>& maps) {
+	KString current = attributes["templete"];
+	if (!current.empty() && !attributes["subtemplete"].empty()) {
+		current += ":";
+		current += attributes["subtemplete"];
+	}
+	auto guard = locker();
+	// Template inheritance is user-configurable; cap traversal so a cycle in
+	// configuration cannot hang virtual-host loading.
+	for (int depth = 0; depth < 32 && !current.empty(); ++depth) {
+		auto it = vh_template_config.find(current);
+		if (it == vh_template_config.end()) {
+			return;
+		}
+		for (const auto& attribute : (*it).second.attributes) {
+			// The virtual host and the nearest template take precedence because
+			// std::map::insert leaves an existing value unchanged.
+			attributes.insert(attribute);
+		}
+		maps.insert(maps.end(), it->second.maps.begin(), it->second.maps.end());
+		current = (*it).second.attributes["templete"];
+		const auto& sub = it->second.attributes["subtemplete"];
+		if (!current.empty() && !sub.empty()) {
+			current += ":";
+			current += sub;
+		}
+	}
+}
+
+uint64_t KVirtualHostManage::getTemplateGeneration() {
+	auto guard = locker();
+	return vh_template_generation;
+}
+
+void KVirtualHostManage::getAllGroupTemplete(std::list<KString>& templates) {
+	auto guard = locker();
+	for (const auto& item : vh_templates) {
+		templates.push_back(item.first);
+	}
+}
+
+bool KVirtualHostManage::getAllTempleteVh(const char* group_template, std::list<KString>& templates) {
+	if (!group_template || !*group_template) {
+		return false;
+	}
+	auto guard = locker();
+	auto group_it = vh_templates.find(group_template);
+	if (group_it == vh_templates.end()) {
+		return false;
+	}
+	for (const auto& item : group_it->second) {
+		templates.push_back(item.first);
+	}
+	return true;
+}
 KVirtualHostManage::KVirtualHostManage() {
 #ifdef ENABLE_BLACK_LIST
 	vhs.blackList = new KIpList;
@@ -303,7 +488,7 @@ bool KVirtualHostManage::updateVirtualHost(kconfig::KConfigTree* ct, KVirtualHos
 	return updateVirtualHost(ct, vh, ov.get());
 }
 /*
- * ‘ˆº”–Èƒ‚÷˜ª˙
+ * Â¢ûÂä†ËôöÊãü‰∏ªÊú∫
  */
 bool KVirtualHostManage::addVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh) {
 	if (vh->name.size() == 0) {
@@ -313,7 +498,7 @@ bool KVirtualHostManage::addVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* 
 	return internalAddVirtualHost(ct, vh, nullptr);
 }
 /*
- * …æ≥˝–Èƒ‚÷˜ª˙
+ * Âà†Èô§ËôöÊãü‰∏ªÊú∫
  */
 bool KVirtualHostManage::removeVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh) {
 	auto lock = locker();
@@ -322,6 +507,13 @@ bool KVirtualHostManage::removeVirtualHost(kconfig::KConfigTree* ct, KVirtualHos
 #endif
 	bool result = internalRemoveVirtualHost(ct, vh);
 	InternalUnBindVirtualHost(vh);
+#ifdef ENABLE_USER_ACCESS
+	if (result && !vh->user_access.empty() && vh->user_access != "-") {
+		KStringBuf s;
+		vh->get_access_file(s);
+		kconfig::remove_config_file(s.str().data());
+	}
+#endif
 	return result;
 }
 bool KVirtualHostManage::internalAddVirtualHost(kconfig::KConfigTree* ct, KVirtualHost* vh, KVirtualHost* ov) {
@@ -340,11 +532,17 @@ bool KVirtualHostManage::internalAddVirtualHost(kconfig::KConfigTree* ct, KVirtu
 }
 void KVirtualHostManage::UnBindGlobalVirtualHost(kserver* server) {
 	for (auto it = avh.begin(); it != avh.end(); it++) {
+		if (!(*it).second->binds.empty()) {
+			continue;
+		}
 		kgl_vhc_remove_global_vh(get_vh_container(server), (*it).second);
 	}
 }
 void KVirtualHostManage::BindGlobalVirtualHost(kserver* server) {
 	for (auto it = avh.begin(); it != avh.end(); it++) {
+		if (!(*it).second->binds.empty()) {
+			continue;
+		}
 		kgl_vhc_add_global_vh(get_vh_container(server), (*it).second);
 	}
 }
@@ -495,6 +693,12 @@ void KVirtualHostManage::getVhDetail(KWStream& s, KVirtualHost* vh, bool edit) {
 		<< "</td><td>";
 	s << "<input name='browse' type='checkbox' value='on'"
 		<< ((vh && vh->browse) ? "checked" : "") << ">" << klang["browse"];
+	s << " Early Hints: <select name='early_hints'>";
+	const char* hints_modes[] = { "off", "on", "h2" };
+	for (unsigned i = 0; i < 3; ++i) {
+		s << "<option value='" << hints_modes[i] << "'" << ((vh ? vh->early_hints : 0) == i ? " selected" : "") << ">" << hints_modes[i] << "</option>";
+	}
+	s << "</select>";
 
 #ifdef ENABLE_VH_FLOW
 	s << "<input name='fflow' type='checkbox' value='1'"
@@ -736,7 +940,7 @@ void KVirtualHostManage::dumpLoad(KVirtualHostEvent* ctx, bool revers, const cha
 	}
 	ctx->data()->add("load", s2.str());
 }
-//extend=4,µº≥ˆ…œœ¬––£¨º∞ª∫¥Ê¡˜¡ø
+//extend=4,ÂØºÂá∫‰∏ä‰∏ãË°åÔºåÂèäÁºìÂ≠òÊµÅÈáè
 void KVirtualHostManage::dumpFlow(KVirtualHostEvent* ctx, bool revers, const char* prefix, int prefix_len, int extend) {
 	char buf[64];
 	KStringBuf s;
@@ -803,7 +1007,7 @@ void KVirtualHostManage::dumpFlow() {
 #ifdef _WIN32
 	const char* formatString = "%s\t%I64d\t%I64d\n";
 #else
-	const char* formatString = "%s\t%lld\t%lld";
+	const char* formatString = "%s\t%lld\t%lld\n";
 #endif
 	FILE* fp = NULL;
 	auto  flow_file = conf.path;
@@ -957,6 +1161,7 @@ void KVirtualHostManage::getAllVhHtml(KWStream& s) {
 		"	}"
 		"</script>\r\n";
 	s << "[<a href='/vhlist?id=4'>" << klang["new_vh"] << "</a>] ";
+	s << avh.size();
 	s << "<table border=1><tr><td>" << LANG_OPERATOR << "</td><td>" << LANG_NAME << "</td>";
 	s << "<td>" << klang["vh_host"] << "</td><td>" << klang["doc_root"] << "</td>";
 #ifdef ENABLE_VH_RUN_AS
@@ -1008,7 +1213,7 @@ void KVirtualHostManage::UnBindGlobalListens(std::vector<KListenHost*>& services
 void KVirtualHostManage::BindGlobalListens(std::vector<KListenHost*>& services) {
 	auto lock = locker();
 	for (size_t i = 0; i < services.size(); i++) {
-		//∑¿÷πº”‘ÿ ±º‰Ã´≥§£¨∂¯∞≤»´Ω¯≥ÃŒÛ»œŒ™π“µÙ°£
+		//Èò≤Ê≠¢Âä†ËΩΩÊó∂Èó¥Â§™ÈïøÔºåËÄåÂÆâÂÖ®ËøõÁ®ãËØØËÆ§‰∏∫ÊåÇÊéâ„ÄÇ
 		setActive();
 		dlisten.AddGlobal(services[i]);
 	}
@@ -1145,6 +1350,6 @@ bool KVirtualHostManage::add_ssl(const char* domain, const char* cert_file, cons
 	if (!result) {
 		delete cert;
 	}
-	return true;
+	return result;
 }
 #endif

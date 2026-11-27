@@ -184,7 +184,7 @@ int KObjectList::move(KBufferFile *bf, int64_t begin_msec,INT64 m_size,bool swap
 		is_dead = (KBIT_TEST(obj->index.flags,FLAG_DEAD)>0);
 		if (m_size <= 0 && is_dead) {
 			if (dead_obj_count++ > MAX_CLEAN_DEAD_COUNT) {
-				//Ò»´ÎÐÔ×î´óÇåÀíËÀÍöÎï¼þ£¬·ÀÖ¹µãÇåÀíËùÓÐ»º´æÊ±£¬¶ø¿¨×¡·Ç³£³¤µÄÊ±¼ä
+				//ä¸€æ¬¡æ€§æœ€å¤§æ¸…ç†æ­»äº¡ç‰©ä»¶ï¼Œé˜²æ­¢ç‚¹æ¸…ç†æ‰€æœ‰ç¼“å­˜æ—¶ï¼Œè€Œå¡ä½éžå¸¸é•¿çš„æ—¶é—´
 				break;
 			}
 		}
@@ -195,15 +195,15 @@ int KObjectList::move(KBufferFile *bf, int64_t begin_msec,INT64 m_size,bool swap
 		KTempHttpObject *to = new KTempHttpObject;
 		to->decSize = obj->index.head_size;
 		if (!swapout_flag || (obj->data && obj->data->i.type == MEMORY_OBJECT)) {
-			//´ÅÅÌ»º´æÇåÀí»òÕßÊÇÄÚ´æ½»»»´óÎï¼þ
+			//ç£ç›˜ç¼“å­˜æ¸…ç†æˆ–è€…æ˜¯å†…å­˜äº¤æ¢å¤§ç‰©ä»¶
 			to->decSize += obj->index.content_length;
 		}
 		if (swapout_flag && KBIT_TEST(obj->index.flags, FLAG_NO_DISK_CACHE)) {
-			//±ê¼ÇÎª²»Ê¹ÓÃ´ÅÅÌ»º´æµÄ£¬Ö±½Ódead
+			//æ ‡è®°ä¸ºä¸ä½¿ç”¨ç£ç›˜ç¼“å­˜çš„ï¼Œç›´æŽ¥dead
 			is_dead = true;
 		}
 		m_size -= to->decSize;
-		//¼ÓÈëµ½ÁÙÊ±Á´±íÖÐ			
+		//åŠ å…¥åˆ°ä¸´æ—¶é“¾è¡¨ä¸­
 		to->next = thead;
 		thead = to;
 		assert(obj->list_state == this->list_state);
@@ -212,7 +212,7 @@ int KObjectList::move(KBufferFile *bf, int64_t begin_msec,INT64 m_size,bool swap
 		obj = obj->lnext;
 	}
 	cache.unlock();
-	//Êµ¼Ê·¢Éú´ÅÅÌIO
+	//å®žé™…å‘ç”Ÿç£ç›˜IO
 	int count = 0;
 	while (thead) {
 		count++;
@@ -247,6 +247,8 @@ void KObjectList::swapout_result(KTempHttpObject *thead,int gc_used_msec,bool re
 	cache.clean_blocked = (gc_used_msec > (GC_SLEEP_MSEC + 5000));
 #ifdef ENABLE_DISK_CACHE
 	if (result) {
+		KMutex* hash_lock = &cache.objHash[obj->h].lock;
+		hash_lock->Lock();
 		lock = obj->getLock();
 		lock->Lock();
 		KBIT_SET(obj->index.flags, FLAG_IN_DISK);
@@ -259,6 +261,7 @@ void KObjectList::swapout_result(KTempHttpObject *thead,int gc_used_msec,bool re
 			obj->data = NULL;
 		}
 		lock->Unlock();
+		hash_lock->Unlock();
 		cache.unlock();
 		delete thead;
 		return;
@@ -267,8 +270,8 @@ void KObjectList::swapout_result(KTempHttpObject *thead,int gc_used_msec,bool re
 	bool removed_result = false;
 	lock = &cache.objHash[obj->h].lock;
 	lock->Lock();
-	//ÕâÀïÎªÊ²Ã´ÒªÅÐ¶ÏÒ»ÏÂlist_stateÄØ£¿
-	//ÒòÎªÓÐ¿ÉÄÜÔÚÖÐ¼ä£¬obj±»ÆäËüÇëÇóÊ¹ÓÃ£¬Èçµ÷ÓÃswap_in¶ø¸Ä±äÁËlist_state.
+	//è¿™é‡Œä¸ºä»€ä¹ˆè¦åˆ¤æ–­ä¸€ä¸‹list_stateå‘¢ï¼Ÿ
+	//å› ä¸ºæœ‰å¯èƒ½åœ¨ä¸­é—´ï¼Œobjè¢«å…¶å®ƒè¯·æ±‚ä½¿ç”¨ï¼Œå¦‚è°ƒç”¨swap_inè€Œæ”¹å˜äº†list_state.
 	if (obj->list_state == this->list_state && obj->getRefs() <= 1) {
 		remove(obj);
 		removed_result = cache.objHash[obj->h].remove(obj);

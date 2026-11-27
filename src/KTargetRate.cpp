@@ -9,6 +9,16 @@ bool KTargetRate::getRate(const char *target,int &request,int &t,bool hit)
 			lock.Unlock();
 			return false;
 		}
+		if (nodes.size() >= KGL_MAX_RATE_TARGETS) {
+			/* Entries only go once idle, so many distinct clients or urls
+			 * (one IPv6 /64 is enough) grew the table without bound. Drop
+			 * the one used longest ago; it only loses its count. */
+			kgl_list *pos = queue.next;
+			KTargetNode *old = kgl_list_data(pos, KTargetNode, queue);
+			nodes.erase(old->target);
+			klist_remove(pos);
+			old->Destroy();
+		}
 		node = new KTargetNode();
 		node->Init(target);
 		nodes.insert(std::pair<char *,KTargetNode *>(node->target,node));

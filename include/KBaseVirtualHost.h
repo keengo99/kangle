@@ -65,7 +65,7 @@ public:
 	}
 
 	/*
-	 深度克隆
+	 娣卞害鍏嬮殕
 	 */
 	void cloneTo(KBaseAlias* toAlias, const char* doc_root) {
 		toAlias->set(orig_path.c_str(), orig_to.c_str(), doc_root);
@@ -201,7 +201,7 @@ public:
 	friend class KHttpServerParser;
 	friend class KVirtualHostManage;
 	/*
-		变量
+		鍙橀噺
 	*/
 	std::map<char*, char*, lessp_icase> envs;
 	bool getEnvValue(const char* name, KString& value);

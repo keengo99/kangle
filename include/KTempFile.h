@@ -14,6 +14,11 @@
 
 #ifdef ENABLE_TF_EXCHANGE
 #define TEMPFILE_POST_CHUNK_SIZE     8192
+/*
+ * The first TEMPFILE_MEMORY_SIZE bytes stay in memory; only data past that
+ * goes to a file. Most responses never create the file.
+ */
+#define TEMPFILE_MEMORY_SIZE         65536
 class KTempFile
 {
 public:
@@ -34,18 +39,26 @@ public:
 		return write_offset - read_offset;
 	}
 private:
+	bool open_file();
 	kfiber* wait_read;
 	volatile int64_t write_offset;
 	volatile int64_t read_offset;
 	kfiber_file* fp;
 	kfiber_mutex* lock;
 	KString file;
+	char* mem;
+	int mem_size;
 	volatile bool write_is_end;
+	volatile bool closed;
 };
 
-bool new_tempfile_input_stream(kgl_input_stream* in);
+/*
+ * Read the whole request body into a temp file. max_size > 0 limits the
+ * body size; when it is exceeded, false is returned and *too_large is set.
+ */
+bool new_tempfile_input_stream(kgl_input_stream* in, int64_t max_size = 0, bool* too_large = nullptr);
 bool tee_tempfile_body(kgl_response_body * body);
-//¶ÁpostÊı¾İµ½ÁÙÊ±ÎÄ¼ş
+//è¯»postæ•°æ®åˆ°ä¸´æ—¶æ–‡ä»¶
 KTHREAD_FUNCTION clean_tempfile_thread(void *param);
 #endif
 #endif

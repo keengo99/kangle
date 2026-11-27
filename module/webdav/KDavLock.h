@@ -2,6 +2,7 @@
 #define KDAVLOCK_H
 #include <map>
 #include <list>
+#include <atomic>
 #include "KMutex.h"
 #include "KCountable.h"
 struct lessp
@@ -56,7 +57,7 @@ public:
 protected:
 	~KLockToken();
 private:
-	time_t expireTime;
+	std::atomic<time_t> expireTime;
 	char* token;
 	Lock_type type;
 	int timeout;

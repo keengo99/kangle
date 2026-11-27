@@ -1,6 +1,8 @@
 #ifndef KHTTPOBJECT_H_
 #define KHTTPOBJECT_H_
 
+#include <climits>
+
 #include "KMutex.h"
 #include "kforwin32.h"
 #include "KBuffer.h"
@@ -43,7 +45,7 @@ inline void kgl_safe_copy_body_data(KHttpObjectBodyData* dst, KHttpObjectBodyDat
 	memcpy(dst, src, offsetof(KHttpObjectBodyData, type));
 }
 /**
- * httpobjectµÄĞÅÏ¢Ö÷Ìå
+ * httpobjectçš„ä¿¡æ¯ä¸»ä½“
  */
 class KHttpObjectBody
 {
@@ -107,7 +109,7 @@ public:
 	void set_etag(const char* val, size_t len);
 	KHttpObjectBodyData i;
 	union {
-		kgl_len_str_t* etag;  /* etagÎªÖ÷£¬ÓĞetag¾ÍºöÂÔlast-modified */
+		kgl_len_str_t* etag;  /* etagä¸ºä¸»ï¼Œæœ‰etagå°±å¿½ç•¥last-modified */
 		time_t last_modified;
 	};
 	KHttpHeader* headers; /* headers */
@@ -123,7 +125,7 @@ public:
 	};
 };
 /**
- * httpÎï¼ş¡£ÀıÈçÍøÒ³Ö®Àà,»º´æ¶ÔÏó
+ * httpç‰©ä»¶ã€‚ä¾‹å¦‚ç½‘é¡µä¹‹ç±»,ç¼“å­˜å¯¹è±¡
  */
 class KHttpObject
 {
@@ -242,10 +244,14 @@ public:
 		obj_lock[hh].Unlock();
 	}
 	unsigned get_current_age(time_t now_time) {
-		return (unsigned)(now_time - index.last_verified);
+		if (now_time <= index.last_verified) {
+			return 0;
+		}
+		uint64_t current_age = (uint64_t)(now_time - index.last_verified);
+		return current_age > UINT_MAX ? UINT_MAX : (unsigned)current_age;
 	}
 #ifdef ENABLE_FORCE_CACHE
-	//Ç¿ÖÆ»º´æ
+	//å¼ºåˆ¶ç¼“å­˜
 	bool force_cache(bool static_flag) {
 		if (KBIT_TEST(index.flags, FLAG_DEAD)) {
 			return false;
@@ -389,7 +395,7 @@ public:
 		{
 			unsigned char in_cache : 1;
 			unsigned char cache_is_ready : 1;
-			unsigned char dc_index_update : 1;//ÎÄ¼şindex¸üĞÂ
+			unsigned char dc_index_update : 1;//æ–‡ä»¶indexæ›´æ–°
 			unsigned char us_ok_dead : 1;
 			unsigned char us_err_dead : 1;
 			unsigned char need_compress : 1;

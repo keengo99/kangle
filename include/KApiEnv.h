@@ -4,7 +4,7 @@
 #include "KEnvInterface.h"
 #include "utils.h"
 /*
-为isapi扩展提供env支持的类
+涓篿sapi鎵╁睍鎻愪緵env鏀寔鐨勭被
 */
 class KApiEnv : public KEnvInterface
 {

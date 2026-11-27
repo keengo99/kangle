@@ -24,13 +24,16 @@
 #define MODEL_ACL 	1
 #define MODEL_MARK	2
 typedef uint32_t kgl_jump_type;
+#ifndef JUMP_SKIP
+#define JUMP_SKIP 18
+#endif
 class KAccess;
 class KFetchObject;
 class KHttpObject;
 class KHttpRequest;
 using KSafeSource = std::unique_ptr<KFetchObject>;
 /*
- * 控制模块基类
+ * 鎺у埗妯″潡鍩虹被
  */
 class KModel {
 public:

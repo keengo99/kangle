@@ -62,7 +62,7 @@ bool KTimeMatch::set(const char * time_model) {
 	char *buf = strdup(time_model);
 	char *hot = buf;
 	for (int i=0;i<5;i++) {
-		//ÂÔ¹ýÇ°ÃæµÄ¿Õ¸ñ
+		//ç•¥è¿‡å‰é¢çš„ç©ºæ ¼
 		while (*hot && isspace((unsigned char)*hot)) {
 			hot++;
 		}
@@ -70,7 +70,7 @@ bool KTimeMatch::set(const char * time_model) {
 			break;
 		}
 		char *next_item = hot;
-		//ÕÒÏÂÒ»¸ö
+		//æ‰¾ä¸‹ä¸€ä¸ª
 		while (*next_item && !isspace((unsigned char)*next_item)) {
 			next_item++;
 		}

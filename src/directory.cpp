@@ -54,10 +54,7 @@ int list_dir(const char *dir,list_dir_handle_f file_handle,void *param)
 		}
 		next_file:
 		if (!FindNextFile(hList, &FileData)) {
-			if (GetLastError() == ERROR_NO_MORE_FILES) {
-				break;
-			}
-
+			break;
 		}
 	}
 	FindClose(hList);
@@ -88,10 +85,7 @@ int list_dirw(const wchar_t *dir,list_dir_handlew_f file_handle,void *param)
 		}
 		next_file:
 		if (!FindNextFileW(hList, &FileData)) {
-			if (GetLastError() == ERROR_NO_MORE_FILES) {
-				break;
-			}
-
+			break;
 		}
 	}
 	FindClose(hList);

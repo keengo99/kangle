@@ -12,7 +12,7 @@ KDsoModule::KDsoModule()
 }
 KDsoModule::~KDsoModule()
 {
-	
+	unload();
 }
 bool KDsoModule::isloaded()
 {
@@ -37,13 +37,13 @@ bool KDsoModule::load(const char *file)
 	}
 #endif
 	handle = LoadLibrary(path.c_str());
+#ifdef _WIN32
+	SetDllDirectory(NULL);
+#endif
 	if (handle == NULL) {
 		klog(KLOG_ERR,"cann't LoadLibrary %s %s\n", path.c_str(), getError());
 		return false;
 	}
-#ifdef _WIN32
-	SetDllDirectory(NULL);
-#endif
 	return true;
 }
 void *KDsoModule::findFunction(const char *func)

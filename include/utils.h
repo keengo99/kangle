@@ -85,21 +85,29 @@ void split(char *buf, std::vector<char *> &item);
 KString endTag();
 void addCurrentEnv(KCmdEnv *env);
 /*
-´´½¨Ò»¸ö½ø³ÌÍâ¹¤×÷£¬²¢µÈ´ýÍê³É
+åˆ›å»ºä¸€ä¸ªè¿›ç¨‹å¤–å·¥ä½œï¼Œå¹¶ç­‰å¾…å®Œæˆ
 */
 bool startProcessWork(Token_t token, char * args[], KCmdEnv *envs);
+#ifndef _WIN32
 /*
-´´½¨Ò»¸ö½ø³Ì.
-rdstd = 0 Ê¹ÓÃnamedPipe
-rdstd = 1 ÖØ¶¨Ïòstd
-rdstd = 2 ²»Á¬½Ó
+åœ¨forkåŽçš„å­è¿›ç¨‹ä¸­åˆ‡æ¢åˆ°tokenæŒ‡å®šçš„ç”¨æˆ·ï¼Œå¤±è´¥åˆ™ç›´æŽ¥é€€å‡ºå­è¿›ç¨‹
+*/
+void child_drop_privilege(Token_t token);
+/* Give a forked child default signal dispositions and an empty signal mask. */
+void child_reset_signals();
+#endif
+/*
+åˆ›å»ºä¸€ä¸ªè¿›ç¨‹.
+rdstd = 0 ä½¿ç”¨namedPipe
+rdstd = 1 é‡å®šå‘std
+rdstd = 2 ä¸è¿žæŽ¥
 */
 KPipeStream * createProcess(Token_t token,char * args[],KCmdEnv *envs, int rdstd);
 /*
-´´½¨Ò»¸ö½ø³Ì.
-rdstd = 0 Ê¹ÓÃnamedPipe
-rdstd = 1 ÖØ¶¨Ïòstd
-rdstd = 2 ²»Á¬½Ó
+åˆ›å»ºä¸€ä¸ªè¿›ç¨‹.
+rdstd = 0 ä½¿ç”¨namedPipe
+rdstd = 1 é‡å®šå‘std
+rdstd = 2 ä¸è¿žæŽ¥
 */
 bool createProcess(KPipeStream *st,Token_t token, char * args[], KCmdEnv *envs, int rdstd);
 bool createProcess(Token_t token, char * args[],KCmdEnv *envs,char *cur_dir,PIPE_T in,PIPE_T out,PIPE_T err,pid_t &pid);
@@ -337,4 +345,6 @@ BOOL StartInteractiveClientProcess2 (
 //}}
 bool open_process_std(kgl_process_std *std,KFile *file);
 void closeAllFile(int start_fd);
+/* Close every descriptor >= start_fd except keep1 and keep2 (pass -1 for none). */
+void close_fds_from(int start_fd, int keep1, int keep2);
 #endif

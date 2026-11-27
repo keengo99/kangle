@@ -41,7 +41,9 @@ public:
 		this->unix_path = path;
 		struct sockaddr_un addr;
 		ksocket_unix_addr(path,&addr);
-		SOCKET sockfd = ksocket_listen((sockaddr_i *)&addr, 0);
+		// CGI children inherit this listener and expect accept() to block.
+		// EAGAIN between connections makes PHP-CGI exit instead of waiting.
+		SOCKET sockfd = ksocket_listen((sockaddr_i *)&addr, KSOCKET_BLOCK);
 		if (!ksocket_opened(sockfd)) {
 			return false;
 		}
@@ -57,7 +59,12 @@ public:
 	bool listen(int port=0,const char *host="127.0.0.1")
 	{
 		sockaddr_i addr;
-		ksocket_getaddr(host, port, AF_UNSPEC, AI_NUMERICHOST,&addr);
+		if (host == NULL || *host == '\0') {
+			host = "0.0.0.0";
+		}
+		if (!ksocket_getaddr(host, port, AF_UNSPEC, AI_NUMERICHOST,&addr)) {
+			return false;
+		}
 		SOCKET sockfd = ksocket_listen(&addr, KSOCKET_BLOCK);
 		if (!ksocket_opened(sockfd)) {
 			return false;

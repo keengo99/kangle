@@ -23,13 +23,13 @@ KGL_RESULT KDefaultFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl
 	}
 	if (rq->file->isDirectory()) {
 		if (!rq->file->isPrevDirectory()) {
-			//urlºóÃæ²»ÊÇÒÔ/½áÎ²,ÖØ¶¨Ïò´¦Àí
+			//urlåŽé¢ä¸æ˜¯ä»¥/ç»“å°¾,é‡å®šå‘å¤„ç†
 			KPrevDirectoryFetchObject fo;
 			return fo.Open(rq, in, out);
 		}
 		auto svh = kangle::get_virtual_host(rq);
 		if (!svh->vh->browse) {
-			//Èç¹ûÔÊÐíä¯ÀÀ
+			//å¦‚æžœå…è®¸æµè§ˆ
 			return out->f->error(out->ctx, STATUS_FORBIDEN,_KS("You don't have permission to browse."));
 		}
 		KDirectoryFetchObject fo;

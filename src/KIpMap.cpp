@@ -36,7 +36,7 @@ static int ip_addr_cmp(const ip_addr *a1,const ip_addr *a2)
 	return -1;	
 #endif
 }
-/* ipv4µÄ²åÈë±È½Ïº¯Êı */
+/* ipv4çš„æ’å…¥æ¯”è¾ƒå‡½æ•° */
 static int range_addr_find_cmp(const void *k1,const void *k2)
 {
 	ip_addr *addr = (ip_addr *)k1;
@@ -51,7 +51,7 @@ static int range_addr_find_cmp(const void *k1,const void *k2)
 	}
 	return 0;
 }
-/* ipv4µÄ²åÈë±È½Ïº¯Êı */
+/* ipv4çš„æ’å…¥æ¯”è¾ƒå‡½æ•° */
 static int range_addr_insert_cmp(const void *k1,const void *k2)
 {
 	struct dns_range_addr *a1 = (struct dns_range_addr *)k1;
@@ -143,12 +143,18 @@ bool make_local_ip(ip_addr *addr,char *ips,int ips_len)
 }
 inline void get_ipv4_cidr_max_addr(uint32_t *min_addr,uint32_t *max_addr,int prefix)
 {
-	*min_addr &= ((uint32_t)~0 << (32 - prefix));
-	if (prefix<32) {
-		*max_addr = *min_addr | ((uint32_t)~0 >> prefix);
-	} else {
-		*max_addr = *min_addr;
+	//ç§»ä½æ•°>=32æ˜¯æœªå®šä¹‰è¡Œä¸ºï¼Œ/0å’Œ/32å•ç‹¬å¤„ç†
+	if (prefix <= 0) {
+		*min_addr = 0;
+		*max_addr = (uint32_t)~0;
+		return;
 	}
+	if (prefix >= 32) {
+		*max_addr = *min_addr;
+		return;
+	}
+	*min_addr &= ((uint32_t)~0 << (32 - prefix));
+	*max_addr = *min_addr | ((uint32_t)~0 >> prefix);
 }
 bool build_cidr_addr(const char *addr,int prefix,ip_addr *min_addr,ip_addr *max_addr)
 {
@@ -156,18 +162,24 @@ bool build_cidr_addr(const char *addr,int prefix,ip_addr *min_addr,ip_addr *max_
 		return false;
 	}
 #ifndef KSOCKET_IPV6
+	if (prefix < 0 || prefix > 32) {
+		return false;
+	}
 	get_ipv4_cidr_max_addr(min_addr,max_addr,prefix);
 #else
 	max_addr->sin_family = min_addr->sin_family;
 	if (min_addr->sin_family==PF_INET) {		
+		if (prefix < 0 || prefix > 32) {
+			return false;
+		}
 		get_ipv4_cidr_max_addr(&min_addr->addr32[0],&max_addr->addr32[0],prefix);		
 	} else {
 		int i;
 		int a,b;
-		a = prefix/32;
-		if (a>4 || a<0) {
-			return 1;
+		if (prefix < 0 || prefix > 128) {
+			return false;
 		}
+		a = prefix/32;
 		for (i=0;i<a;i++) {
 			max_addr->addr32[i] = min_addr->addr32[i];
 		}
@@ -269,20 +281,20 @@ bool KIpMap::add_range_addr(struct dns_range_addr *range_addr,void *bind_data)
 	kgl_memcpy(addr,range_addr,sizeof(struct dns_range_addr));
 	node->data = addr;
 	addr->bind_data = bind_data;
-	//´¦ÀíÇ°ÃæµÄip¸²¸Ç
+	//å¤„ç†å‰é¢çš„ipè¦†ç›–
 	struct krb_node *pre_node = rb_prev(node);
 	if (pre_node) {
 		struct dns_range_addr *pre_addr = (struct dns_range_addr *)pre_node->data;
 		if (ip_addr_cmp(&pre_addr->max_addr,&range_addr->max_addr)>0) {
 			make_local_ip(&range_addr->min_addr, ips, MAXIPLEN);
 			//klog(KLOG_WARNING,"IP [%s] is pre-covered max,view = [%d]\n",ips,view->id);
-			//²úÉúĞÂµÄrange ip²åÈë
+			//äº§ç”Ÿæ–°çš„range ipæ’å…¥
 			struct dns_range_addr new_addr;
 			memset(&new_addr,0,sizeof(new_addr));
 			kgl_memcpy(&new_addr.min_addr,&range_addr->max_addr,sizeof(new_addr.min_addr));
 			kgl_memcpy(&new_addr.max_addr,&pre_addr->max_addr,sizeof(new_addr.max_addr));
 			addr_add(&new_addr.min_addr,1);
-			//ÖØĞÂµ÷ÕûÖ®Ç°µÄrange ip
+			//é‡æ–°è°ƒæ•´ä¹‹å‰çš„range ip
 			kgl_memcpy(&pre_addr->max_addr,&range_addr->min_addr,sizeof(ip_addr));
 			addr_sub(&pre_addr->max_addr,1);
 			add_range_addr(&new_addr,pre_addr->bind_data);
@@ -290,12 +302,12 @@ bool KIpMap::add_range_addr(struct dns_range_addr *range_addr,void *bind_data)
 		} else if (ip_addr_cmp(&pre_addr->max_addr,&range_addr->min_addr)>=0) {
 			make_local_ip(&range_addr->min_addr, ips, MAXIPLEN);
 			//klog(KLOG_WARNING,"IP [%s] is pre-covered min,view = [%d]\n",ips,view->id);
-			//ÖØĞÂµ÷ÕûÖ®Ç°µÄrange ip
+			//é‡æ–°è°ƒæ•´ä¹‹å‰çš„range ip
 			kgl_memcpy(&pre_addr->max_addr,&range_addr->min_addr,sizeof(ip_addr));
 			addr_sub(&pre_addr->max_addr,1);
 		}
 	}
-	//´¦ÀíºóÃæµÄip¸²¸Ç
+	//å¤„ç†åé¢çš„ipè¦†ç›–
 	struct krb_node *next_node = rb_next(node);
 	if (next_node) {
 		struct dns_range_addr *next_addr = (struct dns_range_addr *)next_node->data;
@@ -307,23 +319,21 @@ bool KIpMap::add_range_addr(struct dns_range_addr *range_addr,void *bind_data)
 			kgl_memcpy(&new_addr.min_addr,&next_addr->max_addr,sizeof(new_addr.min_addr));
 			kgl_memcpy(&new_addr.max_addr,&range_addr->max_addr,sizeof(new_addr.max_addr));
 			addr_add(&new_addr.min_addr,1);
-			kgl_memcpy(&range_addr->max_addr,&next_addr->min_addr,sizeof(ip_addr));
-			addr_sub(&range_addr->max_addr,1);
+			kgl_memcpy(&addr->max_addr,&next_addr->min_addr,sizeof(ip_addr));
+			addr_sub(&addr->max_addr,1);
 			add_range_addr(&new_addr,bind_data);
 		} else if (ip_addr_cmp(&range_addr->max_addr,&next_addr->min_addr)>=0) {
 			make_local_ip(&range_addr->min_addr, ips, MAXIPLEN);
 			//klog(KLOG_WARNING,"IP [%s] is next-covered min,view = [%d]\n",ips,view->id);
-			kgl_memcpy(&range_addr->max_addr,&next_addr->min_addr,sizeof(ip_addr));
-			addr_sub(&range_addr->max_addr,1);
+			kgl_memcpy(&addr->max_addr,&next_addr->min_addr,sizeof(ip_addr));
+			addr_sub(&addr->max_addr,1);
 		}
 	}
 	return true;
 }
 
-bool KIpMap::add_min_max_addr(const char *min_addr,const char *max_addr,void *view)
+static bool parse_min_max_addr(const char *min_addr, const char *max_addr, ip_addr *min, ip_addr *max)
 {
-	struct dns_range_addr range_addr;
-	memset(&range_addr,0,sizeof(range_addr));
 	bool include_min_addr = true;
 	if (*min_addr == '_') {
 		include_min_addr = false;
@@ -334,17 +344,55 @@ bool KIpMap::add_min_max_addr(const char *min_addr,const char *max_addr,void *vi
 		include_max_addr = false;
 		max_addr++;
 	}
-	if (!get_local_addr(min_addr,&range_addr.min_addr)) {
+	if (!get_local_addr(min_addr, min)) {
 		return false;
 	}
 	if (!include_min_addr) {
-		addr_add(&range_addr.min_addr, 1);
+		addr_add(min, 1);
 	}
-	if (!get_local_addr(max_addr,&range_addr.max_addr)) {
+	if (!get_local_addr(max_addr, max)) {
 		return false;
 	}
 	if (!include_max_addr) {
-		addr_sub(&range_addr.max_addr, 1);
+		addr_sub(max, 1);
+	}
+	return true;
+}
+bool kgl_parse_ip_range(char *addr, ip_addr *min_addr, ip_addr *max_addr)
+{
+	memset(min_addr, 0, sizeof(ip_addr));
+	memset(max_addr, 0, sizeof(ip_addr));
+	char *prefix = strchr(addr, '/');
+	if (prefix) {
+		*prefix = '\0';
+		int bits = atoi(prefix + 1);
+		if (!build_cidr_addr(addr, bits, min_addr, max_addr)) {
+			klog(KLOG_ERR, "cann't build cidr_addr [%s/%d]\n", addr, bits);
+			return false;
+		}
+		return true;
+	}
+	prefix = strchr(addr, '-');
+	if (prefix) {
+		*prefix = '\0';
+		return parse_min_max_addr(addr, prefix + 1, min_addr, max_addr);
+	}
+	return parse_min_max_addr(addr, addr, min_addr, max_addr);
+}
+bool KIpMap::add_range(const ip_addr *min_addr, const ip_addr *max_addr, void *bind_data)
+{
+	struct dns_range_addr range_addr;
+	memset(&range_addr, 0, sizeof(range_addr));
+	kgl_memcpy(&range_addr.min_addr, min_addr, sizeof(ip_addr));
+	kgl_memcpy(&range_addr.max_addr, max_addr, sizeof(ip_addr));
+	return add_range_addr(&range_addr, bind_data);
+}
+bool KIpMap::add_min_max_addr(const char *min_addr,const char *max_addr,void *view)
+{
+	struct dns_range_addr range_addr;
+	memset(&range_addr,0,sizeof(range_addr));
+	if (!parse_min_max_addr(min_addr, max_addr, &range_addr.min_addr, &range_addr.max_addr)) {
+		return false;
 	}
 	return add_range_addr(&range_addr,view);
 }

@@ -15,6 +15,7 @@ public:
 protected:
 	KGL_RESULT buildHead(KHttpRequest* rq) override;
 	void buildPost(KHttpRequest* rq) override;
+	KGL_RESULT on_post_end() override;
 	virtual bool is_extend() {
 		return false;
 	}
@@ -22,14 +23,21 @@ protected:
 	{
 		return !pop_header.recved_end_request;
 	}
+	void expectDone(KHttpRequest* rq) override
+	{
+		if (pop_header.recved_end_request) {
+			KAsyncFetchObject::expectDone(rq);
+		}
+	}
 	KGL_RESULT read_body_end(KHttpRequest* rq, KGL_RESULT result) override;
 	kgl_parse_result parse_unknow_header(KHttpRequest* rq, char** data, char* end) override;
 	KGL_RESULT ParseBody(KHttpRequest* rq, char** data, char* end) override;
 private:
 	void appendPostEnd();
+	void on_map_path(KHttpRequest* rq, char* piece, int packet_length);
 	//return NULL for need more data
 	char *parse_fcgi_header(char** str, char* end, bool full);
-	//body_len = 0Ê±±íÊ¾¶Áhead
+	//body_len = 0æ—¶è¡¨ç¤ºè¯»head
 	union
 	{
 		struct
@@ -41,6 +49,8 @@ private:
 		uint32_t flags;
 	};
 	ks_buffer* split_header;
+	/* the empty FCGI_STDIN record ends the body and must be sent once */
+	bool stdin_end_sent;
 protected:
 };
 #endif /* KFASTCGIFETCHOBJECT_H_ */

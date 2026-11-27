@@ -59,7 +59,7 @@ public:
 			head = next;
 		}
 	}
-	//µ÷ÓÃgetReadBufferÖ®Ç°Òªµ÷ÓÃstartReadÇĞ»»µ½¶ÁÄ£Ê½
+	//è°ƒç”¨getReadBufferä¹‹å‰è¦è°ƒç”¨startReadåˆ‡æ¢åˆ°è¯»æ¨¡å¼
 	int getReadBuffer(LPWSABUF buffer,int bufferCount);
 	char *getReadBuffer(int &len);
 	bool readSuccess(int got);
@@ -110,7 +110,7 @@ public:
 		head = buf;
 		totalLen += buf->used;
 	}
-	//ÔİÊ±Î´ÊµÏÖread
+	//æš‚æ—¶æœªå®ç°read
 	int read(char *buf,int len);
 	void write_byte(int ch)
 	{
@@ -119,7 +119,7 @@ public:
 		write_all(temp,1);
 	}
 	StreamState write_all(const char *buf, int len);
-	//ÇĞ»»µ½¶ÁÄ£Ê½,·µ»Ø×Ü´óĞ¡
+	//åˆ‡æ¢åˆ°è¯»æ¨¡å¼,è¿”å›æ€»å¤§å°
 	inline unsigned startRead()
 	{
 		hot_buf = head;
@@ -164,7 +164,7 @@ public:
 	{
 		return hot_buf;
 	}
-	//µ÷ÊÔÒªÓÃ£¬ÒªÅĞ¶ÏprivateÖµ
+	//è°ƒè¯•è¦ç”¨ï¼Œè¦åˆ¤æ–­privateå€¼
 	friend class KFastcgiFetchObject;
 private:
 	inline kbuf *newbuff()

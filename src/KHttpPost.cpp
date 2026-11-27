@@ -42,6 +42,8 @@ bool KHttpPost::parseUrlParam(char* param, size_t len, KUrlValue* uv) {
 }
 KHttpPost::KHttpPost() {
 	buffer = NULL;
+	hot = NULL;
+	totalLen = 0;
 }
 
 KHttpPost::~KHttpPost(void) {
@@ -50,7 +52,7 @@ KHttpPost::~KHttpPost(void) {
 	}
 }
 bool KHttpPost::init(int totalLen) {
-	if (totalLen > MAX_POST_SIZE) {
+	if (totalLen < 0 || totalLen > MAX_POST_SIZE) {
 		return false;
 	}
 	this->totalLen = totalLen;

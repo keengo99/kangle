@@ -47,17 +47,31 @@ public:
 			return false;
 		}
 		m_ip.mask_num = 0;
-		bool result;
+		bool result = false;
 		if (ip_mask[0].size() > 0){
 			sockaddr_i a;
 			result = ksocket_getaddr(ip_mask[0].c_str(), 0,AF_UNSPEC,AI_NUMERICHOST,&a);
-			ksocket_ipaddr(&a,&m_ip.addr);
+			if (result) {
+				ksocket_ipaddr(&a,&m_ip.addr);
+			}
 		}
 		if (ip_mask.size() > 1) {
 			unsigned long default_mask = (unsigned long) 0xffffffff;
 			memset(&m_ip.mask, 0, sizeof(m_ip.mask));
 //			ip_addr *a;
-			m_ip.mask_num = atoi(ip_mask[1].c_str());
+			int max_mask_num = 32;
+#ifdef KSOCKET_IPV6
+			if (m_ip.addr.sin_family == PF_INET6) {
+				max_mask_num = 128;
+			}
+#endif
+			const char* mask_text = ip_mask[1].c_str();
+			char* mask_end = NULL;
+			long mask_num = strtol(mask_text, &mask_end, 10);
+			if (mask_end == mask_text || *mask_end != '\0' || mask_num < 0 || mask_num > max_mask_num) {
+				return false;
+			}
+			m_ip.mask_num = (unsigned char)mask_num;
 			if (m_ip.mask_num > 0) {
 				int mask_num = m_ip.mask_num;
 #ifdef KSOCKET_IPV6

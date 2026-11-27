@@ -37,7 +37,7 @@ enum OpenState
 	OPEN_UNKNOW
 };
 /*
- * 按行读取文件
+ * 鎸夎璇诲彇鏂囦欢
  */
 class KLineFile {
 public:

@@ -4,6 +4,7 @@
 #include "KLineFile.h"
 #include "KHttpRequest.h"
 #include "KTcpFetchObject.h"
+#include <string.h>
 #ifdef WORK_MODEL_TCP
 class KPortMapMark : public KMark
 {
@@ -38,8 +39,10 @@ public:
 		}
 		rq->sink->data.raw_url.host = strdup(rq->sink->data.url->host);
 		rq->sink->data.raw_url.port = rq->sink->data.url->port;
-		if (this->port.find('s')) {
+		if (strchr(this->port.c_str(), 's')) {
 			KBIT_SET(rq->sink->data.url->flags, KGL_URL_ORIG_SSL);
+		} else {
+			KBIT_CLR(rq->sink->data.url->flags, KGL_URL_ORIG_SSL);
 		}
 		fo.reset(new KTcpFetchObject(false));
 		return KF_STATUS_REQ_TRUE;

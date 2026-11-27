@@ -65,7 +65,7 @@ bool kgl_load_response_body(KHttpRequest* rq, kgl_response_body* body) {
 			}
 		}
 #endif
-		//ÄÚÈÝ±ä»»²ã
+		//å†…å®¹å˜æ¢å±‚
 		if (rq->needFilter() && obj->in_cache) {
 			if (rq->of_ctx->tee_body(rq, body, KGL_FILTER_CACHE)) {
 				content_len = -1;
@@ -81,7 +81,7 @@ bool kgl_load_response_body(KHttpRequest* rq, kgl_response_body* body) {
 			content_len = -1;
 			cache_layer = cache_memory;
 		}
-		//ÄÚÈÝ±ä»»²ã
+		//å†…å®¹å˜æ¢å±‚
 		if (rq->needFilter() && !obj->in_cache) {
 			if (rq->of_ctx->tee_body(rq, body, KGL_FILTER_NOT_CACHE)) {
 				content_len = -1;

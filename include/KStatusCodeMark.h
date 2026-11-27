@@ -1,53 +1,68 @@
+/*
+ * Copyright (c) 2010, NanChang BangTeng Inc
+ *
+ * kangle web server              http://www.kangleweb.net/
+ * ---------------------------------------------------------------------
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ */
 #ifndef KSTATUSCODEMARK_H
 #define KSTATUSCODEMARK_H
+
+#include "KFetchObject.h"
+#include "KHttpRequest.h"
 #include "KMark.h"
-#if 0
-class KStatusCodeMark: public KMark
-{
+
+class KStatusCodeSource final : public KFetchObject {
 public:
-	KStatusCodeMark()
-	{
-		code = 0;
+	explicit KStatusCodeSource(uint16_t code) : KFetchObject(0), code(code) {
 	}
-	~KStatusCodeMark()
-	{
+
+	KGL_RESULT Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out) override {
+		return out->f->error(out->ctx, code, _KS("status code mark"));
 	}
-	KMark *newInstance() {
+
+private:
+	uint16_t code;
+};
+
+class KStatusCodeMark final : public KMark {
+public:
+	KStatusCodeMark() : code(403) {
+	}
+
+	KMark* new_instance() override {
 		return new KStatusCodeMark();
 	}
-	const char *getName() {
+
+	const char* get_module() const override {
 		return "status_code";
 	}
-	bool mark(KHttpRequest *rq, KHttpObject *obj,const int chainJumpType, int &jumpType) {
-		if (obj && obj->data) {
-			obj->data->i.status_code = code;
-		}
-		return true;
+
+	uint32_t process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) override {
+		KBIT_SET(rq->ctx.filter_flags, RF_NO_CACHE);
+		fo.reset(new KStatusCodeSource(code));
+		return KF_STATUS_REQ_TRUE;
 	}
-	std::string getHtml(KModel *model) {
-		std::stringstream s;
-		KStatusCodeMark *m = (KStatusCodeMark *)model;
-		s << " <input name=code value='";
-		if (m) {
-			s << (int)m->code;
-		}
-		s << "'>";
-		return s.str();
-	}
-	std::string getDisplay() {
-		std::stringstream s;
+
+	void get_display(KWStream& s) override {
 		s << code;
-		return s.str();
 	}
-	void editHtml(std::map<std::string, std::string> &attribute,bool html)
-			 {
-		code = atoi(attribute["code"].c_str());
+
+	void get_html(KWStream& s) override {
+		s << "HTTP status code (200-599): <input name='code' value='" << code << "'>";
 	}
-	void buildXML(std::stringstream &s) {
-		s << "code='" << code << "'>";
+
+	void parse_config(const khttpd::KXmlNodeBody* xml) override {
+		int value = xml->attr().get_int("code", 403);
+		code = (value >= 200 && value <= 599) ? static_cast<uint16_t>(value) : 403;
 	}
+
 private:
-	int code;
+	uint16_t code;
 };
-#endif
+
 #endif

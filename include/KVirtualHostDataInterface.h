@@ -16,7 +16,7 @@ public:
 	virtual int getInt(unsigned columnIndex) = 0;
 	virtual const char *getString(unsigned columnIndex) = 0;
 	/*
-	·ÏÆú£¬ÇëÊ¹ÓÃgetInt/getString
+	åºŸå¼ƒï¼Œè¯·ä½¿ç”¨getInt/getString
 	*/
 	virtual const char *getData(unsigned columnIndex)
 	{
@@ -46,7 +46,7 @@ public:
 	virtual KVirtualHostData *flushVirtualHost(const char *name) = 0;
 	virtual KVirtualHostData *loadInfo(const char *name) = 0;
 	/*
-	* ÒÔÏÂÊÇĞ´Èë²Ù×÷
+	* ä»¥ä¸‹æ˜¯å†™å…¥æ“ä½œ
 	*/
 	virtual KVirtualHostStmt *addVirtualHost(){
 		return NULL;

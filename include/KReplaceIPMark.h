@@ -39,24 +39,30 @@ public:
 				if (val) {
 					sub = val->matchSubString(h->buf+h->val_offset, h->val_len, 0);
 				}
-				if (val == NULL || sub) {
+				char ip[MAXIPLEN];
+				bool ip_ok = false;
+				if (val == NULL) {
+					ip_ok = parse_ip(h->buf + h->val_offset, h->val_len, ip, sizeof(ip));
+				} else if (sub) {
+					const char* s = sub->getString(1);
+					ip_ok = s && parse_ip(s, strlen(s), ip, sizeof(ip));
+				}
+				if (!ip_ok) {
+					/* not an address: keep the connection's ip, it is
+					 * also written to logs and checked by ip rules */
+					delete sub;
+					sub = NULL;
+				}
+				if (sub || (val == NULL && ip_ok)) {
 					if (prev) {
 						prev->next = h->next;
 					} else {
 						rq->sink->data.header = h->next;
 					}
-					if (rq->sink->data.client_ip) {
-						free(rq->sink->data.client_ip);
-						rq->sink->data.client_ip = NULL;
+					if (rq->sink->data.last == h) {
+						rq->sink->data.last = prev;
 					}
-					if (val == NULL) {
-						rq->sink->data.client_ip = kgl_strndup(h->buf+h->val_offset,h->val_len);
-					} else {
-						char *ip = sub->getString(1);
-						if (ip) {
-							rq->sink->data.client_ip = strdup(ip);
-						}
-					}
+					rq->sink->set_client_ip(ip);
 					//xfree_header(h);
 					if (KBIT_TEST(rq->sink->data.raw_url.flags,KGL_URL_ORIG_SSL)) {
 						KBIT_SET(rq->sink->data.raw_url.flags,KGL_URL_SSL);
@@ -69,6 +75,7 @@ public:
 							rq->sink->data.raw_url.port = 80;
 						}
 					}
+					delete sub;
 					return KF_STATUS_REQ_TRUE;
 				}
 			}
@@ -120,6 +127,38 @@ public:
 		}
 	}	
 private:
+	/* Take the address from a header value: the last entry of a list (the
+	 * one the nearest proxy added), without spaces or [] around IPv6.
+	 * Anything that is not a numeric address is refused. */
+	static bool parse_ip(const char* s, size_t len, char* out, int out_len) {
+		const char* comma = (const char*)kgl_memrchr(s, ',', len);
+		if (comma) {
+			len -= (comma + 1 - s);
+			s = comma + 1;
+		}
+		while (len > 0 && (*s == ' ' || *s == '\t')) {
+			s++;
+			len--;
+		}
+		while (len > 0 && (s[len - 1] == ' ' || s[len - 1] == '\t')) {
+			len--;
+		}
+		if (len > 2 && s[0] == '[' && s[len - 1] == ']') {
+			s++;
+			len -= 2;
+		}
+		char ip[MAXIPLEN];
+		if (len == 0 || len >= sizeof(ip)) {
+			return false;
+		}
+		kgl_memcpy(ip, s, len);
+		ip[len] = '\0';
+		sockaddr_i addr;
+		if (!ksocket_getaddr(ip, 0, AF_UNSPEC, AI_NUMERICHOST, &addr)) {
+			return false;
+		}
+		return ksocket_sockaddr_ip(&addr, out, out_len);
+	}
 	KString header;
 	KReg *val;
 };

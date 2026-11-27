@@ -115,7 +115,7 @@ void KHttpObject::UpdateCache(KHttpObject* obj)
 	if (cmp_vary_key(uk.vary, obj->uk.vary) != 0) {
 		cache.UpdateVary(this, obj->uk.vary);
 	}
-	//TODO:¸üÐÂvary,»òmax_ageµÈ»º´æ¿ØÖÆ	
+	//TODO:æ›´æ–°vary,æˆ–max_ageç­‰ç¼“å­˜æŽ§åˆ¶
 	return;
 }
 bool KHttpObject::is_same_precondition(KHttpObject* obj) 	{
@@ -129,16 +129,45 @@ bool KHttpObject::is_same_precondition(KHttpObject* obj) 	{
 	if (data->i.condition_is_time) {
 		return data->last_modified == obj->data->last_modified;
 	}
-	if (data->etag) {		
-		return kgl_mem_same(data->etag->data,data->etag->len, obj->data->etag->data,obj->data->etag->len);
+	if (data->etag) {
+		/*
+		* rfc9110 8.8.3.2: a 304 is matched to the stored response with the
+		* weak comparison. nginx, for example, stores W/"x" for a gzip 200 but
+		* answers the revalidation 304 with "x".
+		*/
+		const char* a = data->etag->data;
+		size_t a_len = data->etag->len;
+		const char* b = obj->data->etag->data;
+		size_t b_len = obj->data->etag->len;
+		if (a_len > 2 && a[0] == 'W' && a[1] == '/') {
+			a += 2;
+			a_len -= 2;
+		}
+		if (b_len > 2 && b[0] == 'W' && b[1] == '/') {
+			b += 2;
+			b_len -= 2;
+		}
+		return kgl_mem_same(a, a_len, b, b_len);
 	}
 	return true;
 }
 bool KHttpObject::precondition_time(time_t time) {
-	if (!data || !data->etag || !data->i.condition_is_time) {
-		return false;
+	if (!data) {
+		return true;
 	}
-	return data->last_modified > time;
+	time_t modified;
+	if (data->etag && data->i.condition_is_time) {
+		modified = data->last_modified;
+	} else {
+		// ETag occupies the validator union; retain the second validator in
+		// the header list so a date-only request can still use it.
+		auto header = find_header(_KS("Last-Modified"));
+		if (!header || kgl_parse_value_time(header->buf + header->val_offset,
+			header->val_len, &modified) != 0) {
+			return true;
+		}
+	}
+	return modified > time;
 }
 bool KHttpObject::match_if_range(const char* entity, size_t len) 	{
 	if (!data || !data->etag || data->i.condition_is_time) {
@@ -200,7 +229,7 @@ int KHttpObject::GetHeaderSize(int url_len)
 		if (data->i.condition_is_time) {
 			len += sizeof(data->last_modified);
 		} else {
-			len += (int)data->etag->len;
+			len += sizeof(int) + (int)data->etag->len;
 		}
 	} else {
 		data->i.has_condition = 0;
@@ -214,13 +243,12 @@ int KHttpObject::GetHeaderSize(int url_len)
 }
 void KHttpObjectBody::set_last_modified(time_t last_modified)
 {
-	if (etag) {
+	// The union must never contain an invalid time with the ETag tag.
+	if (last_modified <= 0 || etag) {
 		return;
 	}
 	this->last_modified = last_modified;
-	if (last_modified > 0) {
-		i.condition_is_time = 1;
-	}
+	i.condition_is_time = 1;
 }
 
 void KHttpObjectBody::set_etag(const char* val, size_t len)
@@ -261,13 +289,15 @@ bool KHttpObjectBody::restore_header(KHttpObject* obj, char* buffer, int len)
 		return false;
 	}
 	if (len != (int)fileHeader->dbi.index.head_size) {
-		//head_size²»¶Ô
+		//head_sizeä¸å¯¹
 		return false;
 	}
 	int hotlen = len - sizeof(KHttpObjectFileHeader);
 	char* hot = (char*)(fileHeader + 1);
 	//skip url
-	kgl_dc_skip_string(&hot, hotlen);
+	if (!kgl_dc_skip_string(&hot, hotlen)) {
+		return false;
+	}
 	kgl_safe_copy_body_data(&this->i, &fileHeader->body);
 	if (this->i.status_code == 0) {
 		this->i.status_code = STATUS_OK;
@@ -284,16 +314,17 @@ void KHttpObject::unlinkDiskFile()
 #endif
 		auto name = get_filename();
 		int ret = unlink(name.get());
-		auto url = this->uk.url->getUrl();
-		assert(url);
-		if (url) {
-			klog(KLOG_INFO, "unlink disk cache obj=[%p %x] url=[%s] file=[%s] ret=[%d] errno=[%d]\n",
-				this,
-				this->index.flags,
-				url.get(),
-				name.get(),
-				ret,
-				errno);
+		if (this->uk.url) {
+			auto url = this->uk.url->getUrl();
+			if (url) {
+				klog(KLOG_INFO, "unlink disk cache obj=[%p %x] url=[%s] file=[%s] ret=[%d] errno=[%d]\n",
+					this,
+					this->index.flags,
+					url.get(),
+					name.get(),
+					ret,
+					errno);
+			}
 		}
 #ifdef ENABLE_BIG_OBJECT_206
 		if (KBIT_TEST(index.flags, FLAG_BIG_OBJECT_PROGRESS)) {
@@ -354,7 +385,7 @@ int KHttpObject::build_header(char* buf, char* end, const char* url, int url_len
 	while (header) {
 		int buf_len = header->val_len + header->val_offset;
 		hot += kgl_dc_write_string(hot, header->buf, buf_len);
-		*((uint32_t*)hot) = header->name_attribute;
+		kgl_memcpy(hot, &header->name_attribute, sizeof(uint32_t));
 		hot += sizeof(uint32_t);
 		//printf("after header offset=[%d]\n", hot - buf);
 		header = header->next;
@@ -362,15 +393,17 @@ int KHttpObject::build_header(char* buf, char* end, const char* url, int url_len
 	hot += kgl_dc_write_string(hot, NULL, 0);
 	if (data->etag) {
 		if (data->i.condition_is_time) {
-			*(time_t*)hot = data->last_modified;
+			kgl_memcpy(hot, &data->last_modified, sizeof(data->last_modified));
 			hot += sizeof(data->last_modified);
 		} else {
-			memcpy(hot, data->etag->data, data->etag->len);
-			hot += data->etag->len;
+			hot += kgl_dc_write_string(hot, data->etag->data, (int)data->etag->len);
 		}
 	}
 	//printf("end header offset=[%d]\n", hot - buf);
 	int header_length = (int)(hot - buf);
+	if (header_length < (int)index.head_size) {
+		memset(hot, 0, index.head_size - header_length);
+	}
 #ifndef KGL_DISK_CACHE_ALIGN_HEAD
 	assert(header_length == index.head_size);
 #endif
@@ -389,6 +422,10 @@ kgl_auto_aio_buffer KHttpObject::build_aio_header(int& len, const char* url, int
 	}
 	len = GetHeaderSize(url_len);
 	char* buf = (char*)aio_alloc_buffer(len);
+	if (buf == nullptr) {
+		len = 0;
+		return nullptr;
+	}
 	build_header(buf, buf + len, url, url_len);
 	return kgl_auto_aio_buffer(buf);
 }
@@ -466,7 +503,7 @@ bool KHttpObject::swapout(KBufferFile* file, bool fast_model)
 	}
 #endif
 	if (KBIT_TEST(index.flags, FLAG_IN_DISK)) {
-		//ÄÚÈÝÒÑ¾­ÓÐ£¬ÎÞÐè
+		//å†…å®¹å·²ç»æœ‰ï¼Œæ— éœ€
 		goto swap_out_success;
 	}
 	if (data->i.type != MEMORY_OBJECT) {
@@ -481,14 +518,23 @@ bool KHttpObject::swapout(KBufferFile* file, bool fast_model)
 		}
 		tmp = tmp->next;
 	}
+	if (!file->close()) {
+		klog(KLOG_ERR, "cann't flush cache to disk file=[%s].\n", filename.get());
+		unlink(filename.get());
+		return false;
+	}
 	cache.getHash(h)->IncDiskObjectSize(this);
 #ifdef ENABLE_DB_DISK_INDEX
 	if (dci) {
 		dci->start(ci_add, this);
 	}
 #endif
+	return true;
 swap_out_success:
-	file->close();
+	if (!file->close()) {
+		klog(KLOG_ERR, "cann't flush cache head to disk file=[%s].\n", filename.get());
+		return false;
+	}
 	return true;
 swap_out_failed:
 	if (file->opened()) {

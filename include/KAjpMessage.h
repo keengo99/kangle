@@ -1,6 +1,6 @@
 /*
  * KAjpMessage.h
- * ajp协议信息包处理类
+ * ajp鍗忚淇℃伅鍖呭鐞嗙被
  *  Created on: 2010-7-31
  *      Author: keengo
  */
@@ -91,6 +91,7 @@ private:
 	int pos;
 	int len;
 	KWStream *st;
+	bool valid;
 };
 
 class KAjpMessageParser {
@@ -148,7 +149,7 @@ public:
 		if (!getShort(&slen)) {
 			return -1;
 		}
-		if (getLen() < slen + 1) {
+		if (slen == 0xffff || getLen() < (int)slen + 1 || buf[pos + slen] != '\0') {
 			return -1;
 		}
 		*val = (char *)buf + pos;

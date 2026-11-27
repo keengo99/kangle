@@ -150,13 +150,13 @@ public:
 			kill_disk_size = total_disk_size - maxDiskSize;
 			INT64 kill_percent_disk_size = get_need_free_disk_size(95);
 			if (kill_percent_disk_size > kill_disk_size) {
-				//最大不超过磁盘95%
+				//鏈�澶т笉瓒呰繃纾佺洏95%
 				kill_disk_size = kill_percent_disk_size;
 			}
 		}
 		disk_clean_count = objList[LIST_IN_DISK].move(&bf, last_msec,kill_disk_size, false);
 		if (disk_clean_count == 0 && kill_disk_size > 0) {
-			//disk list不够，则从mem list删除
+			//disk list涓嶅锛屽垯浠巑em list鍒犻櫎
 			disk_clean_count = objList[LIST_IN_MEM].move(&bf, last_msec, kill_disk_size, false);
 			klog(KLOG_INFO, "clean disk list count is zero,now clean it from memory list.\n");
 		}

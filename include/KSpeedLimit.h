@@ -21,11 +21,11 @@ public:
 	int get_sleep_msec(int len)
 	{
 		refsLock.Lock();
-		if (speed_limit <= 0) {
+		if (speed_limit <= 0 || len <= 0) {
 			refsLock.Unlock();
 			return 0;
 		}
-		INT64 sleep_time = (INT64)(len * 1000 / speed_limit);
+		INT64 sleep_time = (INT64)len * 1000 / speed_limit;
 		if (current_send_time < kgl_current_msec - 5000) {
 			current_send_time = kgl_current_msec;
 		}

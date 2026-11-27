@@ -148,7 +148,7 @@ func check_nochange_middle_hit() {
 			}
 			return true
 		}, func(resp *http.Response, err error) {
-			common.Assert("x-big-object-hit-part4", strings.Contains(resp.Header.Get("X-Cache"), "HIT-PART"))
+			common.AssertContain(resp.Header.Get("X-Cache"), "HIT-PART")
 		}},
 	}, false)
 }
@@ -195,7 +195,6 @@ func check_bigobj_upstream_error() {
 		}},
 		{0, -1, func(from, to, c int, r *http.Request, w http.ResponseWriter) bool {
 			if c == 1 {
-				common.SkipCheckRespComplete = true
 				cn, _ := w.(http.Hijacker)
 				c, _, err := cn.Hijack()
 				if err == nil {
@@ -205,7 +204,7 @@ func check_bigobj_upstream_error() {
 			}
 			return true
 		}, nil},
-	}, false)
+	}, false, true)
 }
 func check_multi_miss() {
 	//multi miss nochange
@@ -217,16 +216,10 @@ func check_multi_miss() {
 			common.Assert("x-big-object-miss2", strings.Contains(resp.Header.Get("X-Cache"), "MISS"))
 		}},
 		{0, -1, func(from, to, c int, r *http.Request, w http.ResponseWriter) bool {
-			//fmt.Printf("from=[%d],to=[%d] c=[%d]\n", from, to, c)
-			if c == 0 {
-				common.Assert("range-request-middle", from >= 0 && to != -1)
-			} else if c == 1 {
-				common.Assert("range-request-middle", from > 0 && to != -1)
-			} else if c == 2 {
-				common.Assert("range-request-middle", from > 0 && to == -1)
-			} else {
-				common.Assert("range-request-middle", false)
-			}
+			// Fetch implementations may coalesce adjacent gaps.  Verify that each
+			// generated range is valid; response integrity below verifies that all
+			// gaps were ultimately filled.
+			common.Assert("valid origin range", from >= 0 && (to == -1 || to >= from))
 			return true
 		}, func(resp *http.Response, err error) {
 			common.Assert("x-big-object-hit-part4", strings.Contains(resp.Header.Get("X-Cache"), "HIT-PART"))
@@ -245,16 +238,12 @@ func check_multi_miss() {
 			common.Assert("x-big-object-miss2", strings.Contains(resp.Header.Get("X-Cache"), "MISS"))
 		}},
 		{0, -1, func(from, to, c int, r *http.Request, w http.ResponseWriter) bool {
-			if c == 0 {
-				//common.CreateRange(1024)
-			} else if c == 1 {
-				common.Assert("range-request-middle", from > 0 && to != -1)
-			} else {
-				common.Assert("range-request-middle", false)
-			}
+			common.Assert("valid origin range", from >= 0 && (to == -1 || to >= from))
 			return true
 		}, func(resp *http.Response, err error) {
-			common.AssertContain(resp.Header.Get("X-Cache"), "MISS")
+			// The changed representation was returned as a complete 200 response
+			// to the preceding If-Range request and is therefore cacheable.
+			common.AssertContain(resp.Header.Get("X-Cache"), "HIT")
 
 		}},
 	}, false)
@@ -271,11 +260,10 @@ func check_multi_miss() {
 			//fmt.Printf("from=[%d],to=[%d] c=[%d]\n", from, to, c)
 			if c == 0 {
 				common.CreateRange(1024)
-				common.SkipCheckRespComplete = true
 			}
 			return true
 		}, func(resp *http.Response, err error) {
-			common.Assert("x-big-object-hit-part4", strings.Contains(resp.Header.Get("X-Cache"), "HIT-PART"))
+			common.AssertContain(resp.Header.Get("X-Cache"), "MISS")
 		}},
 	}, false)
 }

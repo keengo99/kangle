@@ -211,6 +211,14 @@ void KCdnContainer::flush(time_t nowTime) {
 		Remove(rn);
 		rn = next;
 	}
+	/* entries still in use keep their redirect, but expire idle sockets. */
+	while (nowTime > 0 && rn != &rd_list) {
+		KPoolableRedirect* prd = dynamic_cast<KPoolableRedirect*>(rn->rd);
+		if (prd) {
+			prd->refresh_pool(nowTime);
+		}
+		rn = rn->next;
+	}
 	lock.Unlock();
 }
 void KCdnContainer::Remove(KRedirectNode* rn) {

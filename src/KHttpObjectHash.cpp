@@ -5,9 +5,9 @@
 #include "KHttpObjectHash.h"
 #include "kmalloc.h"
 #include "KCache.h"
-//ÉèÖÃobjµÄcontent_length;
+//è®¾ç½®objçš„content_length;
 void set_obj_size(KHttpObject *obj, INT64 content_length) {
-	//Èç¹ûÃ»ÓĞÔÚhashÖĞ,ÔòÖ±½ÓÉèÖÃ
+	//å¦‚æœæ²¡æœ‰åœ¨hashä¸­,åˆ™ç›´æ¥è®¾ç½®
 	if (obj->list_state == LIST_IN_NONE) {
 		obj->index.content_length = content_length;
 		return;

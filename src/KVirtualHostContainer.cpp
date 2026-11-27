@@ -188,7 +188,7 @@ void* KDomainMap::find(const char* domain) {
 }
 void* KDomainMap::find(domain_t name, bool wide) {
 	if (!*name) {
-		//@½âÎöÁË
+		//@è§£æžäº†
 		if (unlikely(wide)) {
 			return wide_list ? wide_list->svh : nullptr;
 		}
@@ -197,7 +197,7 @@ void* KDomainMap::find(domain_t name, bool wide) {
 
 	krb_node* node = rbtree_find(&tree, name, vh_container_find_cmp);
 	if (node) {
-		//¾«È·½âÎö
+		//ç²¾ç¡®è§£æž
 		name = name + *name + 1;
 		KDomainMap* rn = (KDomainMap*)node->data;
 		void* ret = rn->find(name, wide);
@@ -206,7 +206,7 @@ void* KDomainMap::find(domain_t name, bool wide) {
 		}
 	}
 	if (wide_list) {
-		//·º½âÎö
+		//æ³›è§£æž
 		return wide_list->svh;
 	}
 	return nullptr;
@@ -275,8 +275,8 @@ void* KDomainMap::del(domain_t name, bool wide) {
 			return nullptr;
 		}
 		KBindVirtualHost* cur = *bl;
-		*bl = (*bl)->next;
-		auto ret = (*bl)->svh;
+		*bl = cur->next;
+		auto ret = cur->svh;
 		delete cur;
 		return ret;
 	}

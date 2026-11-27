@@ -52,8 +52,11 @@ inline int cmpn_url_key(KUrlKey *a, KUrlKey *b,int len)
 inline void update_obj_vary_key(KHttpObject *obj, const char *key)
 {
 	do {
+		KMutex *lock = obj->getLock();
+		lock->Lock();
 		obj->Dead();
 		update_url_vary_key(&obj->uk, key);
+		lock->Unlock();
 		obj = obj->next;
 	} while (obj);
 }
@@ -68,7 +71,7 @@ public:
 		nodes.rb_node = NULL;
 	}
 	/**
-	* Çå³ıÖ¸¶¨urlµÄÎï¼ş£¬wideÖ¸Ê¾ÊÇ·ñ·ºÆ¥Åä,¼´Ö»Æ¥ÅäÇ°Ãæ²¿·Ö
+	* æ¸…é™¤æŒ‡å®šurlçš„ç‰©ä»¶ï¼ŒwideæŒ‡ç¤ºæ˜¯å¦æ³›åŒ¹é…,å³åªåŒ¹é…å‰é¢éƒ¨åˆ†
 	*/
 	inline int purge(KUrl *url,bool wide,objHandler handle,void *param)
 	{
@@ -93,6 +96,13 @@ public:
 		} else {
 			krb_node *node = NULL;
 			find(&uk, nodes.rb_node,&node);
+			while (node) {
+				krb_node *prev = rb_prev(node);
+				if (prev == NULL || ((KHttpObject *)prev->data)->uk.url->cmp(url) != 0) {
+					break;
+				}
+				node = prev;
+			}
 			while (node) {
 				count += purgeObject((KHttpObject *)node->data, handle, param);
 				node = rb_next(node);
@@ -145,7 +155,7 @@ public:
 		lock.Unlock();
 	}
 	/**
-	* ´Ó»º´æÖĞ²éµ½Ö¸¶¨urlµÄÎï¼ş£¬gzip,internalÖ¸Ê¾Îï¼ş×´Ì¬
+	* ä»ç¼“å­˜ä¸­æŸ¥åˆ°æŒ‡å®šurlçš„ç‰©ä»¶ï¼Œgzip,internalæŒ‡ç¤ºç‰©ä»¶çŠ¶æ€
 	*/
 	inline KHttpObject *get(KHttpRequest *rq) {
 		KHttpObject *hit_obj = NULL;
@@ -166,7 +176,7 @@ public:
 		vary.val = obj->BuildVary(rq).release();
 		if (vary.val) {
 			uk.vary = &vary;
-			//ÖØĞÂ²éÕÒ
+			//é‡æ–°æŸ¥æ‰¾
 			node = find(&uk, match_url_node, NULL);
 		}
 		if (node==NULL) {
@@ -180,7 +190,7 @@ public:
 				continue;
 			}
 			if (rq->sink->data.min_obj_verified > 0 && obj->index.last_verified < rq->sink->data.min_obj_verified) {
-				//ÉèÖÃÁË×îĞ¡ÑéÖ¤Ê±¼ä
+				//è®¾ç½®äº†æœ€å°éªŒè¯æ—¶é—´
 				if (KBIT_TEST(rq->sink->data.min_obj_verified, 1)>0) {
 					//hard
 					obj->Dead();
@@ -212,15 +222,15 @@ public:
 	{
 		size_lock.Lock();
 		kassert(KBIT_TEST(obj->index.flags, FLAG_IN_MEM));
-		//¼ÓÉÏĞÂµÄ³¤¶È
+		//åŠ ä¸Šæ–°çš„é•¿åº¦
 		mem_size += new_size;
-		//¼õµô¾ÉµÄ³¤¶È
+		//å‡æ‰æ—§çš„é•¿åº¦
 		mem_size -= obj->index.content_length;
 		size_lock.Unlock();
 		obj->index.content_length = new_size;
 	}
 	/**
-	* Ôö¼ÓÄÚ´æ´óĞ¡
+	* å¢åŠ å†…å­˜å¤§å°
 	*/
 	void IncMemObjectSize(KHttpObject *obj)
 	{		
@@ -230,7 +240,7 @@ public:
 		size_lock.Unlock();
 	}
 	/**
-	* ¼õÉÙÄÚ´æ´óĞ¡
+	* å‡å°‘å†…å­˜å¤§å°
 	*/
 	void DecMemObjectSize(KHttpObject *obj)
 	{	
@@ -241,7 +251,7 @@ public:
 		size_lock.Unlock();
 	}
 	/**
-	* Ôö¼Ó´ÅÅÌ´óĞ¡
+	* å¢åŠ ç£ç›˜å¤§å°
 	*/
 	void IncDiskObjectSize(KHttpObject *obj)
 	{			
@@ -251,7 +261,7 @@ public:
 		size_lock.Unlock();
 	}
 	/**
-	* ¼õÉÙ´ÅÅÌ´óĞ¡
+	* å‡å°‘ç£ç›˜å¤§å°
 	*/
 	void DecDiskObjectSize(KHttpObject *obj)
 	{
@@ -262,7 +272,7 @@ public:
 		size_lock.Unlock();
 	}	
 	/**
-	* µÃµ½»º´æ´óĞ¡
+	* å¾—åˆ°ç¼“å­˜å¤§å°
 	*/
 	void getSize(INT64 &cacheSize, INT64 &diskSize,int &mem_count,int &disk_count) {
 		size_lock.Lock();
@@ -276,7 +286,7 @@ public:
 		//	assert(rq->sink->data.url->host && rq->sink->data.url->path);
 		//	assert(obj && obj->url == &rq->sink->data.url);
 		assert(obj->refs==1);
-		//´Ë´¦¿ÉÈ·±£obj£¬²»»á±»ÆäËüÒıÓÃ£¬ËùÒÔ²»ÓÃ¼ÓËø
+		//æ­¤å¤„å¯ç¡®ä¿objï¼Œä¸ä¼šè¢«å…¶å®ƒå¼•ç”¨ï¼Œæ‰€ä»¥ä¸ç”¨åŠ é”
 		obj->refs++;
 		assert(obj->check_header_buf_can_lock());
 		//kassert(obj->h == id);
@@ -322,7 +332,7 @@ private:
 		InternalUpdateUrlVary(url, node, vary, rb_prev);
 	}
 	/**
-	* É¾³ıÖ¸¶¨Îï¼ş,´Ëµ÷ÓÃÓÉµ÷ÓÃÕß¼ÓËø.
+	* åˆ é™¤æŒ‡å®šç‰©ä»¶,æ­¤è°ƒç”¨ç”±è°ƒç”¨è€…åŠ é”.
 	*/
 	bool remove(KHttpObject *obj) {
 		//std::map<KUrl *, KHttpObjectNode *,lessurl>::iterator it;
@@ -372,7 +382,7 @@ private:
 		return result;
 	}
 	/**
-	* Çå³ıÎï¼ş
+	* æ¸…é™¤ç‰©ä»¶
 	*/
 	inline int purgeObject(KHttpObject *objnode,objHandler handle,void *param)
 	{
@@ -457,7 +467,7 @@ private:
 		return NULL;
 	}
 	/*
-	²éÕÒuk,´Ónode¿ªÊ¼£¬match_url_nodeÓÃÓÚ·µ»ØÊ×´ÎÃüÖĞurl(²»´øvary)µÄ½Úµã¡£
+	æŸ¥æ‰¾uk,ä»nodeå¼€å§‹ï¼Œmatch_url_nodeç”¨äºè¿”å›é¦–æ¬¡å‘½ä¸­url(ä¸å¸¦vary)çš„èŠ‚ç‚¹ã€‚
 	*/
 	inline krb_node *find(KUrlKey *uk, krb_node *node,krb_node **match_url_node)
 	{

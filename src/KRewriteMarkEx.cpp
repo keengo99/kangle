@@ -10,6 +10,7 @@
 #include "KCdnContainer.h"
 #include "kmalloc.h"
 #include "KBufferFetchObject.h"
+#include "KStatusCodeMark.h"
 
 bool check_path_info(const char *file,struct _stat64 *buf)
 {
@@ -32,7 +33,7 @@ bool check_path_info(const char *file,struct _stat64 *buf)
 	}
 	free(str);
 	if (result) {
-		//排除目录
+		//鎺掗櫎鐩綍
 		result = (S_ISDIR(buf->st_mode) == 0);
 	}
 	return result;
@@ -44,6 +45,7 @@ KRewriteRule::KRewriteRule() {
 	internal = true;
 	revert = false;
 	code = 0;
+	status = 0;
 }
 KRewriteRule::~KRewriteRule() {
 	if (dst) {
@@ -72,6 +74,9 @@ void KRewriteRule::buildXml(std::stringstream &s)
 	if (!internal && code>0) {
 		s << " code='" << code << "'";
 	}
+	if (status > 0) {
+		s << " status='" << status << "'";
+	}
 }
 bool KRewriteRule::parse(const KXmlAttribute& attribute)
 {
@@ -89,6 +94,10 @@ bool KRewriteRule::parse(const KXmlAttribute& attribute)
 		internal = false;
 	}
 	code = atoi(attribute["code"].c_str());
+	status = atoi(attribute["status"].c_str());
+	if (status < 200 || status > 599) {
+		status = 0;
+	}
 	if (proxy) {
 		xfree(proxy);
 		proxy = NULL;
@@ -98,7 +107,7 @@ bool KRewriteRule::parse(const KXmlAttribute& attribute)
 	}
 	const char *path = attribute["path"].c_str();
 	if (*path=='!') {
-		//反转
+		//鍙嶈浆
 		revert = true;
 		path ++;
 	} else {
@@ -117,7 +126,7 @@ uint32_t KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 	if (len < prefix.size()) {
 		return KF_STATUS_REQ_FALSE;
 	}
-	//测试path
+	//娴嬭瘯path
 	KRegSubString *subString = reg.matchSubString(rq->sink->data.url->path + prefix.size(), (int)(len - prefix.size()), 0);
 	bool match_result = (subString!=NULL);
 	if (revert==match_result) {
@@ -129,7 +138,7 @@ uint32_t KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 	KRegSubString *lastCond = NULL;
 	bool result = true;
 	if (conds) {
-		//测试条件
+		//娴嬭瘯鏉′欢
 		std::list<KRewriteCond *>::iterator it;
 		for (it = conds->begin(); it != conds->end(); it++) {
 			if (result && (*it)->is_or) {
@@ -145,6 +154,18 @@ uint32_t KRewriteRule::mark(KHttpRequest *rq, KHttpObject *obj,
 			}
 			delete str;
 		}
+	}
+	if (result && status > 0) {
+		// like Apache, [F] and [G] ignore the substitution
+		if (subString) {
+			delete subString;
+		}
+		if (lastCond) {
+			delete lastCond;
+		}
+		KBIT_SET(rq->ctx.filter_flags, RF_NO_CACHE);
+		fo.reset(new KStatusCodeSource((uint16_t)status));
+		return KF_STATUS_REQ_TRUE;
 	}
 	if (!result || dst == NULL || strcmp(dst, "-") == 0) {
 		if (subString) {
@@ -229,7 +250,7 @@ bool KFileAttributeTestor::test(const char *str, KRegSubString **lastSubString) 
 	struct _stat64 buf;
 	bool exsit = (_stati64(str, &buf) == 0);
 	if (!exsit && conf.path_info && type!='d') {
-		//检查path_info情况
+		//妫�鏌ath_info鎯呭喌
 		exsit = check_path_info(str,&buf);
 	}
 	if (!exsit) {
@@ -481,7 +502,7 @@ void KRewriteMarkEx::getString(const char *prefix, const char *str,KHttpRequest 
 				continue;
 			}
 			if (isdigit(*hot) && s1) {
-				char *ss = s1->getString(atoi(hot));
+				char *ss = s1->getString(*hot - '0');
 				if (ss) {
 					*s << ss;
 				}
@@ -506,7 +527,7 @@ void KRewriteMarkEx::getString(const char *prefix, const char *str,KHttpRequest 
 				continue;
 			}
 			if (isdigit(*hot) && s2) {
-				char *ss = s2->getString(atoi(hot));
+				char *ss = s2->getString(*hot - '0');
 				if (ss) {
 					*s << ss;
 				}

@@ -35,6 +35,9 @@ bool KApiPipeStream::shutdown() {
 	return false;
 }
 bool KApiPipeStream::logon(const KString& user, const KString& password) {
+	if (user.size() > 0xffffU - 8 || password.size() > 0xffffU - 8 - user.size()) {
+		return false;
+	}
 	FCGI_Header header;
 	memset(&header, 0, sizeof(header));
 	header.type = API_CHILD_LOGON;
@@ -54,7 +57,9 @@ bool KApiPipeStream::logon(const KString& user, const KString& password) {
 	if (header.type != API_CHILD_LOGON_RESULT) {
 		return false;
 	}
-	assert(header.contentLength == 0);
+	if (header.contentLength != 0) {
+		return false;
+	}
 	if (header.id == 1) {
 		return true;
 	}
@@ -95,11 +100,18 @@ bool KApiPipeStream::setuid(int uid, int gid) {
 	return false;
 }
 bool KApiPipeStream::chroot(const char* dir) {
+	if (dir == NULL) {
+		return false;
+	}
+	size_t dir_len = strlen(dir);
+	if (dir_len >= 0xffffU) {
+		return false;
+	}
 	FCGI_Header header;
 	memset(&header, 0, sizeof(header));
 	header.type = API_CHILD_CHROOT;
 	//KString path = rd->path;
-	u_short len = (u_short)(strlen(dir) + 1);
+	u_short len = (u_short)(dir_len + 1);
 	header.contentLength = htons(len);
 	if (write_all((char*)&header, sizeof(header)) != STREAM_WRITE_SUCCESS) {
 		return false;
@@ -113,7 +125,9 @@ bool KApiPipeStream::chroot(const char* dir) {
 	if (header.type != API_CHILD_CHROOT_RESULT) {
 		return false;
 	}
-	assert(header.contentLength == 0);
+	if (header.contentLength != 0) {
+		return false;
+	}
 	if (header.id == 0) {
 		chrooted = true;
 		return true;
@@ -122,10 +136,16 @@ bool KApiPipeStream::chroot(const char* dir) {
 	return false;
 }
 bool KApiPipeStream::loadApi(KApiRedirect* rd) {
+	if (rd == NULL) {
+		return false;
+	}
 	FCGI_Header header;
 	memset(&header, 0, sizeof(header));
 	header.type = API_CHILD_LOAD;
 	auto path = rd->dso.path;
+	if (path.size() >= 0xffffU) {
+		return false;
+	}
 	u_short len = (u_short)(path.size() + 1);
 	header.id = rd->id;
 	header.contentLength = htons(len);
@@ -141,7 +161,9 @@ bool KApiPipeStream::loadApi(KApiRedirect* rd) {
 	if (header.type != API_CHILD_LOAD_RESULT) {
 		return false;
 	}
-	assert(header.contentLength == 0);
+	if (header.contentLength != 0) {
+		return false;
+	}
 	if (header.id > 0) {
 		klog(KLOG_ERR, "child load api [%s] failed\n", path.c_str());
 		return false;
@@ -178,7 +200,7 @@ bool KApiPipeStream::listen(u_short port, bool unix_socket) {
 	if (!read_all((char*)&info, sizeof(sp_info))) {
 		return false;
 	}
-	return true;
+	return info.result == 0;
 }
 bool KApiPipeStream::init(KVirtualHost* vh, int workType) {
 	if (!loadAllApi(vh, workType)) {
@@ -187,6 +209,10 @@ bool KApiPipeStream::init(KVirtualHost* vh, int workType) {
 #ifdef ENABLE_VH_RUN_AS
 #ifndef _WIN32
 	if (my_uid == 0) {
+		if (vh->run_as_failed) {
+			/* id[] is root when the run user was not found */
+			return false;
+		}
 		if (vh->chroot) {
 			if (!chroot(vh->doc_root.c_str())) {
 				return false;
@@ -198,7 +224,7 @@ bool KApiPipeStream::init(KVirtualHost* vh, int workType) {
 	}
 #else
 	/*
-	* windows系统上先改变身份，再load api
+	* windows绯荤粺涓婂厛鏀瑰彉韬唤锛屽啀load api
 	*/
 	if (!vh->user.empty()) {
 		if (!logon(vh->user, vh->group)) {

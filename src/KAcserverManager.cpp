@@ -17,6 +17,8 @@
  */
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <limits.h>
 #include <vector>
 #include "ksocket.h"
 #include "KAcserver.h"
@@ -136,6 +138,10 @@ void KAcserverManager::on_cmd_event(kconfig::KConfigTree* tree, const khttpd::KX
 			klog(KLOG_ERR, "not found cmd [%s]\n", name.c_str());
 			return;
 		}
+		// Virtual hosts and running requests may still hold the command, so
+		// release() alone does not destroy it.  Stop its processes now, or
+		// they outlive kangle (a config clear at shutdown removes every cmd).
+		(*it).second->shutdown();
 		(*it).second->release();
 		cmds.erase(it);
 		break;
@@ -331,6 +337,38 @@ KAcserverManager::~KAcserverManager() {
 }
 void KAcserverManager::killAllProcess(KVirtualHost* vh) {
 	spProcessManage.killAllProcess(vh);
+#ifdef ENABLE_VH_RUN_AS
+	// FastCGI programs started through a <cmd> redirect (including PHP-CGI)
+	// live in their command redirect's own process manager, not in
+	// spProcessManage.  Keep both families in sync so the WHM kill_process
+	// operation really restarts every application belonging to the vhost.
+	auto locker = get_rlocker();
+	for (auto&& it : cmds) {
+		KProcessManage* pm = it.second->getProcessManage();
+		if (pm) {
+			pm->killAllProcess(vh);
+		}
+	}
+#endif
+}
+void KAcserverManager::refreshPool(time_t nowTime) {
+	if (nowTime <= 0) {
+		/* refresh(0) means close every idle connection. */
+		return;
+	}
+	/*
+	 * Idle pooled sockets used to be expired only when the same server was
+	 * requested again, so peer-closed connections could stay open forever.
+	 */
+	auto locker = get_rlocker();
+	for (auto&& it : acservers) {
+		it.second->refresh_pool(nowTime);
+	}
+#ifdef ENABLE_MULTI_SERVER
+	for (auto&& it : mservers) {
+		it.second->refresh_pool(nowTime);
+	}
+#endif
 }
 #ifdef ENABLE_VH_RUN_AS
 void KAcserverManager::refreshCmd(time_t nowTime) {
@@ -377,7 +415,6 @@ void KAcserverManager::flushCpuUsage(ULONG64 cpuTime) {
 
 }
 #endif
-#if 0
 int KAcserverManager::getCmdPortMap(KVirtualHost* vh, KString cmd, KString name, int app) {
 	KCmdPoolableRedirect* rd = refsCmdRedirect(cmd);
 	if (rd == NULL) {
@@ -391,7 +428,6 @@ int KAcserverManager::getCmdPortMap(KVirtualHost* vh, KString cmd, KString name,
 	rd->release();
 	return port;
 }
-#endif
 //}}
 void KAcserverManager::dump_process(kgl::serializable* sl) {
 	auto locker = get_rlocker();
@@ -494,7 +530,7 @@ void KAcserverManager::apiList(KWStream& s, const KString& name) {
 	s << klang["file"] << ": <input name='file' size='80' value='" << (m_a ? m_a->apiFile
 		: "") << "'><br>\n";
 	if (m_a && m_a->type == WORK_TYPE_MT) {
-		s << "<input type=hidden name='mt' value='1'>";
+		s << "<input type=hidden name='type' value='mt'>";
 	}
 	s << "<input type='submit' value='" << LANG_SUBMIT << "'>";
 	s << "</form>";
@@ -711,7 +747,11 @@ void KAcserverManager::acserverList(KWStream& s, const KString& name) {
 	if (m_a) {
 		s << "<input type=hidden name=namefrom value='" << m_a->name << "'>\n";
 	}
-	s << "<br>" << klang["lang_life_time"] << "<input name='life_time' size=5 value=" << (m_a ? m_a->sockHelper->getLifeTime() : 0) << ">";
+	s << "<br>" << klang["lang_life_time"] << "<input name='life_time' size=5 value='";
+	if (m_a) {
+		s << m_a->sockHelper->getLifeTime();
+	}
+	s << "'>";
 	s << klang["lang_life_time_notice"] << "<br>";
 	kgl_refs_string* param = NULL;
 	if (m_a) {
@@ -789,7 +829,7 @@ bool KAcserverManager::macserver_node(KXmlAttribute& attribute, KString& err_msg
 void KAcserverManager::unloadAllApi() {
 	std::map<KString, KApiRedirect*>::iterator it3;
 	for (it3 = apis.begin(); it3 != apis.end(); it3++) {
-		(*it3).second->dso.unload();
+		(*it3).second->unload();
 	}
 }
 std::vector<KString> KAcserverManager::getAllTarget() {
@@ -971,6 +1011,9 @@ KRedirect* KAcserverManager::refsRedirect(const KString& target) {
 	if (strncasecmp(target.c_str(), "cdn:", 4) == 0) {
 		KRedirect* rd = NULL;
 		char* tmp = strdup(target.c_str() + 4);
+		if (tmp == NULL) {
+			return NULL;
+		}
 		char* p = strchr(tmp, ':');
 		if (p) {
 			*p = '\0';
@@ -978,14 +1021,32 @@ KRedirect* KAcserverManager::refsRedirect(const KString& target) {
 			p = strchr(host, ':');
 			if (p) {
 				*p = '\0';
-				int port = atoi(p + 1);
-				p = strchr(p + 1, ':');
-				int life_time = 0;
+				char* port_text = p + 1;
+				p = strchr(port_text, ':');
+				char* life_time_text = NULL;
 				if (p) {
 					*p = '\0';
-					life_time = atoi(p + 1);
+					life_time_text = p + 1;
 				}
-				rd = server_container->refsRedirect(NULL, host, port, NULL, life_time, KPoolableRedirect::parseProto(tmp));
+				char* end = NULL;
+				errno = 0;
+				long parsed_port = strtol(port_text, &end, 10);
+				int life_time = 0;
+				bool valid = *tmp && *host && *port_text && !errno && *end == '\0'
+					&& parsed_port > 0 && parsed_port <= 65535;
+				if (valid && life_time_text) {
+					errno = 0;
+					long parsed_life_time = strtol(life_time_text, &end, 10);
+					valid = *life_time_text && !errno && *end == '\0'
+						&& parsed_life_time >= 0 && parsed_life_time <= INT_MAX;
+					if (valid) {
+						life_time = (int)parsed_life_time;
+					}
+				}
+				if (valid) {
+					rd = server_container->refsRedirect(NULL, host, (int)parsed_port, NULL,
+						life_time, KPoolableRedirect::parseProto(tmp));
+				}
 			}
 		}
 		free(tmp);

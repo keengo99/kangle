@@ -52,7 +52,10 @@ public:
 		return;
 	}
 	void parse(kgl_access_parse_config* parse_ctx) {
-		max_count = (int)parse_ctx->body->get_int(parse_ctx->cn,"max_count");
+		/* without max_count, get_int gives 0 and every request with a
+		 * parameter was refused; keep the default instead */
+		const char* v = parse_ctx->body->get_value(parse_ctx->cn, "max_count");
+		max_count = (v && *v) ? atoi(v) : 1000;
 		get = !!parse_ctx->body->get_int(parse_ctx->cn, "get");
 		post = !!parse_ctx->body->get_int(parse_ctx->cn, "post");
 	}
@@ -98,18 +101,18 @@ static uint32_t process(KREQUEST rq, kgl_access_context* ctx, DWORD notify) {
 	KParamCountMark* mark = (KParamCountMark*)ctx->module;
 	auto filter_ctx = get_input_filter_context(rq, ctx);
 	if (!filter_ctx) {
-		return KF_STATUS_REQ_TRUE;
+		return KF_STATUS_REQ_FALSE;
 	}
 	auto context = mark->new_context();
 	if (mark->get) {
 		if (filter_ctx->check_get(context.get(), rq, ctx)) {
-			return KF_STATUS_REQ_FINISHED;
+			return KF_STATUS_REQ_TRUE;
 		}
 	}
 	if (mark->post) {
 		filter_ctx->get_filter(rq, ctx)->register_param(context.get());
 	}
-	return KF_STATUS_REQ_TRUE;
+	return KF_STATUS_REQ_FALSE;
 }
 kgl_access kgl_param_count_model = {
 	sizeof(kgl_access),

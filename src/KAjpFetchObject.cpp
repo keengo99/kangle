@@ -11,6 +11,26 @@
 #include "KHttpResponseParser.h"
 #include "kmalloc.h"
 #include "KPoolableSocketContainer.h"
+#include "KHttpKeyValue.h"
+#define SC_M_JK_STORED 0xFF
+#define SC_A_STORED_METHOD 0x0D
+static unsigned char kgl_meth_to_ajp(uint8_t meth) {
+	switch (meth) {
+	case METH_OPTIONS:
+		return 1;
+	case METH_GET:
+		return 2;
+	case METH_HEAD:
+		return 3;
+	case METH_POST:
+		return 4;
+	default:
+		if (meth >= METH_PUT && meth <= METH_MKACTIVITY) {
+			return (unsigned char)meth;
+		}
+		return SC_M_JK_STORED;
+	}
+}
 #define MAX_AJP_RESPONSE_HEADERS 0xc
 #define MAX_AJP_REQUEST_HEADERS  0xf
 #if 0 
@@ -49,21 +69,25 @@ static kgl_str_t ajp_response_headers[MAX_AJP_RESPONSE_HEADERS] = {
 KAjpFetchObject::KAjpFetchObject() {
 	body_len = 0;
 	end_request_recved = false;
+	post_length_unknown = false;
 }
 
 KAjpFetchObject::~KAjpFetchObject() {
 }
-//´´½¨·¢ËÍÍ·µ½bufferÖÐ¡£
+//åˆ›å»ºå‘é€å¤´åˆ°bufferä¸­ã€‚
 KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest* rq)
 {
 	assert(buffer == NULL);
 	buffer = new KSocketBuffer(AJP_BUFF_SIZE);
+	pop_header.proto = Proto_ajp;
+	post_length_unknown = in->f->body.get_left(in->body_ctx) < 0;
 	char tmpbuff[50];
 	KHttpObject* obj = rq->ctx.obj;
 	KBIT_SET(obj->index.flags, ANSW_LOCAL_SERVER);
 	KAjpMessage b(buffer);
 	b.putByte(JK_AJP13_FORWARD_REQUEST);
-	b.putByte(rq->sink->data.meth);
+	unsigned char ajp_meth = kgl_meth_to_ajp(rq->sink->data.meth);
+	b.putByte(ajp_meth);
 	b.putString("HTTP/1.1");
 	if (KBIT_TEST(rq->sink->data.url->flags, KGL_URL_ENCODE)) {
 		size_t path_len = 0;
@@ -190,8 +214,15 @@ KGL_RESULT KAjpFetchObject::buildHead(KHttpRequest* rq)
 		b.putString(param->data, (int)param->len);
 		kstring_release(param);
 	}
+	if (ajp_meth == SC_M_JK_STORED) {
+		kgl_str_t* method = KHttpKeyValue::get_method(rq->sink->data.meth);
+		b.putByte(SC_A_STORED_METHOD);
+		b.putString(method->data, (int)method->len);
+	}
 	b.putByte(0xFF);
-	b.end();
+	if (!b.end()) {
+		return KGL_EDATA_FORMAT;
+	}
 	return KGL_OK;
 }
 void KAjpFetchObject::BuildPostEnd()
@@ -206,6 +237,16 @@ void KAjpFetchObject::BuildPostEnd()
 	d[3] = 0;
 	buffer->Append(ebuff);
 	//*/
+}
+KGL_RESULT KAjpFetchObject::on_post_end()
+{
+	if (!post_length_unknown) {
+		// the container reads exactly Content-Length bytes; an extra
+		// empty packet would be parsed as the next request.
+		return KGL_OK;
+	}
+	unsigned char pkt[4] = { 0x12, 0x34, 0, 0 };
+	return client->write_all((const char*)pkt, 4) == 0 ? KGL_OK : KGL_ECAN_RETRY_SOCKET_BROKEN;
 }
 KGL_RESULT KAjpFetchObject::ParseBody(KHttpRequest* rq, char** data, char* end)
 {
@@ -228,19 +269,32 @@ KGL_RESULT KAjpFetchObject::ParseBody(KHttpRequest* rq, char** data, char* end)
 		//printf("type=[%d]\n",type);
 		switch (type) {
 		case JK_AJP13_END_RESPONSE:
-			ReadBodyEnd(rq);
-			break;
-		case JK_AJP13_SEND_BODY_CHUNK:
+			if (!ReadBodyEnd(rq, &msg) || *data != end) {
+				rq->ctx.upstream_connection_keep_alive = 0;
+				return KGL_EDATA_FORMAT;
+			}
+			return KGL_OK;
+		case JK_AJP13_SEND_BODY_CHUNK: {
 			if (!msg.getShort(&chunk_length)) {
+				return KGL_EDATA_FORMAT;
+			}
+			if (msg.getLen() < (int)chunk_length + 1 || msg.getBytes()[chunk_length] != '\0') {
 				return KGL_EDATA_FORMAT;
 			}
 			//printf("chunk_length=[%d]\n",chunk_length);
 			chunk_data = msg.getBytes();
+			if (body.ctx == nullptr) {
+				//no body response (HEAD/204/304...)
+				break;
+			}
 			KGL_RESULT ret = PushBody(rq, &body, chunk_data, chunk_length);
 			if (KGL_OK != ret) {
 				return ret;
 			}
 			break;
+		}
+		default:
+			return KGL_EDATA_FORMAT;
 		}
 	}
 	return KGL_OK;
@@ -259,10 +313,15 @@ kgl_parse_result KAjpFetchObject::parse_unknow_header(KHttpRequest* rq, char** d
 			return kgl_parse_error;
 		}
 		unsigned char type = parseMessage(rq, rq->ctx.obj, &msg);
+		if (type == JK_AJP13_ERROR) {
+			return kgl_parse_error;
+		}
 		//printf("type=[%d]\n",type);
 		switch (type) {
 		case JK_AJP13_SEND_HEADERS:
 			//printf("parse_finished *len=[%d]\n",*len);
+			return kgl_parse_finished;
+		case JK_AJP13_END_RESPONSE:
 			return kgl_parse_finished;
 		case JK_AJP13_GET_BODY_CHUNK:
 			if (*data == end) {
@@ -338,12 +397,14 @@ unsigned char KAjpFetchObject::parseMessage(KHttpRequest* rq, KHttpObject* obj, 
 		}
 		break;
 	case JK_AJP13_END_RESPONSE:
-		ReadBodyEnd(rq);
+		if (!ReadBodyEnd(rq, msg)) {
+			return JK_AJP13_ERROR;
+		}
 		break;
 	}
 	return type;
 }
-//´´½¨postÊý¾Ýµ½bufferÖÐ¡£
+//åˆ›å»ºpostæ•°æ®åˆ°bufferä¸­ã€‚
 void KAjpFetchObject::buildPost(KHttpRequest* rq)
 {
 	unsigned len = buffer->getLen();
@@ -382,7 +443,7 @@ kgl_parse_result KAjpFetchObject::parse(char** str, char* end, KAjpMessageParser
 			return kgl_parse_error;
 		}
 		body_len = ajp_header[2] << 8 | ajp_header[3];
-		if (body_len > AJP_PACKAGE) {
+		if (body_len > AJP_PACKAGE - 4) {
 			klog(KLOG_ERR, "recv wrong package length %d.\n", body_len);
 			return kgl_parse_error;
 		}

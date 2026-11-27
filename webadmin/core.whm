@@ -12,11 +12,13 @@
 	<!-- access -->
 	<call name='list_table' extend='core'/>
 	<call name='list_chain' extend='core'/>
+	<call name='add_chain' extend='core'/>
 	<call name='del_chain' extend='core'/>
 	<call name='get_chain' extend='core'/>
 	<call name='edit_chain' extend='core'/>
 	<call name='del_table' extend='core'/>
 	<call name='add_table' extend='core'/>
+	<call name='empty_table' extend='core'/>
 	<call name='list_module' extend='core'/>
 	<call name='get_module' extend='core'/>
 	<call name='list_named_module' extend='core'/>
@@ -35,6 +37,8 @@
 	<!-- system -->
 	<call name='change_admin_password'  extend='core'/>
 	<call name='list_listen' extend='core'/>
+	<call name='list_tvh' extend='core'/>
+	<call name='list_gtvh' extend='core'/>
 	<call name='list_connect_per_ip' extend='core'/>
 	<call name='config' extend='core'/>
 	<call name='config_submit' extend='core'/>
@@ -50,9 +54,13 @@
 	</call>
 	<call name='reload_vh' extend='core'>
 	</call>
-	<call name='list_index' extend='core'>
+	<call name='del_vh' extend='core'>
 	</call>
-	<call name='kill_process' extend='core'>
+	<call name='reload_vh_access' extend='core'>
+	</call>
+	<call name='reload_all_vh' extend='core'>
+	</call>
+	<call name='list_index' extend='core'>
 	</call>
 	<call name='reboot' extend='core'>
 	</call>

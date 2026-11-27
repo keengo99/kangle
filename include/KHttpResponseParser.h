@@ -27,6 +27,8 @@ private:
 	time_t serverDate;
 	time_t expireDate;
 	unsigned age;
+	bool has_s_maxage;
+	bool cache_control_no_cache;
 };
 kgl_header_type kgl_parse_response_header(const char* attr, hlen_t attr_len);
 struct kgl_default_output_stream_ctx

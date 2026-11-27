@@ -29,6 +29,9 @@
 using namespace std;
 char *kgl_http_strdup(const char *val,size_t val_len)
 {
+	if (val == NULL) {
+		return NULL;
+	}
 	size_t len;
 	char* copy;
 	len = strnlen(val, val_len);
@@ -80,41 +83,75 @@ bool KApiEnv::add_env_vars(const char *attr, const char *val, std::map<char *,
 }
 bool KApiEnv::add_env(const char* attr, size_t attr_len, const char* val, size_t val_len)
 {
+	if (attr == NULL || val == NULL) {
+		return false;
+	}
 	char* attr2 = kgl_strndup(attr, attr_len);
+	if (attr2 == NULL) {
+		return false;
+	}
 	std::map<char*, char*, lessp_icase >::iterator it;
 	it = serverVars.find(attr2);
 	if (it != serverVars.end()) {
 		xfree(attr2);
 		return false;
 	}
-	serverVars.insert(pair<char*, char*>(attr2, kgl_strndup(val,val_len)));
+	char* value = kgl_strndup(val, val_len);
+	if (value == NULL) {
+		xfree(attr2);
+		return false;
+	}
+	serverVars.insert(pair<char*, char*>(attr2, value));
 	return true;
 }
 bool KApiEnv::add_content_type(const char *contentType,size_t len) {
-	if (this->contentType) {
+	if (this->contentType || contentType == NULL) {
 		return false;
 	}
 	this->contentType = kgl_strndup(contentType,len);
+	if (this->contentType == NULL) {
+		return false;
+	}
 	return KEnvInterface::add_content_type(contentType,len);
 }
 bool KApiEnv::add_content_length(const char *contentLength,size_t len) {
+	if (contentLength == NULL) {
+		return false;
+	}
 	this->contentLength = kgl_atol((u_char *)contentLength,len);
 	return KEnvInterface::add_content_length(contentLength,len);
 }
 bool KApiEnv::add_http_env(const char *attr,size_t attr_len, const char *val,size_t val_len) {
+	if (attr == NULL || val == NULL) {
+		return false;
+	}
 
 	std::map<char *, char *, lessp_icase >::iterator it;
 	char* http_attr = kgl_upstrndup(attr, attr_len);
+	if (http_attr == NULL) {
+		return false;
+	}
 	it = httpVars.find(http_attr);
 	if (it != httpVars.end()) {
 		xfree(http_attr);
 		return false;
 	}
-	httpVars.insert(pair<char *, char *> (http_attr, kgl_strndup(val,val_len)));
+	char* value = kgl_strndup(val, val_len);
+	if (value == NULL) {
+		xfree(http_attr);
+		return false;
+	}
+	httpVars.insert(pair<char *, char *> (http_attr, value));
 	return true;
 }
 const char *KApiEnv::getHttpEnv(const char *attr) {
+	if (attr == NULL) {
+		return NULL;
+	}
 	char *buf = kgl_http_strdup(attr,strlen(attr));
+	if (buf == NULL) {
+		return NULL;
+	}
 #if 0
 	printf("try found http env=[%s]\n", buf);
 	for (auto it = httpVars.begin(); it != httpVars.end(); it++) {
@@ -126,6 +163,9 @@ const char *KApiEnv::getHttpEnv(const char *attr) {
 	return val;
 }
 const char *KApiEnv::getHeaderEnv(const char *attr) {
+	if (attr == NULL) {
+		return NULL;
+	}
 	std::map<char *, char *, lessp_icase >::iterator it;
 	it = httpVars.find((char *) attr);
 	if (it != httpVars.end()) {
@@ -134,6 +174,9 @@ const char *KApiEnv::getHeaderEnv(const char *attr) {
 	return NULL;
 }
 const char *KApiEnv::getEnv(const char *attr) {
+	if (attr == NULL) {
+		return NULL;
+	}
 	if (strncasecmp(attr, "HTTP_", 5) == 0) {
 		return getHttpEnv(attr + 5);
 	}
@@ -148,6 +191,9 @@ const char *KApiEnv::getEnv(const char *attr) {
 	return NULL;
 }
 bool KApiEnv::getAllHttp(char *buf, int *buf_size) {
+	if (buf_size == NULL || *buf_size < 0) {
+		return false;
+	}
 	//	int len = *buf_size;
 	int totalLen = 0;
 	std::map<char *, char *, lessp_icase >::iterator it;

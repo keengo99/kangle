@@ -11,10 +11,12 @@
 #include "KHttpField.h"
 #include "http.h"
 #include "kmd5.h"
+#include <ctype.h>
 
 #include "kmalloc.h"
 #ifdef ENABLE_DIGEST_AUTH
 std::map<char*, KHttpDigestSession*, lessp> KHttpDigestAuth::sessions;
+std::list<char*> KHttpDigestAuth::lru;
 KMutex KHttpDigestAuth::lock;
 using namespace std;
 KHttpDigestSession::KHttpDigestSession(const char* realm) {
@@ -31,7 +33,7 @@ bool KHttpDigestSession::verify_rq(KHttpRequest* rq) {
 	//int inc = atoi(nc);
 	//	debug("last_nc = %x,inc=%x\n",last_nc,inc);
 	if (inc == last_nc) {
-		//重放攻击
+		//閲嶆斁鏀诲嚮
 		//		debug("replay attack,last_nc=%d,inc=%d\n",last_nc,inc);
 		return false;
 	} else if (inc < last_nc) {
@@ -51,7 +53,7 @@ bool KHttpDigestSession::verify_rq(KHttpRequest* rq) {
 		}
 		//		debug("\nresult=%d\n",result);
 	} else {
-		//更新最后的nc
+		//鏇存柊鏈�鍚庣殑nc
 		last_nc = inc;
 	}
 	if (result) {
@@ -78,6 +80,7 @@ KHttpDigestAuth::KHttpDigestAuth() :
 	response = NULL;
 	orig_str = NULL;
 	uri = NULL;
+	stale = false;
 }
 KHttpDigestAuth::~KHttpDigestAuth() {
 	if (realm) {
@@ -110,12 +113,16 @@ bool KHttpDigestAuth::verifySession(KHttpRequest* rq) {
 		return false;
 	}
 	KSafeUrl url2(new KUrl(true));
-	parse_url(uri, url2.get());
+	if (!parse_url(uri, url2.get())) {
+		return false;
+	}
+	const char* request_param = rq->sink->data.raw_url.param;
 	if (
-		(url2->host && strcmp(url2->host, rq->sink->data.raw_url.host) != 0)
+		(url2->host && strcasecmp(url2->host, rq->sink->data.raw_url.host) != 0)
 		|| (url2->path == NULL)
 		|| (strcmp(url2->path, rq->sink->data.raw_url.path) != 0)
-		|| (url2->param && (rq->sink->data.raw_url.param == NULL || strcmp(url2->param, rq->sink->data.raw_url.param) != 0))
+		|| ((url2->param == NULL) != (request_param == NULL))
+		|| (url2->param && strcmp(url2->param, request_param) != 0)
 		) {
 
 		return false;
@@ -128,6 +135,9 @@ bool KHttpDigestAuth::verifySession(KHttpRequest* rq) {
 	if (it != sessions.end()) {
 		if (strcmp(realm, (*it).second->realm) == 0) {
 			sessionright = (*it).second->verify_rq(rq);
+			if (sessionright) {
+				lru.splice(lru.end(), lru, (*it).second->lru);
+			}
 		} else {
 			debug("realm[%s] is not eq session realm[%s]", realm, (*it).second->realm);
 		}
@@ -143,10 +153,13 @@ bool KHttpDigestAuth::verifySession(KHttpRequest* rq) {
 }
 
 bool KHttpDigestAuth::parse(KHttpRequest* rq, const char* str) {
+	if (str == NULL) {
+		return false;
+	}
 	/*
 	 if (rq->auth == NULL || rq->auth->getType() != AUTH_DIGEST) {
-	 debug("没有上一次的数据\n");
-	 //没有上一次的数据
+	 debug("娌℃湁涓婁竴娆＄殑鏁版嵁\n");
+	 //娌℃湁涓婁竴娆＄殑鏁版嵁
 	 return false;
 	 }
 	 */
@@ -218,38 +231,48 @@ bool KHttpDigestAuth::parse(KHttpRequest* rq, const char* str) {
 	}
 	//check the digest
 	if (user == NULL) {
-		//		debug("没有用户名\n");
+		//		debug("娌℃湁鐢ㄦ埛鍚峔n");
 		return false;
 	}
 	if (realm == NULL) {
 		//|| this->realm == NULL || strcmp(realm, this->realm) != 0) {
-		//		debug("realm 不对\n");
+		//		debug("realm 涓嶅\n");
 		return false;
 	}
 	if (nonce == NULL) {//|| this->nonce == NULL || strcmp(nonce, this->nonce) != 0) {
-		//		debug("nonce不对\n");
+		//		debug("nonce涓嶅\n");
 		return false;
 	}
 
 	if (uri == NULL) {
 		return false;
 	}
-	if (response == NULL) {
-		//		debug("response不能为空\n");
+	if (response == NULL || strlen(response) != 32) {
+		//		debug("response涓嶈兘涓虹┖\n");
 		return false;
 	}
 
-	if (nc == NULL) {
-		//		debug("nc不能为空\n");
+	if (nc == NULL || strlen(nc) != 8) {
+		//		debug("nc涓嶈兘涓虹┖\n");
 		return false;
 	}
-	if (cnonce == NULL) {
+	if (cnonce == NULL || *cnonce == '\0') {
 		//		debug("cnonce empty\n");
 		return false;
 	}
-	if (qop == NULL) {
+	if (qop == NULL || strcasecmp(qop, "auth") != 0) {
 		//		debug("qop empty\n");
 		return false;
+	}
+	for (const char* p = response; *p; ++p) {
+		if (!isxdigit((unsigned char)*p)) {
+			return false;
+		}
+	}
+	for (const char* p = nc; *p; ++p) {
+		if (!isxdigit((unsigned char)*p)) {
+			return false;
+		}
 	}
 	this->response = xstrdup(response);
 	this->nc = xstrdup(nc);
@@ -282,7 +305,7 @@ bool KHttpDigestAuth::verify(KHttpRequest* rq, const char* password,
 	//	printf("response=[%s]\n", ar.getString());
 	char hresponse[33];
 	KMD5(ar.c_str(), ar.size(), hresponse);
-	if (this->response && strcmp(this->response, hresponse) == 0) {
+	if (this->response && strcasecmp(this->response, hresponse) == 0) {
 		//		debug("verified success\n");
 		return true;
 	}
@@ -299,6 +322,9 @@ void KHttpDigestAuth::insertHeader(KHttpRequest* rq) {
 	s << "realm=\"" << realm << "\"";
 	s << ", qop=\"auth\"";
 	s << ", nonce=\"" << nonce << "\"";
+	if (stale) {
+		s << ", stale=true";
+	}
 	const char* auth_header = this->get_auth_header();
 	rq->response_header(auth_header, (hlen_t)strlen(auth_header), s.buf(), s.size());
 }
@@ -311,22 +337,33 @@ KGL_RESULT KHttpDigestAuth::response_header(kgl_output_stream* out) {
 	s << "realm=\"" << realm << "\"";
 	s << ", qop=\"auth\"";
 	s << ", nonce=\"" << nonce << "\"";
+	if (stale) {
+		s << ", stale=true";
+	}
 	const char* auth_header = this->get_auth_header();
 	return out->f->write_unknow_header(out->ctx, auth_header, (hlen_t)strlen(auth_header), s.buf(), s.size());
 }
+void KHttpDigestAuth::remove_session(map<char*, KHttpDigestSession*, lessp>::iterator it) {
+	char* key = (*it).first;
+	lru.erase((*it).second->lru);
+	delete (*it).second;
+	sessions.erase(it);
+	xfree(key);
+}
 void KHttpDigestAuth::flushSession(time_t nowTime) {
-	map<char*, KHttpDigestSession*, lessp>::iterator it, it2;
 	lock.Lock();
-	for (it = sessions.begin(); it != sessions.end();) {
-		if (nowTime > (*it).second->lastActive + MAX_SESSION_LIFETIME) {
-			it2 = it;
-			it++;
-			xfree((*it2).first);
-			delete (*it2).second;
-			sessions.erase(it2);
-		} else {
-			it++;
+	/* lru is ordered by lastActive, so stop at the first live session. */
+	while (!lru.empty()) {
+		auto it = sessions.find(lru.front());
+		kassert(it != sessions.end());
+		if (it == sessions.end()) {
+			lru.pop_front();
+			continue;
 		}
+		if (nowTime <= (*it).second->lastActive + MAX_SESSION_LIFETIME) {
+			break;
+		}
+		remove_session(it);
 	}
 	lock.Unlock();
 }
@@ -338,10 +375,26 @@ void KHttpDigestAuth::init(KHttpRequest* rq, const char* realm) {
 	this->nonce = s.steal().release();
 	KHttpDigestSession* session = new KHttpDigestSession(realm);
 	kgl_memcpy(&session->addr, rq->sink->get_peer_addr(), sizeof(sockaddr_i));
+	char* key = xstrdup(this->nonce);
 	lock.Lock();
-	//debug("add nonce[%s] to session\n",this->nonce);
-	sessions.insert(pair<char*, KHttpDigestSession*>(
-		xstrdup(this->nonce), session));
+	auto result = sessions.insert(pair<char*, KHttpDigestSession*>(key, session));
+	if (!result.second) {
+		/* the same nonce was issued twice in one second */
+		lock.Unlock();
+		xfree(key);
+		delete session;
+		return;
+	}
+	session->lru = lru.insert(lru.end(), key);
+	while (sessions.size() > MAX_DIGEST_SESSION) {
+		auto it = sessions.find(lru.front());
+		kassert(it != sessions.end());
+		if (it == sessions.end()) {
+			lru.pop_front();
+			continue;
+		}
+		remove_session(it);
+	}
 	lock.Unlock();
 }
 #endif

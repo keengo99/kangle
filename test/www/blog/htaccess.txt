@@ -1,0 +1,4 @@
+RewriteEngine On
+RewriteRule ^a$ x [S=1]
+RewriteRule ^x$ /wrong [R=302,L]
+RewriteRule ^x$ /right [R=301,L]

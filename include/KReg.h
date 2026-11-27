@@ -98,7 +98,7 @@ public:
 	}
 	static char *getSubString(const char *str, KGL_OVECTOR_SIZE*ovector,int ovector_count,int index)
 	{
-		if (index> ovector_count) {
+		if (index < 0 || index >= ovector_count) {
 			return NULL;
 		}
 		int start = index*2;
@@ -122,7 +122,7 @@ public:
 	}
 #endif
 	/**
-	* ³É¹¦·µ»ØÆ¥ÅäµÄ×Ó´®¸öÊı£¬×îÉÙÎª1.²»³É¹¦·µ»Ø<0
+	* æˆåŠŸè¿”å›åŒ¹é…çš„å­ä¸²ä¸ªæ•°ï¼Œæœ€å°‘ä¸º1.ä¸æˆåŠŸè¿”å›<0
 	*/
 	int match(const char *str,int str_len,int flag, kgl_pcre_match_data *match_data);
 	int match(const char *str,int str_len,int flag);

@@ -22,5 +22,5 @@ public:
 	kgl_footer footer;
 };
 void register_footer(KREQUEST r, kgl_access_context *ctx, kgl_filter_footer*model_ctx);
-extern kgl_dso_version* dso_version;
+void register_builtin_filter_models();
 #endif

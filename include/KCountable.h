@@ -22,9 +22,9 @@
 #include "KAtomCountable.h"
 /*
 @deprecated 
-ÇëÊ¹ÓÃKCountableEx
-KCountableEx»á³õÊ¼»¯refsÎª1.
-¶øKCountable³õÊ¼»¯refsÎª0
+è¯·ä½¿ç”¨KCountableEx
+KCountableExä¼šåˆå§‹åŒ–refsä¸º1.
+è€ŒKCountableåˆå§‹åŒ–refsä¸º0
 */
 #if 0
 class KCountable {

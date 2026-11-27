@@ -41,6 +41,8 @@ inline void new_default_stream(KHttpRequest* rq, kgl_input_stream* in, kgl_outpu
 	new_default_output_stream(rq, out);
 }
 bool new_dechunk_body(kgl_output_stream *out, kgl_response_body* down_gate);
+//上游chunked响应是否已完整解码(读到结束块)
+bool is_dechunk_body_end(const kgl_response_body* body);
 void pipe_response_body(kgl_forward_body* forward_body, kgl_response_body_function* f, kgl_response_body* down_body);
 void pipe_output_stream(kgl_forward_output_stream* forward_st, kgl_output_stream_function* f, kgl_output_stream* down_stream);
 void pipe_input_stream(kgl_forward_input_stream* forward_st, kgl_input_stream_function* f, kgl_input_stream* up_stream);

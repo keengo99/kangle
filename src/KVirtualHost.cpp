@@ -78,6 +78,42 @@ KVirtualHost::KVirtualHost(const KString& name) {
 	ssl_ctx = NULL;
 #endif
 }
+#ifdef _WIN32
+bool KVirtualHost::prepareDirectoryRemoval() {
+#ifdef ENABLE_VH_LOG_FILE
+	{
+		// Keep the logger alive for requests already holding this vhost. Retire
+		// it under the same locks as logger lookup and writes, so late access
+		// records cannot reopen the file while the directory is being removed.
+		auto guard = logManage.get_locker();
+		if (logger) {
+			auto it = logManage.logs.find(logger->path);
+			if (it != logManage.logs.end() && it->second == logger) {
+				// One reference belongs to the map, one to this vhost. Never
+				// disable a logger still shared by a different vhost instance.
+				if (logger->getRef() > 2) {
+					return false;
+				}
+				logger->startLog();
+				logger->place = LOG_NONE;
+				logger->close();
+				logger->endLog();
+				logManage.logs.erase(it);
+				logger->release();
+			}
+		}
+	}
+#endif
+	{
+		auto guard = get_locker();
+		closed = true;
+	}
+	// Kangle owns the application pools and knows which belong to this site.
+	// Do not enumerate/kill unrelated php-cgi processes by executable name.
+	killProcess(this);
+	return true;
+}
+#endif
 KVirtualHost::~KVirtualHost() {
 #ifdef ENABLE_VH_RUN_AS
 #ifdef _WIN32
@@ -158,7 +194,15 @@ bool KVirtualHost::alias(bool internal, const char* path, KFileName* file, bool&
 	}
 	return true;
 }
-kgl_auto_cstr KVirtualHost::alias(bool internal, const char* path) {
+kgl_auto_cstr KVirtualHost::alias(bool internal, const char* orig_path) {
+	/* KBaseAlias::matched() appends the rest of the path as is, so a ".."
+	 * left in it would climb out of an absolute alias target. */
+	kgl_auto_cstr normalized_path(xstrdup(orig_path));
+	if (!normalized_path) {
+		return nullptr;
+	}
+	KFileName::tripDir3(normalized_path.get(), '/');
+	const char* path = normalized_path.get();
 	auto len = strlen(path);
 	auto alias = find_alias(internal, path, len);
 	if (!alias) {
@@ -180,6 +224,9 @@ kgl_auto_cstr KVirtualHost::alias(bool internal, const char* path) {
 }
 KBaseRedirect* KVirtualHost::refsPathRedirect(const char* path, int path_len) {
 	auto rd = refs_path_redirect(path, path_len);
+	if (!rd && template_maps) {
+		rd = template_maps->refs_path_redirect(path, path_len);
+	}
 	if (rd != nullptr || !inherit) {
 		return rd;
 	}
@@ -188,6 +235,9 @@ KBaseRedirect* KVirtualHost::refsPathRedirect(const char* path, int path_len) {
 KFetchObject* KVirtualHost::findPathRedirect(KHttpRequest* rq, KFileName* file, const char* path, bool fileExsit, bool& result) {
 	auto path_len = strlen(path);
 	auto fo = find_path_redirect(rq, file, path, path_len, fileExsit, result);
+	if (!result && template_maps) {
+		fo = template_maps->find_path_redirect(rq, file, path, path_len, fileExsit, result);
+	}
 	if (result || !inherit) {
 		return fo;
 	}
@@ -196,6 +246,9 @@ KFetchObject* KVirtualHost::findPathRedirect(KHttpRequest* rq, KFileName* file, 
 KFetchObject* KVirtualHost::findFileExtRedirect(KHttpRequest* rq, KFileName* file, bool fileExsit, bool& result) {
 	char* file_ext = (char*)file->getExt();
 	auto fo = find_file_redirect(rq, file, file_ext, fileExsit, result);
+	if (!result && template_maps) {
+		fo = template_maps->find_file_redirect(rq, file, file_ext, fileExsit, result);
+	}
 	if (result || !inherit) {
 		return fo;
 	}
@@ -286,7 +339,7 @@ Token_t KVirtualHost::createToken(bool& result) {
 		&token) == TRUE);
 	return token;
 #else
-	result = true;
+	result = !run_as_failed;
 	return (Token_t)&id;
 #endif
 }
@@ -318,24 +371,36 @@ bool KVirtualHost::setRunAs(const KString& user, const KString& group) {
 	}
 	return true;
 #else
+	/* id[] stays 0 (root) when a lookup fails. An empty user means run as
+	 * kangle itself; a user that is set but not found must not mean root. */
+	run_as_failed = false;
+	if (user.empty()) {
+		return true;
+	}
 	struct stat buf;
 	memset(&buf, 0, sizeof(buf));
 	if (user == "-" || group == "-") {
 		if (stat(doc_root.c_str(), &buf) != 0) {
-			klog(KLOG_ERR, "cann't stat doc_root [%s]\n", doc_root.c_str());
+			klog(KLOG_ERR, "vh [%s] cann't stat doc_root [%s] for its run user, no process will start\n", name.c_str(), doc_root.c_str());
+			run_as_failed = true;
+			return false;
 		}
 	}
 	if (user == "-") {
 		id[0] = buf.st_uid;
 	} else {
 		if (!name2uid(user.c_str(), id[0], id[1])) {
+			klog(KLOG_ERR, "vh [%s] run user [%s] not found, no process will start\n", name.c_str(), user.c_str());
+			run_as_failed = true;
 			return false;
 		}
 	}
 	if (group == "-") {
 		id[1] = buf.st_gid;
-	} else {
-		return name2gid(group.c_str(), id[1]);
+	} else if (!group.empty() && !name2gid(group.c_str(), id[1])) {
+		klog(KLOG_ERR, "vh [%s] run group [%s] not found, no process will start\n", name.c_str(), group.c_str());
+		run_as_failed = true;
+		return false;
 	}
 	return true;
 #endif
@@ -380,7 +445,7 @@ void KVirtualHost::parse_log_config(const KXmlAttribute& attr) {
 	logger->logs_day = attr.get_int("logs_day");
 	logger->logs_size = get_size(attr("logs_size"));
 	logger->log_handle = (attr["log_handle"] == "on" || attr["log_handle"] == "1");
-	logger->mkdir_flag = (attr["log_mkdir"] == "on" || attr["log_handle"] == "1");
+	logger->mkdir_flag = (attr["log_mkdir"] == "on" || attr["log_mkdir"] == "1");
 #ifdef ENABLE_VH_RUN_AS
 #ifndef _WIN32
 	logger->uid = id[0];
@@ -465,20 +530,22 @@ void KVirtualHost::copy_to(KVirtualHost* vh) {
 #endif
 }
 bool KVirtualHost::loadApiRedirect(KApiPipeStream* st, int workType) {
-	lock.Lock();
-	for (auto it = pathRedirects.begin(); it != pathRedirects.end(); it++) {
-		if (!loadApiRedirect((*it)->rd, st, workType)) {
-			lock.Unlock();
-			return false;
+	for (auto maps : {static_cast<KBaseVirtualHost*>(this), template_maps.get()}) {
+		if (!maps) {
+			continue;
+		}
+		auto locker = maps->get_locker();
+		for (auto map : maps->pathRedirects) {
+			if (!loadApiRedirect(map->rd, st, workType)) {
+				return false;
+			}
+		}
+		for (const auto& map : maps->redirects) {
+			if (!loadApiRedirect(map.second->rd, st, workType)) {
+				return false;
+			}
 		}
 	}
-	for (auto it2 = redirects.begin(); it2 != redirects.end(); it2++) {
-		if (!loadApiRedirect((*it2).second->rd, st, workType)) {
-			lock.Unlock();
-			return false;
-		}
-	}
-	lock.Unlock();
 	return true;
 }
 bool KVirtualHost::loadApiRedirect(KRedirect* rd, KApiPipeStream* st,
@@ -562,7 +629,10 @@ bool KVirtualHost::caculateNeedKillProcess(KVirtualHost* ov) {
 	if (doc_root != ov->doc_root) {
 		return true;
 	}
-	if (envs.size() > ov->envs.size()) {
+	if (user != ov->user || group != ov->group) {
+		return true;
+	}
+	if (envs.size() != ov->envs.size()) {
 		return true;
 	}
 	//check env change
@@ -583,14 +653,16 @@ KString KVirtualHost::getApp(KHttpRequest* rq) {
 		return getUser();
 	}
 	kassert((int)apps.size() == (int)app);
-	//todo:以后根据ip做hash
+	//todo:浠ュ悗鏍规嵁ip鍋歨ash
 	int index = (ip_hash ? ksocket_addr_hash(rq->sink->get_peer_addr()) : rand()) % app;
 	//printf("get vh=[%p] app=[%s]\n",this,apps[index].c_str());
 	return apps[index];
 }
 void KVirtualHost::setApp(int app) {
-	if (app <= 0 || app > 512) {
+	if (app <= 0) {
 		app = 1;
+	} else if (app > 255) {
+		app = 255;
 	}
 	apps.clear();
 	this->app = (uint8_t)app;
@@ -640,6 +712,7 @@ void KVirtualHost::dump_info(kgl::serializable* s) {
 	s->add("access", user_access);
 	s->add("browse", browse);
 	s->add("inherit", inherit);
+	s->add("early_hints", early_hints == 2 ? "h2" : (early_hints ? "on" : "off"));
 #ifdef ENABLE_VH_RUN_AS
 	s->add("user", user);
 	s->add("group", group);
@@ -650,10 +723,35 @@ void KVirtualHost::dump_info(kgl::serializable* s) {
 bool KVirtualHost::parse_xml(const khttpd::KXmlNodeBody* body, KVirtualHost* ov) {
 
 	auto attr = body->attr();
+	conf.gvm->getTemplateEvents(attr, template_init_events,
+		template_update_events, template_destroy_events);
+	std::vector<KXmlAttribute> inherited_maps;
+	conf.gvm->inheritTemplate(attr, inherited_maps);
+	if (!inherited_maps.empty()) {
+		// Keep site maps separate so their config updates and removals cannot
+		// replace inherited maps. A reload rebuilds these from the template chain.
+		template_maps.reset(new KBaseVirtualHost());
+		for (const auto& attributes : inherited_maps) {
+			const auto& ext = attributes["file_ext"];
+			if (!ext.empty()) {
+				if (template_maps->redirects.find(ext) == template_maps->redirects.end()) {
+					if (auto map = parse_file_map(attributes)) {
+						template_maps->redirects.emplace(ext, map);
+					}
+				}
+			} else if (!attributes["path"].empty()) {
+				if (auto map = parse_path_map(attributes)) {
+					template_maps->pathRedirects.push_back(map);
+				}
+			}
+		}
+	}
 	envs.clear();
 	parseEnv(attr("envs"));
 	setDocRoot(attr["doc_root"]);
 	browse = (attr["browse"] == "on" || attr["browse"] == "1");
+	early_hints = attr["early_hints"] == "h2" ? 2 :
+		(attr["early_hints"] == "on" || attr["early_hints"] == "1" ? 1 : 0);
 
 	inherit = (attr["inherit"] == "on" || attr["inherit"] == "1");
 	setAccess(attr["access"]);
@@ -757,6 +855,28 @@ bool KVirtualHost::parse_xml(const khttpd::KXmlNodeBody* body, KVirtualHost* ov)
 		}
 	}
 	return true;
+}
+
+static void redirect_vh_template_events(KVirtualHostEvent* ctx,
+	const std::vector<KString>& events) {
+	if (!ctx) {
+		return;
+	}
+	for (const auto& event : events) {
+		ctx->redirect(event.c_str());
+	}
+}
+
+void KVirtualHost::initEvent(KVirtualHostEvent* ctx) const {
+	redirect_vh_template_events(ctx, template_init_events);
+}
+
+void KVirtualHost::updateEvent(KVirtualHostEvent* ctx) const {
+	redirect_vh_template_events(ctx, template_update_events);
+}
+
+void KVirtualHost::destroyEvent(KVirtualHostEvent* ctx) const {
+	redirect_vh_template_events(ctx, template_destroy_events);
 }
 bool KVirtualHost::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) {
 	if (KBaseVirtualHost::on_config_event(tree, ev)) {

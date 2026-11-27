@@ -18,5 +18,10 @@ public:
 	bool execUrl(HSE_EXEC_URL_INFO *urlInfo);
 	bool initECB(EXTENSION_CONTROL_BLOCK *ecb) override;
 	KFastcgiStream<KSocketStream> *st;
+private:
+	bool close_header();
+	/* the empty line after headers has been sent */
+	bool header_closed = false;
+	bool header_line_has_data = false;
 };
 #endif

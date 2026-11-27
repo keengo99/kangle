@@ -41,6 +41,7 @@ kev_result run_fw_call_back(void *data,int msec)
 				if (len<=0) {
 					break;
 				}
+				tbuf[len] = '\0';
 				klog(KLOG_ERR,"%s\n",tbuf);
 			}
 	#ifdef _WIN32
@@ -81,18 +82,56 @@ void run_fw_cmd(const char *cmd,const char *ip)
 }
 //{{ent
 #ifdef ENABLE_BLACK_LIST
+size_t KIpList::getDynamicCount()
+{
+	KLocker locker(&lock);
+	size_t count = 0;
+	for (auto& item : wls) {
+		if (!item.second->IsStatic()) {
+			++count;
+		}
+	}
+	return count;
+}
+size_t KIpList::clearDynamic()
+{
+	lock.Lock();
+	KIpListItem* removed = head;
+	head = end = NULL;
+	size_t count = 0;
+	bool unblock = run_fw_cmd && *conf.unblock_ip_cmd;
+	for (auto item = removed; item; item = item->next) {
+		// Converted/removed entries remain on this queue until GC. Their map
+		// entry can now be a fixed allow/deny entry and must be preserved.
+		if (!item->IsConvertToStatic()) {
+			wls.erase(item->ip);
+			++count;
+		}
+	}
+	lock.Unlock();
+	while (removed) {
+		KIpListItem* next = removed->next;
+		if (unblock && !removed->IsConvertToStatic()) {
+			::run_fw_cmd(conf.unblock_ip_cmd, removed->ip);
+		}
+		delete removed;
+		removed = next;
+	}
+	return count;
+}
 void KIpList::clearBlackList()
 {
 	lock.Lock();
-	wls.clear();
+	clearStatic();
 	while (head) {
 		end = head->next;
 		delete head;
 		head = end;
 	}
+	end = NULL;
 	lock.Unlock();
 }
-//µÃµ½ºÚÃûµ¥
+//å¾—åˆ°é»‘åå•
 void KIpList::getBlackList(WhmContext *ctx)
 {
 	lock.Lock();

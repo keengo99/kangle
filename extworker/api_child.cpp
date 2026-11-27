@@ -1,6 +1,6 @@
 /*
  * api_child.cpp
- * kangle “‘◊”Ω¯≥Ã‘À–– ±∫Õ÷˜Ω¯≥ÃÕ®–≈µƒ¥˙¬Î
+ * kangle ‰ª•Â≠êËøõÁ®ãËøêË°åÊó∂Âíå‰∏ªËøõÁ®ãÈÄö‰ø°ÁöÑ‰ª£Á†Å
  *
  *  Created on: 2010-7-9
  *      Author: keengo
@@ -10,6 +10,10 @@
 #include <map>
 #include <sstream>
 #include <string.h>
+#ifndef _WIN32
+#include <unistd.h>
+#include <grp.h>
+#endif
  //#include "KApiRedirect.h"
 #include "KStream.h"
 #include "KFastcgiUtils.h"
@@ -55,12 +59,13 @@ void restart_child_process(pid_t pid)
 	if (program_quit) {
 		return;
 	}
-	if (!::createProcess(&ls, NULL, argv, NULL, RDSTD_INPUT)) {
+	processLock.Lock();
+	if (program_quit || !::createProcess(&ls, NULL, argv, NULL, RDSTD_INPUT)) {
+		processLock.Unlock();
 		debug("cann't create process\n");
 		return;
 	}
 	pid = ls.process.stealPid();
-	processLock.Lock();
 	processes.insert(pair<pid_t, time_t>(pid, time(NULL)));
 	processLock.Unlock();
 	return;
@@ -70,10 +75,17 @@ void restart_child_process(pid_t pid)
 bool watch_group_process(HANDLE* ev, int watch_count)
 {
 	DWORD ret = WaitForMultipleObjects(watch_count, ev, FALSE, 1000);
-	if (ret == WAIT_TIMEOUT || ret == WAIT_FAILED) {
+	if (ret == WAIT_FAILED) {
+		Sleep(1000);
+		return false;
+	}
+	if (ret == WAIT_TIMEOUT) {
 		return false;
 	}
 	int index = ret - WAIT_OBJECT_0;
+	if (index < 0 || index >= watch_count) {
+		return false;
+	}
 	debug("index=%d,handle=%p exsit,now restart it\n", index, ev[index]);
 	restart_child_process(ev[index]);
 	return true;
@@ -83,9 +95,18 @@ void step_watch_process()
 	int watch_count = MAXIMUM_WAIT_OBJECTS;
 	HANDLE ev[MAXIMUM_WAIT_OBJECTS];
 	int i = 0;
-	std::map<pid_t, time_t>::iterator it;
-	for (it = processes.begin(); it != processes.end(); it++) {
-		ev[i++] = (*it).first;
+	std::vector<pid_t> pids;
+	processLock.Lock();
+	for (auto it = processes.begin(); it != processes.end(); it++) {
+		pids.push_back((*it).first);
+	}
+	processLock.Unlock();
+	if (pids.empty()) {
+		Sleep(1000);
+		return;
+	}
+	for (auto&& pid : pids) {
+		ev[i++] = pid;
 		if (i >= watch_count) {
 			if (watch_group_process(ev, i)) {
 				return;
@@ -148,7 +169,8 @@ static bool api_child_load(KStream* st, char* msg, u_short id, u_short content_l
 
 	FCGI_Header header;
 	memset(&header, 0, sizeof(header));
-	if (loadApiRedirect(msg, id)) {
+	if (msg != NULL && content_len > 0 && msg[content_len - 1] == '\0' &&
+		loadApiRedirect(msg, id)) {
 		header.id = 0;
 	} else {
 		header.id = 1;
@@ -167,8 +189,11 @@ static bool api_child_setuid(KStream* st, char* msg,
 	memset(&header, 0, sizeof(header));
 	api_child_t_uidgid* body = (api_child_t_uidgid*)msg;
 	//	bool result = true;
-	if (body->gid > 0 && setgid(body->gid) != 0) {
-		header.id |= 2;
+	if (body->gid > 0) {
+		gid_t gid = (gid_t)body->gid;
+		if ((getuid() == 0 && setgroups(1, &gid) != 0) || setgid(gid) != 0) {
+			header.id |= 2;
+		}
 	}
 	if (body->uid > 0 && setuid(body->uid) != 0) {
 		header.id |= 1;
@@ -183,7 +208,7 @@ static bool api_child_chroot(KStream* st, char* msg,
 	u_short content_len) {
 	FCGI_Header header;
 	memset(&header, 0, sizeof(header));
-	header.id = chroot(msg);
+	header.id = (msg != NULL && content_len > 0 && msg[content_len - 1] == '\0') ? chroot(msg) : -1;
 	header.type = API_CHILD_CHROOT_RESULT;
 	return st->write_all((char*)&header, sizeof(header))
 		== STREAM_WRITE_SUCCESS;
@@ -192,23 +217,24 @@ static bool api_child_chroot(KStream* st, char* msg,
 #else
 static char* get_string(char** msg, u_short& content_len)
 {
+	if (msg == NULL || *msg == NULL) {
+		return NULL;
+	}
 	int len = 0;
-	int string_len = sizeof(len);
+	const u_short string_len = sizeof(len);
 	//char *hot = msg;
-	if (content_len <= string_len) {
+	if (content_len < string_len) {
 		//printf("content_len < string_len\n");
 		return NULL;
 	}
 	content_len -= string_len;
 	kgl_memcpy((char*)&len, *msg, string_len);
-	//printf("len=%d,content_len =%d\n",len,content_len);
-
-	content_len -= len;
 	*msg += string_len;
-
-	if (content_len < 0) {
+	//printf("len=%d,content_len =%d\n",len,content_len);
+	if (len < 0 || (unsigned)len > content_len) {
 		return NULL;
 	}
+	content_len -= (u_short)len;
 	char* buf = (char*)xmalloc(len + 1);
 	kgl_memcpy(buf, *msg, len);
 	*msg += len;
@@ -362,7 +388,7 @@ void seperate_work_model()
 		total_successed++;
 		pid_t pid = ls.process.stealPid();
 		//printf("succss create child pid=%d\n",pid);
-		processes.insert(pair<pid_t, bool>(pid, true));
+		processes.insert(pair<pid_t, time_t>(pid, time(NULL)));
 	}
 	if (total_successed == 0) {
 		return;
@@ -371,11 +397,13 @@ void seperate_work_model()
 	//sleep(1);
 	watch_process(NULL);
 #else
-	void childExsit();
-	for (;;) {
+	bool childExsit();
+	while (!program_quit) {
 		childExsit();
 		sleep(1);
 	}
+	void killallProcess();
+	killallProcess();
 #endif
 }
 bool cmd_create_process(KWStream* st, FCGI_Header* header, bool unix_socket)
@@ -406,11 +434,14 @@ bool cmd_create_process(KWStream* st, FCGI_Header* header, bool unix_socket)
 #endif
 	argv++;
 	for (int i = 0; i < header->id; i++) {
+		processLock.Lock();
 		if (!::createProcess(&ls, NULL, argv, NULL, RDSTD_INPUT)) {
+			processLock.Unlock();
 			goto done;
 		}
 		pid_t pid = ls.process.stealPid();
-		processes.insert(pair<pid_t, bool>(pid, true));
+		processes.insert(pair<pid_t, time_t>(pid, time(NULL)));
+		processLock.Unlock();
 	}
 	result = true;
 #ifdef _WIN32
@@ -539,12 +570,14 @@ bool api_child_process(KStream* st) {
 }
 bool api_child_listen(u_short port, KPipeStream* st, bool unix_socket) {
 	//printf("enter api_child_listen\n");
-	assert(cl == NULL);
+	if (cl != NULL) {
+		return false;
+	}
 	cl = new KChildListen;
 	//conf.keep_alive = -1;
 	cl->st = st;
 	//cl->rd = rd;
-	sp_info pi;
+	sp_info pi = {};
 	api_child_key = rand();
 	pi.key = api_child_key;
 	pi.pid = getpid();
@@ -564,11 +597,13 @@ bool api_child_listen(u_short port, KPipeStream* st, bool unix_socket) {
 	} else {
 #endif
 		sockaddr_i addr;
-		ksocket_getaddr("127.0.0.1", 0, PF_UNSPEC, AI_NUMERICHOST, &addr);
-		cl->sockfd = ksocket_listen(&addr, KSOCKET_BLOCK);
-		if (!ksocket_opened(cl->sockfd)) {
-			ksocket_getaddr("::1", 0, PF_UNSPEC, AI_NUMERICHOST, &addr);
+		if (ksocket_getaddr("127.0.0.1", 0, PF_UNSPEC, AI_NUMERICHOST, &addr)) {
 			cl->sockfd = ksocket_listen(&addr, KSOCKET_BLOCK);
+		}
+		if (!ksocket_opened(cl->sockfd)) {
+			if (ksocket_getaddr("::1", 0, PF_UNSPEC, AI_NUMERICHOST, &addr)) {
+				cl->sockfd = ksocket_listen(&addr, KSOCKET_BLOCK);
+			}
 		}
 		if (ksocket_opened(cl->sockfd)) {
 			pi.result = 0;
@@ -585,17 +620,25 @@ bool api_child_listen(u_short port, KPipeStream* st, bool unix_socket) {
 	memset(&header, 0, sizeof(header));
 	header.type = API_CHILD_LISTEN_RESULT;
 	header.contentLength = htons(sizeof(sp_info));
-	st->write_all((char*)&header, sizeof(header));
 	debug("child listen result=[%d],port=[%d]\n", pi.result, pi.port);
-	if (st->write_all((char*)&pi, sizeof(pi)) != STREAM_WRITE_SUCCESS) {
+	if (st->write_all((char*)&header, sizeof(header)) != STREAM_WRITE_SUCCESS ||
+		st->write_all((char*)&pi, sizeof(pi)) != STREAM_WRITE_SUCCESS) {
 		delete cl;
+		cl = NULL;
 		debug("cann't write pi msg to parent.\n");
 		return false;
 	}
 	if (pi.result != 0) {
+		delete cl;
+		cl = NULL;
 		return false;
 	}
-	return kthread_start(api_listen_thread, cl);
+	if (!kthread_start(api_listen_thread, cl)) {
+		delete cl;
+		cl = NULL;
+		return false;
+	}
+	return true;
 	}
 KTHREAD_FUNCTION api_child_thread(void* param) {
 	KSocketStream* client = (KSocketStream*)param;

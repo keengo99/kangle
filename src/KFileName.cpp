@@ -50,9 +50,7 @@ char *my_strtok(char *msg, char split, char **ptrptr) {
 }
 
 #ifdef _WIN32
-/*
-文件名转unicode,并猜测编码
-*/
+/* Convert a file name to Unicode and normalize it. */
 wchar_t *FileNametoUnicode(const char *str,int len)
 {
 	wchar_t *s = (wchar_t *)xmalloc(2*(len+1));
@@ -138,6 +136,9 @@ const char *KFileName::getExt() {
 	return ext;
 }
 char *KFileName::concatDir(const char *docRoot, const char *file) {
+	if (docRoot == NULL) {
+		return NULL;
+	}
 	char *triped_path = tripDir2(file, PATH_SPLIT_CHAR);
 	if (triped_path == NULL) {
 		return NULL;
@@ -147,11 +148,11 @@ char *KFileName::concatDir(const char *docRoot, const char *file) {
 	int name_len = doclen + len;
 	char *name = (char *) xmalloc(name_len+2);
 	kgl_memcpy(name, docRoot, doclen);
-	if (docRoot[doclen - 1] != '/'
+	if (doclen == 0 || (docRoot[doclen - 1] != '/'
 #ifdef _WIN32
 		&& docRoot[doclen-1] != '\\'
 #endif
-		) {
+		)) {
 		name[doclen] = PATH_SPLIT_CHAR;
 		doclen++;
 		name_len++;
@@ -251,10 +252,10 @@ bool KFileName::getFileInfo(int name_len) {
 	if(*c=='/' || *c== '\\') {
 		prev_dir = true;	
 		/*
-		在windows下，一个家目录的上级目录，该虚拟主机运行身份没有权限，则导致stat失败。
-		如果有默认文档时，则不能正确获得。
-		如果这种情况下，不应该往下stat。
-		*/
+		 * On Windows, stat may fail for a parent directory that is not
+		 * accessible. Preserve the trailing-directory state and defer the
+		 * existence check so default documents can still be resolved.
+		 */
 		return true;
 	}
 #ifdef ENABLE_UNICODE_FILE
@@ -363,6 +364,9 @@ bool KFileName::setName(const char *docRoot, const char *triped_path,
 	}
 #endif
 	if (docRoot==NULL) {
+		return false;
+	}
+	if (triped_path == NULL) {
 		return false;
 	}
 	size_t doclen = strlen(docRoot);

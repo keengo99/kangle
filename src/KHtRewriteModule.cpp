@@ -10,6 +10,39 @@
 #include "KHtRewriteModule.h"
 #include "KXml.h"
 #include "kmalloc.h"
+/*
+ * .htaccess text goes into generated XML, so it must be escaped. Otherwise a
+ * quote ends the attribute early and "]]>" or "<" breaks the whole file.
+ * The config parser decodes these entities in both attributes and text.
+ */
+static void xml_escape(KWStream &s, const char *str) {
+	for (; *str; str++) {
+		switch (*str) {
+		case '&':
+			s << "&amp;";
+			break;
+		case '<':
+			s << "&lt;";
+			break;
+		case '>':
+			s << "&gt;";
+			break;
+		case '\'':
+			s << "&apos;";
+			break;
+		case '"':
+			s << "&quot;";
+			break;
+		default:
+			if (isspace((unsigned char)*str)) {
+				// the parser trims whitespace around element text
+				s << "&#" << (int)(unsigned char)*str << ";";
+			} else {
+				s << *str;
+			}
+		}
+	}
+}
 void parseRewriteFlag(char *flag, rewrite_flag_t &rf) {
 	flag = strchr(flag, '[');
 	if (flag == NULL) {
@@ -126,7 +159,9 @@ bool KHtRewriteModule::process(KApacheConfig *htaccess, const char *cmd,
 			parseRewriteFlag(item[2], rf);
 		}
 		chainStart(htaccess);
-		rule << "<cond str='" << item[0] << "'";
+		rule << "<cond str='";
+		xml_escape(rule, item[0]);
+		rule << "'";
 		if(lastCondOr){
 			rule << " or='1'";
 		}
@@ -146,7 +181,9 @@ bool KHtRewriteModule::process(KApacheConfig *htaccess, const char *cmd,
 		//if (KBIT_TEST(rf.flag,REWRITE_QSA)) {
 		//	rule << " qsa='1'";
 		//}
-		rule << ">" << CDATA_START << item[1] << CDATA_END << "</cond>\n";
+		rule << ">";
+		xml_escape(rule, item[1]);
+		rule << "</cond>\n";
 		return true;
 	}
 	if (strcasecmp(cmd, "RewriteRule") == 0) {
@@ -160,22 +197,26 @@ bool KHtRewriteModule::process(KApacheConfig *htaccess, const char *cmd,
 		}
 		if (action.str().size() == 0) {
 			//chain << "<chain action='";
-			if (KBIT_TEST(rf.flag,REWRITE_LAST)) {
+			// F and G imply L, and must win over it: [F,L] is the usual form.
+			if (KBIT_TEST(rf.flag,REWRITE_FOBIDDEN|REWRITE_GONE)) {
+				action << "deny";
+			} else if (KBIT_TEST(rf.flag,REWRITE_LAST)) {
 				action << "default";
 			} else if (KBIT_TEST(rf.flag,REWRITE_NEXT)) {
 				action << "table:BEGIN";
 			} else if (KBIT_TEST(rf.flag,REWRITE_SKIP)) {
 				action << "tablechain:BEGIN:" << cur_chainid + rf.skip;
-			} else if (KBIT_TEST(rf.flag,REWRITE_FOBIDDEN|REWRITE_GONE)) {
-				action << "deny";
 			} else if (KBIT_TEST(rf.flag,REWRITE_REDIRECT)) {
 				action << "default";
 			}
 		}
 		//			chain << "'>\n";
 		chainStart(htaccess);
-		rule << "<rule path='" << item[0] << "' dst='" << item[1]
-				<< "' internal='";///>\n";
+		rule << "<rule path='";
+		xml_escape(rule, item[0]);
+		rule << "' dst='";
+		xml_escape(rule, item[1]);
+		rule << "' internal='";
 		//internal='";
 		if (KBIT_TEST(rf.flag,REWRITE_REDIRECT)) {
 			rule << "0";
@@ -197,6 +238,12 @@ bool KHtRewriteModule::process(KApacheConfig *htaccess, const char *cmd,
 		}
 		if (KBIT_TEST(rf.flag,REWRITE_QSA)) {
 			rule << " qsa='1'";
+		}
+		// Answered by the rule itself; a plain deny action would answer 500.
+		if (KBIT_TEST(rf.flag, REWRITE_GONE)) {
+			rule << " status='410'";
+		} else if (KBIT_TEST(rf.flag, REWRITE_FOBIDDEN)) {
+			rule << " status='403'";
 		}
 		rule << "/>\n";
 		if (!KBIT_TEST(rf.flag,REWRITE_CHAIN_AND)) {
@@ -229,7 +276,11 @@ void KHtRewriteModule::chainStart(KApacheConfig *htaccess) {
 	}
 	chainStarted = true;
 	lastCondOr = false;
-	rule << "<mark_rewritex prefix='" << htaccess->prefix << "/' rewrite_base='" << rewriteBase << "'>\n";
+	rule << "<mark_rewritex prefix='";
+	xml_escape(rule, htaccess->prefix);
+	rule << "/' rewrite_base='";
+	xml_escape(rule, rewriteBase.c_str());
+	rule << "'>\n";
 }
 void KHtRewriteModule::chainEnd() {
 	if (!chainStarted) {

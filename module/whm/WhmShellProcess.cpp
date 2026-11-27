@@ -1,4 +1,6 @@
+#include <string>
 #include "WhmShellProcess.h"
+#include "kthread.h"
 static int write_pipe(PIPE_T fd,const char *buf,int len)
 {		//{{ent
 #ifdef _WIN32
@@ -32,6 +34,31 @@ static int read_pipe(PIPE_T fd,char *buf,int len) {
 #endif
 //}}
 }
+struct whm_stdin_writer
+{
+	PIPE_T fd;
+	std::string data;
+};
+static void write_stdin_data(whm_stdin_writer* w)
+{
+	const char* hot = w->data.c_str();
+	int left = (int)w->data.size();
+	while (left > 0) {
+		int got = write_pipe(w->fd, hot, left);
+		if (got <= 0) {
+			break;
+		}
+		hot += got;
+		left -= got;
+	}
+	ClosePipe(w->fd);
+	delete w;
+}
+static KTHREAD_FUNCTION write_stdin_thread(void* param)
+{
+	write_stdin_data((whm_stdin_writer*)param);
+	KTHREAD_RETURN;
+}
 bool WhmShellProcess::run(WhmShellContext *sc)
 {
 	WhmShellCommand *c = command;
@@ -39,7 +66,7 @@ bool WhmShellProcess::run(WhmShellContext *sc)
 	Token_t token = NULL;
 #ifndef HTTP_PROXY
 	if (runAsUser) {
-		//´´½¨ÔËĞĞÉí·İÁîÅÆ
+		//åˆ›å»ºè¿è¡Œèº«ä»½ä»¤ç‰Œ
 		if (sc->vh==NULL) {
 			sc->last_error = 128;
 			return false;
@@ -65,9 +92,9 @@ bool WhmShellProcess::run(WhmShellContext *sc)
 	//init the std file
 	PIPE_T hstdin = get_stdin(sc);
 	if (hstdin==INVALIDE_PIPE && sc->in_buffer.getLen()>0) {
-		//Èç¹ûÃ»ÓĞÊäÈëÎÄ¼ş²¢ÇÒÊäÈëÓĞÊı¾İ¡£¾ÍÒª´´½¨ÊäÈë¹ÜµÀ
+		//å¦‚æœæ²¡æœ‰è¾“å…¥æ–‡ä»¶å¹¶ä¸”è¾“å…¥æœ‰æ•°æ®ã€‚å°±è¦åˆ›å»ºè¾“å…¥ç®¡é“
 		if (!KPipeStream::create(big_stdin_pipe)) {
-			//¹Ø±Õ´ò¿ªµÄbig_stdout_pipe
+			//å…³é—­æ‰“å¼€çš„big_stdout_pipe
 			ClosePipe(big_stdout_pipe[0]);
 			ClosePipe(big_stdout_pipe[1]);
 			if (token) {
@@ -113,6 +140,15 @@ bool WhmShellProcess::run(WhmShellContext *sc)
 				if (c!=command) {
 					ClosePipe(in);
 				}
+				pp[READ_PIPE] = INVALIDE_PIPE;
+				pp[WRITE_PIPE] = INVALIDE_PIPE;
+				sc->last_error = 127;
+				result = false;
+				for (int j = 0; arg[j]; ++j) {
+					free(arg[j]);
+				}
+				delete[] arg;
+				delete env;
 				break;
 			}
 			out = pp[WRITE_PIPE];
@@ -151,28 +187,45 @@ bool WhmShellProcess::run(WhmShellContext *sc)
 		}	
 		c = c->next;
 	}
-	//¹Ø±ÕÊäÈë£¬Êä³ö¸¸½ø³ÌÎŞÓÃµÄ¹ÜµÀ¶Ë
+	for (int i = 0; i < 2; i++) {
+		if (pp[i] != INVALIDE_PIPE) {
+			ClosePipe(pp[i]);
+			pp[i] = INVALIDE_PIPE;
+		}
+	}
+	//å…³é—­è¾“å…¥ï¼Œè¾“å‡ºçˆ¶è¿›ç¨‹æ— ç”¨çš„ç®¡é“ç«¯
 	if (kflike(hstdin)) {
 		ClosePipe(hstdin);
 	}
 	ClosePipe(big_stdout_pipe[WRITE_PIPE]);
-	//´¦ÀíÊäÈë
+	//å¤„ç†è¾“å…¥
 	if (big_stdin_pipe_created) {
+		whm_stdin_writer* w = NULL;
 		if (result) {
-			//´´½¨³É¹¦²ÅĞ´ÈëÊı¾İ
+			//åˆ›å»ºæˆåŠŸæ‰å†™å…¥æ•°æ®
+			w = new whm_stdin_writer;
+			w->fd = big_stdin_pipe[WRITE_PIPE];
 			kbuf *buf = sc->in_buffer.getHead();
 			while (buf && buf->data) {
-				if (write_pipe(big_stdin_pipe[WRITE_PIPE],buf->data,buf->used)!=buf->used) {
-					break;
-				}
+				w->data.append(buf->data, buf->used);
 				buf = buf->next;
 			}
 		}
-		//ÇåÀíÊäÈëÊı¾İºÍ¹ÜµÀ×ÊÔ´
+		//æ¸…ç†è¾“å…¥æ•°æ®å’Œç®¡é“èµ„æº
 		sc->in_buffer.destroy();
-		ClosePipe(big_stdin_pipe[WRITE_PIPE]);
+		if (w) {
+			//write stdin in other thread, the child may block on writing stdout.
+			if (!kthread_pool_start(write_stdin_thread, w)) {
+				ClosePipe(w->fd);
+				delete w;
+				sc->last_error = 127;
+				result = false;
+			}
+		} else {
+			ClosePipe(big_stdin_pipe[WRITE_PIPE]);
+		}
 	}
-	//´¦ÀíÊä³ö
+	//å¤„ç†è¾“å‡º
 	if (result && (hstdout==INVALIDE_PIPE || hstderr==INVALIDE_PIPE)) {
 		for (;;) {
 			char buf[512];

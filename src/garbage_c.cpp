@@ -35,11 +35,13 @@
 #include "kthread.h"
 #include "KBuffer.h"
 #include "KHttpRequest.h"
+#include "kfiber.h"
 #include "kselector_manager.h"
 #include "kmalloc.h"
 #include "KHttpObjectHash.h"
 #include "KSimulateRequest.h"
 #include "KVirtualHostManage.h"
+#include "KWhiteList.h"
 #include "KProcessManage.h"
 #include "KProcess.h"
 #include "KLogManage.h"
@@ -74,6 +76,22 @@ KTHREAD_FUNCTION crash_report_thread(void* arg);
 #ifdef ENABLE_VH_FLOW
 volatile bool flushFlowFlag = false;
 time_t lastFlushFlowTime = time(NULL);
+static int dump_flow_fiber(void* arg, int got) {
+	conf.gvm->dumpFlow();
+	return 0;
+}
+/*
+ * dumpFlow takes the virtual host fiber mutex, which needs a fiber.
+ * The gc thread has none, so run it in a fiber and wait for it.
+ */
+static void dump_flow_sync() {
+	kfiber* fiber = NULL;
+	if (kfiber_create_sync(dump_flow_fiber, NULL, 0, 0, &fiber) != 0) {
+		return;
+	}
+	int ret = 0;
+	kfiber_join(fiber, &ret);
+}
 #endif
 void register_gc_service(void(*flush)(void*, time_t), void* arg) {
 	kgl_gc_service* gs = new kgl_gc_service;
@@ -200,20 +218,23 @@ KTHREAD_FUNCTION time_thread(void* arg) {
 #endif
 		flush_mem_cache(last_msec);
 #ifdef ENABLE_VH_FLOW
-		//自动刷新流量
+		//鑷姩鍒锋柊娴侀噺
 		if (conf.flush_flow_time > 0 && nowTime - lastFlushFlowTime > conf.flush_flow_time) {
 			lastFlushFlowTime = nowTime;
 			flushFlowFlag = true;
 		}
 		if (flushFlowFlag) {
-			conf.gvm->dumpFlow();
 			flushFlowFlag = false;
+			dump_flow_sync();
 		}
 #endif
 		spProcessManage.refresh(nowTime);
 #ifndef HTTP_PROXY
 		conf.gam->refreshCmd(nowTime);
 #endif
+		if (conf.gam) {
+			conf.gam->refreshPool(nowTime);
+		}
 #ifdef ENABLE_ADPP
 		if (conf.process_cpu_usage > 0) {
 			ULONG64 cpuTime = KProcess::getCpuTime();
@@ -237,6 +258,17 @@ KTHREAD_FUNCTION time_thread(void* arg) {
 #endif		
 			kgl_flush_addr_cache(nowTime);
 		}
+#ifdef ENABLE_BLACK_LIST
+		// A zero timeout means that dynamic entries are permanent.  The old
+		// anti-CC implementation expired both lists from this periodic worker;
+		// keep that work here now that anti-CC is provided by a DSO.
+		if (conf.wl_time > 0) {
+			wlm.flush(nowTime, conf.wl_time);
+		}
+		if (conf.bl_time > 0 && conf.gvm && conf.gvm->vhs.blackList) {
+			conf.gvm->vhs.blackList->flush(conf.bl_time);
+		}
+#endif
 		server_container->flush(kgl_current_sec);
 #ifdef ENABLE_DISK_CACHE
 		scan_disk_cache();
@@ -257,4 +289,3 @@ KTHREAD_FUNCTION time_thread(void* arg) {
 	}
 	KTHREAD_RETURN;
 }
-

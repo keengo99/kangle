@@ -78,6 +78,7 @@ void KListen::sync_flag(kgl_ssl_ctx *ssl_ctx)
 		h3_server->shutdown();
 		h3_server->release();
 		h3_server = nullptr;
+		KBIT_CLR(server->flags, WORK_MODEL_ALT_H3);
 	} else if (key->h3 > 0 && key->ssl>0 && h3_server == nullptr) {
 		if (ssl_ctx == nullptr) {
 			ssl_ctx = server->ssl_ctx;
@@ -87,10 +88,8 @@ void KListen::sync_flag(kgl_ssl_ctx *ssl_ctx)
 			return;
 		}
 		KBIT_SET(ssl_ctx->alpn, KGL_ALPN_HTTP3);
-		kgl_add_ref_ssl_ctx(ssl_ctx);
-		h3_server = kgl_h3_new_server(key->ip.c_str(), key->port, key->get_socket_flag(), ssl_ctx, server->flags);
+		h3_server = kgl_h3_new_server(key->ip.c_str(), key->port, key->get_socket_flag(), ssl_ctx, server->flags & ~KGL_SERVER_START);
 		if (h3_server == nullptr) {
-			kgl_release_ssl_ctx(ssl_ctx);
 			klog(KLOG_ERR, "cann't new h3 server on [%s:%d]\n", key->ip.c_str(), key->port);
 			return;
 		}
@@ -101,6 +100,10 @@ void KListen::sync_flag(kgl_ssl_ctx *ssl_ctx)
 		}
 		vhc->addRef();
 		h3_server->bind_data(kgl_release_vh_container, vhc);
+		// An existing HTTPS listener does not go through init_listen again.
+		if (KBIT_TEST(server->flags, KGL_SERVER_START)) {
+			kgl_set_flag((uint32_t *)&server->flags, WORK_MODEL_ALT_H3, h3_server->start());
+		}
 		return;
 	}
 	if (h3_server) {
@@ -175,7 +178,7 @@ void KDynamicListen::add(KListenKey *key, KSslConfig *ssl_config, KVirtualHost *
 		listen->key->SetFlag(key);
 		if (key->ssl > 0) {
 			if (!KBIT_TEST(listen->server->flags, WORK_MODEL_SSL) || key->global>0) {
-				//无ssl或者是全局侦听，要更新ssl
+				//鏃爏sl鎴栬�呮槸鍏ㄥ眬渚﹀惉锛岃鏇存柊ssl
 				need_load_ssl = true;
 			}
 		}
@@ -245,18 +248,16 @@ bool KDynamicListen::AddGlobal(KListenHost *lh)
 }
 kserver *KDynamicListen::RefsServer(u_short port)
 {
-	KListenKey key;
-	key.port = port;
-	int result = 0;
-	krb_node *node = rbtree_find2(&listens, &key, listen_key_cmp, &result);
-	if (node == NULL) {
-		return NULL;
-	}
-	KListen *listen = (KListen *)node->data;
-	if (listen->key->port == port) {
-		kserver *server = listen->server;
-		kserver_refs(server);
-		return server;
+	for (krb_node* node = rb_first(&listens.root); node != NULL; node = rb_next(node)) {
+		KListen* listen = (KListen*)node->data;
+		if (listen->key->port == port) {
+			kserver* server = listen->server;
+			kserver_refs(server);
+			return server;
+		}
+		if (listen->key->port > port) {
+			break;
+		}
 	}
 	return NULL;
 }
@@ -510,7 +511,7 @@ static iterator_ret listen_whm_iterator(void *data, void *argv)
 #endif
 		s << "<multi_bind>" << (is_server_multi_selectable(server) ? 1 : 0) << "</multi_bind>";
 		s << "<refs>" << katom_get((void *)&server->refs) << "</refs>";
-		ctx->add("listen", s.str().c_str(), false);
+		ctx->add_raw_xml("listen", s.str());
 	}
 	return iterator_continue;
 }

@@ -51,7 +51,18 @@ bool KCmdPoolableRedirect::parse_config(const khttpd::KXmlNode* node) {
 	}
 	pm.param = attr["param"];
 	setWorkType(attr("type"), true);
-	return KExtendProgram::parse_config(node);
+	bool result = KExtendProgram::parse_config(node);
+	if (maxRequest == 0) {
+		/* PHP-CGI exits after this many requests; retire it at the same point. */
+		auto it = envs.find("PHP_FCGI_MAX_REQUESTS");
+		if (it != envs.end()) {
+			int php_max = atoi((*it).second.c_str());
+			if (php_max > 0) {
+				maxRequest = (unsigned)php_max;
+			}
+		}
+	}
+	return result;
 }
 bool KCmdPoolableRedirect::Exec(KVirtualHost* vh, KListenPipeStream* st,bool isSameRunning)
 {
@@ -107,9 +118,9 @@ bool KCmdPoolableRedirect::Exec(KVirtualHost* vh, KListenPipeStream* st,bool isS
 	}
 	arg[i] = NULL;
 	/**
-	* ¶ÔÓÚÍ¬Ò»¸öÓ¦ÓÃ³ÌĞò³Ø£¬ÓĞÒ»¸öÕıÔÚÔËĞĞ(isSameRunning),ÕâÊ±ÎÒÃÇÊÇÎŞ·¨È·ÇĞÖªµÀ¸Ã½ø³ÌµÄ×´Ì¬
-	* ÓĞ¿ÉÄÜ¸Ã½ø³Ì»¹ÕıÔÚÆô¶¯£¬Ç°Ãæµ÷ÓÃµÄpreLoad(Ğ´ÅäÖÃÎÄ¼şÄ£°å),»¹Î´·¢Éú×÷ÓÃ¡£
-	* ´ËÊ±Èç¹ûÔÙµ÷ÓÃpreLoad, ¼´·¢Éú¾ºÌ¬Ìõ¼ş(race condition)
+	* å¯¹äºåŒä¸€ä¸ªåº”ç”¨ç¨‹åºæ± ï¼Œæœ‰ä¸€ä¸ªæ­£åœ¨è¿è¡Œ(isSameRunning),è¿™æ—¶æˆ‘ä»¬æ˜¯æ— æ³•ç¡®åˆ‡çŸ¥é“è¯¥è¿›ç¨‹çš„çŠ¶æ€
+	* æœ‰å¯èƒ½è¯¥è¿›ç¨‹è¿˜æ­£åœ¨å¯åŠ¨ï¼Œå‰é¢è°ƒç”¨çš„preLoad(å†™é…ç½®æ–‡ä»¶æ¨¡æ¿),è¿˜æœªå‘ç”Ÿä½œç”¨ã€‚
+	* æ­¤æ—¶å¦‚æœå†è°ƒç”¨preLoad, å³å‘ç”Ÿç«æ€æ¡ä»¶(race condition)
 	*/
 	if (isSameRunning || preLoad(&ds)) {
 		KCmdEnv* env = makeEnv(&ds);

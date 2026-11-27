@@ -28,16 +28,39 @@ struct KApacheConfigFileInclude
 int apache_config_include_handle(const char* file, void* param)
 {
 	KApacheConfigFileInclude* include = (KApacheConfigFileInclude*)param;
-	if (include->file.match(file, (int)strlen(file), 0)) {
+	if (include->file.match(file, (int)strlen(file), 0) > 0) {
 		std::stringstream s;
 		s << include->dir << PATH_SPLIT_CHAR << file;
 		include->configer->load(s.str().c_str());
 	}
 	return 0;
 }
+static std::string glob_to_regex(const char* glob)
+{
+	std::string reg = "^";
+	for (const char* p = glob; *p; p++) {
+		switch (*p) {
+		case '*':
+			reg += ".*";
+			break;
+		case '?':
+			reg += '.';
+			break;
+		case '.': case '^': case '$': case '+': case '(': case ')':
+		case '[': case ']': case '{': case '}': case '|': case '\\':
+			reg += '\\';
+			reg += *p;
+			break;
+		default:
+			reg += *p;
+		}
+	}
+	reg += '$';
+	return reg;
+}
 using namespace std;
 /*
- * 最大htaccess文件大小,1M
+ * 鏈�澶taccess鏂囦欢澶у皬,1M
  */
 static const int max_htaccess_file_size = 1024 * 1024;
 void split(char* buf, std::vector<char*>& item) {
@@ -123,31 +146,42 @@ bool KApacheConfig::process(const char* cmd, std::vector<char*>& item)
 		return false;
 	}
 	if (strcasecmp(cmd, "ServerRoot") == 0) {
+		if (item.empty()) {
+			return true;
+		}
 		serverRoot = item[0];
 		return true;
 	}
 	if (strcasecmp(cmd, "Listen") == 0) {
+		if (item.empty()) {
+			return true;
+		}
 		char* v = item[0];
 		KListenHost listen;
-		char* p = strchr(v, ':');
 		const char* ip = "*";
-		int port = 0;
-		if (p) {
-			port = atoi(p + 1);
-			*p = '\0';
-			if (*v == '[') {
-				v++;
-				p = strchr(v, ']');
-				if (*p) {
-					*p = '\0';
-				}
+		const char* port_text = v;
+		if (*v == '[') {
+			char* bracket = strchr(v + 1, ']');
+			if (bracket == NULL || bracket[1] != ':') {
+				klog(KLOG_ERR, "invalid IPv6 Listen address [%s]\n", v);
+				return true;
 			}
+			*bracket = '\0';
+			ip = v + 1;
+			port_text = bracket + 2;
+		} else if (char* colon = strrchr(v, ':')) {
+			*colon = '\0';
 			ip = v;
-		} else {
-			port = atoi(v);
+			port_text = colon + 1;
+		}
+		char* port_end = NULL;
+		long parsed_port = strtol(port_text, &port_end, 10);
+		if (*port_text == '\0' || *port_end != '\0' || parsed_port <= 0 || parsed_port > 65535) {
+			klog(KLOG_ERR, "invalid Listen port [%s]\n", port_text);
+			return true;
 		}
 		listen.ip = ip;
-		listen.port = port;
+		listen.port = (int)parsed_port;
 		listen.model = 0;
 		if (item.size() > 1 && strcasecmp(item[1], "https") == 0) {
 			listen.model = WORK_MODEL_SSL;
@@ -156,6 +190,9 @@ bool KApacheConfig::process(const char* cmd, std::vector<char*>& item)
 		return true;
 	}
 	if (strcasecmp(cmd, "Include") == 0) {
+		if (item.empty()) {
+			return true;
+		}
 		if (includeLevel > 128) {
 			klog(KLOG_ERR, "Include level is too large,ignore Include\n");
 			return true;
@@ -168,8 +205,11 @@ bool KApacheConfig::process(const char* cmd, std::vector<char*>& item)
 			p << serverRoot << PATH_SPLIT_CHAR << item[0];
 			path = strdup(p.str().c_str());
 		}
+		if (path == NULL) {
+			return true;
+		}
 		if (strchr(path, '*') != NULL) {
-			//目录
+			//鐩綍
 			KApacheConfigFileInclude include;
 			char* e = path + strlen(path) - 1;
 			bool efinded = false;
@@ -189,7 +229,10 @@ bool KApacheConfig::process(const char* cmd, std::vector<char*>& item)
 #ifdef _WIN32
 				nc = KGL_PCRE_CASELESS;
 #endif
-				include.file.setModel(e + 1, nc);
+				if (!include.file.setModel(glob_to_regex(e + 1).c_str(), nc)) {
+					free(path);
+					return true;
+				}
 				*e = '\0';
 				include.dir = path;
 				include.configer = this;
@@ -288,11 +331,12 @@ bool KApacheConfig::load(KFileName* file)
 		return false;
 	}
 	defer(kfiber_file_close(fp));
-	auto size = (int)kfiber_file_size(fp);
-	if (size > kconfig::max_file_size) {
-		klog(KLOG_ERR, "config file [%s] is too big. size=[%d]\n", file->getName(), size);
+	int64_t file_size = kfiber_file_size(fp);
+	if (file_size < 0 || file_size > kconfig::max_file_size) {
+		klog(KLOG_ERR, "config file [%s] has invalid size=[" INT64_FORMAT "]\n", file->getName(), file_size);
 		return false;
 	}
+	int size = (int)file_size;
 	char* buf = (char*)malloc(size + 1);
 	if (!buf) {
 		klog(KLOG_ERR, "no memory to alloc %s:%d", __FILE__, __LINE__);
@@ -364,6 +408,10 @@ void KApacheConfig::getXml(KStringBuf& s)
 khttpd::KSafeXmlNode KApacheConfigDriver::load(kconfig::KConfigFile* file) {
 	KApacheConfig config(true);
 	file->set_index(kconfig::default_file_index);
+	auto name = file->get_name();
+	if (name && name->data && name->len > 0) {
+		config.setPrefix(name->data);
+	}
 	if (!config.load(file->get_filename()->data)) {
 		return nullptr;
 	}

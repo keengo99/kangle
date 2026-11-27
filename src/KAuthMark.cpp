@@ -66,6 +66,7 @@ bool checkPassword(const char *toCheck, const char *password, int cryptType) {
 #ifdef ENABLE_HTPASSWD_CRYPT
 	case CRYPT_TYPE_HTPASSWD:
 		//return apr_password_validate(toCheck,password) == 0;
+		return false;
 #endif
 	case CRYPT_TYPE_SALT_MD5:	
 		return checkSaltMd5(toCheck,password);
@@ -164,6 +165,7 @@ uint32_t KAuthMark::process(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo)
 #ifdef ENABLE_DIGEST_AUTH
 		KHttpDigestAuth *auth = new KHttpDigestAuth();
 		auth->init(rq,realm?realm:PROGRAM_NAME);
+		auth->set_stale(rq->auth && rq->auth->stale_nonce);
 		fo.reset(new KAuthSource(auth));
 #endif
 	}
@@ -178,6 +180,7 @@ bool KAuthMark::checkLogin(KHttpRequest *rq) {
 	if (rq->auth->getType() != auth_type) {
 		return false;
 	}
+	bool session_ok = rq->auth->verifySession(rq);
 	bool result = false;
 	lock.Lock();
 	auto it = users.find(rq->auth->getUser());
@@ -188,6 +191,10 @@ bool KAuthMark::checkLogin(KHttpRequest *rq) {
 		result = rq->auth->verify(rq, (*it).second.c_str(), cryptType);
 	}
 	lock.Unlock();
+	if (!session_ok) {
+		rq->auth->stale_nonce = result;
+		return false;
+	}
 	return result;
 }
 bool KAuthMark::loadAuthFile(KString&path) {
@@ -228,7 +235,7 @@ bool KAuthMark::loadAuthFile(KString&path) {
 		char *p = strchr(hot,':');
 		if (p==NULL) {
 			fprintf(stderr, "user passwd format error[%s]\n", hot);
-			break;
+			continue;
 		}
 		*p = '\0';
 		char *user = hot;
@@ -239,9 +246,9 @@ bool KAuthMark::loadAuthFile(KString&path) {
 					users.insert(pair<string, string> (user, passwd));
 				}
 			} else {
-				auto it = users.find(user);
-				if(it!=users.end()){
-					(*it).second = passwd;
+				auto it = required_users.find(user);
+				if(it!=required_users.end()){
+					users.insert(std::make_pair(KString(user), KString(passwd)));
 				}
 			}
 		}else{
@@ -303,11 +310,11 @@ KString KAuthMark::getRequireUsers()
 			s << reg_user->getModel();
 		} else {
 			lock.Lock();
-			for(auto it=users.begin();it!=users.end();it++){
-				if(it!=users.begin()){
+			for(auto it=required_users.begin();it!=required_users.end();it++){
+				if(it!=required_users.begin()){
 					s << ",";
 				}
-				s << (*it).first;
+				s << *it;
 			}
 			lock.Unlock();
 		}
@@ -338,6 +345,7 @@ void KAuthMark::parse_config(const khttpd::KXmlNodeBody* xml) {
 	lock.Lock();
 	cryptType = parseCryptType(attribute["crypt_type"].c_str());
 	lastModified = 0;
+	lastLoad = 0;
 	auth_type = KHttpAuth::parseType(attribute["auth_type"].c_str());
 	file_sign = (attribute["file_sign"]=="1");
 	if(realm){
@@ -349,6 +357,7 @@ void KAuthMark::parse_config(const khttpd::KXmlNodeBody* xml) {
 	}
 	auto  require = attribute["require"];
 	users.clear();
+	required_users.clear();
 	if (reg_user) {
 		delete reg_user;
 		reg_user = NULL;
@@ -375,7 +384,9 @@ void KAuthMark::parse_config(const khttpd::KXmlNodeBody* xml) {
 				if(hot!=NULL){
 					*hot = '\0';
 				}
-				users.insert(pair<std::string,std::string>(buf,""));
+				if (*buf != '\0') {
+					required_users.insert(buf);
+				}
 				if(hot==NULL){
 					break;
 				}

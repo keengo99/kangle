@@ -1,9 +1,10 @@
 #ifndef WHMSHELLCONTEXT_H
 #define WHMSHELLCONTEXT_H
 /**
-* whm shell的上下文
+* whm shell鐨勪笂涓嬫枃
 */
 #include <string>
+#include <atomic>
 #include <map>
 #include "KCountable.h"
 #include "KVirtualHost.h"
@@ -70,7 +71,7 @@ public:
 #endif
 		return tpid;
 	}
-	bool buildValue(const char *name,KStringBuf *s)
+	bool buildValue(const char *name,KWStream *s) override
 	{
 		if (strncasecmp(name,"vh:",3)==0) {
 			name += 3;
@@ -126,10 +127,10 @@ public:
 	}
 	WhmShell *shell;
 	KXmlAttribute attribute;
-	//对应虚拟主机
+	//瀵瑰簲铏氭嫙涓绘満
 	KVirtualHost *vh;
 	KExtendProgramString *ds;
-	//输出缓冲
+	//杈撳嚭缂撳啿
 	KSocketBuffer out_buffer;
 	KSocketBuffer in_buffer;
 	//KPipeStream st;
@@ -139,7 +140,9 @@ public:
 	KString session;
 	//is async model
 	bool async;
-	bool closed;
+	/* started by an admin-port call; only the admin port may query it */
+	bool trusted = false;
+	std::atomic<bool> closed;
 	KMutex lock;
 	time_t closedTime;
 	//end context queue,timeout will auto remove

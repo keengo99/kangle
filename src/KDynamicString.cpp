@@ -112,13 +112,12 @@ bool KDynamicString::controlString(const char control_char) {
 		env++;
 		char* end = strchr(env, '}');
 		if (end == NULL) {
-			//printf("cann't find end char `}`");
-			//return ;//s.stealString();
-			env = NULL;
-		} else {
-			*end = '\0';
-			hot = end + 1;
+			*dst << control_char;
+			hot++;
+			return true;
 		}
+		*end = '\0';
+		hot = end + 1;
 	} else if (!strictModel && control_char == envChar) {
 		char* end = env;
 		while (*end) {
@@ -249,8 +248,8 @@ void KDynamicString::controlCode(char* code) {
 	delete curBlock;
 	curBlock = NULL;
 	if (blockStack.size() > 0) {
-		curBlock = *(blockStack.begin());
-		blockStack.pop_front();
+		curBlock = blockStack.back();
+		blockStack.pop_back();
 	}
 }
 kgl_auto_cstr KDynamicString::parseDirect(char* str) {

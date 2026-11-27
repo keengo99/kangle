@@ -1,4 +1,5 @@
 #include "KChildApiService.h"
+#include "KHttpLib.h"
 #include "export.h"
 #include "api_child.h"
 
@@ -19,7 +20,13 @@ KGL_RESULT KChildApiService::start(KFastcgiStream<KSocketStream>* st)
 	KGL_RESULT result = KApiService::start();
 	assert(st);
 	if (!headSended) {
+		headSended = true;
+		header_closed = true;
 		st->write_data(_KS("Status: 200\r\n\r\n"));
+	} else {
+		if (!close_header()) {
+			return KGL_ESOCKET_BROKEN;
+		}
 	}
 	if (!st->has_data_empty_arrived()) {
 		//still have data to read
@@ -35,11 +42,15 @@ KGL_RESULT KChildApiService::start(KFastcgiStream<KSocketStream>* st)
 }
 int KChildApiService::writeClient(const char* str, int len)
 {
-	headSended = true;
 	if (!headSended) {
 		headSended = true;
+		header_closed = true;
 		const char* defaultHeaders = "Status: 500 Server Error\r\n\r\n";
-		st->write_data(defaultHeaders, (int)strlen(defaultHeaders));
+		if (!st->write_data(defaultHeaders, (int)strlen(defaultHeaders))) {
+			return -1;
+		}
+	} else if (!close_header()) {
+		return -1;
 	}
 	if (st->write_data(str, len)) {
 		return len;
@@ -61,6 +72,11 @@ KGL_RESULT KChildApiService::map_url_path(const char* url, LPVOID file, LPDWORD 
 		//debug("package type=[%d] len=[%d]\n", header.type, len);
 		if (header.type == API_CHILD_MAP_PATH_RESULT) {
 			break;
+		}
+		if (header.type == FCGI_STDIN && buf) {
+			//request body arrived before the map result, keep it for readClient.
+			st->push_read_data(buf, len);
+			continue;
 		}
 		if (buf) {
 			xfree(buf);
@@ -99,8 +115,33 @@ KGL_RESULT KChildApiService::addHeader(const char* attr, int len)
 	if (len == 0) {
 		len = (int)strlen(attr);
 	}
+	if (header_closed) {
+		return KGL_EHAS_SEND_HEADER;
+	}
+	if (!st->write_data(attr, len)) {
+		return KGL_ESOCKET_BROKEN;
+	}
 	headSended = true;
-	return st->write_data(attr, len) ? KGL_OK : KGL_ESOCKET_BROKEN;
+	for (int i = 0; i < len; ++i) {
+		if (attr[i] == '\n') {
+			if (!header_line_has_data) {
+				header_closed = true;
+				break;
+			}
+			header_line_has_data = false;
+		} else if (attr[i] != '\r') {
+			header_line_has_data = true;
+		}
+	}
+	return KGL_OK;
+}
+bool KChildApiService::close_header()
+{
+	if (!headSended || header_closed) {
+		return true;
+	}
+	header_closed = true;
+	return header_line_has_data ? st->write_data("\r\n\r\n", 4) : st->write_data("\r\n", 2);
 }
 bool KChildApiService::execUrl(HSE_EXEC_URL_INFO* urlInfo)
 {
@@ -117,6 +158,9 @@ bool KChildApiService::initECB(EXTENSION_CONTROL_BLOCK* ecb)
 	ecb->lpszPathInfo = (char*)env.getEnv("PATH_INFO");
 	ecb->lpszPathTranslated = (char*)env.getEnv("PATH_TRANSLATED");
 	ecb->cbTotalBytes = env.contentLength;
+	if (env.getEnv(API_UNKNOWN_CONTENT_LENGTH) != NULL) {
+		ecb->cbTotalBytes = -1;
+	}
 	ecb->cbLeft = ecb->cbTotalBytes;
 	ecb->lpszContentType = (env.contentType ? env.contentType : (char*)"");
 	ecb->dwHttpStatusCode = STATUS_OK;
@@ -135,4 +179,3 @@ bool KChildApiService::initECB(EXTENSION_CONTROL_BLOCK* ecb)
 	ecb->ReadClient = ReadClient;
 	return true;
 }
-

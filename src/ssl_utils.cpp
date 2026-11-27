@@ -20,13 +20,25 @@ static kgl_auto_ssl_var ssl_var_lookup_ssl_cert_serial(X509 *xs) {
 	if ((bio = BIO_new(BIO_s_mem())) == NULL) {
 		return nullptr;
 	}
-	i2a_ASN1_INTEGER(bio, X509_get_serialNumber(xs));
+	if (i2a_ASN1_INTEGER(bio, X509_get_serialNumber(xs)) <= 0) {
+		BIO_free(bio);
+		return nullptr;
+	}
 	n = (int)BIO_pending(bio);
+	if (n <= 0) {
+		BIO_free(bio);
+		return nullptr;
+	}
 	kgl_auto_ssl_var result = kgl_auto_ssl_var((char *)OPENSSL_malloc(n+1));
 	if (!result) {
+		BIO_free(bio);
 		return nullptr;
 	}
 	n = BIO_read(bio, result.get(), n);
+	if (n < 0) {
+		BIO_free(bio);
+		return nullptr;
+	}
 	result.get()[n] = '\0';
 	BIO_free(bio);
 	return result;
@@ -90,6 +102,9 @@ kgl_auto_ssl_var ssl_var_lookup(SSL *ssl, const char *var) {
 		int alg_key_size;
 		ssl_var_lookup_ssl_cipher_bits(ssl, &user_key_size, &alg_key_size);
 		kgl_auto_ssl_var result = kgl_auto_ssl_var((char*)OPENSSL_malloc(8));
+		if (!result) {
+			return nullptr;
+		}
 		int len = snprintf(result.get(), 7, "%d", user_key_size);
 		result.get()[len] = '\0';
 		return result;
@@ -108,16 +123,20 @@ kgl_auto_ssl_var ssl_var_lookup(SSL *ssl, const char *var) {
 	return nullptr;
 }
 bool make_ssl_env(KEnvInterface *env, SSL *ssl) {
+	if (env == nullptr || ssl == nullptr) {
+		return false;
+	}
 	for (int i = 0;; i++) {
 		if (ssl_vars[i] == NULL) {
 			break;
 		}
 		auto result = ssl_var_lookup(ssl, ssl_vars[i]);
 		if (result) {
-			env->addEnv(ssl_vars[i], result.get());
+			if (!env->addEnv(ssl_vars[i], result.get())) {
+				return false;
+			}
 		}
 	}
 	return true;
 }
 #endif
-

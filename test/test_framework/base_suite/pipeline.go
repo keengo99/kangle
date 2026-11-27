@@ -18,6 +18,9 @@ type check_string_callback func(string)
 func check_split_post(str string, start int, fn check_string_callback) {
 	cn, err := net.Dial("tcp", "127.0.0.1:9900")
 	common.AssertSame(err, nil)
+	if err != nil {
+		return // -f records the failure; do not dereference a nil connection.
+	}
 	defer cn.Close()
 	cn.Write([]byte(str[0:start]))
 	time.Sleep(10 * time.Millisecond)

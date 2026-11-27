@@ -22,7 +22,7 @@ public:
 		krw_buffer_clean(&buffer);
 		krw_buffer_init(&buffer, buffer.chunk_size);
 	}
-	//ÇĞ»»µ½¶ÁÄ£Ê½,·µ»Ø×Ü´óĞ¡
+	//åˆ‡æ¢åˆ°è¯»æ¨¡å¼,è¿”å›æ€»å¤§å°
 	inline unsigned startRead()
 	{
 		kassert((buffer.head==NULL && buffer.read_hot==NULL && buffer.write_hot==NULL 

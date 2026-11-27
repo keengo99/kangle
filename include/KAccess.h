@@ -45,6 +45,11 @@
 class KTable;
 class KVirtualHostEvent;
 class WhmContext;
+struct KChainLocation {
+	KString file;
+	uint16_t index;
+	uint32_t id;
+};
 using KSafeTable = KSharedObj<KTable>;
 void bind_access_config(kconfig::KConfigTree* tree, KAccess* access);
 class KAccess final : public kconfig::KConfigListen
@@ -70,9 +75,10 @@ public:
 			return nullptr;
 		}
 		KModelPtr<KAcl> m((*it).second->new_instance());
-		if (m.m) {
-			m.m->isGlobal = isGlobal();
+		if (!m.m) {
+			return nullptr;
 		}
+		m.m->isGlobal = isGlobal();
 		m.parse_config(xml);
 		m.m->parse_config(xml);
 		return m;
@@ -83,9 +89,10 @@ public:
 			return nullptr;
 		}
 		KModelPtr<KMark> m((*it).second->new_instance());
-		if (m.m) {
-			m.m->isGlobal = isGlobal();
+		if (!m.m) {
+			return nullptr;
 		}
+		m.m->isGlobal = isGlobal();
 		m.parse_config(xml);
 		m.m->parse_config(xml);
 		return m;
@@ -96,12 +103,12 @@ public:
 		}
 		return "response"_CS;
 	}
-	void parse_config(const KXmlAttribute& attr);
+	bool parse_config(const KXmlAttribute& attr);
 	bool on_config_event(kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev) override;
 	kgl_jump_type check(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo);
 	int get_chain(WhmContext *ctx, const KString& table_name);
 	void add_chain_form(KWStream& s, const char* vh, const KString& table_name, const KString& file, uint16_t index, size_t id, bool add);
-	//POSTMAP Ö»ÔÚRESPONSEÀïÓĞĞ§£¬ÔÚÓ³ÉäÍêÎïÀíÎÄ¼şºóµ÷ÓÃ
+	//POSTMAP åªåœ¨RESPONSEé‡Œæœ‰æ•ˆï¼Œåœ¨æ˜ å°„å®Œç‰©ç†æ–‡ä»¶åè°ƒç”¨
 	kgl_jump_type check_post_map(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo);
 	static void loadModel();
 
@@ -113,11 +120,22 @@ public:
 	bool parseChainAction(const KString& action, kgl_jump_type& jumpType, KString& jumpName);
 	static void buildChainAction(kgl_jump_type jumpType, const KSafeJump& jump, KWStream& s);
 	bool is_table_used(const KString& table_name);
+	bool can_create_table(const KString& name, KString& error);
+	bool can_delete_table(const KString& name, KString& error);
+	bool can_rename_table(const KString& from, const KString& to, KString& error);
+	bool rename_table(const KString& from, const KString& to, KString& error);
+	bool prepare_chain_name(const KString& table_name, const KString& file,
+		uint16_t index, uint32_t id, bool name_provided, KString& name, KString& error);
+	void set_config_tree(kconfig::KConfigTree* tree) {
+		config_tree = tree;
+	}
 	bool isGlobal();
 public:
 	KString htmlAccess(const char* vh = "");
-	void listTable(KVirtualHostEvent* ctx);
+	void listTable(KVirtualHostEvent* ctx, bool detail = true);
 	int dump_chain(KVirtualHostEvent* ctx,const KString table_name);
+	bool build_legacy_chain(const KString& table_name, const KString* chain_name, bool detail, KStringBuf& output);
+	bool find_chain_location(const KString& table_name, const KString* chain_name, KChainLocation& location);
 	int dump_named_module(KVirtualHostEvent* ctx, bool detail);
 	/*
 	* type=0 acl
@@ -160,7 +178,10 @@ private:
 	std::map<KString, KSafeTable> tables;
 	std::map<KString, KSafeNamedModel> named_acls;
 	std::map<KString, KSafeNamedModel> named_marks;
+	kconfig::KConfigTree* config_tree = nullptr;
 	KSafeTable get_table(const KString& table_name,bool always_new=true);
+	bool references_table(const KTable* table);
+	bool has_table(const KString& name);
 	std::vector<KString> getTableNames(KString skipName, bool show_global);
 };
 using KSafeAccess = KSharedObj<KAccess>;

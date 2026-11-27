@@ -20,9 +20,9 @@
 
 
 /*
- * ÃüÁîÀ©Õ¹¡£
- * Ö§³Ö½ø³ÌÄ£ĞÍÎªSPºÍMP
- * Ö§³Ö¶àÖÖĞ­Òé£¬HTTP,AJP,FASTCGIµÈµÈ¡£
+ * å‘½ä»¤æ‰©å±•ã€‚
+ * æ”¯æŒè¿›ç¨‹æ¨¡å‹ä¸ºSPå’ŒMP
+ * æ”¯æŒå¤šç§åè®®ï¼ŒHTTP,AJP,FASTCGIç­‰ç­‰ã€‚
  *
  */
 class KCmdPoolableRedirect final: public KPoolableRedirect, public KExtendProgram {

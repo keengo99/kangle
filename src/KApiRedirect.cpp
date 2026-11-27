@@ -92,17 +92,32 @@ static BOOL WINAPI apiServerSupportFunction(HCONN hConn, DWORD dwHSERequest,
 				bool result;
 				token = vh->createToken(result);
 				if (!result) {
+					vh->release();
 					return FALSE;
 				}
 #endif
+				vh->release();
 			}
 			KCmdEnv *env = NULL;			
 			if (command->env) {
 				env = new KCmdEnv;
 				kgl_command_env *ce = command->env;
+				bool env_ready = true;
 				while (ce) {
-					env->addEnv(ce->name,ce->val);
+					if (!env->addEnv(ce->name,ce->val)) {
+						env_ready = false;
+						break;
+					}
 					ce = ce->next;
+				}
+				// Finalize the environment before execve; otherwise dump_env()
+				// returns NULL and every API command loses its environment.
+				if (!env_ready || !env->addEnvEnd()) {
+					delete env;
+					if (token) {
+						KVirtualHost::closeToken(token);
+					}
+					return FALSE;
 				}
 			}
 			pid_t pid = createProcess(token,command->cmd,env,command->dir,&command->std);
@@ -186,11 +201,18 @@ bool KApiRedirect::load(const KString &file)
 #endif
 bool KApiRedirect::parse_config(const khttpd::KXmlNode* node) {
 	auto& attr = node->attributes();
-	auto type = attr("type",nullptr);
-	if (type!=nullptr) {
-		this->type = KApiRedirect::getTypeValue(type);
+	{
+		/* load() reads these under the same lock from request threads. */
+		KLocker locker(&lock);
+		auto type = attr("type", nullptr);
+		if (type != nullptr) {
+			this->type = KApiRedirect::getTypeValue(type);
+		} else if (strcmp(attr("mt"), "1") == 0) {
+			// Written by the API admin form before it used type='mt'.
+			this->type = WORK_TYPE_MT;
+		}
+		this->setFile(attr["file"]);
 	}
-	this->setFile(attr["file"]);
 	return KExtendProgram::parse_config(node);
 }
 bool KApiRedirect::load()
@@ -238,17 +260,33 @@ bool KApiRedirect::load()
 	return true;
 }
 KRedirectSource*KApiRedirect::makeFetchObject(KHttpRequest *rq, KFileName *file) {
-	//ÉèÖÃapi·ÃÎÊÊ±Ê¹ÓÃfull path_info
+	//è®¾ç½®apiè®¿é—®æ—¶ä½¿ç”¨full path_info
 	KBIT_SET(rq->ctx.filter_flags,RQ_FULL_PATH_INFO);
 	if (type == WORK_TYPE_MP || type == WORK_TYPE_SP) {
 		return new KApiFastcgiFetchObject();
 	}
-	lock.Lock();
+	return new KApiFetchObject(this);
+}
+bool KApiRedirect::begin_call()
+{
+	KLocker locker(&lock);
 	if (dso.state == STATE_LOAD_UNKNOW) {
 		load();
 	}
-	lock.Unlock();
-	return new KApiFetchObject(this);
+	if (dso.HttpExtensionProc == NULL) {
+		return false;
+	}
+	active_calls++;
+	return true;
+}
+void KApiRedirect::end_call()
+{
+	KLocker locker(&lock);
+	kassert(active_calls > 0);
+	if (--active_calls == 0 && unload_pending) {
+		unload_pending = false;
+		dso.unload();
+	}
 }
 bool KApiRedirect::createProcess(KVirtualHost *vh, KPipeStream *st) {
 	char *argv[2] = { (char *) conf.extworker.c_str(),NULL };
@@ -274,6 +312,12 @@ KUpstream* KApiRedirect::GetUpstream(KHttpRequest* rq)
 }
 bool KApiRedirect::unload() {
 	KLocker locker(&lock);
+	if (active_calls > 0) {
+		/* Unloading now would unmap code that running calls return into.
+		 * Until the last one ends, new calls keep using the loaded module. */
+		unload_pending = true;
+		return true;
+	}
 	dso.unload();
 	return true;
 }

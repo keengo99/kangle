@@ -38,6 +38,21 @@ KGL_RESULT process_upstream_no_body(KHttpRequest* rq, kgl_input_stream* in, kgl_
 
 /* merge obj precondition to sub_request */
 void merge_precondition(KHttpRequest* rq, KHttpObject* obj);
+/**
+* rq->ctx.obj is the body-less response upstream sent for a revalidation of
+* old_obj. return true if it validates old_obj, false if it must be forwarded
+* to the client (a 304 for the client's own validator, or a changed entity).
+*/
+inline bool kgl_revalidated_304_matches(KHttpRequest* rq, KHttpObject* old_obj) {
+	kgl_precondition_flag flag;
+	if (rq->ctx.obj->data->i.status_code == STATUS_NOT_MODIFIED && !rq->sink->get_precondition(&flag)) {
+		/* only old_obj's validator went upstream, so the 304 is about old_obj.
+		* never send a 304 to a client that did not ask for one.
+		*/
+		return true;
+	}
+	return !rq->ctx.obj->data->etag || rq->ctx.obj->is_same_precondition(old_obj);
+}
 /* return true 200/206 false 304/412 */
 inline bool kgl_request_precondition(KHttpRequest* rq, KHttpObject* obj) {
 	kgl_precondition_flag flag;
@@ -75,11 +90,18 @@ inline bool kgl_match_if_range(kgl_precondition_flag flag, kgl_request_range* ra
 	}
 	return range->if_range_date == last_modified;
 }
+inline bool kgl_is_weak_etag(const char* data, size_t len) {
+	return len >= 2 && (data[0] == 'W' || data[0] == 'w') && data[1] == '/';
+}
 inline bool kgl_match_if_range(kgl_precondition_flag flag, kgl_request_range* range, kgl_len_str_t* etag) {
 	if (!range->if_range_entity) {
 		return true;
 	}
 	if (KBIT_TEST(flag, kgl_precondition_if_range_date)) {
+		return false;
+	}
+	if (kgl_is_weak_etag(etag->data, etag->len) ||
+		kgl_is_weak_etag(range->if_range_entity->data, range->if_range_entity->len)) {
 		return false;
 	}
 	return kgl_mem_same(etag->data, etag->len, range->if_range_entity->data, range->if_range_entity->len);
@@ -102,7 +124,7 @@ inline bool kgl_request_match_if_range(KHttpRequest* rq, KHttpObject* obj) {
 bool process_check_final_source(KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out, KGL_RESULT* result);
 typedef KGL_RESULT(*kgl_request_handler)(kgl_str_t *path, void *data, KHttpRequest* rq, kgl_input_stream* in, kgl_output_stream* out);
 /**
-* 发送在内存中的object.
+* 鍙戦�佸湪鍐呭瓨涓殑object.
 */
 inline KGL_RESULT send_memory_object(KHttpRequest* rq) {
 	KHttpObject* obj = rq->ctx.obj;

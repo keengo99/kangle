@@ -5,7 +5,7 @@
 #include "http.h"
 #if 0
 /**
-* »º´æÎï¼şÊı¾İÔ´£¬½öÓÃÓÚÄÚ²¿ÇëÇóÃüÖĞ
+* ç¼“å­˜ç‰©ä»¶æ•°æ®æºï¼Œä»…ç”¨äºå†…éƒ¨è¯·æ±‚å‘½ä¸­
 */
 class KCacheFetchObject : public KFetchObject
 {

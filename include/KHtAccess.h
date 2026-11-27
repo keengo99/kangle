@@ -36,7 +36,7 @@
 #include "KConfigTree.h"
 
 /*
- * ×ª»»apache¸ñÊ½µÄ.htaccessµ½kangleµÄKAccess
+ * è½¬æ¢apacheæ ¼å¼çš„.htaccessåˆ°kangleçš„KAccess
  */
 class KApacheConfig {
 public:
@@ -47,7 +47,7 @@ public:
 #endif
 	bool load(const char *file);
 	/*
-	 * µÃµ½Î¨Ò»tableÃû
+	 * å¾—åˆ°å”¯ä¸€tableå
 	 */
 	std::string getTableName()
 	{
@@ -95,29 +95,46 @@ struct _KApacheHtaccessContext
 	KAccess *access[2];
 	kconfig::KConfigFile *file;
 	kconfig::KConfigTree ev;
-	_KApacheHtaccessContext(const char* filename) : file{ 0 },access { 0 }, ev(nullptr, _KS("")) {
+	_KApacheHtaccessContext(const char* filename, const char* prefix) : file{ 0 },access { 0 }, ev(nullptr, _KS("")) {
 		for (int i = 0; i < 2; ++i) {
 			access[i] = new KAccess(false, i);
 		}
-		ev.add(_KS("request"), access[REQUEST]);
-		ev.add(_KS("response"), access[RESPONSE]);
+		// EvRemove releases the listener, so the tree needs its own reference
+		// in addition to the one held by this context.
+		if (ev.add(_KS("request"), access[REQUEST])) {
+			access[REQUEST]->add_ref();
+		}
+		if (ev.add(_KS("response"), access[RESPONSE])) {
+			access[RESPONSE]->add_ref();
+		}
 		KString str(filename);
-		file = new kconfig::KConfigFile(&ev, nullptr, str.data(), kconfig::KConfigFileSource::Htaccess);
+		kgl_ref_str_t* prefix_str = kstring_from(prefix);
+		file = new kconfig::KConfigFile(&ev, prefix_str, str.data(), kconfig::KConfigFileSource::Htaccess);
+		kstring_release(prefix_str);
 	}
 	~_KApacheHtaccessContext() noexcept {
 		if (file) {
 			file->clear();
 			file->release();
 		}
+		// Empty or failed loads may never create a request/response XML node,
+		// so clear() does not necessarily send EvRemove to both listeners.
+		auto request_access = static_cast<KAccess*>(ev.remove(_KS("request")));
+		if (request_access) {
+			request_access->release();
+		}
+		auto response_access = static_cast<KAccess*>(ev.remove(_KS("response")));
+		if (response_access) {
+			response_access->release();
+		}
 		for (int i = 0; i < 2; ++i) {
 			if (access[i]) {
 				access[i]->release();
 			}
 		}
-		ev.remove(_KS("request"));
-		ev.remove(_KS("response"));
 		assert(ev.empty());
 	}
 };
-using KApacheHtaccessContext = std::unique_ptr< _KApacheHtaccessContext>;
+// Shared because parsed .htaccess files are cached and reused by requests.
+using KApacheHtaccessContext = std::shared_ptr< _KApacheHtaccessContext>;
 #endif /* KHTACCESS_H_ */

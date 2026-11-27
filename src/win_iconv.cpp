@@ -1,6 +1,6 @@
 //{{ent
 /* for WC_NO_BEST_FIT_CHARS */
-#ifdef _WIN64
+#ifdef _WIN32
 #ifndef WINVER
 # define WINVER 0x0500
 #endif
@@ -10,7 +10,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include "iconv.h"
+#include "KWinIconv.h"
 #include "kmalloc.h"
 #if 0
 # define MAKE_EXE

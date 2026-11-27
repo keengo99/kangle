@@ -1,8 +1,8 @@
 /*
  * KApiFetchObject.h
- * isapi½Ó¿Ú·şÎñÀà£¬ÓĞÁ½ÖÖ·şÎñÌá¹©·½Ê½£¬¿´¸ÃisapiÄ£¿éµÄÔËĞĞ·½Ê½¡£
- * Ò»ÖÖÊÇ±¾µØµÄ£¬¼´isapiÄ£¿é¹ÒÔÚkangleÖ÷½ø³ÌÉÏ£¬ÒÔ¶àÏß³ÌµÄ·½Ê½ÔËĞĞ(·şÎñÌá¹©ÕßÊÇKLocalApiService *sa)
- * ÁíÒ»ÖÖÊÇÔ¶³ÌµÄ£¬¼´isapiÄ£¿é¹ÒÔÚkangle×Ó½ø³ÌÉÏ£¬ÒÔfastcgi(À©Õ¹ÁË)µÄ·½Ê½ºÍÖ÷½ø³ÌÍ¨ĞÅ(·şÎñÌá¹©ÕßÊÇKFastcgiStream *st)
+ * isapiæ¥å£æœåŠ¡ç±»ï¼Œæœ‰ä¸¤ç§æœåŠ¡æä¾›æ–¹å¼ï¼Œçœ‹è¯¥isapiæ¨¡å—çš„è¿è¡Œæ–¹å¼ã€‚
+ * ä¸€ç§æ˜¯æœ¬åœ°çš„ï¼Œå³isapiæ¨¡å—æŒ‚åœ¨kangleä¸»è¿›ç¨‹ä¸Šï¼Œä»¥å¤šçº¿ç¨‹çš„æ–¹å¼è¿è¡Œ(æœåŠ¡æä¾›è€…æ˜¯KLocalApiService *sa)
+ * å¦ä¸€ç§æ˜¯è¿œç¨‹çš„ï¼Œå³isapiæ¨¡å—æŒ‚åœ¨kangleå­è¿›ç¨‹ä¸Šï¼Œä»¥fastcgi(æ‰©å±•äº†)çš„æ–¹å¼å’Œä¸»è¿›ç¨‹é€šä¿¡(æœåŠ¡æä¾›è€…æ˜¯KFastcgiStream *st)
 
  *  Created on: 2010-6-13
  *      Author: keengo
@@ -40,6 +40,7 @@ public:
 	KHttpRequest *rq;
 	KHttpPushParser push_parser;
 private:
+	KApiRedirect* api;
 	kgl_input_stream* in;
 	kgl_output_stream* out;
 	kgl_response_body body = { 0 };

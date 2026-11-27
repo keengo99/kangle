@@ -1,0 +1,23 @@
+<config>
+  <listen ip='127.0.0.1' port='18080' type='http'/>
+  <listen ip='127.0.0.1' port='18311' type='manage'/>
+  <admin user='admin' password='kangle' admin_ips='127.0.0.1'/>
+  <api name='whm' file='buildin:whm'/>
+  <request action='vhs'>
+    <table name='OLD'>
+      <chain action='continue'>
+        <acl_path path='/first'/>
+        <acl_path path='/second'/>
+      </chain>
+      <chain action='deny'><acl_path path='/third'/></chain>
+    </table>
+  </request>
+  <response action='allow'>
+    <table name='RESPONSE_TEST'>
+      <chain action='continue'><acl_path path='/first'/></chain>
+      <chain action='allow'><acl_path path='/second'/></chain>
+    </table>
+  </response>
+  <vhs><index file='index.html'/></vhs>
+  <vh name='default' doc_root='www'><host>*</host></vh>
+</config>

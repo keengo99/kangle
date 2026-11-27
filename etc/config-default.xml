@@ -1,22 +1,23 @@
 <config programVersion='1.0' configVersion='0'>
 	<listen ip='*' port='80' type='http'/>
 	<listen ip='127.0.0.1' port='3311' type='manage' />
-	<timeout rw='60'></timeout>
-	<run user=''/>
+	<timeout rw='60' connect='10'/>
+	<run_as user='' group=''/>
 	<admin user='admin' password='kangle' admin_ips='127.0.0.1|*'/>
-	<compress default='0' only_gzip_cache='0' min_gzip_length='256' gzip_level='5'/>
-	<cache default='1' max_cache_size='1M' memory='10M' refresh_time='10'/>
-	<connect max_per_ip='0' max='0' />
-	<attack enable='0' max_request='30' total_seconds='20' path_info='1'/>
-	<charset>gbk</charset>
-	<insert_via>0</insert_via>
-	<x_forwarded_for>0</x_forwarded_for>
+	<compress only_cache='0' min_length='256' gzip_level='5' br_level='5' zstd_level='5'/>
+	<cache default='1' max_cache_size='1M' memory='10M' refresh_time='10'
+	       disk='0' max_bigobj_size='1G' cache_part='1'/>
+	<connect max_per_ip='0' max='0' max_keep_alive='0' per_ip_deny='0'/>
+	<fiber stack_size='0'/>
+	<dns worker='8'/>
+	<io worker='2' max='0' buffer='256K'/>
+	<firewall bl_time='1800' wl_time='1800'/>
+	<path_info>1</path_info>
 	<log level='3' rotate_size='100M' error_rotate_size='100M' logs_size='2G'/>
 	<!--
 	<server name='apache' type='http' host='localhost' port='82'/>
 	<server name='php' type='fastcgi' host='localhost' port='10080'/>
 	-->
-	<dso_extend name='filter' filename='bin/filter.${dso}'/>
 	<api name='webdav' file='bin/webdav.${dso}'  life_time='60' max_error_count='5'>
 	</api>
 	<api name='whm' file='buildin:whm'/>

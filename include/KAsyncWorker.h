@@ -5,9 +5,9 @@
 #include "KCountable.h"
 #include "ksapi.h"
 #if 0
-//Òì²½¹¤×÷
+//å¼‚æ­¥å·¥ä½œ
 /**
-* Òì²½»Øµ÷º¯Êý
+* å¼‚æ­¥å›žè°ƒå‡½æ•°
 */
 typedef KTHREAD_FUNCTION (* asyncWorkerCallBack)(void *data,int msec);
 
@@ -20,7 +20,7 @@ struct KAsyncParam {
 	KAsyncParam *next;
 };
 bool thread_start_worker(void *param, asyncWorkerCallBack callback);
-//Òì²½¹¤×÷Àà
+//å¼‚æ­¥å·¥ä½œç±»
 class KAsyncWorker : public KCountableEx
 {
 public:

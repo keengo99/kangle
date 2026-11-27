@@ -144,7 +144,7 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 				rq->response_content_range(nullptr, obj->index.content_range_length);
 			}
 		}
-		//·¢ËÍAgeÍ·
+		//å‘é€Ageå¤´
 		if (KBIT_TEST(rq->ctx.filter_flags, RF_AGE) && !KBIT_TEST(obj->index.flags, FLAG_DEAD | ANSW_NO_CACHE)) {
 			int current_age = (int)obj->get_current_age(kgl_current_sec);
 			if (current_age > 0) {
@@ -161,7 +161,7 @@ KGL_RESULT send_http2(KHttpRequest* rq, KHttpObject* obj, uint16_t status_code, 
 }
 
 /**
-* ·¢ËÍ´íÎóÐÅÏ¢
+* å‘é€é”™è¯¯ä¿¡æ¯
 */
 KGL_RESULT send_error2(KHttpRequest* rq, int code, const char* reason) {
 	log_request_error(rq, code, reason);
@@ -186,20 +186,26 @@ KGL_RESULT send_error2(KHttpRequest* rq, int code, const char* reason) {
 		if (fp) {
 			INT64 len = kfiber_file_size(fp);
 			len = KGL_MIN(len, 32768);
-			kbuf* buf = new_pool_kbuf_align(rq->sink->pool, int(len));
-			int used = kfiber_file_read(fp, buf->data, (int)len);
-			buf->used = used;
-			if (used > 2) {
-				char* p = (char*)memchr(buf->data, '~', used - 2);
-				if (p != NULL) {
-					char tmp[5];
-					snprintf(tmp, 4, "%03d", code);
-					kgl_memcpy(p, tmp, 3);
-				}
+			int used = 0;
+			kbuf* buf = NULL;
+			if (len > 0) {
+				buf = new_pool_kbuf_align(rq->sink->pool, int(len));
+				used = kfiber_file_read(fp, buf->data, (int)len);
 			}
-			s.Append(buf);
 			kfiber_file_close(fp);
-			return send_http2(rq, NULL, code, &s);
+			if (used > 0) {
+				buf->used = used;
+				if (used > 2) {
+					char* p = (char*)memchr(buf->data, '~', used - 2);
+					if (p != NULL) {
+						char tmp[5];
+						snprintf(tmp, 4, "%03d", code);
+						kgl_memcpy(p, tmp, 3);
+					}
+				}
+				s.Append(buf);
+				return send_http2(rq, NULL, code, &s);
+			}
 		}
 	}
 	s << "<html>\n<head>\n";
@@ -211,10 +217,10 @@ KGL_RESULT send_error2(KHttpRequest* rq, int code, const char* reason) {
 		s << " style='display:none'";
 	}
 #endif
-	s << ">\n<h3>error: " << code;
-	s << "</h3><h3>";
+	s << ">\n<i><h2>Something error:</h2></i>\n<p><h3>" << code;
+	s << "</h3><h3><font color='red'>";
 	s << reason;
-	s << "</h3></p>\n<p>Please check.</p>\n";
+	s << "</font></h3></p>\n<p>Please check or <a href='javascript:location.reload()'>try again</a> later.</p>\n";
 	if (*conf.hostname) {
 		s << "<div>hostname: " << conf.hostname << "</div>";
 	}
@@ -256,7 +262,7 @@ KGL_RESULT send_error2(KHttpRequest* rq, int code, const char* reason) {
 	return send_http2(rq, rq->ctx.obj, code, &s);
 }
 /**
-* ²åÈëviaÍ·
+* æ’å…¥viaå¤´
 */
 void insert_via(KHttpRequest* rq, KWStream& s, char* old_via, size_t len) {
 	if (old_via) {
@@ -293,20 +299,23 @@ void insert_via(KHttpRequest* rq, KWStream& s, char* old_via, size_t len) {
 inline KHttpHeader* build_know_header(KHttpHeader* head, KHttpHeader* header, kgl_header_type type, const char* val, size_t val_len) {
 	memset(header, 0, sizeof(KHttpHeader));
 	header->name_is_know = 1;
+	/* without this the type stayed 0 (Host) and local responses were
+	 * sent with "Host: kangle/x" instead of a Server header */
+	header->know_header = (uint16_t)type;
 	header->buf = (char*)val;
 	header->val_len = (uint16_t)val_len;
 	header->next = head;
 	return header;
 }
 /*************************
-* ´´½¨»ØÓ¦httpÍ·ÐÅÏ¢
+* åˆ›å»ºå›žåº”httpå¤´ä¿¡æ¯
 *************************/
 bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, bool build_status) {
 	assert(!KBIT_TEST(rq->sink->data.flags, RQ_HAS_SEND_HEADER));
 	if (likely(build_status)) {
 		uint16_t status_code = obj->data->i.status_code;
 		if (KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_RANGED) && rq->sink->data.status_code == STATUS_CONTENT_PARTIAL) {
-			//Èç¹ûÇëÇóÊÇurlÄ£Äârange£¬ÔòÇ¿ÖÆ×ª»»206µÄ»ØÓ¦Îª200
+			//å¦‚æžœè¯·æ±‚æ˜¯urlæ¨¡æ‹Ÿrangeï¼Œåˆ™å¼ºåˆ¶è½¬æ¢206çš„å›žåº”ä¸º200
 			status_code = STATUS_OK;
 		}
 		rq->response_status(status_code);
@@ -320,7 +329,7 @@ bool build_obj_header(KHttpRequest* rq, KHttpObject* obj, INT64 content_len, boo
 		timeLock.Unlock();
 	}
 	rq->sink->response_headers(headers);
-	//·¢ËÍAgeÍ·
+	//å‘é€Ageå¤´
 	if (KBIT_TEST(rq->ctx.filter_flags, RF_AGE) && !KBIT_TEST(obj->index.flags, FLAG_DEAD | ANSW_NO_CACHE)) {
 		int current_age = (int)obj->get_current_age(kgl_current_sec);
 		if (current_age > 0) {
@@ -371,6 +380,28 @@ bool push_redirect_header(KHttpRequest* rq, const char* url, int url_len, int co
 	timeLock.Lock();
 	rq->response_header(kgl_header_date, (char*)cachedDateTime, 29);
 	timeLock.Unlock();
+	/* Rewrite captures and other parts of the target can hold decoded bytes
+	 * from the request path. Send spaces and control bytes encoded, so the
+	 * Location stays one valid URL. */
+	int i = 0;
+	while (i < url_len && (unsigned char)url[i] > 0x20 && url[i] != 0x7f) {
+		i++;
+	}
+	if (i < url_len) {
+		static const char hex[] = "0123456789ABCDEF";
+		KStringBuf s(url_len + 16);
+		for (i = 0; i < url_len; i++) {
+			unsigned char c = (unsigned char)url[i];
+			if (c > 0x20 && c != 0x7f) {
+				s.write_all(url + i, 1);
+			} else {
+				char esc[3] = { '%', hex[c >> 4], hex[c & 15] };
+				s.write_all(esc, 3);
+			}
+		}
+		rq->response_header(kgl_expand_string("Location"), s.buf(), s.size());
+		return true;
+	}
 	rq->response_header(kgl_expand_string("Location"), url, url_len);
 	//rq->response_connection();
 	return true;
@@ -396,14 +427,14 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KApacheHtac
 		return sfo.release();
 	}
 	if (jump_type == JUMP_DENY) {
-		//bind´íÎó.Èç·Ç·¨url.
+		//bindé”™è¯¯.å¦‚éžæ³•url.
 		result = false;
 		error->set(STATUS_SERVER_ERROR, "cann't bind file or denied by htaccess.");
 		return NULL;
 	}
 	/*
 	if (handled || rq->has_final_source()) {
-		//ÇëÇóÒÑ¾­´¦Àí,»òÕßÊý¾ÝÔ´ÒÑÈ·¶¨.
+		//è¯·æ±‚å·²ç»å¤„ç†,æˆ–è€…æ•°æ®æºå·²ç¡®å®š.
 		return NULL;
 	}
 	*/
@@ -412,7 +443,7 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KApacheHtac
 		return NULL;
 	}
 	if (result && rq->file->isPrevDirectory()) {
-		//²éÕÒÄ¬ÈÏÊ×Ò³
+		//æŸ¥æ‰¾é»˜è®¤é¦–é¡µ
 		KFileName* newFile = NULL;
 		indexFileFindedResult = svh->vh->getIndexFile(rq, rq->file, &newFile, &indexPath);
 		if (indexFileFindedResult) {
@@ -425,13 +456,13 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KApacheHtac
 		free(indexPath);
 	}
 	if (fo) {
-		//Â·¾¶Ó³ÉäÔ´È·¶¨
+		//è·¯å¾„æ˜ å°„æºç¡®å®š
 		return fo;
 	}
 	if (result && rq->file->isDirectory()) {
-		//ÎÄ¼þÎªÄ¿Â¼´¦Àí
+		//æ–‡ä»¶ä¸ºç›®å½•å¤„ç†
 		if (!rq->file->isPrevDirectory()) {
-			//urlºóÃæ²»ÊÇÒÔ/½áÎ²,ÖØ¶¨Ïò´¦Àí
+			//urlåŽé¢ä¸æ˜¯ä»¥/ç»“å°¾,é‡å®šå‘å¤„ç†
 			if (rq->sink->data.meth == METH_GET) {
 				return new KPrevDirectoryFetchObject;
 			} else {
@@ -441,25 +472,25 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KApacheHtac
 			result = false;
 			goto done;
 		}
-		//Ä¬ÈÏÊ×Ò³´¦Àí
+		//é»˜è®¤é¦–é¡µå¤„ç†
 		if (!indexFileFindedResult) {
-			//Ã»ÓÐ²éµ½Ä¬ÈÏÊ×Ò³
+			//æ²¡æœ‰æŸ¥åˆ°é»˜è®¤é¦–é¡µ
 			if (svh->vh->browse) {
-				//Èç¹ûÔÊÐíä¯ÀÀ
+				//å¦‚æžœå…è®¸æµè§ˆ
 				return new KDirectoryFetchObject;
 			}
 			error->set(STATUS_FORBIDEN, "You don't have permission to browse.");
 			return NULL;
 		}
 	}
-	//°´ÎÄ¼þÀ©Õ¹Ãû²éÕÒÀ©Õ¹Ó³Éä
+	//æŒ‰æ–‡ä»¶æ‰©å±•åæŸ¥æ‰¾æ‰©å±•æ˜ å°„
 	fo = svh->vh->findFileExtRedirect(rq, rq->file, result, redirect_result);
 	if (fo) {
-		//Ó³ÉäÔ´È·¶¨
+		//æ˜ å°„æºç¡®å®š
 		return fo;
 	}
 #if 0
-	//²éÕÒÄ¬ÈÏÀ©Õ¹
+	//æŸ¥æ‰¾é»˜è®¤æ‰©å±•
 	fo = svh->vh->findDefaultRedirect(rq, rq->file, result);
 	if (fo) {
 		return fo;
@@ -467,7 +498,7 @@ KFetchObject* bindVirtualHost(KHttpRequest* rq, RequestError* error, KApacheHtac
 #endif
 	if (result) {
 		if (rq->file->getPathInfoLength() > 0) {
-			//¾²Ì¬ÎÄ¼þ²»Ö§³Öpath_info
+			//é™æ€æ–‡ä»¶ä¸æ”¯æŒpath_info
 			result = false;
 		}
 	}
@@ -487,7 +518,7 @@ done:
 	return new KStaticFetchObject;
 }
 char* find_content_type(KHttpRequest* rq, KHttpObject* obj) {
-	//´¦Àícontent-type
+	//å¤„ç†content-type
 	auto svh = kangle::get_virtual_host(rq);
 	char* content_type = NULL;
 	if (svh) {
@@ -613,19 +644,19 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 		env->addEnv("QUERY_STRING", param);
 	}
 	/*
-	SCRIPT_NAMEºÍPATH_INFOÇø±ð
+	SCRIPT_NAMEå’ŒPATH_INFOåŒºåˆ«
 	/test.php/a
 
 	SCIPRT_NAME = /test.php
-	È«PATH_INFO(isapiÄ¬ÈÏ)
+	å…¨PATH_INFO(isapié»˜è®¤)
 	PATH_INFO = /test.php/a
-	²¿·ÖPATH_INFO
+	éƒ¨åˆ†PATH_INFO
 	PATH_INFO = /a
 	*/
 	if (file) {
 		unsigned pathInfoLength = file->getPathInfoLength();
 		if (file->getIndex()) {
-			//ÓÐindexÎÄ¼þÇé¿öÏÂ¡£
+			//æœ‰indexæ–‡ä»¶æƒ…å†µä¸‹ã€‚
 			KStringBuf s;
 			s << rq->sink->data.url->path << file->getIndex();
 			env->addEnv("SCRIPT_NAME", s.c_str());
@@ -634,7 +665,7 @@ bool make_http_env(KHttpRequest* rq, kgl_input_stream* in, KBaseRedirect* brd, K
 			}
 		} else {
 			if (pathInfoLength > 0) {
-				//ÓÐpath infoµÄÇé¿öÏÂ
+				//æœ‰path infoçš„æƒ…å†µä¸‹
 				char* scriptName = (char*)xmalloc(pathInfoLength + 1);
 				kgl_memcpy(scriptName, rq->sink->data.url->path, pathInfoLength);
 				scriptName[pathInfoLength] = '\0';

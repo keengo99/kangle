@@ -32,16 +32,19 @@ KUpstream* KApiProcess::PowerResult(KHttpRequest* rq, KPipeStream* st2)
 		delete st;
 	}
 	st = static_cast<KApiPipeStream*>(st2);
-	//ÕâÀï°Ñ¶Ë¿ÚºÅ±£´æ£¬ÏÂ´ÎÁ¬½ÓÊ±¾Í²»ÓÃ¶ÔstLock¼ÓËøÁË¡£
+	//è¿™é‡ŒæŠŠç«¯å£å·ä¿å­˜ï¼Œä¸‹æ¬¡è¿žæŽ¥æ—¶å°±ä¸ç”¨å¯¹stLockåŠ é”äº†ã€‚
 #ifdef KSOCKET_UNIX	
 	if (st->is_unix_socket()) {
 		KStringBuf s;
 		s << "/tmp/extworker." << st->info.port << ".sock";
 		s.str().swap(unix_path);
+		ksocket_unix_addr(unix_path.c_str(), &unix_addr);
 	} else {
 #endif
 		if (!ksocket_getaddr("127.0.0.1", st->info.port, AF_UNSPEC, AI_NUMERICHOST, &addr)) {
 			klog(KLOG_ERR, "cann't get 127.0.0.1 addr\n");
+			stLock.Unlock();
+			return NULL;
 		}
 #ifdef KSOCKET_UNIX	
 	}
@@ -49,7 +52,7 @@ KUpstream* KApiProcess::PowerResult(KHttpRequest* rq, KPipeStream* st2)
 	stLock.Unlock();
 	kconnection* cn = try_connect(&addr);
 	if (cn != NULL) {
-		return new_upstream(cn);
+		return bind_upstream(cn);
 	}
 	return NULL;
 }

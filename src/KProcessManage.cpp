@@ -72,7 +72,7 @@ void KProcessManage::flushCpuUsage(ULONG64 cpuTime) {
 int KProcessManage::getPortMap(KVirtualHost *vh,KExtendProgram *rd,KString name,int app)
 {
 	std::map<USER_T, KVirtualHostProcess *>::iterator it;
-	if(app<0 || app>(int)vh->apps.size()){
+	if (app < 0 || app >= (int)vh->apps.size()) {
 		return -1;
 	}
 	KVirtualHostProcess *gc = refsVirtualHostProcess(vh->apps[app],rd);
@@ -185,4 +185,3 @@ bool KProcessManage::killProcess2(const KString &user,int pid) {
 	lock.Unlock();
 	return result;
 }
-

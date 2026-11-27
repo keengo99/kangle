@@ -26,6 +26,8 @@
 #include "KRedirect.h"
 #include "KUpstream.h"
 #include "KFileName.h"
+/* seconds an idle HTTP upstream connection is kept when life_time is not set */
+#define KGL_HTTP_UPSTREAM_LIFE_TIME 60
 class KRedirectSource;
 class KSockPoolHelper;
 class KPoolableRedirect: public KRedirect {
@@ -38,6 +40,9 @@ public:
 		return this->proto != rd->proto;
 	}
 	virtual void shutdown() = 0;
+	/* close expired idle connections, called by the gc thread. */
+	virtual void refresh_pool(time_t now_time) {
+	}
 	void remove() {
 		shutdown();
 		release();
@@ -110,6 +115,12 @@ public:
 	Proto_t get_proto()
 	{
 		return proto;
+	}
+	/* HTTP backends keep connections alive unless life_time says otherwise.
+	 * FastCGI and the others do not: their backends often serve one
+	 * connection per worker, so idle pooled connections would block them. */
+	int default_life_time() const {
+		return proto == Proto_http ? KGL_HTTP_UPSTREAM_LIFE_TIME : 0;
 	}
 	virtual void set_proto(Proto_t proto) = 0;
 protected:

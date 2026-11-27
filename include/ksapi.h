@@ -179,6 +179,7 @@ typedef struct _kgl_async_http
 
 
 #define KF_STATUS_REQ_FINISHED  (1<<31)
+#define KF_STATUS_REQ_DEFERRED  (1<<30) /* chain action is handled by a body filter */
 #define KF_STATUS_REQ_TRUE		1 /* check result true */
 #define KF_STATUS_REQ_FALSE     0 /* check result false*/
 
@@ -194,8 +195,28 @@ typedef enum _KF_REQ_TYPE
 	//only support in access
 	KF_REQ_UPSTREAM = 14,
 	KF_REQ_OUT_FILTER = 15,
-	KF_REQ_IN_FILTER  = 16
+	KF_REQ_IN_FILTER  = 16,
+	/*
+	 * Coordinate request-body pre-reading with source selection.  A module
+	 * which consumes body bytes before a final source is selected must retain
+	 * every consumed byte and mark the body READY.  It must mark the body
+	 * CONSUMING immediately before exposing any replayed byte to a source.
+	 */
+	KF_REQ_BODY_REPLAY = 17
 } KF_REQ_TYPE;
+
+typedef enum _kgl_request_body_replay_state
+{
+	KGL_REQUEST_BODY_REPLAY_QUERY = 0,
+	KGL_REQUEST_BODY_REPLAY_READY = 1,
+	KGL_REQUEST_BODY_REPLAY_CONSUMING = 2
+} kgl_request_body_replay_state;
+
+typedef struct _kgl_request_body_replay
+{
+	uint32_t size;
+	uint32_t state;
+} kgl_request_body_replay;
 
 typedef enum
 {

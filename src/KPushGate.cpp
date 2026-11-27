@@ -2,10 +2,12 @@
 #include "http.h"
 #include "ksapi.h"
 #include "KDechunkEngine.h"
+#include "KHttpValidation.h"
 #include "KBufferFetchObject.h"
 #include "KVectorBufferFetchObject.h"
 #include "HttpFiber.h"
 #include "KHttpTransfer.h"
+#include <climits>
 
 struct kgl_dechunk_body : public kgl_forward_body
 {
@@ -17,10 +19,19 @@ struct kgl_dechunk_body : public kgl_forward_body
 
 static KGL_RESULT dechunk_push_body(kgl_response_body_ctx* gate, const char* buf, int len) {
 	kgl_dechunk_body* g = (kgl_dechunk_body*)gate;
+	if (len < 0 || (len > 0 && buf == nullptr)) {
+		return KGL_EINVALID_PARAMETER;
+	}
 	KGL_RESULT result = STREAM_WRITE_SUCCESS;
 	char* alloced_buffer = nullptr;
 	if (g->saved_buffer) {
-		alloced_buffer = (char*)malloc(len + g->saved_len);
+		if (len > INT_MAX - g->saved_len) {
+			return KGL_EINSUFFICIENT_BUFFER;
+		}
+		alloced_buffer = (char*)malloc((size_t)len + (size_t)g->saved_len);
+		if (alloced_buffer == nullptr) {
+			return KGL_ENO_MEMORY;
+		}
 		memcpy(alloced_buffer, g->saved_buffer, g->saved_len);
 		memcpy(alloced_buffer + g->saved_len, buf, len);
 		free(g->saved_buffer);
@@ -60,7 +71,7 @@ static KGL_RESULT dechunk_push_body(kgl_response_body_ctx* gate, const char* buf
 		case KDechunkResult::Success:
 		{
 			assert(piece && piece_length > 0);
-			KGL_RESULT result = g->down_body.f->write(g->down_body.ctx, piece, piece_length);
+			result = g->down_body.f->write(g->down_body.ctx, piece, piece_length);
 			if (result != KGL_OK) {
 				goto done;
 			}
@@ -75,6 +86,11 @@ static KGL_RESULT dechunk_push_body(kgl_response_body_ctx* gate, const char* buf
 				assert(g->saved_buffer == nullptr);
 				g->saved_len = (int)(end - buf);
 				g->saved_buffer = (char*)malloc(g->saved_len);
+				if (g->saved_buffer == nullptr) {
+					g->saved_len = 0;
+					result = KGL_ENO_MEMORY;
+					goto done;
+				}
 				memcpy(g->saved_buffer, buf, g->saved_len);
 			}
 			goto done;
@@ -177,6 +193,12 @@ static kgl_response_body_function dechunk_body_function = {
 	unsupport_sendfile,
 	dechunk_close
 };
+bool is_dechunk_body_end(const kgl_response_body* body) {
+	if (body->f != &dechunk_body_function || body->ctx == nullptr) {
+		return false;
+	}
+	return ((kgl_dechunk_body*)body->ctx)->engine.is_success();
+}
 bool new_dechunk_body(kgl_output_stream *out, kgl_response_body* down_gate) {
 	kgl_dechunk_body* gate = new kgl_dechunk_body;
 	pipe_response_body(gate, &dechunk_body_function, down_gate);
@@ -236,6 +258,8 @@ KGL_RESULT st_write_message(kgl_output_stream_ctx* st, uint16_t status_code, con
 	return handle_error(rq, status_code, (const char*)msg);
 }
 KGL_RESULT common_write_trailer(KHttpRequest* rq, const char* attr, hlen_t attr_len, const char* val, hlen_t val_len) {
+	if (!khttp_valid_trailer(attr, attr_len, val, val_len)) return KGL_EDATA_FORMAT;
+	if (rq->ctx.obj) KBIT_SET(rq->ctx.obj->index.flags, FLAG_DEAD);
 	if (rq->ctx.body.ctx) {
 		KGL_RESULT result = rq->ctx.body.f->flush(rq->ctx.body.ctx);
 		if (result != KGL_OK) {

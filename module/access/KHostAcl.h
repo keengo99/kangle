@@ -44,7 +44,16 @@ public:
 		return "host";
 	}
 	bool match(KHttpRequest* rq, KHttpObject* obj) override {
-		return KMultiAcl::match(rq->sink->data.url->host);
+		KString buf;
+		return KMultiAcl::match(kgl_acl_host(rq->sink->data.url->host, buf));
+	}
+protected:
+	char* transferItem(char* item) override {
+		size_t len = strlen(item);
+		while (len > 1 && item[len - 1] == '.') {
+			item[--len] = '\0';
+		}
+		return item;
 	}
 };
 class KWideHostAcl : public KAcl{

@@ -25,6 +25,14 @@ public:
 	KWriteBack()
 	{
 		header = NULL;
+		keep_alive = false;
+		status_code = STATUS_OK;
+	}
+	~KWriteBack()
+	{
+		if (header) {
+			free_header_list(header);
+		}
 	}
 	void buildRequest(KHttpRequest *rq, KSafeSource& fo);
 	KString getMsg();

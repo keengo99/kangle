@@ -16,6 +16,9 @@
 #ifdef ENABLE_DIGEST_AUTH
 #define MAX_SAVE_DIGEST_SESSION  120
 #define MAX_SESSION_LIFETIME     300
+/* Every 401 challenge creates a session, so an unauthenticated client could
+ * otherwise grow the table without limit. The least recently used go first. */
+#define MAX_DIGEST_SESSION       65536
 class KHttpDigestSession {
 public:
 	KHttpDigestSession(const char *realm);
@@ -27,10 +30,12 @@ public:
 	 */
 	char *realm;
 	/*
-	 * ×îºó»îÔ¾Ê±¼ä
+	 * æœ€åæ´»è·ƒæ—¶é—´
 	 */
 	time_t lastActive;
 	sockaddr_i addr;
+	/* position in KHttpDigestAuth::lru */
+	std::list<char *>::iterator lru;
 };
 class KHttpDigestAuth: public KHttpAuth {
 public:
@@ -43,7 +48,13 @@ public:
 	bool verifySession(KHttpRequest *rq) override;
 	void insertHeader(KHttpRequest *rq) override;
 	static void flushSession(time_t nowTime);
+	void set_stale(bool stale)
+	{
+		this->stale = stale;
+	}
 private:
+	static void remove_session(std::map<char *, KHttpDigestSession *, lessp>::iterator it);
+	bool stale;
 	char *nonce;
 	char *nc;
 	char *cnonce;
@@ -52,6 +63,8 @@ private:
 	char *uri;
 	const char *orig_str;
 	static std::map<char *, KHttpDigestSession *, lessp> sessions;
+	/* session keys, least recently used first */
+	static std::list<char *> lru;
 	static KMutex lock;
 };
 #endif

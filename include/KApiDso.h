@@ -53,14 +53,14 @@ public:
 		{
 			uint16_t buildin : 1;
 			/*
-			 * api״̬
+			 * api状态
 			 */
 			uint16_t state;
 		};
 		uint32_t flags;
 	};
 	/*
-	 * api����Ϣ
+	 * api的信息
 	 */
 	char apiInfo[256];
 	bool init();

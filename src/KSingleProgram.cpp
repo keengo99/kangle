@@ -48,15 +48,19 @@ bool KSingleProgram::savePid(int savePid) {
 	char buf[16];
 	memset(buf, 0, sizeof(buf));
 #ifndef _WIN32
-	lseek(fd, 0, SEEK_SET);
+	if (lseek(fd, 0, SEEK_SET) < 0) {
+		return false;
+	}
 #else
 	LARGE_INTEGER li;
 	li.QuadPart = 0;
-	SetFilePointer(fd,li.LowPart,&li.HighPart,FILE_BEGIN);
+	if (SetFilePointer(fd, li.LowPart, &li.HighPart, FILE_BEGIN) == INVALID_SET_FILE_POINTER &&
+		GetLastError() != NO_ERROR) {
+		return false;
+	}
 #endif
 	snprintf(buf, sizeof(buf) - 2, "%d", savePid);
-	kfwrite(fd, buf, sizeof(buf));
-	return true;
+	return kfwrite(fd, buf, sizeof(buf)) == sizeof(buf);
 }
 void KSingleProgram::unlock() {
 	if (kflike(fd)) {
@@ -83,11 +87,15 @@ bool KSingleProgram::lock(const char *pidFile) {
 	lock.l_type = F_WRLCK;
 	if (fcntl(fd, F_SETLKW, &lock) == -1) {
 		klog(KLOG_ERR, "lock failed errno=%d.\n", errno);
+		kfclose(fd);
+		kfinit(fd);
 		return false;
 	}
 #else
 	if (!LockFileEx(fd,0,0,1,0,&ov)) {
 		klog(KLOG_ERR, "lock failed errno=%d.\n", errno);
+		kfclose(fd);
+		kfinit(fd);
 		return false;
 	}
 #endif
@@ -110,8 +118,8 @@ int KSingleProgram::checkRunning(const char *pidFile) {
 	memset(&lock, 0, sizeof(lock));
 	lock.l_type = F_WRLCK;
 	if (fcntl(fd, F_SETLK, &lock) != -1) {
-		close(fd);
-		fd = 0;
+		kfclose(fd);
+		kfinit(fd);
 		return 0;
 	}
 #else

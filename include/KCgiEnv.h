@@ -26,7 +26,7 @@
  *
  *  Created on: 2010-6-11
  *      Author: keengo
- * ÎªunixµÄcgiÌá¹©env·şÎñµÄÀà£¬ÖØ³É»·¾³±äÁ¿
+ * ä¸ºunixçš„cgiæä¾›envæœåŠ¡çš„ç±»ï¼Œé‡æˆç¯å¢ƒå˜é‡
  */
 
 #ifndef KCGIENV_H_

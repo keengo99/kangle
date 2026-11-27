@@ -3,7 +3,7 @@
 #include "KCountable.h"
 class KHttpRequest;
 /**
-* 连接数限制类
+* 杩炴帴鏁伴檺鍒剁被
 */
 class KConnectionLimit : public KAtomCountable
 {

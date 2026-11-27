@@ -116,7 +116,7 @@ public:
 			delete (*it).second;
 		}
 	}
-	//ºÏ²¢mimeÀàĞÍµ½mÖĞ¡£
+	//åˆå¹¶mimeç±»å‹åˆ°mä¸­ã€‚
 	void mergeTo(KMimeType *m,bool overwrite)
 	{
 		for(auto it=mimetypes.begin();it!=mimetypes.end();it++) {

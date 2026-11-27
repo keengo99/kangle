@@ -90,10 +90,7 @@ KGL_RESULT KDirectoryFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, k
 		}
 	next_file:
 		if (!FindNextFile(dp, &FileData)) {
-			if (GetLastError() == ERROR_NO_MORE_FILES) {
-				break;
-			}
-
+			break;
 		}
 	}
 #endif

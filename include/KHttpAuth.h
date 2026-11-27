@@ -24,8 +24,9 @@
 #ifndef KHTTPAUTH_H
 #define KHTTPAUTH_H
 #include <stdlib.h>
+#include "global.h"
 /*
- * 定义认证类型
+ * 瀹氫箟璁よ瘉绫诲瀷
  */
 #define AUTH_BASIC  0
 #define AUTH_DIGEST 1
@@ -41,7 +42,6 @@
 #include "KStream.h"
 #include "KHttpHeader.h"
 #include "KFetchObject.h"
-#include "global.h"
 #include "katom.h"
 
 #ifdef HTTP_PROXY
@@ -59,7 +59,7 @@
 
 class KHttpRequest;
 /*
- * http认证基类
+ * http璁よ瘉鍩虹被
  */
 class KHttpAuth {
 public:
@@ -68,7 +68,12 @@ public:
 		user = NULL;
 		realm = NULL;
 		auth_header = AUTH_HEADER_AUTO;
+		stale_nonce = false;
 	}
+	/* Set when the credentials were right but the Digest nonce was expired or
+	 * not issued to this client; the next challenge then says stale=true so
+	 * the browser retries without asking the user again. */
+	bool stale_nonce;
 	virtual ~KHttpAuth();
 	static int parseType(const char *type);
 	static const char *buildType(int type);

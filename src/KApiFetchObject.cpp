@@ -14,8 +14,14 @@
 #include "api_child.h"
 
 KApiFetchObject::KApiFetchObject(KApiRedirect* rd) :KRedirectSource(0), KApiService(&rd->dso) {
+	api = rd;
 	rq = NULL;
 	token = NULL;
+#ifndef _WIN32
+	/* getToken() hands this out when the request has no virtual host. */
+	id[0] = (int)getuid();
+	id[1] = (int)getgid();
+#endif
 	push_parser.parser.first_same = 1;
 }
 
@@ -28,7 +34,7 @@ Token_t KApiFetchObject::getVhToken(const char* vh_name) {
 #ifndef HTTP_PROXY
 	if (rq && rq->sink->data.opaque) {
 		if (kangle::get_virtual_host(rq)->vh->user.empty()) {
-			//Ö»ÓÐ³¬¼¶ÕËºÅÔËÐÐµÄÐéÄâÖ÷»ú²ÅÓÐÈ¨ÏÞ¡£
+			//åªæœ‰è¶…çº§è´¦å·è¿è¡Œçš„è™šæ‹Ÿä¸»æœºæ‰æœ‰æƒé™ã€‚
 			KVirtualHost* vh = conf.gvm->refsVirtualHostByName(vh_name);
 			if (vh) {
 				if (token) {
@@ -36,6 +42,12 @@ Token_t KApiFetchObject::getVhToken(const char* vh_name) {
 				}
 				bool result;
 				token = vh->createToken(result);
+				vh->release();
+				if (!result) {
+					/* its run user is unknown: not root either */
+					KVirtualHost::closeToken(token);
+					token = NULL;
+				}
 				return token;
 			}
 		}
@@ -54,6 +66,10 @@ Token_t KApiFetchObject::getToken() {
 		if (rq && rq->sink->data.opaque) {
 			bool result;
 			token = kangle::get_virtual_host(rq)->vh->createToken(result);
+			if (!result) {
+				KVirtualHost::closeToken(token);
+				token = NULL;
+			}
 		} else {
 #ifndef _WIN32
 			token = (Token_t)&id;
@@ -70,10 +86,13 @@ KGL_RESULT KApiFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_out
 	this->in = in;
 	this->out = out;
 	KGL_RESULT result = KGL_OK;
-	if (dso->HttpExtensionProc) {
+	{
 		assert(rq);
 		if (brd->rd->is_disable()) {
 			return out->f->error(out->ctx, STATUS_SERVER_ERROR, _KS("extend is disable"));
+		}
+		if (!api->begin_call()) {
+			return out->f->error(out->ctx, STATUS_SERVER_ERROR, _KS("api is not loaded"));
 		}
 		KBIT_SET(obj->index.flags, ANSW_LOCAL_SERVER);
 		if (rq->auth) {
@@ -100,11 +119,16 @@ KGL_RESULT KApiFetchObject::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_out
 		}
 #endif
 		make_http_env(rq, in, brd, rq->file, &env, chrooted);
+		if (KBIT_TEST(rq->GetWorkModel(), WORK_MODEL_MANAGE)) {
+			/* whm runs calls without scope='public' only for the admin port */
+			env.addEnv("KANGLE_MANAGE", "1");
+		}
 		result = start();
+		api->end_call();
 	}
 	if (!headSended && result == KGL_OK) {
 		headSended = true;
-		result = out->f->write_header_finish(out->ctx, -1, &body);
+		result = out->f->write_header_finish(out->ctx, push_parser.GetContentLength(), &body);
 	}
 	if (body.ctx) {
 		assert(result != KGL_NO_BODY);
@@ -143,6 +167,9 @@ bool KApiFetchObject::initECB(EXTENSION_CONTROL_BLOCK* ecb) {
 	return true;
 }
 bool KApiFetchObject::setStatusCode(const char* status, int len) {
+	if (headSended) {
+		return false;
+	}
 	out->f->write_status(out->ctx, (uint16_t)atoi(status));
 	return true;
 }
@@ -154,6 +181,9 @@ KGL_RESULT KApiFetchObject::map_url_path(const char* url, LPVOID file, LPDWORD f
 	return set_variable(file, file_len, filename.get());
 }
 KGL_RESULT KApiFetchObject::addHeader(const char* attr, int len) {
+	if (headSended) {
+		return KGL_EHAS_SEND_HEADER;
+	}
 	if (len == 0) {
 		len = (int)strlen(attr);
 	}
@@ -165,9 +195,18 @@ KGL_RESULT KApiFetchObject::addHeader(const char* attr, int len) {
 	case kgl_parse_finished:
 	{
 		headSended = true;
-		auto result = out->f->write_header_finish(out->ctx, -1, &body);
+		auto result = out->f->write_header_finish(out->ctx, push_parser.GetContentLength(), &body);
 		if (result == KGL_NO_BODY) {
 			no_body = true;
+		}
+		if (result != KGL_OK) {
+			return result;
+		}
+		//data after the empty line is body.
+		int body_len = 0;
+		const char* body_data = push_parser.GetBody(&body_len);
+		if (body_len > 0 && body.ctx) {
+			result = body.f->write(body.ctx, body_data, body_len);
 		}
 		return result;
 	}
@@ -179,7 +218,7 @@ KGL_RESULT KApiFetchObject::addHeader(const char* attr, int len) {
 int KApiFetchObject::writeClient(const char* str, int len) {
 	if (!headSended) {
 		headSended = true;
-		auto result = out->f->write_header_finish(out->ctx, -1, &body);
+		auto result = out->f->write_header_finish(out->ctx, push_parser.GetContentLength(), &body);
 		if (result == KGL_NO_BODY) {
 			no_body = true;
 		}

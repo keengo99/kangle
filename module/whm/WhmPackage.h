@@ -13,7 +13,7 @@
 #include "KCountable.h"
 #include "WhmCallMap.h"
 /*
- * whm°ü,ÓÉÅäÖÃÎÄ¼şÉú³ÉµÄwhmµ÷ÓÃ¼°eventĞÅÏ¢.
+ * whmåŒ…,ç”±é…ç½®æ–‡ä»¶ç”Ÿæˆçš„whmè°ƒç”¨åŠeventä¿¡æ¯.
  */
 class WhmPackage: public KXmlEvent, public KAtomCountable {
 public:
@@ -37,7 +37,7 @@ private:
 	WhmExtend *findExtend(const KString &name);
 	WhmCallMap *findCallMap(const KString &name);
 	/*
-	 * µ÷ÓÃÓ³Éä
+	 * è°ƒç”¨æ˜ å°„
 	 */
 	std::map<KString, WhmCallMap *> callmap;
 	std::map<KString, WhmExtend *> extends;

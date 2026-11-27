@@ -64,6 +64,7 @@ func CreateMainConfig(malloc_debug int) (err error) {
 	<worker_thread>4</worker_thread>
 	<mallocdebug>%d</mallocdebug>
 	<listen ip='*' port='9999h' type='http' />
+	<listen ip='127.0.0.1' port='9988' type='https' certificate='etc/server.crt' certificate_key='etc/server.key' />
 	<listen ip='127.0.0.1' port='9943' type='https' certificate='etc/server.crt' certificate_key='etc/server.key' alpn='3' />
 	<listen ip='127.0.0.1' port='9911' type='manage' />
 
@@ -87,6 +88,8 @@ func CreateMainConfig(malloc_debug int) (err error) {
 	<server name='localhost' proto='http' host='127.0.0.1' port='9999' life_time='5' />
 	<server name='localhost_https' proto='http' host='127.0.0.1' port='9943sp' life_time='2' />
 	<server name='upstream' host='127.0.0.1' port='4411' proto='http' life_time='10'/>
+	<server name='stale_upstream' host='127.0.0.1' port='4414' proto='http' life_time='10'/>
+	<server name='chunk_upstream' host='127.0.0.1' port='4415' proto='http' life_time='10'/>
 	<server name='upstream_h2c' host='127.0.0.1' port='4411h' proto='http' life_time='10'/>
 	<server name='upstream_ssl' host='127.0.0.1' port='4412s' proto='http' life_time='10'/>	
 	<server name='upstream_h2' host='127.0.0.1' port='4412sp' proto='http' life_time='10'/>	
@@ -96,6 +99,7 @@ func CreateMainConfig(malloc_debug int) (err error) {
 	<request action='vhs'></request>
 	<vhs >
 		<index id='100' file='index.html'/>
+		<error code='451' file='file://www/status-code.html'/>
 		<mime_type ext='*' type='text/plain'/>
 		<mime_type ext='html' type='text/html' compress='1'/>
 		<mime_type ext='id' type='text/html' compress='2'/>
@@ -170,6 +174,7 @@ func Mkdir() {
 	os.Mkdir(config.Cfg.BasePath+"/var", 0755)
 	os.Mkdir(config.Cfg.BasePath+"/ext", 0755)
 	os.Mkdir(config.Cfg.BasePath+"/bin", 0755)
+	os.Mkdir(config.Cfg.BasePath+"/log", 0755)
 	os.Mkdir(config.Cfg.BasePath+"/www/dav", 0755)
 }
 func Prepare(kangle_path string, only_prepare bool) {
@@ -180,16 +185,38 @@ func Prepare(kangle_path string, only_prepare bool) {
 	common.CopyFile(kangle_path+"/test_child"+common.ExeExtendFile(), config.Cfg.BasePath+"/bin/test_child"+common.ExeExtendFile())
 	common.CopyFile(kangle_path+"/testdso"+common.DllExtendFile(), config.Cfg.BasePath+"/bin/testdso"+common.DllExtendFile())
 	common.CopyFile(kangle_path+"/vhs_sqlite"+common.DllExtendFile(), config.Cfg.BasePath+"/bin/vhs_sqlite"+common.DllExtendFile())
-	common.CopyFile(kangle_path+"/filter"+common.DllExtendFile(), config.Cfg.BasePath+"/bin/filter"+common.DllExtendFile())
 	common.CopyFile(kangle_path+"/webdav"+common.DllExtendFile(), config.Cfg.BasePath+"/bin/webdav"+common.DllExtendFile())
 	common.CopyFile(kangle_path+"/webdav_client_example"+common.ExeExtendFile(), config.Cfg.BasePath+"/bin/webdav_client_example"+common.ExeExtendFile())
+	for _, name := range []string{"libstdc++.so.6", "libgcc_s.so.1", "sqlite3.dll"} {
+		source := kangle_path + "/" + name
+		if _, err := os.Stat(source); err == nil {
+			common.CopyFile(source, config.Cfg.BasePath+"/bin/"+name)
+		}
+	}
 	createSslFile()
 	Start(only_prepare)
 	time.Sleep(time.Second)
 }
 func Close() {
+	cmd := kangle_cmd
+	if cmd == nil {
+		return
+	}
+	kangle_cmd = nil
 	go Stop()
-	kangle_cmd.Wait()
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+	select {
+	case err := <-done:
+		if err != nil {
+			panic(fmt.Errorf("kangle exited abnormally: %w", err))
+		}
+		fmt.Println("kangle exited successfully")
+	case <-time.After(30 * time.Second):
+		_ = cmd.Process.Kill()
+		<-done
+		panic("kangle did not shut down within 30 seconds")
+	}
 }
 func Stop() {
 	exec.Command(kangleCommand, "-q").Run()

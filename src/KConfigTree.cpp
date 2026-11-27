@@ -14,6 +14,7 @@
 #include "KHttpLib.h"
 #include "KFiberLocker.h"
 #include "KXmlException.h"
+#include <errno.h>
 #define ASSERT_CONFIG_IS_LOCKED() kassert(kfiber_mutex_get_worker(locker)>0)
 namespace kconfig {
 	bool is_first_config = true;
@@ -44,21 +45,38 @@ namespace kconfig {
 #endif
 		return config_dir + CONFIG_FILE;
 	}
+	/* A vhost access file is written by the site user: it must not read
+	 * kangle's environment through %{env:NAME}. */
+	class KVhAccessDynamicString : public KExtConfigDynamicString
+	{
+	public:
+		KVhAccessDynamicString(const char* file) : KExtConfigDynamicString(file) {
+		}
+		bool buildValue(const char* name, KWStream* s) override {
+			return strncasecmp(name, "env:", 4) == 0;
+		}
+	};
 	class KDefaultConfigFileDriver : public KConfigFileSourceDriver
 	{
 	public:
 		khttpd::KSafeXmlNode load(KConfigFile* file) override {
+			return load_file(file, false);
+		}
+	protected:
+		khttpd::KSafeXmlNode load_file(KConfigFile* file, bool site_file) {
 			auto fp = kfiber_file_open(file->get_filename()->data, fileRead, KFILE_ASYNC);
 			if (!fp) {
 				klog(KLOG_ERR, "ERROR! cann't open config file [%s] for read\n", file->get_filename()->data);
 				return nullptr;
 			}
 			defer(kfiber_file_close(fp));
-			auto size = (int)kfiber_file_size(fp);
-			if (size > max_file_size) {
-				klog(KLOG_ERR, "config file [%s %s] is too big. size=[%d]\n", file->get_name()->data, file->get_filename()->data, size);
+			int64_t file_size = kfiber_file_size(fp);
+			if (file_size < 0 || file_size > max_file_size) {
+				klog(KLOG_ERR, "config file [%s %s] has invalid size=[" INT64_FORMAT "]\n",
+					file->get_name()->data, file->get_filename()->data, file_size);
 				return nullptr;
 			}
+			int size = (int)file_size;
 			kgl_auto_cstr buf((char*)malloc(size + 1));
 			if (!buf) {
 				return nullptr;
@@ -76,35 +94,44 @@ namespace kconfig {
 			if (strncmp(hot, "<!--#", 5) == 0) {
 				hot += 5;
 				if (strncmp(hot, "stop", 4) == 0) {
-					/*
-					 * 扩展没有启动
-					 */
+					/* This extension has no configuration. */
 					id = 0;
 					file->set_index(0);
 					return nullptr;
 				} else if (strncmp(hot, "start", 5) == 0) {
-					hot += 6;
-					id = atoi(hot);
+					hot += 5;
+					while (*hot && isspace((unsigned char)*hot)) {
+						hot++;
+					}
+					if (*hot) {
+						id = atoi(hot);
+					}
 				}
 			}
 			if (file->get_index() == 0) {
 				/* only first time can set_index */
 				file->set_index(id);
 			}
-			KExtConfigDynamicString ds(file->get_filename()->data);
-			ds.dimModel = false;
-			ds.blockModel = false;
-			ds.envChar = '%';
-			auto content = ds.parseDirect(buf.get());
+			std::unique_ptr<KExtConfigDynamicString> ds(site_file ?
+				new KVhAccessDynamicString(file->get_filename()->data) :
+				new KExtConfigDynamicString(file->get_filename()->data));
+			ds->dimModel = false;
+			ds->blockModel = false;
+			ds->envChar = '%';
+			auto content = ds->parseDirect(buf.get());
 			return parse_xml(content.get());
 		}
+	public:
 		KFileModified get_last_modified(KConfigFile* file) override {
 			return file->get_filename()->data;
 		}
 		bool save(KConfigFile* f, khttpd::KXmlNode* nodes) override {
 			KString tmpfile = f->get_filename()->data;
 			tmpfile += KString(_KS(".tmp"));
-			auto fp = kfiber_file_open(tmpfile.c_str(), fileWrite, 0);
+			/* A vhost access file sits in the site's own directory. Never
+			 * write through whatever the site user left at the temp name. */
+			unlink(tmpfile.c_str());
+			auto fp = kfiber_file_open(tmpfile.c_str(), fileWrite, KFILE_NOFOLLOW);
 			if (!fp) {
 				return false;
 			}
@@ -131,7 +158,7 @@ namespace kconfig {
 				default_file = get_default_config_filename();
 				filename = default_file.data();
 			}
-			if (0 != unlink(filename->data)) {
+			if (0 != unlink(filename->data) && errno != ENOENT) {
 				unlink(tmpfile.c_str());
 				return false;
 			}
@@ -241,6 +268,75 @@ namespace kconfig {
 	class KVhAccessConfigFileDriver : public KDefaultConfigFileDriver
 	{
 	public:
+		khttpd::KSafeXmlNode load(KConfigFile* file) override {
+			auto xml = load_file(file, true);
+			if (xml) {
+				/* The file is mounted under the vhost, so an <alias>, <map>,
+				 * <error> or <env> in it would change the vhost itself, e.g.
+				 * alias / to read any file as root. The site may only add its
+				 * own access rules. */
+				auto root = xml->get_first();
+				std::vector<khttpd::KXmlNode*> drop;
+				for (auto child : root->childs) {
+					if (!child->is_tag(_KS("request")) && !child->is_tag(_KS("response"))) {
+						drop.push_back(child);
+					}
+				}
+				for (auto child : drop) {
+					klog(KLOG_ERR, "ignore <%s> in vhost access file [%s], only <request> and <response> are allowed\n",
+						child->get_tag().c_str(), file->get_filename()->data);
+					root->remove_child(&child->key);
+				}
+			}
+			if (!xml) {
+				// A vhost may enable access.xml before the file exists. Treat that
+				// state as an empty config so the first WHM rule can create the file.
+				// Invalid existing XML must still fail instead of being overwritten.
+				KFileName filename;
+				if (filename.setName(file->get_filename()->data)) {
+					return nullptr;
+				}
+				xml = new_xml("config"_CS);
+			}
+
+			// The legacy access loader always supplied an empty BEGIN table for
+			// both directions. EasyPanel relies on that invariant when toggling
+			// bandwidth, anti-CC and similar features: it inserts a jump into
+			// BEGIN without creating the table itself.
+			for (const char* direction : { "request", "response" }) {
+				auto direction_xml = find_child(xml->get_first(), direction, strlen(direction));
+				khttpd::KSafeXmlNode new_direction;
+				if (!direction_xml) {
+					new_direction = new_xml(direction, strlen(direction));
+					xml->append(new_direction.get());
+					direction_xml = new_direction.get();
+				}
+				bool found = false;
+				for (auto child : direction_xml->get_first()->childs) {
+					if (!child->is_tag(_KS("table"))) {
+						continue;
+					}
+					for (uint32_t index = 0;; ++index) {
+						auto body = child->get_body(index);
+						if (!body) {
+							break;
+						}
+						if (body->attributes["name"] == "BEGIN") {
+							found = true;
+							break;
+						}
+					}
+					if (found) {
+						break;
+					}
+				}
+				if (!found) {
+					auto table = new_xml(_KS("table"), _KS("BEGIN"));
+					direction_xml->append(table.get());
+				}
+			}
+			return xml;
+		}
 		bool enable_scan() override {
 			return false;
 		}
@@ -296,6 +392,209 @@ namespace kconfig {
 		name += name_len;
 		size -= name_len;
 		return update_xml_node(nodes, name, size, index, xml, ev_type);
+	}
+	static bool move_xml_node_down(khttpd::KXmlNodeBody* nodes, const char* path, size_t size, uint32_t index) {
+		while (size && *path == '/') {
+			++path;
+			--size;
+		}
+		if (!size) {
+			return false;
+		}
+		const char* slash = (const char*)memchr(path, '/', size);
+		size_t segment_len = slash ? static_cast<size_t>(slash - path) : size;
+		const char* hash = (const char*)memchr(path, '#', segment_len);
+		size_t key_len = hash ? static_cast<size_t>(hash - path) : segment_len;
+		auto child = find_child(nodes, path, key_len);
+		if (!child) {
+			return false;
+		}
+		if (slash) {
+			uint32_t body_index = hash ? static_cast<uint32_t>(atoi(hash + 1)) : 0;
+			auto body = child->get_body(body_index);
+			return body && move_xml_node_down(body, slash + 1, size - segment_len - 1, index);
+		}
+		auto first = child->get_body_address(index);
+		auto second = index == UINT32_MAX ? nullptr : child->get_body_address(index + 1);
+		if (!first || !second) {
+			return false;
+		}
+		auto old_first = *first;
+		auto old_second = *second;
+		for (auto& entry : nodes->child_order) {
+			if (entry.node == child) {
+				if (entry.body == old_first) {
+					entry.body = old_second;
+				} else if (entry.body == old_second) {
+					entry.body = old_first;
+				}
+			}
+		}
+		std::swap(*first, *second);
+		return true;
+	}
+	static bool rename_xml_table(khttpd::KXmlNodeBody* nodes, const char* path, size_t size, const KString& new_name) {
+		while (size && *path == '/') {
+			++path;
+			--size;
+		}
+		if (!size) {
+			return false;
+		}
+		const char* slash = (const char*)memchr(path, '/', size);
+		size_t segment_len = slash ? static_cast<size_t>(slash - path) : size;
+		const char* hash = (const char*)memchr(path, '#', segment_len);
+		size_t key_len = hash ? static_cast<size_t>(hash - path) : segment_len;
+		auto child = find_child(nodes, path, key_len);
+		if (!child) {
+			return false;
+		}
+		if (slash) {
+			uint32_t body_index = hash ? static_cast<uint32_t>(atoi(hash + 1)) : 0;
+			auto body = child->get_body(body_index);
+			return body && rename_xml_table(body, slash + 1, size - segment_len - 1, new_name);
+		}
+		if (!child->is_tag(_KS("table")) || !child->key.vary) {
+			return false;
+		}
+		auto replacement = child->clone();
+		kstring_release(replacement->key.vary);
+		replacement->key.vary = kstring_from2(new_name.c_str(), new_name.size());
+		if (nodes->childs.find(&replacement->key)) {
+			return false;
+		}
+		for (uint32_t i = 0; i < replacement->get_body_count(); ++i) {
+			auto& attrs = replacement->get_body(i)->attributes;
+			attrs.erase("name"_CS);
+			attrs.emplace("name"_CS, new_name);
+		}
+		auto old_entry = nodes->childs.find(&child->key);
+		if (!old_entry) {
+			return false;
+		}
+		nodes->childs.erase(old_entry);
+		int inserted = 0;
+		auto new_entry = nodes->childs.insert(&replacement->key, &inserted);
+		if (!inserted) {
+			return false;
+		}
+		new_entry->value(replacement->add_ref());
+		for (auto& entry : nodes->child_order) {
+			if (entry.node != child) {
+				continue;
+			}
+			for (uint32_t i = 0; i < child->get_body_count(); ++i) {
+				if (entry.body == child->get_body(i)) {
+					entry.node = replacement.get();
+					entry.body = replacement->get_body(i);
+					break;
+				}
+			}
+		}
+		child->release();
+		return true;
+	}
+	static bool rewrite_table_action(KXmlAttribute& attributes,
+		const KString& old_name, const KString& new_name) {
+		KStringBuf old_action;
+		old_action << "table:" << old_name;
+		if (attributes["action"] != old_action.str()) {
+			return false;
+		}
+		KStringBuf new_action;
+		new_action << "table:" << new_name;
+		attributes.erase("action"_CS);
+		attributes.emplace("action"_CS, new_action.str());
+		return true;
+	}
+	static bool rewrite_access_table(khttpd::KXmlNodeBody* access,
+		const KString& old_name, const KString& new_name,
+		bool rename_definition, bool& found_definition) {
+		bool changed = rewrite_table_action(access->attributes, old_name, new_name);
+		for (auto table : access->childs) {
+			if (!table->is_tag(_KS("table"))) {
+				continue;
+			}
+			for (uint32_t table_index = 0;; ++table_index) {
+				auto table_body = table->get_body(table_index);
+				if (!table_body) {
+					break;
+				}
+				auto chains = find_child(table_body, _KS("chain"));
+				if (!chains) {
+					continue;
+				}
+				for (uint32_t chain_index = 0;; ++chain_index) {
+					auto chain = chains->get_body(chain_index);
+					if (!chain) {
+						break;
+					}
+					changed |= rewrite_table_action(chain->attributes, old_name, new_name);
+				}
+			}
+		}
+		if (!rename_definition) {
+			return changed;
+		}
+		KStringBuf table_path;
+		table_path << "table@" << old_name;
+		if (rename_xml_table(access, table_path.c_str(), table_path.size(), new_name)) {
+			found_definition = true;
+			changed = true;
+		}
+		return changed;
+	}
+	static khttpd::KXmlNode* find_xml_path(khttpd::KXmlNodeBody* nodes,
+		const char* path, size_t size) {
+		while (size && *path == '/') {
+			++path;
+			--size;
+		}
+		if (!size) {
+			return nullptr;
+		}
+		const char* slash = (const char*)memchr(path, '/', size);
+		size_t segment_len = slash ? static_cast<size_t>(slash - path) : size;
+		const char* hash = (const char*)memchr(path, '#', segment_len);
+		size_t key_len = hash ? static_cast<size_t>(hash - path) : segment_len;
+		auto child = find_child(nodes, path, key_len);
+		if (!child || !slash) {
+			return child;
+		}
+		uint32_t body_index = hash ? static_cast<uint32_t>(atoi(hash + 1)) : 0;
+		auto body = child->get_body(body_index);
+		return body ? find_xml_path(body, slash + 1, size - segment_len - 1) : nullptr;
+	}
+	static bool build_relative_config_path(KConfigFile* file, KConfigTree* tree, KString& path) {
+		std::vector<KConfigTree*> parts;
+		auto root = file->get_ev();
+		for (auto current = tree; current && current != root; current = current->parent) {
+			parts.push_back(current);
+		}
+		auto current = tree;
+		while (current && current != root) {
+			current = current->parent;
+		}
+		if (current != root) {
+			return false;
+		}
+		KStringBuf result;
+		for (auto it = parts.rbegin(); it != parts.rend(); ++it) {
+			auto key = &(*it)->key;
+			if (!key->tag || key->tag->len == 0) {
+				continue;
+			}
+			if (!result.empty()) {
+				result << "/";
+			}
+			result.write_all(key->tag->data, key->tag->len);
+			if (key->vary && key->vary->len > 0) {
+				result << "@";
+				result.write_all(key->vary->data, key->vary->len);
+			}
+		}
+		path = result.str();
+		return !path.empty();
 	}
 	iterator_ret config_tree_clean_iterator(void* data, void* argv) {
 		KConfigTree* rn = (KConfigTree*)data;
@@ -440,7 +739,7 @@ namespace kconfig {
 		ev.type = ev_type;
 
 		if (ev_type != EvNone) {
-			klog(KLOG_NOTICE, "notice %s%s%s  [%d] ev_tree=[%p] xml=[%p]\n",
+			klog(KLOG_DEBUG, "config event %s%s%s [%d] ev_tree=[%p] xml=[%p]\n",
 				xml->key.tag->data,
 				xml->key.vary ? "@" : "",
 				xml->key.vary ? xml->key.vary->data : "",
@@ -697,7 +996,7 @@ namespace kconfig {
 		if (diff.new_to != diff.old_to) {
 			is_diff = true;
 		}
-		for (; (diff.new_to > diff.from + 1 || diff.old_to > diff.from + 1); --diff.old_to, --diff.new_to) {
+		for (; (diff.new_to > diff.from + 1 && diff.old_to > diff.from + 1); --diff.old_to, --diff.new_to) {
 			if (diff.old_to == 0 || diff.new_to == 0) {
 				break;
 			}
@@ -757,14 +1056,12 @@ namespace kconfig {
 		while (*hot && isspace((unsigned char)*hot)) {
 			hot++;
 		}
-		//默认启动顺序为50
+		// The default configuration order is 50.
 		uint32_t id = default_file_index;
 		if (strncmp(hot, "<!--#", 5) == 0) {
 			hot += 5;
 			if (strncmp(hot, "stop", 4) == 0) {
-				/*
-				 * 扩展没有启动
-				 */
+				/* This extension has no configuration. */
 				return 0;
 			} else if (strncmp(hot, "start", 5) == 0) {
 				hot += 6;
@@ -787,6 +1084,28 @@ namespace kconfig {
 			return false;
 		}
 		update(std::move(nodes));
+		return true;
+	}
+	bool KConfigFile::move_down(const char* path, size_t size, uint32_t index) {
+		if (!nodes) {
+			return false;
+		}
+		auto updated = nodes->clone();
+		if (!move_xml_node_down(updated->get_first(), path, size, index)) {
+			return false;
+		}
+		update(std::move(updated));
+		return true;
+	}
+	bool KConfigFile::rename_table(const char* path, size_t size, const KString& new_name) {
+		if (!nodes) {
+			return false;
+		}
+		auto updated = nodes->clone();
+		if (!rename_xml_table(updated->get_first(), path, size, new_name)) {
+			return false;
+		}
+		update(std::move(updated));
 		return true;
 	}
 	bool KConfigFile::save() {
@@ -832,6 +1151,12 @@ namespace kconfig {
 			if (pre_last_modified == this->last_modified) {
 				return true;
 			}
+		}
+		if (!xml && !last_modified.empty() && get_index() != 0) {
+			/* the file is there but did not load: keep its running config */
+			klog(KLOG_ERR, "cann't load config file [%s %s], keep its running config\n", name->data, filename->data);
+			this->last_modified = pre_last_modified;
+			return true;
 		}
 		update(std::move(xml));
 		return !last_modified.empty();
@@ -894,7 +1219,8 @@ namespace kconfig {
 	public:
 		void new_file(const kgl_ref_str_t* name, const kgl_ref_str_t* filename, const KFileModified& last_modified, bool is_default) {
 			int new_flag;
-			if (filename->len < 5 || kgl_memcmp(filename->data + filename->len - 4, _KS(".xml")) != 0) {
+			if ((current_source == KConfigFileSource::System || current_source == KConfigFileSource::Vh) &&
+				(filename->len < 5 || kgl_memcmp(filename->data + filename->len - 4, _KS(".xml")) != 0)) {
 				klog(KLOG_ERR, "config file [%s %s] ext must be .xml\n", name->data, filename->data);
 				return;
 			}
@@ -920,6 +1246,14 @@ namespace kconfig {
 			}
 			if (cfg_file->last_modified != last_modified) {
 				auto xml = cfg_file->load();
+				if (!xml && cfg_file->get_index() != 0) {
+					/* A typo in config.xml used to remove every listen and
+					 * vhost, the admin port included. Keep what runs and
+					 * try again on the next reload. */
+					klog(KLOG_ERR, "cann't load config file [%s %s], keep its running config\n", name->data, filename->data);
+					cfg_file->set_remove_flag(false);
+					return;
+				}
 				cfg_file->set_last_modified(last_modified);
 				prepare_files.emplace(std::piecewise_construct,
 					std::forward_as_tuple(cfg_file->get_index()),
@@ -944,7 +1278,7 @@ namespace kconfig {
 			KConfigScanInfoProvider provider;
 			load_config_file(name, &filename, &provider);
 			for (auto&& info : provider.prepare_files) {
-				klog(KLOG_ERR, "load config file [%s] index=[%d]\n", info.second.cfg->get_filename()->data, info.first);
+				klog(KLOG_INFO, "load config file [%s] index=[%d]\n", info.second.cfg->get_filename()->data, info.first);
 				info.second.cfg->update(info.second.body);
 			}
 			return true;
@@ -965,6 +1299,25 @@ namespace kconfig {
 		auto locker = lock();
 		kgl_ext_config_context ctx;
 		KConfigScanInfoProvider provider;
+		bool scanned[static_cast<int>(KConfigFileSource::Size)] = { false };
+		auto scan_source = [&provider](int i) {
+			provider.current_source = static_cast<KConfigFileSource>(i);
+			provider.scan_failed = false;
+			sources[i]->scan(&provider);
+			if (!provider.scan_failed) {
+				return;
+			}
+			/* e.g. the vhost database is down: removing all its vhosts
+			 * would take every site offline. Keep them until it is back. */
+			klog(KLOG_ERR, "cann't scan config source [%d], keep its running config\n", i);
+			config_files.iterator([](void* data, void* arg) {
+				KConfigFile* file = (KConfigFile*)data;
+				if (file->get_source() == *(KConfigFileSource*)arg) {
+					file->set_remove_flag(false);
+				}
+				return iterator_continue;
+				}, &provider.current_source);
+		};
 		config_files.iterator([](void* data, void* arg) {
 			KConfigFile* file = (KConfigFile*)data;
 			//printf("set file [%s] remove_flag\n", file->filename->data);
@@ -975,16 +1328,32 @@ namespace kconfig {
 			}, NULL);
 		for (int i = 0; i < static_cast<int>(KConfigFileSource::Size); ++i) {
 			if (sources[i] != nullptr) {
-				if (sources[i]->enable_scan()) {
-					provider.current_source = static_cast<KConfigFileSource>(i);
-					sources[i]->scan(&provider);
+				// Database-backed virtual hosts inherit settings from the system
+				// templates. Apply the ordinary config sources first so a reload
+				// cannot rebuild vhosts against the previous template generation.
+				if (i != static_cast<int>(KConfigFileSource::Db) && sources[i]->enable_scan()) {
+					scan_source(i);
+					scanned[i] = true;
 				}
 			}
 		}
-		for (auto&& info : provider.prepare_files) {
-			klog(KLOG_ERR, "load config file [%s] index=[%d]\n", info.second.cfg->get_filename()->data, info.first);
-			info.second.cfg->update(info.second.body);
+		auto apply_prepare_files = [&provider]() {
+			for (auto&& info : provider.prepare_files) {
+				klog(KLOG_INFO, "load config file [%s] index=[%d]\n", info.second.cfg->get_filename()->data, info.first);
+				info.second.cfg->update(info.second.body);
+			}
+			provider.prepare_files.clear();
+		};
+		apply_prepare_files();
+		// A source driver can become available after the main configuration
+		// has been applied (for example, the virtual-host database driver).
+		for (int i = 0; i < static_cast<int>(KConfigFileSource::Size); ++i) {
+			if (!scanned[i] && sources[i] != nullptr && sources[i]->enable_scan()) {
+				scan_source(i);
+				scanned[i] = true;
+			}
 		}
+		apply_prepare_files();
 		config_files.iterator([](void* data, void* arg) {
 			KConfigFile* file = (KConfigFile*)data;
 			if (file->is_removed()) {
@@ -1026,13 +1395,13 @@ namespace kconfig {
 			auto tag = it2->value();
 			key.tag_id = tag->tag_id;
 		}
-		int new_flag;
-		auto it = node->childs.insert(&key, &new_flag);
-		if (new_flag) {
-			khttpd::KXmlNode* child_node = new khttpd::KXmlNode(&key);
-			it->value(child_node);
+		auto child_node = node->find_child(&key);
+		if (!child_node) {
+			khttpd::KSafeXmlNode new_node(new khttpd::KXmlNode(&key));
+			node->add(new_node.get(), khttpd::last_pos);
+			child_node = node->find_child(&key);
 		}
-		return it->value();
+		return child_node;
 	}
 	khttpd::KXmlNode* find_child(const khttpd::KXmlNodeBody* node, const char* name, size_t len) {
 		khttpd::KXmlKey key(name, len);
@@ -1148,6 +1517,7 @@ namespace kconfig {
 		register_qname(_KS("ssl@domain"), true);
 		register_qname(_KS("vhs"));
 		register_qname(_KS("vh@name"));
+		register_qname(_KS("vh_templete@name"));
 		register_qname(_KS("error@code"));
 #ifdef _WIN32
 		register_qname(_KS("mime_type@ext"), true);
@@ -1298,6 +1668,149 @@ namespace kconfig {
 		}
 		return update(file, path, index, xml, ev_type);
 	}
+	KConfigResult move_down(const kgl_ref_str_t& file_name, const kgl_ref_str_t& path, uint32_t index) {
+		KFiberLocker lock(locker);
+		auto file = find_file(file_name);
+		if (!file) {
+			klog(KLOG_ERR, "move config item failed: source [%.*s] was not found, path=[%.*s], index=%u\n",
+				(int)file_name.len, file_name.data, (int)path.len, path.data, index);
+			return KConfigResult::ErrNotFound;
+		}
+		if (!file->get_source_driver()->enable_save()) {
+			klog(KLOG_ERR, "move config item failed: source [%.*s] is read-only, path=[%.*s], index=%u\n",
+				(int)file_name.len, file_name.data, (int)path.len, path.data, index);
+			return KConfigResult::ErrSaveFile;
+		}
+		if (!file->move_down(path.data, path.len, index)) {
+			klog(KLOG_ERR, "move config item failed: path [%.*s] index=%u was not found in source [%.*s] (%s)\n",
+				(int)path.len, path.data, index, (int)file_name.len, file_name.data,
+				file->get_filename() ? file->get_filename()->data : "");
+			return KConfigResult::ErrNotFound;
+		}
+		if (!file->save()) {
+			klog(KLOG_ERR, "move config item failed: cannot save source [%.*s] (%s)\n",
+				(int)file_name.len, file_name.data, file->get_filename() ? file->get_filename()->data : "");
+			return KConfigResult::ErrSaveFile;
+		}
+		return KConfigResult::Success;
+	}
+	KConfigResult rename_table(const kgl_ref_str_t& path, const KString& new_name) {
+		KFiberLocker lock(locker);
+		const char* tree_path = path.data;
+		size_t tree_len = path.len;
+		auto tree = kconfig::find(&tree_path, &tree_len);
+		if (!tree || !tree->node || tree->node->next) {
+			return KConfigResult::ErrNotFound;
+		}
+		auto file = tree->node->file;
+		if (!file || !file->get_source_driver()->enable_save()) {
+			return KConfigResult::ErrSaveFile;
+		}
+		if (!file->rename_table(path.data, path.len, new_name)) {
+			return KConfigResult::ErrNotFound;
+		}
+		return file->save() ? KConfigResult::Success : KConfigResult::ErrSaveFile;
+	}
+	KConfigResult rename_table(const std::vector<KConfigTableRename>& accesses,
+		const KString& old_name, const KString& new_name) {
+		struct rename_operation {
+			KString path;
+			bool rename_definition;
+		};
+		struct rename_file {
+			KConfigFile* file = nullptr;
+			std::vector<rename_operation> operations;
+			khttpd::KSafeXmlNode original;
+			khttpd::KSafeXmlNode updated;
+			bool changed = false;
+			bool has_definition = false;
+		};
+		KFiberLocker lock(locker);
+		std::map<KConfigFile*, rename_file> files;
+		for (auto&& access : accesses) {
+			if (!access.access_tree) {
+				return KConfigResult::ErrNotFound;
+			}
+			for (auto node = access.access_tree->node; node; node = node->next) {
+				auto file = node->file;
+				if (!file || !file->get_source_driver()->enable_save()) {
+					return KConfigResult::ErrSaveFile;
+				}
+				KString path;
+				if (!build_relative_config_path(file, access.access_tree, path)) {
+					return KConfigResult::ErrNotFound;
+				}
+				auto& work = files[file];
+				work.file = file;
+				bool duplicate = false;
+				for (auto& operation : work.operations) {
+					if (operation.path == path) {
+						operation.rename_definition |= access.rename_definition;
+						duplicate = true;
+						break;
+					}
+				}
+				if (!duplicate) {
+					work.operations.push_back({ path, access.rename_definition });
+				}
+			}
+		}
+		bool found_definition = false;
+		for (auto&& entry : files) {
+			auto& work = entry.second;
+			work.original = work.file->clone_nodes();
+			if (!work.original) {
+				return KConfigResult::ErrNotFound;
+			}
+			work.updated = work.original->clone();
+			for (auto&& operation : work.operations) {
+				auto access_node = find_xml_path(work.updated->get_first(),
+					operation.path.c_str(), operation.path.size());
+				if (!access_node) {
+					return KConfigResult::ErrNotFound;
+				}
+				for (uint32_t index = 0;; ++index) {
+					auto access_body = access_node->get_body(index);
+					if (!access_body) {
+						break;
+					}
+					bool this_definition = false;
+					work.changed |= rewrite_access_table(access_body, old_name, new_name,
+						operation.rename_definition, this_definition);
+					work.has_definition |= this_definition;
+					found_definition |= this_definition;
+				}
+			}
+		}
+		if (!found_definition) {
+			return KConfigResult::ErrNotFound;
+		}
+		std::vector<rename_file*> ordered;
+		for (auto&& entry : files) {
+			if (entry.second.changed && entry.second.has_definition) {
+				ordered.push_back(&entry.second);
+			}
+		}
+		for (auto&& entry : files) {
+			if (entry.second.changed && !entry.second.has_definition) {
+				ordered.push_back(&entry.second);
+			}
+		}
+		size_t applied = 0;
+		for (; applied < ordered.size(); ++applied) {
+			auto work = ordered[applied];
+			work->file->update(work->updated);
+			if (work->file->save()) {
+				continue;
+			}
+			for (size_t rollback = 0; rollback <= applied; ++rollback) {
+				ordered[rollback]->file->update(ordered[rollback]->original);
+				ordered[rollback]->file->save();
+			}
+			return KConfigResult::ErrSaveFile;
+		}
+		return KConfigResult::Success;
+	}
 	KFiberLocker lock() {
 		return KFiberLocker(locker);
 	}
@@ -1317,6 +1830,46 @@ namespace kconfig {
 		register_qname(_KS("a"));
 		register_qname(_KS("b"));
 		register_qname(_KS("c"));
+		char order_xml_text[] = "<config><a id='1'/><b/><a id='2'/><c/></config>";
+		auto order_xml = parse_xml(order_xml_text);
+		assert(order_xml);
+		auto assert_document_order = [](const khttpd::KXmlNodeBody* body) {
+			assert(body->child_order.size() == 4);
+			assert(body->child_order[0].node->is_tag(_KS("a")));
+			assert(body->child_order[0].body->attributes.get_int("id") == 1);
+			assert(body->child_order[1].node->is_tag(_KS("b")));
+			assert(body->child_order[2].node->is_tag(_KS("a")));
+			assert(body->child_order[2].body->attributes.get_int("id") == 2);
+			assert(body->child_order[3].node->is_tag(_KS("c")));
+		};
+		assert_document_order(order_xml->get_first());
+		auto order_xml_clone = order_xml->clone();
+		assert_document_order(order_xml_clone->get_first());
+		assert(move_xml_node_down(order_xml_clone->get_first(), _KS("a"), 0));
+		auto moved_a = find_child(order_xml_clone->get_first(), _KS("a"));
+		assert(moved_a && moved_a->get_body(0)->attributes.get_int("id") == 2);
+		assert(moved_a->get_body(1)->attributes.get_int("id") == 1);
+		assert(order_xml_clone->get_first()->child_order[0].body == moved_a->get_body(0));
+		assert(order_xml_clone->get_first()->child_order[2].body == moved_a->get_body(1));
+		char rename_xml_text[] = "<config><request><table name='OLD'><chain action='continue'/></table></request></config>";
+		auto renamed_xml = parse_xml(rename_xml_text);
+		assert(renamed_xml && rename_xml_table(renamed_xml->get_first(), _KS("request/table@OLD"), "NEW"));
+		auto request_node = find_child(renamed_xml->get_first(), _KS("request"));
+		assert(request_node && !find_child(request_node->get_first(), _KS("table@OLD")));
+		auto renamed_table = find_child(request_node->get_first(), _KS("table@NEW"));
+		assert(renamed_table && renamed_table->get_first()->attributes["name"] == "NEW");
+		assert(find_child(renamed_table->get_first(), _KS("chain")));
+		char rename_ref_xml_text[] = "<config><request action='table:OLD'><table name='OLD'/><table name='CALLER'><chain action='table:OLD'/></table></request></config>";
+		auto renamed_ref_xml = parse_xml(rename_ref_xml_text);
+		auto renamed_ref_request = find_child(renamed_ref_xml->get_first(), _KS("request"));
+		bool found_definition = false;
+		assert(renamed_ref_request && rewrite_access_table(renamed_ref_request->get_first(),
+			"OLD", "NEW", true, found_definition));
+		assert(found_definition);
+		assert(renamed_ref_request->get_first()->attributes["action"] == "table:NEW");
+		auto caller_table = find_child(renamed_ref_request->get_first(), _KS("table@CALLER"));
+		auto caller_chain = find_child(caller_table->get_first(), _KS("chain"));
+		assert(caller_chain->get_first()->attributes["action"] == "table:NEW");
 		KConfigTree test_ev(nullptr, _KS("config"));
 		test_config_context ctx;
 		memset(&ctx, 0, sizeof(ctx));

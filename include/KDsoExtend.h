@@ -37,6 +37,8 @@ public:
 	void shutdown();
 	kgl_dso_init_f kgl_dso_init;
 	kgl_dso_finit_f kgl_dso_finit;
+	/* module code may register hooks in kgl_dso_init, it can not be unloaded after that. */
+	bool init_called = false;
 	kgl_dso_version version;
 	KXmlAttribute attribute;
 private:

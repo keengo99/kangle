@@ -47,8 +47,11 @@ KGL_RESULT KHttpBasicAuth::response_header(kgl_output_stream* out)
 	return KGL_OK;
 }
 bool KHttpBasicAuth::parse(KHttpRequest *rq, const char *str) {
+	if (str == NULL) {
+		return false;
+	}
 	int str_len = (int)strlen(str);
-	if (str == NULL || str_len < 2) {
+	if (str_len < 2) {
 		return false;
 	}
 	user = b64decode((const unsigned char *) str, &str_len);
@@ -57,7 +60,7 @@ bool KHttpBasicAuth::parse(KHttpRequest *rq, const char *str) {
 	}
 	password = strchr(user, ':');
 	if (password == NULL) {
-		//Ã»ÓÐÃÜÂë
+		//æ²¡æœ‰å¯†ç 
 		return false;
 	}
 	*password = '\0';

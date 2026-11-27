@@ -80,7 +80,7 @@ private:
 	void add_chain_form(KChain* chain, uint8_t accessType, KWStream& s);
 	void on_file_event(std::vector<KSafeChain>& chain, kconfig::KConfigEvent* ev);
 	KSafeChain parse_chain(const khttpd::KXmlNodeBody* xml);
-	//ÐÂµÄÁ´
+	//æ–°çš„é“¾
 	KAccess* access;
 	std::map<KConfigFileKey, std::vector<KSafeChain>, KConfigFileLess> chains;
 };

@@ -121,8 +121,8 @@ void KSslCertificate::attach_modified_event(kconfig::KConfigFile* file, KXmlAttr
 	if (key_file) {
 		KStringBuf name;
 		name << khttpd::internal_xml_attribute << "key_file";
-		KFileModified last_modified(get_cert_file(doc_root).c_str());
-		file->merge_last_modified(get_cert_file(doc_root).c_str());
+		KFileModified last_modified(get_key_file(doc_root).c_str());
+		file->merge_last_modified(get_key_file(doc_root).c_str());
 		attributes.emplace(name.str(), last_modified.to_string());
 	}
 }
@@ -158,7 +158,8 @@ char* get_human_size(double size, char* buf, size_t buf_size) {
 	int i = 0;
 	const char* units[] = { "", "K", "M", "G", "T", "P", "E", "Z", "Y" };
 	while (size > 1024) {
-		if (i > 8) {
+		/* units has 9 entries: stop at the last one */
+		if (i >= 8) {
 			break;
 		}
 		size /= 1024;
@@ -264,9 +265,9 @@ void upgrade_vh_xml(khttpd::KXmlNode* node) {
 		}
 		new_node_body->attributes.insert(body->attributes.begin(), body->attributes.end());
 		new_node_body->childs.swap(body->childs);
+		new_node_body->child_order.swap(body->child_order);
 	}
-	map_node->release();
-	node_body->childs.erase(it);
+	node_body->remove_child(&map_node->key);
 }
 void upgrade_chain_access(const kgl_ref_str_t& access, khttpd::KXmlNode* node) {
 	node = kconfig::find_child(node->get_first(), access.data, access.len);
@@ -288,16 +289,14 @@ void upgrade_chain_access(const kgl_ref_str_t& access, khttpd::KXmlNode* node) {
 						body->clone_to(new_module);
 						new_module->attributes.emplace(KString(_KS("module")), KString(module_node->key.tag->data + 4, module_node->key.tag->len - 4));
 					}
-					module_node->release();
-					module->childs.erase(it2);
+					module->remove_child(&module_node->key);
 				} else if (kgl_ncasecmp(module_node->key.tag->data, module_node->key.tag->len, _KS("mark_")) == 0) {
 					for (auto&& body : module_node->body) {
 						auto new_module = kconfig::new_child(module, _KS("mark"));
 						body->clone_to(new_module);
 						new_module->attributes.emplace(KString(_KS("module")), KString(module_node->key.tag->data + 5, module_node->key.tag->len - 5));
 					}
-					module_node->release();
-					module->childs.erase(it2);
+					module->remove_child(&module_node->key);
 				}
 				it2 = it_next;
 			}
@@ -332,7 +331,15 @@ static bool on_begin_parse(kconfig::KConfigFile* file, khttpd::KXmlNode* node) {
 				}
 			}
 		}
-		auto vh_database = kconfig::find_child(node->get_first(), _KS("vh_database"));
+		auto root = node->get_first();
+		auto vh_database = kconfig::find_child(root, _KS("vh_database"));
+		if (!vh_database) {
+			// Legacy configurations put vh_database inside the global vhs node.
+			auto vhs = kconfig::find_child(root, _KS("vhs"));
+			if (vhs) {
+				vh_database = kconfig::find_child(vhs->get_first(), _KS("vh_database"));
+			}
+		}
 		if (vh_database) {
 			vhd.parse_config(vh_database->get_first());
 		}
@@ -346,7 +353,7 @@ static bool on_begin_parse(kconfig::KConfigFile* file, khttpd::KXmlNode* node) {
 			/* attach listen cert/key file modified notice */
 			KSslCertificate ssl_cert;
 			ssl_cert.parse_certificate(body->attributes);
-			ssl_cert.attach_modified_event(file, body->attributes, ""_CS);
+			ssl_cert.attach_modified_event(file, body->attributes, conf.path);
 		}
 	}
 	for (auto it = kconfig::find_first_child(node->get_first(), "ssl"_CS); it && it->value()->is_tag(_KS("ssl")); it = it->next()) {
@@ -355,7 +362,7 @@ static bool on_begin_parse(kconfig::KConfigFile* file, khttpd::KXmlNode* node) {
 			/* attach global ssl cert/key file modified notice */
 			KSslCertificate ssl_cert;
 			ssl_cert.parse_certificate(body->attributes);
-			ssl_cert.attach_modified_event(file, body->attributes, ""_CS);
+			ssl_cert.attach_modified_event(file, body->attributes, conf.path);
 		}
 	}
 #endif
@@ -547,6 +554,14 @@ static void init_config() {
 
 	kconfig::listen(_KS("vhs"), &conf.gvm->vhs);
 	kconfig::listen(_KS("vh"), conf.gvm);
+	// Keep the legacy WHM template inventory available to EasyPanel. Merge all
+	// declarations because templates are spread over several extension XML
+	// files, and a non-merge listener would expose only the highest-priority one.
+	static auto vh_template_config_listener = kconfig::config_listen([](kconfig::KConfigTree* tree, kconfig::KConfigEvent* ev)->bool {
+		return conf.gvm->on_template_config_event(tree, ev);
+		}, kconfig::ev_subdir | kconfig::ev_skip_vary | kconfig::ev_merge);
+	kconfig::listen(_KS("vh_templete"), &vh_template_config_listener);
+	kconfig::listen(_KS("vhs/vh_templete"), &vh_template_config_listener);
 #ifdef ENABLE_SVH_SSL
 	kconfig::listen(_KS("ssl"), conf.gvm);
 #endif
@@ -558,10 +573,14 @@ static void init_config() {
 	kconfig::listen(_KS("firewall"), &firewall_config_listener);
 #endif
 	auto ev_root = kconfig::find(_KS(""));
-	if (ev_root->add(_KS("request"), kaccess[REQUEST]) != nullptr) {
+	auto request_tree = ev_root->add(_KS("request"), kaccess[REQUEST]);
+	if (request_tree != nullptr) {
+		kaccess[REQUEST]->set_config_tree(request_tree);
 		kaccess[REQUEST]->add_ref();
 	}
-	if (ev_root->add(_KS("response"), kaccess[RESPONSE]) != nullptr) {
+	auto response_tree = ev_root->add(_KS("response"), kaccess[RESPONSE]);
+	if (response_tree != nullptr) {
+		kaccess[RESPONSE]->set_config_tree(response_tree);
 		kaccess[RESPONSE]->add_ref();
 	}
 }
@@ -598,7 +617,7 @@ void load_lang() {
 		KString configFile = conf.path + "/webadmin";
 #endif
 		configFile += "/lang.xml";
-		klog(KLOG_NOTICE, "load config file [%s]\n", configFile.c_str());
+		klog(KLOG_INFO, "load config file [%s]\n", configFile.c_str());
 		klang.load(configFile.c_str());
 	} catch (KXmlException& e) {
 		fprintf(stderr, "%s\n", e.what());
@@ -631,7 +650,7 @@ void do_config(bool first_time) {
 }
 
 void parse_server_software() {
-	//Éú³ÉserverName
+	// Generate serverName.
 	timeLock.Lock();
 	if (*conf.server_software) {
 		SAFE_STRCPY(conf.serverName, conf.server_software);

@@ -38,8 +38,10 @@ func ProcessSuites(suites []string) (success_count int, failed_count int) {
 		if err := recover(); err != nil {
 			fmt.Println(err) //这里的err其实就是panic传入的内容，55
 			buf := make([]byte, 2048)
-			runtime.Stack(buf, false)
-			fmt.Printf("--%s\n", buf)
+			n := runtime.Stack(buf, false)
+			fmt.Printf("--%s\n", buf[:n])
+			common.EnsureFailed()
+			success_count, failed_count = common.Report()
 		}
 		if len(*kangle_exe) > 0 && !*prepare_config {
 			kangle.Close()
@@ -64,6 +66,10 @@ func ProcessSuites(suites []string) (success_count int, failed_count int) {
 	if *prepare_config {
 		return 0, 0
 	}
+	// Initialize the range fixture before starting the server goroutine.  Tests
+	// read its metadata immediately, so doing this inside Start races with the
+	// first request on slower and race-instrumented builds.
+	server.Prepare()
 	if *server_model {
 		server.Start()
 	} else {
@@ -106,8 +112,8 @@ func handle_signal() {
 	// Block until a signal is received.
 	<-c
 	buf := make([]byte, 1<<16)
-	runtime.Stack(buf, true)
-	fmt.Printf("%s", buf)
+	n := runtime.Stack(buf, true)
+	fmt.Printf("%s", buf[:n])
 	os.Exit(1)
 }
 func Main() {

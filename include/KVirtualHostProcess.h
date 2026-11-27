@@ -28,7 +28,7 @@ enum VProcess_Status
 };
 class KListenPipeStream;
 /*
- * Ò»¸öĞéÄâÖ÷»ú½ø³ÌÄ£ĞÍ
+ * ä¸€ä¸ªè™šæ‹Ÿä¸»æœºè¿›ç¨‹æ¨¡å‹
  */
 class KVirtualHostProcess : public KPoolableSocketContainer
 {
@@ -59,11 +59,17 @@ public:
 			if (kgl_current_sec - lastCheckTime > 5) {
 				lastCheckTime = kgl_current_sec;
 				if (!isProcessActive() || (max_error_count > 0 && error_count >= max_error_count)) {
+					int last_error_count = error_count;
 					clean();
-					status = VProcess_Close;
+					lock.Lock();
+					//æ­£åœ¨å¯åŠ¨ä¸­çš„è¿›ç¨‹ä¸èƒ½æ”¹çŠ¶æ€ï¼Œå¦åˆ™ä¼šè¢«é‡å¤å¯åŠ¨
+					if (status != VProcess_Inprogress) {
+						status = VProcess_Close;
+					}
+					lock.Unlock();
 					//reset the error_count
 					error_count = 0;
-					klog(KLOG_ERR, "restart the virtual process error_count=%d\n", error_count);
+					klog(KLOG_ERR, "restart the virtual process error_count=%d\n", last_error_count);
 				}
 			}
 			break;
@@ -89,19 +95,34 @@ public:
 			ksocket_unix_addr(unix_path.c_str(), &un_addr);
 			SOCKET fd = ksocket_half_connect((sockaddr_i*)&un_addr, NULL, 0);
 			if (!ksocket_opened(fd)) {
+				health(NULL, HealthStatus::Err);
 				return NULL;
 			}
 			kconnection* cn = kconnection_new(&addr);
+			if (cn == NULL) {
+				ksocket_close(fd);
+				return NULL;
+			}
 			cn->st.fd = fd;
-			return new_upstream(cn);
+			return bind_upstream(cn);
 		}
 #endif
 		kconnection* cn = kfiber_net_open(&addr);
+		if (cn == NULL) {
+			return NULL;
+		}
 		if (kfiber_net_connect(cn, NULL, 0) == 0) {
-			return new_upstream(cn);
+			return bind_upstream(cn);
 		}
 		kfiber_net_close(cn);
+		health(NULL, HealthStatus::Err);
 		return NULL;
+	}
+	KUpstream* bind_upstream(kconnection* cn)
+	{
+		KUpstream* us = new_upstream(cn);
+		bind(us);
+		return us;
 	}
 	virtual KUpstream* PowerResult(KHttpRequest* rq, KPipeStream* st) = 0;
 	KPipeStream* Power(KHttpRequest* rq, KExtendProgram* rd);
@@ -128,15 +149,15 @@ public:
 		return false;
 	}
 	/*
-	É±µôÖ¸¶¨½ø³Ì£¬pid=0£¬É±µôÈ«²¿½ø³Ì¡£
-	·µ»Øtrue,Ôò±íÊ¾È«²¿½ø³ÌÒÑÉ±µô£¬
-	·µ»Øfalse,Ôò±íÊ¾»¹ÓĞ½ø³Ì(Õë¶Ô¶à½ø³Ì)
+	æ€æ‰æŒ‡å®šè¿›ç¨‹ï¼Œpid=0ï¼Œæ€æ‰å…¨éƒ¨è¿›ç¨‹ã€‚
+	è¿”å›true,åˆ™è¡¨ç¤ºå…¨éƒ¨è¿›ç¨‹å·²æ€æ‰ï¼Œ
+	è¿”å›false,åˆ™è¡¨ç¤ºè¿˜æœ‰è¿›ç¨‹(é’ˆå¯¹å¤šè¿›ç¨‹)
 	*/
 	virtual bool killProcess(int pid) {
 		return false;
 	}
 	/*
-	 ±êÊ¶ÊÇ·ñÒÑ¾­½áÊø
+	 æ ‡è¯†æ˜¯å¦å·²ç»ç»“æŸ
 	 */
 	int idleTime;
 	VProcess_Status status;

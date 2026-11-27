@@ -61,15 +61,15 @@ public:
 	kgl_auto_cstr parseString(const char *str);
 	kgl_auto_cstr parseDirect(char *buf);
 	/*
-	 * ÊÇ·ñÖ§³ÖÊı×é
+	 * æ˜¯å¦æ”¯æŒæ•°ç»„
 	 */
 	bool dimModel;
 	/*
-	 * ÊÇ·ñÖ§³Öblock
+	 * æ˜¯å¦æ”¯æŒblock
 	 */
 	bool blockModel;
 	/*
-	 *±äÁ¿¿ØÖÆ·û
+	 *å˜é‡æ§åˆ¶ç¬¦
 	 */
 	char envChar;
 	bool strictModel;

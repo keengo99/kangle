@@ -13,7 +13,7 @@
 #define ULONG64	              unsigned long long
 #endif
 /*
-×Ó½ø³ÌÀà
+å­è¿›ç¨‹ç±»
 */
 class KProcess
 {
@@ -49,19 +49,19 @@ public:
 #ifdef _WIN32
 	bool bindProcessId(DWORD id);
 #endif
-	//°Ñ¸Ã½ø³Ì±£´æµ½ÎÄ¼ş£¬Ö÷½ø³ÌÒâÍâÍË³öÊ±ÓÉ°²È«½ø³ÌÉ±µô
+	//æŠŠè¯¥è¿›ç¨‹ä¿å­˜åˆ°æ–‡ä»¶ï¼Œä¸»è¿›ç¨‹æ„å¤–é€€å‡ºæ—¶ç”±å®‰å…¨è¿›ç¨‹æ€æ‰
 	bool saveFile(const char *dir,const char *unix_file=NULL);
 //{{ent
 #ifdef ENABLE_ADPP
 	/*
-	·µ»Ø -1,downPriority
-	·µ»Ø 1 upPriority
+	è¿”å› -1,downPriority
+	è¿”å› 1 upPriority
 	*/
 	int flushCpuUsage(const KString&user, const KString&name,ULONG64 cpuTime,int cpu_limit);
 
 	static ULONG64 getCpuTime();
 	/*
-		µÃµ½¸Ã½ø³ÌµÄcpuÊ¹ÓÃÂÊ.
+		å¾—åˆ°è¯¥è¿›ç¨‹çš„cpuä½¿ç”¨ç‡.
 	*/
 	int getCpuUsage(ULONG64 cpuTime);
 	int getLastCpuUsage()
@@ -73,11 +73,11 @@ public:
 		return priority;
 	}
 	/*
-	ÏÂµ÷ÓÅÏÈ¼¶
+	ä¸‹è°ƒä¼˜å…ˆçº§
 	*/
 	bool downPriority();
 	/*
-	ÉÏµ÷ÓÅÏÈ¼¶
+	ä¸Šè°ƒä¼˜å…ˆçº§
 	*/
 	bool upPriority();
 	static ULONG64     lastQueryTime;

@@ -13,9 +13,9 @@ KBEGIN_DECLS
 void KMD5Init(KMD5_CTX *);
 void KMD5Update(KMD5_CTX *, const unsigned char *, unsigned int);
 void KMD5Final(unsigned char[16], KMD5_CTX *);
-//digest×îÉÙ33¸ö×Ö½Ú
+//digestæœ€å°‘33ä¸ªå­—èŠ‚
 void KMD5(const char *buf,int len,char *digest);
-//result×îÉÙ16¸ö×Ö½Ú
+//resultæœ€å°‘16ä¸ªå­—èŠ‚
 void KMD5BIN(const char *buf,int len,char *result);
 void make_digest(char *md5str, unsigned char *digest);
 

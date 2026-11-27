@@ -24,6 +24,7 @@
 #ifndef KAUTHACL_H_
 #define KAUTHACL_H_
 #include <map>
+#include <set>
 #include "KMark.h"
 #include "global.h"
 #include "KLineFile.h"
@@ -54,6 +55,7 @@ private:
 	char *realm;
 	KMutex lock;
 	std::map<KString, KString> users;
+	std::set<KString> required_users;
 	KReg *reg_user;
 	bool reg_user_revert;
 	bool all;

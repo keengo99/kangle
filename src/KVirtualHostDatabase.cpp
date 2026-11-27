@@ -95,7 +95,7 @@ void init_vh_data(vh_data* vd, khttpd::KXmlNodeBody* body) {
 	vd->ctx = (kgl_config_body*)body;
 }
 static const char* getSystemEnv(void* param, const char* name) {
-	static KString value;
+	static thread_local KString value;
 	const char* value2 = getSystemEnv(name);
 	if (value2) {
 		return value2;
@@ -108,6 +108,7 @@ static const char* getSystemEnv(void* param, const char* name) {
 KVirtualHostDatabase::KVirtualHostDatabase() {
 	lock = kfiber_mutex_init();
 	lastStatus = false;
+	configured = false;
 	memset(&vhm, 0, sizeof(vhm));
 	vhm.vhi_version = 2;
 	vhm.cbsize = sizeof(vhm);
@@ -128,13 +129,18 @@ bool KVirtualHostDatabase::check() {
 	return result;
 }
 bool KVirtualHostDatabase::isLoad() {
-	return (vhm.createConnection != NULL);
+	return configured;
 }
 bool KVirtualHostDatabase::parse_config(khttpd::KXmlNodeBody* xml) {
 	auto attribute = xml->attr();
 	bool result = false;
 	kfiber_mutex_lock(lock);
 	auto driver = attribute["driver"];
+	if (driver.empty()) {
+		kfiber_mutex_unlock(lock);
+		klog(KLOG_ERR, "vh_database driver is empty\n");
+		return false;
+	}
 	if (vhm.createConnection == NULL) {
 
 		if (!isAbsolutePath(driver.c_str())) {
@@ -162,15 +168,21 @@ bool KVirtualHostDatabase::parse_config(khttpd::KXmlNodeBody* xml) {
 	if (vhm.parseConfig) {
 		vh_data vd;
 		init_vh_data(&vd, xml);
-		vhm.parseConfig(&vd);
+		if (!vhm.parseConfig(&vd)) {
+			kfiber_mutex_unlock(lock);
+			klog(KLOG_ERR, "Cann't parse vh_database config\n");
+			return false;
+		}
 	}
+	configured = true;
 	result = true;
 	kfiber_mutex_unlock(lock);
 	return result;
 }
 bool KVirtualHostDatabase::loadInfo(khttpd::KXmlNodeBody *vh, kgl_vh_connection cn) {
 	if (vhm.loadInfo == NULL) {
-		return false;
+		/* the driver keeps no extra info: nothing to add */
+		return true;
 	}
 	auto tvh = khttpd::KSafeXmlNodeBody(new khttpd::KXmlNodeBody());
 	vh_data vd;
@@ -195,32 +207,35 @@ bool KVirtualHostDatabase::loadInfo(khttpd::KXmlNodeBody *vh, kgl_vh_connection 
 	query_param.st = st;
 	query_param.data = &vd;
 	int result;
-	auto attribute = tvh->attr();
 	for (;;) {
+		// The query callback fills this temporary node.  It must be reset before
+		// every row: keeping attributes from the preceding row makes omitted
+		// columns inherit stale values.
+		tvh->clear();
 		if (kfiber_thread_call(thread_vhd_query, &query_param, 1, &result) != 0) {
-			break;
+			return false;
 		}
 		if (!result) {
 			break;
 		}
-		const char* type = attribute["type"].c_str();
-		const char* name = attribute["name"].c_str();
-		const char* value = attribute["value"].c_str();
+		const auto& attribute = tvh->attr();
 		if (attribute["skip_kangle"] == "1") {
 			continue;
 		}
-		if (type == NULL || name == NULL) {
-			tvh->clear();
+		const KString type = attribute["type"];
+		const KString name = attribute["name"];
+		const KString value = attribute["value"];
+		if (type.empty() || name.empty()) {
 			continue;
 		}
-		int t = atoi(type);
+		int t = atoi(type.c_str());
 		switch (t) {
 		case VH_INFO_HOST:
 		case VH_INFO_HOST2:
 		{
 			auto svh = kconfig::new_child(vh, _KS("host"));
-			svh->set_text(name);
-			svh->attributes("dir", value);
+			svh->set_text(name.c_str());
+			svh->attributes.emplace("dir", value);
 			break;
 		}
 		case VH_INFO_ERROR_PAGE:
@@ -239,7 +254,10 @@ bool KVirtualHostDatabase::loadInfo(khttpd::KXmlNodeBody *vh, kgl_vh_connection 
 		}
 		case VH_INFO_ALIAS:
 		{
-			char* buf = strdup(value);
+			char* buf = strdup(value.c_str());
+			if (buf == NULL) {
+				break;
+			}
 			char* to = buf;
 			char* p = strchr(buf, ',');
 			if (p) {
@@ -262,13 +280,16 @@ bool KVirtualHostDatabase::loadInfo(khttpd::KXmlNodeBody *vh, kgl_vh_connection 
 		}
 		case VH_INFO_MAP:
 		{
-			//name¸ñÊ½       ÊÇ·ñÎÄ¼þÀ©Õ¹Ãû1|0,Öµ
-			//value¸ñÊ½      ÊÇ·ñÑéÖ¤ÎÄ¼þ´æÔÚ1|0,target,allowMethod
-			const char* map_val = strchr(name, ',');
+			//nameæ ¼å¼       æ˜¯å¦æ–‡ä»¶æ‰©å±•å1|0,å€¼
+			//valueæ ¼å¼      æ˜¯å¦éªŒè¯æ–‡ä»¶å­˜åœ¨1|0,target,allowMethod
+			const char* map_val = strchr(name.c_str(), ',');
 			if (map_val) {
 				map_val++;
-				bool file_ext = (*name == '1');
-				char* buf = strdup(value);
+				bool file_ext = (name[0] == '1');
+				char* buf = strdup(value.c_str());
+				if (buf == NULL) {
+					break;
+				}
 				char* p = strchr(buf, ',');
 				if (p) {
 					*p = '\0';
@@ -297,7 +318,10 @@ bool KVirtualHostDatabase::loadInfo(khttpd::KXmlNodeBody *vh, kgl_vh_connection 
 		}
 		case VH_INFO_MIME:
 		{
-			char* buf = strdup(value);
+			char* buf = strdup(value.c_str());
+			if (buf == NULL) {
+				break;
+			}
 			char* p = strchr(buf, ',');
 			if (p) {
 				*p = '\0';
@@ -332,7 +356,6 @@ bool KVirtualHostDatabase::loadInfo(khttpd::KXmlNodeBody *vh, kgl_vh_connection 
 			env->attributes.emplace("value", value);
 			break;
 		}
-		tvh->clear();
 	}
 	return true;
 }
@@ -342,6 +365,7 @@ void KVirtualHostDatabase::scan(kconfig::KConfigFileScanInfo* info) {
 	lastStatus = false;
 	kgl_vh_connection cn = createConnection();
 	if (cn == NULL) {
+		info->scan_failed = true;
 		return;
 	}
 	defer(vhm.freeConnection(cn));
@@ -355,6 +379,7 @@ void KVirtualHostDatabase::scan(kconfig::KConfigFileScanInfo* info) {
 	kfiber_thread_call(thread_load_vh, &param, 1, NULL);
 	lastStatus = (rs != NULL);
 	if (rs == NULL) {
+		info->scan_failed = true;
 		return;
 	}
 	vh_data vd;
@@ -366,9 +391,11 @@ void KVirtualHostDatabase::scan(kconfig::KConfigFileScanInfo* info) {
 	query_param.vhm = &vhm;
 	query_param.st = rs;
 	query_param.data = &vd;
+	const auto modified = KFileModified(time(NULL), conf.gvm->getTemplateGeneration());
 	int result;
 	for (;;) {
 		if (kfiber_thread_call(thread_vhd_query, &query_param, 1, &result) != 0) {
+			info->scan_failed = true;
 			break;
 		}
 		if (!result) {
@@ -380,9 +407,8 @@ void KVirtualHostDatabase::scan(kconfig::KConfigFileScanInfo* info) {
 		name << "@vhd|" << attr("name");
 		auto name2 = name.reset();
 		KString vh_name(attr("name"));
-		info->new_file(name2.data(), vh_name.data(), KFileModified(time(NULL),0), false);
-		body->attributes.clear();
-		body->childs.clear();
+		info->new_file(name2.data(), vh_name.data(), modified, false);
+		body->clear();
 	}
 
 #if 0
@@ -421,11 +447,12 @@ void KVirtualHostDatabase::scan(kconfig::KConfigFileScanInfo* info) {
 	return;
 }
 khttpd::KSafeXmlNode KVirtualHostDatabase::load(kconfig::KConfigFile* file) {
+	/* index first: a database error must not look like a file switched off */
+	file->set_index(kconfig::default_file_index);
 	kgl_vh_connection cn = createConnection();
-	if (cn == NULL) {		
+	if (cn == NULL) {
 		return nullptr;
 	}
-	file->set_index(kconfig::default_file_index);
 	file->set_remove_flag(false);
 	auto xml = kconfig::new_xml(_KS("config"));
 	auto body = kconfig::new_xml(_KS("vh"), file->get_filename()->data, file->get_filename()->len);
@@ -453,12 +480,29 @@ khttpd::KSafeXmlNode KVirtualHostDatabase::load(kconfig::KConfigFile* file) {
 		if (kfiber_thread_call(thread_vhd_query, &query_param, 1, &result) != 0) {
 			return nullptr;
 		}
+		if (!result) {
+			/* not in the database any more: an empty config removes it,
+			 * nullptr would mean a database error and keep it */
+			return kconfig::new_xml(_KS("config"));
+		}
 	}
-	loadInfo(body->get_first(), cn);
+	// Raw database rows do not change when a referenced template is edited.
+	// Include the template generation in the in-memory config so the config
+	// tree reparses this vhost and reapplies inherited scalar settings.
+	body->attributes().emplace("_template_generation", std::to_string(conf.gvm->getTemplateGeneration()));
+	if (!loadInfo(body->get_first(), cn)) {
+		/* half loaded (no hosts) would take the site offline: keep the
+		 * running config instead */
+		klog(KLOG_ERR, "cann't load info of vh [%s] from database\n", file->get_filename()->data);
+		return nullptr;
+	}
 	return xml;
 }
 KFileModified KVirtualHostDatabase::get_last_modified(kconfig::KConfigFile* file) {
-	return KFileModified(0,0);
+	// Database-backed configuration has no filesystem mtime.  Return a
+	// non-empty generation so a forced single-vhost reload is treated as a
+	// successful load instead of clearing the config file after updating it.
+	return KFileModified(time(NULL), conf.gvm->getTemplateGeneration());
 }
 void KVirtualHostDatabase::freeConnection(kgl_vh_connection cn) {
 	if (vhm.freeConnection) {

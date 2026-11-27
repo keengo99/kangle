@@ -23,10 +23,10 @@
  */
 #ifndef DIRECTORY_H
 #define DIRECTORY_H
-//·µ»Ø0ÕıÈ·£¬ÆäËüÊ§°Ü
+//è¿”å›0æ­£ç¡®ï¼Œå…¶å®ƒå¤±è´¥
 typedef int (* list_dir_handle_f )(const char *file,void *param);
 typedef int (* list_dir_handlew_f )(const wchar_t *file,void *param);
-//·µ»Ø0ÕıÈ·£¬ÆäËüÊ§°Ü
+//è¿”å›0æ­£ç¡®ï¼Œå…¶å®ƒå¤±è´¥
 int list_dir(const char *dir,list_dir_handle_f file_handle,void *param);
 int list_dirw(const wchar_t *dir,list_dir_handlew_f file_handle,void *param);
 

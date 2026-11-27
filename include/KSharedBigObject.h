@@ -22,17 +22,21 @@ struct KFileBlock {
 	int64_t from;
 	int64_t to;
 };
-//´óÎï¼şÊı¾İ¿é
+
+constexpr int KGL_BIG_OBJECT_READ_RETRY = -3;
+
+//å¤§ç‰©ä»¶æ•°æ®å—
 class KBigObjectBlock
 {
 public:
 	//block data = [from,to)
 	//so length = to - from
 	KFileBlock file_block;
-	//×î´ó¶ÁÈ¡µã
+	//æœ€å¤§è¯»å–ç‚¹
 	int64_t read_point;
 	std::list<BigObjectReadQueue*> wait_queue;
 	kfiber* net_fiber;
+	std::list<kfiber*> merged_net_fibers;
 };
 enum kgl_satisfy_status
 {
@@ -40,7 +44,7 @@ enum kgl_satisfy_status
 	kgl_satisfy_part,
 	kgl_satisfy_all
 };
-//²¿·ÖÄÚÈİ´óÎï¼ş¹²Ïí²¿·Ö
+//éƒ¨åˆ†å†…å®¹å¤§ç‰©ä»¶å…±äº«éƒ¨åˆ†
 class KSharedBigObject
 {
 public:
@@ -72,7 +76,7 @@ public:
 	void print();
 private:
 	/**
-	* ±£´æºÍ»Ö¸´½ø¶ÈÊı¾İ
+	* ä¿å­˜å’Œæ¢å¤è¿›åº¦æ•°æ®
 	*/
 	bool save_progress(KHttpObject* obj);
 	void close(KHttpObject* obj);
@@ -83,7 +87,7 @@ private:
 	krb_node *insert(int64_t from,bool &new_obj);
 	bool open_file_handle(KHttpObject* obj);
 	bool body_complete;
-	//Êı¾İ¿é
+	//æ•°æ®å—
 	int read_refs;
 	int write_refs;
 	struct krb_root blocks;
@@ -93,4 +97,3 @@ private:
 
 #endif
 #endif
-

@@ -69,6 +69,7 @@
 #define  JUMP_DROP      15
 #define  JUMP_FINISHED  16
 #define  JUMP_DSO       17
+#define  JUMP_SKIP      18
 #define  JUMP_UNKNOW    100
 #define  JUMP_VHS       JUMP_ALLOW
 

@@ -14,7 +14,7 @@
 #define READ_PIPE		0
 #define WRITE_PIPE		1
 /*
- * 用pipe生成的管道流
+ * 鐢╬ipe鐢熸垚鐨勭閬撴祦
  */
 class KPipeStream: public KStream {
 public:
@@ -42,7 +42,7 @@ public:
 	void killChild();
 	void setTimeOut(int tmo);	
 	/*
-		错误次数
+		閿欒娆℃暟
 	*/
 	int errorCount;
 #ifndef _WIN32

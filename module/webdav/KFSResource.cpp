@@ -106,13 +106,22 @@ bool KFSResource::close()
 }
 int KFSResource::write(const char* buf, int len)
 {
-	if (fp == NULL) {
+	if (fp == NULL || len < 0 || (len > 0 && buf == NULL)) {
 		return -1;
+	}
+	if (len == 0) {
+		return 0;
 	}
 	return (int)fwrite(buf, 1, len, fp);
 }
 int KFSResource::read(char* buf, int len)
 {
+	if (fp == NULL || len < 0 || (len > 0 && buf == NULL)) {
+		return -1;
+	}
+	if (len == 0) {
+		return 0;
+	}
 	return (int)fread(buf, 1, len, fp);
 }
 KResource* KFSResourceMaker::makeFile(const char* name, const char* path)
@@ -146,11 +155,14 @@ KResource* KFSResourceMaker::makeDirectory(const char* name, const char* path)
 	if (wname == NULL) {
 		return false;
 	}
-	_wmkdir(wname);
+	int ret = _wmkdir(wname);
 	xfree(wname);
 #else
-	mkdir(name, 0755);
+	int ret = mkdir(name, 0755);
 #endif
+	if (ret != 0) {
+		return NULL;
+	}
 	return bindResource(name, path);
 }
 KResource* KFSResourceMaker::bindResource(const char* name, const char* path)
@@ -204,7 +216,7 @@ KAttribute* KFSResource::getAttribute()
 	if (isDirectory()) {
 		ab->emplace("getcontenttype", "httpd/unix-directory");
 	} else {
-		sprintf(tbuf, "%d", (int)buf->st_size);
+		snprintf(tbuf, sizeof(tbuf), "%lld", (long long)buf->st_size);
 		ab->emplace("getcontentlength", (const char*)tbuf);
 	}
 	return ab;
@@ -245,10 +257,13 @@ bool KFSResource::rename(const char* newName)
 		xfree(wname);
 		return false;
 	}
-	int ret = _wrename(wname, wnewName);
+	// Match POSIX rename: PUT commits its completed temporary file over the
+	// existing destination. CRT _wrename rejects an existing Windows target.
+	// Keep _wrename's MOVEFILE_COPY_ALLOWED so MOVE across volumes still works.
+	BOOL ret = MoveFileExW(wname, wnewName, MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED);
 	xfree(wname);
 	xfree(wnewName);
-	return ret == 0;
+	return ret != FALSE;
 #else
 	return ::rename(name, newName) == 0;
 #endif

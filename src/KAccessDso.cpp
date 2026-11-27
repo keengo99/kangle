@@ -19,8 +19,14 @@ static int write_string(kgl_serializable* server_ctx, const char* str, int len, 
 {
 	KWStream* s = (KWStream *)server_ctx;
 	if (KBIT_TEST(build_flags, KGL_BUILD_HTML_ENCODE)) {
-		char* buf = KXml::htmlEncode(str, len, NULL);
-		s->write_all(buf, len);
+		/* htmlEncode() stops at NUL, not at len, and returns the encoded length in len. */
+		KString text(str, len);
+		int encoded_len = len;
+		char* buf = KXml::htmlEncode(text.c_str(), encoded_len, NULL);
+		if (buf == NULL) {
+			return -1;
+		}
+		s->write_all(buf, encoded_len);
 		free(buf);
 		return 0;
 	}

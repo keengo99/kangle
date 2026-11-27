@@ -22,9 +22,11 @@
  *  Author: KangHongjiu <keengo99@gmail.com>
  */
 #include "global.h"
+#include <climits>
 #ifndef _WIN32
 #include <pthread.h>
 #include <pwd.h>
+#include <grp.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <getopt.h>
@@ -245,6 +247,12 @@ void checkMemoryLeak() {
 int shutdown_fiber(void* arg, int got) {
 	quit_program_flag = PROGRAM_QUIT_IMMEDIATE;
 	//dso_shutdown_callback();
+#ifdef ENABLE_VH_RUN_AS
+	/* Stop every php-cgi and other child before the config is cleared:
+	 * clearing it removes the <cmd> entries, and the later
+	 * conf.gam->shutdown() could no longer reach their processes. */
+	conf.gam->killAllProcess(NULL);
+#endif
 	kconfig::shutdown();
 	cache.shutdown_disk(true);
 	//conf.gvm->UnBindGlobalListens(conf.service);
@@ -278,7 +286,12 @@ int shutdown_fiber(void* arg, int got) {
 	 *  malloc debug model. do not exit right now.
 	 *  program will free all know memory and log leak memory.
 	 * */
-	exit(0);
+	/* Other threads may still be finishing requests and writing logs.
+	 * exit() would run global destructors (errorLogger's path among them)
+	 * under them and crash, so leave without running them: everything that
+	 * must be saved is saved above, and log files are written unbuffered. */
+	fflush(NULL);
+	_exit(0);
 #endif
 	return 0;
 }
@@ -607,6 +620,17 @@ void sigcatch(int sig) {
 	}
 #endif
 }
+#if !defined(_WIN32)
+/* Stop at a fatal startup error. The error log is flushed first, then the
+ * process ends without running static destructors: the configuration is
+ * still loaded at this point, and tearing it down here trips debug checks. */
+static void fatal_exit(int code) {
+	errorLogger.startLog();
+	errorLogger.endLog(true);
+	fflush(NULL);
+	_exit(code);
+}
+#endif
 void set_user() {
 #if	!defined(_WIN32)
 	if (!conf.run_user.empty()) {
@@ -617,22 +641,31 @@ void set_user() {
 		bool result = name2uid(conf.run_user.c_str(), uid, gid);
 		if (!result) {
 			klog(KLOG_ERR, "cann't find run_as user [%s]\n", conf.run_user.c_str());
+			fatal_exit(127);
 		}
 		if (result && !conf.run_group.empty()) {
 			result = name2gid(conf.run_group.c_str(), gid);
 			if (!result) {
 				klog(KLOG_ERR, "cann't find run_as group [%s]\n", conf.run_group.c_str());
+				fatal_exit(127);
 			}
 		}
 		if (result) {
 			if (chown(conf.tmppath.c_str(), uid, gid)!=0) {
 				klog(KLOG_ERR,"cann't chown tmp path [%s]\n",conf.tmppath.c_str());
 			}
+			gid_t groups_gid = (gid_t)gid;
+			if (getuid() == 0 && setgroups(1, &groups_gid) != 0) {
+				klog(KLOG_ERR, "setgroups to [%d] error\n", gid);
+				fatal_exit(127);
+			}
 			if (setgid(gid)!=0) {
 				klog(KLOG_ERR,"setgid to [%d] error\n",gid);
+				fatal_exit(127);
 			}
 			if (setuid(uid)!=0) {
 				klog(KLOG_ERR,"setuid to [%d] error\n",uid);
+				fatal_exit(127);
 			}
 		}
 
@@ -1115,9 +1148,12 @@ bool init_resource_limit(int numcpu) {
 		open_file_limited = 65536;
 	}
 	if (0 == getrlimit(RLIMIT_NOFILE, &rlim)) {
-		if (rlim.rlim_max < open_file_limited) {
-			rlim.rlim_cur = open_file_limited;
-			rlim.rlim_max = open_file_limited;
+		rlim_t target = (rlim_t)open_file_limited;
+		if (rlim.rlim_max != RLIM_INFINITY && target > rlim.rlim_max) {
+			target = rlim.rlim_max;
+		}
+		if (rlim.rlim_cur < target) {
+			rlim.rlim_cur = target;
 			int ret = setrlimit(RLIMIT_NOFILE, &rlim);
 			if (ret != 0) {
 				klog(KLOG_ERR, "set open file limit error [%d]\n", errno);
@@ -1126,8 +1162,13 @@ bool init_resource_limit(int numcpu) {
 		}
 	}
 	if (0 == getrlimit(RLIMIT_NOFILE, &rlim)) {
-		klog(KLOG_ERR, "max open file limit [cur:%d,max:%d]\n", rlim.rlim_cur, rlim.rlim_max);
-		open_file_limit = rlim.rlim_max;
+		klog(KLOG_INFO, "open file limit [cur:%llu,max:%llu]\n",
+			(unsigned long long)rlim.rlim_cur, (unsigned long long)rlim.rlim_max);
+		if (rlim.rlim_cur == RLIM_INFINITY || rlim.rlim_cur > (rlim_t)INT_MAX) {
+			open_file_limit = INT_MAX;
+		} else {
+			open_file_limit = (int)rlim.rlim_cur;
+		}
 	} else {
 		klog(KLOG_ERR, "get max open file limit error [%d]\n", errno);
 	}

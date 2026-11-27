@@ -179,6 +179,9 @@ public:
 	KServiceProvider* getProvider() {
 		return provider;
 	}
+	/* The call came in on the admin port, so calls without scope='public'
+	 * may run. */
+	bool trusted = false;
 	bool buildVh();
 	void buildVh(KVirtualHost* vh) override;
 	void setStatus(const char* statusMsg = NULL) override {
@@ -200,6 +203,9 @@ public:
 	bool add(const KString& name, const KString& value);
 	bool add(const char* name, INT64 value);
 	bool add(const char* name, const char* value, bool encode = false);
+	void add_raw_xml(const KString& name, const KString& value) {
+		raw_xml.emplace_back(name, value);
+	}
 	KVirtualHost* getVh() {
 		return vh;
 	}
@@ -225,6 +231,7 @@ private:
 	KVirtualHost* vh;
 	KExtendProgramString* ds;
 	KStringStream redirectCalls;
+	std::list<std::pair<KString, KString>> raw_xml;
 };
 
 #endif /* WHMCONTEXT_H_ */

@@ -40,6 +40,7 @@ func create_config_file(server_cfg string) {
 	resp.Body.Close()
 }
 func check_config_server() {
+	defer kangle.CleanExtConfig("20")
 
 	create_config_file("host='127.0.0.1' port='4412s' life_time='60' ")
 	common.Get("/self_addr", nil, func(resp *http.Response, err error) {

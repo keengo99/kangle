@@ -40,7 +40,7 @@ static KGL_RESULT filter_close(kgl_response_body_ctx* model_ctx, KGL_RESULT resu
 {
 	kgl_filter_footer*ctx = (kgl_filter_footer*)model_ctx;
 	if (result >=KGL_OK && (!ctx->footer.head || ctx->footer.replace)) {
-		if (ctx->footer.data->len > 0) {
+		if (ctx->footer.data && ctx->footer.data->len > 0) {
 			result = ctx->down.f->write(ctx->down.ctx, ctx->footer.data->data, ctx->footer.data->len);
 		}
 	}

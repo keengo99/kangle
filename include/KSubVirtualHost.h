@@ -111,8 +111,8 @@ public:
 	bool match_host(const char* host);
 	bool setHost(const char* host);
 	/**
-	* 完成url到物理文件的转换
-	* exsit标识文件是否存在
+	* 瀹屾垚url鍒扮墿鐞嗘枃浠剁殑杞崲
+	* exsit鏍囪瘑鏂囦欢鏄惁瀛樺湪
 	*/
 	kgl_jump_type bindFile(KHttpRequest* rq, KHttpObject* obj, bool& exsit, KApacheHtaccessContext& htctx, KSafeSource& fo);
 	bool bindFile(KHttpRequest* rq, bool& exsit, bool searchDefaultFile, bool searchAlias);

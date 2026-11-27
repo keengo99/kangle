@@ -111,19 +111,23 @@ public:
 		uint32_t cache_hit_part : 1;
 		uint32_t have_stored : 1;
 		uint32_t upstream_connection_keep_alive : 1;
-		//connect´úÀí
+		//connectä»£ç†
 		//uint32_t connection_connect_proxy : 1;
 		uint32_t no_http_header : 1;
 		uint32_t always_on_model : 1;
 		uint32_t response_checked : 1;
 		uint32_t upstream_sign : 1;
 		uint32_t parent_signed : 1;
-		//clientÖ÷¶¯¹Ø±Õ
+		//clientä¸»åŠ¨å…³é—­
 		uint32_t read_huped : 1;
 		uint32_t upstream_expected_done : 1;
-		//preconditionÀàĞÍ
+		/* Bytes read during request ACL evaluation are fully replayable. */
+		uint32_t request_body_replayable : 1;
+		//preconditionç±»å‹
 		uint32_t precondition_flag : 3;
-		int64_t left_read;	//final fetchobj Ê¹ÓÃ
+		uint32_t early_hints : 2;
+		uint32_t early_hints_set : 1;
+		int64_t left_read;	//final fetchobj ä½¿ç”¨
 		KHttpObject* obj;
 		KHttpObject* old_obj;
 		kgl_sub_request* sub_request;
@@ -132,17 +136,17 @@ public:
 	} ctx;
 	KFetchObject* fo_head;
 	KFetchObject* fo_last;
-	//ÎïÀíÎÄ¼şÓ³Éä
+	//ç‰©ç†æ–‡ä»¶æ˜ å°„
 	KFileName* file;
-	//httpÈÏÖ¤
+	//httpè®¤è¯
 	KHttpAuth* auth;
 #ifdef ENABLE_REQUEST_QUEUE
 	KRequestQueue* queue;
 #endif
-	//ÏŞËÙ(µş¼Ó)
+	//é™é€Ÿ(å åŠ )
 	KSpeedLimitHelper* slh;
 	/****************
-* Êä³ö¹ıÂË
+* è¾“å‡ºè¿‡æ»¤
 *****************/
 	KOutputFilterContext* of_ctx;
 	KOutputFilterContext* getOutputFilterContext();
@@ -277,7 +281,8 @@ public:
 		return fo_head;
 	}
 	bool continue_next_source(KGL_RESULT result) {
-		if (KBIT_TEST(sink->data.flags, RQ_HAS_SEND_HEADER | RQ_HAS_READ_POST | RQ_NEXT_CALLED)) {
+		if (KBIT_TEST(sink->data.flags, RQ_HAS_SEND_HEADER | RQ_NEXT_CALLED) ||
+			(KBIT_TEST(sink->data.flags, RQ_HAS_READ_POST) && !ctx.request_body_replayable)) {
 			//has touched input/output stream.
 			//or open_next called.
 			return false;
@@ -300,7 +305,9 @@ public:
 	}
 	void parse_connection(const char* val, const char* end);
 	void readhup() {
-		if (!conf.read_hup) {
+		// QUIC stream cancellation is explicit and must cancel upstream work,
+		// independently of the optional TCP read-hangup monitoring setting.
+		if (!conf.read_hup && sink->data.http_version != 0x300) {
 			return;
 		}
 		sink->readhup(this, on_sink_readhup);
@@ -354,7 +361,7 @@ public:
 		return sink->response_content_length(content_length);
 	}
 #endif
-	//·µ»Øtrue£¬Ò»¶¨ĞèÒª»ØÓ¦content-length»òchunk
+	//è¿”å›trueï¼Œä¸€å®šéœ€è¦å›åº”content-lengthæˆ–chunk
 	//inline bool response_connection() {
 	//	return sink->response_connection();
 	//}
@@ -373,7 +380,7 @@ public:
 	bool response_header(const char* name, hlen_t name_len, const char* val, hlen_t val_len) {
 		return sink->response_header(name, name_len, val, val_len);
 	}
-	//·¢ËÍÍêheader¿ªÊ¼·¢ËÍbodyÊ±µ÷ÓÃ
+	//å‘é€å®Œheaderå¼€å§‹å‘é€bodyæ—¶è°ƒç”¨
 	bool start_response_body(INT64 body_len) {
 		return sink->start_response_body(body_len);
 	}
@@ -405,7 +412,7 @@ public:
 		if (!slh) {
 			return sink->write_all(buf, len);
 		}
-		while (len > 0) {
+		while (len > 0 && buf) {
 			int got = KGL_MIN(len, buf->used);
 			auto msec = get_sleep_msec(got);
 			if (msec > 0) {
@@ -423,8 +430,12 @@ public:
 	KGL_RESULT write_end(KGL_RESULT result) {
 		assert(ctx.body.ctx);
 		if (result == KGL_OK && sink->get_response_left() > 0) {
-			//ÓĞcontent-length£¬ÓÖÎ´¶ÁÍê
+			//æœ‰content-lengthï¼Œåˆæœªè¯»å®Œ
 			result = KGL_ESOCKET_BROKEN;
+		}
+		if (result < KGL_OK) {
+			//Do not finish a truncated/malformed upstream body as a successful chunked response.
+			sink->shutdown();
 		}
 		ctx.body = { 0 };
 		return result;
@@ -464,7 +475,7 @@ public:
 	void SetSelfPort(uint16_t port, bool ssl) {
 		sink->set_self_port(port, ssl);
 	}
-	//¿Í»§ÕæÊµip(ÓĞ¿ÉÄÜ±»Ìæ»»)
+	//å®¢æˆ·çœŸå®ip(æœ‰å¯èƒ½è¢«æ›¿æ¢)
 	const char* getClientIp() {
 		return sink->get_client_ip();
 	}
@@ -481,7 +492,7 @@ public:
 	uint32_t GetWorkModel() {
 		return sink->get_server_model();
 	}
-	/* Êı¾İÔ´ */
+	/* æ•°æ®æº */
 	bool is_source_empty() {
 		return fo_head == nullptr;
 	}
@@ -503,9 +514,9 @@ public:
 		}
 		return !KBIT_TEST(fo_last->flags, KGL_UPSTREAM_FILTER);
 	}
-	/* Êı¾İÔ´½áÊø */
+	/* æ•°æ®æºç»“æŸ */
 
-	//´Ó¶ÑÉÏ·ÖÅäÄÚ´æ£¬ÔÚrqÉ¾³ıÊ±£¬×Ô¶¯ÊÍ·Å¡£
+	//ä»å †ä¸Šåˆ†é…å†…å­˜ï¼Œåœ¨rqåˆ é™¤æ—¶ï¼Œè‡ªåŠ¨é‡Šæ”¾ã€‚
 	void* alloc_connect_memory(int size) {
 		return kgl_pnalloc(sink->get_connection_pool(), size);
 	}

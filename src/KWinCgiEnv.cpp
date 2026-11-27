@@ -1,4 +1,5 @@
 //{{ent
+#include <climits>
 #include "KWinCgiEnv.h"
 /*
 #include "KLogElement.h"
@@ -22,14 +23,19 @@ KWinCgiEnv::~KWinCgiEnv(void) {
 }
 bool KWinCgiEnv::add_env(const char* attr, size_t attr_len, const char* val, size_t val_len)
 {
-	s->write_all(attr, (int)attr_len);
-	s->write_all(_KS("="));
-	s->write_all(val, (int)val_len);
-	s->write_all(_KS("\0"));
-	return true;
+	if (attr == NULL || val == NULL || attr_len > INT_MAX || val_len > INT_MAX) {
+		return false;
+	}
+	return s->write_all(attr, (int)attr_len) == STREAM_WRITE_SUCCESS &&
+		s->write_all(_KS("=")) == STREAM_WRITE_SUCCESS &&
+		s->write_all(val, (int)val_len) == STREAM_WRITE_SUCCESS &&
+		s->write_all(_KS("\0")) == STREAM_WRITE_SUCCESS;
 }
 
 bool KWinCgiEnv::addEnv(const char *attr, const char *val) {
+	if (attr == NULL || val == NULL) {
+		return false;
+	}
 	*s << attr << "=" << val;
 	return s->write_all("\0", 1) == STREAM_WRITE_SUCCESS;
 }
@@ -37,6 +43,9 @@ const char *KWinCgiEnv::dump_env() {
 	return s->c_str();
 }
 bool KWinCgiEnv::addEnv(const char *env) {
+	if (env == NULL) {
+		return false;
+	}
 	*s << env;
 	return s->write_all("\0", 1) == STREAM_WRITE_SUCCESS;
 

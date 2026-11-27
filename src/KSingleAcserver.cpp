@@ -23,7 +23,7 @@ bool KSingleAcserver::parse_config(const khttpd::KXmlNode* node) {
 	if (!KPoolableRedirect::parse_config(node)) {
 		return false;
 	}
-	return sockHelper->parse(node->attributes());
+	return sockHelper->parse(node->attributes(), default_life_time());
 }
 void KSingleAcserver::set_proto(Proto_t proto)
 {
@@ -33,7 +33,12 @@ void KSingleAcserver::set_proto(Proto_t proto)
 KUpstream* KSingleAcserver::GetUpstream(KHttpRequest* rq)
 {
 	rq->ctx.upstream_sign = sockHelper->sign;
-	return sockHelper->get_upstream(rq->get_upstream_flags(), rq->sink->data.raw_url.host);
+	const char* sni_host = rq->sink->data.raw_url.host;
+	if (!KBIT_TEST(rq->ctx.filter_flags, RF_PROXY_RAW_URL)
+		&& KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_REWRITED)) {
+		sni_host = rq->sink->data.url->host;
+	}
+	return sockHelper->get_upstream(rq->get_upstream_flags(), sni_host);
 }
 bool KSingleAcserver::setHostPort(std::string host, const char *port) {
 	return sockHelper->setHostPort(host , port);

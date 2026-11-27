@@ -36,12 +36,15 @@ public:
 	bool createProcess(KVirtualHost *vh, KPipeStream *st);
 	bool isChanged(KExtendProgram *rd)
 	{
-		//todo:µ±Ç°api²»Ö§³ÖÖØĞÂ¼ÓÔØ¡£
+		//todo:å½“å‰apiä¸æ”¯æŒé‡æ–°åŠ è½½ã€‚
 		return false;
 	}
 	bool load();
 	void setFile(const KString& file);
 	void dump(kgl::serializable* sl);
+	/* Keeps the loaded module in memory for one call. Returns false if it cannot be loaded. */
+	bool begin_call();
+	void end_call();
 public:
 	KString apiFile;
 	KApiDso dso;
@@ -49,5 +52,8 @@ protected:
 	~KApiRedirect();
 private:
 	KMutex lock;
+	int active_calls = 0;
+	/* unload() was asked while calls were running; the last call unloads. */
+	bool unload_pending = false;
 };
 #endif /* KAPIREDIRECT_H_ */

@@ -18,6 +18,7 @@ public:
 	KRefererAcl() {
 		vhc = NULL;
 		host_null = false;
+		eq_host = false;
 	}
 	~KRefererAcl() {
 		if (vhc) {
@@ -32,16 +33,30 @@ public:
 		if (!rq->get_http_value(_KS("Referer"), &value)) {
 			return this->host_null;
 		}
-		if (!vhc) {
+		if (!eq_host && !vhc) {
 			return false;
 		}
 		KSafeUrl referer(new KUrl(true));
-		if (!parse_url(value.data, value.len, referer.get())) {
+		if (!parse_url(value.data, value.len, referer.get()) || !referer->host) {
 			return false;
+		}
+		if (eq_host) {
+			// Compare with the client's Host, before any upstream host rewrite.
+			const char* host = rq->sink->data.raw_url.host;
+			if (!host && rq->sink->data.url) {
+				host = rq->sink->data.url->host;
+			}
+			KString b1, b2;
+			host = kgl_acl_host(host, b1);
+			return host && strcasecmp(kgl_acl_host(referer->host, b2), host) == 0;
 		}
 		return  (vhc->find(referer->host) != NULL);
 	}
 	void get_display(KWStream &s) override {
+		if (eq_host) {
+			s << "EqHost";
+			return;
+		}
 		int count = 0;
 		s << "Host:";
 		if (this->host_null) {
@@ -54,6 +69,7 @@ public:
 	}
 	void parse_config(const khttpd::KXmlNodeBody* xml) override {
 		auto attribute = xml->attr();
+		eq_host = strcasecmp(attribute["referer"].c_str(), "EqHost") == 0;
 		if (vhc) {
 			delete vhc;
 			vhc = NULL;
@@ -94,9 +110,15 @@ public:
 			vhc->iterator(referer_domain_iterator, &s);
 		}
 		s << "' placeHolder='-|abc.com|*.abc.com'>";
+		s << "<label><input type='checkbox' name='referer' value='EqHost'";
+		if (eq_host) {
+			s << " checked";
+		}
+		s << ">EqHost</label>";
 	}
 private:
 	KDomainMap* vhc;
 	bool host_null;
+	bool eq_host;
 };
 #endif

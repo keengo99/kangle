@@ -1,9 +1,13 @@
+#include <limits.h>
 #include "KInputFilter.h"
 #include "KMultiPartInputFilter.h"
+#include "KHttpRequest.h"
 #include "utils.h"
 #include "http.h"
 #include "KUrlParser.h"
 #include "filter.h"
+#include "kmalloc.h"
+#include "KHttpLib.h"
 static int64_t input_filter_get_left(kgl_request_body_ctx* ctx)
 {
 	KInputFilterContext* if_ctx = (KInputFilterContext*)ctx;
@@ -16,7 +20,7 @@ static int input_filter_read(kgl_request_body_ctx* ctx, char* buf, int len) {
 		return len;
 	}
 	if (if_ctx->match(buf, len, if_ctx->body.f->get_left(if_ctx->body.ctx) == 0)) {
-		return -1;
+		return KGL_EDENIED;
 	}
 	return len;
 }
@@ -31,7 +35,7 @@ static kgl_request_body_function input_body_function = {
 };
 void parseUrlParam(char* buf, int len, char** name, int* name_len, char** value, int* value_len)
 {
-	char* eq = strchr(buf, '=');
+	char* eq = (char*)memchr(buf, '=', len);
 	*name_len = len;
 	if (eq) {
 		*eq = '\0';
@@ -41,6 +45,7 @@ void parseUrlParam(char* buf, int len, char** name, int* name_len, char** value,
 		*value = eq;
 	} else {
 		*value = NULL;
+		*value_len = 0;
 	}
 	*name_len = url_decode(buf, *name_len, NULL, true);
 	*name = buf;
@@ -63,41 +68,61 @@ bool KParamInputFilter::match_param_item(char* buf, int len)
 }
 bool KParamInputFilter::match(KInputFilterContext* rq, const char* str, int len, bool isLast)
 {
-	char* buf;
-	if (last_buf) {
-		int new_len = last_buf_len + len;
-		buf = (char*)malloc(new_len + 1);
-		kgl_memcpy(buf, last_buf, last_buf_len);
-		kgl_memcpy(buf + last_buf_len, str, len);
-		len = new_len;
-		free(last_buf);
-		last_buf = NULL;
-	} else {
-		buf = (char*)malloc(len + 1);
-		kgl_memcpy(buf, str, len);
+	/* Append to the parameter left from the last read. The buffer grows by
+	 * doubling and only the new bytes are searched for '&': copying and
+	 * scanning everything kept on each read made one long parameter cost
+	 * quadratic time. */
+	if (len < 0 || last_buf_len > INT_MAX - 1 - len) {
+		return false;
 	}
-	buf[len] = '\0';
-	char* hot = buf;
+	int need = last_buf_len + len + 1;
+	if (need > last_buf_size) {
+		int size = last_buf_size > 0 ? last_buf_size : 4096;
+		while (size < need) {
+			size = (size > INT_MAX / 2) ? need : size * 2;
+		}
+		char* nb = (char*)realloc(last_buf, size);
+		if (nb == NULL) {
+			free(last_buf);
+			last_buf = NULL;
+			last_buf_len = 0;
+			last_buf_size = 0;
+			return false;
+		}
+		last_buf = nb;
+		last_buf_size = size;
+	}
+	if (len > 0) {
+		kgl_memcpy(last_buf + last_buf_len, str, len);
+	}
+	char* scan = last_buf + last_buf_len;
+	last_buf_len += len;
+	char* end = last_buf + last_buf_len;
+	*end = '\0';
+	char* hot = last_buf;
 	for (;;) {
-		char* p = strchr(hot, '&');
+		char* p = (char*)memchr(scan, '&', end - scan);
 		if (p == NULL) {
 			break;
 		}
 		*p = '\0';
 		if (match_param_item(hot, (int)(p - hot))) {
-			free(buf);
+			last_buf_len = 0;
 			return true;
 		}
-		hot = p + 1;
+		hot = scan = p + 1;
 	}
-	last_buf_len = (int)strlen(hot);
+	int left = (int)(end - hot);
 	if (isLast) {
-		auto ret = match_param_item(hot, last_buf_len);
-		free(buf);
+		auto ret = match_param_item(hot, left);
+		last_buf_len = 0;
 		return ret;
 	}
-	last_buf = strdup(hot);
-	free(buf);
+	if (hot != last_buf) {
+		memmove(last_buf, hot, left);
+	}
+	last_buf_len = left;
+	last_buf[left] = '\0';
 	return false;
 }
 void KInputFilterContext::tee_body(kgl_request_body* body) {
@@ -118,7 +143,11 @@ bool KInputFilterContext::check_get(KParamFilterHook* hook, KREQUEST rq, kgl_acc
 			return false;
 		}		
 		assert(gParamHeader == NULL);
-		char* hot = url->param;
+		gParamCopy = xstrdup(url->param);
+		if (gParamCopy == NULL) {
+			return false;
+		}
+		char* hot = gParamCopy;
 		for (;;) {
 			char* p = strchr(hot, '&');
 			if (p == NULL) {
@@ -159,9 +188,19 @@ KInputFilter* KInputFilterContext::get_filter(KREQUEST rq, kgl_access_context* c
 	if (filter) {
 		return filter;
 	}
-	char content_type[256] = { 0 };
-	DWORD size = sizeof(content_type);
-	if (ctx->f->get_variable(rq, KGL_VAR_CONTENT_TYPE, NULL, content_type, &size) != KGL_OK) {
+	char content_type_buf[256] = { 0 };
+	char* content_type = content_type_buf;
+	DWORD size = sizeof(content_type_buf);
+	KGL_RESULT result = ctx->f->get_variable(rq, KGL_VAR_CONTENT_TYPE, NULL, content_type, &size);
+	kgl_auto_cstr big_content_type;
+	if (result == KGL_EINSUFFICIENT_BUFFER && size > sizeof(content_type_buf) && size < 65536) {
+		big_content_type.reset((char*)malloc(size));
+		if (big_content_type) {
+			content_type = big_content_type.get();
+			result = ctx->f->get_variable(rq, KGL_VAR_CONTENT_TYPE, NULL, content_type, &size);
+		}
+	}
+	if (result != KGL_OK) {
 		filter = new KInputFilter;
 		return filter;
 	}
@@ -191,14 +230,17 @@ static void input_filter_context_cleanup(void* data) {
 	delete (KInputFilterContext*)data;
 }
 KInputFilterContext* get_input_filter_context(KREQUEST rq, kgl_access_context* ctx) {
-	auto pool = dso_version->pool->get_request_pool(rq);
-	auto filter_ctx = dso_version->pool->cleanup_insert(pool, input_filter_context_cleanup);
-	KInputFilterContext *fc = (KInputFilterContext *)dso_version->pool->cleanup_get_data(filter_ctx);
+	auto* request = static_cast<KHttpRequest*>(rq);
+	auto filter_ctx = kgl_cleanup_insert(request->sink->pool, input_filter_context_cleanup);
+	if (!filter_ctx) {
+		return nullptr;
+	}
+	KInputFilterContext *fc = (KInputFilterContext *)kgl_cleanup_get_data(filter_ctx);
 	if (fc != NULL) {
 		return fc;
 	}
 	fc = new KInputFilterContext;
-	dso_version->pool->cleanup_set_data(filter_ctx, fc);
+	kgl_cleanup_set_data(filter_ctx, fc);
 	ctx->f->support_function(rq, ctx->cn, KF_REQ_IN_FILTER, &input_filter, (void **)&fc);
 	return fc;
 }

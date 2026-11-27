@@ -107,7 +107,7 @@ bool stored_obj(KHttpRequest *rq, KHttpObject *obj,KHttpObject *old_obj) {
 	if (stored_obj(obj,(KBIT_TEST(obj->index.flags,FLAG_IN_MEM)?LIST_IN_MEM:LIST_IN_DISK))) {
 		KBIT_SET(rq->sink->data.flags,RQ_OBJ_STORED);
 #ifdef ENABLE_DB_DISK_INDEX
-		if (KBIT_TEST(obj->index.flags, FLAG_IN_DISK)) {
+		if (KBIT_TEST(obj->index.flags, FLAG_IN_DISK) && dci) {
 			dci->start(ci_add, obj);
 		}
 #endif

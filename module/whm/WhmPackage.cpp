@@ -60,14 +60,21 @@ int WhmPackage::query(WhmContext *context)
 		context->setStatus("cann't find such session");
 		return WHM_PARAM_ERROR;
 	}
+	if (sc->trusted && !context->trusted) {
+		context->setStatus("access denied");
+		sc->release();
+		return WHM_FORBIDEN;
+	}
 	KVirtualHost *vh = context->getVh();
 	if (sc->vh==NULL && vh) {
 		context->setStatus("access denied");
+		sc->release();
 		return WHM_FORBIDEN;
 	}
 	if (sc->vh) {
 		if (vh==NULL || vh->name!=sc->vh->name) {
 			context->setStatus("access denied");
+			sc->release();
 			return WHM_FORBIDEN;
 		}
 	}
@@ -98,6 +105,19 @@ int WhmPackage::getInfo(WhmContext *context)
 	return WHM_OK;
 }
 int WhmPackage::process(const char *callName,WhmContext *context) {
+	if (!context->trusted) {
+		/* Outside the admin port only calls marked scope='public' run, plus
+		 * query for the results of the async ones (query checks the session). */
+		if (strcasecmp(callName, "query") == 0) {
+			return query(context);
+		}
+		auto it = callmap.find(callName);
+		if (it == callmap.end() || (*it).second->scope != callScopePublic) {
+			context->setStatus("access denied");
+			return WHM_FORBIDEN;
+		}
+		return (*it).second->call(context);
+	}
 	if(strcasecmp(callName,"manifest")==0){
 		return getInfo(context);
 	}
@@ -159,6 +179,7 @@ bool WhmPackage::startElement(KXmlContext *context) {
 	if (context->qName == "event") {
 		if (curCallable == NULL) {
 			WhmError("cann't add event,it must under tag call\n");
+			return false;
 		}
 		WhmExtend *extend = findExtend(context->attribute["extend"]);
 		if (extend == NULL) {

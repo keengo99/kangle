@@ -33,6 +33,12 @@ void KPipeStream::waitClose()
 	WaitForSingleObject(process.getPid(),-1);
 	//}}
 #else
+	/* Nothing is written to the child; without EOF on its stdin a command
+	 * that reads stdin never exits and this loop never ends. */
+	if (fd[WRITE_PIPE] != INVALIDE_PIPE) {
+		ClosePipe(fd[WRITE_PIPE]);
+		fd[WRITE_PIPE] = INVALIDE_PIPE;
+	}
 	char buf[32];
 	for(;;){
 		int len = read(buf,sizeof(buf)-1);
@@ -46,24 +52,7 @@ void KPipeStream::waitClose()
 }
 void KPipeStream::closeAllOtherFile() {
 #ifndef _WIN32
-	int max_fd = sysconf(_SC_OPEN_MAX);
-	if (max_fd == -1) {
-		//		debug("cann't get max_fd=%d\n", max_fd);
-		max_fd = 2048;
-	}
-	int start_fd = 3;
-	if (m_debug > 0) {
-		/*
-		 * 如果是调试，我们不关stdin,stdout,stderr,方便调试。
-		 */
-		start_fd = 3;
-	}
-	//	debug("max_fd=%d\n",max_fd);
-	for (int i = start_fd; i < max_fd; i++) {
-		if (i != fd[0] && i != fd[1]) {
-			::close(i);
-		}
-	}
+	close_fds_from(3, (int)fd[0], (int)fd[1]);
 #endif
 }
 void KPipeStream::close() {
@@ -173,7 +162,7 @@ bool KPipeStream::writeString(const char *str) {
 	if (str) {
 		len = (int)strlen(str);
 	}
-	if (!write_all((char *) &len, sizeof(len))) {
+	if (write_all((char*)&len, sizeof(len)) != STREAM_WRITE_SUCCESS) {
 		return false;
 	}
 	if (str) {

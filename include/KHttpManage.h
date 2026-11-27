@@ -69,7 +69,11 @@ private:
 	bool sendErrPage(const char *err_msg, int closed_flag = 0);
 
 	bool sendLeftMenu();
-	bool sendMainFrame();
+	bool sendMainFrame(const KString& notice = "");
+#ifdef ENABLE_BLACK_LIST
+	void runtimeBlackLists(bool clear, size_t& global_count, size_t& vh_count);
+	bool clearRuntimeIpList();
+#endif
 	bool sendProcessInfo();
 	bool send_css();
 	bool config();

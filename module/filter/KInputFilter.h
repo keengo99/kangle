@@ -120,6 +120,7 @@ public:
 	KParamInputFilter() {
 		last_buf = NULL;
 		last_buf_len = 0;
+		last_buf_size = 0;
 	}
 	~KParamInputFilter() {
 		if (last_buf) {
@@ -133,9 +134,11 @@ public:
 	virtual bool match(KInputFilterContext* rq, const char* str, int len, bool isLast) override;
 protected:
 	bool match_param(const char* name, int name_len, const char* value, int value_len);
-private:	
+private:
+	/* the parameter not yet ended by '&', kept across reads */
 	char* last_buf;
 	int last_buf_len;
+	int last_buf_size;
 	std::list<KParamFilter> param_list;
 	bool match_param_item(char* buf, int len);
 };
@@ -146,6 +149,7 @@ public:
 	{
 		filter = NULL;	
 		gParamHeader = NULL;
+		gParamCopy = NULL;
 	}
 	~KInputFilterContext()
 	{		
@@ -156,6 +160,9 @@ public:
 			KParamPair *t = gParamHeader->next;
 			delete gParamHeader;
 			gParamHeader = t;
+		}
+		if (gParamCopy) {
+			free(gParamCopy);
 		}
 	}
 	KInputFilter *get_filter(KREQUEST rq, kgl_access_context* ctx);
@@ -174,6 +181,7 @@ public:
 	void tee_body(kgl_request_body* body);
 	bool check_get(KParamFilterHook *hook, KREQUEST rq, kgl_access_context* ctx);
 	KParamPair *gParamHeader;
+	char *gParamCopy;
 	KInputFilter *filter;
 	kgl_request_body body;
 private:	

@@ -38,7 +38,7 @@ private:
 #ifdef ENABLE_BIG_OBJECT_206
 	swap_in_result swapin_proress(KHttpObject *obj, KHttpObjectBody *data);
 #endif
-	void swapin_body_result(KHttpObjectBody *data, char *buf, int got, kbuf **last);
+	bool swapin_body_result(KHttpObjectBody *data, char *buf, int got, kbuf **last);
 	void notice(KHttpObject *obj, KHttpObjectBody *data, swap_in_result result);
 	kfiber_waiter *waiter;
 };

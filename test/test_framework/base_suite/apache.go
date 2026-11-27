@@ -26,4 +26,16 @@ func check_htaccess() {
 	h, _, err = common.ReadHttpProtocol(reader, false)
 	common.AssertContain(strings.ToLower(h["http/1.1"]), "301")
 	common.AssertSame(err, nil)
+
+	cn2, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%v", port))
+	common.Assert("htaccess-subdir-connect", err == nil)
+	defer cn2.Close()
+	reader2 := bufio.NewReader(cn2)
+	str = "GET /blog/a HTTP/1.1\r\nHost: apache2.localtest.me\r\n\r\n"
+	cn2.Write([]byte(str))
+	cn2.SetReadDeadline(time.Now().Add(2 * time.Second))
+	h, _, err = common.ReadHttpProtocol(reader2, false)
+	common.AssertContain(strings.ToLower(h["http/1.1"]), "301")
+	common.AssertSame(h["location"], "/right")
+	common.AssertSame(err, nil)
 }

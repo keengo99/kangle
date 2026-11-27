@@ -53,7 +53,7 @@ inline bool is_internal_header(KHttpHeader *av) {
 }
 class KHttpEnv;
 
-void upstream_sign_request(KHttpRequest *rq, KHttpEnv *s);
+bool upstream_sign_request(KHttpRequest *rq, KHttpEnv *s);
 KFetchObject *bindVirtualHost(KHttpRequest *rq, RequestError *error, KApacheHtaccessContext &htresponse);
 //void prepare_write_stream(KHttpRequest *rq);
 KGL_RESULT load_object_from_source(KHttpRequest* rq);
@@ -80,15 +80,15 @@ inline bool rq_has_content_length(KHttpRequest *rq, int64_t content_length) {
 	}
 	return false;
 }
-//¼ì²éobjÊÇ·ñ¹ýÆÚ
+//æ£€æŸ¥objæ˜¯å¦è¿‡æœŸ
 inline bool check_object_expiration(KHttpRequest *rq,KHttpObject *obj) {
 	assert(obj);
 	if (KBIT_TEST(obj->index.flags, OBJ_IS_GUEST) && !KBIT_TEST(rq->ctx.filter_flags, RF_GUEST)) {
-		//ÊÇÓÎ¿Í»º´æ£¬µ«¸ÃÓÃ»§²»ÊÇÓÎ¿Í
+		//æ˜¯æ¸¸å®¢ç¼“å­˜ï¼Œä½†è¯¥ç”¨æˆ·ä¸æ˜¯æ¸¸å®¢
 		return true;
 	}
 	if (KBIT_TEST(obj->index.flags,OBJ_MUST_REVALIDATE)) {
-		//ÓÐmust-revalidate,ÔòÃ¿´Î¶¼Òª´ÓÔ´ÉÏÑéÖ¤
+		//æœ‰must-revalidate,åˆ™æ¯æ¬¡éƒ½è¦ä»Žæºä¸ŠéªŒè¯
 		return true;
 	}
 	if (KBIT_TEST(rq->sink->data.flags, RQ_HAS_NO_CACHE)) {
@@ -106,8 +106,8 @@ inline bool check_object_expiration(KHttpRequest *rq,KHttpObject *obj) {
 	}
 
 	if (KBIT_TEST(rq->ctx.filter_flags,RF_DOUBLE_CACHE_EXPIRE)) {
-		//Ë«±¶¹ýÆÚÊ±¼ä£¬²¢Çå³ýÇ¿ÖÆË¢ÐÂ
-		freshness_lifetime = freshness_lifetime<<1;
+		//åŒå€è¿‡æœŸæ—¶é—´ï¼Œå¹¶æ¸…é™¤å¼ºåˆ¶åˆ·æ–°
+		freshness_lifetime = freshness_lifetime > UINT_MAX / 2 ? UINT_MAX : freshness_lifetime << 1;
 		KBIT_CLR(rq->sink->data.flags,RQ_HAS_NO_CACHE);
 	}
 	//debug("current_age=%d,refreshness_lifetime=%d\n",current_age,freshness_lifetime);
@@ -122,7 +122,7 @@ inline bool is_cache_object_expired(KHttpRequest *rq, KHttpObject *obj)
 {
 	if (check_object_expiration(rq, obj)) {
 #ifdef ENABLE_STATIC_ENGINE
-		//Èç¹ûÊÇ¾²Ì¬»¯µÄÒ³Ãæ,ÔòÒªÖØÐÂÉú³É¹ý
+		//å¦‚æžœæ˜¯é™æ€åŒ–çš„é¡µé¢,åˆ™è¦é‡æ–°ç”Ÿæˆè¿‡
 		KBIT_CLR(obj->index.flags, OBJ_IS_STATIC2);
 #endif
 		goto revalidate;

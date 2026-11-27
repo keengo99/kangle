@@ -71,7 +71,7 @@ BOOL whmCreateProcess(WhmContext* ctx, WHM_CMD_DATA* cmd) {
 			pthread_t id;
 			pthread_attr_t attr;
 			pthread_attr_init(&attr);
-			pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);//ÉèÖÃÏß³ÌÎª·ÖÀë
+			pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);//è®¾ç½®çº¿ç¨‹ä¸ºåˆ†ç¦»
 #endif
 			if (!PTHREAD_CREATE_SUCCESSED(pthread_create(&id, &attr, createProcessThread, (void*)param))) {
 				delete st;
@@ -93,6 +93,12 @@ static BOOL globalWhmServerSupportFunction(int request, void* buffer, int* size,
 }
 static BOOL whmServerSupportFunction(void* param, int request, void* buffer, int* size, int* dataType) {
 	WhmContext* ctx = (WhmContext*)param;
+#ifdef _WIN32
+	if (request == WHM_REQUEST_PREPARE_VH_DELETE) {
+		KVirtualHost* vh = ctx->getVh();
+		return ctx->trusted && vh && vh->prepareDirectoryRemoval() ? TRUE : FALSE;
+	}
+#endif
 	if (request == WHM_REQUEST_CMD) {
 		return whmCreateProcess((WhmContext*)param, (WHM_CMD_DATA*)buffer);
 	}
@@ -108,7 +114,7 @@ static BOOL whmServerSupportFunction(void* param, int request, void* buffer, int
 	return FALSE;
 }
 static const char* whmGetSystemEnv(const char* name) {
-	static KString value;
+	static thread_local KString value;
 	const char* value2 = getSystemEnv(name);
 	if (value2) {
 		return value2;
@@ -153,6 +159,12 @@ static BOOL whmHasVh(void* param) {
 		return TRUE;
 	}
 	return FALSE;
+}
+static void whmRedirect(void* param, const char* package, const char* call) {
+	WhmContext* ctx = (WhmContext*)param;
+	KStringBuf event;
+	event << package << ":" << call;
+	ctx->redirect(event.c_str());
 }
 static void whmFree(void* ctx, void* ptr) {
 	free(ptr);
@@ -219,7 +231,7 @@ int WhmDso::call(const char* callName, const char* eventType,
 	if (WhmCall == NULL) {
 		return WHM_CALL_NOT_FOUND;
 	}
-	WHM_CONTEXT whmCtx;
+	WHM_CONTEXT whmCtx{};
 	whmCtx.ctx = (void*)context;
 	whmCtx.getUrl = whmGetUrlValue;
 	whmCtx.getVh = whmGetVhValue;
@@ -227,6 +239,7 @@ int WhmDso::call(const char* callName, const char* eventType,
 	whmCtx.setError = whmSetError;
 	whmCtx.setValue = whmSetValue;
 	whmCtx.hasVh = whmHasVh;
+	whmCtx.redirect = whmRedirect;
 	whmCtx.ServerSupportFunction = whmServerSupportFunction;
 	whmCtx.free = whmFree;
 	return WhmCall(callName, eventType, &whmCtx);

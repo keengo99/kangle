@@ -1,0 +1,6 @@
+/vcpkg/
+/windows-x64/*
+!/windows-x64/README.md
+/sqlite/*
+!/sqlite/README.md
+!/sqlite/SQLite3Config.cmake

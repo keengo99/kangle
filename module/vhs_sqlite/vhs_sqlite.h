@@ -23,6 +23,7 @@ public:
 	friend class KVirtualHostSqliteConnection;
 private:
 	sqlite3_stmt *stmt;
+	bool bind_ok;
 };
 class KDyamicItem
 {
@@ -65,6 +66,11 @@ public:
 		}
 		free(sql);
 	}
+	void bindWhere(const char *value)
+	{
+		where_value = value;
+		has_where = true;
+	}
 	void bind(const char *name,int value)
 	{
 		items.push_back(new KDyamicItem(name,value));
@@ -89,7 +95,10 @@ public:
 		std::stringstream msql;
 		buildSql(msql);
 		memset(s,0,sizeof(s));
-		snprintf(s,sizeof(s)-1,sql,msql.str().c_str());
+		int n = snprintf(s,sizeof(s)-1,sql,msql.str().c_str());
+		if (n < 0 || n >= (int)sizeof(s) - 1) {
+			return false;
+		}
 		sqlite3_stmt *stmt = NULL;
 		int ret = sqlite3_prepare(db,s,-1,&stmt,NULL);
 		if (SQLITE_OK != ret) {
@@ -103,6 +112,9 @@ public:
 			} else {
 				ret = sqlite3_bind_int(stmt,columnIndex++,(*it)->nValue);
 			}
+		}
+		if (has_where) {
+			sqlite3_bind_text(stmt,columnIndex++,where_value.c_str(),-1,NULL);
 		}
 		ret = sqlite3_step(stmt);
 		sqlite3_finalize(stmt);
@@ -137,6 +149,8 @@ private:
 	char *sql;
 	bool update;
 	sqlite3 *db;
+	std::string where_value;
+	bool has_where = false;
 };
 class KVirtualHostDataSqliteResult : public KVirtualHostData
 {
@@ -167,9 +181,9 @@ public:
 	}
 	KDyamicSqliteStmt *updateVirtualHost(const char *name)
 	{
-		std::stringstream s;
-		s << "UPDATE vhost SET %s WHERE name='" << name << "'";
-		return createDyamicStmt(s.str().c_str(),true);
+		KDyamicSqliteStmt *st = createDyamicStmt("UPDATE vhost SET %s WHERE name=?",true);
+		st->bindWhere(name);
+		return st;
 	}
 	KVirtualHostStmt *delVirtualHost()
 	{
@@ -185,9 +199,7 @@ public:
 	}
 	KVirtualHostData *getFlow(const char *name)
 	{
-		std::stringstream s;
-		s << "SELECT flow,hcount FROM vhost WHERE name='" << name << "'";
-		return querySql(s.str().c_str());
+		return querySql("SELECT flow,hcount FROM vhost WHERE name=?", name);
 	}
 	KVirtualHostSqliteStmt *setFlow()
 	{
@@ -217,6 +229,7 @@ public:
 	sqlite3 *db;
 	void executeSqls(const char *sql[]);
 	KVirtualHostData *querySql(const char *sql);
+	KVirtualHostData *querySql(const char *sql,const char *value);
 	KVirtualHostSqliteStmt *createStmt(const char *sql);
 private:
 };

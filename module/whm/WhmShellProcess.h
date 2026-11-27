@@ -52,8 +52,8 @@ public:
 	WhmShellCommand *next;
 };
 /**
-* whm shellÒ»¸ö³éÏó½ø³Ì
-* ¶ÔÓ¦Ò»×é½ø³Ì°´Ç°ºóË³Ğò£¬Í¨¹ı¹ÜµÀÏàÁ¬.
+* whm shellä¸€ä¸ªæŠ½è±¡è¿›ç¨‹
+* å¯¹åº”ä¸€ç»„è¿›ç¨‹æŒ‰å‰åé¡ºåºï¼Œé€šè¿‡ç®¡é“ç›¸è¿.
 */
 class WhmShellProcess
 {
@@ -103,6 +103,9 @@ public:
 		if(stderr_file){
 			process->stderr_file = strdup(stderr_file);
 		}
+		if(curdir){
+			process->curdir = strdup(curdir);
+		}
 		process->runAsUser = runAsUser;
 		WhmShellCommand *cmd = command;
 		while (cmd) {
@@ -123,9 +126,9 @@ public:
 	{
 		return get_file(sc,stderr_file,false);
 	}
-	//ÊÇ·ñÔÚºóÌ¨ÔËĞĞ¡£Èç¹ûÊÇÔò²»µÈ´ı¸Ã×é½ø³ÌµÄÍË³ö¡£
+	//æ˜¯å¦åœ¨åå°è¿è¡Œã€‚å¦‚æœæ˜¯åˆ™ä¸ç­‰å¾…è¯¥ç»„è¿›ç¨‹çš„é€€å‡ºã€‚
 	bool daemon;
-	//±ê×¼ÊäÈëÊä³öÎÄ¼ş¡£
+	//æ ‡å‡†è¾“å…¥è¾“å‡ºæ–‡ä»¶ã€‚
 	char *stdin_file;
 	char *stdout_file;
 	char *stderr_file;

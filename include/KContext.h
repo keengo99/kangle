@@ -35,19 +35,19 @@ public:
 	uint32_t have_stored : 1;
 	uint32_t new_object : 1;
 	uint32_t upstream_connection_keep_alive : 1;
-	//connect代理
+	//connect浠ｇ悊
 	uint32_t connection_connect_proxy : 1;
 	uint32_t always_on_model : 1;
 	uint32_t response_checked : 1;
 	uint32_t no_body : 1;
 	uint32_t upstream_sign : 1;
 	uint32_t parent_signed : 1;
-	//client主动关闭
+	//client涓诲姩鍏抽棴
 	uint32_t read_huped : 1;
 	uint32_t upstream_expected_done : 1;
 	uint32_t queue_handled : 1;
-	uint32_t has_change_length_filter : 1;//有改变长度的filter
-	//lastModified类型
+	uint32_t has_change_length_filter : 1;//鏈夋敼鍙橀暱搴︾殑filter
+	//lastModified绫诲瀷
 	modified_type mt;
 
 	void push_obj(KHttpObject* obj);

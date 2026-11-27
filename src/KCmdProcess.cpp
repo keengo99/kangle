@@ -10,7 +10,7 @@
 #include "KCmdPoolableRedirect.h"
 #include "KAsyncFetchObject.h"
 #ifdef ENABLE_VH_RUN_AS
-//∆Ù∂ØΩ¯≥Ãπ§◊˜œﬂ≥Ã
+//ÂêØÂä®ËøõÁ®ãÂ∑•‰ΩúÁ∫øÁ®ã
 KSPCmdProcess::KSPCmdProcess() {
 	st = NULL;
 }
@@ -26,11 +26,14 @@ KUpstream *KSPCmdProcess::PowerResult(KHttpRequest *rq, KPipeStream* st2)
 		delete st;
 	}
 	st = static_cast<KListenPipeStream *>(st2);
-	//’‚¿Ô∞—∂Àø⁄∫≈±£¥Ê£¨œ¬¥Œ¡¨Ω” ±æÕ≤ª”√∂‘stLockº”À¯¡À°£
+	//ËøôÈáåÊääÁ´ØÂè£Âè∑‰øùÂ≠òÔºå‰∏ãÊ¨°ËøûÊé•Êó∂Â∞±‰∏çÁî®ÂØπstLockÂä†ÈîÅ‰∫Ü„ÄÇ
 #ifdef KSOCKET_UNIX
 	if (unix_path.empty()) {
 #endif
-		ksocket_getaddr("127.0.0.1", st->getPort(), AF_UNSPEC, AI_NUMERICHOST, &addr);
+		if (!ksocket_getaddr("127.0.0.1", st->getPort(), AF_UNSPEC, AI_NUMERICHOST, &addr)) {
+			stLock.Unlock();
+			return NULL;
+		}
 #ifdef KSOCKET_UNIX
 	}
 #endif
@@ -111,14 +114,18 @@ KUpstream *KMPCmdProcess::PowerResult(KHttpRequest *rq, KPipeStream* st2)
 	st->set_tcp(tcp);
 	klist_append(busyProcessList, st);
 	stLock.Unlock();
-	//’‚¿Ô∞—∂Àø⁄∫≈±£¥Ê£¨œ¬¥Œ¡¨Ω” ±æÕ≤ª”√∂‘stLockº”À¯¡À°£
+	//ËøôÈáåÊääÁ´ØÂè£Âè∑‰øùÂ≠òÔºå‰∏ãÊ¨°ËøûÊé•Êó∂Â∞±‰∏çÁî®ÂØπstLockÂä†ÈîÅ‰∫Ü„ÄÇ
 #ifdef KSOCKET_UNIX
 	if (!st->unix_path.empty()) {
 		ksocket_unix_addr(st->unix_path.c_str(),&st->un_addr);
 	} else {
 #endif
 		int port = st->getPort();
-		ksocket_getaddr("127.0.0.1", port, AF_UNSPEC, AI_NUMERICHOST, &st->addr);
+		if (!ksocket_getaddr("127.0.0.1", port, AF_UNSPEC, AI_NUMERICHOST, &st->addr)) {
+			st->killChild();
+			gcProcess(st);
+			return NULL;
+		}
 #ifdef KSOCKET_UNIX
 	}
 #endif
@@ -126,8 +133,11 @@ KUpstream *KMPCmdProcess::PowerResult(KHttpRequest *rq, KPipeStream* st2)
 	if (cn != NULL) {
 		KUpstream *us = new_upstream(cn);
 		st->bind(us);
+		st->requests++;
 		return us;
 	}
+	st->killChild();
+	gcProcess(st);
 	return NULL;
 }
 KUpstream* KMPCmdProcess::get_connection(KHttpRequest* rq, KSingleListenPipeStream* sp)
@@ -137,22 +147,33 @@ KUpstream* KMPCmdProcess::get_connection(KHttpRequest* rq, KSingleListenPipeStre
 	if (socket == NULL) {
 		sp->killChild();
 		gcProcess(sp);
+		return NULL;
 	}
+	sp->requests++;
 	return socket;
 }
 
 KUpstream* KMPCmdProcess::GetUpstream(KHttpRequest* rq, KExtendProgram* rd)
 {
-	KSingleListenPipeStream* sp = NULL;
-	stLock.Lock();
-	if (!klist_empty(freeProcessList)) {
-		sp = klist_head(freeProcessList);
-		klist_remove(sp);
-		klist_append(busyProcessList, sp);
-	}
-	stLock.Unlock();
-	if (sp) {
-		return get_connection(rq, sp);
+	for (;;) {
+		KSingleListenPipeStream* sp = NULL;
+		stLock.Lock();
+		if (!klist_empty(freeProcessList)) {
+			sp = klist_head(freeProcessList);
+			klist_remove(sp);
+			klist_append(busyProcessList, sp);
+		}
+		stLock.Unlock();
+		if (sp == NULL) {
+			break;
+		}
+		KUpstream* us = get_connection(rq, sp);
+		if (us != NULL) {
+			return us;
+		}
+		// A command process can exit after its previous response while its
+		// listener is still on the free list.  Discard it and continue so the
+		// current request starts a replacement instead of failing with 504.
 	}
 	KCmdPoolableRedirect* cmd = static_cast<KCmdPoolableRedirect*>(rd);
 	cmd->LockCommand();
@@ -188,9 +209,12 @@ KPipeStream *KMPCmdProcess::PowerThread(KVirtualHost* vh, KExtendProgram* erd)
 	}
 #endif
 	//we need cmdLock and the stLock
+	stLock.Lock();
+	bool is_same_running = !klist_empty(busyProcessList);
+	stLock.Unlock();
 	cmdLock.Lock();
 	st->setLifeTime(this->life_time);
-	bool result = rd->Exec(vh, st, !klist_empty(busyProcessList));
+	bool result = rd->Exec(vh, st, is_same_running);
 	if (!result) {
 		cmdLock.Unlock();
 		delete st;
@@ -201,6 +225,12 @@ KPipeStream *KMPCmdProcess::PowerThread(KVirtualHost* vh, KExtendProgram* erd)
 }
 void KMPCmdProcess::gcProcess(KSingleListenPipeStream *st)
 {
+	if (max_request > 0 && st->requests >= max_request && !st->process.isKilled()) {
+		/* The program exits by itself after this many requests (PHP_FCGI_MAX_REQUESTS).
+		 * Reusing it would connect the next request to a listener that is about
+		 * to close, and that request would fail with 504. */
+		st->killChild();
+	}
 	bool isKilled = st->process.isKilled();
 	stLock.Lock();
 	klist_remove(st);
@@ -269,39 +299,51 @@ bool KMPCmdProcess::killProcess(int pid)
 	bool successKilled = false;
 	stLock.Lock();
 	klist_foreach(st, busyProcessList) {
-		if (pid == 0) {
-			st->killChild();
-			st->unlink_unix();
-			continue;
-		}
-		if (st->process.getProcessId() == pid) {
+		if (pid == 0 || st->process.getProcessId() == pid) {
 			st->killChild();
 			st->unlink_unix();
 			successKilled = true;
-			break;
+			if (pid != 0) {
+				break;
+			}
 		}
 	}
-	if (!successKilled) {
+	if (pid == 0) {
+		while (!klist_empty(freeProcessList)) {
+			st = klist_head(freeProcessList);
+			klist_remove(st);
+			st->killChild();
+			st->unlink_unix();
+			delete st;
+		}
+		successKilled = true;
+	} else if (!successKilled) {
 		klist_foreach(st, freeProcessList) {
-			if (pid == 0) {
-				st->killChild();
-				st->unlink_unix();
-				continue;
-			}
 			if (pid == st->process.getProcessId()) {
 				st->killChild();
 				st->unlink_unix();
 				klist_remove(st);
 				delete st;
+				successKilled = true;
 				break;
 			}
 		}		
 	}
-	stLock.Unlock();
-	if (pid==0) {
-		return true;
+	if (pid != 0 && successKilled) {
+		//ËøîÂõûtrueË°®Á§∫ÂÖ®ÈÉ®ËøõÁ®ãÂ∑≤ÊùÄÊéâÔºåË∞ÉÁî®ËÄÖ‰ºöÈîÄÊØÅÊï¥‰∏™ËøõÁ®ãÊ±†ÔºåËøòÊúâÂ≠òÊ¥ªËøõÁ®ãÊó∂‰∏çËÉΩËøîÂõûtrue
+		if (!klist_empty(freeProcessList)) {
+			successKilled = false;
+		} else {
+			klist_foreach(st, busyProcessList) {
+				if (!st->process.isKilled()) {
+					successKilled = false;
+					break;
+				}
+			}
+		}
 	}
-	return false;
+	stLock.Unlock();
+	return successKilled;
 }
 bool KMPCmdProcess::canDestroy(time_t nowTime)
 {
@@ -313,7 +355,7 @@ bool KMPCmdProcess::canDestroy(time_t nowTime)
 		if (st == freeProcessList) {
 			break;
 		}
-		if (nowTime < idleTime + st->lastActive) {
+		if (idleTime <= 0 || nowTime < idleTime + st->lastActive) {
 			break;
 		}
 		klist_remove(st);

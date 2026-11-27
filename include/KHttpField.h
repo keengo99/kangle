@@ -43,12 +43,16 @@ public:
 			if (isspace((unsigned char)*hot)) {
 				*hot = '\0';
 				hot++;
-				char *p = strchr(hot,'=');
-				if (p) {
-					hot = (p+1);
-					haveval = true;
-					break;
+				while (*hot && isspace((unsigned char)*hot)) {
+					hot++;
 				}
+				if (*hot == '=') {
+					hot++;
+					haveval = true;
+				} else if ((u_char)*hot == split) {
+					hot++;
+				}
+				break;
 			}
 			hot++;
 		}
@@ -57,16 +61,18 @@ public:
 				hot++;
 			}
 			if (*hot=='"') {
-				//ÊÇ×Ö·û´®Öµ
+				//æ˜¯å­—ç¬¦ä¸²å€¼
 				hot++;
 				val = hot;
-				char *p = strchr(hot,'"');				
-				if(p){
-					*p = '\0';
+				char *p = strchr(hot,'"');
+				if (!p) {
+					val = NULL;
+					return NULL;
 				}
+				*p = '\0';
 				hot = p+1;
 			} else {
-				//Êý×Ö
+				//æ•°å­—
 				val = hot;
 			}
 			while (*hot) {

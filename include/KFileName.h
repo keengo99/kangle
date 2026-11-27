@@ -54,7 +54,7 @@ public:
 	KFileName();
 	~KFileName();
 	/*
-	 µ÷ÓÃÕâ¸öº¯ÊýÖ®Ç°Çë¶ÔÓÚpath,ÇëÏÈµ÷ÓÃ tripDir2º¯Êý
+	 è°ƒç”¨è¿™ä¸ªå‡½æ•°ä¹‹å‰è¯·å¯¹äºŽpath,è¯·å…ˆè°ƒç”¨ tripDir2å‡½æ•°
 	 */
 	bool setName(const char *docRoot, const char *triped_path, int follow_link);
 	bool setName(const char *path);
@@ -80,7 +80,7 @@ public:
 			if (*hot == '/' || *hot == '\\') {
 				*src = split_char;
 				src++;
-				//Ìøµ½²»ÊÇ·Ö¸ñ·ûµÄÎ»ÖÃ
+				//è·³åˆ°ä¸æ˜¯åˆ†æ ¼ç¬¦çš„ä½ç½®
 				for (;;) {
 					if (!*hot) {
 						*src = '\0';
@@ -93,16 +93,16 @@ public:
 					}
 				}
 			}
-			//²»ÊÇ·Ö¸ñ·û
+			//ä¸æ˜¯åˆ†æ ¼ç¬¦
 			char* p = hot;
-			//ÕÒÏÂÃæµÄ·Ö¸ñ·û
+			//æ‰¾ä¸‹é¢çš„åˆ†æ ¼ç¬¦
 			while (*p && *p != '/' && *p != '\\')
 				p++;
-			//ÕÒµ½ÁË
+			//æ‰¾åˆ°äº†
 			int copy_len = (int)(p - hot);
 			if (*hot == '.') {
 				if (copy_len == 1) {
-					//Èç¹ûÊÇ±¾Ä¿Â¼£¬ÔòÂÔ¹ý
+					//å¦‚æžœæ˜¯æœ¬ç›®å½•ï¼Œåˆ™ç•¥è¿‡
 					if (src > path) {
 						src--;
 						assert(*src == split_char);
@@ -111,7 +111,7 @@ public:
 					continue;
 				}
 				if (copy_len == 2 && *(hot + 1) == '.') {
-					//Èç¹ûÊÇÉÏ¼¶Ä¿Â¼
+					//å¦‚æžœæ˜¯ä¸Šçº§ç›®å½•
 
 					if (src > path) {
 						src--;
@@ -135,7 +135,7 @@ public:
 			}
 			hot = p;
 		}
-		//²»¿ÉÄÜµ½ÕâÀïÀ´µÄ¡£
+		//ä¸å¯èƒ½åˆ°è¿™é‡Œæ¥çš„ã€‚
 		assert(false);
 		
 	}
@@ -151,6 +151,10 @@ public:
 	int64_t get_file_size()
 	{
 		return buf.st_size;
+	}
+	const struct _stat64* get_stat() const
+	{
+		return &buf;
 	}
 	static char *makeExt(const char *file);
 	const char *getExt();
@@ -190,7 +194,7 @@ private:
 	char *index;
 	struct _stat64 buf;
 	//int name_len;	
-	//path_infoÊ±£¬urlµÄ³¤¶È
+	//path_infoæ—¶ï¼Œurlçš„é•¿åº¦
 	unsigned pathInfoLength;
 	bool prev_dir;
 	bool linkChecked;	
@@ -328,17 +332,22 @@ public:
 	}
 	void init()
 	{
+		write_failed = false;
 		total_write = 0;
 		hot = buffer;
 		buffer_left = KGL_MAX_BUFFER_FILE_SIZE;
 	}
-	void close()
+	bool close()
 	{
-		this->flush();
+		bool result = this->flush();
 		KFile::close();
+		return result;
 	}
 	int write(const char *buf, int len)
 	{
+		if (write_failed) {
+			return -1;
+		}
 		int orig_len = len;
 		while (len > 0) {
 			int write_len = KGL_MIN(len, buffer_left);
@@ -351,6 +360,10 @@ public:
 			if (buf != NULL) {
 				kgl_memcpy(hot, buf, write_len);
 				buf += write_len;
+			} else {
+				// NULL adds disk-cache alignment padding. Never persist stale
+				// heap contents in that padding.
+				memset(hot, 0, write_len);
 			}
 			hot += write_len;
 			len -= write_len;
@@ -366,16 +379,18 @@ public:
 private:
 	bool flush()
 	{
-		if (!this->opened()) {
+		if (!this->opened() || write_failed) {
 			return false;
 		}
 		int len = (int)(hot - buffer);
 		bool result = KFile::write(buffer, len) == len;
+		write_failed = !result;
 		hot = buffer;
 		buffer_left = KGL_MAX_BUFFER_FILE_SIZE;
 		return result;
 	}
 	INT64 total_write;
+	bool write_failed;
 	int buffer_left;
 	char *buffer;
 	char *hot;

@@ -26,6 +26,12 @@ void kgl_simulate_free(simulate_request* rq) {
 int kgl_simuate_start_fiber(simulate_request* rq) {
 	defer(kgl_simulate_free(rq));
 	if (rq->ctx.skip_access) {
+		/* Not a request to this server (url downloads of geo, ip lists...):
+		 * fetch the url from its own host, as kangle 3.5 did. Without a
+		 * source it was handled as a local request and got a 500. */
+		if (!rq->has_final_source()) {
+			rq->append_source(new KHttpProxyFetchObject());
+		}
 		return skip_access_request(rq, 0);
 	}
 	//TODO: do not support now.
@@ -37,6 +43,9 @@ static int simuate_start_fiber(void* arg, int got) {
 }
 KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 {
+	if (ctx == NULL || ctx->url == NULL || ctx->meth == NULL) {
+		return NULL;
+	}
 	if (ctx->post_len > 0 && ctx->post == NULL) {
 		return NULL;
 	}
@@ -46,6 +55,10 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 		return NULL;
 	}
 	KSimulateSink* ss = new KSimulateSink;
+	if (ss->cn == NULL) {
+		delete ss;
+		return NULL;
+	}
 	KHttpRequest* rq = new KHttpRequest(ss);
 	selectable_bind(&ss->cn->st, selector);	
 	selectable_bind_opaque(&ss->cn->st, rq);
@@ -67,7 +80,7 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 	}
 
 	if (ctx->host) {
-		ss->host = strdup(ctx->host);
+		ss->host = ctx->host;
 	}
 	ss->arg = ctx->arg;
 	ss->port = ctx->port;
@@ -129,6 +142,9 @@ KHttpRequest *kgl_create_simulate_request(kgl_async_http *ctx)
 }
 int kgl_simuate_start_as_new_fiber(simulate_request*rq,kfiber **fiber)
 {
+	if (rq == NULL) {
+		return -1;
+	}
 	int ret = kfiber_create(simuate_start_fiber, rq, 0, http_config.fiber_stack_size, fiber);
 	if (ret!=0) {
 		kgl_simulate_free(rq);
@@ -175,6 +191,9 @@ static void WINAPI timer_simulate(void *arg)
 	//asyncHttpRequest(METH_GET,"http://www.kangleweb.net/test.php",NULL,test_header_hook,test_body_hook,NULL);
 }
 void KSimulateSink::start(int header_len) {
+	/* The url names the host; without this an HTTP/1.1 request with no
+	 * Host header fails begin_request and data.url stays NULL. */
+	host_seen = true;
 	begin_request();
 }
 KSimulateSink::KSimulateSink() : KSingleConnectionSink(NULL, NULL)
@@ -194,7 +213,8 @@ KSimulateSink::KSimulateSink() : KSingleConnectionSink(NULL, NULL)
 KSimulateSink::~KSimulateSink()
 {
 	if (body) {
-		this->body(arg, NULL, response_left==0);
+		/* complete: no error and, with a Content-Length, all of it */
+		this->body(arg, NULL, !body_broken && response_left <= 0);
 	}
 }
 typedef struct {
@@ -271,8 +291,14 @@ int WINAPI async_download_body_hook(void *arg, const char *data, int len)
 int kgl_async_download(const char *url, const char *file, int *status)
 {
 	assert(!kfiber_is_main());
+	if (url == NULL || file == NULL || status == NULL) {
+		return -1;
+	}
 	async_download_worker download_ctx;
-	memset(&download_ctx, 0, sizeof(async_download_worker));
+	download_ctx.last_modified = 0;
+	download_ctx.code = 0;
+	download_ctx.gzip = false;
+	download_ctx.st = NULL;
 	download_ctx.save_file = file;
 	kgl_async_http ctx;
 	memset(&ctx, 0, sizeof(ctx));
@@ -281,8 +307,8 @@ int kgl_async_download(const char *url, const char *file, int *status)
 	char tmp_buf[42];
 	KHttpHeader *header = nullptr;	
 	if (ret == 0) {
-		mk1123time(buf.st_mtime, tmp_buf, 41);
-		header = new_http_header(_KS("If-Modified-Since"), tmp_buf, 41);
+		char* end = make_http_time(buf.st_mtime, tmp_buf, sizeof(tmp_buf));
+		header = new_http_header(_KS("If-Modified-Since"), tmp_buf, (int)(end - tmp_buf));
 		ctx.rh = header;
 	}
 	ctx.arg = &download_ctx;
@@ -310,9 +336,11 @@ clean:
 }
 void async_download(const char* url, const char* file, result_callback cb, void* arg)
 {
-	int status;
-	int got = kgl_async_download(url, file, &status);
-	cb(NULL, arg, status);
+	int status = 0;
+	kgl_async_download(url, file, &status);
+	if (cb != NULL) {
+		cb(NULL, arg, status);
+	}
 }
 kev_result test_simulate_callback(KOPAQUE data, void *arg, int code)
 {
@@ -366,4 +394,3 @@ bool test_simulate_request()
 	return true;
 }
 #endif
-

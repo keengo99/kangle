@@ -1,74 +1,136 @@
 package main
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"sort"
+	"sync"
 	"test_framework/common"
 	"test_framework/config"
 	"time"
 )
 
 type benchmarkResult struct {
-	Successed int
-	Failed    int
-	UseTime   int64
+	Success int      `json:"success"`
+	Failed  int      `json:"failed"`
+	Bytes   int64    `json:"bytes"`
+	Seconds float64  `json:"seconds"`
+	RPS     float64  `json:"rps"`
+	P50     float64  `json:"p50_ms"`
+	P95     float64  `json:"p95_ms"`
+	P99     float64  `json:"p99_ms"`
+	Errors  []string `json:"errors,omitempty"`
 }
 
-func benchmark(count int, url string, report chan int, ch chan *benchmarkResult) {
-	result := &benchmarkResult{}
-	StartTime := time.Now().UnixMicro()
-	defer func() {
-		result.UseTime = time.Now().UnixMicro() - StartTime
-		ch <- result
-		close(ch)
-	}()
-	successed := common.Bench("GET", url, nil, count, report)
-	result.Successed = successed
-	result.Failed = count - successed
-}
 func main() {
-	concurrenct := flag.Int("c", 1, "concurrenct")
-	numbers := flag.Int("n", 1, "test count per concurrenct")
-	keepAlive := flag.Bool("k", false, "keep-alive")
-	alpn := flag.Int("a", 0, "https alpn protocol value 0,1,2 mean use http1 http2 http3")
+	concurrency := flag.Int("c", 1, "concurrent workers")
+	count := flag.Int("n", 1, "requests per worker")
+	keepAlive := flag.Bool("k", false, "HTTP/1 keep-alive (HTTP/2 multiplexes by default)")
+	alpn := flag.Int("a", 0, "protocol: 0 HTTP/1, 1 HTTPS HTTP/2, 2 HTTP/3, 3 h2c")
+	postFile := flag.String("post-file", "", "POST this file instead of GET")
+	expectHash := flag.String("sha256", "", "expected response SHA-256 (optional)")
 	flag.Parse()
-	url := flag.Arg(0)
+	if *concurrency <= 0 || *count <= 0 || flag.NArg() != 1 {
+		fmt.Fprintln(os.Stderr, "positive -c/-n and one URL are required")
+		os.Exit(2)
+	}
+	var payload []byte
+	method := "GET"
+	if *postFile != "" {
+		var err error
+		payload, err = os.ReadFile(*postFile)
+		if err != nil {
+			panic(err)
+		}
+		method = "POST"
+	}
 	config.Cfg.Alpn = *alpn
 	common.InitClient(*keepAlive)
-	chs := make([]chan *benchmarkResult, *concurrenct)
-	fmt.Printf("benchmark url=[%v] concurrent=[%v] numbers=[%v].\n", url, *concurrenct, *numbers)
-	StartTime := time.Now().UnixMicro()
-	report := make(chan int)
-	go func() {
-		last_report_time := time.Now().UnixMilli()
-		var last_report_size int64
-		for {
-			n := <-report
-			last_report_size += int64(n)
-			now_time := time.Now().UnixMilli()
-			past_time := now_time - last_report_time
-			if past_time > 1000 {
-				fmt.Printf("speed %.2f(K/s)\n", float64(last_report_size)/(float64(past_time)/1000.00)/1024)
-				last_report_size = 0
-				last_report_time = now_time
+	client := common.GetClient(flag.Arg(0))
+	client.Timeout = time.Duration(common.HTTP_TIME_OUT) * time.Second
+	if transport, ok := client.Transport.(*http.Transport); ok {
+		transport.MaxIdleConns = *concurrency
+		transport.MaxIdleConnsPerHost = *concurrency
+	}
+	var lock sync.Mutex
+	var workers sync.WaitGroup
+	result := benchmarkResult{}
+	latencies := make([]float64, 0)
+	started := time.Now()
+	for worker := 0; worker < *concurrency; worker++ {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			local := benchmarkResult{}
+			latency := make([]float64, 0, *count)
+			for n := 0; n < *count; n++ {
+				start := time.Now()
+				req, err := http.NewRequest(method, flag.Arg(0), bytes.NewReader(payload))
+				var resp *http.Response
+				if err == nil {
+					resp, err = client.Do(req)
+				}
+				if err == nil {
+					var size int64
+					if *expectHash != "" {
+						hash := sha256.New()
+						size, err = io.Copy(hash, resp.Body)
+						if err == nil && hex.EncodeToString(hash.Sum(nil)) != *expectHash {
+							err = fmt.Errorf("response hash mismatch")
+						}
+					} else {
+						size, err = io.Copy(io.Discard, resp.Body)
+					}
+					resp.Body.Close()
+					local.Bytes += size
+					if err == nil && (resp.StatusCode < 200 || resp.StatusCode >= 300) {
+						err = fmt.Errorf("HTTP status %d", resp.StatusCode)
+					}
+					if err == nil && resp.ContentLength >= 0 && size != resp.ContentLength {
+						err = fmt.Errorf("truncated body")
+					}
+					if err == nil && (*alpn == 1 || *alpn == 3) && resp.ProtoMajor != 2 {
+						err = fmt.Errorf("expected HTTP/2, got %s", resp.Proto)
+					}
+				}
+				latency = append(latency, float64(time.Since(start).Microseconds())/1000)
+				if err == nil {
+					local.Success++
+				} else {
+					local.Failed++
+					if len(local.Errors) < 3 {
+						local.Errors = append(local.Errors, err.Error())
+					}
+				}
 			}
-		}
-	}()
-	for n := 0; n < *concurrenct; n++ {
-		chs[n] = make(chan *benchmarkResult)
-		go benchmark(*numbers, url, report, chs[n])
+			lock.Lock()
+			result.Success += local.Success
+			result.Failed += local.Failed
+			result.Bytes += local.Bytes
+			latencies = append(latencies, latency...)
+			for _, err := range local.Errors {
+				if len(result.Errors) < 3 {
+					result.Errors = append(result.Errors, err)
+				}
+			}
+			lock.Unlock()
+		}()
 	}
-	result := &benchmarkResult{}
-
-	for n := 0; n < *concurrenct; n++ {
-		br := <-chs[n]
-		result.Failed += br.Failed
-		result.Successed += br.Successed
-		result.UseTime += br.UseTime
+	workers.Wait()
+	result.Seconds = time.Since(started).Seconds()
+	result.RPS = float64(result.Success) / result.Seconds
+	sort.Float64s(latencies)
+	percentile := func(p int) float64 { return latencies[(len(latencies)-1)*p/100] }
+	result.P50, result.P95, result.P99 = percentile(50), percentile(95), percentile(99)
+	json.NewEncoder(os.Stdout).Encode(result)
+	if result.Failed != 0 {
+		os.Exit(1)
 	}
-	totalUseTime := time.Now().UnixMicro() - StartTime
-	fmt.Printf("benchmark end.\n")
-	fmt.Printf("success: %v\n", result.Successed)
-	fmt.Printf("failed:  %v\n", result.Failed)
-	fmt.Printf("time:    %v\n", totalUseTime)
 }

@@ -38,6 +38,7 @@ public:
 	~KChain();
 	uint32_t match(KHttpRequest* rq, KHttpObject* obj, KSafeSource& fo) {
 		uint32_t result = KF_STATUS_REQ_TRUE;
+		bool deferred = false;
 		bool last_or = false;
 		//OR NEXT
 		for (auto it = acls.begin(); it != acls.end(); ++it) {
@@ -60,12 +61,17 @@ public:
 				last_or = (*it).is_or;
 				continue;
 			}
-			result = (*it).m->process(rq, obj, fo);
+			result = (*it).m->process_with_chain(rq, obj, fo, jump_type);
 			if (KBIT_TEST(result, KF_STATUS_REQ_FINISHED)) {
 				++hit_count;
 				return result;
 			}
+			if (KBIT_TEST(result, KF_STATUS_REQ_DEFERRED)) {
+				deferred = true;
+				KBIT_CLR(result, KF_STATUS_REQ_DEFERRED);
+			}
 			result = (!!result != (*it).revers) ? KF_STATUS_REQ_TRUE : KF_STATUS_REQ_FALSE;
+			last_or = (*it).is_or;
 			if (!result && !last_or) {
 				break;
 			}
@@ -74,16 +80,17 @@ public:
 				return KF_STATUS_REQ_TRUE;
 			}
 		}
-		if (result) {
+		if (result && !deferred) {
 			++hit_count;
 		}
-		return result;
+		return result && deferred ? (KF_STATUS_REQ_TRUE | KF_STATUS_REQ_DEFERRED) : result;
 	}
 	void parse_config(KAccess* access, const khttpd::KXmlNodeBody* xml);
 	void get_acl_short_html(KWStream& s);
 	void get_mark_short_html(KWStream& s);
 	void dump(kgl::serializable* s,bool is_short);
 	static khttpd::KSafeXmlNode to_xml(KUrlValue& uv);
+	khttpd::KSafeXmlNode to_legacy_xml(bool detail) const;
 
 	void clear();
 	friend class KAccess;
@@ -92,17 +99,20 @@ private:
 	void get_edit_html(kgl::serializable* s);
 	void get_edit_html(KWStream& s, u_short accessType);
 	template<typename T>
-	void getModelHtml(KModelPtr<T> &ptr, KWStream& s, int type, int index) {
+	void getModelHtml(KModelPtr<T> &ptr, KWStream& s, int type, int index, bool can_move_down) {
 		s << "<tr><td><input type=hidden name='begin_sub_form' value='"
 			<< (type == 0 ? "acl_"_CS : "mark_"_CS)
 			<< ptr.m->get_module() << "'>";
 		s << "[<a href=\"javascript:delmodel('" << index << "'," << type << ");\">del</a>]";
+		if (can_move_down) {
+			s << "[<a href=\"javascript:downmodel('" << index << "'," << type << ");\">down</a>]";
+		}
 		if (ptr.named.empty()) {
 			s << "<input type = checkbox name = 'or' value = '1' ";
 			if (ptr.is_or) {
 				s << "checked";
 			}
-			s << ">OR";
+			s << ">OR NEXT";
 			s << "<input type=checkbox name='revers' value='1' ";
 			if (ptr.revers) {
 				s << "checked";
@@ -124,7 +134,10 @@ private:
 private:
 	uint32_t hit_count;
 	kgl_jump_type jump_type;
+	int skip_to;
 	KSafeJump jump;
+	KString name;
+	khttpd::KSafeXmlNode config;
 	std::vector<KModelPtr<KAcl>> acls;
 	std::vector<KModelPtr<KMark>> marks;
 };

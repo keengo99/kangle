@@ -109,17 +109,12 @@ protected:
 		if (item == NULL) {
 			return false;
 		}
-		struct krb_node **n = &(root.rb_node);
-		multin_item *data;
-		while (*n) {
-			data = (multin_item *)((*n)->data);
-			int result = ncmp(item,data->str,data->len);
-			if (result < 0)
-				n = &((*n)->rb_left);
-			else if (result > 0)
-				n = &((*n)->rb_right);
-			else
+		//the tree is sorted by full string, a prefix match can not use binary search.
+		for (krb_node* node = rb_first(&root); node != NULL; node = rb_next(node)) {
+			multin_item* data = (multin_item*)node->data;
+			if (ncmp(item, data->str, data->len) == 0) {
 				return true;
+			}
 		}
 		return false;
 	}

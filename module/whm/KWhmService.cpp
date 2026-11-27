@@ -6,6 +6,8 @@
  */
 
 #include "KWhmService.h"
+#include <ctype.h>
+#include <string.h>
 #include "WhmContext.h"
 #include "WhmPackageManage.h"
 #include "KHttpPost.h"
@@ -24,14 +26,25 @@ bool KWhmService::service(KServiceProvider *provider) {
 	uv->parse(provider->getQueryString());
 	INT64 contentLength = provider->getContentLength();
 	if(contentLength > 0){
+		if (contentLength > MAX_POST_SIZE) {
+			return false;
+		}
 		KHttpPost httpPost;
-		httpPost.init((int)contentLength);		
+		if(!httpPost.init((int)contentLength)){
+			return false;
+		}
 		if(!httpPost.readData(provider->getInputStream())){
 			return false;
 		}
 		httpPost.parse(uv);
 	}
 	provider->sendUnknowHeader("Cache-Control","no-cache,no-store");
+	{
+		/* set by the server for admin-port requests; clients cannot send it */
+		char value[8];
+		int len = sizeof(value);
+		context.trusted = provider->getEnv("KANGLE_MANAGE", value, &len) && strcmp(value, "1") == 0;
+	}
 	context.buildVh();
 	WhmPackage *package = packageManage.load(provider->getFileName());
 	if (package == NULL) {
@@ -40,6 +53,18 @@ bool KWhmService::service(KServiceProvider *provider) {
 	}
 	provider->sendStatus(STATUS_OK, "OK");
 	const char *callName = uv->getx("whm_call");
+	if (callName) {
+		/* it is echoed as an XML tag name and a JSON string below */
+		for (const char* p = callName; *p; p++) {
+			if (!isalnum((unsigned char)*p) && *p != '_' && *p != '-' && *p != '.') {
+				callName = NULL;
+				break;
+			}
+		}
+		if (callName && *callName == '\0') {
+			callName = NULL;
+		}
+	}
 	const char* v = uv->getx("format");
 	kgl::format fmt = kgl::format::xml_text;
 	if (v) {

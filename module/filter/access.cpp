@@ -4,6 +4,8 @@
 #include "ksapi.h"
 #include "kmalloc.h"
 #include "filter.h"
+#include "KAccess.h"
+#include "KAccessDso.h"
 
 extern kgl_access kgl_param_model;
 extern kgl_access kgl_param_count_model;
@@ -90,10 +92,18 @@ static kgl_access footer_model = {
 	NULL,
 	process
 };
-void register_access(kgl_dso_version *ver)
-{	
-	KGL_REGISTER_ACCESS(ver, &footer_model);
-	KGL_REGISTER_ACCESS(ver, &kgl_param_model);
-	KGL_REGISTER_ACCESS(ver, &kgl_param_count_model);
-	KGL_REGISTER_ACCESS(ver, &kgl_post_file_model);
+static void register_builtin_mark(kgl_access* model, uint32_t notify_type)
+{
+	auto* adapter = new KAccessDso(model, nullptr, notify_type);
+	KAccess::addMarkModel(
+		notify_type == KF_NOTIFY_RESPONSE_MARK ? RESPONSE : REQUEST,
+		new KAccessDsoMark(adapter));
+}
+
+void register_builtin_filter_models()
+{
+	register_builtin_mark(&footer_model, KF_NOTIFY_RESPONSE_MARK);
+	register_builtin_mark(&kgl_param_model, KF_NOTIFY_REQUEST_MARK);
+	register_builtin_mark(&kgl_param_count_model, KF_NOTIFY_REQUEST_MARK);
+	register_builtin_mark(&kgl_post_file_model, KF_NOTIFY_REQUEST_MARK);
 }

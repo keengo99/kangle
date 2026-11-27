@@ -27,6 +27,9 @@ KGL_RESULT KAuthSource::Open(KHttpRequest* rq, kgl_input_stream* in, kgl_output_
 	}
 	uint16_t status_code = auth->GetStatusCode();
 	out->f->write_status(out->ctx, status_code);
-	auth->response_header(out);
+	KGL_RESULT result = auth->response_header(out);
+	if (result != KGL_OK) {
+		return result;
+	}
 	return out->f->write_header_finish(out->ctx, 0, nullptr);
 }

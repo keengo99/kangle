@@ -10,7 +10,7 @@
 extern char** environ;
 #endif
 void addCurrentEnv(KCmdEnv* env) {
-	//°ÑÏÖÓÐµÄ»·¾³±äÁ¿¼ÓÈë
+	//æŠŠçŽ°æœ‰çš„çŽ¯å¢ƒå˜é‡åŠ å…¥
 	for (int i = 0;; i++) {
 		char* e = environ[i];
 		if (e == NULL) {
@@ -181,7 +181,7 @@ bool KExtendProgramConfig::handle(KExtendProgramString* ds) {
 		ds->addEnv("src_dir", dir.get());
 	}
 	if (file.get_file_size() > 4194304) {
-		klog(KLOG_ERR, "file [%s] is too big(size=%d) max is 4M\n", dst.c_str());
+		klog(KLOG_ERR, "file [%s] is too big(size=%lld) max is 4M\n", src_file_name.get(), (long long)file.get_file_size());
 		goto done;
 	}
 	dst_file_name = ds->parseString(dst.c_str());
@@ -210,7 +210,7 @@ bool KExtendProgramConfig::handle(KExtendProgramString* ds) {
 	src_buf = kgl_auto_cstr((char*)xmalloc((int)file.get_file_size() + 1));
 	len = src_fp.read(src_buf.get(), (int)file.get_file_size());
 	if (len != file.get_file_size()) {
-		klog(KLOG_ERR, "cann't read complete src file [%s] readed=[%d],fileSize=[%d]\n", file.getName(), len, file.get_file_size());
+		klog(KLOG_ERR, "cann't read complete src file [%s] readed=[%d],fileSize=[%lld]\n", file.getName(), len, (long long)file.get_file_size());
 		goto done;
 	}
 	if (!dst_fp.open(dst_tmp.c_str(), fileWrite)) {
@@ -258,7 +258,7 @@ done:
 		}
 		if (!result) {
 			klog(KLOG_NOTICE, "now remove tmp file [%s]\n", dst_tmp.c_str());
-			//Èç¹ûÃ»ÓÐ³É¹¦£¬ÔòÉ¾³ýÁÙÊ±ÎÄ¼þ			
+			//å¦‚æžœæ²¡æœ‰æˆåŠŸï¼Œåˆ™åˆ é™¤ä¸´æ—¶æ–‡ä»¶
 			unlink(dst_tmp.c_str());
 		}
 	}
@@ -304,7 +304,7 @@ bool KExtendProgramCmd::handle(KExtendProgramString* ds) {
 	}
 	result = false;
 	if (st) {
-		//µÈ´ý×Ó½ø³Ì½áÊø
+		//ç­‰å¾…å­è¿›ç¨‹ç»“æŸ
 		st->waitClose();
 		delete st;
 		result = true;
@@ -400,7 +400,7 @@ bool KExtendProgram::postLoad(KExtendProgramString* ds) {
 bool KExtendProgram::parse_config(const khttpd::KXmlNode* xml) {
 	auto& attr = xml->attributes();
 	life_time = attr.get_int("life_time");
-	idleTime = attr.get_int("idle_time");
+	idleTime = attr.get_int("idle_time", EXTENDPROGRAM_DEFAULT_IDLETIME);
 	maxRequest = attr.get_int("max_request");
 	//maxConnect = attr.get_int("max_connect");
 	max_error_count = attr.get_int("max_error_count");

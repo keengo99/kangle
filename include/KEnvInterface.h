@@ -1,7 +1,7 @@
 /*
  * KEnvInterface.h
  * 
- * 环境变量接口
+ * 鐜鍙橀噺鎺ュ彛
  *
  *  Created on: 2010-6-11
  *      Author: keengo

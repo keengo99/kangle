@@ -28,9 +28,28 @@
 #include "KHttpObject.h"
 #include "KModel.h"
 #define 	ACL_CONTEXT		"acl"
+/*
+ * Virtual host lookup ignores a trailing dot ("example.com." finds the same
+ * site as "example.com"), so host rules must compare without it too, or a
+ * client adds the dot to get past them. Returns host itself, or a copy in buf.
+ */
+inline const char* kgl_acl_host(const char* host, KString& buf) {
+	if (host == NULL) {
+		return NULL;
+	}
+	size_t len = strlen(host);
+	if (len == 0 || host[len - 1] != '.') {
+		return host;
+	}
+	while (len > 0 && host[len - 1] == '.') {
+		len--;
+	}
+	buf = KString(host, len);
+	return buf.c_str();
+}
 
 /*
- * ·ÃÎÊ¿ØÖÆ
+ * è®¿é—®æ§åˆ¶
  */
 class KAcl : public KModel {
 public:

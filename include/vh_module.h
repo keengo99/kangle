@@ -19,30 +19,30 @@ extern "C" {
 		void *ctx;
 		int vhi_version;
 		const char *(* getConfigValue)(void *ctx,const char *name);
-		//ÒÔÏÂÊÇ·µ»Ø
-		//½âÎöÅäÖÃÎÄ¼ş
+		//ä»¥ä¸‹æ˜¯è¿”å›
+		//è§£æé…ç½®æ–‡ä»¶
 		int (*parseConfig)(vh_data *data);
-		//½¨Á¢Á¬½Ó
+		//å»ºç«‹è¿æ¥
 		kgl_vh_connection (* createConnection)();
-		//²éÑ¯²Ù×÷,data×÷ÎªÊä³ö²ÎÊı
+		//æŸ¥è¯¢æ“ä½œ,dataä½œä¸ºè¾“å‡ºå‚æ•°
 		int (*query)(kgl_vh_stmt stmt,vh_data *data);
 		void (*freeStmt)(kgl_vh_stmt stmt);
 		void (*freeConnection)(kgl_vh_connection cn);
-		//¶ÁÈ¡²Ù×÷£¬·µ»Østmt
+		//è¯»å–æ“ä½œï¼Œè¿”å›stmt
 		kgl_vh_stmt (* loadVirtualHost)(kgl_vh_connection cn);
 		kgl_vh_stmt (* flushVirtualHost)(kgl_vh_connection cn,const char *name);
 		kgl_vh_stmt (* loadInfo)(kgl_vh_connection cn,const char *name);
-		//¸üĞÂ²Ù×÷£¬³É¹¦·µ»Ø1,´íÎó·µ»Ø0
+		//æ›´æ–°æ“ä½œï¼ŒæˆåŠŸè¿”å›1,é”™è¯¯è¿”å›0
 		int (* addVirtualHost)(kgl_vh_connection cn,vh_data *data);
 		int (* updateVirtualHost)(kgl_vh_connection cn,vh_data *data);
 		int (* delVirtualHost)(kgl_vh_connection cn,vh_data *data);
 		int (* delInfo)(kgl_vh_connection cn,vh_data *data);
 		int (* addInfo)(kgl_vh_connection cn,vh_data *data);
 		int (* delAllInfo)(kgl_vh_connection cn,vh_data *data);
-		//Á÷Á¿²Ù×÷
+		//æµé‡æ“ä½œ
 		void *(*getFlow)(kgl_vh_connection cn,const char *name);
 		int (* setFlow)(kgl_vh_connection cn,vh_data *data);
-		//ºÚ°×Ãûµ¥
+		//é»‘ç™½åå•
 		kgl_vh_stmt(*loadBlackList)(kgl_vh_connection cn);
 	};
 	int initVirtualHostModule(vh_module *ctx);

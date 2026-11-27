@@ -31,6 +31,7 @@ public:
 	KRequestQueue()
 	{
 		lock = kfiber_mutex_init();
+		max_worker = 1;
 		max_queue = 0;
 	}
 	~KRequestQueue()

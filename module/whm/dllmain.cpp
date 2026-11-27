@@ -1,4 +1,4 @@
-// dllmain.cpp : ¶¨Òå DLL Ó¦ÓÃ³ÌĞòµÄÈë¿Úµã¡£
+// dllmain.cpp : å®šä¹‰ DLL åº”ç”¨ç¨‹åºçš„å…¥å£ç‚¹ã€‚
 #include "stdafx.h"
 #include "khttpext.h"
 BOOL APIENTRY DllMain( HMODULE hModule,

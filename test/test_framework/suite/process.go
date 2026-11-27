@@ -45,7 +45,9 @@ func Init(names []string) {
 		}
 		inited_suite[s] = true
 		fmt.Printf("init suite [%s]\n", name)
-		suite.Init()
+		if err := suite.Init(); err != nil {
+			panic(fmt.Sprintf("init suite [%s] failed: %v", s, err))
+		}
 	}
 }
 func Process(names []string) {

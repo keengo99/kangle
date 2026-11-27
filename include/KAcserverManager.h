@@ -47,11 +47,14 @@ public:
 	void refreshCmd(time_t nowTime);
 	void getProcessInfo(KWStream &s);
 	void killCmdProcess(USER_T user);
+	int getCmdPortMap(KVirtualHost* vh, KString cmd, KString name, int app);
 	void dump_process(kgl::serializable *sl);
 #endif	
 	void killAllProcess(KVirtualHost* vh);
+	/* close expired idle upstream connections of server/mserver pools. */
+	void refreshPool(time_t nowTime);
 	void shutdown();
-	/* È«²¿×¼±¸ºÃÁË£¬¿ÉÒÔ¼ÓÔØËùÓĞµÄapiÁË¡£*/
+	/* å…¨éƒ¨å‡†å¤‡å¥½äº†ï¼Œå¯ä»¥åŠ è½½æ‰€æœ‰çš„apiäº†ã€‚*/
 	void loadAllApi();
 	void unloadAllApi();
 	bool remove_server(const KString &name, KString& err_msg);

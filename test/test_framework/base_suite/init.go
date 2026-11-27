@@ -1,6 +1,7 @@
 package base_suite
 
 import (
+	"os"
 	"test_framework/config"
 	"test_framework/kangle"
 	"test_framework/server"
@@ -19,6 +20,8 @@ func (b *base) Init() error {
 	server.Handle("/chunk_trailer", HandleChunkUpstreamTrailer)
 	server.Handle("/chunk_trailer_1", HandleHttp1ChunkUpstreamTrailer)
 	server.Handle("/obs_fold", handle_obs_fold)
+	server.Handle("/hardening_upload", handle_hardening_upload)
+	server.Handle("/hardening_origin", handle_hardening_origin)
 	server.Handle("/chunk", HandleChunkUpstream)
 	server.Handle("/split_response", HandleSplitResponse)
 	server.Handle("/chunk_post", HandleChunkPost)
@@ -49,6 +52,16 @@ func (b *base) Init() error {
 			<chain  action='continue' >
 				<mark_flag  x_cache='1' age='1' via='1'></mark_flag>
 			</chain>
+			<chain action='continue'>
+				<acl module='host' v='proxy-rewrite.test'/>
+				<acl module='self_ports' v='9988'/>
+				<mark module='host' host='127.0.0.2' port='0s' proxy='1' rewrite='1'/>
+			</chain>
+			<chain action='continue'>
+				<acl module='host' v='rewrite-source.test'/>
+				<acl module='self_ports' v='9988|9999'/>
+				<mark module='host_rewrite' reg_host='^rewrite-source\\.test$' host='rewrite-target.test' rewrite='1'/>
+			</chain>
 			<chain  action='return' >
 				<acl_path  path='/stub_status'></acl_path>
 				<mark_stub_status  ></mark_stub_status>
@@ -70,6 +83,12 @@ func (b *base) Init() error {
 			</chain>
 			<chain  action='server:upstream_ssl' >
 				<acl_path>/upstream/ssl/*</acl_path>
+			</chain>
+			<chain  action='server:stale_upstream' >
+				<acl_path>/stale_pool</acl_path>
+			</chain>
+			<chain  action='server:chunk_upstream' >
+				<acl_path>/chunk_keepalive</acl_path>
 			</chain>
 			<chain  action='server:upstream_h2' >
 				<acl_self_port >9801</acl_self_port>
@@ -103,7 +122,16 @@ func (b *base) Init() error {
 		<host>` + config.GetLocalhost("apache") + `</host>
 		<host>` + config.GetLocalhost("apache2") + `</host>
 	</vh>
+	<vh name='rewrite_target' doc_root='www/rewrite-target' inherit='on' app='1'>
+		<host>rewrite-target.test</host>
+	</vh>
 	</config>`
+	if err := os.MkdirAll(config.Cfg.BasePath+"/www/rewrite-target", 0755); err != nil {
+		return err
+	}
+	if err := kangle.CreateFile(config.Cfg.BasePath+"/www/rewrite-target/index.html", "host-rewrite-target"); err != nil {
+		return err
+	}
 	kangle.CreateExtConfig("10", "<!--# start 10 -->\r\n<config></config>")
 	kangle.CreateExtConfig("100", "<!--# start 100 -->\r\n<config></config>")
 	return kangle.CreateExtConfig(CONFIG_FILE_NAME, str)
@@ -134,6 +162,7 @@ func init() {
 	s.AddCase("bigobj_upstream_error", "大文件缓存,源异常不可用", check_bigobj_upstream_error)
 	s.AddCase("if_range_forward", "if-range转发", check_if_range_forward)
 	s.AddCase("if_range_local", "if-range本地", check_if_range_local)
+	s.AddCase("static_precondition", "静态文件条件请求", check_static_precondition)
 	s.AddCase("not_get_cache", "not GET cache", check_not_get_cache)
 	s.AddCase("not_200_cache", "not 200 cache", check_not_200_cache)
 	s.AddCase("last_range", "大物件尾部缓存命中", check_last_range)
@@ -165,7 +194,13 @@ func init() {
 	s.AddCase("broken_no_cache", "连接中断不能缓存", check_broken_no_cache)
 	s.AddCase("disk_cache", "磁盘缓存swap out/in", check_disk_cache)
 	s.AddCase("upstream_http_protocol", "测试上游http协议解析", check_upstream_http_protocol)
+	s.AddCase("stale_pool_retry", "复用连接被上游关闭后安全重试", check_stale_pool_retry)
+	s.AddCase("chunk_upstream_keepalive", "chunked上游响应后连接复用", check_chunk_upstream_keepalive)
+	s.AddCase("http10_upstream_keepalive", "HTTP/1.0上游连接复用语义", check_http10_upstream_keepalive)
+	s.AddCase("host_mark_proxy", "请求控制host标记选择反代源", check_host_mark_proxy)
+	s.AddCase("host_rewrite_https_vhost", "HTTPS host_rewrite后重新选择本地虚拟主机", check_host_rewrite_https_vhost)
 	s.AddCase("fastcgi", "fastcgi协议测试", check_fastcgi)
+	s.AddCase("fastcgi_post", "FastCGI转发Expect及chunked请求体", check_fastcgi_post)
 	s.AddCase("obs_fold", "obs_fold测试", check_obs_fold)
 	s.AddCase("100_continue", "100-continue测试", check_100_continue)
 	s.AddCase("sub_status", "sub_status", test_stub_status)
@@ -175,5 +210,11 @@ func init() {
 	s.AddCase("flush", "upstream flush", check_flush)
 	s.AddCase("big_request_header", "big http11 request header", check_big_request_header)
 	s.AddCase("config_server", "config server changed", check_config_server)
+	s.AddCase("http2_ping_ack", "HTTP/2 PING ACK 回显载荷", check_http2_ping_ack)
+	s.AddCase("http2_ping_flood", "HTTP/2 PING 只发不读应断开且服务仍存活", check_http2_ping_flood)
+	s.AddCase("http2_invalid_request", "HTTP/2 非法请求头只重置stream且服务仍存活", check_http2_invalid_request)
+	s.AddCase("http2_unread_body", "响应完成时重置未读请求体以及分片trailer生命周期", check_http2_unread_body)
+	s.AddCase("http1_request_smuggling", "HTTP/1 chunk长度溢出、头名空白、超长trailer要拒绝", check_http1_request_smuggling)
+	s.AddCase("http1_trailer_limits", "请求和上游trailer的长度和条数限制", check_http1_trailer_limits)
 	s.AddCase("bug", "bug", check_bug)
 }

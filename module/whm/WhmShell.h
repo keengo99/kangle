@@ -1,11 +1,11 @@
 #ifndef WHMSHELL_H
 #define WHMSHELL_H
 /**
-* whmshell ��
-* ͨ��whm������ɼ򵥵���������Ĺ��ܡ����httpЭ���ص㣬��֧��ͬ�����첽���ֵ��÷�ʽ��
-* �첽���ò��õ�������ɼ��ɷ��أ�֮��ͨ�����ò�ѯ�����ѯ���ȼ�������Ϣ
-* �﷨:
-* <extend name='����' type='whmshell' model='<async|sync>'/>
+* whmshell 类
+* 通过whm调用完成简单的批量命令的功能。针对http协议特点，可支持同步和异步两种调用方式。
+* 异步调用不用等命令完成即可返回，之后通过调用查询命令查询进度及返回信息
+* 语法:
+* <extend name='名字' type='whmshell' model='<async|sync>'/>
 * <commands [condition='condition'] [stdin='file'] [stdout='file'] [stderr='file'] [daemon='on|off'] runas='<system|user>'>
 * <command>command</command>
 * ...
@@ -47,7 +47,7 @@ private:
 	KMutex lock;
 	unsigned index;
 	std::map<KString,WhmShellContext *> context;
-	//�Ѿ����н������ȴ�flush�ͽ�����shell context
+	//已经运行结束，等待flush就结束的shell context
 	WhmShellContext *head;
 	WhmShellContext *end;
 

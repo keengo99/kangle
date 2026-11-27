@@ -48,21 +48,21 @@ void release_obj(KHttpObject *obj);
 void dead_all_obj();
 void caculateCacheSize(INT64 &csize,INT64 &cdsize,INT64 &hsize,INT64 &hdsize);
 
-//ÄÚÈİ¹ıÂËÁ´¸üĞÂÊ±
+//å†…å®¹è¿‡æ»¤é“¾æ›´æ–°æ—¶
 //void change_content_filter(int flag = GLOBAL_KEY_CHECKED, KVirtualHost *vh =
 //		NULL);
 inline bool objCanCache(KHttpRequest *rq,KHttpObject *obj)
 {
 	if (conf.default_cache == 0) {
-		//Ä¬ÈÏ²»»º´æ²¢ÇÒÒ²Ã»ÓĞËµÃ÷Òª»º´æµÄ
+		//é»˜è®¤ä¸ç¼“å­˜å¹¶ä¸”ä¹Ÿæ²¡æœ‰è¯´æ˜è¦ç¼“å­˜çš„
 		return false;
 	}
 	if (KBIT_TEST(rq->sink->data.flags,RQ_HAS_AUTHORIZATION)) {
-		//Èç¹ûÊÇÓĞÈÏÖ¤ÓÃ»§µÄ±ØĞëÒª»ØÔ´ÑéÖ¤¡£
+		//å¦‚æœæ˜¯æœ‰è®¤è¯ç”¨æˆ·çš„å¿…é¡»è¦å›æºéªŒè¯ã€‚
 		KBIT_SET(obj->index.flags,OBJ_MUST_REVALIDATE);
 	}
 	if (KBIT_TEST(obj->index.flags,FLAG_DEAD|ANSW_NO_CACHE)) {
-		//ËÀÎï¼şºÍ±ê¼ÇÎª²»»º´æµÄ
+		//æ­»ç‰©ä»¶å’Œæ ‡è®°ä¸ºä¸ç¼“å­˜çš„
 		return false;
 	}
 	return true;

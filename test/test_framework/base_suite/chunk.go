@@ -89,6 +89,7 @@ func HandleChunkUpstreamTrailer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("x-trailer-test", "hello")
 }
 func HandleHttp1ChunkUpstreamTrailer(w http.ResponseWriter, r *http.Request) {
+	io.Copy(io.Discard, r.Body)
 	hj, _ := w.(http.Hijacker)
 	cn, wb, _ := hj.Hijack()
 	strs := `HTTP/1.1 200 OK
@@ -106,6 +107,7 @@ Network
 x-trailer-test: hello
 
 `
+	strs = strings.ReplaceAll(strs, "\n", "\r\n")
 	tmp, _ := strconv.ParseInt(r.FormValue("s"), 10, 32)
 	s := int(tmp)
 	if s == 0 {
@@ -129,6 +131,7 @@ x-trailer-test: hello
 	cn.Close()
 }
 func HandleChunkUpstream(w http.ResponseWriter, r *http.Request) {
+	io.Copy(io.Discard, r.Body)
 	hj, _ := w.(http.Hijacker)
 	cn, wb, _ := hj.Hijack()
 	wb.WriteString("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n2\r\nok\r\n0\r\n\r\n")
@@ -148,7 +151,7 @@ func check_post_chunk_trailer_with_path(path string) {
 	h := &headerReader{
 		reader: strings.NewReader("body"),
 		md5:    md5.New(),
-		header: http.Header{"md5": nil, "size": []string{strconv.Itoa(len("body"))}},
+		header: http.Header{"Md5": nil, "Size": []string{strconv.Itoa(len("body"))}},
 	}
 	url := config.GetUrl("localhost", path)
 
@@ -158,6 +161,11 @@ func check_post_chunk_trailer_with_path(path string) {
 	}
 	req.ContentLength = -1
 	req.Trailer = h.header
+	if config.Cfg.Alpn == config.HTTP3 {
+		// quic-go v0.48's RoundTripper does not send request trailers.
+		common.AssertSame(common.H3TrailerRequest(req), "ok")
+		return
+	}
 	resp, err := common.GetClient(url).Do(req)
 	if err != nil {
 		panic(err)
@@ -196,10 +204,6 @@ func check_split_upstream_chunk_trailer(split int) {
 	})
 }
 func check_chunk_trailer() {
-	if config.Cfg.Alpn == config.HTTP3 {
-		fmt.Printf("http3 current is not support trailer. skip test..\n")
-		return
-	}
 	check_split_upstream_chunk_trailer(0)
 	check_split_upstream_chunk_trailer(2)
 	check_post_chunk_trailer_with_path("/upstream/http/post_chunk_trailer")

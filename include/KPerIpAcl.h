@@ -19,6 +19,7 @@
 #define KPERIPACL_H_
 #include<string>
 #include<map>
+#include<set>
 #include "ksocket.h"
 #include "KAcl.h"
 #include "KXml.h"
@@ -28,6 +29,7 @@ struct KPerIpCallBackData
 {
 	char *ip;
 	KPerIpAcl *mark;
+	kgl_pool_t* connection_pool;
 };
 void per_ip_mark_call_back(void *data);
 class KPerIpAcl: public KAcl {
@@ -42,6 +44,8 @@ public:
 		KPerIpCallBackData *cd = new KPerIpCallBackData;
 		cd->ip = strdup(ip);
 		cd->mark = this;
+		cd->connection_pool = rq->sink->get_connection_pool();
+		active_connections.insert(cd->connection_pool);
 		add_ref();
 		rq->registerConnectCleanHook(per_ip_mark_call_back,cd);
 	}
@@ -50,6 +54,10 @@ public:
 		std::map<char *, unsigned,lessp>::iterator it_ip;
 		bool matched = false;
 		ip_lock.Lock();
+		if (active_connections.find(rq->sink->get_connection_pool()) != active_connections.end()) {
+			ip_lock.Unlock();
+			return false;
+		}
 		it_ip = ip_map.find((char *)ip);
 		if (it_ip == ip_map.end()) {
 			if (1 > max_per_ip) {
@@ -93,6 +101,7 @@ public:
 private:
 	KMutex ip_lock;
 	std::map<char *, unsigned,lessp> ip_map;
+	std::set<kgl_pool_t*> active_connections;
 	unsigned max_per_ip;
 };
 

@@ -13,7 +13,7 @@
 #include "global.h"
 #include "utils.h"
 /*
- * .htaccess½âÎöÄ£¿é
+ * .htaccessè§£ææ¨¡å—
  */
 class KApacheConfig;
 class KHtModule {

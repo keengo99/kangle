@@ -48,7 +48,7 @@ bool KMultiAcserver::on_config_event(kconfig::KConfigTree* tree, kconfig::KConfi
 				break;
 			}
 			KSockPoolHelper* node = new KSockPoolHelper;
-			if (node->parse(body->attributes)) {
+			if (node->parse(body->attributes, default_life_time())) {
 				addNode(node);
 			} else {
 				node->release();
@@ -209,7 +209,12 @@ static KUpstream* connect_result(KHttpRequest* rq, KSockPoolHelper* sa, int cook
 		rq->response_header(_KS("Set-Cookie"), b.buf(), b.size());
 	}
 	rq->ctx.upstream_sign = sa->sign;
-	KUpstream* us = sa->get_upstream(rq->get_upstream_flags(), rq->sink->data.raw_url.host);
+	const char* sni_host = rq->sink->data.raw_url.host;
+	if (!KBIT_TEST(rq->ctx.filter_flags, RF_PROXY_RAW_URL)
+		&& KBIT_TEST(rq->sink->data.raw_url.flags, KGL_URL_REWRITED)) {
+		sni_host = rq->sink->data.url->host;
+	}
+	KUpstream* us = sa->get_upstream(rq->get_upstream_flags(), sni_host);
 	sa->release();
 	return us;
 }
@@ -237,7 +242,7 @@ void KMultiAcserver::dump(kgl::serializable* sl) {
 		assert(node);
 		auto sl_node = sl->add_obj_array("nodes");
 		if (!sl_node) {
-			continue;
+			break;
 		}
 		node->dump(sl_node,true);
 		node = node->next;
@@ -252,7 +257,7 @@ KUpstream* KMultiAcserver::GetUpstream(KHttpRequest* rq) {
 	if (!vnodes.empty()) {
 		uint16_t index = getNodeIndex(rq, &set_cookie_stick);
 		sockHelper = vnodes[index];
-		if (sockHelper->is_enabled()) {
+		if (sockHelper->is_available()) {
 			//the node is active
 			sockHelper->addRef();
 			lock.Unlock();
@@ -285,6 +290,14 @@ KUpstream* KMultiAcserver::GetUpstream(KHttpRequest* rq) {
 		lock.Unlock();
 		return connect_result(rq, fast_node, 0);
 	}
+	// Disabled backup nodes need the same timed recovery probe as primaries.
+	for (auto bnode : bnodes) {
+		if (bnode->is_available()) {
+			bnode->addRef();
+			lock.Unlock();
+			return connect_result(rq, bnode, 0);
+		}
+	}
 #ifdef ENABLE_MSERVER_ICP
 	if (icp) {
 		//use icp
@@ -308,30 +321,16 @@ KUpstream* KMultiAcserver::GetUpstream(KHttpRequest* rq) {
 }
 
 KSockPoolHelper* KMultiAcserver::nextActiveNode(KSockPoolHelper* node, unsigned short& index) {
-	KSockPoolHelper* helper = node;
+	//walk vnodes (backup nodes are not in vnodes), so index always points to the returned node.
+	size_t count = vnodes.size();
 	bool use_next = (index & 1) > 0;
-	while (helper) {
-		KSockPoolHelper* n = (use_next) ? helper->next : helper->prev;
-		if (use_next) {
-			if (index >= vnodes.size() - 1) {
-				index = 0;
-			} else {
-				index++;
-			}
-		} else {
-			if (index == 0) {
-				index = (unsigned short)vnodes.size() - 1;
-			} else {
-				index--;
-			}
-		}
-		if (!helper->disable_flag) {
+	for (size_t i = 1; i < count; i++) {
+		size_t pos = use_next ? (index + i) % count : (index + count - i) % count;
+		KSockPoolHelper* helper = vnodes[pos];
+		if (helper != node && helper->is_available()) {
+			index = (unsigned short)pos;
 			return helper;
 		}
-		if (n == node) {
-			return NULL;
-		}
-		helper = n;
 	}
 	return NULL;
 }
@@ -341,7 +340,7 @@ unsigned KMultiAcserver::getPoolSize() {
 }
 bool KMultiAcserver::addNode(const KXmlAttribute& attr) {
 	KSockPoolHelper* sockHelper = new KSockPoolHelper;
-	if (!sockHelper->parse(attr)) {
+	if (!sockHelper->parse(attr, default_life_time())) {
 		delete sockHelper;
 		return false;
 	}
@@ -367,12 +366,22 @@ bool KMultiAcserver::addNode(KXmlAttribute& attr, char* self_ip) {
 		}
 		uint32_t min_ip = ntohl(min_addr.v4.sin_addr.s_addr);
 		uint32_t max_ip = ntohl(max_addr.v4.sin_addr.s_addr);
-		for (uint32_t ip = min_ip; ip <= max_ip; ip++) {
-			min_addr.v4.sin_addr.s_addr = htonl(ip);
+		if (min_ip > max_ip) {
+			return false;
+		}
+		//用64位计数，避免max_ip为255.255.255.255时回绕死循环
+		for (uint64_t ip = min_ip; ip <= max_ip; ip++) {
+			min_addr.v4.sin_addr.s_addr = htonl((uint32_t)ip);
 			char ips[MAXIPLEN];
 			ksocket_sockaddr_ip(&min_addr, ips, sizeof(ips));
 			//KSocket::make_ip(&min_addr, ips, MAXIPLEN);
-			attr.emplace("self_ip", ips);
+			//std::map::emplace不会覆盖已有的self_ip(原始的范围字符串)
+			auto it = attr.find("self_ip");
+			if (it != attr.end()) {
+				(*it).second = ips;
+			} else {
+				attr.emplace("self_ip", ips);
+			}
 			addNode(attr);
 		}
 		return true;
@@ -387,7 +396,7 @@ bool KMultiAcserver::editNode(KXmlAttribute& attr) {
 		KSockPoolHelper* node = getIndexNode(id);
 		if (node) {
 			node->weight = atoi(attr["weight"].c_str());
-			node->parse(attr);
+			node->parse(attr, default_life_time());
 			buildVNode();
 		}
 		lock.Unlock();
@@ -444,7 +453,11 @@ void  KMultiAcserver::nodeForm(KWStream& s, const KString &name, KMultiAcserver*
 		s << helper->get_port();
 	}
 	s << "'><br>";
-	s << klang["lang_life_time"] << ": <input name='life_time' size=6 value='" << (helper ? helper->getLifeTime() : 0) << "'><br>";
+	s << klang["lang_life_time"] << ": <input name='life_time' size=6 value='";
+	if (helper) {
+		s << helper->getLifeTime();
+	}
+	s << "'><br>";
 
 #ifdef HTTP_PROXY
 	s << LANG_USER << ": <input name='auth_user' value='"
@@ -515,6 +528,18 @@ void KMultiAcserver::shutdown() {
 	KSockPoolHelper* node = nodes;
 	while (node) {
 		node->shutdown();
+		node = node->next;
+		if (node == nodes) {
+			break;
+		}
+	}
+	lock.Unlock();
+}
+void KMultiAcserver::refresh_pool(time_t now_time) {
+	lock.Lock();
+	KSockPoolHelper* node = nodes;
+	while (node) {
+		node->refresh(now_time);
 		node = node->next;
 		if (node == nodes) {
 			break;

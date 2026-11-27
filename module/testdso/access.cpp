@@ -57,7 +57,7 @@ static uint32_t process(KREQUEST rq, kgl_access_context *ctx, DWORD notify)
 			return KF_STATUS_REQ_TRUE;
 		}
 		if (strcmp(buf, "/read_hup") == 0) {
-			//ÕâÀïÒªsleepÒ»ÏÂ£¬ÒÔ±ãÔì³Éssl¶ÁµÄÊ±ºò²úÉúpendingÊı¾İ£¬²âÊÔĞèÒª
+			//è¿™é‡Œè¦sleepä¸€ä¸‹ï¼Œä»¥ä¾¿é€ æˆsslè¯»çš„æ—¶å€™äº§ç”Ÿpendingæ•°æ®ï¼Œæµ‹è¯•éœ€è¦
 			test_context *model_ctx = new test_context(test_upload_sleep_forward);
 			register_async_upstream(rq, ctx, model_ctx);
 			return KF_STATUS_REQ_TRUE;
